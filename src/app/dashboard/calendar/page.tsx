@@ -1,152 +1,280 @@
 'use client'
-import { useState } from 'react'
-import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Star, Target, Zap, Clock, MapPin, Bell, ArrowUpRight, Activity } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/lib/auth-context'
+import { supabase } from '@/lib/supabase'
 
-const events = [
-  { date: '2026-03-15', title: 'End of Term 1 Exams Begin', type: 'exam' },
-  { date: '2026-03-22', title: 'Parent-Teacher Meeting', type: 'meeting' },
-  { date: '2026-03-28', title: 'Report Card Distribution', type: 'academic' },
-  { date: '2026-04-05', title: 'Term 2 Opens', type: 'term' },
-  { date: '2026-04-10', title: 'Sports Day', type: 'event' },
-  { date: '2026-05-01', title: 'Labour Day - Holiday', type: 'holiday' },
-]
+interface SchoolEvent {
+  id: string
+  title: string
+  description: string | null
+  event_type: 'exam' | 'meeting' | 'holiday' | 'event' | 'academic'
+  start_date: string
+  end_date: string | null
+}
 
 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
-const typeColors: Record<string, { bg: string, text: string, glow: string }> = {
-  exam: { bg: 'bg-red-50/50', text: 'text-red-700', glow: 'shadow-red-500/20' },
-  meeting: { bg: 'bg-blue-50/50', text: 'text-blue-700', glow: 'shadow-blue-500/20' },
-  holiday: { bg: 'bg-emerald-50/50', text: 'text-emerald-700', glow: 'shadow-emerald-500/20' },
-  academic: { bg: 'bg-purple-50/50', text: 'text-purple-700', glow: 'shadow-purple-500/20' },
-  term: { bg: 'bg-amber-50/50', text: 'text-amber-700', glow: 'shadow-amber-500/20' },
-  event: { bg: 'bg-indigo-50/50', text: 'text-indigo-700', glow: 'shadow-indigo-500/20' },
+const typeColors: Record<string, { bg: string, text: string }> = {
+  exam: { bg: 'bg-red-100', text: 'text-red-700' },
+  meeting: { bg: 'bg-blue-100', text: 'text-blue-700' },
+  holiday: { bg: 'bg-green-100', text: 'text-green-700' },
+  academic: { bg: 'bg-purple-100', text: 'text-purple-700' },
+  event: { bg: 'bg-yellow-100', text: 'text-yellow-700' },
 }
 
 export default function CalendarPage() {
-  const [currentMonth, setCurrentMonth] = useState(2)
-  const currentYear = 2026
+  const { school } = useAuth()
+  const [events, setEvents] = useState<SchoolEvent[]>([])
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
+  const currentYear = new Date().getFullYear()
+  const [loading, setLoading] = useState(true)
+  const [showModal, setShowModal] = useState(false)
+  const [newEvent, setNewEvent] = useState({
+    title: '',
+    description: '',
+    event_type: 'event' as 'exam' | 'meeting' | 'holiday' | 'event' | 'academic',
+    start_date: '',
+    end_date: '',
+  })
+
+  useEffect(() => {
+    fetchEvents()
+  }, [school?.id])
+
+  const fetchEvents = async () => {
+    if (!school?.id) return
+    try {
+      const { data } = await supabase
+        .from('events')
+        .select('*')
+        .eq('school_id', school.id)
+        .order('start_date')
+      setEvents(data || [])
+    } catch (err) {
+      console.error('Error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAddEvent = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!school?.id) return
+
+    try {
+      await supabase.from('events').insert({
+        school_id: school.id,
+        title: newEvent.title,
+        description: newEvent.description || null,
+        event_type: newEvent.event_type,
+        start_date: newEvent.start_date,
+        end_date: newEvent.end_date || null,
+      })
+      setShowModal(false)
+      setNewEvent({ title: '', description: '', event_type: 'event', start_date: '', end_date: '' })
+      fetchEvents()
+    } catch (err) {
+      console.error('Error:', err)
+    }
+  }
 
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
   const firstDay = new Date(currentYear, currentMonth, 1).getDay()
 
+  const getEventsForDate = (dateStr: string) => {
+    return events.filter(e => e.start_date === dateStr)
+  }
+
   return (
-    <div className="space-y-12 pb-24 animate-fade-in relative z-10">
+    <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <div className="flex items-center gap-3 mb-3">
-             <div className="w-8 h-8 rounded-lg bg-primary-800 flex items-center justify-center shadow-lg shadow-primary-500/20">
-               <CalendarIcon className="w-4 h-4 text-white fill-white" />
-             </div>
-             <span className="text-[10px] font-black text-primary-800 uppercase tracking-[4px]">Institutional Timeline</span>
-          </div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight">Scholastic Calendar</h1>
-          <p className="text-gray-400 font-bold mt-2 text-base max-w-lg">Manage weekly protocols, academic milestones, and temporal events.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Calendar</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Manage school events and schedules</p>
         </div>
-        <button className="h-14 px-8 bg-primary-800 text-white rounded-2xl font-black text-xs uppercase tracking-[2px] flex items-center gap-3 hover:bg-black transition-all shadow-xl shadow-primary-800/30 active:scale-95">
-          <Plus className="w-5 h-5" /> Schedule Protocol
+        <button onClick={() => setShowModal(true)} className="btn btn-primary">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Add Event
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Supreme Calendar Matrix */}
-        <div className="lg:col-span-2 bg-white/70 backdrop-blur-xl rounded-[64px] border border-white/60 shadow-2xl shadow-gray-200/20 p-10">
-          <div className="flex items-center justify-between mb-12">
-             <div className="flex items-center gap-4">
-                <button 
-                  onClick={() => setCurrentMonth(Math.max(0, currentMonth - 1))} 
-                  className="w-12 h-12 bg-white border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-primary-800 shadow-xl shadow-gray-200/5 hover:shadow-2xl transition-all active:scale-95"
-                >
-                  <ChevronLeft className="w-6 h-6" />
-                </button>
-                <div className="px-6 py-3 bg-gray-50/50 rounded-2xl border border-gray-100">
-                   <h2 className="text-xl font-black text-gray-900 tracking-tight">{months[currentMonth]} {currentYear}</h2>
-                </div>
-                <button 
-                  onClick={() => setCurrentMonth(Math.min(11, currentMonth + 1))} 
-                  className="w-12 h-12 bg-white border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-primary-800 shadow-xl shadow-gray-200/5 hover:shadow-2xl transition-all active:scale-95"
-                >
-                  <ChevronRight className="w-6 h-6" />
-                </button>
-             </div>
-             <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-primary-800 shadow-[0_0_8px_rgba(31,41,55,0.3)] animate-pulse" />
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Temporal Sync Ready</span>
-             </div>
-          </div>
+      {/* Month Navigation */}
+      <div className="flex items-center justify-between mb-6">
+        <button onClick={() => setCurrentMonth(Math.max(0, currentMonth - 1))} className="btn btn-secondary btn-sm">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Previous
+        </button>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">{months[currentMonth]} {currentYear}</h2>
+        <button onClick={() => setCurrentMonth(Math.min(11, currentMonth + 1))} className="btn btn-secondary btn-sm">
+          Next
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
 
-          <div className="grid grid-cols-7 gap-4 mb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Calendar Grid */}
+        <div className="lg:col-span-2 card">
+          {/* Day Headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-              <div key={d} className="text-center text-[11px] font-black text-gray-400 uppercase tracking-[3px] py-4">{d}</div>
+              <div key={d} className="text-center text-xs font-semibold text-gray-500 dark:text-gray-400 py-2">{d}</div>
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-4">
-            {Array.from({ length: firstDay }, (_, i) => <div key={`e-${i}`} />)}
+          {/* Calendar Days */}
+          <div className="grid grid-cols-7 gap-1">
+            {Array.from({ length: firstDay }, (_, i) => <div key={`e-${i}`} className="h-20" />)}
             {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
               const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-              const dayEvents = events.filter((e) => e.date === dateStr)
-              const isToday = day === 22 && currentMonth === 2
+              const dayEvents = getEventsForDate(dateStr)
+              const isToday = day === new Date().getDate() && currentMonth === new Date().getMonth()
+              
               return (
-                <div key={day} className={`min-h-[120px] p-4 rounded-[32px] border transition-all duration-500 overflow-hidden group ${isToday ? 'bg-primary-800 border-primary-700 shadow-2xl shadow-primary-500/30' : 'bg-white/50 border-gray-50 hover:bg-white hover:border-white hover:shadow-xl'}`}>
-                  <div className={`text-base font-black ${isToday ? 'text-white' : 'text-gray-400 group-hover:text-primary-800'} transition-smooth`}>{day}</div>
-                  <div className="mt-3 space-y-1.5">
-                    {dayEvents.map((evt: any, i) => (
-                      <div key={i} className={`text-[9px] px-3 py-1.5 rounded-xl truncate font-black uppercase tracking-widest shadow-sm ${isToday ? 'bg-white/10 text-white' : `${typeColors[evt.type]?.bg} ${typeColors[evt.type]?.text} ${typeColors[evt.type]?.glow}`}`}>
+                <div 
+                  key={day} 
+                  className={`min-h-[80px] p-1 rounded-lg border transition-colors ${
+                    isToday 
+                      ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700' 
+                      : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <div className={`text-sm font-medium mb-1 ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                    {day}
+                  </div>
+                  <div className="space-y-0.5">
+                    {dayEvents.slice(0, 2).map((evt) => (
+                      <div 
+                        key={evt.id} 
+                        className={`text-[10px] px-1 py-0.5 rounded truncate font-medium ${
+                          typeColors[evt.event_type]?.bg || 'bg-gray-100'
+                        } ${typeColors[evt.event_type]?.text || 'text-gray-700'} dark:bg-opacity-20`}
+                      >
                         {evt.title}
                       </div>
                     ))}
+                    {dayEvents.length > 2 && (
+                      <div className="text-[10px] text-gray-500 dark:text-gray-400">+{dayEvents.length - 2} more</div>
+                    )}
                   </div>
-                  {isToday && (
-                    <div className="absolute -bottom-4 -right-4 w-12 h-12 bg-white/10 rounded-full blur-xl animate-pulse" />
-                  )}
                 </div>
               )
             })}
           </div>
         </div>
 
-        {/* Upcoming Protocols Panel */}
-        <div className="space-y-8 lg:col-span-1">
-          <div className="bg-white/70 backdrop-blur-xl rounded-[48px] border border-white/60 shadow-2xl shadow-gray-200/20 p-10">
-            <div className="flex items-center gap-4 mb-10">
-               <div className="w-12 h-12 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-800 shadow-xl shadow-gray-200/10">
-                  <Star className="w-6 h-6 fill-primary-800" />
-               </div>
-               <h2 className="text-2xl font-black text-gray-900 tracking-tight">Upcoming</h2>
-            </div>
-            
-            <div className="space-y-6">
-              {events.map((event, i) => (
-                <div key={i} className="relative group p-6 bg-white/50 border border-transparent hover:border-white hover:bg-white rounded-[32px] transition-all duration-500 hover:shadow-2xl">
-                   <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-all">
-                      <ArrowUpRight className="w-5 h-5 text-gray-300" />
-                   </div>
-                   <div className="flex items-center gap-3 mb-3">
-                      <Clock className="w-4 h-4 text-primary-200" />
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest font-mono italic">{event.date}</span>
-                   </div>
-                   <h3 className="text-base font-black text-gray-900 group-hover:text-primary-800 transition-smooth">{event.title}</h3>
-                   <div className="mt-4 flex items-center gap-2">
-                       <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-[2px] shadow-sm border ${typeColors[event.type]?.bg} ${typeColors[event.type]?.text} ${typeColors[event.type]?.glow}`}>
-                          {event.type} Protocol
-                       </span>
-                   </div>
+        {/* Upcoming Events */}
+        <div className="space-y-4">
+          <div className="card">
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Upcoming Events</h3>
+            {loading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i}>
+                    <div className="skeleton w-full h-4 mb-2" />
+                    <div className="skeleton w-3/4 h-3" />
+                  </div>
+                ))}
+              </div>
+            ) : events.length === 0 ? (
+              <p className="text-gray-500 dark:text-gray-400 text-sm">No events scheduled</p>
+            ) : (
+              <div className="space-y-3">
+                {events.slice(0, 5).map((event) => (
+                  <div key={event.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="font-medium text-gray-900 dark:text-white text-sm">{event.title}</div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {new Date(event.start_date).toLocaleDateString()}
+                      </span>
+                      <span className={`badge text-[10px] ${typeColors[event.event_type]?.bg || 'bg-gray-100'} ${typeColors[event.event_type]?.text || 'text-gray-700'}`}>
+                        {event.event_type}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Legend */}
+          <div className="card">
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Event Types</h3>
+            <div className="space-y-2">
+              {Object.entries(typeColors).map(([type, colors]) => (
+                <div key={type} className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded ${colors.bg}`} />
+                  <span className="text-sm text-gray-600 dark:text-gray-400 capitalize">{type}</span>
                 </div>
               ))}
             </div>
           </div>
-
-          <div className="bg-primary-800 rounded-[48px] p-10 text-white relative overflow-hidden group shadow-2xl shadow-primary-500/30">
-             <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-all duration-[2000ms]" />
-             <Activity className="w-10 h-10 text-white/30 mb-8" />
-             <h3 className="text-2xl font-black tracking-tight mb-3">Institutional Efficiency</h3>
-             <p className="text-primary-100/70 font-bold text-sm leading-relaxed mb-8">Maintain a high-fidelity record of all academic cycles and operational protocols.</p>
-             <button className="w-full h-16 bg-white rounded-2xl text-primary-800 font-black text-xs uppercase tracking-widest hover:bg-primary-50 transition-all shadow-xl">Audit Matrix</button>
-          </div>
         </div>
       </div>
+
+      {/* Add Event Modal */}
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Add Event</h2>
+                <button onClick={() => setShowModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <form onSubmit={handleAddEvent} className="p-6 space-y-4">
+              <div>
+                <label className="label">Event Title</label>
+                <input
+                  type="text"
+                  value={newEvent.title}
+                  onChange={(e) => setNewEvent({...newEvent, title: e.target.value})}
+                  className="input"
+                  required
+                />
+              </div>
+              <div>
+                <label className="label">Event Type</label>
+                <select value={newEvent.event_type} onChange={(e) => setNewEvent({...newEvent, event_type: e.target.value as any})} className="input">
+                  <option value="event">Event</option>
+                  <option value="exam">Exam</option>
+                  <option value="meeting">Meeting</option>
+                  <option value="holiday">Holiday</option>
+                  <option value="academic">Academic</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Start Date</label>
+                  <input type="date" value={newEvent.start_date} onChange={(e) => setNewEvent({...newEvent, start_date: e.target.value})} className="input" required />
+                </div>
+                <div>
+                  <label className="label">End Date (Optional)</label>
+                  <input type="date" value={newEvent.end_date} onChange={(e) => setNewEvent({...newEvent, end_date: e.target.value})} className="input" />
+                </div>
+              </div>
+              <div>
+                <label className="label">Description (Optional)</label>
+                <textarea value={newEvent.description} onChange={(e) => setNewEvent({...newEvent, description: e.target.value})} className="input min-h-[80px]" />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary flex-1">Cancel</button>
+                <button type="submit" className="btn btn-primary flex-1">Add Event</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
-
