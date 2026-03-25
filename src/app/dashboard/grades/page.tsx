@@ -1,10 +1,51 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useClasses, useSubjects } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
+
+interface TopicCoverage {
+  id: string
+  subject_id: string
+  class_id: string
+  topic_name: string
+  status: 'not_started' | 'in_progress' | 'completed'
+  teacher_id: string
+  date_completed?: string
+  notes?: string
+}
+
+interface UNEBReadiness {
+  student_id: string
+  student_name: string
+  student_number: string
+  subjects: Record<string, { avg: number; grade: string; ready: boolean }>
+  overall_avg: number
+  overall_grade: string
+  division: string
+  readiness_score: number
+}
+
+const NCDC_TOPICS: Record<string, string[]> = {
+  'Mathematics': [
+    'Number operations', 'Fractions and decimals', 'Percentages', 'Ratio and proportion',
+    'Algebra', 'Geometry', 'Statistics', 'Probability', 'Measurement', 'Sets'
+  ],
+  'English': [
+    'Grammar', 'Comprehension', 'Composition', 'Poetry', 'Drama', 'Novel',
+    'Literature', 'Vocabulary', 'Summary writing', 'Oral skills'
+  ],
+  'Science': [
+    'Living things', 'Materials', 'Forces and energy', 'Earth and space',
+    'Human body', 'Plants', 'Animals', 'Water', 'Air', 'Weather'
+  ],
+  'Social Studies': [
+    'Geography', 'History', 'Civics', 'Economics', 'Culture', 'Environment',
+    'Government', 'Trade', 'Transport', 'Communication'
+  ],
+}
 
 function getGrade(score: number) {
   if (score >= 80) return { grade: 'D1', color: 'text-green-600' }
@@ -18,114 +59,178 @@ function getGrade(score: number) {
   return { grade: 'F9', color: 'text-red-500' }
 }
 
-export default function GradesPage() {
+function getDivision(avg: number) {
+  if (avg >= 80) return 'Division I'
+  if (avg >= 60) return 'Division II'
+  if (avg >= 40) return 'Division III'
+  if (avg >= 20) return 'Division IV'
+  return 'Ungraded'
+}
+
+export default function CurriculumPage() {
   const { school, user } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
   const toast = useToast()
-  const { classes, loading: classesLoading } = useClasses(school?.id)
+  const { classes } = useClasses(school?.id)
   const { subjects } = useSubjects(school?.id)
+  
+  const [tab, setTab] = useState<'coverage' | 'readiness' | 'syllabus'>('coverage')
   const [selectedClass, setSelectedClass] = useState('')
   const [selectedSubject, setSelectedSubject] = useState('')
-  const [assessmentType, setAssessmentType] = useState('ca1')
-  const [students, setStudents] = useState<Array<{id: string, first_name: string, last_name: string, student_number: string}>>([])
-  const [gradesData, setGradesData] = useState<Record<string, number>>({})
+  const [coverage, setCoverage] = useState<TopicCoverage[]>([])
+  const [students, setStudents] = useState<any[]>([])
+  const [grades, setGrades] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
-  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    async function fetchData() {
-      if (!selectedClass || !selectedSubject || !school?.id) return
-
-      try {
-        setLoading(true)
-
-        const { data: studentsData } = await supabase
-          .from('students')
-          .select('*')
-          .eq('school_id', school.id)
-          .eq('class_id', selectedClass)
-          .eq('status', 'active')
-          .order('first_name')
-
-        setStudents(studentsData || [])
-
-        const { data: gradesData } = await supabase
-          .from('grades')
-          .select('*')
-          .eq('class_id', selectedClass)
-          .eq('subject_id', selectedSubject)
-          .eq('term', currentTerm)
-          .eq('academic_year', academicYear)
-
-        const gradesMap: Record<string, number> = {}
-        gradesData?.forEach((g: {student_id: string, assessment_type: string, score: number}) => {
-          const key = `${g.student_id}_${g.assessment_type}`
-          gradesMap[key] = Number(g.score)
-        })
-        setGradesData(gradesMap)
-      } catch (err) {
-        console.error('Error:', err)
-      } finally {
-        setLoading(false)
-      }
+    if (selectedClass && selectedSubject) {
+      fetchCoverage()
+      fetchGrades()
     }
+  }, [selectedClass, selectedSubject, currentTerm, academicYear])
 
-    fetchData()
-  }, [selectedClass, selectedSubject, school?.id, currentTerm, academicYear])
+  useEffect(() => {
+    if (selectedClass) {
+      fetchStudents()
+    }
+  }, [selectedClass])
 
-  const updateGrade = async (studentId: string, value: number) => {
-    if (!user?.id || !selectedClass || !selectedSubject) return
-
-    const key = `${studentId}_${assessmentType}`
-    setGradesData(prev => ({ ...prev, [key]: value }))
-
+  const fetchCoverage = async () => {
     try {
-      setSaving(true)
-      const { error } = await supabase
-        .from('grades')
-        .upsert({
-          student_id: studentId,
-          subject_id: selectedSubject,
-          class_id: selectedClass,
-          assessment_type: assessmentType,
-          score: value,
-          max_score: 100,
-          term: currentTerm,
-          academic_year: academicYear,
-          recorded_by: user.id,
-        }, { onConflict: 'student_id,subject_id,assessment_type,term,academic_year' })
-
-      if (error) throw error
+      setLoading(true)
+      const { data } = await supabase
+        .from('topic_coverage')
+        .select('*')
+        .eq('class_id', selectedClass)
+        .eq('subject_id', selectedSubject)
+        .eq('term', currentTerm)
+        .eq('academic_year', academicYear)
+      
+      setCoverage(data || [])
     } catch (err) {
-      console.error('Error saving grade:', err)
+      console.error('Error fetching coverage:', err)
     } finally {
-      setSaving(false)
+      setLoading(false)
     }
   }
 
-  const getStudentGrade = (studentId: string, field: string) => {
-    return gradesData[`${studentId}_${field}`] || 0
+  const fetchStudents = async () => {
+    try {
+      const { data } = await supabase
+        .from('students')
+        .select('*')
+        .eq('class_id', selectedClass)
+        .eq('status', 'active')
+        .order('first_name')
+      setStudents(data || [])
+    } catch (err) {
+      console.error('Error:', err)
+    }
   }
 
-  const getStudentAverage = (studentId: string) => {
-    const ca1 = getStudentGrade(studentId, 'ca1')
-    const ca2 = getStudentGrade(studentId, 'ca2')
-    const ca3 = getStudentGrade(studentId, 'ca3')
-    const ca4 = getStudentGrade(studentId, 'ca4')
-    const project = getStudentGrade(studentId, 'project')
-    const exam = getStudentGrade(studentId, 'exam')
-    
-    const caAvg = (ca1 + ca2 + ca3 + ca4 + project) / 5
-    return Math.round((caAvg * 0.8) + (exam * 0.2))
+  const fetchGrades = async () => {
+    try {
+      const { data } = await supabase
+        .from('grades')
+        .select('*, subjects(name)')
+        .eq('class_id', selectedClass)
+        .eq('term', currentTerm)
+        .eq('academic_year', academicYear)
+      setGrades(data || [])
+    } catch (err) {
+      console.error('Error:', err)
+    }
   }
+
+  const updateTopicStatus = async (topicName: string, status: 'not_started' | 'in_progress' | 'completed') => {
+    try {
+      const existing = coverage.find(c => c.topic_name === topicName)
+      
+      if (existing) {
+        await supabase
+          .from('topic_coverage')
+          .update({ status, date_completed: status === 'completed' ? new Date().toISOString() : null })
+          .eq('id', existing.id)
+      } else {
+        await supabase
+          .from('topic_coverage')
+          .insert({
+            subject_id: selectedSubject,
+            class_id: selectedClass,
+            topic_name: topicName,
+            status,
+            teacher_id: user?.id,
+            term: currentTerm,
+            academic_year: academicYear,
+            date_completed: status === 'completed' ? new Date().toISOString() : null,
+          })
+      }
+      
+      fetchCoverage()
+      toast.success('Topic status updated')
+    } catch (err) {
+      toast.error('Failed to update')
+    }
+  }
+
+  const getTopicStatus = (topicName: string): string => {
+    return coverage.find(c => c.topic_name === topicName)?.status || 'not_started'
+  }
+
+  // Calculate UNEB readiness
+  const readinessData: UNEBReadiness[] = useMemo(() => {
+    return students.map(student => {
+      const studentGrades = grades.filter(g => g.student_id === student.id)
+      const subjectScores: Record<string, { avg: number; grade: string; ready: boolean }> = {}
+      
+      subjects.forEach(subject => {
+        const subjectGrades = studentGrades.filter(g => g.subject_id === subject.id)
+        const scores = subjectGrades.map(g => Number(g.score || 0))
+        const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0
+        const gradeInfo = getGrade(avg)
+        subjectScores[subject.name] = {
+          avg: Math.round(avg),
+          grade: gradeInfo.grade,
+          ready: avg >= 50
+        }
+      })
+
+      const allScores = Object.values(subjectScores).map(s => s.avg)
+      const overallAvg = allScores.length > 0 ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : 0
+      const readyCount = Object.values(subjectScores).filter(s => s.ready).length
+      const readinessScore = allScores.length > 0 ? Math.round((readyCount / allScores.length) * 100) : 0
+
+      return {
+        student_id: student.id,
+        student_name: `${student.first_name} ${student.last_name}`,
+        student_number: student.student_number || '',
+        subjects: subjectScores,
+        overall_avg: overallAvg,
+        overall_grade: getGrade(overallAvg).grade,
+        division: getDivision(overallAvg),
+        readiness_score: readinessScore,
+      }
+    }).sort((a, b) => b.readiness_score - a.readiness_score)
+  }, [students, grades, subjects])
+
+  const selectedSubjectName = subjects.find(s => s.id === selectedSubject)?.name || ''
+  const topics = NCDC_TOPICS[selectedSubjectName] || ['Topic 1', 'Topic 2', 'Topic 3', 'Topic 4', 'Topic 5']
+
+  const coverageStats = useMemo(() => {
+    const total = topics.length
+    const completed = topics.filter(t => getTopicStatus(t) === 'completed').length
+    const inProgress = topics.filter(t => getTopicStatus(t) === 'in_progress').length
+    return { total, completed, inProgress, percentage: total > 0 ? Math.round((completed / total) * 100) : 0 }
+  }, [topics, coverage])
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Grades</h1>
-        <p className="text-gray-500 mt-1">Enter and manage student marks</p>
+        <h1 className="text-2xl font-bold text-gray-900">Curriculum & Analytics</h1>
+        <p className="text-gray-500 mt-1">Track syllabus coverage and UNEB readiness</p>
       </div>
 
+      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input sm:w-48">
           <option value="">Select Class</option>
@@ -135,92 +240,190 @@ export default function GradesPage() {
           <option value="">Select Subject</option>
           {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
-        <select value={assessmentType} onChange={(e) => setAssessmentType(e.target.value)} className="input sm:w-40">
-          <option value="ca1">CA 1</option>
-          <option value="ca2">CA 2</option>
-          <option value="ca3">CA 3</option>
-          <option value="ca4">CA 4</option>
-          <option value="project">Project</option>
-          <option value="exam">Exam</option>
-        </select>
       </div>
 
-      {!selectedClass || !selectedSubject ? (
+      {/* Tabs */}
+      <div className="tabs mb-6">
+        <button onClick={() => setTab('coverage')} className={`tab ${tab === 'coverage' ? 'active' : ''}`}>
+          Topic Coverage
+        </button>
+        <button onClick={() => setTab('readiness')} className={`tab ${tab === 'readiness' ? 'active' : ''}`}>
+          UNEB Readiness
+        </button>
+        <button onClick={() => setTab('syllabus')} className={`tab ${tab === 'syllabus' ? 'active' : ''}`}>
+          Syllabus Progress
+        </button>
+      </div>
+
+      {!selectedClass ? (
         <div className="empty-state">
           <div className="empty-state-icon">
             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Select class and subject</h3>
-          <p className="text-gray-500">Choose a class and subject to enter grades</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Select a class</h3>
+          <p className="text-gray-500">Choose a class to view curriculum data</p>
         </div>
-      ) : loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="card">
-              <div className="skeleton w-full h-8" />
+      ) : tab === 'coverage' ? (
+        <div className="space-y-6">
+          {/* Coverage Stats */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="card text-center">
+              <div className="text-2xl font-bold text-green-600">{coverageStats.completed}</div>
+              <div className="text-sm text-gray-500">Topics Completed</div>
             </div>
-          ))}
-        </div>
-      ) : students.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
+            <div className="card text-center">
+              <div className="text-2xl font-bold text-yellow-600">{coverageStats.inProgress}</div>
+              <div className="text-sm text-gray-500">In Progress</div>
+            </div>
+            <div className="card text-center">
+              <div className="text-2xl font-bold text-blue-600">{coverageStats.percentage}%</div>
+              <div className="text-sm text-gray-500">Coverage</div>
+            </div>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No students in this class</h3>
-          <p className="text-gray-500">Add students to this class first</p>
-        </div>
-      ) : (
-        <div className="table-wrapper">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Student</th>
-                <th>Score</th>
-                <th>Grade</th>
-              </tr>
-            </thead>
-            <tbody>
-              {students.map((student) => {
-                const score = getStudentGrade(student.id, assessmentType)
-                const gradeInfo = getGrade(score)
+
+          {/* Progress Bar */}
+          <div className="card">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">Overall Coverage</span>
+              <span className="text-sm font-bold text-gray-900">{coverageStats.percentage}%</span>
+            </div>
+            <div className="progress">
+              <div className="progress-fill bg-green-500" style={{ width: `${coverageStats.percentage}%` }} />
+            </div>
+          </div>
+
+          {/* Topics List */}
+          {selectedSubject ? (
+            <div className="space-y-3">
+              {topics.map((topic) => {
+                const status = getTopicStatus(topic)
                 return (
-                  <tr key={student.id}>
-                    <td>
+                  <div key={topic} className="card">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-blue-600 font-semibold text-xs">
-                            {student.first_name?.charAt(0)}{student.last_name?.charAt(0)}
-                          </span>
-                        </div>
-                        <div>
-                          <div className="font-medium">{student.first_name} {student.last_name}</div>
-                          <div className="text-xs text-gray-500">{student.student_number}</div>
-                        </div>
+                        <div className={`w-3 h-3 rounded-full ${
+                          status === 'completed' ? 'bg-green-500' :
+                          status === 'in_progress' ? 'bg-yellow-500' : 'bg-gray-300'
+                        }`} />
+                        <span className="font-medium">{topic}</span>
                       </div>
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={score || ''}
-                        onChange={(e) => updateGrade(student.id, Number(e.target.value))}
-                        className="input w-24 text-center"
-                        placeholder="0"
-                      />
-                    </td>
-                    <td>
-                      <span className={`font-bold ${gradeInfo.color}`}>{gradeInfo.grade}</span>
-                    </td>
-                  </tr>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => updateTopicStatus(topic, 'not_started')}
+                          className={`btn btn-sm ${status === 'not_started' ? 'bg-gray-200' : 'btn-secondary'}`}
+                        >
+                          Not Started
+                        </button>
+                        <button
+                          onClick={() => updateTopicStatus(topic, 'in_progress')}
+                          className={`btn btn-sm ${status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' : 'btn-secondary'}`}
+                        >
+                          In Progress
+                        </button>
+                        <button
+                          onClick={() => updateTopicStatus(topic, 'completed')}
+                          className={`btn btn-sm ${status === 'completed' ? 'bg-green-100 text-green-700' : 'btn-secondary'}`}
+                        >
+                          Completed
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 )
               })}
-            </tbody>
-          </table>
+            </div>
+          ) : (
+            <div className="card text-center py-8">
+              <p className="text-gray-500">Select a subject to view topics</p>
+            </div>
+          )}
+        </div>
+      ) : tab === 'readiness' ? (
+        <div className="space-y-6">
+          {/* Readiness Overview */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="card text-center bg-green-50">
+              <div className="text-2xl font-bold text-green-600">
+                {readinessData.filter(s => s.readiness_score >= 80).length}
+              </div>
+              <div className="text-sm text-gray-600">Ready (80%+)</div>
+            </div>
+            <div className="card text-center bg-yellow-50">
+              <div className="text-2xl font-bold text-yellow-600">
+                {readinessData.filter(s => s.readiness_score >= 50 && s.readiness_score < 80).length}
+              </div>
+              <div className="text-sm text-gray-600">At Risk (50-79%)</div>
+            </div>
+            <div className="card text-center bg-red-50">
+              <div className="text-2xl font-bold text-red-600">
+                {readinessData.filter(s => s.readiness_score < 50).length}
+              </div>
+              <div className="text-sm text-gray-600">Not Ready (&lt;50%)</div>
+            </div>
+          </div>
+
+          {/* Student Readiness Table */}
+          <div className="table-wrapper">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Average</th>
+                  <th>Grade</th>
+                  <th>Division</th>
+                  <th>Readiness</th>
+                </tr>
+              </thead>
+              <tbody>
+                {readinessData.map((student) => (
+                  <tr key={student.student_id}>
+                    <td>
+                      <div className="font-medium">{student.student_name}</div>
+                      <div className="text-xs text-gray-500">{student.student_number}</div>
+                    </td>
+                    <td className="font-medium">{student.overall_avg}%</td>
+                    <td><span className={`font-bold ${getGrade(student.overall_avg).color}`}>{student.overall_grade}</span></td>
+                    <td className="text-gray-600">{student.division}</td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 progress">
+                          <div 
+                            className={`progress-fill ${student.readiness_score >= 80 ? 'bg-green-500' : student.readiness_score >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                            style={{ width: `${student.readiness_score}%` }}
+                          />
+                        </div>
+                        <span className="text-sm font-medium">{student.readiness_score}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="card">
+          <h3 className="font-semibold text-gray-900 mb-4">Term {currentTerm} Syllabus Progress</h3>
+          <div className="space-y-4">
+            {subjects.map(subject => {
+              const subjectGrades = grades.filter(g => g.subject_id === subject.id)
+              const avg = subjectGrades.length > 0 
+                ? Math.round(subjectGrades.reduce((s, g) => s + Number(g.score || 0), 0) / subjectGrades.length)
+                : 0
+              
+              return (
+                <div key={subject.id} className="flex items-center justify-between py-3 border-b border-gray-100">
+                  <span className="font-medium">{subject.name}</span>
+                  <div className="flex items-center gap-4">
+                    <span className={`font-bold ${getGrade(avg).color}`}>{getGrade(avg).grade}</span>
+                    <span className="text-sm text-gray-500">{avg}%</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
     </div>
