@@ -24,9 +24,8 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Dark Mode */
-.dark body,
-.dark {
+/* Dark mode body */
+.dark body {
   background-color: #111827;
   color: #f3f4f6;
 }
@@ -58,10 +57,6 @@ body {
 
 .dark ::-webkit-scrollbar-thumb {
   background: #4b5563;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
 }
 
 /* Buttons */
@@ -107,13 +102,12 @@ body {
 
 .dark .btn-secondary {
   background-color: #374151;
-  color: #f3f4f6;
+  color: #e5e7eb;
   border-color: #4b5563;
 }
 
 .dark .btn-secondary:hover:not(:disabled) {
   background-color: #4b5563;
-  border-color: #6b7280;
 }
 
 .btn-danger {
@@ -155,8 +149,8 @@ body {
 }
 
 .dark .input {
-  background-color: #1f2937;
-  border-color: #374151;
+  background-color: #374151;
+  border-color: #4b5563;
   color: #f3f4f6;
 }
 
@@ -166,7 +160,7 @@ body {
 }
 
 .dark .input::placeholder {
-  color: #6b7280;
+  color: #9ca3af;
 }
 
 select.input {
@@ -182,7 +176,7 @@ select.input {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
 }
 
-/* Cards */
+/* Cards - CRITICAL FOR DARK MODE */
 .card {
   background-color: white;
   border: 1px solid #e5e7eb;
@@ -192,8 +186,8 @@ select.input {
 }
 
 .dark .card {
-  background-color: #1f2937;
-  border-color: #374151;
+  background-color: #1f2937 !important;
+  border-color: #374151 !important;
   box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3);
 }
 
@@ -257,7 +251,7 @@ select.input {
   color: #d1d5db;
 }
 
-/* Tables */
+/* Tables - CRITICAL FOR DARK MODE */
 .table-wrapper {
   background-color: white;
   border: 1px solid #e5e7eb;
@@ -266,8 +260,8 @@ select.input {
 }
 
 .dark .table-wrapper {
-  background-color: #1f2937;
-  border-color: #374151;
+  background-color: #1f2937 !important;
+  border-color: #374151 !important;
 }
 
 .table {
@@ -288,21 +282,21 @@ select.input {
 }
 
 .dark .table th {
-  background-color: #111827;
-  border-color: #374151;
-  color: #9ca3af;
+  background-color: #111827 !important;
+  color: #9ca3af !important;
+  border-color: #374151 !important;
 }
 
 .table td {
   padding: 0.875rem 1rem;
   font-size: 0.875rem;
   border-bottom: 1px solid #f3f4f6;
-  color: #111827;
+  color: #374151;
 }
 
 .dark .table td {
-  border-color: #374151;
-  color: #f3f4f6;
+  border-color: #374151 !important;
+  color: #d1d5db !important;
 }
 
 .table tr:last-child td {
@@ -314,10 +308,10 @@ select.input {
 }
 
 .dark .table tr:hover td {
-  background-color: #374151;
+  background-color: #374151 !important;
 }
 
-/* Stats */
+/* Stats - CRITICAL FOR DARK MODE */
 .stat-card {
   background-color: white;
   border: 1px solid #e5e7eb;
@@ -326,8 +320,8 @@ select.input {
 }
 
 .dark .stat-card {
-  background-color: #1f2937;
-  border-color: #374151;
+  background-color: #1f2937 !important;
+  border-color: #374151 !important;
 }
 
 .stat-value {
@@ -338,7 +332,7 @@ select.input {
 }
 
 .dark .stat-value {
-  color: #f3f4f6;
+  color: #f3f4f6 !important;
 }
 
 .stat-label {
@@ -348,7 +342,7 @@ select.input {
 }
 
 .dark .stat-label {
-  color: #9ca3af;
+  color: #9ca3af !important;
 }
 
 /* Navigation */
@@ -389,7 +383,7 @@ select.input {
   color: #60a5fa;
 }
 
-/* Modal */
+/* Modal - CRITICAL FOR DARK MODE */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -412,7 +406,7 @@ select.input {
 }
 
 .dark .modal {
-  background-color: #1f2937;
+  background-color: #1f2937 !important;
   box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5);
 }
 
@@ -461,7 +455,7 @@ select.input {
   100% { background-position: -200% 0; }
 }
 
-/* Tabs */
+/* Tabs - CRITICAL FOR DARK MODE */
 .tabs {
   display: inline-flex;
   background-color: #f3f4f6;
@@ -470,7 +464,7 @@ select.input {
 }
 
 .dark .tabs {
-  background-color: #374151;
+  background-color: #374151 !important;
 }
 
 .tab {
@@ -504,8 +498,8 @@ select.input {
 }
 
 .dark .tab.active {
-  background-color: #1f2937;
-  color: #f3f4f6;
+  background-color: #1f2937 !important;
+  color: #f3f4f6 !important;
   box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.3);
 }
 
@@ -558,7 +552,7 @@ select.input {
   }
 }
 
-/* Form label */
+/* Form label - CRITICAL FOR DARK MODE */
 .label {
   display: block;
   font-size: 0.875rem;
@@ -568,7 +562,7 @@ select.input {
 }
 
 .dark .label {
-  color: #d1d5db;
+  color: #d1d5db !important;
 }
 
 /* Error message */
@@ -589,24 +583,66 @@ select.input {
   color: #9ca3af;
 }
 
-/* Headings in dark mode */
-.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+/* Text colors for dark mode */
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6 {
   color: #f3f4f6;
 }
 
-/* Links in dark mode */
-.dark a {
-  color: #60a5fa;
+.dark p,
+.dark span {
+  color: inherit;
 }
 
-/* Sidebar in dark mode */
-.dark aside {
-  background-color: #111827;
-  border-color: #374151;
+/* Background colors for dark mode */
+.dark .bg-white {
+  background-color: #1f2937 !important;
 }
 
-/* Header in dark mode */
-.dark header {
-  background-color: #111827;
-  border-color: #374151;
+.dark .bg-gray-50 {
+  background-color: #111827 !important;
+}
+
+.dark .bg-gray-100 {
+  background-color: #1f2937 !important;
+}
+
+/* Border colors for dark mode */
+.dark .border-gray-100,
+.dark .border-gray-200 {
+  border-color: #374151 !important;
+}
+
+/* Text colors for dark mode */
+.dark .text-gray-900 {
+  color: #f3f4f6 !important;
+}
+
+.dark .text-gray-700 {
+  color: #d1d5db !important;
+}
+
+.dark .text-gray-600 {
+  color: #9ca3af !important;
+}
+
+.dark .text-gray-500 {
+  color: #9ca3af !important;
+}
+
+.dark .text-gray-400 {
+  color: #6b7280 !important;
+}
+
+/* Hover states for dark mode */
+.dark .hover\:bg-gray-50:hover {
+  background-color: #374151 !important;
+}
+
+.dark .hover\:bg-gray-100:hover {
+  background-color: #374151 !important;
 }
