@@ -1,25 +1,9 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useClasses } from '@/lib/hooks'
 import { getUNEBGrade, getUNEBDivision } from '@/lib/grading'
-import { 
-  Search, 
-  Printer, 
-  Download, 
-  FileText, 
-  LayoutDashboard, 
-  Filter, 
-  ChevronRight, 
-  Award, 
-  Loader2, 
-  User,
-  Zap,
-  Target,
-  Trophy,
-  Activity
-} from 'lucide-react'
 import ReportCard from '@/components/reports/ReportCard'
 import type { ReportCard as ReportCardType } from '@/types'
 import { supabase } from '@/lib/supabase'
@@ -34,16 +18,7 @@ export default function ReportsPage() {
   const [selectedClass, setSelectedClass] = useState('')
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
   const [reportData, setReportData] = useState<ReportCardType | null>(null)
-  const [meritList, setMeritList] = useState<Array<{
-    pos: number
-    id: string
-    name: string
-    avg: number
-    grade: string
-    division: string
-  }>>([])
   const [loadingReport, setLoadingReport] = useState(false)
-  const [loadingMerit, setLoadingMerit] = useState(false)
 
   const filteredStudents = students.filter(s => {
     const matchesSearch = `${s.first_name} ${s.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -107,7 +82,6 @@ export default function ReportsPage() {
 
       const avgScore = subjects.length > 0 ? subjects.reduce((acc, s) => acc + s.finalScore, 0) / subjects.length : 0
 
-      // Calculate actual attendance total from records
       const totalAttendanceDays = attendance?.length || 0
       const presentDays = attendance?.filter(a => a.status === 'present').length || 0
       const absentDays = attendance?.filter(a => a.status === 'absent').length || 0
@@ -140,290 +114,100 @@ export default function ReportsPage() {
           division: getUNEBDivision(avgScore)
         }
       })
+
+      setSelectedStudentId(studentId)
     } catch (err) {
-      console.error(err)
+      console.error('Error:', err)
     } finally {
       setLoadingReport(false)
     }
-  }, [students, school])
-
-  useEffect(() => {
-    async function fetchMeritList() {
-      if (!selectedClass || !school?.id) return
-      try {
-        setLoadingMerit(true)
-        const { data: grades } = await supabase
-          .from('grades')
-          .select('student_id, score, students!inner(first_name, last_name, class_id)')
-          .eq('students.class_id', selectedClass)
-
-        const studentAgg: any = {}
-        grades?.forEach((g: any) => {
-          const studentInfo = Array.isArray(g.students) ? g.students[0] : g.students
-          if (!studentAgg[g.student_id]) studentAgg[g.student_id] = { name: `${studentInfo?.first_name || ''} ${studentInfo?.last_name || ''}`.trim(), total: 0, count: 0 }
-          studentAgg[g.student_id].total += g.score
-          studentAgg[g.student_id].count++
-        })
-
-        const ranked = Object.keys(studentAgg).map(id => {
-          const avg = Math.round(studentAgg[id].total / studentAgg[id].count)
-          return {
-            id,
-            name: studentAgg[id].name,
-            avg,
-            grade: getUNEBGrade(avg),
-            division: getUNEBDivision(avg)
-          }
-        }).sort((a, b) => b.avg - a.avg).map((s, i) => ({ ...s, pos: i + 1 }))
-
-        setMeritList(ranked)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoadingMerit(false)
-      }
-    }
-    fetchMeritList()
-  }, [selectedClass, school?.id])
+  }, [students, currentTerm, academicYear, school])
 
   return (
-    <div className="space-y-12 pb-24 animate-fade-in relative z-10">
-      {/* Header section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-        <div>
-          <div className="flex items-center gap-3 mb-3">
-             <div className="w-8 h-8 rounded-lg bg-primary-800 flex items-center justify-center shadow-lg shadow-primary-500/20">
-               <FileText className="w-4 h-4 text-white fill-white" />
-             </div>
-             <span className="text-[10px] font-black text-primary-800 uppercase tracking-[4px]">Scholastic Records</span>
-          </div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight">Reports & Merit Lists</h1>
-          <p className="text-gray-400 font-bold mt-2 text-base max-w-lg">Generate UNEB-aligned digital report cards and class-wide merit rankings.</p>
-        </div>
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Reports</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Generate and view student report cards</p>
       </div>
 
-      {/* Advanced Glass Filter Bar */}
-      <div className="bg-white/40 backdrop-blur-md rounded-[48px] border border-white/60 shadow-2xl shadow-gray-200/20 p-10">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div className="space-y-3">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[2px] pl-1">Target Scholar</label>
-            <div className="relative group">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary-800 transition-smooth" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="ID or Name..."
-                className="w-full pl-12 pr-6 py-4 bg-white/60 border border-white/60 rounded-[20px] text-sm font-black focus:bg-white focus:ring-4 focus:ring-primary-100 outline-none transition-smooth shadow-sm"
-              />
-            </div>
-          </div>
-          
-          <div className="space-y-3">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[2px] pl-1">Classroom</label>
-            <select 
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-              className="w-full bg-white/60 border border-white/60 rounded-[20px] py-4 px-6 text-sm font-black text-gray-700 focus:ring-4 focus:ring-primary-100 outline-none appearance-none cursor-pointer shadow-sm"
-            >
-              <option value="">All Classes</option>
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[2px] pl-1">Term Cycle</label>
-            <select 
-              value={currentTerm}
-              disabled
-              className="w-full bg-white/60 border border-white/60 rounded-[20px] py-4 px-6 text-sm font-black text-gray-700 focus:ring-4 focus:ring-primary-100 outline-none appearance-none cursor-pointer shadow-sm"
-            >
-              <option value="1">Term {currentTerm} - {academicYear}</option>
-            </select>
-          </div>
-
-          <div className="pt-7">
-             <button className="w-full h-[56px] bg-gray-900 text-white rounded-[20px] font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-gray-900/20 active:scale-95">
-               Refresh Data
-             </button>
-          </div>
-        </div>
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <input
+          type="text"
+          placeholder="Search students..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="input flex-1"
+        />
+        <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input sm:w-48">
+          <option value="">All Classes</option>
+          {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        {/* Scholar Selector Sidebar */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="bg-white/70 backdrop-blur-xl rounded-[56px] border border-white/60 shadow-2xl shadow-gray-200/20 flex flex-col h-[700px] overflow-hidden">
-            <div className="p-8 border-b border-white/20">
-              <h3 className="text-lg font-black text-gray-900 tracking-tight">Scholar Roster</h3>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">{filteredStudents.length} Profiles Found</p>
-            </div>
-            <div className="flex-1 overflow-y-auto p-6 space-y-3">
-              {studentsLoading ? (
-                <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary-800" /></div>
-              ) : filteredStudents.length === 0 ? (
-                <div className="text-center py-20">
-                   <User className="w-12 h-12 text-gray-200 mx-auto mb-4" />
-                   <p className="text-xs font-black text-gray-300 uppercase tracking-widest">No profiles detected</p>
-                </div>
-              ) : (
-                filteredStudents.map(student => (
-                  <button
-                    key={student.id}
-                    onClick={() => {
-                      setSelectedStudentId(student.id)
-                      fetchStudentReport(student.id)
-                    }}
-                    className={`w-full flex items-center gap-5 p-5 rounded-[28px] transition-all duration-300 text-left group ${
-                      selectedStudentId === student.id 
-                        ? 'bg-primary-800 text-white shadow-xl shadow-primary-500/30 -translate-y-1' 
-                        : 'hover:bg-white/60 border border-transparent'
-                    }`}
-                  >
-                    <div className={`w-14 h-14 rounded-2xl overflow-hidden shadow-sm flex-shrink-0 transition-transform duration-500 ${selectedStudentId === student.id ? 'scale-110' : 'group-hover:scale-105'}`}>
-                       <img src={`https://ui-avatars.com/api/?name=${student.first_name}+${student.last_name}&background=random&color=fff&bold=true`} alt="" className="w-full h-full object-cover" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className={`text-[15px] font-black leading-tight truncate ${selectedStudentId === student.id ? 'text-white' : 'text-gray-900'}`}>
-                        {student.first_name} {student.last_name}
-                      </p>
-                      <p className={`text-[10px] font-bold uppercase tracking-tight mt-1 ${selectedStudentId === student.id ? 'text-primary-100' : 'text-gray-400'}`}>
-                        {student.classes?.name || 'Class Unassigned'}
-                      </p>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Dynamic Report Viewport */}
-        <div className="lg:col-span-8 flex flex-col gap-8">
-           {loadingReport ? (
-             <div className="bg-white/70 backdrop-blur-xl rounded-[56px] border border-white/60 shadow-2xl shadow-gray-200/20 p-24 flex flex-col items-center justify-center h-full">
-                <Loader2 className="w-14 h-14 animate-spin text-primary-800 mb-6" />
-                <h3 className="text-xl font-black text-gray-900">Synchronizing Data</h3>
-                <p className="text-gray-400 font-bold uppercase tracking-[3px] text-xs mt-2">Computing academic metrics...</p>
-             </div>
-           ) : reportData ? (
-             <div className="bg-white/40 backdrop-blur-md rounded-[56px] p-10 md:p-14 border border-white/60 shadow-2xl shadow-gray-200/20 flex flex-col items-center">
-                <div className="flex items-center justify-between w-full mb-10">
-                   <div className="flex items-center gap-4">
-                      <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Digital Preview Active</span>
-                   </div>
-                   <div className="flex gap-4">
-                      <button className="p-4 bg-white rounded-2xl text-gray-400 hover:text-primary-800 transition-smooth shadow-sm border border-gray-100"><Printer className="w-6 h-6" /></button>
-                      <button className="px-8 py-4 bg-primary-800 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary-500/20 hover:bg-black transition-all active:scale-95">Finalize & Export</button>
-                   </div>
-                </div>
-                
-                <div className="shadow-[0_40px_80px_-15px_rgba(0,0,0,0.1)] transform hover:scale-[1.01] transition-all duration-700 w-full overflow-hidden rounded-3xl">
-                   <ReportCard report={reportData} />
-                </div>
-                
-                <div className="mt-12 flex items-center gap-3">
-                   <Zap className="w-4 h-4 text-primary-300" />
-                   <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.4em]">Integrated Intelligence Output</p>
-                </div>
-             </div>
-           ) : (
-             <div className="bg-white/70 backdrop-blur-xl rounded-[56px] border border-white/60 shadow-2xl shadow-gray-200/20 p-24 flex flex-col items-center justify-center h-full text-center">
-                <div className="w-24 h-24 bg-primary-50 rounded-[40px] flex items-center justify-center mb-8 shadow-inner shadow-primary-100/50">
-                  <Activity className="w-12 h-12 text-primary-200" />
-                </div>
-                <h3 className="text-3xl font-black text-gray-900 tracking-tight">Awaiting Input</h3>
-                <p className="text-gray-400 font-bold mt-3 max-w-sm text-base">Select a scholar from the roster to generate a high-fidelity digital report card.</p>
-             </div>
-           )}
-        </div>
-      </div>
-
-      {/* Extreme Merit Ranking Board */}
-      {selectedClass && (
-        <div className="bg-white/70 backdrop-blur-xl rounded-[72px] border border-white/60 shadow-2xl shadow-gray-200/20 overflow-hidden animate-in fade-in slide-in-from-bottom-10 duration-700">
-          <div className="p-12 border-b border-white/20 flex flex-col md:flex-row md:items-center justify-between gap-8">
-            <div className="flex items-center gap-6">
-               <div className="w-16 h-16 bg-primary-800 rounded-[28px] flex items-center justify-center shadow-2xl shadow-primary-500/30">
-                  <Trophy className="w-8 h-8 text-white" />
-               </div>
-               <div>
-                  <h2 className="text-3xl font-black text-gray-900 tracking-tight">
-                    {classes.find(c => c.id === selectedClass)?.name} Merit Index
-                  </h2>
-                  <div className="flex items-center gap-4 mt-1">
-                    <p className="text-primary-600 font-black text-xs uppercase tracking-[3px]">Academic Cycle 2026/01</p>
-                    <div className="w-1.5 h-1.5 rounded-full bg-gray-200" />
-                    <p className="text-gray-400 font-bold text-xs uppercase tracking-widest">{meritList.length} SCHOLARS RANKED</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Student List */}
+        <div className="card">
+          <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Select Student</h2>
+          {studentsLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="skeleton w-10 h-10 rounded-full" />
+                  <div className="flex-1">
+                    <div className="skeleton w-32 h-4 mb-2" />
+                    <div className="skeleton w-20 h-3" />
                   </div>
-               </div>
+                </div>
+              ))}
             </div>
-             <button className="bg-white border border-gray-100 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-900 hover:bg-gray-50 transition-smooth shadow-xl shadow-gray-200/20 flex items-center gap-3">
-              <Download className="w-5 h-5 text-primary-800" /> Download Full Index
-            </button>
-          </div>
-
-          <div className="overflow-x-auto p-4 lg:p-10">
-            <table className="w-full text-left">
-              <thead>
-                <tr>
-                  <th className="px-8 py-8 text-[11px] font-black text-gray-400 uppercase tracking-[3px]">Ranking</th>
-                  <th className="px-4 py-8 text-[11px] font-black text-gray-400 uppercase tracking-[3px]">Scholastic Profile</th>
-                  <th className="px-4 py-8 text-[11px] font-black text-gray-400 uppercase tracking-[3px] text-center">GPA Index</th>
-                  <th className="px-4 py-8 text-[11px] font-black text-gray-400 uppercase tracking-[3px] text-center">Peak Grade</th>
-                  <th className="px-8 py-8 text-[11px] font-black text-gray-400 uppercase tracking-[3px] text-center">System Outcome</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {loadingMerit ? (
-                  <tr><td colSpan={5} className="py-24 text-center"><Loader2 className="w-10 h-10 animate-spin text-primary-800 mx-auto" /></td></tr>
-                ) : meritList.length === 0 ? (
-                  <tr><td colSpan={5} className="py-24 text-center text-gray-300 font-black uppercase tracking-[5px]">Data synchronization required.</td></tr>
-                ) : (
-                  meritList.map((s) => (
-                    <tr key={s.id} className="group hover:bg-white/80 transition-smooth">
-                      <td className="px-8 py-8">
-                        <div className={`w-12 h-12 rounded-[18px] flex items-center justify-center text-sm font-black shadow-xl transition-all duration-500 group-hover:scale-110 ${
-                          s.pos === 1 ? 'bg-amber-100 text-amber-700 shadow-amber-500/20' : 
-                          s.pos === 2 ? 'bg-gray-100 text-gray-600 shadow-gray-500/10' :
-                          s.pos === 3 ? 'bg-orange-100 text-orange-700 shadow-orange-500/20' :
-                          'bg-white text-gray-400 border border-gray-100'
-                        }`}>
-                          {s.pos}
-                        </div>
-                      </td>
-                      <td className="px-4 py-8 font-black text-gray-900 text-lg group-hover:text-primary-800 transition-smooth">{s.name}</td>
-                      <td className="px-4 py-8 text-center">
-                         <div className="flex flex-col items-center">
-                            <span className="text-2xl font-black text-gray-900 tracking-tighter">{s.avg}%</span>
-                            <div className="w-12 h-1 bg-gray-100 rounded-full mt-2 overflow-hidden">
-                               <div className="h-full bg-primary-800 rounded-full" style={{ width: `${s.avg}%` }} />
-                            </div>
-                         </div>
-                      </td>
-                      <td className="px-4 py-8 text-center">
-                        <span className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-br from-primary-800 to-indigo-600">{s.grade}</span>
-                      </td>
-                      <td className="px-8 py-8 text-center">
-                        <span className={`inline-block px-8 py-3 rounded-2xl text-[11px] font-black uppercase tracking-[2px] shadow-lg transition-all duration-500 group-hover:px-10 ${
-                          s.division === 'Division I' ? 'bg-emerald-500 text-white shadow-emerald-500/30' :
-                          s.division === 'Division II' ? 'bg-primary-800 text-white shadow-primary-500/30' :
-                          'bg-amber-400 text-white shadow-amber-500/30'
-                        }`}>
-                          {s.division}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          ) : filteredStudents.length === 0 ? (
+            <p className="text-gray-500 dark:text-gray-400 text-sm">No students found</p>
+          ) : (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {filteredStudents.map((student) => (
+                <button
+                  key={student.id}
+                  onClick={() => fetchStudentReport(student.id)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors ${
+                    selectedStudentId === student.id 
+                      ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700' 
+                      : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                    <span className="text-blue-600 dark:text-blue-300 font-semibold text-sm">
+                      {student.first_name?.charAt(0)}{student.last_name?.charAt(0)}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 dark:text-white">{student.first_name} {student.last_name}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{student.student_number || student.classes?.name}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Report Card */}
+        <div>
+          {loadingReport ? (
+            <div className="card flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : reportData ? (
+            <ReportCard report={reportData} />
+          ) : (
+            <div className="card flex flex-col items-center justify-center h-64 text-center">
+              <svg className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p className="text-gray-500 dark:text-gray-400">Select a student to view their report card</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
