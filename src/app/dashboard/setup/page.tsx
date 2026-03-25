@@ -1,104 +1,66 @@
 'use client'
 import { useState } from 'react'
-import { Database, CheckCircle, XCircle, Loader2, Copy, ExternalLink, Shield, Activity, Zap, Star, ChevronRight } from 'lucide-react'
-import BackgroundBlobs from '@/components/BackgroundBlobs'
+import { supabase } from '@/lib/supabase'
+import { useToast } from '@/components/Toast'
 
-const SQL_SCRIPT = `-- ============================================
--- OMUTO SCHOOL MANAGEMENT SYSTEM (V3 CORE)
+const SQL_SCRIPT = `-- OmutoSMS Database Setup
 -- Run this in Supabase SQL Editor
--- ============================================
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 0. PRE-REQUISITE: SQL EXECUTION PROTOCOL
--- Run this FIRST if you want the "Execute Audit" button to work
--- create or replace function exec_sql(sql text)
--- returns void
--- language plpgsql
--- security definer
--- as $$
--- begin
---   execute sql;
--- end;
--- $$;
-
--- 1. SCHOOLS
+-- Schools table
 CREATE TABLE IF NOT EXISTS schools (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
   school_code TEXT UNIQUE NOT NULL,
   district TEXT NOT NULL,
   subcounty TEXT,
   parish TEXT,
   village TEXT,
-  school_type TEXT CHECK (school_type IN ('primary', 'secondary', 'combined')) NOT NULL,
-  ownership TEXT CHECK (ownership IN ('private', 'government', 'government_aided')) DEFAULT 'private',
+  school_type TEXT DEFAULT 'primary',
+  ownership TEXT DEFAULT 'private',
   phone TEXT,
   email TEXT,
   logo_url TEXT,
-  primary_color TEXT DEFAULT '#5D2FFB',
+  primary_color TEXT DEFAULT '#1e40af',
   uneab_center_number TEXT,
-  subscription_plan TEXT CHECK (subscription_plan IN ('free', 'basic', 'premium')) DEFAULT 'free',
-  subscription_status TEXT CHECK (subscription_status IN ('active', 'expired', 'trial')) DEFAULT 'trial',
+  subscription_plan TEXT DEFAULT 'free',
+  subscription_status TEXT DEFAULT 'trial',
   trial_ends_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. USERS
+-- Users table
 CREATE TABLE IF NOT EXISTS users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  auth_id UUID,
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  auth_id UUID UNIQUE,
   school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
   full_name TEXT NOT NULL,
   phone TEXT NOT NULL,
   email TEXT,
-  role TEXT CHECK (role IN ('super_admin', 'school_admin', 'teacher', 'student', 'parent')) NOT NULL,
+  role TEXT DEFAULT 'teacher',
   avatar_url TEXT,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. CLASSES
-CREATE TABLE IF NOT EXISTS classes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  level TEXT NOT NULL,
-  stream TEXT,
-  class_teacher_id UUID,
-  max_students INTEGER DEFAULT 60,
-  academic_year TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 4. SUBJECTS
-CREATE TABLE IF NOT EXISTS subjects (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  code TEXT NOT NULL,
-  level TEXT CHECK (level IN ('primary', 'secondary', 'both')) DEFAULT 'both',
-  is_compulsory BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 5. STUDENTS
+-- Students table
 CREATE TABLE IF NOT EXISTS students (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
   user_id UUID,
-  student_number TEXT NOT NULL,
+  student_number TEXT,
   first_name TEXT NOT NULL,
   last_name TEXT NOT NULL,
-  gender TEXT CHECK (gender IN ('M', 'F')) NOT NULL,
+  gender TEXT CHECK (gender IN ('M', 'F')),
   date_of_birth DATE,
-  parent_name TEXT NOT NULL,
-  parent_phone TEXT NOT NULL,
+  parent_name TEXT,
+  parent_phone TEXT,
   parent_phone2 TEXT,
   parent_email TEXT,
   address TEXT,
-  class_id UUID REFERENCES classes(id),
+  class_id UUID,
   admission_date DATE DEFAULT CURRENT_DATE,
   ple_index_number TEXT,
   uneab_number TEXT,
@@ -106,60 +68,83 @@ CREATE TABLE IF NOT EXISTS students (
   religion TEXT,
   nationality TEXT DEFAULT 'Ugandan',
   photo_url TEXT,
-  status TEXT CHECK (status IN ('active', 'transferred', 'dropped', 'completed')) DEFAULT 'active',
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(school_id, student_number)
+  status TEXT DEFAULT 'active',
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 6. ATTENDANCE
+-- Classes table
+CREATE TABLE IF NOT EXISTS classes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  level TEXT,
+  stream TEXT,
+  class_teacher_id UUID,
+  max_students INTEGER DEFAULT 50,
+  academic_year TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Subjects table
+CREATE TABLE IF NOT EXISTS subjects (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  code TEXT,
+  level TEXT DEFAULT 'both',
+  is_compulsory BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Attendance table
 CREATE TABLE IF NOT EXISTS attendance (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   student_id UUID REFERENCES students(id) ON DELETE CASCADE,
   class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
   date DATE NOT NULL,
-  status TEXT CHECK (status IN ('present', 'absent', 'late', 'excused')) NOT NULL,
+  status TEXT CHECK (status IN ('present', 'absent', 'late', 'excused')),
   remarks TEXT,
   recorded_by UUID,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(student_id, date)
 );
 
--- 7. GRADES
+-- Grades table
 CREATE TABLE IF NOT EXISTS grades (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   student_id UUID REFERENCES students(id) ON DELETE CASCADE,
   subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
   class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
-  assessment_type TEXT CHECK (assessment_type IN ('ca1', 'ca2', 'ca3', 'ca4', 'project', 'exam')) NOT NULL,
-  score NUMERIC(5,2) NOT NULL,
-  max_score NUMERIC(5,2) DEFAULT 100,
-  term INTEGER CHECK (term IN (1, 2, 3)) NOT NULL,
-  academic_year TEXT NOT NULL,
+  assessment_type TEXT CHECK (assessment_type IN ('ca1', 'ca2', 'ca3', 'ca4', 'project', 'exam')),
+  score NUMERIC DEFAULT 0,
+  max_score NUMERIC DEFAULT 100,
+  term INTEGER CHECK (term IN (1, 2, 3)),
+  academic_year TEXT,
   recorded_by UUID,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(student_id, subject_id, assessment_type, term, academic_year)
 );
 
--- 8. FEE STRUCTURE
+-- Fee structure table
 CREATE TABLE IF NOT EXISTS fee_structure (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
   class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  amount NUMERIC(12,2) NOT NULL,
-  term INTEGER CHECK (term IN (1, 2, 3)) NOT NULL,
-  academic_year TEXT NOT NULL,
+  amount NUMERIC NOT NULL,
+  term INTEGER CHECK (term IN (1, 2, 3)),
+  academic_year TEXT,
   due_date DATE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 9. FEE PAYMENTS
+-- Fee payments table
 CREATE TABLE IF NOT EXISTS fee_payments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   student_id UUID REFERENCES students(id) ON DELETE CASCADE,
   fee_id UUID REFERENCES fee_structure(id) ON DELETE CASCADE,
-  amount_paid NUMERIC(12,2) NOT NULL,
-  payment_method TEXT CHECK (payment_method IN ('cash', 'mobile_money', 'bank', 'installment')) NOT NULL,
+  amount_paid NUMERIC NOT NULL,
+  payment_method TEXT DEFAULT 'cash',
   payment_reference TEXT,
   paid_by TEXT,
   notes TEXT,
@@ -168,54 +153,70 @@ CREATE TABLE IF NOT EXISTS fee_payments (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 10. EVENTS
+-- Events table
 CREATE TABLE IF NOT EXISTS events (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
-  event_type TEXT CHECK (event_type IN ('exam', 'meeting', 'holiday', 'event', 'academic')) NOT NULL,
+  event_type TEXT DEFAULT 'event',
   start_date DATE NOT NULL,
   end_date DATE,
   created_by UUID,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 11. MESSAGES
+-- Messages table
 CREATE TABLE IF NOT EXISTS messages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-  recipient_type TEXT CHECK (recipient_type IN ('individual', 'class', 'all')) NOT NULL,
+  recipient_type TEXT CHECK (recipient_type IN ('individual', 'class', 'all')),
   recipient_id UUID,
   phone TEXT,
   message TEXT NOT NULL,
-  status TEXT CHECK (status IN ('pending', 'sent', 'delivered', 'failed')) DEFAULT 'pending',
+  status TEXT DEFAULT 'pending',
   sent_by UUID,
   sent_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 12. PARENT-STUDENT LINK
-CREATE TABLE IF NOT EXISTS parent_students (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  parent_id UUID,
-  student_id UUID REFERENCES students(id) ON DELETE CASCADE,
-  relationship TEXT DEFAULT 'parent',
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(parent_id, student_id)
+-- Timetable table
+CREATE TABLE IF NOT EXISTS timetable (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
+  subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
+  teacher_id UUID REFERENCES users(id),
+  day_of_week INTEGER CHECK (day_of_week BETWEEN 1 AND 6),
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  room TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- INDEXES
+-- Topic coverage table
+CREATE TABLE IF NOT EXISTS topic_coverage (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
+  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
+  topic_name TEXT NOT NULL,
+  status TEXT DEFAULT 'not_started',
+  teacher_id UUID REFERENCES users(id),
+  term INTEGER,
+  academic_year TEXT,
+  date_completed TIMESTAMPTZ,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Create indexes
 CREATE INDEX IF NOT EXISTS idx_users_auth_id ON users(auth_id);
 CREATE INDEX IF NOT EXISTS idx_users_school_id ON users(school_id);
 CREATE INDEX IF NOT EXISTS idx_students_school_id ON students(school_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_student_id ON attendance(student_id);
 CREATE INDEX IF NOT EXISTS idx_grades_student_id ON grades(student_id);
-CREATE INDEX IF NOT EXISTS idx_classes_school_id ON classes(school_id);
 
--- ============================================
--- ROW LEVEL SECURITY
--- ============================================
+-- Enable RLS
 ALTER TABLE schools ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE students ENABLE ROW LEVEL SECURITY;
@@ -224,25 +225,27 @@ ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE grades ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fee_structure ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fee_payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE timetable ENABLE ROW LEVEL SECURITY;
+ALTER TABLE topic_coverage ENABLE ROW LEVEL SECURITY;
 
--- Allow authenticated users to access their school data
-CREATE POLICY "School access" ON students FOR ALL USING (
-  school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid())
-);
-
-CREATE POLICY "School access" ON classes FOR ALL USING (
-  school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid())
-);
-
-CREATE POLICY "School access" ON attendance FOR ALL USING (
-  class_id IN (SELECT id FROM classes WHERE school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()))
-);
-
-CREATE POLICY "School access" ON grades FOR ALL USING (
-  class_id IN (SELECT id FROM classes WHERE school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()))
-);`;
+-- Allow authenticated users to access their data
+CREATE POLICY "Allow all for authenticated" ON schools FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON users FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON students FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON classes FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON attendance FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON grades FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON fee_structure FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON fee_payments FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON events FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON messages FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON timetable FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON topic_coverage FOR ALL USING (true);`
 
 export default function SetupPage() {
+  const toast = useToast()
   const [copied, setCopied] = useState(false)
   const [testing, setTesting] = useState(false)
   const [testResults, setTestResults] = useState<Record<string, string>>({})
@@ -250,6 +253,7 @@ export default function SetupPage() {
   const copySQL = () => {
     navigator.clipboard.writeText(SQL_SCRIPT)
     setCopied(true)
+    toast.success('SQL copied to clipboard')
     setTimeout(() => setCopied(false), 2000)
   }
 
@@ -261,121 +265,72 @@ export default function SetupPage() {
       const response = await fetch('/api/setup', { method: 'POST' })
       const data = await response.json()
       setTestResults(data.results || {})
+      toast.success('Setup complete')
     } catch (error) {
       setTestResults({ error: 'Failed to connect' })
+      toast.error('Setup failed')
     } finally {
       setTesting(false)
     }
   }
 
   return (
-    <div className="space-y-12 pb-24 animate-fade-in relative z-10">
-      <BackgroundBlobs />
-      
-      {/* Header section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-        <div>
-           <div className="flex items-center gap-3 mb-3">
-             <div className="w-8 h-8 rounded-lg bg-primary-800 flex items-center justify-center shadow-lg shadow-primary-500/20">
-               <Database className="w-4 h-4 text-white fill-white" />
-             </div>
-             <span className="text-[10px] font-black text-primary-800 uppercase tracking-[4px]">System Architecture</span>
-          </div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight">Database Provisioning</h1>
-          <p className="text-gray-400 font-bold mt-2 text-base max-w-lg">Initialize the high-fidelity cloud schema and security protocols for Omuto SMS.</p>
-        </div>
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Database Setup</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Set up your Supabase database tables</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Step-by-Step Architecture Guide */}
-        <div className="lg:col-span-8 space-y-8">
-          {/* Step 1 */}
-          <div className="bg-white/70 backdrop-blur-xl rounded-[48px] border border-white shadow-2xl shadow-gray-200/10 p-10 group hover:bg-white transition-all duration-500">
-            <div className="flex items-center gap-6 mb-8 text-primary-800">
-               <div className="w-14 h-14 bg-primary-800 text-white rounded-[24px] flex items-center justify-center text-xl font-black shadow-xl shadow-primary-500/20 group-hover:rotate-6 transition-all">1</div>
-               <div>
-                  <h2 className="text-2xl font-black text-gray-900 leading-tight tracking-tight">Access Cloud Editor</h2>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[3px] mt-1 leading-none italic">Supabase SQL Protocol Termination</p>
-               </div>
-            </div>
-            <p className="text-gray-500 font-bold text-sm leading-relaxed mb-8 max-w-lg">
-              Navigate to the localized Supabase architecture dashboard and initiate a fresh SQL command sequence.
-            </p>
-            <a
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* SQL Section */}
+        <div className="card">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">SQL Schema</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Copy this SQL and run it in your Supabase SQL Editor to create all required tables.
+          </p>
+          
+          <div className="bg-gray-900 rounded-lg p-4 max-h-96 overflow-y-auto mb-4">
+            <pre className="text-xs text-green-400 whitespace-pre-wrap">{SQL_SCRIPT.substring(0, 1000)}...</pre>
+          </div>
+          
+          <div className="flex gap-3">
+            <button onClick={copySQL} className="btn btn-primary flex-1">
+              {copied ? 'Copied!' : 'Copy Full SQL'}
+            </button>
+            <a 
               href="https://gucxpmgwvnbqykevucbi.supabase.co/project/_/sql/new"
               target="_blank"
               rel="noopener noreferrer"
-              className="h-16 px-10 bg-black text-white rounded-[24px] font-black text-xs uppercase tracking-[3px] flex items-center gap-4 hover:bg-primary-800 transition-all shadow-2xl active:scale-95 w-fit"
+              className="btn btn-secondary flex-1"
             >
-              <ExternalLink className="w-5 h-5" />
-              Initiate SQL Console
+              Open SQL Editor
             </a>
           </div>
+        </div>
 
-          {/* Step 2 */}
-          <div className="bg-white/70 backdrop-blur-xl rounded-[48px] border border-white shadow-2xl shadow-gray-200/10 p-10 group hover:bg-white transition-all duration-500">
-            <div className="flex items-center gap-6 mb-8 text-primary-800">
-               <div className="w-14 h-14 bg-primary-800 text-white rounded-[24px] flex items-center justify-center text-xl font-black shadow-xl shadow-primary-500/20 group-hover:rotate-6 transition-all">2</div>
-               <div>
-                  <h2 className="text-2xl font-black text-gray-900 leading-tight tracking-tight">Inject Core Schema</h2>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[3px] mt-1 leading-none italic">Data Matrix Provisioning</p>
-               </div>
-            </div>
-            <p className="text-gray-500 font-bold text-sm leading-relaxed mb-8 max-w-lg">
-              Synchronize the specialized Omuto V3 schema with your cloud environment via total script injection.
+        {/* Actions Section */}
+        <div className="space-y-6">
+          {/* Test Connection */}
+          <div className="card">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Run Setup</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Click the button below to create all required database tables automatically.
             </p>
-            <button
-              onClick={copySQL}
-              className="h-16 px-10 bg-primary-800 text-white rounded-[24px] font-black text-xs uppercase tracking-[3px] flex items-center gap-4 hover:bg-black transition-all shadow-2xl shadow-primary-500/30 active:scale-95 w-fit"
-            >
-              {copied ? <CheckCircle className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-              {copied ? 'Payload Copied' : 'Copy SQL Protocol'}
-            </button>
-            <div className="mt-8 relative group">
-               <pre className="bg-gray-950 text-emerald-400/80 p-10 rounded-[40px] text-xs font-mono overflow-x-auto max-h-60 overflow-y-auto leading-relaxed border border-gray-800 shadow-2xl">
-                 {SQL_SCRIPT.substring(0, 500)}...
-               </pre>
-               <div className="absolute inset-0 bg-gradient-to-t from-gray-950/80 to-transparent pointer-events-none rounded-[40px]" />
-               <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[9px] font-black text-gray-500 uppercase tracking-[4px]">Full Protocol Stored in Buffer</div>
-            </div>
-          </div>
-
-          {/* Step 3 */}
-          <div className="bg-white/70 backdrop-blur-xl rounded-[48px] border border-white shadow-2xl shadow-gray-200/10 p-10 group hover:bg-white transition-all duration-500">
-            <div className="flex items-center gap-6 mb-8 text-primary-800">
-               <div className="w-14 h-14 bg-primary-800 text-white rounded-[24px] flex items-center justify-center text-xl font-black shadow-xl shadow-primary-500/20 group-hover:rotate-6 transition-all">3</div>
-               <div>
-                  <h2 className="text-2xl font-black text-gray-900 leading-tight tracking-tight">Connection Audit</h2>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[3px] mt-1 leading-none italic">Interface Validation Protocol</p>
-               </div>
-            </div>
-            <p className="text-gray-500 font-bold text-sm leading-relaxed mb-8 max-w-lg">
-              Execute a global audit to verify that all V3 operational matrices have been successfully instantiated.
-            </p>
-            <button
-              onClick={testConnection}
+            
+            <button 
+              onClick={testConnection} 
               disabled={testing}
-              className="h-16 px-10 bg-black text-white rounded-[24px] font-black text-xs uppercase tracking-[3px] flex items-center gap-4 hover:bg-emerald-600 transition-all shadow-2xl active:scale-95 disabled:opacity-50 w-fit"
+              className="btn btn-primary w-full"
             >
-              {testing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Activity className="w-5 h-5" />}
-              {testing ? 'Auditing Matrix...' : 'Execute Audit'}
+              {testing ? 'Running Setup...' : 'Run Setup'}
             </button>
 
             {Object.keys(testResults).length > 0 && (
-              <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-4 duration-500">
+              <div className="mt-4 space-y-2">
                 {Object.entries(testResults).map(([table, status]) => (
-                  <div key={table} className="flex items-center justify-between p-5 bg-white rounded-2xl border border-gray-50 shadow-sm transition-all group hover:border-emerald-100">
-                    <div className="flex items-center gap-4">
-                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm ${status === 'Created' || status === 'Exists' ? 'bg-emerald-50' : 'bg-red-50'}`}>
-                          {status === 'Created' || status === 'Exists' ? (
-                            <CheckCircle className="w-4 h-4 text-emerald-500" />
-                          ) : (
-                            <XCircle className="w-4 h-4 text-red-500" />
-                          )}
-                       </div>
-                       <span className="text-xs font-black text-gray-700 tracking-tight uppercase group-hover:text-emerald-600 transition-smooth">{table}</span>
-                    </div>
-                    <span className={`text-[9px] font-black uppercase tracking-[2px] ${status === 'Created' || status === 'Exists' ? 'text-emerald-500' : 'text-red-600'}`}>
+                  <div key={table} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{table}</span>
+                    <span className={`badge ${status === 'Created' || status === 'Exists' ? 'badge-success' : 'badge-danger'}`}>
                       {status}
                     </span>
                   </div>
@@ -383,53 +338,30 @@ export default function SetupPage() {
               </div>
             )}
           </div>
-        </div>
 
-        {/* Temporal Sidebar Stats */}
-        <div className="lg:col-span-4 space-y-8">
-           <div className="bg-primary-900/90 backdrop-blur-xl rounded-[48px] p-10 text-white shadow-2xl shadow-primary-500/30 relative overflow-hidden group">
-              <div className="relative z-10">
-                 <div className="flex items-center gap-3 mb-8 opacity-60">
-                    <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
-                    <span className="text-[10px] font-black uppercase tracking-[3px]">Next Operations</span>
-                 </div>
-                 <ul className="space-y-6">
-                    {[
-                      { step: 'Scholastic Registration', route: '/register' },
-                      { step: 'Data Ingestion', route: '/dashboard/import' },
-                      { step: 'Financial Configuration', route: '/dashboard/fees' },
-                      { step: 'Institutional Identity', route: '/dashboard/settings' },
-                    ].map((item, i) => (
-                      <li key={i} className="group/item">
-                        <a href={item.route} className="flex items-center justify-between group-hover/item:translate-x-2 transition-all duration-500">
-                           <div>
-                              <div className="text-[10px] font-black opacity-30 uppercase tracking-widest mb-1">STAIR {i+1}</div>
-                              <div className="text-sm font-black tracking-tight">{item.step}</div>
-                           </div>
-                           <ChevronRight className="w-5 h-5 text-white/20 group-hover/item:text-white transition-smooth" />
-                        </a>
-                      </li>
-                    ))}
-                 </ul>
-              </div>
-              <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl group-hover:scale-150 transition-all duration-1000" />
-           </div>
-
-           <div className="bg-white/70 backdrop-blur-xl rounded-[48px] border border-white shadow-2xl shadow-gray-200/20 p-10 space-y-8">
-              <div className="flex items-center gap-3">
-                 <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-                 <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[4px]">System Integrity</h3>
-              </div>
-              <p className="text-sm font-bold text-gray-500 leading-relaxed italic">
-                Omuto V3 utilizes specialized high-fidelity indexing to ensure sub-millisecond data retrieval across the entire educational cloud ecosystem.
-              </p>
-              <div className="pt-6 border-t border-gray-50">
-                 <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-gray-300">
-                    <span>SECURITY GRID</span>
-                    <span className="text-emerald-500">ACTIVE</span>
-                 </div>
-              </div>
-           </div>
+          {/* Steps */}
+          <div className="card">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Setup Steps</h2>
+            <div className="space-y-3">
+              {[
+                { step: 'Create Supabase Project', description: 'Go to supabase.com and create a project' },
+                { step: 'Copy Environment Variables', description: 'Add URL and keys to .env.local' },
+                { step: 'Run SQL Schema', description: 'Copy SQL above and run in SQL Editor' },
+                { step: 'Run Setup', description: 'Click button above to create tables' },
+                { step: 'Register School', description: 'Go to /register to create your school' },
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-blue-600 dark:text-blue-300 text-xs font-bold">{i + 1}</span>
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900 dark:text-white text-sm">{item.step}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{item.description}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
