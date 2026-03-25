@@ -63,8 +63,9 @@ export default function StudentProfilePage({ params }: { params: { id: string } 
   )
 
   if (error || !student) return (
-    <div className="p-8 bg-red-50 text-red-600 rounded-3xl border border-red-100 font-black uppercase tracking-widest text-center">
-      Error: Student Protocol Not Found
+    <div className="p-8 text-center">
+      <div className="text-red-600 dark:text-red-400 mb-4">Student not found</div>
+      <Link href="/dashboard/students" className="btn btn-primary">Back to Students</Link>
     </div>
   )
 
