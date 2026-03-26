@@ -5,6 +5,10 @@ import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import SchoolXLogo from '@/components/SchoolXLogo'
 
+function MaterialIcon({ icon, className }: { icon: string; className?: string }) {
+  return <span className={`material-symbols-outlined ${className || ''}`}>{icon}</span>
+}
+
 const DISTRICTS = [
   'Kampala', 'Wakiso', 'Mukono', 'Jinja', 'Mbale', 'Gulu', 'Lira',
   'Masaka', 'Mbarara', 'Fort Portal', 'Kabale', 'Soroti', 'Arua',
@@ -62,19 +66,18 @@ export default function RegisterPage() {
           subcounty: form.subcounty,
           schoolType: form.schoolType,
           ownership: form.ownership,
-          phone: form.phone || undefined,
-          email: form.email || undefined,
+          phone: form.phone || null,
+          email: form.email || null,
           adminName: form.adminName,
           adminPhone: form.adminPhone,
           password: form.password,
         }),
       })
 
-      const result = await response.json()
+      const data = await response.json()
 
-      if (!result.success) {
-        setError(result.error || 'Registration failed')
-        setLoading(false)
+      if (!response.ok) {
+        setError(data.error || 'Registration failed')
         return
       }
 
@@ -113,29 +116,27 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#f8fafb] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-lg">
-        {/* Logo */}
         <div className="flex justify-center">
           <SchoolXLogo size="lg" />
         </div>
         
-        <h2 className="mt-6 text-center text-2xl font-bold text-gray-900">
+        <h2 className="mt-6 text-center text-2xl font-bold text-[#002045]">
           Register your school
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p className="mt-2 text-center text-sm text-[#5c6670]">
           Step {step} of 3 - 30 days free trial
         </p>
       </div>
 
-      {/* Progress Bar */}
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-lg px-4">
         <div className="flex gap-2">
           {[1, 2, 3].map((s) => (
             <div
               key={s}
               className={`h-1.5 flex-1 rounded-full transition-colors ${
-                s <= step ? 'bg-blue-600' : 'bg-gray-200'
+                s <= step ? 'bg-[#002045]' : 'bg-[#e8eaed]'
               }`}
             />
           ))}
@@ -143,19 +144,18 @@ export default function RegisterPage() {
       </div>
 
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-lg">
-        <div className="card py-8 px-6 sm:px-10">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] py-8 px-6 sm:px-10 shadow-sm">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            <div className="mb-4 p-3 bg-[#fef2f2] border border-[#ba1a1a]/20 rounded-xl text-sm text-[#ba1a1a]">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit}>
-            {/* Step 1: School Information */}
             {step === 1 && (
               <div className="space-y-5">
                 <div>
-                  <label className="label">School Name</label>
+                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">School Name</label>
                   <input
                     type="text"
                     placeholder="e.g. St. Mary Primary School"
@@ -167,7 +167,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="label">School Type</label>
+                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">School Type</label>
                   <select
                     value={form.schoolType}
                     onChange={(e) => updateForm('schoolType', e.target.value)}
@@ -180,7 +180,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="label">Ownership</label>
+                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Ownership</label>
                   <select
                     value={form.ownership}
                     onChange={(e) => updateForm('ownership', e.target.value)}
@@ -197,16 +197,16 @@ export default function RegisterPage() {
                   onClick={() => setStep(2)}
                   className="btn btn-primary w-full"
                 >
+                  <MaterialIcon icon="arrow_forward" className="text-lg" />
                   Next: Location
                 </button>
               </div>
             )}
 
-            {/* Step 2: Location */}
             {step === 2 && (
               <div className="space-y-5">
                 <div>
-                  <label className="label">District</label>
+                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">District</label>
                   <select
                     value={form.district}
                     onChange={(e) => updateForm('district', e.target.value)}
@@ -221,7 +221,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="label">Sub-county</label>
+                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Sub-county</label>
                   <input
                     type="text"
                     placeholder="e.g. Central Division"
@@ -234,7 +234,7 @@ export default function RegisterPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="label">School Phone (Optional)</label>
+                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">School Phone (Optional)</label>
                     <input
                       type="tel"
                       placeholder="0700000000"
@@ -244,7 +244,7 @@ export default function RegisterPage() {
                     />
                   </div>
                   <div>
-                    <label className="label">School Email (Optional)</label>
+                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">School Email (Optional)</label>
                     <input
                       type="email"
                       placeholder="school@email.com"
@@ -261,6 +261,7 @@ export default function RegisterPage() {
                     onClick={() => setStep(1)}
                     className="btn btn-secondary flex-1"
                   >
+                    <MaterialIcon icon="arrow_back" className="text-lg" />
                     Back
                   </button>
                   <button
@@ -268,17 +269,17 @@ export default function RegisterPage() {
                     onClick={() => setStep(3)}
                     className="btn btn-primary flex-1"
                   >
+                    <MaterialIcon icon="arrow_forward" className="text-lg" />
                     Next: Account
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Step 3: Admin Account */}
             {step === 3 && (
               <div className="space-y-5">
                 <div>
-                  <label className="label">Your Full Name</label>
+                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Your Full Name</label>
                   <input
                     type="text"
                     placeholder="e.g. John Mukasa"
@@ -290,7 +291,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="label">Your Phone Number (Login ID)</label>
+                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Your Phone Number (Login ID)</label>
                   <input
                     type="tel"
                     placeholder="e.g. 0700000000"
@@ -299,33 +300,31 @@ export default function RegisterPage() {
                     className="input"
                     required
                   />
-                  <p className="helper-text">You will use this phone number to log in</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="label">Password</label>
-                    <input
-                      type="password"
-                      placeholder="Min 6 characters"
-                      value={form.password}
-                      onChange={(e) => updateForm('password', e.target.value)}
-                      className="input"
-                      required
-                      minLength={6}
-                    />
-                  </div>
-                  <div>
-                    <label className="label">Confirm Password</label>
-                    <input
-                      type="password"
-                      placeholder="Confirm password"
-                      value={form.confirmPassword}
-                      onChange={(e) => updateForm('confirmPassword', e.target.value)}
-                      className="input"
-                      required
-                    />
-                  </div>
+                <div>
+                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Password</label>
+                  <input
+                    type="password"
+                    placeholder="Min 6 characters"
+                    value={form.password}
+                    onChange={(e) => updateForm('password', e.target.value)}
+                    className="input"
+                    required
+                    minLength={6}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Confirm Password</label>
+                  <input
+                    type="password"
+                    placeholder="Enter password again"
+                    value={form.confirmPassword}
+                    onChange={(e) => updateForm('confirmPassword', e.target.value)}
+                    className="input"
+                    required
+                  />
                 </div>
 
                 <div className="flex gap-3">
@@ -334,6 +333,7 @@ export default function RegisterPage() {
                     onClick={() => setStep(2)}
                     className="btn btn-secondary flex-1"
                   >
+                    <MaterialIcon icon="arrow_back" className="text-lg" />
                     Back
                   </button>
                   <button
@@ -343,14 +343,14 @@ export default function RegisterPage() {
                   >
                     {loading ? (
                       <span className="flex items-center gap-2">
-                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
+                        <MaterialIcon icon="progress_activity" className="animate-spin" />
                         Creating...
                       </span>
                     ) : (
-                      'Create Account'
+                      <>
+                        <MaterialIcon icon="check" className="text-lg" />
+                        Create Account
+                      </>
                     )}
                   </button>
                 </div>
@@ -358,12 +358,11 @@ export default function RegisterPage() {
             )}
           </form>
 
-          {/* Login Link */}
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-[#5c6670]">
               Already have an account?{' '}
-              <Link href="/login" className="font-semibold text-blue-600 hover:text-blue-700">
-                Sign In
+              <Link href="/login" className="font-semibold text-[#002045] hover:text-[#006e1c]">
+                Sign in
               </Link>
             </p>
           </div>
