@@ -260,7 +260,19 @@ CREATE TABLE messages (
 );
 
 -- ============================================
--- 15. PARENT-STUDENT LINK
+-- 16. SCHOOL SETTINGS
+-- ============================================
+CREATE TABLE school_settings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    key TEXT NOT NULL,
+    value TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(school_id, key)
+);
+
+-- ============================================
+-- 17. PARENT-STUDENT LINK
 -- ============================================
 CREATE TABLE parent_students (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

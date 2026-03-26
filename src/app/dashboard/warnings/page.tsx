@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useClasses } from '@/lib/hooks'
@@ -15,6 +15,12 @@ interface Warning {
   severity: 'low' | 'medium' | 'high'
 }
 
+interface WarningThresholds {
+  attendance: number
+  grade: number
+  fee: number
+}
+
 export default function EarlyWarningsPage() {
   const { school } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
@@ -23,6 +29,34 @@ export default function EarlyWarningsPage() {
   const [warnings, setWarnings] = useState<Warning[]>([])
   const [loading, setLoading] = useState(true)
   const [filterSeverity, setFilterSeverity] = useState('all')
+  const [thresholds, setThresholds] = useState<WarningThresholds>({ attendance: 80, grade: 50, fee: 50000 })
+
+  useEffect(() => {
+    if (school?.id) fetchThresholds()
+  }, [school?.id])
+
+  const fetchThresholds = async () => {
+    if (!school?.id) return
+    try {
+      const { data } = await supabase
+        .from('school_settings')
+        .select('key, value')
+        .eq('school_id', school.id)
+        .in('key', ['attendance_threshold', 'grade_threshold', 'fee_threshold'])
+      
+      if (data) {
+        const map: Record<string, string> = {}
+        data.forEach((s: {key: string, value: string}) => { map[s.key] = s.value })
+        setThresholds({
+          attendance: parseInt(map.attendance_threshold) || 80,
+          grade: parseInt(map.grade_threshold) || 50,
+          fee: parseInt(map.fee_threshold) || 50000
+        })
+      }
+    } catch (err) {
+      console.error('Error:', err)
+    }
+  }
 
   const fetchWarnings = async () => {
     if (!school?.id) return
@@ -31,7 +65,6 @@ export default function EarlyWarningsPage() {
     const allWarnings: Warning[] = []
 
     for (const student of students) {
-      // Check grades - find students below 50% in 2+ subjects
       const { data: grades } = await supabase
         .from('grades')
         .select('*, subjects(name)')
@@ -51,7 +84,7 @@ export default function EarlyWarningsPage() {
         let weakSubjects = 0
         Object.entries(subjectScores).forEach(([subject, scores]) => {
           const avg = scores.reduce((a, b) => a + b, 0) / scores.length
-          if (avg < 50) {
+          if (avg < thresholds.grade) {
             weakSubjects++
           }
         })
@@ -79,7 +112,7 @@ export default function EarlyWarningsPage() {
         const present = attendance.filter(a => a.status === 'present').length
         const rate = (present / attendance.length) * 100
 
-        if (rate < 80) {
+        if (rate < thresholds.attendance) {
           allWarnings.push({
             student_id: student.id,
             student_name: `${student.first_name} ${student.last_name}`,
@@ -100,8 +133,7 @@ export default function EarlyWarningsPage() {
 
       if (payments) {
         const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount_paid), 0)
-        // Assuming average fee is 100,000
-        if (totalPaid < 50000) {
+        if (totalPaid < thresholds.fee) {
           allWarnings.push({
             student_id: student.id,
             student_name: `${student.first_name} ${student.last_name}`,

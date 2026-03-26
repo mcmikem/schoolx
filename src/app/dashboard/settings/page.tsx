@@ -4,6 +4,15 @@ import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
+interface SchoolSettings {
+  sms_notifications: boolean
+  attendance_alerts: boolean
+  fee_reminders: boolean
+  attendance_threshold: number
+  grade_threshold: number
+  fee_threshold: number
+}
+
 export default function SettingsPage() {
   const { school, user } = useAuth()
   const toast = useToast()
@@ -13,6 +22,14 @@ export default function SettingsPage() {
   const [loadingUsers, setLoadingUsers] = useState(false)
   const [showAddUser, setShowAddUser] = useState(false)
   const [newUser, setNewUser] = useState({ full_name: '', phone: '', role: 'teacher', password: '' })
+  const [settings, setSettings] = useState<SchoolSettings>({
+    sms_notifications: true,
+    attendance_alerts: true,
+    fee_reminders: false,
+    attendance_threshold: 80,
+    grade_threshold: 50,
+    fee_threshold: 50000
+  })
   const [schoolData, setSchoolData] = useState({
     name: school?.name || '',
     district: school?.district || '',
@@ -20,6 +37,56 @@ export default function SettingsPage() {
     phone: '',
     email: '',
   })
+
+  useEffect(() => {
+    if (school?.id) {
+      fetchSettings()
+    }
+  }, [school?.id])
+
+  const fetchSettings = async () => {
+    if (!school?.id) return
+    try {
+      const { data } = await supabase
+        .from('school_settings')
+        .select('key, value')
+        .eq('school_id', school.id)
+      
+      if (data) {
+        const settingsMap: Record<string, string> = {}
+        data.forEach((s: {key: string, value: string}) => {
+          settingsMap[s.key] = s.value
+        })
+        setSettings(prev => ({
+          ...prev,
+          sms_notifications: settingsMap.sms_notifications !== 'false',
+          attendance_alerts: settingsMap.attendance_alerts !== 'false',
+          fee_reminders: settingsMap.fee_reminders === 'true',
+          attendance_threshold: parseInt(settingsMap.attendance_threshold) || 80,
+          grade_threshold: parseInt(settingsMap.grade_threshold) || 50,
+          fee_threshold: parseInt(settingsMap.fee_threshold) || 50000
+        }))
+      }
+    } catch (err) {
+      console.error('Error:', err)
+    }
+  }
+
+  const saveSettings = async (key: string, value: string) => {
+    if (!school?.id) return
+    try {
+      await supabase
+        .from('school_settings')
+        .upsert({ school_id: school.id, key, value }, { onConflict: 'school_id,key' })
+    } catch (err) {
+      console.error('Error:', err)
+    }
+  }
+
+  const handleSettingChange = async (key: keyof SchoolSettings, value: boolean | number) => {
+    setSettings(prev => ({ ...prev, [key]: value }))
+    await saveSettings(key, String(value))
+  }
 
   useEffect(() => {
     if (school) {
@@ -275,38 +342,96 @@ export default function SettingsPage() {
 
       {/* Notifications Tab */}
       {activeTab === 'notifications' && (
-        <div className="card max-w-2xl">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Notification Settings</h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700">
-              <div>
-                <div className="font-medium text-gray-900 dark:text-white">SMS Notifications</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Send SMS to parents for fee reminders</div>
+        <div className="space-y-6">
+          <div className="card max-w-2xl">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Notification Settings</h2>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700">
+                <div>
+                  <div className="font-medium text-gray-900 dark:text-white">SMS Notifications</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Send SMS to parents for fee reminders</div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    className="sr-only peer" 
+                    checked={settings.sms_notifications}
+                    onChange={(e) => handleSettingChange('sms_notifications', e.target.checked)}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                </label>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" defaultChecked />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-              </label>
+              <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700">
+                <div>
+                  <div className="font-medium text-gray-900 dark:text-white">Attendance Alerts</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Notify when student is absent</div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    className="sr-only peer" 
+                    checked={settings.attendance_alerts}
+                    onChange={(e) => handleSettingChange('attendance_alerts', e.target.checked)}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+              <div className="flex items-center justify-between py-3">
+                <div>
+                  <div className="font-medium text-gray-900 dark:text-white">Fee Reminders</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Send automatic fee balance reminders</div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    className="sr-only peer" 
+                    checked={settings.fee_reminders}
+                    onChange={(e) => handleSettingChange('fee_reminders', e.target.checked)}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
             </div>
-            <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700">
+          </div>
+
+          <div className="card max-w-2xl">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Warning Thresholds</h2>
+            <div className="space-y-6">
               <div>
-                <div className="font-medium text-gray-900 dark:text-white">Attendance Alerts</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Notify when student is absent</div>
+                <label className="label">Attendance Rate Threshold (%)</label>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Students below this attendance rate will be flagged</p>
+                <input 
+                  type="number" 
+                  value={settings.attendance_threshold}
+                  onChange={(e) => handleSettingChange('attendance_threshold', parseInt(e.target.value) || 80)}
+                  className="input w-32"
+                  min={0}
+                  max={100}
+                />
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" defaultChecked />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-            <div className="flex items-center justify-between py-3">
               <div>
-                <div className="font-medium text-gray-900 dark:text-white">Fee Reminders</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Send automatic fee balance reminders</div>
+                <label className="label">Grade Threshold (%)</label>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Students scoring below this in 2+ subjects will be flagged</p>
+                <input 
+                  type="number" 
+                  value={settings.grade_threshold}
+                  onChange={(e) => handleSettingChange('grade_threshold', parseInt(e.target.value) || 50)}
+                  className="input w-32"
+                  min={0}
+                  max={100}
+                />
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-              </label>
+              <div>
+                <label className="label">Fee Threshold (UGX)</label>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Students with payments below this amount will be flagged</p>
+                <input 
+                  type="number" 
+                  value={settings.fee_threshold}
+                  onChange={(e) => handleSettingChange('fee_threshold', parseInt(e.target.value) || 50000)}
+                  className="input w-32"
+                  min={0}
+                />
+              </div>
             </div>
           </div>
         </div>

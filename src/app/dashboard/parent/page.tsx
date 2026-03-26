@@ -1,33 +1,126 @@
 'use client'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '@/lib/auth-context'
-
-const recentAttendance = [
-  { date: 'Mar 22', status: 'present' },
-  { date: 'Mar 21', status: 'present' },
-  { date: 'Mar 20', status: 'absent' },
-  { date: 'Mar 19', status: 'present' },
-  { date: 'Mar 18', status: 'late' },
-  { date: 'Mar 17', status: 'present' },
-  { date: 'Mar 16', status: 'present' },
-]
-
-const feeStatus = { totalFee: 250000, totalPaid: 150000, balance: 100000 }
-
-const recentGrades = [
-  { subject: 'Mathematics', ca: 72, exam: 65, grade: 'C4' },
-  { subject: 'English', ca: 82, exam: 78, grade: 'D2' },
-  { subject: 'Science', ca: 88, exam: 85, grade: 'D1' },
-  { subject: 'Social Studies', ca: 65, exam: 58, grade: 'C5' },
-]
-
-const notifications = [
-  { type: 'fee', message: 'Fee balance: UGX 100,000 remaining', time: '2h ago' },
-  { type: 'attendance', message: 'Sarah was absent on March 20th', time: '2d ago' },
-  { type: 'grade', message: 'Term 1 exam results available', time: '5d ago' },
-]
+import { useAcademic } from '@/lib/academic-context'
+import { supabase } from '@/lib/supabase'
 
 export default function ParentPortal() {
-  const { user } = useAuth()
+  const { user, school } = useAuth()
+  const { academicYear, currentTerm } = useAcademic()
+  const [loading, setLoading] = useState(true)
+  const [linkedStudent, setLinkedStudent] = useState<any>(null)
+  const [attendance, setAttendance] = useState<any[]>([])
+  const [grades, setGrades] = useState<any[]>([])
+  const [payments, setPayments] = useState<any[]>([])
+  const [feeStructure, setFeeStructure] = useState<any[]>([])
+
+  useEffect(() => {
+    async function fetchData() {
+      if (!user?.id || !school?.id) return
+
+      setLoading(true)
+      try {
+        const { data: parentStudent } = await supabase
+          .from('parent_students')
+          .select('*, students(*, classes(*))')
+          .eq('parent_id', user.id)
+          .single()
+
+        if (parentStudent?.students) {
+          setLinkedStudent(parentStudent.students)
+
+          const [attRes, gradesRes, payRes, fsRes] = await Promise.all([
+            supabase.from('attendance').select('*').eq('student_id', parentStudent.students.id).order('date', { ascending: false }).limit(10),
+            supabase.from('grades').select('*, subjects(name)').eq('student_id', parentStudent.students.id).eq('term', currentTerm).eq('academic_year', academicYear),
+            supabase.from('fee_payments').select('*').eq('student_id', parentStudent.students.id).order('payment_date', { ascending: false }),
+            supabase.from('fee_structure').select('*').eq('school_id', school.id).eq('academic_year', academicYear)
+          ])
+
+          setAttendance(attRes.data || [])
+          setGrades(gradesRes.data || [])
+          setPayments(payRes.data || [])
+          setFeeStructure(fsRes.data || [])
+        }
+      } catch (err) {
+        console.error('Error:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [user?.id, school?.id, currentTerm, academicYear])
+
+  const feeStats = useMemo(() => {
+    const totalExpected = feeStructure.reduce((sum, f) => sum + Number(f.amount || 0), 0)
+    const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0)
+    return {
+      totalFee: totalExpected,
+      totalPaid,
+      balance: Math.max(0, totalExpected - totalPaid)
+    }
+  }, [feeStructure, payments])
+
+  const attendanceRate = useMemo(() => {
+    if (attendance.length === 0) return 0
+    const present = attendance.filter(a => a.status === 'present').length
+    return Math.round((present / attendance.length) * 100)
+  }, [attendance])
+
+  const avgGrade = useMemo(() => {
+    if (grades.length === 0) return 0
+    const total = grades.reduce((sum, g) => sum + Number(g.score), 0)
+    return Math.round(total / grades.length)
+  }, [grades])
+
+  const getGradeColor = (grade: string) => {
+    if (grade?.startsWith('D')) return 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+    if (grade?.startsWith('C')) return 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+    if (grade?.startsWith('P')) return 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400'
+    return 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+  }
+
+  const getGradeLetter = (score: number) => {
+    if (score >= 80) return 'D1'
+    if (score >= 70) return 'D2'
+    if (score >= 65) return 'C3'
+    if (score >= 60) return 'C4'
+    if (score >= 55) return 'C5'
+    if (score >= 50) return 'C6'
+    if (score >= 45) return 'P7'
+    if (score >= 40) return 'P8'
+    return 'F9'
+  }
+
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-gray-200 rounded w-48"></div>
+          <div className="h-32 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!linkedStudent) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Parent Portal</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">View your child's progress</p>
+        </div>
+        <div className="card text-center py-12">
+          <div className="text-gray-500 dark:text-gray-400">
+            No student linked to your account. Please contact the school.
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const studentName = `${linkedStudent.first_name} ${linkedStudent.last_name}`
+  const initials = `${linkedStudent.first_name?.[0] || ''}${linkedStudent.last_name?.[0] || ''}`.toUpperCase()
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -37,132 +130,119 @@ export default function ParentPortal() {
       </div>
 
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* Student Card */}
         <div className="card flex items-center gap-4">
           <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-            <span className="text-xl font-bold text-blue-600 dark:text-blue-300">SN</span>
+            <span className="text-xl font-bold text-blue-600 dark:text-blue-300">{initials}</span>
           </div>
           <div>
-            <div className="text-lg font-semibold text-gray-900 dark:text-white">Sarah Nakato</div>
+            <div className="text-lg font-semibold text-gray-900 dark:text-white">{studentName}</div>
             <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              <span>Class: P.5A</span>
+              <span>Class: {linkedStudent.classes?.name || 'N/A'}</span>
               <span>•</span>
-              <span>STU00001</span>
+              <span>{linkedStudent.student_number || 'N/A'}</span>
             </div>
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
           <div className="card text-center">
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">55/60</div>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{attendanceRate}%</div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Attendance</div>
           </div>
           <div className="card text-center">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">75.6%</div>
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{avgGrade}%</div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Average</div>
           </div>
           <div className="card text-center">
-            <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">100K</div>
+            <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{(feeStats.balance / 1000).toFixed(0)}K</div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Balance</div>
           </div>
         </div>
 
-        {/* Fee Status */}
         <div className="card">
           <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Fee Status</h2>
           <div className="mb-4">
             <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-              <span>Paid: UGX {feeStatus.totalPaid.toLocaleString()}</span>
-              <span>Total: UGX {feeStatus.totalFee.toLocaleString()}</span>
+              <span>Paid: UGX {feeStats.totalPaid.toLocaleString()}</span>
+              <span>Total: UGX {feeStats.totalFee.toLocaleString()}</span>
             </div>
             <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-green-500 rounded-full transition-all" 
-                style={{ width: `${(feeStatus.totalPaid / feeStatus.totalFee) * 100}%` }} 
+                style={{ width: `${feeStats.totalFee > 0 ? (feeStats.totalPaid / feeStats.totalFee) * 100 : 0}%` }} 
               />
             </div>
           </div>
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm text-gray-500 dark:text-gray-400">Balance</div>
-              <div className="text-xl font-bold text-red-600 dark:text-red-400">UGX {feeStatus.balance.toLocaleString()}</div>
+              <div className="text-xl font-bold text-red-600 dark:text-red-400">UGX {feeStats.balance.toLocaleString()}</div>
             </div>
-            <button className="btn btn-primary btn-sm">Pay Now</button>
           </div>
         </div>
 
-        {/* Attendance */}
         <div className="card">
           <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Recent Attendance</h2>
-          <div className="flex gap-2">
-            {recentAttendance.map((day, i) => (
-              <div key={i} className="flex-1 text-center">
-                <div className={`w-full h-10 rounded-lg flex items-center justify-center ${
-                  day.status === 'present' ? 'bg-green-100 dark:bg-green-900/30' : 
-                  day.status === 'absent' ? 'bg-red-100 dark:bg-red-900/30' : 
-                  'bg-yellow-100 dark:bg-yellow-900/30'
-                }`}>
-                  {day.status === 'present' ? (
-                    <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : day.status === 'absent' ? (
-                    <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  ) : (
-                    <svg className="w-4 h-4 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  )}
+          {attendance.length === 0 ? (
+            <div className="text-gray-500 text-center py-4">No attendance records</div>
+          ) : (
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {attendance.slice(0, 10).map((day: any, i: number) => (
+                <div key={i} className="flex-shrink-0 text-center">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                    day.status === 'present' ? 'bg-green-100 dark:bg-green-900/30' : 
+                    day.status === 'absent' ? 'bg-red-100 dark:bg-red-900/30' : 
+                    'bg-yellow-100 dark:bg-yellow-900/30'
+                  }`}>
+                    {day.status === 'present' ? (
+                      <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : day.status === 'absent' ? (
+                      <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {new Date(day.date).toLocaleDateString('en-UG', { day: 'numeric', month: 'short' })}
+                  </div>
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{day.date}</div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Grades */}
         <div className="card">
           <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Recent Grades</h2>
-          <div className="space-y-3">
-            {recentGrades.map((grade, i) => (
-              <div key={i} className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-0">
-                <div className="font-medium text-gray-900 dark:text-white">{grade.subject}</div>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">CA: {grade.ca}</span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Exam: {grade.exam}</span>
-                  <span className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm ${
-                    grade.grade.startsWith('D') ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' : 
-                    grade.grade.startsWith('C') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 
-                    'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400'
-                  }`}>
-                    {grade.grade}
-                  </span>
+          {grades.length === 0 ? (
+            <div className="text-gray-500 text-center py-4">No grades published yet</div>
+          ) : (
+            <div className="space-y-3">
+              {grades.map((grade: any, i: number) => (
+                <div key={i} className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                  <div className="font-medium text-gray-900 dark:text-white">{grade.subjects?.name || 'Unknown'}</div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">Score: {Math.round(grade.score)}</span>
+                    <span className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm ${getGradeColor(getGradeLetter(grade.score))}`}>
+                      {getGradeLetter(grade.score)}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Notifications */}
         <div className="card">
-          <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Notifications</h2>
-          <div className="space-y-3">
-            {notifications.map((notif, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                  notif.type === 'fee' ? 'bg-yellow-500' : 
-                  notif.type === 'attendance' ? 'bg-red-500' : 
-                  'bg-blue-500'
-                }`} />
-                <div className="flex-1">
-                  <p className="text-sm text-gray-900 dark:text-white">{notif.message}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{notif.time}</p>
-                </div>
-              </div>
-            ))}
+          <h2 className="font-semibold text-gray-900 dark:text-white mb-4">School Info</h2>
+          <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+            <div><strong>School:</strong> {school?.name || 'N/A'}</div>
+            <div><strong>Term:</strong> Term {currentTerm} {academicYear}</div>
           </div>
         </div>
       </div>
