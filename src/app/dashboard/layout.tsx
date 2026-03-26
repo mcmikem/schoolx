@@ -3,8 +3,30 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
+import { useSyncStatus } from '@/lib/useSyncStatus'
+import { canAccess, type UserRole, type RolePermissions } from '@/lib/roles'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { useToast } from '@/components/Toast'
+
+const roleBasedRoutes: Record<string, keyof RolePermissions> = {
+  '/dashboard/students': 'students',
+  '/dashboard/attendance': 'attendance',
+  '/dashboard/grades': 'grades',
+  '/dashboard/fees': 'fees',
+  '/dashboard/messages': 'messages',
+  '/dashboard/reports': 'reports',
+  '/dashboard/staff': 'staff',
+  '/dashboard/settings': 'settings',
+  '/dashboard/discipline': 'discipline',
+  '/dashboard/invoicing': 'invoicing',
+  '/dashboard/assets': 'assets',
+  '/dashboard/analytics': 'analytics',
+  '/dashboard/export': 'export',
+  '/dashboard/board-report': 'boardReport',
+  '/dashboard/auto-sms': 'autoSMS',
+  '/dashboard/warnings': 'warnings',
+  '/dashboard/visitors': 'visitors',
+}
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: 'home' },
@@ -45,6 +67,53 @@ function NavIcon({ icon, className }: { icon: string; className?: string }) {
   return <>{icons[icon] || icons.home}</>
 }
 
+function SyncStatusIndicator() {
+  const { isOnline, pendingCount, isSyncing, syncNow } = useSyncStatus()
+
+  if (isSyncing) {
+    return (
+      <div className="flex items-center gap-1 text-blue-600" title="Syncing...">
+        <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+      </div>
+    )
+  }
+
+  if (!isOnline) {
+    return (
+      <button onClick={syncNow} className="flex items-center gap-1 text-orange-600" title="Offline - tap to sync">
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4 4 0 01-1.414-2.83m-1.414 5.636a9 9 0 01-2.17-9.387m1.414-5.636a4 4 0 00-1.414 2.83" />
+        </svg>
+        {pendingCount > 0 && (
+          <span className="text-xs bg-orange-100 dark:bg-orange-900 px-1.5 py-0.5 rounded-full">{pendingCount}</span>
+        )}
+      </button>
+    )
+  }
+
+  if (pendingCount > 0) {
+    return (
+      <button onClick={syncNow} className="flex items-center gap-1 text-yellow-600" title="Pending changes - tap to sync">
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span className="text-xs bg-yellow-100 dark:bg-yellow-900 px-1.5 py-0.5 rounded-full">{pendingCount}</span>
+      </button>
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-1 text-green-600" title="Synced">
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+      </svg>
+    </div>
+  )
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -64,6 +133,22 @@ export default function DashboardLayout({
       document.documentElement.classList.add('dark')
     }
   }, [])
+
+  useEffect(() => {
+    if (!user || !pathname) return
+
+    const routeKey = Object.keys(roleBasedRoutes).find(key => 
+      pathname.startsWith(key)
+    )
+
+    if (routeKey) {
+      const permission = roleBasedRoutes[routeKey]
+      if (user.role && !canAccess(user.role as UserRole, permission)) {
+        toast.error('Access denied')
+        router.push('/dashboard')
+      }
+    }
+  }, [user, pathname, router, toast])
 
   const toggleDarkMode = () => {
     const newMode = !darkMode
@@ -101,6 +186,7 @@ export default function DashboardLayout({
               <span className="font-bold text-gray-900 dark:text-white">OmutoSMS</span>
             </div>
             <div className="flex items-center gap-2">
+              <SyncStatusIndicator />
               <button onClick={toggleDarkMode} className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
                 <NavIcon icon={darkMode ? 'sun' : 'moon'} className="w-5 h-5" />
               </button>

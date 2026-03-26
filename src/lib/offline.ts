@@ -1,6 +1,8 @@
 // Offline-first database using IndexedDB
 // This allows the app to work without internet connection
 
+import { useState, useEffect } from 'react'
+
 const DB_NAME = 'omuto-sms-db'
 const DB_VERSION = 1
 
@@ -281,5 +283,3 @@ export function useOnlineStatus() {
 
   return isOnline
 }
-
-import { useState, useEffect } from 'react'
