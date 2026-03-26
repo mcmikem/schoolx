@@ -25,13 +25,13 @@ export default function RootLayout({
           rel="stylesheet"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
           rel="stylesheet"
         />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className="bg-surface font-body text-on-surface antialiased min-h-screen">
+      <body className="antialiased min-h-screen" style={{ backgroundColor: '#f8fafb', color: '#191c1d', fontFamily: "'Inter', system-ui, sans-serif" }}>
         <Providers>{children}</Providers>
       </body>
     </html>

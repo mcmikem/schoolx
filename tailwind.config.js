@@ -85,11 +85,11 @@ module.exports = {
         background: '#f8fafb',
         'on-background': '#191c1d',
       },
-      fontFamily: {
-        headline: ['Manrope', 'sans-serif'],
-        body: ['Inter', 'sans-serif'],
-        label: ['Inter', 'sans-serif'],
-      },
+       fontFamily: {
+         headline: ['Manrope', 'sans-serif'],
+         body: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+         label: ['Inter', 'sans-serif'],
+       },
       borderRadius: {
         DEFAULT: '0.125rem',
         lg: '0.25rem',

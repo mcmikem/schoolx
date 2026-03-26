@@ -151,7 +151,7 @@ export default function DashboardLayout({
 
   return (
     <ErrorBoundary>
-      <div className={`min-h-screen bg-surface dark:bg-slate-950 ${darkMode ? 'dark' : ''}`}>
+      <div className={`min-h-screen ${darkMode ? 'dark' : ''}`} style={{ backgroundColor: darkMode ? '#1f2937' : '#f8fafb', color: darkMode ? '#f9fafb' : '#191c1d' }}>
         {/* Mobile Header */}
         <header className="md:hidden fixed top-0 left-0 right-0 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 z-40">
           <div className="flex items-center justify-between px-4 h-16">
