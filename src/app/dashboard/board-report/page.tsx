@@ -5,6 +5,10 @@ import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useFeePayments, useFeeStructure, useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 export default function BoardReportPage() {
   const { school } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
@@ -117,70 +121,68 @@ export default function BoardReportPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Board Report</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Generate executive summary for board meetings</p>
+        <h1 className="text-2xl font-bold text-[#002045]">Board Report</h1>
+        <p className="text-[#5c6670] mt-1">Generate executive summary for board meetings</p>
       </div>
 
       {/* Preview */}
-      <div className="card max-w-2xl mb-6">
-        <h2 className="font-semibold text-gray-900 dark:text-white mb-6">Report Preview</h2>
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 max-w-2xl mb-6">
+        <h2 className="font-semibold text-[#002045] mb-6">Report Preview</h2>
         
         <div className="space-y-6">
           {/* Enrollment */}
-          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <h3 className="font-medium text-gray-900 dark:text-white mb-3">1. Enrollment</h3>
+          <div className="p-4 bg-[#f8fafb] rounded-lg">
+            <h3 className="font-medium text-[#002045] mb-3">1. Enrollment</h3>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalStudents}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Total</div>
+                <div className="text-2xl font-bold text-[#002045]">{stats.totalStudents}</div>
+                <div className="text-xs text-[#5c6670]">Total</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.boys}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Boys</div>
+                <div className="text-xs text-[#5c6670]">Boys</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">{stats.girls}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Girls</div>
+                <div className="text-xs text-[#5c6670]">Girls</div>
               </div>
             </div>
           </div>
 
           {/* Financial */}
-          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <h3 className="font-medium text-gray-900 dark:text-white mb-3">2. Financial</h3>
+          <div className="p-4 bg-[#f8fafb] rounded-lg">
+            <h3 className="font-medium text-[#002045] mb-3">2. Financial</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Collected</div>
+                <div className="text-sm text-[#5c6670]">Collected</div>
                 <div className="text-xl font-bold text-green-600 dark:text-green-400">{formatCurrency(stats.totalCollected)}</div>
               </div>
               <div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Collection Rate</div>
-                <div className="text-xl font-bold text-gray-900 dark:text-white">{stats.collectionRate}%</div>
+                <div className="text-sm text-[#5c6670]">Collection Rate</div>
+                <div className="text-xl font-bold text-[#002045]">{stats.collectionRate}%</div>
               </div>
             </div>
           </div>
 
           {/* Classes */}
-          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <h3 className="font-medium text-gray-900 dark:text-white mb-3">3. Classes</h3>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalClasses}</div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">Active Classes</div>
+          <div className="p-4 bg-[#f8fafb] rounded-lg">
+            <h3 className="font-medium text-[#002045] mb-3">3. Classes</h3>
+            <div className="text-2xl font-bold text-[#002045]">{stats.totalClasses}</div>
+            <div className="text-sm text-[#5c6670]">Active Classes</div>
           </div>
         </div>
       </div>
 
       {/* Generate Button */}
       <button onClick={generatePDF} className="btn btn-primary">
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-        </svg>
+        <MaterialIcon icon="download" />
         Download Board Report (PDF)
       </button>
 
       {/* Info */}
-      <div className="card mt-6 max-w-2xl">
-        <h2 className="font-semibold text-gray-900 dark:text-white mb-4">About Board Reports</h2>
-        <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 mt-6 max-w-2xl">
+        <h2 className="font-semibold text-[#002045] mb-4">About Board Reports</h2>
+        <ul className="space-y-2 text-sm text-[#5c6670]">
           <li>Board reports provide a one-page executive summary for school owners and board members</li>
           <li>Reports include enrollment, financial, and academic performance data</li>
           <li>Generated reports are confidential and should only be shared with authorized personnel</li>

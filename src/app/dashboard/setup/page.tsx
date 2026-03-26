@@ -3,6 +3,10 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 const SQL_SCRIPT = `-- SchoolX Database Setup
 -- Run this in Supabase SQL Editor
 
@@ -277,15 +281,15 @@ export default function SetupPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Database Setup</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Set up your Supabase database tables</p>
+        <h1 className="text-2xl font-bold text-[#002045]">Database Setup</h1>
+        <p className="text-[#5c6670] mt-1">Set up your Supabase database tables</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* SQL Section */}
-        <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">SQL Schema</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+          <h2 className="text-lg font-semibold text-[#002045] mb-4">SQL Schema</h2>
+          <p className="text-sm text-[#5c6670] mb-4">
             Copy this SQL and run it in your Supabase SQL Editor to create all required tables.
           </p>
           
@@ -311,9 +315,9 @@ export default function SetupPage() {
         {/* Actions Section */}
         <div className="space-y-6">
           {/* Test Connection */}
-          <div className="card">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Run Setup</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+            <h2 className="text-lg font-semibold text-[#002045] mb-4">Run Setup</h2>
+            <p className="text-sm text-[#5c6670] mb-4">
               Click the button below to create all required database tables automatically.
             </p>
             
@@ -328,9 +332,11 @@ export default function SetupPage() {
             {Object.keys(testResults).length > 0 && (
               <div className="mt-4 space-y-2">
                 {Object.entries(testResults).map(([table, status]) => (
-                  <div key={table} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{table}</span>
-                    <span className={`badge ${status === 'Created' || status === 'Exists' ? 'badge-success' : 'badge-danger'}`}>
+                  <div key={table} className="flex items-center justify-between p-3 bg-[#f8fafb] rounded-lg">
+                    <span className="text-sm font-medium text-[#002045]">{table}</span>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                      status === 'Created' || status === 'Exists' ? 'bg-[#e8f5e9] text-[#006e1c]' : 'bg-[#ffebee] text-[#c62828]'
+                    }`}>
                       {status}
                     </span>
                   </div>
@@ -340,8 +346,8 @@ export default function SetupPage() {
           </div>
 
           {/* Steps */}
-          <div className="card">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Setup Steps</h2>
+          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+            <h2 className="text-lg font-semibold text-[#002045] mb-4">Setup Steps</h2>
             <div className="space-y-3">
               {[
                 { step: 'Create Supabase Project', description: 'Go to supabase.com and create a project' },

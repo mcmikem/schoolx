@@ -5,6 +5,10 @@ import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 interface MoESRow {
   className: string
   boys: number
@@ -132,44 +136,44 @@ export default function MoESExportPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">MoES Headcount</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Ministry of Education headcount return</p>
+        <h1 className="text-2xl font-bold text-[#002045]">MoES Headcount</h1>
+        <p className="text-[#5c6670] mt-1">Ministry of Education headcount return</p>
       </div>
 
       {/* School Info */}
-      <div className="card mb-6 max-w-2xl">
-        <h2 className="font-semibold text-gray-900 dark:text-white mb-4">School Information</h2>
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 mb-6 max-w-2xl">
+        <h2 className="font-semibold text-[#002045] mb-4">School Information</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">School Name</div>
-            <div className="font-medium text-gray-900 dark:text-white">{school?.name}</div>
+            <div className="text-sm text-[#5c6670]">School Name</div>
+            <div className="font-medium text-[#002045]">{school?.name}</div>
           </div>
           <div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">School Code</div>
-            <div className="font-medium text-gray-900 dark:text-white">{school?.school_code}</div>
+            <div className="text-sm text-[#5c6670]">School Code</div>
+            <div className="font-medium text-[#002045]">{school?.school_code}</div>
           </div>
           <div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">District</div>
-            <div className="font-medium text-gray-900 dark:text-white">{school?.district}</div>
+            <div className="text-sm text-[#5c6670]">District</div>
+            <div className="font-medium text-[#002045]">{school?.district}</div>
           </div>
           <div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">Academic Year</div>
-            <div className="font-medium text-gray-900 dark:text-white">{academicYear}, Term {currentTerm}</div>
+            <div className="text-sm text-[#5c6670]">Academic Year</div>
+            <div className="font-medium text-[#002045]">{academicYear}, Term {currentTerm}</div>
           </div>
         </div>
       </div>
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="stat-card">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="stat-value">{totals.total}</div>
           <div className="stat-label">Total Students</div>
         </div>
-        <div className="stat-card">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="stat-value text-blue-600">{totals.boys}</div>
           <div className="stat-label">Boys</div>
         </div>
-        <div className="stat-card">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="stat-value text-pink-600">{totals.girls}</div>
           <div className="stat-label">Girls</div>
         </div>
@@ -178,7 +182,7 @@ export default function MoESExportPage() {
       {/* Data Table */}
       <div className="table-wrapper mb-6">
         <table className="table">
-          <thead>
+          <thead className="bg-[#f8fafb]">
             <tr>
               <th>Class</th>
               <th>Boys</th>
@@ -214,13 +218,13 @@ export default function MoESExportPage() {
 
       {/* Export Button */}
       <button onClick={exportToExcel} disabled={exporting} className="btn btn-primary">
-        {exporting ? 'Exporting...' : 'Download MoES Headcount (Excel)'}
+        {exporting ? 'Exporting...' : <><MaterialIcon icon="download" /> Download MoES Headcount (Excel)</>}
       </button>
 
       {/* Info */}
-      <div className="card mt-6 max-w-2xl">
-        <h2 className="font-semibold text-gray-900 dark:text-white mb-4">About MoES Returns</h2>
-        <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 mt-6 max-w-2xl">
+        <h2 className="font-semibold text-[#002045] mb-4">About MoES Returns</h2>
+        <ul className="space-y-2 text-sm text-[#5c6670]">
           <li>This report generates the official Ministry of Education headcount format</li>
           <li>Includes student counts by class, gender, and age</li>
           <li>Required for government reporting and capitation grant allocation</li>

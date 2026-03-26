@@ -5,6 +5,10 @@ import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 const steps = [
   { id: 1, title: 'Academic Year' },
   { id: 2, title: 'Classes' },
@@ -117,8 +121,8 @@ export default function SetupWizardPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">School Setup</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Configure your school's academic structure</p>
+        <h1 className="text-2xl font-bold text-[#002045]">School Setup</h1>
+        <p className="text-[#5c6670] mt-1">Configure your school's academic structure</p>
       </div>
 
       {/* Progress */}
@@ -128,26 +132,24 @@ export default function SetupWizardPage() {
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
               currentStep >= step.id 
                 ? 'bg-blue-600 text-white' 
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                : 'bg-gray-200 text-gray-500'
             }`}>
               {currentStep > step.id ? (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
+                <MaterialIcon icon="check" />
               ) : step.id}
             </div>
             {i < steps.length - 1 && (
-              <div className={`w-12 h-1 ${currentStep > step.id ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`} />
+              <div className={`w-12 h-1 ${currentStep > step.id ? 'bg-blue-600' : 'bg-gray-200'}`} />
             )}
           </div>
         ))}
       </div>
 
       {/* Step Content */}
-      <div className="card max-w-2xl">
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 max-w-2xl">
         {currentStep === 1 && (
           <div className="space-y-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Academic Year</h2>
+            <h2 className="text-lg font-semibold text-[#002045]">Academic Year</h2>
             <div>
               <label className="label">Academic Year</label>
               <input
@@ -191,22 +193,18 @@ export default function SetupWizardPage() {
         {currentStep === 2 && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Classes</h2>
+              <h2 className="text-lg font-semibold text-[#002045]">Classes</h2>
               <button onClick={addClass} className="btn btn-secondary btn-sm">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
+                <MaterialIcon icon="add" />
                 Add Class
               </button>
             </div>
             <div className="space-y-2">
               {form.classes.map((cls, i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <span className="font-medium text-gray-900 dark:text-white">{cls}</span>
-                  <button onClick={() => removeClass(i)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
+                <div key={i} className="flex items-center justify-between p-3 bg-[#f8fafb] rounded-lg">
+                  <span className="font-medium text-[#002045]">{cls}</span>
+                  <button onClick={() => removeClass(i)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                    <MaterialIcon icon="delete" />
                   </button>
                 </div>
               ))}
@@ -216,15 +214,13 @@ export default function SetupWizardPage() {
 
         {currentStep === 3 && (
           <div className="space-y-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Subjects</h2>
+            <h2 className="text-lg font-semibold text-[#002045]">Subjects</h2>
             <div className="grid grid-cols-2 gap-2">
               {form.subjects.map((subject, i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">{subject}</span>
+                <div key={i} className="flex items-center justify-between p-3 bg-[#f8fafb] rounded-lg">
+                  <span className="text-sm font-medium text-[#002045]">{subject}</span>
                   <button onClick={() => toggleSubject(subject)} className="text-red-500 hover:text-red-600">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <MaterialIcon icon="close" />
                   </button>
                 </div>
               ))}
@@ -253,13 +249,11 @@ export default function SetupWizardPage() {
 
         {currentStep === 4 && (
           <div className="space-y-6 text-center">
-            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto">
-              <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+              <MaterialIcon icon="check_circle" className="text-3xl text-green-600" />
             </div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Setup Complete</h2>
-            <p className="text-gray-500 dark:text-gray-400">
+            <h2 className="text-lg font-semibold text-[#002045]">Setup Complete</h2>
+            <p className="text-[#5c6670]">
               Your school is configured with {form.classes.length} classes and {form.subjects.length} subjects for {form.academicYear}.
             </p>
           </div>

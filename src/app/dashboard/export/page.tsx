@@ -5,6 +5,10 @@ import { useStudents, useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 export default function ExportPage() {
   const { school } = useAuth()
   const toast = useToast()
@@ -124,11 +128,11 @@ export default function ExportPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Export Data</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Export school data to Excel</p>
+        <h1 className="text-2xl font-bold text-[#002045]">Export Data</h1>
+        <p className="text-[#5c6670] mt-1">Export school data to Excel</p>
       </div>
 
-      <div className="card max-w-2xl">
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 max-w-2xl">
         <div className="space-y-6">
           {/* Export Type */}
           <div>
@@ -160,8 +164,8 @@ export default function ExportPage() {
           </div>
 
           {/* Preview */}
-          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="p-4 bg-[#f8fafb] rounded-lg">
+            <div className="text-sm text-[#5c6670]">
               {exportType === 'students' && `${filteredStudents.length} students will be exported`}
               {exportType === 'uneb' && `${filteredStudents.filter(s => s.ple_index_number).length} students with PLE index numbers`}
               {exportType === 'grades' && 'All grade records for selected class'}
@@ -186,9 +190,7 @@ export default function ExportPage() {
               </span>
             ) : (
               <span className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
+                <MaterialIcon icon="download" />
                 Download Excel File
               </span>
             )}
@@ -197,31 +199,23 @@ export default function ExportPage() {
       </div>
 
       {/* Export Tips */}
-      <div className="card mt-6 max-w-2xl">
-        <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Export Tips</h2>
-        <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 mt-6 max-w-2xl">
+        <h2 className="font-semibold text-[#002045] mb-4">Export Tips</h2>
+        <ul className="space-y-2 text-sm text-[#5c6670]">
           <li className="flex items-start gap-2">
-            <svg className="w-4 h-4 text-green-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
+            <MaterialIcon icon="check_circle" className="text-green-600 mt-0.5" />
             <span><strong>UNEB Export:</strong> Use this to fill UNEB registration forms. Make sure students have PLE index numbers.</span>
           </li>
           <li className="flex items-start gap-2">
-            <svg className="w-4 h-4 text-green-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
+            <MaterialIcon icon="check_circle" className="text-green-600 mt-0.5" />
             <span><strong>Student List:</strong> Export all student records including parent contacts.</span>
           </li>
           <li className="flex items-start gap-2">
-            <svg className="w-4 h-4 text-green-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
+            <MaterialIcon icon="check_circle" className="text-green-600 mt-0.5" />
             <span><strong>Grades:</strong> Export all grade records for analysis or backup.</span>
           </li>
           <li className="flex items-start gap-2">
-            <svg className="w-4 h-4 text-green-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
+            <MaterialIcon icon="check_circle" className="text-green-600 mt-0.5" />
             <span><strong>Fees:</strong> Export payment records for accounting or audits.</span>
           </li>
         </ul>

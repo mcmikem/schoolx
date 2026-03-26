@@ -4,6 +4,10 @@ import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 interface Asset {
   id: string
   name: string
@@ -124,28 +128,26 @@ export default function AssetsPage() {
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Asset Register</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Track school property and equipment</p>
+          <h1 className="text-2xl font-bold text-[#002045]">Asset Register</h1>
+          <p className="text-[#5c6670] mt-1">Track school property and equipment</p>
         </div>
         <button onClick={() => setShowModal(true)} className="btn btn-primary">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
+          <MaterialIcon icon="add" />
           Add Asset
         </button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="stat-card">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="stat-value">{assets.length}</div>
           <div className="stat-label">Total Assets</div>
         </div>
-        <div className="stat-card">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="stat-value">UGX {(totalValue / 1000000).toFixed(1)}M</div>
           <div className="stat-label">Total Value</div>
         </div>
-        <div className="stat-card">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="stat-value text-yellow-600">{assets.filter(a => a.condition === 'Needs Repair').length}</div>
           <div className="stat-label">Need Repair</div>
         </div>
@@ -182,7 +184,7 @@ export default function AssetsPage() {
       ) : (
         <div className="table-wrapper">
           <table className="table">
-            <thead>
+            <thead className="bg-[#f8fafb]">
               <tr>
                 <th>Asset Name</th>
                 <th>Category</th>
@@ -199,10 +201,10 @@ export default function AssetsPage() {
                   <td className="text-gray-600 dark:text-gray-400">{asset.category}</td>
                   <td className="text-gray-600 dark:text-gray-400">{asset.location}</td>
                   <td>
-                    <span className={`badge ${
-                      asset.condition === 'New' || asset.condition === 'Good' ? 'badge-success' :
-                      asset.condition === 'Fair' ? 'badge-warning' :
-                      'badge-danger'
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                      asset.condition === 'New' || asset.condition === 'Good' ? 'bg-[#e8f5e9] text-[#006e1c]' :
+                      asset.condition === 'Fair' ? 'bg-[#fff3e0] text-[#e65100]' :
+                      'bg-[#ffebee] text-[#c62828]'
                     }`}>
                       {asset.condition}
                     </span>

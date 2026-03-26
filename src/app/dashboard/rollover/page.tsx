@@ -6,6 +6,10 @@ import { useStudents, useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 export default function RolloverPage() {
   const { school } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
@@ -115,36 +119,36 @@ export default function RolloverPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Academic Rollover</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">End of term or year transition</p>
+        <h1 className="text-2xl font-bold text-[#002045]">Academic Rollover</h1>
+        <p className="text-[#5c6670] mt-1">End of term or year transition</p>
       </div>
 
       {/* Current Status */}
-      <div className="card mb-6 max-w-2xl">
-        <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Current Status</h2>
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 mb-6 max-w-2xl">
+        <h2 className="font-semibold text-[#002045] mb-4">Current Status</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">Academic Year</div>
-            <div className="text-xl font-bold text-gray-900 dark:text-white">{academicYear}</div>
+            <div className="text-sm text-[#5c6670]">Academic Year</div>
+            <div className="text-xl font-bold text-[#002045]">{academicYear}</div>
           </div>
           <div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">Current Term</div>
-            <div className="text-xl font-bold text-gray-900 dark:text-white">Term {currentTerm}</div>
+            <div className="text-sm text-[#5c6670]">Current Term</div>
+            <div className="text-xl font-bold text-[#002045]">Term {currentTerm}</div>
           </div>
           <div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">Active Students</div>
-            <div className="text-xl font-bold text-gray-900 dark:text-white">{students.filter(s => s.status === 'active').length}</div>
+            <div className="text-sm text-[#5c6670]">Active Students</div>
+            <div className="text-xl font-bold text-[#002045]">{students.filter(s => s.status === 'active').length}</div>
           </div>
           <div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">Classes</div>
-            <div className="text-xl font-bold text-gray-900 dark:text-white">{classes.length}</div>
+            <div className="text-sm text-[#5c6670]">Classes</div>
+            <div className="text-xl font-bold text-[#002045]">{classes.length}</div>
           </div>
         </div>
       </div>
 
       {/* Rollover Options */}
-      <div className="card max-w-2xl">
-        <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Rollover Options</h2>
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 max-w-2xl">
+        <h2 className="font-semibold text-[#002045] mb-4">Rollover Options</h2>
         
         <div className="space-y-4">
           {/* Term Rollover */}
@@ -208,9 +212,9 @@ export default function RolloverPage() {
       </div>
 
       {/* Warning */}
-      <div className="card mt-6 max-w-2xl bg-yellow-50 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-700">
-        <h2 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">Important</h2>
-        <ul className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 mt-6 max-w-2xl bg-yellow-50">
+        <h2 className="font-semibold text-yellow-800 mb-2">Important</h2>
+        <ul className="text-sm text-yellow-700 space-y-1">
           <li>Make sure all grades are entered before rollover</li>
           <li>Print report cards before starting new term</li>
           <li>Year rollover will promote all students automatically</li>

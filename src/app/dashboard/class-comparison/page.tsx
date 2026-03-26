@@ -5,6 +5,10 @@ import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 export default function ClassComparisonPage() {
   const { school } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
@@ -39,21 +43,21 @@ export default function ClassComparisonPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Class Comparison</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Compare performance across classes</p>
+        <h1 className="text-2xl font-bold text-[#002045]">Class Comparison</h1>
+        <p className="text-[#5c6670] mt-1">Compare performance across classes</p>
       </div>
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="stat-card">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="stat-value">{totals.students}</div>
           <div className="stat-label">Total Students</div>
         </div>
-        <div className="stat-card">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="stat-value text-blue-600">{totals.boys}</div>
           <div className="stat-label">Boys</div>
         </div>
-        <div className="stat-card">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="stat-value text-pink-600">{totals.girls}</div>
           <div className="stat-label">Girls</div>
         </div>
@@ -62,7 +66,7 @@ export default function ClassComparisonPage() {
       {/* Class Comparison Table */}
       <div className="table-wrapper">
         <table className="table">
-          <thead>
+          <thead className="bg-[#f8fafb]">
             <tr>
               <th>Class</th>
               <th>Total</th>
@@ -91,7 +95,9 @@ export default function ClassComparisonPage() {
                   </div>
                 </td>
                 <td>
-                  <span className={`badge ${cls.total > 50 ? 'badge-warning' : cls.total > 30 ? 'badge-info' : 'badge-success'}`}>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                    cls.total > 50 ? 'bg-[#fff3e0] text-[#e65100]' : cls.total > 30 ? 'bg-[#e3f2fd] text-[#1565c0]' : 'bg-[#e8f5e9] text-[#006e1c]'
+                  }`}>
                     {cls.total > 50 ? 'Large' : cls.total > 30 ? 'Medium' : 'Small'}
                   </span>
                 </td>
@@ -102,9 +108,9 @@ export default function ClassComparisonPage() {
       </div>
 
       {/* Info */}
-      <div className="card mt-6 max-w-2xl">
-        <h2 className="font-semibold text-gray-900 dark:text-white mb-4">About Class Comparison</h2>
-        <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 mt-6 max-w-2xl">
+        <h2 className="font-semibold text-[#002045] mb-4">About Class Comparison</h2>
+        <ul className="space-y-2 text-sm text-[#5c6670]">
           <li>Compare student enrollment across classes</li>
           <li>Identify overcrowded or underpopulated classes</li>
           <li>Track gender balance by class</li>

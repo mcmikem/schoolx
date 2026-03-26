@@ -3,6 +3,10 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { getAuditLog, AuditEntry } from '@/lib/audit'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 export default function AuditLogPage() {
   const { user } = useAuth()
   const [logs, setLogs] = useState<AuditEntry[]>([])
@@ -25,8 +29,8 @@ export default function AuditLogPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Audit Log</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Track all system activities</p>
+        <h1 className="text-2xl font-bold text-[#002045]">Audit Log</h1>
+        <p className="text-[#5c6670] mt-1">Track all system activities</p>
       </div>
 
       {/* Filters */}
@@ -59,7 +63,7 @@ export default function AuditLogPage() {
       ) : (
         <div className="table-wrapper">
           <table className="table">
-            <thead>
+            <thead className="bg-[#f8fafb]">
               <tr>
                 <th>Time</th>
                 <th>User</th>
@@ -76,11 +80,11 @@ export default function AuditLogPage() {
                   </td>
                   <td className="font-medium text-gray-900 dark:text-white">{log.user_name}</td>
                   <td>
-                    <span className={`badge ${
-                      log.action === 'create' ? 'badge-success' :
-                      log.action === 'update' ? 'badge-info' :
-                      log.action === 'delete' ? 'badge-danger' :
-                      'badge-neutral'
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                      log.action === 'create' ? 'bg-[#e8f5e9] text-[#006e1c]' :
+                      log.action === 'update' ? 'bg-[#e3f2fd] text-[#1565c0]' :
+                      log.action === 'delete' ? 'bg-[#ffebee] text-[#c62828]' :
+                      'bg-[#f5f5f5] text-[#616161]'
                     }`}>
                       {log.action}
                     </span>
@@ -95,9 +99,9 @@ export default function AuditLogPage() {
       )}
 
       {/* Info */}
-      <div className="card mt-6 max-w-2xl">
-        <h2 className="font-semibold text-gray-900 dark:text-white mb-4">About Audit Log</h2>
-        <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 mt-6 max-w-2xl">
+        <h2 className="font-semibold text-[#002045] mb-4">About Audit Log</h2>
+        <ul className="space-y-2 text-sm text-[#5c6670]">
           <li>Audit log tracks all important actions in the system</li>
           <li>Activities include: creating, updating, deleting, and viewing records</li>
           <li>Useful for accountability and tracking changes</li>

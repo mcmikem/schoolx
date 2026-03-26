@@ -4,6 +4,10 @@ import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useFeePayments } from '@/lib/hooks'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 export default function CashbookPage() {
   const { school } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
@@ -70,8 +74,8 @@ export default function CashbookPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Cashbook</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Daily payment summary for bursars</p>
+        <h1 className="text-2xl font-bold text-[#002045]">Cashbook</h1>
+        <p className="text-[#5c6670] mt-1">Daily payment summary for bursars</p>
       </div>
 
       {/* Date Filter */}
@@ -82,28 +86,26 @@ export default function CashbookPage() {
           <option value="month">This Month</option>
         </select>
         <button onClick={exportCSV} className="btn btn-secondary">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
+          <MaterialIcon icon="download" />
           Export CSV
         </button>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="stat-card">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="stat-value">{formatCurrency(summary.total)}</div>
           <div className="stat-label">Total Collected</div>
         </div>
-        <div className="stat-card">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="stat-value text-green-600">{formatCurrency(summary.cash)}</div>
           <div className="stat-label">Cash</div>
         </div>
-        <div className="stat-card">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="stat-value text-yellow-600">{formatCurrency(summary.momo)}</div>
           <div className="stat-label">Mobile Money</div>
         </div>
-        <div className="stat-card">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="stat-value text-blue-600">{formatCurrency(summary.bank)}</div>
           <div className="stat-label">Bank</div>
         </div>
@@ -112,7 +114,7 @@ export default function CashbookPage() {
       {/* Transactions */}
       <div className="table-wrapper">
         <table className="table">
-          <thead>
+          <thead className="bg-[#f8fafb]">
             <tr>
               <th>Date</th>
               <th>Student</th>
@@ -133,7 +135,7 @@ export default function CashbookPage() {
                   <td className="font-medium">{(payment as any).students?.first_name} {(payment as any).students?.last_name}</td>
                   <td className="text-green-600 font-medium">{formatCurrency(Number(payment.amount_paid))}</td>
                   <td>
-                    <span className="badge badge-info">
+                    <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-[#e3f2fd] text-[#1565c0]">
                       {payment.payment_method === 'mobile_money' ? 'MoMo' :
                        payment.payment_method === 'cash' ? 'Cash' :
                        payment.payment_method === 'bank' ? 'Bank' : 'Other'}

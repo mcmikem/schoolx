@@ -3,6 +3,10 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 interface Comment {
   id: string
   category: string
@@ -91,13 +95,11 @@ export default function CommentsPage() {
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Comment Bank</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Pre-written comments for report cards</p>
+          <h1 className="text-2xl font-bold text-[#002045]">Comment Bank</h1>
+          <p className="text-[#5c6670] mt-1">Pre-written comments for report cards</p>
         </div>
         <button onClick={() => setShowAddModal(true)} className="btn btn-primary">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
+          <MaterialIcon icon="add" />
           Add Comment
         </button>
       </div>
@@ -116,21 +118,21 @@ export default function CommentsPage() {
       {/* Comments List */}
       <div className="space-y-3">
         {filteredComments.map((comment) => (
-          <div key={comment.id} className="card">
+          <div key={comment.id} className="bg-white rounded-2xl border border-[#e8eaed] p-6">
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="badge badge-info">{comment.category}</span>
-                  <span className={`badge ${
-                    comment.performance === 'excellent' ? 'badge-success' :
-                    comment.performance === 'good' ? 'badge-info' :
-                    comment.performance === 'average' ? 'badge-warning' :
-                    'badge-danger'
+                  <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-[#e3f2fd] text-[#1565c0]">{comment.category}</span>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                    comment.performance === 'excellent' ? 'bg-[#e8f5e9] text-[#006e1c]' :
+                    comment.performance === 'good' ? 'bg-[#e3f2fd] text-[#1565c0]' :
+                    comment.performance === 'average' ? 'bg-[#fff3e0] text-[#e65100]' :
+                    'bg-[#ffebee] text-[#c62828]'
                   }`}>
                     {comment.performance}
                   </span>
                 </div>
-                <p className="text-gray-900 dark:text-white">{comment.text}</p>
+                <p className="text-[#002045]">{comment.text}</p>
               </div>
               <div className="flex gap-2 ml-4">
                 <button

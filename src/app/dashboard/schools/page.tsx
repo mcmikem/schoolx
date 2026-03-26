@@ -4,6 +4,10 @@ import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 interface SchoolData {
   id: string
   name: string
@@ -112,13 +116,11 @@ export default function SchoolsPage() {
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Schools</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Manage all registered schools</p>
+          <h1 className="text-2xl font-bold text-[#002045]">Schools</h1>
+          <p className="text-[#5c6670] mt-1">Manage all registered schools</p>
         </div>
         <button onClick={() => setShowAddModal(true)} className="btn btn-primary">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
+          <MaterialIcon icon="add" />
           Add School
         </button>
       </div>
@@ -136,19 +138,19 @@ export default function SchoolsPage() {
       ) : (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="stat-card">
+            <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
               <div className="stat-value">{schools.length}</div>
               <div className="stat-label">Total Schools</div>
             </div>
-            <div className="stat-card">
-              <div className="stat-value text-green-600 dark:text-green-400">{activeSchools}</div>
+            <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+              <div className="stat-value text-green-600">{activeSchools}</div>
               <div className="stat-label">Active</div>
             </div>
-            <div className="stat-card">
+            <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
               <div className="stat-value">{schools.filter(s => s.subscription_plan === 'premium').length}</div>
               <div className="stat-label">Premium</div>
             </div>
-            <div className="stat-card">
+            <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
               <div className="stat-value">UGX {(totalRevenue / 1000).toFixed(0)}K</div>
               <div className="stat-label">Monthly Revenue</div>
             </div>
@@ -172,26 +174,26 @@ export default function SchoolsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((school) => (
-              <div key={school.id} className="card">
+              <div key={school.id} className="bg-white rounded-2xl border border-[#e8eaed] p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <div className="font-semibold text-gray-900 dark:text-white">{school.name}</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{school.school_code} • {school.district}</div>
+                    <div className="font-semibold text-[#002045]">{school.name}</div>
+                    <div className="text-sm text-[#5c6670]">{school.school_code} • {school.district}</div>
                   </div>
-                  <span className={`badge ${
-                    school.subscription_status === 'active' ? 'badge-success' :
-                    school.subscription_status === 'trial' ? 'badge-warning' : 'badge-danger'
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                    school.subscription_status === 'active' ? 'bg-[#e8f5e9] text-[#006e1c]' :
+                    school.subscription_status === 'trial' ? 'bg-[#fff3e0] text-[#e65100]' : 'bg-[#ffebee] text-[#c62828]'
                   }`}>
                     {school.subscription_status}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 mb-3">
+                <div className="flex items-center justify-between text-sm text-[#5c6670] mb-3">
                   <span className="capitalize">{school.school_type}</span>
                   <span className="capitalize">{school.ownership}</span>
-                  <span className="badge badge-info">{school.subscription_plan}</span>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-[#e3f2fd] text-[#1565c0]">{school.subscription_plan}</span>
                 </div>
                 {school.phone && (
-                  <div className="text-sm text-gray-500 dark:text-gray-400">📞 {school.phone}</div>
+                  <div className="text-sm text-[#5c6670]">📞 {school.phone}</div>
                 )}
               </div>
             ))}

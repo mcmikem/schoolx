@@ -4,6 +4,10 @@ import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { supabase } from '@/lib/supabase'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 export default function ParentPortal() {
   const { user, school } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
@@ -107,11 +111,11 @@ export default function ParentPortal() {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Parent Portal</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">View your child's progress</p>
+          <h1 className="text-2xl font-bold text-[#002045]">Parent Portal</h1>
+          <p className="text-[#5c6670] mt-1">View your child's progress</p>
         </div>
-        <div className="card text-center py-12">
-          <div className="text-gray-500 dark:text-gray-400">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 text-center py-12">
+          <div className="text-[#5c6670]">
             No student linked to your account. Please contact the school.
           </div>
         </div>
@@ -125,18 +129,18 @@ export default function ParentPortal() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Parent Portal</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">View your child's progress</p>
+        <h1 className="text-2xl font-bold text-[#002045]">Parent Portal</h1>
+        <p className="text-[#5c6670] mt-1">View your child's progress</p>
       </div>
 
       <div className="max-w-2xl mx-auto space-y-6">
-        <div className="card flex items-center gap-4">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 flex items-center gap-4">
           <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
             <span className="text-xl font-bold text-blue-600 dark:text-blue-300">{initials}</span>
           </div>
           <div>
-            <div className="text-lg font-semibold text-gray-900 dark:text-white">{studentName}</div>
-            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <div className="text-lg font-semibold text-[#002045]">{studentName}</div>
+            <div className="flex items-center gap-2 text-sm text-[#5c6670]">
               <span>Class: {linkedStudent.classes?.name || 'N/A'}</span>
               <span>•</span>
               <span>{linkedStudent.student_number || 'N/A'}</span>
@@ -145,28 +149,28 @@ export default function ParentPortal() {
         </div>
 
         <div className="grid grid-cols-3 gap-4">
-          <div className="card text-center">
+          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 text-center">
             <div className="text-2xl font-bold text-green-600 dark:text-green-400">{attendanceRate}%</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Attendance</div>
+            <div className="text-xs text-[#5c6670] mt-1">Attendance</div>
           </div>
-          <div className="card text-center">
+          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 text-center">
             <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{avgGrade}%</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Average</div>
+            <div className="text-xs text-[#5c6670] mt-1">Average</div>
           </div>
-          <div className="card text-center">
+          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 text-center">
             <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{(feeStats.balance / 1000).toFixed(0)}K</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Balance</div>
+            <div className="text-xs text-[#5c6670] mt-1">Balance</div>
           </div>
         </div>
 
-        <div className="card">
-          <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Fee Status</h2>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+          <h2 className="font-semibold text-[#002045] mb-4">Fee Status</h2>
           <div className="mb-4">
-            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+            <div className="flex justify-between text-sm text-[#5c6670] mb-2">
               <span>Paid: UGX {feeStats.totalPaid.toLocaleString()}</span>
               <span>Total: UGX {feeStats.totalFee.toLocaleString()}</span>
             </div>
-            <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div className="h-3 bg-[#f8fafb] rounded-full overflow-hidden">
               <div 
                 className="h-full bg-green-500 rounded-full transition-all" 
                 style={{ width: `${feeStats.totalFee > 0 ? (feeStats.totalPaid / feeStats.totalFee) * 100 : 0}%` }} 
@@ -175,14 +179,14 @@ export default function ParentPortal() {
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Balance</div>
+              <div className="text-sm text-[#5c6670]">Balance</div>
               <div className="text-xl font-bold text-red-600 dark:text-red-400">UGX {feeStats.balance.toLocaleString()}</div>
             </div>
           </div>
         </div>
 
-        <div className="card">
-          <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Recent Attendance</h2>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+          <h2 className="font-semibold text-[#002045] mb-4">Recent Attendance</h2>
           {attendance.length === 0 ? (
             <div className="text-gray-500 text-center py-4">No attendance records</div>
           ) : (
@@ -217,8 +221,8 @@ export default function ParentPortal() {
           )}
         </div>
 
-        <div className="card">
-          <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Recent Grades</h2>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+          <h2 className="font-semibold text-[#002045] mb-4">Recent Grades</h2>
           {grades.length === 0 ? (
             <div className="text-gray-500 text-center py-4">No grades published yet</div>
           ) : (
@@ -238,8 +242,8 @@ export default function ParentPortal() {
           )}
         </div>
 
-        <div className="card">
-          <h2 className="font-semibold text-gray-900 dark:text-white mb-4">School Info</h2>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+          <h2 className="font-semibold text-[#002045] mb-4">School Info</h2>
           <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
             <div><strong>School:</strong> {school?.name || 'N/A'}</div>
             <div><strong>Term:</strong> Term {currentTerm} {academicYear}</div>

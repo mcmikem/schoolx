@@ -6,6 +6,10 @@ import { useClasses, useStudents } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 type ReportType = 'attendance' | 'fees' | 'grades' | 'weekly_summary'
 
 interface AutoSMSConfig {
@@ -179,14 +183,14 @@ export default function AutoSMSPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Auto SMS Reports</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Automatically send reports to parents via SMS</p>
+        <h1 className="text-2xl font-bold text-[#002045]">Auto SMS Reports</h1>
+        <p className="text-[#5c6670] mt-1">Automatically send reports to parents via SMS</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Configuration */}
-        <div className="card">
-          <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Settings</h2>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+          <h2 className="font-semibold text-[#002045] mb-4">Settings</h2>
           
           <div className="space-y-4">
             {/* Enable/Disable */}
@@ -263,24 +267,24 @@ export default function AutoSMSPage() {
         {/* Preview & Send */}
         <div className="space-y-6">
           {/* Stats */}
-          <div className="card">
-            <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Summary</h2>
+          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+            <h2 className="font-semibold text-[#002045] mb-4">Summary</h2>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Recipients</span>
-                <span className="font-medium text-gray-900 dark:text-white">
+                <span className="text-[#5c6670]">Recipients</span>
+                <span className="font-medium text-[#002045]">
                   {selectedClass === 'all' ? students.length : students.filter(s => s.class_id === selectedClass).length} parents
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Report Type</span>
-                <span className="font-medium text-gray-900 dark:text-white capitalize">
+                <span className="text-[#5c6670]">Report Type</span>
+                <span className="font-medium text-[#002045] capitalize">
                   {config.reportType.replace('_', ' ')}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Last Sent</span>
-                <span className="font-medium text-gray-900 dark:text-white">
+                <span className="text-[#5c6670]">Last Sent</span>
+                <span className="font-medium text-[#002045]">
                   {lastSent ? new Date(lastSent).toLocaleDateString() : 'Never'}
                 </span>
               </div>
@@ -289,12 +293,12 @@ export default function AutoSMSPage() {
 
           {/* Preview Messages */}
           {preview.length > 0 && (
-            <div className="card">
-              <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Preview</h2>
+            <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+              <h2 className="font-semibold text-[#002045] mb-4">Preview</h2>
               <div className="space-y-3">
                 {preview.map((msg, i) => (
-                  <div key={i} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <p className="text-sm text-gray-900 dark:text-white">{msg}</p>
+                  <div key={i} className="p-3 bg-[#f8fafb] rounded-lg">
+                    <p className="text-sm text-[#002045]">{msg}</p>
                   </div>
                 ))}
               </div>

@@ -6,6 +6,10 @@ import { useStudents, useFeePayments, useFeeStructure, useClasses } from '@/lib/
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 interface Invoice {
   student_id: string
   student_name: string
@@ -202,29 +206,29 @@ export default function InvoicingPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Fee Invoicing</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Generate and manage student invoices</p>
+        <h1 className="text-2xl font-bold text-[#002045]">Fee Invoicing</h1>
+        <p className="text-[#5c6670] mt-1">Generate and manage student invoices</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <div className="stat-card">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="stat-value">{formatCurrency(stats.totalInvoiced)}</div>
           <div className="stat-label">Total Invoiced</div>
         </div>
-        <div className="stat-card">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="stat-value text-green-600">{formatCurrency(stats.totalCollected)}</div>
           <div className="stat-label">Collected</div>
         </div>
-        <div className="stat-card">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="stat-value text-red-600">{formatCurrency(stats.totalBalance)}</div>
           <div className="stat-label">Outstanding</div>
         </div>
-        <div className="stat-card">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="stat-value text-green-600">{stats.fullyPaid}</div>
           <div className="stat-label">Fully Paid</div>
         </div>
-        <div className="stat-card">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="stat-value text-yellow-600">{stats.hasBalance}</div>
           <div className="stat-label">Has Balance</div>
         </div>
@@ -241,7 +245,7 @@ export default function InvoicingPage() {
       {/* Invoices Table */}
       <div className="table-wrapper">
         <table className="table">
-          <thead>
+          <thead className="bg-[#f8fafb]">
             <tr>
               <th>Student</th>
               <th>Class</th>
@@ -266,7 +270,7 @@ export default function InvoicingPage() {
                   {formatCurrency(invoice.balance)}
                 </td>
                 <td>
-                  <span className={`badge ${invoice.balance === 0 ? 'badge-success' : 'badge-warning'}`}>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${invoice.balance === 0 ? 'bg-[#e8f5e9] text-[#006e1c]' : 'bg-[#fff3e0] text-[#e65100]'}`}>
                     {invoice.balance === 0 ? 'Paid' : 'Pending'}
                   </span>
                 </td>

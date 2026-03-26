@@ -5,6 +5,10 @@ import { useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 const PERIODS = ['Period 1', 'Period 2', 'Period 3', 'Period 4', 'Period 5', 'Period 6', 'Period 7', 'Period 8']
 
 export default function PeriodAttendancePage() {
@@ -93,8 +97,8 @@ export default function PeriodAttendancePage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Period Attendance</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Mark attendance for each period</p>
+        <h1 className="text-2xl font-bold text-[#002045]">Period Attendance</h1>
+        <p className="text-[#5c6670] mt-1">Mark attendance for each period</p>
       </div>
 
       {/* Filters */}
@@ -139,7 +143,7 @@ export default function PeriodAttendancePage() {
         <>
           <div className="space-y-3 mb-6">
             {students.map((student) => (
-              <div key={student.id} className="card">
+              <div key={student.id} className="bg-white rounded-2xl border border-[#e8eaed] p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
@@ -148,8 +152,8 @@ export default function PeriodAttendancePage() {
                       </span>
                     </div>
                     <div>
-                      <div className="font-medium text-gray-900 dark:text-white">{student.first_name} {student.last_name}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{student.student_number}</div>
+                      <div className="font-medium text-[#002045]">{student.first_name} {student.last_name}</div>
+                      <div className="text-xs text-[#5c6670]">{student.student_number}</div>
                     </div>
                   </div>
                   <div className="flex gap-2">

@@ -6,6 +6,10 @@ import { useStudents, useFeePayments } from '@/lib/hooks'
 import { supabase } from '@/lib/supabase'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 interface TrendData {
   term: string
   students: number
@@ -148,10 +152,10 @@ export default function TrendAnalyticsPage() {
   if (loading) {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded w-48"></div>
+        <div className="space-y-6">
+          <div className="h-8 bg-[#e8eaed] rounded w-48"></div>
           <div className="grid grid-cols-4 gap-4">
-            {[1,2,3,4].map(i => <div key={i} className="h-24 bg-gray-200 rounded"></div>)}
+            {[1,2,3,4].map(i) => <div key={i} className="h-24 bg-[#e8eaed] rounded-2xl"></div>)}
           </div>
         </div>
       </div>
@@ -161,8 +165,8 @@ export default function TrendAnalyticsPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Trend Analytics</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Multi-term performance trends</p>
+        <h1 className="text-2xl font-bold text-[#002045]">Trend Analytics</h1>
+        <p className="text-[#5c6670] mt-1">Multi-term performance trends</p>
       </div>
 
       {academicYears.length > 1 && (
@@ -180,76 +184,76 @@ export default function TrendAnalyticsPage() {
       {stats && (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div className="stat-card">
-              <div className="stat-value">{Math.round(stats.totalStudents)}</div>
-              <div className="stat-label">Avg Students</div>
-              <div className={`text-xs mt-1 ${Number(stats.studentTrend) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+              <div className="text-2xl font-bold text-[#002045]">{Math.round(stats.totalStudents)}</div>
+              <div className="text-sm text-[#5c6670] mt-1">Avg Students</div>
+              <div className={`text-xs mt-1 ${Number(stats.studentTrend) >= 0 ? 'text-[#006e1c]' : 'text-[#ba1a1a]'}`}>
                 {Number(stats.studentTrend) >= 0 ? '↑' : '↓'} {stats.studentTrend}%
               </div>
             </div>
-            <div className="stat-card">
-              <div className="stat-value">{stats.avgAttendance.toFixed(1)}%</div>
-              <div className="stat-label">Avg Attendance</div>
-              <div className={`text-xs mt-1 ${Number(stats.attendanceTrend) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+              <div className="text-2xl font-bold text-[#002045]">{stats.avgAttendance.toFixed(1)}%</div>
+              <div className="text-sm text-[#5c6670] mt-1">Avg Attendance</div>
+              <div className={`text-xs mt-1 ${Number(stats.attendanceTrend) >= 0 ? 'text-[#006e1c]' : 'text-[#ba1a1a]'}`}>
                 {Number(stats.attendanceTrend) >= 0 ? '↑' : '↓'} {stats.attendanceTrend}%
               </div>
             </div>
-            <div className="stat-card">
-              <div className="stat-value">{stats.collectionRate}%</div>
-              <div className="stat-label">Collection Rate</div>
-              <div className={`text-xs mt-1 ${Number(stats.collectionTrend) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+              <div className="text-2xl font-bold text-[#002045]">{stats.collectionRate}%</div>
+              <div className="text-sm text-[#5c6670] mt-1">Collection Rate</div>
+              <div className={`text-xs mt-1 ${Number(stats.collectionTrend) >= 0 ? 'text-[#006e1c]' : 'text-[#ba1a1a]'}`}>
                 {Number(stats.collectionTrend) >= 0 ? '↑' : '↓'} {stats.collectionTrend}%
               </div>
             </div>
-            <div className="stat-card">
-              <div className="stat-value text-green-600 dark:text-green-400">{formatCurrency(historicalData[historicalData.length - 1]?.collected || 0)}</div>
-              <div className="stat-label">Latest Collected</div>
+            <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+              <div className="text-2xl font-bold text-[#006e1c]">{formatCurrency(historicalData[historicalData.length - 1]?.collected || 0)}</div>
+              <div className="text-sm text-[#5c6670] mt-1">Latest Collected</div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div className="card">
-              <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Enrollment Trend</h2>
+            <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+              <h2 className="font-semibold text-[#191c1d] mb-4">Enrollment Trend</h2>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={historicalData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="term" />
-                    <YAxis />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e8eaed" />
+                    <XAxis dataKey="term" stroke="#5c6670" />
+                    <YAxis stroke="#5c6670" />
                     <Tooltip />
-                    <Line type="monotone" dataKey="students" stroke="#3b82f6" strokeWidth={2} name="Students" />
+                    <Line type="monotone" dataKey="students" stroke="#002045" strokeWidth={2} name="Students" />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            <div className="card">
-              <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Fee Collection Trend</h2>
+            <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+              <h2 className="font-semibold text-[#191c1d] mb-4">Fee Collection Trend</h2>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={historicalData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="term" />
-                    <YAxis />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e8eaed" />
+                    <XAxis dataKey="term" stroke="#5c6670" />
+                    <YAxis stroke="#5c6670" />
                     <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                    <Bar dataKey="collected" fill="#22c55e" name="Collected" />
-                    <Bar dataKey="expected" fill="#e5e7eb" name="Expected" />
+                    <Bar dataKey="collected" fill="#006e1c" name="Collected" />
+                    <Bar dataKey="expected" fill="#e8eaed" name="Expected" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
           </div>
 
-          <div className="card">
-            <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Attendance Trend</h2>
+          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+            <h2 className="font-semibold text-[#191c1d] mb-4">Attendance Trend</h2>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={historicalData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="term" />
-                  <YAxis domain={[60, 100]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e8eaed" />
+                  <XAxis dataKey="term" stroke="#5c6670" />
+                  <YAxis domain={[60, 100]} stroke="#5c6670" />
                   <Tooltip />
-                  <Line type="monotone" dataKey="attendance" stroke="#f59e0b" strokeWidth={2} name="Attendance %" />
+                  <Line type="monotone" dataKey="attendance" stroke="#b86e00" strokeWidth={2} name="Attendance %" />
                 </LineChart>
               </ResponsiveContainer>
             </div>
