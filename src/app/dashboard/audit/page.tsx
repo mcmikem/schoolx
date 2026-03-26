@@ -57,8 +57,8 @@ export default function AuditLogPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No activity recorded</h3>
-          <p className="text-gray-500 dark:text-gray-400">Activities will appear here as users interact with the system</p>
+          <h3 className="text-lg font-semibold text-[#002045] mb-2">No activity recorded</h3>
+          <p className="text-[#5c6670]">Activities will appear here as users interact with the system</p>
         </div>
       ) : (
         <div className="table-wrapper">
@@ -75,10 +75,10 @@ export default function AuditLogPage() {
             <tbody>
               {filteredLogs.map((log) => (
                 <tr key={log.id}>
-                  <td className="text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                  <td className="text-[#5c6670] whitespace-nowrap">
                     {new Date(log.timestamp).toLocaleString()}
                   </td>
-                  <td className="font-medium text-gray-900 dark:text-white">{log.user_name}</td>
+                  <td className="font-medium text-[#002045]">{log.user_name}</td>
                   <td>
                     <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                       log.action === 'create' ? 'bg-[#e8f5e9] text-[#006e1c]' :
@@ -89,8 +89,8 @@ export default function AuditLogPage() {
                       {log.action}
                     </span>
                   </td>
-                  <td className="text-gray-600 dark:text-gray-400">{log.module}</td>
-                  <td className="text-gray-600 dark:text-gray-400">{log.description}</td>
+                  <td className="text-[#5c6670]">{log.module}</td>
+                  <td className="text-[#5c6670]">{log.description}</td>
                 </tr>
               ))}
             </tbody>

@@ -178,8 +178,8 @@ export default function AssetsPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No assets recorded</h3>
-          <p className="text-gray-500 dark:text-gray-400">Add your first asset</p>
+          <h3 className="text-lg font-semibold text-[#002045] mb-2">No assets recorded</h3>
+          <p className="text-[#5c6670]">Add your first asset</p>
         </div>
       ) : (
         <div className="table-wrapper">
@@ -197,9 +197,9 @@ export default function AssetsPage() {
             <tbody>
               {filteredAssets.map((asset) => (
                 <tr key={asset.id}>
-                  <td className="font-medium text-gray-900 dark:text-white">{asset.name}</td>
-                  <td className="text-gray-600 dark:text-gray-400">{asset.category}</td>
-                  <td className="text-gray-600 dark:text-gray-400">{asset.location}</td>
+                  <td className="font-medium text-[#002045]">{asset.name}</td>
+                  <td className="text-[#5c6670]">{asset.category}</td>
+                  <td className="text-[#5c6670]">{asset.location}</td>
                   <td>
                     <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                       asset.condition === 'New' || asset.condition === 'Good' ? 'bg-[#e8f5e9] text-[#006e1c]' :
@@ -231,9 +231,9 @@ export default function AssetsPage() {
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+            <div className="p-6 border-b border-gray-100">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Add Asset</h2>
+                <h2 className="text-lg font-semibold text-[#002045]">Add Asset</h2>
                 <button onClick={() => setShowModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

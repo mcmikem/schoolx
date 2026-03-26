@@ -105,8 +105,8 @@ export default function SchoolsPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Access Restricted</h3>
-          <p className="text-gray-500 dark:text-gray-400">Only super admins can manage schools.</p>
+          <h3 className="text-lg font-semibold text-[#002045] mb-2">Access Restricted</h3>
+          <p className="text-[#5c6670]">Only super admins can manage schools.</p>
         </div>
       </div>
     )
@@ -204,9 +204,9 @@ export default function SchoolsPage() {
       {showAddModal && (
         <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+            <div className="p-6 border-b border-gray-100">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Add New School</h2>
+                <h2 className="text-lg font-semibold text-[#002045]">Add New School</h2>
                 <button onClick={() => setShowAddModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

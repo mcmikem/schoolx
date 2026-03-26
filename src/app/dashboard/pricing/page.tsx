@@ -140,7 +140,7 @@ export default function PricingPage() {
           <tbody>
             {features.map((f) => (
               <tr key={f.key}>
-                <td className="font-medium text-gray-900 dark:text-white">{f.label}</td>
+                <td className="font-medium text-[#002045]">{f.label}</td>
                 {plans.map((planKey) => {
                   const value = PLANS[planKey][f.key]
                   const display = f.format ? f.format(value as number) : (value ? 'Yes' : 'No')
@@ -157,7 +157,7 @@ export default function PricingPage() {
                           </svg>
                         )
                       ) : (
-                        <span className="text-gray-700 dark:text-gray-300">{display}</span>
+                        <span className="text-[#5c6670]">{display}</span>
                       )}
                     </td>
                   )

@@ -78,10 +78,10 @@ export default function ParentPortal() {
   }, [grades])
 
   const getGradeColor = (grade: string) => {
-    if (grade?.startsWith('D')) return 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
-    if (grade?.startsWith('C')) return 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-    if (grade?.startsWith('P')) return 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400'
-    return 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+    if (grade?.startsWith('D')) return 'bg-green-100 text-green-600'
+    if (grade?.startsWith('C')) return 'bg-blue-100 text-blue-600'
+    if (grade?.startsWith('P')) return 'bg-yellow-100 text-yellow-600'
+    return 'bg-red-100 text-red-600'
   }
 
   const getGradeLetter = (score: number) => {
@@ -135,8 +135,8 @@ export default function ParentPortal() {
 
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 flex items-center gap-4">
-          <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-            <span className="text-xl font-bold text-blue-600 dark:text-blue-300">{initials}</span>
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+            <span className="text-xl font-bold text-blue-600">{initials}</span>
           </div>
           <div>
             <div className="text-lg font-semibold text-[#002045]">{studentName}</div>
@@ -150,15 +150,15 @@ export default function ParentPortal() {
 
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 text-center">
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{attendanceRate}%</div>
+            <div className="text-2xl font-bold text-green-600">{attendanceRate}%</div>
             <div className="text-xs text-[#5c6670] mt-1">Attendance</div>
           </div>
           <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 text-center">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{avgGrade}%</div>
+            <div className="text-2xl font-bold text-blue-600">{avgGrade}%</div>
             <div className="text-xs text-[#5c6670] mt-1">Average</div>
           </div>
           <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 text-center">
-            <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{(feeStats.balance / 1000).toFixed(0)}K</div>
+            <div className="text-2xl font-bold text-yellow-600">{(feeStats.balance / 1000).toFixed(0)}K</div>
             <div className="text-xs text-[#5c6670] mt-1">Balance</div>
           </div>
         </div>
@@ -180,7 +180,7 @@ export default function ParentPortal() {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm text-[#5c6670]">Balance</div>
-              <div className="text-xl font-bold text-red-600 dark:text-red-400">UGX {feeStats.balance.toLocaleString()}</div>
+              <div className="text-xl font-bold text-red-600">UGX {feeStats.balance.toLocaleString()}</div>
             </div>
           </div>
         </div>
@@ -194,25 +194,25 @@ export default function ParentPortal() {
               {attendance.slice(0, 10).map((day: any, i: number) => (
                 <div key={i} className="flex-shrink-0 text-center">
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                    day.status === 'present' ? 'bg-green-100 dark:bg-green-900/30' : 
-                    day.status === 'absent' ? 'bg-red-100 dark:bg-red-900/30' : 
-                    'bg-yellow-100 dark:bg-yellow-900/30'
+                    day.status === 'present' ? 'bg-green-100' : 
+                    day.status === 'absent' ? 'bg-red-100' : 
+                    'bg-yellow-100'
                   }`}>
                     {day.status === 'present' ? (
-                      <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     ) : day.status === 'absent' ? (
-                      <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     ) : (
-                      <svg className="w-4 h-4 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-4 h-4 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     )}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  <div className="text-xs text-[#5c6670] mt-1">
                     {new Date(day.date).toLocaleDateString('en-UG', { day: 'numeric', month: 'short' })}
                   </div>
                 </div>
@@ -228,10 +228,10 @@ export default function ParentPortal() {
           ) : (
             <div className="space-y-3">
               {grades.map((grade: any, i: number) => (
-                <div key={i} className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-0">
-                  <div className="font-medium text-gray-900 dark:text-white">{grade.subjects?.name || 'Unknown'}</div>
+                <div key={i} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                  <div className="font-medium text-[#002045]">{grade.subjects?.name || 'Unknown'}</div>
                   <div className="flex items-center gap-4">
-                    <span className="text-sm text-gray-500 dark:text-gray-400">Score: {Math.round(grade.score)}</span>
+                    <span className="text-sm text-[#5c6670]">Score: {Math.round(grade.score)}</span>
                     <span className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm ${getGradeColor(getGradeLetter(grade.score))}`}>
                       {getGradeLetter(grade.score)}
                     </span>
@@ -244,7 +244,7 @@ export default function ParentPortal() {
 
         <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <h2 className="font-semibold text-[#002045] mb-4">School Info</h2>
-          <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+          <div className="space-y-2 text-sm text-[#5c6670]">
             <div><strong>School:</strong> {school?.name || 'N/A'}</div>
             <div><strong>Term:</strong> Term {currentTerm} {academicYear}</div>
           </div>

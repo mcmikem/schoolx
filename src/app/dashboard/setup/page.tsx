@@ -356,13 +356,13 @@ export default function SetupPage() {
                 { step: 'Run Setup', description: 'Click button above to create tables' },
                 { step: 'Register School', description: 'Go to /register to create your school' },
               ].map((item, i) => (
-                <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-blue-600 dark:text-blue-300 text-xs font-bold">{i + 1}</span>
+                <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-blue-600 text-xs font-bold">{i + 1}</span>
                   </div>
                   <div>
-                    <div className="font-medium text-gray-900 dark:text-white text-sm">{item.step}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{item.description}</div>
+                    <div className="font-medium text-[#002045] text-sm">{item.step}</div>
+                    <div className="text-xs text-[#5c6670]">{item.description}</div>
                   </div>
                 </div>
               ))}

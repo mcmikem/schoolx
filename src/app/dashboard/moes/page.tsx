@@ -196,7 +196,7 @@ export default function MoESExportPage() {
           <tbody>
             {moesData.map((row) => (
               <tr key={row.className}>
-                <td className="font-medium text-gray-900 dark:text-white">{row.className}</td>
+                <td className="font-medium text-[#002045]">{row.className}</td>
                 <td className="text-blue-600">{row.boys}</td>
                 <td className="text-pink-600">{row.girls}</td>
                 <td className="font-medium">{row.total}</td>
@@ -205,8 +205,8 @@ export default function MoESExportPage() {
                 <td>{row.ageOver12}</td>
               </tr>
             ))}
-            <tr className="bg-gray-50 dark:bg-gray-700 font-bold">
-              <td>TOTAL</td>
+              <tr className="bg-gray-50 font-bold">
+                <td>TOTAL</td>
               <td className="text-blue-600">{totals.boys}</td>
               <td className="text-pink-600">{totals.girls}</td>
               <td>{totals.total}</td>

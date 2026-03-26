@@ -194,10 +194,10 @@ export default function AutoSMSPage() {
           
           <div className="space-y-4">
             {/* Enable/Disable */}
-            <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between py-3 border-b border-gray-100">
               <div>
-                <div className="font-medium text-gray-900 dark:text-white">Enable Auto SMS</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Send reports automatically</div>
+                <div className="font-medium text-[#002045]">Enable Auto SMS</div>
+                <div className="text-sm text-[#5c6670]">Send reports automatically</div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input 
@@ -206,7 +206,7 @@ export default function AutoSMSPage() {
                   onChange={(e) => setConfig({...config, enabled: e.target.checked})}
                   className="sr-only peer" 
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
               </label>
             </div>
 
@@ -315,8 +315,8 @@ export default function AutoSMSPage() {
           </button>
 
           {/* Info */}
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
-            <p className="text-sm text-blue-700 dark:text-blue-300">
+          <div className="p-4 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-700">
               <strong>Note:</strong> Auto SMS will send reports to all parents with phone numbers on record. 
               Make sure parent phone numbers are up to date.
             </p>

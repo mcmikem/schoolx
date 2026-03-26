@@ -79,19 +79,19 @@ export default function ClassComparisonPage() {
           <tbody>
             {classStats.map((cls) => (
               <tr key={cls.id}>
-                <td className="font-medium text-gray-900 dark:text-white">{cls.name}</td>
+                <td className="font-medium text-[#002045]">{cls.name}</td>
                 <td>{cls.total}</td>
                 <td className="text-blue-600">{cls.boys}</td>
                 <td className="text-pink-600">{cls.girls}</td>
                 <td>
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div 
                         className="h-full bg-pink-500 rounded-full" 
                         style={{ width: `${cls.genderRatio}%` }}
                       />
                     </div>
-                    <span className="text-sm text-gray-500">{cls.genderRatio}%</span>
+                    <span className="text-sm text-[#5c6670]">{cls.genderRatio}%</span>
                   </div>
                 </td>
                 <td>

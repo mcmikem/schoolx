@@ -260,8 +260,8 @@ export default function InvoicingPage() {
             {filteredInvoices.map((invoice) => (
               <tr key={invoice.student_id}>
                 <td>
-                  <div className="font-medium text-gray-900 dark:text-white">{invoice.student_name}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">{invoice.student_number}</div>
+                  <div className="font-medium text-[#002045]">{invoice.student_name}</div>
+                  <div className="text-xs text-[#5c6670]">{invoice.student_number}</div>
                 </td>
                 <td>{invoice.class_name}</td>
                 <td>{formatCurrency(invoice.total_amount)}</td>

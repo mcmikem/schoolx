@@ -156,14 +156,14 @@ export default function RolloverPage() {
             onClick={() => setRolloverType('term')}
             className={`p-4 rounded-lg border-2 cursor-pointer transition-colors ${
               rolloverType === 'term' 
-                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30' 
-                : 'border-gray-200 dark:border-gray-700'
+                ? 'border-blue-500 bg-blue-50' 
+                : 'border-gray-200'
             }`}
           >
-            <div className="font-medium text-gray-900 dark:text-white">
+            <div className="font-medium text-[#002045]">
               {currentTerm < 3 ? `Move to Term ${currentTerm + 1}` : 'Start New Academic Year'}
             </div>
-            <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <div className="text-sm text-[#5c6670] mt-1">
               {currentTerm < 3 
                 ? `Continue to next term within ${academicYear}`
                 : `Start fresh for ${Number(academicYear) + 1}`
@@ -176,12 +176,12 @@ export default function RolloverPage() {
             onClick={() => setRolloverType('year')}
             className={`p-4 rounded-lg border-2 cursor-pointer transition-colors ${
               rolloverType === 'year' 
-                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30' 
-                : 'border-gray-200 dark:border-gray-700'
+                ? 'border-blue-500 bg-blue-50' 
+                : 'border-gray-200'
             }`}
           >
-            <div className="font-medium text-gray-900 dark:text-white">Full Year Rollover</div>
-            <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <div className="font-medium text-[#002045]">Full Year Rollover</div>
+            <div className="text-sm text-[#5c6670] mt-1">
               Promote students, graduate P.7/S.6, create new classes
             </div>
           </div>

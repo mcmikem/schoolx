@@ -120,8 +120,8 @@ export default function PeriodAttendancePage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Select a class</h3>
-          <p className="text-gray-500 dark:text-gray-400">Choose a class to mark period attendance</p>
+          <h3 className="text-lg font-semibold text-[#002045] mb-2">Select a class</h3>
+          <p className="text-[#5c6670]">Choose a class to mark period attendance</p>
         </div>
       ) : loading ? (
         <div className="space-y-3">
@@ -136,8 +136,8 @@ export default function PeriodAttendancePage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No students</h3>
-          <p className="text-gray-500 dark:text-gray-400">Add students to this class first</p>
+          <h3 className="text-lg font-semibold text-[#002045] mb-2">No students</h3>
+          <p className="text-[#5c6670]">Add students to this class first</p>
         </div>
       ) : (
         <>
@@ -146,8 +146,8 @@ export default function PeriodAttendancePage() {
               <div key={student.id} className="bg-white rounded-2xl border border-[#e8eaed] p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 dark:text-blue-300 font-semibold text-sm">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <span className="text-blue-600 font-semibold text-sm">
                         {student.first_name?.charAt(0)}{student.last_name?.charAt(0)}
                       </span>
                     </div>
@@ -168,7 +168,7 @@ export default function PeriodAttendancePage() {
                         className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
                           attendance[student.id] === option.status
                             ? option.color
-                            : 'bg-white dark:bg-gray-800 text-gray-500 border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                            : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
                         }`}
                       >
                         {option.label}

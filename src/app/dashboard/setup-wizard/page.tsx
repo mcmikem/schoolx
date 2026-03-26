@@ -167,23 +167,23 @@ export default function SetupWizardPage() {
                   onClick={() => handleSchoolTypeChange('primary')}
                   className={`flex-1 p-4 rounded-lg border-2 text-left ${
                     form.schoolType === 'primary' 
-                      ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/30' 
-                      : 'border-gray-200 dark:border-gray-700'
+                      ? 'border-blue-600 bg-blue-50' 
+                      : 'border-gray-200'
                   }`}
                 >
-                  <div className="font-medium text-gray-900 dark:text-white">Primary School</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">P.1 to P.7</div>
+                  <div className="font-medium text-[#002045]">Primary School</div>
+                  <div className="text-sm text-[#5c6670]">P.1 to P.7</div>
                 </button>
                 <button
                   onClick={() => handleSchoolTypeChange('secondary')}
                   className={`flex-1 p-4 rounded-lg border-2 text-left ${
                     form.schoolType === 'secondary' 
-                      ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/30' 
-                      : 'border-gray-200 dark:border-gray-700'
+                      ? 'border-blue-600 bg-blue-50' 
+                      : 'border-gray-200'
                   }`}
                 >
-                  <div className="font-medium text-gray-900 dark:text-white">Secondary School</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">S.1 to S.6</div>
+                  <div className="font-medium text-[#002045]">Secondary School</div>
+                  <div className="text-sm text-[#5c6670]">S.1 to S.6</div>
                 </button>
               </div>
             </div>
@@ -260,7 +260,7 @@ export default function SetupWizardPage() {
         )}
 
         {/* Navigation */}
-        <div className="flex gap-3 mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
+        <div className="flex gap-3 mt-8 pt-6 border-t border-gray-100">
           {currentStep > 1 && (
             <button onClick={() => setCurrentStep(currentStep - 1)} className="btn btn-secondary">
               Back
