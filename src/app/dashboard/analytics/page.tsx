@@ -4,6 +4,10 @@ import { useAuth } from '@/lib/auth-context'
 import { useStudents, useFeePayments, useFeeStructure, useClasses } from '@/lib/hooks'
 import { supabase } from '@/lib/supabase'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 interface HealthMetric {
   name: string
   score: number
@@ -23,11 +27,9 @@ export default function AnalyticsPage() {
   const [attendance, setAttendance] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Calculate all health metrics
   const healthMetrics: HealthMetric[] = useMemo(() => {
     const metrics: HealthMetric[] = []
 
-    // 1. Fee Collection Rate
     const totalExpected = feeStructure.reduce((sum, f) => sum + Number(f.amount || 0), 0) * Math.max(students.length, 1)
     const totalCollected = payments.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0)
     const feeRate = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0
@@ -39,7 +41,6 @@ export default function AnalyticsPage() {
       description: `${feeRate}% of expected fees collected`
     })
 
-    // 2. Student Enrollment
     const boysCount = students.filter(s => s.gender === 'M').length
     const girlsCount = students.filter(s => s.gender === 'F').length
     const genderBalance = students.length > 0 ? Math.round((Math.min(boysCount, girlsCount) / Math.max(boysCount, girlsCount, 1)) * 100) : 0
@@ -51,7 +52,6 @@ export default function AnalyticsPage() {
       description: `Boys: ${boysCount}, Girls: ${girlsCount}`
     })
 
-    // 3. Class Distribution
     const avgStudentsPerClass = classes.length > 0 ? Math.round(students.length / classes.length) : 0
     const classScore = avgStudentsPerClass <= 50 ? 100 : avgStudentsPerClass <= 60 ? 80 : avgStudentsPerClass <= 70 ? 60 : 40
     metrics.push({
@@ -62,7 +62,6 @@ export default function AnalyticsPage() {
       description: `Average ${avgStudentsPerClass} students per class`
     })
 
-    // 4. Active Students Rate
     const activeStudents = students.filter(s => s.status === 'active').length
     const activeRate = students.length > 0 ? Math.round((activeStudents / students.length) * 100) : 0
     metrics.push({
@@ -76,7 +75,6 @@ export default function AnalyticsPage() {
     return metrics
   }, [students, payments, feeStructure, classes])
 
-  // Overall health score
   const overallScore = useMemo(() => {
     const total = healthMetrics.reduce((sum, m) => sum + m.score, 0)
     return Math.round(total / healthMetrics.length)
@@ -86,19 +84,29 @@ export default function AnalyticsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'excellent': return 'bg-green-100 text-green-700 border-green-200'
-      case 'good': return 'bg-blue-100 text-blue-700 border-blue-200'
-      case 'warning': return 'bg-yellow-100 text-yellow-700 border-yellow-200'
-      case 'critical': return 'bg-red-100 text-red-700 border-red-200'
-      default: return 'bg-gray-100 text-gray-700 border-gray-200'
+      case 'excellent': return 'bg-[#e8f5e9] text-[#006e1c] border-[#006e1c]'
+      case 'good': return 'bg-[#e3f2fd] text-[#002045] border-[#002045]'
+      case 'warning': return 'bg-[#fff3e0] text-[#b86e00] border-[#b86e00]'
+      case 'critical': return 'bg-[#fef2f2] text-[#ba1a1a] border-[#ba1a1a]'
+      default: return 'bg-[#f8fafb] text-[#5c6670] border-[#e8eaed]'
     }
   }
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600'
-    if (score >= 60) return 'text-blue-600'
-    if (score >= 40) return 'text-yellow-600'
-    return 'text-red-600'
+    if (score >= 80) return 'text-[#006e1c]'
+    if (score >= 60) return 'text-[#002045]'
+    if (score >= 40) return 'text-[#b86e00]'
+    return 'text-[#ba1a1a]'
+  }
+
+  const getStatusBg = (status: string) => {
+    switch (status) {
+      case 'excellent': return 'from-[#e8f5e9] to-[#c8e6c9]'
+      case 'good': return 'from-[#e3f2fd] to-[#bbdefb]'
+      case 'warning': return 'from-[#fff3e0] to-[#ffe0b2]'
+      case 'critical': return 'from-[#fef2f2] to-[#ffcdd2]'
+      default: return 'from-[#f8fafb] to-[#f1f5f9]'
+    }
   }
 
   const formatCurrency = (amount: number) => {
@@ -109,26 +117,24 @@ export default function AnalyticsPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">School Health Dashboard</h1>
-        <p className="text-gray-500 mt-1">Overview of your school's performance</p>
+        <h1 className="text-2xl font-bold text-[#002045]">School Health Dashboard</h1>
+        <p className="text-[#5c6670] mt-1">Overview of your school's performance</p>
       </div>
 
-      {/* Overall Health Score */}
-      <div className="card mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100">
-        <div className="flex items-center justify-between">
+      <div className={`bg-gradient-to-r ${getStatusBg(overallScore >= 80 ? 'excellent' : overallScore >= 60 ? 'good' : overallScore >= 40 ? 'warning' : 'critical')} rounded-2xl border border-[#e8eaed] p-6 mb-8`}>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
           <div>
-            <div className="text-sm font-medium text-blue-700 mb-1">Overall Health Score</div>
+            <div className="text-sm font-medium text-[#5c6670] mb-1">Overall Health Score</div>
             <div className={`text-5xl font-bold ${getScoreColor(overallScore)}`}>{overallScore}</div>
-            <div className="text-sm text-gray-600 mt-1">{overallStatus}</div>
+            <div className="text-sm text-[#5c6670] mt-1">{overallStatus}</div>
           </div>
           <div className="w-32 h-32 relative">
             <svg className="w-full h-full transform -rotate-90">
-              <circle cx="64" cy="64" r="56" fill="none" stroke="#e5e7eb" strokeWidth="12" />
+              <circle cx="64" cy="64" r="56" fill="none" stroke="#e8eaed" strokeWidth="12" />
               <circle
                 cx="64" cy="64" r="56" fill="none"
-                stroke={overallScore >= 80 ? '#22c55e' : overallScore >= 60 ? '#3b82f6' : overallScore >= 40 ? '#f59e0b' : '#ef4444'}
+                stroke={overallScore >= 80 ? '#006e1c' : overallScore >= 60 ? '#002045' : overallScore >= 40 ? '#b86e00' : '#ba1a1a'}
                 strokeWidth="12"
                 strokeDasharray={`${(overallScore / 100) * 352} 352`}
                 strokeLinecap="round"
@@ -141,66 +147,63 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Key Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="stat-card">
-          <div className="stat-value">{students.length}</div>
-          <div className="stat-label">Total Students</div>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+          <div className="text-2xl font-bold text-[#002045]">{students.length}</div>
+          <div className="text-sm text-[#5c6670] mt-1">Total Students</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-value">{classes.length}</div>
-          <div className="stat-label">Classes</div>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+          <div className="text-2xl font-bold text-[#002045]">{classes.length}</div>
+          <div className="text-sm text-[#5c6670] mt-1">Classes</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-value text-green-600">{formatCurrency(payments.reduce((s, p) => s + Number(p.amount_paid), 0))}</div>
-          <div className="stat-label">Fees Collected</div>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+          <div className="text-2xl font-bold text-[#006e1c]">{formatCurrency(payments.reduce((s, p) => s + Number(p.amount_paid), 0))}</div>
+          <div className="text-sm text-[#5c6670] mt-1">Fees Collected</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-value">{students.filter(s => s.gender === 'M').length}/{students.filter(s => s.gender === 'F').length}</div>
-          <div className="stat-label">Boys/Girls</div>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+          <div className="text-2xl font-bold text-[#002045]">{students.filter(s => s.gender === 'M').length}/{students.filter(s => s.gender === 'F').length}</div>
+          <div className="text-sm text-[#5c6670] mt-1">Boys/Girls</div>
         </div>
       </div>
 
-      {/* Health Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {healthMetrics.map((metric, i) => (
-          <div key={i} className={`card border ${getStatusColor(metric.status)}`}>
+          <div key={i} className={`bg-white rounded-2xl border border-[#e8eaed] p-6 ${getStatusColor(metric.status)} bg-opacity-50`}>
             <div className="flex items-center justify-between mb-3">
-              <span className="font-semibold text-gray-900">{metric.name}</span>
-              <span className={`badge ${getStatusColor(metric.status)}`}>{metric.status}</span>
+              <span className="font-semibold text-[#191c1d]">{metric.name}</span>
+              <span className={`px-3 py-1 rounded-lg text-xs font-medium ${getStatusColor(metric.status)}`}>{metric.status}</span>
             </div>
             <div className="flex items-center gap-4">
               <div className={`text-3xl font-bold ${getScoreColor(metric.score)}`}>{metric.score}</div>
               <div className="flex-1">
-                <div className="progress">
+                <div className="h-2 bg-[#e8eaed] rounded-full overflow-hidden">
                   <div 
-                    className={`progress-fill ${
-                      metric.status === 'excellent' ? 'bg-green-500' :
-                      metric.status === 'good' ? 'bg-blue-500' :
-                      metric.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                    className={`h-full rounded-full ${
+                      metric.status === 'excellent' ? 'bg-[#006e1c]' :
+                      metric.status === 'good' ? 'bg-[#002045]' :
+                      metric.status === 'warning' ? 'bg-[#b86e00]' : 'bg-[#ba1a1a]'
                     }`}
                     style={{ width: `${metric.score}%` }}
                   />
                 </div>
-                <p className="text-sm text-gray-600 mt-2">{metric.description}</p>
+                <p className="text-sm text-[#5c6670] mt-2">{metric.description}</p>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Class Performance */}
-      <div className="card mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Class Distribution</h2>
-        <div className="table-wrapper">
-          <table className="table">
-            <thead>
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 mb-8">
+        <h2 className="text-lg font-semibold text-[#191c1d] mb-4">Class Distribution</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-[#f8fafb]">
               <tr>
-                <th>Class</th>
-                <th>Students</th>
-                <th>Boys</th>
-                <th>Girls</th>
-                <th>Status</th>
+                <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Class</th>
+                <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Students</th>
+                <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Boys</th>
+                <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Girls</th>
+                <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -212,15 +215,15 @@ export default function AnalyticsPage() {
                 const utilization = Math.round((classStudents.length / capacity) * 100)
                 
                 return (
-                  <tr key={cls.id}>
-                    <td className="font-medium">{cls.name}</td>
-                    <td>{classStudents.length}</td>
-                    <td className="text-blue-600">{boys}</td>
-                    <td className="text-pink-600">{girls}</td>
-                    <td>
-                      <span className={`badge ${
-                        utilization <= 80 ? 'badge-success' :
-                        utilization <= 100 ? 'badge-warning' : 'badge-danger'
+                  <tr key={cls.id} className="border-t border-[#e8eaed]">
+                    <td className="p-4 font-medium text-[#191c1d]">{cls.name}</td>
+                    <td className="p-4 text-[#191c1d]">{classStudents.length}</td>
+                    <td className="p-4 text-[#002045]">{boys}</td>
+                    <td className="p-4 text-[#006e1c]">{girls}</td>
+                    <td className="p-4">
+                      <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
+                        utilization <= 80 ? 'bg-[#e8f5e9] text-[#006e1c]' :
+                        utilization <= 100 ? 'bg-[#fff3e0] text-[#b86e00]' : 'bg-[#fef2f2] text-[#ba1a1a]'
                       }`}>
                         {utilization}% capacity
                       </span>
@@ -233,29 +236,24 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Recommendations */}
-      <div className="card">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Recommendations</h2>
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+        <h2 className="text-lg font-semibold text-[#191c1d] mb-4">Recommendations</h2>
         <div className="space-y-3">
           {healthMetrics.filter(m => m.status === 'warning' || m.status === 'critical').map((metric, i) => (
-            <div key={i} className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-100">
-              <svg className="w-5 h-5 text-yellow-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
+            <div key={i} className="flex items-start gap-3 p-4 bg-[#fff3e0] rounded-xl border border-[#b86e00]/20">
+              <MaterialIcon icon="warning" className="text-[#b86e00] mt-0.5" />
               <div>
-                <div className="font-medium text-yellow-800">{metric.name}</div>
-                <div className="text-sm text-yellow-700">{metric.description}</div>
+                <div className="font-medium text-[#321b00]">{metric.name}</div>
+                <div className="text-sm text-[#5c6670]">{metric.description}</div>
               </div>
             </div>
           ))}
           {healthMetrics.every(m => m.status === 'excellent' || m.status === 'good') && (
-            <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-100">
-              <svg className="w-5 h-5 text-green-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+            <div className="flex items-start gap-3 p-4 bg-[#e8f5e9] rounded-xl border border-[#006e1c]/20">
+              <MaterialIcon icon="check_circle" className="text-[#006e1c] mt-0.5" />
               <div>
-                <div className="font-medium text-green-800">School performing well</div>
-                <div className="text-sm text-green-700">All metrics are in good standing. Keep up the good work!</div>
+                <div className="font-medium text-[#002045]">School performing well</div>
+                <div className="text-sm text-[#5c6670]">All metrics are in good standing. Keep up the good work!</div>
               </div>
             </div>
           )}

@@ -1,7 +1,7 @@
 {
-  "name": "OmutoSMS - School Management",
-  "short_name": "OmutoSMS",
-  "description": "School management system for Ugandan primary and secondary schools",
+  "name": "SchoolX - School Management",
+  "short_name": "SchoolX",
+  "description": "Modern school management system for educational institutions",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f9fafb",

@@ -1,6 +1,6 @@
-# OmutoSMS - School Management System
+# SchoolX - School Management System
 
-A modern school management system built for Ugandan primary and secondary schools.
+A modern school management system built for educational institutions.
 
 ![Next.js](https://img.shields.io/badge/Next.js-14.2-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue)
@@ -39,8 +39,8 @@ A modern school management system built for Ugandan primary and secondary school
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/omuto-school-management.git
-cd omuto-school-management
+git clone https://github.com/yourusername/schoolx.git
+cd schoolx
 
 # Install dependencies
 npm install

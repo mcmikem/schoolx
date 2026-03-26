@@ -5,6 +5,10 @@ import { useStudents } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 interface DisciplineRecord {
   id: string
   student_id: string
@@ -135,34 +139,30 @@ export default function DisciplinePage() {
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Discipline</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Track student incidents and actions</p>
+          <h1 className="text-2xl font-bold text-[#002045]">Discipline</h1>
+          <p className="text-[#5c6670] mt-1">Track student incidents and actions</p>
         </div>
         <button onClick={() => setShowModal(true)} className="btn btn-primary">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
+          <MaterialIcon icon="add" className="text-lg" />
           Record Incident
         </button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="stat-card">
-          <div className="stat-value">{records.length}</div>
-          <div className="stat-label">Total Incidents</div>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+          <div className="text-2xl font-bold text-[#002045]">{records.length}</div>
+          <div className="text-sm text-[#5c6670] mt-1">Total Incidents</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-value text-yellow-600">{records.filter(r => !r.resolved).length}</div>
-          <div className="stat-label">Pending</div>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+          <div className="text-2xl font-bold text-[#b86e00]">{records.filter(r => !r.resolved).length}</div>
+          <div className="text-sm text-[#5c6670] mt-1">Pending</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-value text-green-600">{records.filter(r => r.resolved).length}</div>
-          <div className="stat-label">Resolved</div>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+          <div className="text-2xl font-bold text-[#006e1c]">{records.filter(r => r.resolved).length}</div>
+          <div className="text-sm text-[#5c6670] mt-1">Resolved</div>
         </div>
       </div>
 
-      {/* Filter */}
       <div className="mb-6">
         <select value={filterResolved} onChange={(e) => setFilterResolved(e.target.value)} className="input sm:w-48">
           <option value="all">All Incidents</option>
@@ -171,44 +171,43 @@ export default function DisciplinePage() {
         </select>
       </div>
 
-      {/* Records List */}
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="card">
-              <div className="skeleton w-full h-4 mb-2" />
-              <div className="skeleton w-3/4 h-3" />
+            <div key={i} className="bg-white rounded-2xl border border-[#e8eaed] p-4">
+              <div className="w-full h-4 bg-[#e8eaed] rounded mb-2" />
+              <div className="w-3/4 h-3 bg-[#e8eaed] rounded" />
             </div>
           ))}
         </div>
       ) : filteredRecords.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 text-center">
+          <div className="w-16 h-16 bg-[#f8fafb] rounded-full flex items-center justify-center mx-auto mb-4">
+            <MaterialIcon icon="verified" className="text-3xl text-[#006e1c]" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No incidents recorded</h3>
-          <p className="text-gray-500 dark:text-gray-400">This is good news!</p>
+          <h3 className="text-lg font-semibold text-[#191c1d] mb-2">No incidents recorded</h3>
+          <p className="text-[#5c6670]">This is good news!</p>
         </div>
       ) : (
         <div className="space-y-4">
           {filteredRecords.map((record) => (
-            <div key={record.id} className="card">
+            <div key={record.id} className="bg-white rounded-2xl border border-[#e8eaed] p-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className={`badge ${record.resolved ? 'badge-success' : 'badge-warning'}`}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className={`px-3 py-1 rounded-lg text-xs font-medium ${record.resolved ? 'bg-[#e8f5e9] text-[#006e1c]' : 'bg-[#fff3e0] text-[#b86e00]'}`}>
                       {record.resolved ? 'Resolved' : 'Pending'}
                     </span>
-                    <span className="badge badge-info">{record.incident_type}</span>
+                    <span className="px-3 py-1 rounded-lg text-xs font-medium bg-[#e3f2fd] text-[#002045]">
+                      {record.incident_type}
+                    </span>
                   </div>
-                  <div className="font-medium text-gray-900 dark:text-white">
+                  <div className="font-medium text-[#191c1d]">
                     {record.students?.first_name} {record.students?.last_name}
-                    <span className="text-gray-500 dark:text-gray-400 ml-2">({record.students?.student_number})</span>
+                    <span className="text-[#5c6670] ml-2">({record.students?.student_number})</span>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{record.description}</p>
-                  <div className="flex items-center gap-4 mt-3 text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-sm text-[#5c6670] mt-2">{record.description}</p>
+                  <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-[#5c6670]">
                     <span>Action: {record.action_taken}</span>
                     {record.follow_up_date && (
                       <span>Follow-up: {new Date(record.follow_up_date).toLocaleDateString()}</span>
@@ -228,23 +227,20 @@ export default function DisciplinePage() {
         </div>
       )}
 
-      {/* Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-[#e8eaed]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Record Incident</h2>
-                <button onClick={() => setShowModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                <h2 className="text-lg font-semibold text-[#191c1d]">Record Incident</h2>
+                <button onClick={() => setShowModal(false)} className="p-2 text-[#5c6670] hover:text-[#191c1d]">
+                  <MaterialIcon icon="close" className="text-xl" />
                 </button>
               </div>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="label">Student</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Student</label>
                 <select 
                   value={newRecord.student_id}
                   onChange={(e) => setNewRecord({...newRecord, student_id: e.target.value})}
@@ -259,7 +255,7 @@ export default function DisciplinePage() {
               </div>
 
               <div>
-                <label className="label">Incident Type</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Incident Type</label>
                 <select 
                   value={newRecord.incident_type}
                   onChange={(e) => setNewRecord({...newRecord, incident_type: e.target.value})}
@@ -274,7 +270,7 @@ export default function DisciplinePage() {
               </div>
 
               <div>
-                <label className="label">Description</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Description</label>
                 <textarea
                   value={newRecord.description}
                   onChange={(e) => setNewRecord({...newRecord, description: e.target.value})}
@@ -285,7 +281,7 @@ export default function DisciplinePage() {
               </div>
 
               <div>
-                <label className="label">Action Taken</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Action Taken</label>
                 <select 
                   value={newRecord.action_taken}
                   onChange={(e) => setNewRecord({...newRecord, action_taken: e.target.value})}
@@ -300,7 +296,7 @@ export default function DisciplinePage() {
               </div>
 
               <div>
-                <label className="label">Follow-up Date (Optional)</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Follow-up Date (Optional)</label>
                 <input
                   type="date"
                   value={newRecord.follow_up_date}

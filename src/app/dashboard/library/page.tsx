@@ -1,8 +1,13 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
+import { useStudents } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
+
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
 
 interface Book {
   id: string
@@ -29,6 +34,7 @@ interface Checkout {
 
 export default function LibraryPage() {
   const { school } = useAuth()
+  const { students } = useStudents(school?.id)
   const toast = useToast()
   const [books, setBooks] = useState<Book[]>([])
   const [checkouts, setCheckouts] = useState<Checkout[]>([])
@@ -114,7 +120,6 @@ export default function LibraryPage() {
 
       if (error) throw error
 
-      // Update book available count
       const book = books.find(b => b.id === newCheckout.book_id)
       if (book) {
         await supabase.from('books').update({ available: book.available - 1 }).eq('id', book.id)
@@ -165,46 +170,51 @@ export default function LibraryPage() {
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Library</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Manage books and checkouts</p>
+          <h1 className="text-2xl font-bold text-[#002045]">Library</h1>
+          <p className="text-[#5c6670] mt-1">Manage books and checkouts</p>
         </div>
         <div className="flex gap-3">
           <button onClick={() => setShowCheckout(true)} className="btn btn-secondary">
+            <MaterialIcon icon="menu_book" className="text-lg" />
             Checkout Book
           </button>
           <button onClick={() => setShowAddBook(true)} className="btn btn-primary">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+            <MaterialIcon icon="add" className="text-lg" />
             Add Book
           </button>
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="stat-card">
-          <div className="stat-value">{books.length}</div>
-          <div className="stat-label">Total Books</div>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+          <div className="text-2xl font-bold text-[#002045]">{books.length}</div>
+          <div className="text-sm text-[#5c6670] mt-1">Total Books</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-value text-green-600">{books.reduce((sum, b) => sum + b.available, 0)}</div>
-          <div className="stat-label">Available</div>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+          <div className="text-2xl font-bold text-[#006e1c]">{books.reduce((sum, b) => sum + b.available, 0)}</div>
+          <div className="text-sm text-[#5c6670] mt-1">Available</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-value text-yellow-600">{checkouts.length}</div>
-          <div className="stat-label">Checked Out</div>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+          <div className="text-2xl font-bold text-[#b86e00]">{checkouts.length}</div>
+          <div className="text-sm text-[#5c6670] mt-1">Checked Out</div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="tabs mb-6">
-        <button onClick={() => setTab('books')} className={`tab ${tab === 'books' ? 'active' : ''}`}>
-          Books
-        </button>
-        <button onClick={() => setTab('checkouts')} className={`tab ${tab === 'checkouts' ? 'active' : ''}`}>
-          Checkouts ({checkouts.length})
-        </button>
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-2 mb-6">
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setTab('books')} 
+            className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${tab === 'books' ? 'bg-[#002045] text-white' : 'text-[#5c6670] hover:bg-[#f8fafb]'}`}
+          >
+            Books
+          </button>
+          <button 
+            onClick={() => setTab('checkouts')} 
+            className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${tab === 'checkouts' ? 'bg-[#002045] text-white' : 'text-[#5c6670] hover:bg-[#f8fafb]'}`}
+          >
+            Checkouts ({checkouts.length})
+          </button>
+        </div>
       </div>
 
       {tab === 'books' && (
@@ -221,126 +231,167 @@ export default function LibraryPage() {
 
           {loading ? (
             <div className="space-y-3">
-              {[1, 2, 3].map((i) => <div key={i} className="card"><div className="skeleton w-full h-4" /></div>)}
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-2xl border border-[#e8eaed] p-4">
+                  <div className="w-full h-4 bg-[#e8eaed] rounded" />
+                </div>
+              ))}
             </div>
           ) : filteredBooks.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">
-                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
+            <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 text-center">
+              <div className="w-16 h-16 bg-[#f8fafb] rounded-full flex items-center justify-center mx-auto mb-4">
+                <MaterialIcon icon="menu_book" className="text-3xl text-[#5c6670]" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No books</h3>
-              <p className="text-gray-500 dark:text-gray-400">Add your first book</p>
+              <h3 className="text-lg font-semibold text-[#191c1d] mb-2">No books</h3>
+              <p className="text-[#5c6670]">Add your first book</p>
             </div>
           ) : (
-            <div className="table-wrapper">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Title</th>
-                    <th>Author</th>
-                    <th>Category</th>
-                    <th>Available</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredBooks.map((book) => (
-                    <tr key={book.id}>
-                      <td className="font-medium text-gray-900 dark:text-white">{book.title}</td>
-                      <td className="text-gray-600 dark:text-gray-400">{book.author}</td>
-                      <td className="text-gray-600 dark:text-gray-400">{book.category || '-'}</td>
-                      <td>
-                        <span className={`badge ${book.available > 0 ? 'badge-success' : 'badge-danger'}`}>
-                          {book.available}/{book.copies}
-                        </span>
-                      </td>
-                      <td>
-                        <button onClick={() => deleteBook(book.id)} className="p-2 text-gray-400 hover:text-red-600">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </td>
+            <div className="bg-white rounded-2xl border border-[#e8eaed] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-[#f8fafb]">
+                    <tr>
+                      <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Title</th>
+                      <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Author</th>
+                      <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Category</th>
+                      <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Available</th>
+                      <th className="text-left p-4 text-sm font-semibold text-[#191c1d]"></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {filteredBooks.map((book) => (
+                      <tr key={book.id} className="border-t border-[#e8eaed]">
+                        <td className="p-4 font-medium text-[#191c1d]">{book.title}</td>
+                        <td className="p-4 text-[#5c6670]">{book.author}</td>
+                        <td className="p-4 text-[#5c6670]">{book.category || '-'}</td>
+                        <td className="p-4">
+                          <span className={`px-3 py-1 rounded-lg text-xs font-medium ${book.available > 0 ? 'bg-[#e8f5e9] text-[#006e1c]' : 'bg-[#fef2f2] text-[#ba1a1a]'}`}>
+                            {book.available}/{book.copies}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <button onClick={() => deleteBook(book.id)} className="p-2 text-[#5c6670] hover:text-[#ba1a1a]">
+                            <MaterialIcon icon="delete" className="text-lg" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </>
       )}
 
       {tab === 'checkouts' && (
-        <div className="table-wrapper">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Book</th>
-                <th>Student</th>
-                <th>Checkout Date</th>
-                <th>Due Date</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {checkouts.map((checkout) => {
-                const isOverdue = new Date(checkout.due_date) < new Date()
-                return (
-                  <tr key={checkout.id}>
-                    <td className="font-medium text-gray-900 dark:text-white">{(checkout as any).books?.title}</td>
-                    <td>{(checkout as any).students?.first_name} {(checkout as any).students?.last_name}</td>
-                    <td>{new Date(checkout.checkout_date).toLocaleDateString()}</td>
-                    <td>{new Date(checkout.due_date).toLocaleDateString()}</td>
-                    <td>
-                      <span className={`badge ${isOverdue ? 'badge-danger' : 'badge-warning'}`}>
-                        {isOverdue ? 'Overdue' : 'On Loan'}
-                      </span>
-                    </td>
-                    <td>
-                      <button onClick={() => returnBook(checkout.id, checkout.book_id)} className="btn btn-sm btn-secondary">
-                        Return
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-[#f8fafb]">
+                <tr>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Book</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Student</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Checkout Date</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Due Date</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Status</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {checkouts.map((checkout) => {
+                  const isOverdue = new Date(checkout.due_date) < new Date()
+                  return (
+                    <tr key={checkout.id} className="border-t border-[#e8eaed]">
+                      <td className="p-4 font-medium text-[#191c1d]">{(checkout as any).books?.title}</td>
+                      <td className="p-4 text-[#191c1d]">{(checkout as any).students?.first_name} {(checkout as any).students?.last_name}</td>
+                      <td className="p-4 text-[#191c1d]">{new Date(checkout.checkout_date).toLocaleDateString()}</td>
+                      <td className="p-4 text-[#191c1d]">{new Date(checkout.due_date).toLocaleDateString()}</td>
+                      <td className="p-4">
+                        <span className={`px-3 py-1 rounded-lg text-xs font-medium ${isOverdue ? 'bg-[#fef2f2] text-[#ba1a1a]' : 'bg-[#fff3e0] text-[#b86e00]'}`}>
+                          {isOverdue ? 'Overdue' : 'On Loan'}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <button onClick={() => returnBook(checkout.id, checkout.book_id)} className="btn btn-sm btn-secondary">
+                          Return
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {/* Add Book Modal */}
       {showAddBook && (
-        <div className="modal-overlay" onClick={() => setShowAddBook(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Add Book</h2>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowAddBook(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-[#e8eaed]">
+              <h2 className="text-lg font-semibold text-[#191c1d]">Add Book</h2>
             </div>
             <form onSubmit={handleAddBook} className="p-6 space-y-4">
               <div>
-                <label className="label">Title</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Title</label>
                 <input type="text" value={newBook.title} onChange={(e) => setNewBook({...newBook, title: e.target.value})} className="input" required />
               </div>
               <div>
-                <label className="label">Author</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Author</label>
                 <input type="text" value={newBook.author} onChange={(e) => setNewBook({...newBook, author: e.target.value})} className="input" required />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="label">ISBN</label>
+                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">ISBN</label>
                   <input type="text" value={newBook.isbn} onChange={(e) => setNewBook({...newBook, isbn: e.target.value})} className="input" />
                 </div>
                 <div>
-                  <label className="label">Copies</label>
+                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Copies</label>
                   <input type="number" value={newBook.copies} onChange={(e) => setNewBook({...newBook, copies: e.target.value})} className="input" min="1" />
                 </div>
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowAddBook(false)} className="btn btn-secondary flex-1">Cancel</button>
                 <button type="submit" className="btn btn-primary flex-1">Add Book</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showCheckout && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowCheckout(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-[#e8eaed]">
+              <h2 className="text-lg font-semibold text-[#191c1d]">Checkout Book</h2>
+            </div>
+            <form onSubmit={handleCheckout} className="p-6 space-y-4">
+              <div>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Select Book</label>
+                <select value={newCheckout.book_id} onChange={(e) => setNewCheckout({...newCheckout, book_id: e.target.value})} className="input" required>
+                  <option value="">Choose book</option>
+                  {books.filter(b => b.available > 0).map((b) => (
+                    <option key={b.id} value={b.id}>{b.title}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Student</label>
+                <select value={newCheckout.student_id} onChange={(e) => setNewCheckout({...newCheckout, student_id: e.target.value})} className="input" required>
+                  <option value="">Choose student</option>
+                  {students.map((s) => (
+                    <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Due Date</label>
+                <input type="date" value={newCheckout.due_date} onChange={(e) => setNewCheckout({...newCheckout, due_date: e.target.value})} className="input" required />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => setShowCheckout(false)} className="btn btn-secondary flex-1">Cancel</button>
+                <button type="submit" className="btn btn-primary flex-1">Checkout</button>
               </div>
             </form>
           </div>

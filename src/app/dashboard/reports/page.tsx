@@ -8,6 +8,10 @@ import ReportCard from '@/components/reports/ReportCard'
 import type { ReportCard as ReportCardType } from '@/types'
 import { supabase } from '@/lib/supabase'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 export default function ReportsPage() {
   const { school } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
@@ -45,7 +49,6 @@ export default function ReportsPage() {
         .select('status')
         .eq('student_id', studentId)
 
-      // Group grades by subject
       const subjectGrades: Record<string, {name: string, code: string, scores: Record<string, number>}> = {}
       grades?.forEach(g => {
         const subjectName = (g.subjects as {name: string, code: string})?.name || 'Unknown'
@@ -96,7 +99,7 @@ export default function ReportsPage() {
           classes: student.classes
         },
         school: {
-          name: school?.name || 'Omuto School',
+          name: school?.name || 'SchoolX',
           district: school?.district || 'Uganda',
         },
         term: currentTerm,
@@ -126,63 +129,65 @@ export default function ReportsPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Reports</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Generate and view student report cards</p>
+        <h1 className="text-2xl font-bold text-[#002045]">Reports</h1>
+        <p className="text-[#5c6670] mt-1">Generate and view student report cards</p>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <input
-          type="text"
-          placeholder="Search students..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="input flex-1"
-        />
-        <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input sm:w-48">
-          <option value="">All Classes</option>
-          {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Search students..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="input"
+            />
+          </div>
+          <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input sm:w-48">
+            <option value="">All Classes</option>
+            {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Student List */}
-        <div className="card">
-          <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Select Student</h2>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+          <h2 className="text-lg font-semibold text-[#191c1d] mb-4">Select Student</h2>
           {studentsLoading ? (
             <div className="space-y-3">
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="flex items-center gap-3">
-                  <div className="skeleton w-10 h-10 rounded-full" />
+                  <div className="w-10 h-10 bg-[#f0f4f8] rounded-full" />
                   <div className="flex-1">
-                    <div className="skeleton w-32 h-4 mb-2" />
-                    <div className="skeleton w-20 h-3" />
+                    <div className="w-32 h-4 bg-[#e8eaed] rounded mb-2" />
+                    <div className="w-20 h-3 bg-[#e8eaed] rounded" />
                   </div>
                 </div>
               ))}
             </div>
           ) : filteredStudents.length === 0 ? (
-            <p className="text-gray-500 dark:text-gray-400 text-sm">No students found</p>
+            <p className="text-[#5c6670] text-sm">No students found</p>
           ) : (
             <div className="space-y-2 max-h-[400px] overflow-y-auto">
               {filteredStudents.map((student) => (
                 <button
                   key={student.id}
                   onClick={() => fetchStudentReport(student.id)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors ${
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all ${
                     selectedStudentId === student.id 
-                      ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700' 
-                      : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                      ? 'bg-[#f0f4f8] border border-[#002045]' 
+                      : 'hover:bg-[#f8fafb] border border-transparent'
                   }`}
                 >
-                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                    <span className="text-blue-600 dark:text-blue-300 font-semibold text-sm">
+                  <div className="w-10 h-10 bg-[#f0f4f8] rounded-full flex items-center justify-center">
+                    <span className="text-[#002045] font-semibold text-sm">
                       {student.first_name?.charAt(0)}{student.last_name?.charAt(0)}
                     </span>
                   </div>
                   <div className="flex-1">
-                    <div className="font-medium text-gray-900 dark:text-white">{student.first_name} {student.last_name}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{student.student_number || student.classes?.name}</div>
+                    <div className="font-medium text-[#191c1d]">{student.first_name} {student.last_name}</div>
+                    <div className="text-xs text-[#5c6670]">{student.student_number || student.classes?.name}</div>
                   </div>
                 </button>
               ))}
@@ -190,20 +195,19 @@ export default function ReportsPage() {
           )}
         </div>
 
-        {/* Report Card */}
         <div>
           {loadingReport ? (
-            <div className="card flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 flex items-center justify-center">
+              <div className="w-8 h-8 border-2 border-[#002045] border-t-transparent rounded-full animate-spin"></div>
             </div>
           ) : reportData ? (
             <ReportCard report={reportData} />
           ) : (
-            <div className="card flex flex-col items-center justify-center h-64 text-center">
-              <svg className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p className="text-gray-500 dark:text-gray-400">Select a student to view their report card</p>
+            <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 flex flex-col items-center justify-center text-center">
+              <div className="w-16 h-16 bg-[#f8fafb] rounded-full flex items-center justify-center mb-4">
+                <MaterialIcon icon="description" className="text-3xl text-[#c4c6cf]" />
+              </div>
+              <p className="text-[#5c6670]">Select a student to view their report card</p>
             </div>
           )}
         </div>

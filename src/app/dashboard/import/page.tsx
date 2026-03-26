@@ -122,7 +122,7 @@ export default function ImportPage() {
     const ws = XLSX.utils.json_to_sheet(templateData)
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Students')
-    XLSX.writeFile(wb, 'Omuto_SMS_Student_Template.xlsx')
+    XLSX.writeFile(wb, 'SchoolX_Student_Template.xlsx')
     toast.success('Template downloaded')
   }
 

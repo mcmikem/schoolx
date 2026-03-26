@@ -4,6 +4,10 @@ import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 interface Visitor {
   id: string
   name: string
@@ -102,114 +106,107 @@ export default function VisitorsPage() {
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Visitor Register</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Track school visitors</p>
+          <h1 className="text-2xl font-bold text-[#002045]">Visitor Register</h1>
+          <p className="text-[#5c6670] mt-1">Track school visitors</p>
         </div>
         <button onClick={() => setShowModal(true)} className="btn btn-primary">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
+          <MaterialIcon icon="person_add" className="text-lg" />
           Check In Visitor
         </button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="stat-card">
-          <div className="stat-value">{todayVisitors.length}</div>
-          <div className="stat-label">Today's Visitors</div>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+          <div className="text-2xl font-bold text-[#002045]">{todayVisitors.length}</div>
+          <div className="text-sm text-[#5c6670] mt-1">Today's Visitors</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-value text-green-600">{todayVisitors.filter(v => v.time_out).length}</div>
-          <div className="stat-label">Checked Out</div>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+          <div className="text-2xl font-bold text-[#006e1c]">{todayVisitors.filter(v => v.time_out).length}</div>
+          <div className="text-sm text-[#5c6670] mt-1">Checked Out</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-value text-yellow-600">{todayVisitors.filter(v => !v.time_out).length}</div>
-          <div className="stat-label">Still Inside</div>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+          <div className="text-2xl font-bold text-[#b86e00]">{todayVisitors.filter(v => !v.time_out).length}</div>
+          <div className="text-sm text-[#5c6670] mt-1">Still Inside</div>
         </div>
       </div>
 
-      {/* Visitors List */}
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="card">
-              <div className="skeleton w-full h-4 mb-2" />
-              <div className="skeleton w-3/4 h-3" />
+            <div key={i} className="bg-white rounded-2xl border border-[#e8eaed] p-4">
+              <div className="w-full h-4 bg-[#e8eaed] rounded mb-2" />
+              <div className="w-3/4 h-3 bg-[#e8eaed] rounded" />
             </div>
           ))}
         </div>
       ) : visitors.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 text-center">
+          <div className="w-16 h-16 bg-[#f8fafb] rounded-full flex items-center justify-center mx-auto mb-4">
+            <MaterialIcon icon="groups" className="text-3xl text-[#5c6670]" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No visitors recorded</h3>
-          <p className="text-gray-500 dark:text-gray-400">Check in your first visitor</p>
+          <h3 className="text-lg font-semibold text-[#191c1d] mb-2">No visitors recorded</h3>
+          <p className="text-[#5c6670]">Check in your first visitor</p>
         </div>
       ) : (
-        <div className="table-wrapper">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Purpose</th>
-                <th>Person Visited</th>
-                <th>Time In</th>
-                <th>Time Out</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {visitors.map((visitor) => (
-                <tr key={visitor.id}>
-                  <td className="font-medium text-gray-900 dark:text-white">{visitor.name}</td>
-                  <td className="text-gray-600 dark:text-gray-400">{visitor.purpose}</td>
-                  <td className="text-gray-600 dark:text-gray-400">{visitor.person_visited}</td>
-                  <td>{new Date(visitor.time_in).toLocaleTimeString()}</td>
-                  <td>{visitor.time_out ? new Date(visitor.time_out).toLocaleTimeString() : '-'}</td>
-                  <td>
-                    <span className={`badge ${visitor.time_out ? 'badge-success' : 'badge-warning'}`}>
-                      {visitor.time_out ? 'Checked Out' : 'Inside'}
-                    </span>
-                  </td>
-                  <td>
-                    {!visitor.time_out && (
-                      <button
-                        onClick={() => checkOut(visitor.id)}
-                        className="btn btn-sm btn-secondary"
-                      >
-                        Check Out
-                      </button>
-                    )}
-                  </td>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-[#f8fafb]">
+                <tr>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Name</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Purpose</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Person Visited</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Time In</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Time Out</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Status</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {visitors.map((visitor) => (
+                  <tr key={visitor.id} className="border-t border-[#e8eaed]">
+                    <td className="p-4 font-medium text-[#191c1d]">{visitor.name}</td>
+                    <td className="p-4 text-[#5c6670]">{visitor.purpose}</td>
+                    <td className="p-4 text-[#5c6670]">{visitor.person_visited}</td>
+                    <td className="p-4 text-[#191c1d]">{new Date(visitor.time_in).toLocaleTimeString()}</td>
+                    <td className="p-4 text-[#191c1d]">{visitor.time_out ? new Date(visitor.time_out).toLocaleTimeString() : '-'}</td>
+                    <td className="p-4">
+                      <span className={`px-3 py-1 rounded-lg text-xs font-medium ${visitor.time_out ? 'bg-[#e8f5e9] text-[#006e1c]' : 'bg-[#fff3e0] text-[#b86e00]'}`}>
+                        {visitor.time_out ? 'Checked Out' : 'Inside'}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      {!visitor.time_out && (
+                        <button
+                          onClick={() => checkOut(visitor.id)}
+                          className="btn btn-sm btn-secondary"
+                        >
+                          Check Out
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {/* Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-[#e8eaed]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Check In Visitor</h2>
-                <button onClick={() => setShowModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                <h2 className="text-lg font-semibold text-[#191c1d]">Check In Visitor</h2>
+                <button onClick={() => setShowModal(false)} className="p-2 text-[#5c6670] hover:text-[#191c1d]">
+                  <MaterialIcon icon="close" className="text-xl" />
                 </button>
               </div>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="label">Visitor Name</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Visitor Name</label>
                 <input
                   type="text"
                   value={newVisitor.name}
@@ -221,7 +218,7 @@ export default function VisitorsPage() {
               </div>
 
               <div>
-                <label className="label">Phone Number</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Phone Number</label>
                 <input
                   type="tel"
                   value={newVisitor.phone}
@@ -232,7 +229,7 @@ export default function VisitorsPage() {
               </div>
 
               <div>
-                <label className="label">Purpose of Visit</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Purpose of Visit</label>
                 <select 
                   value={newVisitor.purpose}
                   onChange={(e) => setNewVisitor({...newVisitor, purpose: e.target.value})}
@@ -250,7 +247,7 @@ export default function VisitorsPage() {
               </div>
 
               <div>
-                <label className="label">Person to Visit</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Person to Visit</label>
                 <input
                   type="text"
                   value={newVisitor.person_visited}

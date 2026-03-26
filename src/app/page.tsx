@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import SchoolXLogo from '@/components/SchoolXLogo'
 
 export default function HomePage() {
   return (
@@ -8,12 +9,7 @@ export default function HomePage() {
       <nav className="border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">O</span>
-              </div>
-              <span className="text-lg font-bold text-gray-900">OmutoSMS</span>
-            </div>
+            <SchoolXLogo size="md" />
             <div className="flex items-center gap-3">
               <Link href="/login" className="btn btn-secondary btn-sm">
                 Sign In
@@ -199,12 +195,7 @@ export default function HomePage() {
       <footer className="border-t border-gray-100 py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
-                <span className="text-white font-bold text-xs">O</span>
-              </div>
-              <span className="text-sm font-semibold text-gray-900">OmutoSMS</span>
-            </div>
+            <SchoolXLogo size="sm" />
             <p className="text-sm text-gray-500">
               Built for Ugandan Schools
             </p>

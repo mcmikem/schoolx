@@ -4,7 +4,10 @@ import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 import { useStudents, useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
-import { supabase } from '@/lib/supabase'
+
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
 
 export default function StudentsPage() {
   const { school } = useAuth()
@@ -111,58 +114,105 @@ export default function StudentsPage() {
     toast.success('Export downloaded')
   }
 
+  const boysCount = students.filter(s => s.gender === 'M').length
+  const girlsCount = students.filter(s => s.gender === 'F').length
+
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div className="space-y-6">
+      {/* Header Section */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Students</h1>
-          <p className="text-gray-500 mt-1">{students.length} students registered</p>
+          <h2 className="font-headline font-bold text-3xl text-primary tracking-tight mb-2">Student Registry</h2>
+          <p className="text-on-surface-variant text-sm font-medium">{students.length} students enrolled</p>
         </div>
         <div className="flex gap-3">
-          <button onClick={handleExport} className="btn btn-secondary">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
+          <button onClick={handleExport} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-outline-variant/30 text-primary font-semibold text-sm hover:bg-surface-container-low transition-all">
+            <MaterialIcon className="text-lg">download</MaterialIcon>
             Export
           </button>
-          <button onClick={() => setShowAddModal(true)} className="btn btn-primary">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/10">
+            <MaterialIcon className="text-lg">person_add</MaterialIcon>
             Add Student
           </button>
+        </div>
+      </header>
+
+      {/* Stats Bento Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-surface-container-low p-5 rounded-xl">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center">
+              <MaterialIcon className="text-primary" style={{ fontVariationSettings: 'FILL 1' }}>group</MaterialIcon>
+            </div>
+            <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Total</span>
+          </div>
+          <p className="text-2xl font-headline font-bold text-primary">{students.length}</p>
+        </div>
+        <div className="bg-surface-container-low p-5 rounded-xl">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <MaterialIcon className="text-blue-700">male</MaterialIcon>
+            </div>
+            <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Boys</span>
+          </div>
+          <p className="text-2xl font-headline font-bold text-primary">{boysCount}</p>
+        </div>
+        <div className="bg-surface-container-low p-5 rounded-xl">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center">
+              <MaterialIcon className="text-pink-700">female</MaterialIcon>
+            </div>
+            <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Girls</span>
+          </div>
+          <p className="text-2xl font-headline font-bold text-primary">{girlsCount}</p>
+        </div>
+        <div className="bg-surface-container-low p-5 rounded-xl">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-secondary-container rounded-lg flex items-center justify-center">
+              <MaterialIcon className="text-secondary" style={{ fontVariationSettings: 'FILL 1' }}>school</MaterialIcon>
+            </div>
+            <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Classes</span>
+          </div>
+          <p className="text-2xl font-headline font-bold text-primary">{classes.length}</p>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="flex-1">
-          <input
-            type="text"
-            placeholder="Search by name, parent, or student number..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="input"
-          />
+      <div className="bg-surface-container-low rounded-xl p-4">
+        <div className="flex flex-col lg:flex-row gap-4 items-center">
+          <div className="relative w-full lg:flex-1">
+            <MaterialIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</MaterialIcon>
+            <input
+              type="text"
+              placeholder="Search by name, parent, or student number..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-surface-container-lowest border-none rounded-xl py-3 pl-12 pr-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant/40"
+            />
+          </div>
+          <div className="flex gap-3 w-full lg:w-auto overflow-x-auto no-scrollbar pb-2 lg:pb-0">
+            <select
+              value={selectedClass}
+              onChange={(e) => setSelectedClass(e.target.value)}
+              className="bg-surface-container-lowest border-none rounded-xl py-3 px-4 text-xs font-bold text-primary focus:ring-2 focus:ring-primary/20 cursor-pointer min-w-[140px]"
+            >
+              <option value="all">All Classes</option>
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <button className="bg-surface-container-highest px-4 py-3 rounded-xl flex items-center justify-center hover:bg-outline-variant/30 transition-colors">
+              <MaterialIcon className="text-lg">filter_list</MaterialIcon>
+            </button>
+          </div>
         </div>
-        <select
-          value={selectedClass}
-          onChange={(e) => setSelectedClass(e.target.value)}
-          className="input sm:w-48"
-        >
-          <option value="all">All Classes</option>
-          {classes.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
       </div>
 
-      {/* Students List */}
+      {/* Students Table */}
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="card">
+            <div key={i} className="bg-surface-container-lowest p-4 rounded-xl">
               <div className="flex items-center gap-4">
                 <div className="skeleton w-12 h-12 rounded-full" />
                 <div className="flex-1">
@@ -174,64 +224,64 @@ export default function StudentsPage() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
+        <div className="bg-surface-container-lowest p-12 rounded-xl text-center">
+          <div className="w-16 h-16 bg-surface-container-low rounded-full flex items-center justify-center mx-auto mb-4">
+            <MaterialIcon className="text-3xl text-on-surface-variant">group</MaterialIcon>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No students found</h3>
-          <p className="text-gray-500 mb-4">
+          <h3 className="font-headline font-bold text-lg text-primary mb-2">No students found</h3>
+          <p className="text-on-surface-variant text-sm mb-4">
             {searchTerm ? 'Try a different search term' : 'Add your first student to get started'}
           </p>
           {!searchTerm && (
-            <button onClick={() => setShowAddModal(true)} className="btn btn-primary">
+            <button onClick={() => setShowAddModal(true)} className="px-6 py-3 bg-primary text-white rounded-xl font-semibold text-sm">
               Add Student
             </button>
           )}
         </div>
       ) : (
-        <div className="table-wrapper">
-          <div className="table-responsive">
-            <table className="table">
+        <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/5 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
               <thead>
-                <tr>
-                  <th>Student</th>
-                  <th>Student Number</th>
-                  <th>Class</th>
-                  <th>Parent</th>
-                  <th>Phone</th>
-                  <th></th>
+                <tr className="bg-surface-container-low text-left">
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Student</th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Number</th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Class</th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Parent</th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Phone</th>
+                  <th className="px-6 py-4"></th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-outline-variant/5">
                 {filtered.map((student) => (
-                  <tr key={student.id}>
-                    <td>
-                      <Link href={`/dashboard/students/${student.id}`} className="flex items-center gap-3 hover:text-blue-600">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-blue-600 font-semibold text-sm">
+                  <tr key={student.id} className="hover:bg-surface-bright transition-colors">
+                    <td className="px-6 py-4">
+                      <Link href={`/dashboard/students/${student.id}`} className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-primary-container rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-on-primary-container font-bold text-sm">
                             {student.first_name?.charAt(0)}{student.last_name?.charAt(0)}
                           </span>
                         </div>
                         <div>
-                          <div className="font-medium">{student.first_name} {student.last_name}</div>
-                          <div className="text-xs text-gray-500">{student.gender === 'M' ? 'Male' : 'Female'}</div>
+                          <div className="font-bold text-primary">{student.first_name} {student.last_name}</div>
+                          <div className="text-xs text-on-surface-variant">{student.gender === 'M' ? 'Male' : 'Female'}</div>
                         </div>
                       </Link>
                     </td>
-                    <td className="text-gray-600">{student.student_number || '-'}</td>
-                    <td className="text-gray-600">{student.classes?.name || '-'}</td>
-                    <td className="text-gray-600">{student.parent_name || '-'}</td>
-                    <td className="text-gray-600">{student.parent_phone || '-'}</td>
-                    <td>
+                    <td className="px-6 py-4 text-sm font-medium text-on-surface-variant">{student.student_number || '-'}</td>
+                    <td className="px-6 py-4">
+                      <span className="px-3 py-1 bg-surface-container text-on-surface-variant text-xs font-bold rounded-full">
+                        {student.classes?.name || '-'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-on-surface">{student.parent_name || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-on-surface-variant">{student.parent_phone || '-'}</td>
+                    <td className="px-6 py-4">
                       <button
                         onClick={() => handleDeleteStudent(student.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50"
+                        className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-lg transition-colors"
                       >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
+                        <MaterialIcon className="text-lg">delete</MaterialIcon>
                       </button>
                     </td>
                   </tr>
@@ -244,37 +294,35 @@ export default function StudentsPage() {
 
       {/* Add Student Modal */}
       {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-gray-100">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowAddModal(false)}>
+          <div className="bg-surface-container-lowest rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-outline-variant/10">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Add New Student</h2>
-                <button onClick={() => setShowAddModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                <h2 className="font-headline font-bold text-xl text-primary">Add New Student</h2>
+                <button onClick={() => setShowAddModal(false)} className="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg">
+                  <MaterialIcon>close</MaterialIcon>
                 </button>
               </div>
             </div>
-            <form onSubmit={handleCreateStudent} className="p-6 space-y-4">
+            <form onSubmit={handleCreateStudent} className="p-6 space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="label">First Name</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">First Name</label>
                   <input
                     type="text"
                     value={newStudent.first_name}
                     onChange={(e) => setNewStudent({ ...newStudent, first_name: e.target.value })}
-                    className="input"
+                    className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary"
                     required
                   />
                 </div>
                 <div>
-                  <label className="label">Last Name</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Last Name</label>
                   <input
                     type="text"
                     value={newStudent.last_name}
                     onChange={(e) => setNewStudent({ ...newStudent, last_name: e.target.value })}
-                    className="input"
+                    className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary"
                     required
                   />
                 </div>
@@ -282,33 +330,33 @@ export default function StudentsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="label">Gender</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Gender</label>
                   <select
                     value={newStudent.gender}
                     onChange={(e) => setNewStudent({ ...newStudent, gender: e.target.value as 'M' | 'F' })}
-                    className="input"
+                    className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary"
                   >
                     <option value="M">Male</option>
                     <option value="F">Female</option>
                   </select>
                 </div>
                 <div>
-                  <label className="label">Date of Birth</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Date of Birth</label>
                   <input
                     type="date"
                     value={newStudent.date_of_birth}
                     onChange={(e) => setNewStudent({ ...newStudent, date_of_birth: e.target.value })}
-                    className="input"
+                    className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="label">Class</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Class</label>
                 <select
                   value={newStudent.class_id}
                   onChange={(e) => setNewStudent({ ...newStudent, class_id: e.target.value })}
-                  className="input"
+                  className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary"
                   required
                 >
                   <option value="">Select class</option>
@@ -319,45 +367,45 @@ export default function StudentsPage() {
               </div>
 
               <div>
-                <label className="label">Parent Name</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Parent Name</label>
                 <input
                   type="text"
                   value={newStudent.parent_name}
                   onChange={(e) => setNewStudent({ ...newStudent, parent_name: e.target.value })}
-                  className="input"
+                  className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="label">Parent Phone</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Parent Phone</label>
                   <input
                     type="tel"
                     placeholder="0700000000"
                     value={newStudent.parent_phone}
                     onChange={(e) => setNewStudent({ ...newStudent, parent_phone: e.target.value })}
-                    className="input"
+                    className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary"
                     required
                   />
                 </div>
                 <div>
-                  <label className="label">Second Phone (Optional)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Alt. Phone</label>
                   <input
                     type="tel"
                     placeholder="0700000000"
                     value={newStudent.parent_phone2}
                     onChange={(e) => setNewStudent({ ...newStudent, parent_phone2: e.target.value })}
-                    className="input"
+                    className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary"
                   />
                 </div>
               </div>
 
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-secondary flex-1">
+                <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-3 bg-surface-container text-on-surface-variant font-semibold text-sm rounded-xl hover:bg-surface-bright transition-colors">
                   Cancel
                 </button>
-                <button type="submit" disabled={saving} className="btn btn-primary flex-1">
+                <button type="submit" disabled={saving} className="flex-1 py-3 bg-primary text-white font-semibold text-sm rounded-xl hover:opacity-90 transition-colors">
                   {saving ? 'Adding...' : 'Add Student'}
                 </button>
               </div>

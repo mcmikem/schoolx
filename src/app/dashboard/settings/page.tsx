@@ -4,6 +4,10 @@ import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 interface SchoolSettings {
   sms_notifications: boolean
   attendance_alerts: boolean
@@ -217,39 +221,44 @@ export default function SettingsPage() {
   }
 
   const tabs = [
-    { key: 'general', label: 'School Details' },
-    { key: 'users', label: 'Staff & Users' },
-    { key: 'notifications', label: 'Notifications' },
-    { key: 'backup', label: 'Backup & Export' },
+    { key: 'general', label: 'School Details', icon: 'business' },
+    { key: 'users', label: 'Staff & Users', icon: 'group' },
+    { key: 'notifications', label: 'Notifications', icon: 'notifications' },
+    { key: 'backup', label: 'Backup & Export', icon: 'backup' },
   ]
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your school settings</p>
+        <h1 className="text-2xl font-bold text-[#002045]">Settings</h1>
+        <p className="text-[#5c6670] mt-1">Manage your school settings</p>
       </div>
 
-      {/* Tabs */}
-      <div className="tabs mb-6">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`tab ${activeTab === tab.key ? 'active' : ''}`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-2 mb-6 overflow-x-auto">
+        <div className="flex gap-2 min-w-max">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                activeTab === tab.key 
+                  ? 'bg-[#002045] text-white' 
+                  : 'text-[#5c6670] hover:bg-[#f8fafb]'
+              }`}
+            >
+              <MaterialIcon icon={tab.icon} className="text-lg" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* School Details Tab */}
       {activeTab === 'general' && (
-        <div className="card max-w-2xl">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">School Information</h2>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 max-w-2xl">
+          <h2 className="text-lg font-semibold text-[#191c1d] mb-6">School Information</h2>
           <div className="space-y-4">
             <div>
-              <label className="label">School Name</label>
+              <label className="text-sm font-medium text-[#191c1d] mb-2 block">School Name</label>
               <input
                 type="text"
                 value={schoolData.name}
@@ -257,9 +266,9 @@ export default function SettingsPage() {
                 className="input"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="label">District</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">District</label>
                 <input
                   type="text"
                   value={schoolData.district}
@@ -268,7 +277,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <label className="label">Sub-county</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Sub-county</label>
                 <input
                   type="text"
                   value={schoolData.subcounty}
@@ -277,9 +286,9 @@ export default function SettingsPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="label">Phone</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Phone</label>
                 <input
                   type="tel"
                   value={schoolData.phone}
@@ -288,7 +297,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <label className="label">Email</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Email</label>
                 <input
                   type="email"
                   value={schoolData.email}
@@ -299,6 +308,7 @@ export default function SettingsPage() {
             </div>
             <div className="pt-4">
               <button onClick={saveSchoolSettings} disabled={saving} className="btn btn-primary">
+                <MaterialIcon icon="save" className="text-lg" />
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
@@ -306,14 +316,11 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Users Tab */}
       {activeTab === 'users' && (
         <div className="space-y-6">
           <div className="flex justify-end">
             <button onClick={() => setShowAddUser(true)} className="btn btn-primary">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
+              <MaterialIcon icon="person_add" className="text-lg" />
               Add User
             </button>
           </div>
@@ -321,12 +328,12 @@ export default function SettingsPage() {
           {loadingUsers ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="card">
+                <div key={i} className="bg-white rounded-2xl border border-[#e8eaed] p-4">
                   <div className="flex items-center gap-4">
-                    <div className="skeleton w-12 h-12 rounded-full" />
+                    <div className="w-12 h-12 bg-[#f0f4f8] rounded-full" />
                     <div className="flex-1">
-                      <div className="skeleton w-32 h-4 mb-2" />
-                      <div className="skeleton w-24 h-3" />
+                      <div className="w-32 h-4 bg-[#e8eaed] rounded mb-2" />
+                      <div className="w-24 h-3 bg-[#e8eaed] rounded" />
                     </div>
                   </div>
                 </div>
@@ -335,19 +342,21 @@ export default function SettingsPage() {
           ) : (
             <div className="space-y-3">
               {users.map((u) => (
-                <div key={u.id} className="card">
+                <div key={u.id} className="bg-white rounded-2xl border border-[#e8eaed] p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                        <span className="text-blue-600 dark:text-blue-300 font-semibold">
+                      <div className="w-12 h-12 bg-[#f0f4f8] rounded-full flex items-center justify-center">
+                        <span className="text-[#002045] font-semibold">
                           {u.full_name?.charAt(0) || 'U'}
                         </span>
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900 dark:text-white">{u.full_name}</div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="badge badge-info">{u.role}</span>
-                          <span className={`badge ${u.is_active ? 'badge-success' : 'badge-danger'}`}>
+                        <div className="font-medium text-[#191c1d]">{u.full_name}</div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="px-2 py-1 rounded-lg text-xs font-medium bg-[#e8f5e9] text-[#006e1c]">
+                            {u.role === 'dos' ? 'Director of Studies' : u.role === 'school_admin' ? 'Administrator' : u.role === 'bursar' ? 'Bursar' : u.role.charAt(0).toUpperCase() + u.role.slice(1)}
+                          </span>
+                          <span className={`px-2 py-1 rounded-lg text-xs font-medium ${u.is_active ? 'bg-[#e8f5e9] text-[#006e1c]' : 'bg-[#fef2f2] text-[#ba1a1a]'}`}>
                             {u.is_active ? 'Active' : 'Inactive'}
                           </span>
                         </div>
@@ -367,16 +376,15 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Notifications Tab */}
       {activeTab === 'notifications' && (
         <div className="space-y-6">
-          <div className="card max-w-2xl">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Notification Settings</h2>
+          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 max-w-2xl">
+            <h2 className="text-lg font-semibold text-[#191c1d] mb-6">Notification Settings</h2>
             <div className="space-y-4">
-              <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700">
+              <div className="flex items-center justify-between py-3 border-b border-[#e8eaed]">
                 <div>
-                  <div className="font-medium text-gray-900 dark:text-white">SMS Notifications</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Send SMS to parents for fee reminders</div>
+                  <div className="font-medium text-[#191c1d]">SMS Notifications</div>
+                  <div className="text-sm text-[#5c6670]">Send SMS to parents for fee reminders</div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input 
@@ -385,13 +393,13 @@ export default function SettingsPage() {
                     checked={settings.sms_notifications}
                     onChange={(e) => handleSettingChange('sms_notifications', e.target.checked)}
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-[#e8eaed] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#002045]"></div>
                 </label>
               </div>
-              <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700">
+              <div className="flex items-center justify-between py-3 border-b border-[#e8eaed]">
                 <div>
-                  <div className="font-medium text-gray-900 dark:text-white">Attendance Alerts</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Notify when student is absent</div>
+                  <div className="font-medium text-[#191c1d]">Attendance Alerts</div>
+                  <div className="text-sm text-[#5c6670]">Notify when student is absent</div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input 
@@ -400,13 +408,13 @@ export default function SettingsPage() {
                     checked={settings.attendance_alerts}
                     onChange={(e) => handleSettingChange('attendance_alerts', e.target.checked)}
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-[#e8eaed] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#002045]"></div>
                 </label>
               </div>
               <div className="flex items-center justify-between py-3">
                 <div>
-                  <div className="font-medium text-gray-900 dark:text-white">Fee Reminders</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Send automatic fee balance reminders</div>
+                  <div className="font-medium text-[#191c1d]">Fee Reminders</div>
+                  <div className="text-sm text-[#5c6670]">Send automatic fee balance reminders</div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input 
@@ -415,18 +423,18 @@ export default function SettingsPage() {
                     checked={settings.fee_reminders}
                     onChange={(e) => handleSettingChange('fee_reminders', e.target.checked)}
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-[#e8eaed] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#002045]"></div>
                 </label>
               </div>
             </div>
           </div>
 
-          <div className="card max-w-2xl">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Warning Thresholds</h2>
+          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 max-w-2xl">
+            <h2 className="text-lg font-semibold text-[#191c1d] mb-6">Warning Thresholds</h2>
             <div className="space-y-6">
               <div>
-                <label className="label">Attendance Rate Threshold (%)</label>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Students below this attendance rate will be flagged</p>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Attendance Rate Threshold (%)</label>
+                <p className="text-sm text-[#5c6670] mb-2">Students below this attendance rate will be flagged</p>
                 <input 
                   type="number" 
                   value={settings.attendance_threshold}
@@ -437,8 +445,8 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <label className="label">Grade Threshold (%)</label>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Students scoring below this in 2+ subjects will be flagged</p>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Grade Threshold (%)</label>
+                <p className="text-sm text-[#5c6670] mb-2">Students scoring below this in 2+ subjects will be flagged</p>
                 <input 
                   type="number" 
                   value={settings.grade_threshold}
@@ -449,8 +457,8 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <label className="label">Fee Threshold (UGX)</label>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Students with payments below this amount will be flagged</p>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Fee Threshold (UGX)</label>
+                <p className="text-sm text-[#5c6670] mb-2">Students with payments below this amount will be flagged</p>
                 <input 
                   type="number" 
                   value={settings.fee_threshold}
@@ -464,43 +472,38 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Backup & Export Tab */}
       {activeTab === 'backup' && (
         <div className="space-y-6">
-          <div className="card max-w-2xl">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Data Backup</h2>
+          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 max-w-2xl">
+            <h2 className="text-lg font-semibold text-[#191c1d] mb-6">Data Backup</h2>
             <div className="space-y-4">
-              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="p-4 bg-[#f8fafb] rounded-xl">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-medium text-gray-900 dark:text-white">Export All Data</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Download all school data as JSON</div>
+                    <div className="font-medium text-[#191c1d]">Export All Data</div>
+                    <div className="text-sm text-[#5c6670]">Download all school data as JSON</div>
                   </div>
                   <button onClick={exportAllData} className="btn btn-primary">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
+                    <MaterialIcon icon="download" className="text-lg" />
                     Export
                   </button>
                 </div>
               </div>
-              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="p-4 bg-[#f8fafb] rounded-xl">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-medium text-gray-900 dark:text-white">Student Photos Backup</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Export student photos and documents</div>
+                    <div className="font-medium text-[#191c1d]">Student Photos Backup</div>
+                    <div className="text-sm text-[#5c6670]">Export student photos and documents</div>
                   </div>
                   <button className="btn btn-secondary">Export Photos</button>
                 </div>
               </div>
-              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <div className="p-4 bg-[#fff8e6] rounded-xl border border-[#b86e00]/20">
                 <div className="flex items-center gap-3">
-                  <svg className="w-5 h-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
+                  <MaterialIcon icon="info" className="text-[#b86e00]" />
                   <div>
-                    <div className="font-medium text-yellow-800 dark:text-yellow-200">Important</div>
-                    <div className="text-sm text-yellow-700 dark:text-yellow-300">Regular backups are recommended. Cloud backup is available on Premium plans.</div>
+                    <div className="font-medium text-[#321b00]">Important</div>
+                    <div className="text-sm text-[#5c6670]">Regular backups are recommended. Cloud backup is available on Premium plans.</div>
                   </div>
                 </div>
               </div>
@@ -509,31 +512,28 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Add User Modal */}
       {showAddUser && (
-        <div className="modal-overlay" onClick={() => setShowAddUser(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowAddUser(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-[#e8eaed]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Add Staff Member</h2>
-                <button onClick={() => setShowAddUser(false)} className="p-2 text-gray-400 hover:text-gray-600">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                <h2 className="text-lg font-semibold text-[#191c1d]">Add Staff Member</h2>
+                <button onClick={() => setShowAddUser(false)} className="p-2 text-[#5c6670] hover:text-[#191c1d]">
+                  <MaterialIcon icon="close" className="text-xl" />
                 </button>
               </div>
             </div>
             <form onSubmit={handleAddUser} className="p-6 space-y-4">
               <div>
-                <label className="label">Full Name</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Full Name</label>
                 <input type="text" value={newUser.full_name} onChange={(e) => setNewUser({...newUser, full_name: e.target.value})} className="input" required />
               </div>
               <div>
-                <label className="label">Phone Number</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Phone Number</label>
                 <input type="tel" placeholder="0700000000" value={newUser.phone} onChange={(e) => setNewUser({...newUser, phone: e.target.value})} className="input" required />
               </div>
               <div>
-                <label className="label">Role</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Role</label>
                 <select value={newUser.role} onChange={(e) => setNewUser({...newUser, role: e.target.value})} className="input">
                   <option value="teacher">Teacher</option>
                   <option value="school_admin">Administrator</option>
@@ -543,7 +543,7 @@ export default function SettingsPage() {
                 </select>
               </div>
               <div>
-                <label className="label">Password</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Password</label>
                 <input type="password" placeholder="Min 6 characters" value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} className="input" required minLength={6} />
               </div>
               <div className="flex gap-3 pt-4">

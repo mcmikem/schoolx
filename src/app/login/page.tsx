@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import Link from 'next/link'
+import SchoolXLogo from '@/components/SchoolXLogo'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -107,12 +108,7 @@ export default function LoginPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {/* Logo */}
         <div className="flex justify-center">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">O</span>
-            </div>
-            <span className="text-2xl font-bold text-gray-900">OmutoSMS</span>
-          </div>
+          <SchoolXLogo size="lg" />
         </div>
         
         <h2 className="mt-6 text-center text-2xl font-bold text-gray-900">

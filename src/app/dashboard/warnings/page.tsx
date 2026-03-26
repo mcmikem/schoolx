@@ -6,6 +6,10 @@ import { useStudents, useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 interface Warning {
   student_id: string
   student_name: string
@@ -75,7 +79,6 @@ export default function EarlyWarningsPage() {
         .eq('academic_year', academicYear)
 
       if (grades && grades.length > 0) {
-        // Group by subject and calculate averages
         const subjectScores: Record<string, number[]> = {}
         grades.forEach(g => {
           const subject = g.subjects?.name || 'Unknown'
@@ -104,7 +107,6 @@ export default function EarlyWarningsPage() {
         }
       }
 
-      // Check attendance - find students with < 80% attendance
       const { data: attendance } = await supabase
         .from('attendance')
         .select('status')
@@ -127,7 +129,6 @@ export default function EarlyWarningsPage() {
         }
       }
 
-      // Check fees - find students with high balances
       const { data: payments } = await supabase
         .from('fee_payments')
         .select('amount_paid')
@@ -153,12 +154,16 @@ export default function EarlyWarningsPage() {
     setLoading(false)
   }
 
+  useEffect(() => {
+    if (students.length > 0) fetchWarnings()
+  }, [students, currentTerm, academicYear])
+
   const sendBulkSMS = async () => {
     if (filteredWarnings.length === 0) return
     
     toast.success(`Sending SMS to ${filteredWarnings.length} guardians...`)
     
-    const message = `Dear Parent, Your child ${filteredWarnings[0].student_name} has been flagged for academic concerns. Please contact the school to discuss how we can support your child's progress. - OmutoSMS`
+    const message = `Dear Parent, Your child ${filteredWarnings[0].student_name} has been flagged for academic concerns. Please contact the school to discuss how we can support your child's progress. - SchoolX`
     
     try {
       const { data: studentData } = await supabase
@@ -202,34 +207,40 @@ export default function EarlyWarningsPage() {
     low: warnings.filter(w => w.severity === 'low').length,
   }), [warnings])
 
+  const getSeverityBadge = (severity: string) => {
+    switch (severity) {
+      case 'high': return 'bg-[#fef2f2] text-[#ba1a1a]'
+      case 'medium': return 'bg-[#fff3e0] text-[#b86e00]'
+      default: return 'bg-[#e3f2fd] text-[#002045]'
+    }
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Early Warnings</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Students who need attention</p>
+        <h1 className="text-2xl font-bold text-[#002045]">Early Warnings</h1>
+        <p className="text-[#5c6670] mt-1">Students who need attention</p>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="stat-card">
-          <div className="stat-value">{stats.total}</div>
-          <div className="stat-label">Total Warnings</div>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+          <div className="text-2xl font-bold text-[#002045]">{stats.total}</div>
+          <div className="text-sm text-[#5c6670] mt-1">Total Warnings</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-value text-red-600">{stats.high}</div>
-          <div className="stat-label">High Priority</div>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+          <div className="text-2xl font-bold text-[#ba1a1a]">{stats.high}</div>
+          <div className="text-sm text-[#5c6670] mt-1">High Priority</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-value text-yellow-600">{stats.medium}</div>
-          <div className="stat-label">Medium</div>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+          <div className="text-2xl font-bold text-[#b86e00]">{stats.medium}</div>
+          <div className="text-sm text-[#5c6670] mt-1">Medium</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-value text-blue-600">{stats.low}</div>
-          <div className="stat-label">Low</div>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+          <div className="text-2xl font-bold text-[#002045]">{stats.low}</div>
+          <div className="text-sm text-[#5c6670] mt-1">Low</div>
         </div>
       </div>
 
-      {/* Filter and Refresh */}
       <div className="flex flex-wrap gap-3 mb-6">
         <select value={filterSeverity} onChange={(e) => setFilterSeverity(e.target.value)} className="input sm:w-48">
           <option value="all">All Severities</option>
@@ -238,75 +249,67 @@ export default function EarlyWarningsPage() {
           <option value="low">Low</option>
         </select>
         <button onClick={fetchWarnings} className="btn btn-secondary">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
+          <MaterialIcon icon="refresh" className="text-lg" />
           Refresh
         </button>
         {filteredWarnings.length > 0 && (
           <button onClick={() => sendBulkSMS()} className="btn btn-primary">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
+            <MaterialIcon icon="sms" className="text-lg" />
             SMS Guardians ({filteredWarnings.length})
           </button>
         )}
       </div>
 
-      {/* Warnings List */}
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="card">
-              <div className="skeleton w-full h-4 mb-2" />
-              <div className="skeleton w-3/4 h-3" />
+            <div key={i} className="bg-white rounded-2xl border border-[#e8eaed] p-4">
+              <div className="w-full h-4 bg-[#e8eaed] rounded mb-2" />
+              <div className="w-3/4 h-3 bg-[#e8eaed] rounded" />
             </div>
           ))}
         </div>
       ) : filteredWarnings.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 text-center">
+          <div className="w-16 h-16 bg-[#e8f5e9] rounded-full flex items-center justify-center mx-auto mb-4">
+            <MaterialIcon icon="check_circle" className="text-3xl text-[#006e1c]" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No warnings</h3>
-          <p className="text-gray-500 dark:text-gray-400">All students are performing well</p>
+          <h3 className="text-lg font-semibold text-[#191c1d] mb-2">No warnings</h3>
+          <p className="text-[#5c6670]">All students are performing well</p>
         </div>
       ) : (
-        <div className="table-wrapper">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Student</th>
-                <th>Class</th>
-                <th>Warning Type</th>
-                <th>Details</th>
-                <th>Severity</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredWarnings.map((warning, i) => (
-                <tr key={i}>
-                  <td>
-                    <div className="font-medium text-gray-900 dark:text-white">{warning.student_name}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{warning.student_number}</div>
-                  </td>
-                  <td>{warning.class_name}</td>
-                  <td>{warning.warning_type}</td>
-                  <td className="text-gray-600 dark:text-gray-400">{warning.details}</td>
-                  <td>
-                    <span className={`badge ${
-                      warning.severity === 'high' ? 'badge-danger' :
-                      warning.severity === 'medium' ? 'badge-warning' : 'badge-info'
-                    }`}>
-                      {warning.severity}
-                    </span>
-                  </td>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-[#f8fafb]">
+                <tr>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Student</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Class</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Warning Type</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Details</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Severity</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredWarnings.map((warning, i) => (
+                  <tr key={i} className="border-t border-[#e8eaed]">
+                    <td className="p-4">
+                      <div className="font-medium text-[#191c1d]">{warning.student_name}</div>
+                      <div className="text-xs text-[#5c6670]">{warning.student_number}</div>
+                    </td>
+                    <td className="p-4 text-[#191c1d]">{warning.class_name}</td>
+                    <td className="p-4 text-[#191c1d]">{warning.warning_type}</td>
+                    <td className="p-4 text-[#5c6670]">{warning.details}</td>
+                    <td className="p-4">
+                      <span className={`px-3 py-1 rounded-lg text-xs font-medium ${getSeverityBadge(warning.severity)}`}>
+                        {warning.severity}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

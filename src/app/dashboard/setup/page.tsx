@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 
-const SQL_SCRIPT = `-- OmutoSMS Database Setup
+const SQL_SCRIPT = `-- SchoolX Database Setup
 -- Run this in Supabase SQL Editor
 
 -- Enable UUID extension

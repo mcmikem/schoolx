@@ -5,6 +5,10 @@ import { useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 export default function AttendancePage() {
   const { school, user } = useAuth()
   const toast = useToast()
@@ -103,123 +107,124 @@ export default function AttendancePage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Attendance</h1>
-        <p className="text-gray-500 mt-1">Mark daily student attendance</p>
+        <h1 className="text-2xl font-bold text-[#002045]">Attendance</h1>
+        <p className="text-[#5c6670] mt-1">Mark daily student attendance</p>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <select
-          value={selectedClass || ''}
-          onChange={(e) => setSelectedClass(e.target.value || null)}
-          className="input sm:w-64"
-        >
-          <option value="">Select a class</option>
-          {classes.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="input sm:w-48"
-        />
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <label className="text-sm font-medium text-[#5c6670] mb-2 block">Select Class</label>
+            <select
+              value={selectedClass || ''}
+              onChange={(e) => setSelectedClass(e.target.value || null)}
+              className="input"
+            >
+              <option value="">Select a class</option>
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="sm:w-48">
+            <label className="text-sm font-medium text-[#5c6670] mb-2 block">Date</label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="input"
+            />
+          </div>
+        </div>
       </div>
 
       {!selectedClass ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-            </svg>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 text-center">
+          <div className="w-16 h-16 bg-[#f8fafb] rounded-full flex items-center justify-center mx-auto mb-4">
+            <MaterialIcon icon="fact_check" className="text-3xl text-[#5c6670]" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Select a class</h3>
-          <p className="text-gray-500">Choose a class to mark attendance</p>
+          <h3 className="text-lg font-semibold text-[#191c1d] mb-2">Select a class</h3>
+          <p className="text-[#5c6670]">Choose a class to mark attendance</p>
         </div>
       ) : loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="card">
+            <div key={i} className="bg-white rounded-2xl border border-[#e8eaed] p-4">
               <div className="flex items-center gap-4">
-                <div className="skeleton w-10 h-10 rounded-full" />
+                <div className="w-10 h-10 bg-[#f0f4f8] rounded-full" />
                 <div className="flex-1">
-                  <div className="skeleton w-32 h-4 mb-2" />
-                  <div className="skeleton w-20 h-3" />
+                  <div className="w-32 h-4 bg-[#e8eaed] rounded mb-2" />
+                  <div className="w-20 h-3 bg-[#e8eaed] rounded" />
                 </div>
               </div>
             </div>
           ))}
         </div>
       ) : students.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 text-center">
+          <div className="w-16 h-16 bg-[#f8fafb] rounded-full flex items-center justify-center mx-auto mb-4">
+            <MaterialIcon icon="group" className="text-3xl text-[#5c6670]" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No students in this class</h3>
-          <p className="text-gray-500">Add students to this class first</p>
+          <h3 className="text-lg font-semibold text-[#191c1d] mb-2">No students in this class</h3>
+          <p className="text-[#5c6670]">Add students to this class first</p>
         </div>
       ) : (
         <>
-          {/* Summary */}
           <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="card text-center">
-              <div className="text-2xl font-bold text-green-600">{presentCount}</div>
-              <div className="text-sm text-gray-500">Present</div>
+            <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+              <div className="text-3xl font-bold text-[#006e1c]">{presentCount}</div>
+              <div className="text-sm text-[#5c6670] mt-1">Present</div>
             </div>
-            <div className="card text-center">
-              <div className="text-2xl font-bold text-red-600">{absentCount}</div>
-              <div className="text-sm text-gray-500">Absent</div>
+            <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+              <div className="text-3xl font-bold text-[#ba1a1a]">{absentCount}</div>
+              <div className="text-sm text-[#5c6670] mt-1">Absent</div>
             </div>
-            <div className="card text-center">
-              <div className="text-2xl font-bold text-yellow-600">{lateCount}</div>
-              <div className="text-sm text-gray-500">Late</div>
+            <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
+              <div className="text-3xl font-bold text-[#b86e00]">{lateCount}</div>
+              <div className="text-sm text-[#5c6670] mt-1">Late</div>
             </div>
           </div>
 
-          {/* Quick Actions */}
           <div className="flex gap-2 mb-4">
-            <button onClick={() => markAll('present')} className="btn btn-sm btn-secondary">
+            <button onClick={() => markAll('present')} className="btn btn-secondary text-sm py-2">
+              <MaterialIcon icon="check_circle" className="text-lg" />
               Mark All Present
             </button>
-            <button onClick={() => markAll('absent')} className="btn btn-sm btn-secondary">
+            <button onClick={() => markAll('absent')} className="btn btn-secondary text-sm py-2">
+              <MaterialIcon icon="cancel" className="text-lg" />
               Mark All Absent
             </button>
           </div>
 
-          {/* Students List */}
           <div className="space-y-3 mb-6">
             {students.map((student) => (
-              <div key={student.id} className="card">
+              <div key={student.id} className="bg-white rounded-2xl border border-[#e8eaed] p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 font-semibold text-sm">
+                    <div className="w-10 h-10 bg-[#f0f4f8] rounded-full flex items-center justify-center">
+                      <span className="text-[#002045] font-semibold text-sm">
                         {student.first_name?.charAt(0)}{student.last_name?.charAt(0)}
                       </span>
                     </div>
                     <div>
-                      <div className="font-medium">{student.first_name} {student.last_name}</div>
-                      <div className="text-xs text-gray-500">{student.student_number}</div>
+                      <div className="font-medium text-[#191c1d]">{student.first_name} {student.last_name}</div>
+                      <div className="text-xs text-[#5c6670]">{student.student_number}</div>
                     </div>
                   </div>
                   <div className="flex gap-2">
                     {[
-                      { status: 'present', label: 'Present', color: 'bg-green-100 text-green-700 border-green-200' },
-                      { status: 'absent', label: 'Absent', color: 'bg-red-100 text-red-700 border-red-200' },
-                      { status: 'late', label: 'Late', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+                      { status: 'present', label: 'Present', color: 'bg-[#ecfdf5] text-[#006e1c] border-[#006e1c]', active: attendance[student.id] === 'present' },
+                      { status: 'absent', label: 'Absent', color: 'bg-[#fef2f2] text-[#ba1a1a] border-[#ba1a1a]', active: attendance[student.id] === 'absent' },
+                      { status: 'late', label: 'Late', color: 'bg-[#fff7ed] text-[#b86e00] border-[#b86e00]', active: attendance[student.id] === 'late' },
                     ].map((option) => (
                       <button
                         key={option.status}
                         onClick={() => markAttendance(student.id, option.status)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-                          attendance[student.id] === option.status
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                          option.active
                             ? option.color
-                            : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                            : 'bg-white text-[#5c6670] border-[#e8eaed] hover:border-[#c4c6cf]'
                         }`}
                       >
                         {option.label}
@@ -231,8 +236,8 @@ export default function AttendancePage() {
             ))}
           </div>
 
-          {/* Save Button */}
           <button onClick={saveAttendance} disabled={saving || Object.keys(attendance).length === 0} className="btn btn-primary w-full">
+            <MaterialIcon icon="save" className="text-lg" />
             {saving ? 'Saving...' : 'Save Attendance'}
           </button>
         </>

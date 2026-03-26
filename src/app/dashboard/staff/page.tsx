@@ -4,6 +4,10 @@ import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 interface StaffMember {
   id: string
   full_name: string
@@ -104,17 +108,30 @@ export default function StaffPage() {
     }
   }
 
+  const getRoleBadge = (role: string) => {
+    const roles: Record<string, { bg: string, text: string }> = {
+      teacher: { bg: 'bg-[#e8f5e9]', text: 'text-[#006e1c]' },
+      school_admin: { bg: 'bg-[#e3f2fd]', text: 'text-[#002045]' },
+      dos: { bg: 'bg-[#fff3e0]', text: 'text-[#b86e00]' },
+      bursar: { bg: 'bg-[#fce4ec]', text: 'text-[#c62828]' },
+    }
+    const style = roles[role] || roles.teacher
+    return (
+      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${style.bg} ${style.text}`}>
+        {role === 'dos' ? 'Director of Studies' : role === 'school_admin' ? 'Administrator' : role.charAt(0).toUpperCase() + role.slice(1)}
+      </span>
+    )
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Staff</h1>
-          <p className="text-gray-500 mt-1">{staff.length} staff members</p>
+          <h1 className="text-2xl font-bold text-[#002045]">Staff</h1>
+          <p className="text-[#5c6670] mt-1">{staff.length} staff members</p>
         </div>
         <button onClick={() => setShowAddModal(true)} className="btn btn-primary">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
+          <MaterialIcon icon="person_add" className="text-lg" />
           Add Staff
         </button>
       </div>
@@ -122,46 +139,45 @@ export default function StaffPage() {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="card">
+            <div key={i} className="bg-white rounded-2xl border border-[#e8eaed] p-4">
               <div className="flex items-center gap-4">
-                <div className="skeleton w-12 h-12 rounded-full" />
+                <div className="w-12 h-12 bg-[#f0f4f8] rounded-full" />
                 <div className="flex-1">
-                  <div className="skeleton w-32 h-4 mb-2" />
-                  <div className="skeleton w-24 h-3" />
+                  <div className="w-32 h-4 bg-[#e8eaed] rounded mb-2" />
+                  <div className="w-24 h-3 bg-[#e8eaed] rounded" />
                 </div>
               </div>
             </div>
           ))}
         </div>
       ) : staff.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 text-center">
+          <div className="w-16 h-16 bg-[#f8fafb] rounded-full flex items-center justify-center mx-auto mb-4">
+            <MaterialIcon icon="groups" className="text-3xl text-[#5c6670]" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No staff members</h3>
-          <p className="text-gray-500 mb-4">Add teachers and other staff</p>
+          <h3 className="text-lg font-semibold text-[#191c1d] mb-2">No staff members</h3>
+          <p className="text-[#5c6670] mb-4">Add teachers and other staff</p>
           <button onClick={() => setShowAddModal(true)} className="btn btn-primary">
+            <MaterialIcon icon="person_add" className="text-lg" />
             Add Staff
           </button>
         </div>
       ) : (
         <div className="space-y-3">
           {staff.map((member) => (
-            <div key={member.id} className="card">
+            <div key={member.id} className="bg-white rounded-2xl border border-[#e8eaed] p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-blue-600 font-semibold">
+                  <div className="w-12 h-12 bg-[#f0f4f8] rounded-full flex items-center justify-center">
+                    <span className="text-[#002045] font-semibold">
                       {member.full_name?.charAt(0) || 'U'}
                     </span>
                   </div>
                   <div>
-                    <div className="font-medium text-gray-900">{member.full_name}</div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="badge badge-info">{member.role}</span>
-                      <span className={`badge ${member.is_active ? 'badge-success' : 'badge-danger'}`}>
+                    <div className="font-medium text-[#191c1d]">{member.full_name}</div>
+                    <div className="flex items-center gap-2 mt-2">
+                      {getRoleBadge(member.role)}
+                      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${member.is_active ? 'bg-[#e8f5e9] text-[#006e1c]' : 'bg-[#fef2f2] text-[#ba1a1a]'}`}>
                         {member.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </div>
@@ -179,23 +195,20 @@ export default function StaffPage() {
         </div>
       )}
 
-      {/* Add Staff Modal */}
       {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-gray-100">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowAddModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-[#e8eaed]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Add Staff Member</h2>
-                <button onClick={() => setShowAddModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                <h2 className="text-lg font-semibold text-[#191c1d]">Add Staff Member</h2>
+                <button onClick={() => setShowAddModal(false)} className="p-2 text-[#5c6670] hover:text-[#191c1d]">
+                  <MaterialIcon icon="close" className="text-xl" />
                 </button>
               </div>
             </div>
             <form onSubmit={handleAddStaff} className="p-6 space-y-4">
               <div>
-                <label className="label">Full Name</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Full Name</label>
                 <input
                   type="text"
                   value={newStaff.full_name}
@@ -206,7 +219,7 @@ export default function StaffPage() {
               </div>
 
               <div>
-                <label className="label">Phone Number</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Phone Number</label>
                 <input
                   type="tel"
                   placeholder="0700000000"
@@ -218,7 +231,7 @@ export default function StaffPage() {
               </div>
 
               <div>
-                <label className="label">Role</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Role</label>
                 <select
                   value={newStaff.role}
                   onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
@@ -230,7 +243,7 @@ export default function StaffPage() {
               </div>
 
               <div>
-                <label className="label">Password</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Password</label>
                 <input
                   type="password"
                   placeholder="Min 6 characters"

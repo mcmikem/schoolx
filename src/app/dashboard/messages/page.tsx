@@ -4,6 +4,10 @@ import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 export default function MessagesPage() {
   const { user } = useAuth()
   const toast = useToast()
@@ -116,34 +120,63 @@ export default function MessagesPage() {
     }
   }
 
+  const getRecipientBadge = (type: string) => {
+    const styles: Record<string, string> = {
+      individual: 'bg-[#e3f2fd] text-[#002045]',
+      class: 'bg-[#e8f5e9] text-[#006e1c]',
+      all: 'bg-[#fff3e0] text-[#b86e00]',
+    }
+    return styles[type] || styles.individual
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
-        <p className="text-gray-500 mt-1">Send SMS to parents</p>
+        <h1 className="text-2xl font-bold text-[#002045]">Messages</h1>
+        <p className="text-[#5c6670] mt-1">Send SMS to parents</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Compose */}
-        <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Send Message</h2>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+          <h2 className="text-lg font-semibold text-[#191c1d] mb-4">Send Message</h2>
           
           <div className="space-y-4">
-            <div className="tabs">
-              <button onClick={() => setMessageType('individual')} className={`tab ${messageType === 'individual' ? 'active' : ''}`}>
+            <div className="flex gap-2 p-1 bg-[#f8fafb] rounded-xl">
+              <button 
+                onClick={() => setMessageType('individual')} 
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                  messageType === 'individual' 
+                    ? 'bg-white text-[#002045] shadow-sm' 
+                    : 'text-[#5c6670] hover:text-[#191c1d]'
+                }`}
+              >
                 One Parent
               </button>
-              <button onClick={() => setMessageType('class')} className={`tab ${messageType === 'class' ? 'active' : ''}`}>
+              <button 
+                onClick={() => setMessageType('class')} 
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                  messageType === 'class' 
+                    ? 'bg-white text-[#002045] shadow-sm' 
+                    : 'text-[#5c6670] hover:text-[#191c1d]'
+                }`}
+              >
                 By Class
               </button>
-              <button onClick={() => setMessageType('all')} className={`tab ${messageType === 'all' ? 'active' : ''}`}>
+              <button 
+                onClick={() => setMessageType('all')} 
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                  messageType === 'all' 
+                    ? 'bg-white text-[#002045] shadow-sm' 
+                    : 'text-[#5c6670] hover:text-[#191c1d]'
+                }`}
+              >
                 All Parents
               </button>
             </div>
 
             {messageType === 'individual' && (
               <div>
-                <label className="label">Phone Number</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Phone Number</label>
                 <input
                   type="tel"
                   placeholder="0700000000"
@@ -156,7 +189,7 @@ export default function MessagesPage() {
 
             {messageType === 'class' && (
               <div>
-                <label className="label">Select Class</label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Select Class</label>
                 <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input">
                   <option value="">Choose class</option>
                   {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -165,7 +198,7 @@ export default function MessagesPage() {
             )}
 
             <div>
-              <label className="label">Message</label>
+              <label className="text-sm font-medium text-[#191c1d] mb-2 block">Message</label>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -173,44 +206,49 @@ export default function MessagesPage() {
                 className="input min-h-[120px] resize-none"
                 maxLength={160}
               />
-              <p className="helper-text">{message.length}/160 characters</p>
+              <p className="text-xs text-[#5c6670] mt-2">{message.length}/160 characters</p>
             </div>
 
             <button onClick={handleSend} disabled={sending || !message.trim()} className="btn btn-primary w-full">
+              <MaterialIcon icon="send" className="text-lg" />
               {sending ? 'Sending...' : 'Send Message'}
             </button>
           </div>
         </div>
 
-        {/* History */}
-        <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Messages</h2>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+          <h2 className="text-lg font-semibold text-[#191c1d] mb-4">Recent Messages</h2>
           
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
                 <div key={i}>
-                  <div className="skeleton w-full h-4 mb-2" />
-                  <div className="skeleton w-3/4 h-3" />
+                  <div className="w-full h-4 bg-[#e8eaed] rounded mb-2" />
+                  <div className="w-3/4 h-3 bg-[#e8eaed] rounded" />
                 </div>
               ))}
             </div>
           ) : messages.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">No messages sent yet</p>
+              <div className="w-16 h-16 bg-[#f8fafb] rounded-full flex items-center justify-center mx-auto mb-4">
+                <MaterialIcon icon="sms" className="text-3xl text-[#c4c6cf]" />
+              </div>
+              <p className="text-[#5c6670]">No messages sent yet</p>
             </div>
           ) : (
             <div className="space-y-4">
               {messages.map((msg) => (
-                <div key={msg.id} className="p-4 bg-gray-50 rounded-lg">
+                <div key={msg.id} className="p-4 bg-[#f8fafb] rounded-xl">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="badge badge-info">{msg.recipient_type}</span>
-                    <span className={`badge ${msg.status === 'sent' ? 'badge-success' : 'badge-warning'}`}>
+                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getRecipientBadge(msg.recipient_type)}`}>
+                      {msg.recipient_type === 'individual' ? 'Individual' : msg.recipient_type === 'class' ? 'By Class' : 'All Parents'}
+                    </span>
+                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${msg.status === 'sent' ? 'bg-[#e8f5e9] text-[#006e1c]' : 'bg-[#fff3e0] text-[#b86e00]'}`}>
                       {msg.status}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-700 mb-2">{msg.message}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-sm text-[#191c1d] mb-2">{msg.message}</p>
+                  <p className="text-xs text-[#5c6670]">
                     {new Date(msg.created_at).toLocaleDateString()}
                   </p>
                 </div>
