@@ -33,7 +33,7 @@ const navItems = [
   { href: '/dashboard/students', label: 'Students', icon: 'group' },
   { href: '/dashboard/attendance', label: 'Attendance', icon: 'event_available' },
   { href: '/dashboard/grades', label: 'Grades', icon: 'menu_book' },
-  { href: '/dashboard/uneb', label: 'UNEB', icon: 'workspace_ premium' },
+  { href: '/dashboard/uneb', label: 'UNEB', icon: 'workspace_premium' },
   { href: '/dashboard/fees', label: 'Finance', icon: 'payments' },
   { href: '/dashboard/reports', icon: 'analytics' },
   { href: '/dashboard/messages', label: 'Messages', icon: 'mail' },
@@ -191,9 +191,9 @@ export default function DashboardLayout({
 
         {/* Desktop Sidebar */}
         <aside className={`
-          hidden md:flex fixed inset-y-0 left-0 z-[60] flex-col py-4 h-full w-72 
+          hidden md:flex fixed inset-y-0 left-0 z-[60] flex-col py-4 w-72 
           bg-surface-container-low dark:bg-slate-950 border-r border-outline-variant/15 
-          mt-16 rounded-r-xl transition-transform duration-300 ease-in-out
+          transition-transform duration-300 ease-in-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}>
           <div className="px-6 mb-8 flex flex-col gap-1">
@@ -203,7 +203,7 @@ export default function DashboardLayout({
             </p>
           </div>
           
-          <nav className="flex flex-col gap-1 flex-1 px-4">
+          <nav className="flex flex-col gap-1 flex-1 px-4 overflow-y-auto no-scrollbar">
             {navItems.map((item) => {
               const isActive = pathname === item.href || 
                 (item.href !== '/dashboard' && pathname.startsWith(item.href))
