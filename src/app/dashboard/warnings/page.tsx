@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useClasses } from '@/lib/hooks'
+import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
 interface Warning {
@@ -24,6 +25,7 @@ interface WarningThresholds {
 export default function EarlyWarningsPage() {
   const { school } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
+  const toast = useToast()
   const { students } = useStudents(school?.id)
   const { classes } = useClasses(school?.id)
   const [warnings, setWarnings] = useState<Warning[]>([])
@@ -151,6 +153,43 @@ export default function EarlyWarningsPage() {
     setLoading(false)
   }
 
+  const sendBulkSMS = async () => {
+    if (filteredWarnings.length === 0) return
+    
+    toast.success(`Sending SMS to ${filteredWarnings.length} guardians...`)
+    
+    const message = `Dear Parent, Your child ${filteredWarnings[0].student_name} has been flagged for academic concerns. Please contact the school to discuss how we can support your child's progress. - OmutoSMS`
+    
+    try {
+      const { data: studentData } = await supabase
+        .from('students')
+        .select('id, parent_phone, first_name')
+        .in('id', filteredWarnings.map(w => w.student_id))
+      
+      const phones = studentData?.map(s => s.parent_phone).filter(Boolean) || []
+      
+      if (phones.length === 0) {
+        toast.error('No parent phone numbers found')
+        return
+      }
+
+      const response = await fetch('/api/sms', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phones, message, schoolId: school?.id })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        toast.success(`SMS sent to ${result.data?.totalSent || phones.length} parents`)
+      } else {
+        toast.error('Failed to send SMS')
+      }
+    } catch (err) {
+      toast.error('SMS error')
+    }
+  }
+
   const filteredWarnings = warnings.filter(w => {
     if (filterSeverity === 'all') return true
     return w.severity === filterSeverity
@@ -191,7 +230,7 @@ export default function EarlyWarningsPage() {
       </div>
 
       {/* Filter and Refresh */}
-      <div className="flex gap-3 mb-6">
+      <div className="flex flex-wrap gap-3 mb-6">
         <select value={filterSeverity} onChange={(e) => setFilterSeverity(e.target.value)} className="input sm:w-48">
           <option value="all">All Severities</option>
           <option value="high">High Priority</option>
@@ -204,6 +243,14 @@ export default function EarlyWarningsPage() {
           </svg>
           Refresh
         </button>
+        {filteredWarnings.length > 0 && (
+          <button onClick={() => sendBulkSMS()} className="btn btn-primary">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+            SMS Guardians ({filteredWarnings.length})
+          </button>
+        )}
       </div>
 
       {/* Warnings List */}

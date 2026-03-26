@@ -272,6 +272,29 @@ CREATE TABLE school_settings (
 );
 
 -- ============================================
+-- 18. AUDIT LOG
+-- ============================================
+CREATE TABLE audit_log (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id),
+    user_name TEXT,
+    action TEXT CHECK (action IN ('create', 'update', 'delete', 'view', 'login', 'logout')) NOT NULL,
+    module TEXT NOT NULL,
+    description TEXT,
+    record_id TEXT,
+    old_value JSONB,
+    new_value JSONB,
+    ip_address TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_audit_school ON audit_log(school_id);
+CREATE INDEX idx_audit_user ON audit_log(user_id);
+CREATE INDEX idx_audit_module ON audit_log(module);
+CREATE INDEX idx_audit_created ON audit_log(created_at DESC);
+
+-- ============================================
 -- 17. PARENT-STUDENT LINK
 -- ============================================
 CREATE TABLE parent_students (
