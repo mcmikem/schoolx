@@ -13,6 +13,18 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
 
+  const demoAccounts = [
+    { role: 'Headmaster', phone: '0700000001', password: 'demo1234', label: 'Headmaster (Full Access)' },
+    { role: 'Teacher', phone: '0700000002', password: 'demo1234', label: 'Teacher' },
+    { role: 'Bursar', phone: '0700000003', password: 'demo1234', label: 'Bursar (Fees Only)' },
+    { role: 'Dean', phone: '0700000004', password: 'demo1234', label: 'Dean of Studies' },
+  ]
+
+  const handleDemoLogin = (demo: typeof demoAccounts[0]) => {
+    setPhone(demo.phone)
+    setPassword(demo.password)
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -23,8 +35,27 @@ export default function LoginPage() {
 
     setLoading(true)
 
+    // Demo account bypass for testing
+    const demoUsers: Record<string, { role: string; name: string; school_id: string }> = {
+      '0700000001': { role: 'headmaster', name: 'John Headmaster', school_id: 'demo-school' },
+      '0700000002': { role: 'teacher', name: 'Mary Teacher', school_id: 'demo-school' },
+      '0700000003': { role: 'bursar', name: 'James Bursar', school_id: 'demo-school' },
+      '0700000004': { role: 'dean_of_studies', name: 'Sarah Dean', school_id: 'demo-school' },
+    }
+
+    const cleanPhone = phone.replace(/[^0-9]/g, '')
+    if (password === 'demo1234' && demoUsers[cleanPhone]) {
+      const demoUser = demoUsers[cleanPhone]
+      localStorage.setItem('demo_user', JSON.stringify(demoUser))
+      localStorage.setItem('demo_school', JSON.stringify({ id: 'demo-school', name: "St. Mary's Primary School" }))
+      toast.success(`Welcome, ${demoUser.name} (Demo Mode)`)
+      router.push('/dashboard')
+      router.refresh()
+      setLoading(false)
+      return
+    }
+
     try {
-      const cleanPhone = phone.replace(/[^0-9]/g, '')
       const email = `${cleanPhone}@omuto.sms`
       
       const { data, error: authError } = await supabase.auth.signInWithPassword({
@@ -163,6 +194,29 @@ export default function LoginPage() {
                 'Sign In'
               )}
             </button>
+
+            {/* Demo Accounts */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500">Demo Accounts</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {demoAccounts.map((demo) => (
+                <button
+                  key={demo.phone}
+                  type="button"
+                  onClick={() => handleDemoLogin(demo)}
+                  className="btn btn-secondary text-xs py-2"
+                >
+                  {demo.role}
+                </button>
+              ))}
+            </div>
           </form>
 
           {/* Register Link */}

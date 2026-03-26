@@ -61,6 +61,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function checkUser() {
     try {
+      // Check for demo user first
+      const demoUserStr = localStorage.getItem('demo_user')
+      const demoSchoolStr = localStorage.getItem('demo_school')
+      
+      if (demoUserStr && demoSchoolStr) {
+        const demoUser = JSON.parse(demoUserStr)
+        const demoSchool = JSON.parse(demoSchoolStr)
+        
+        setUser({
+          id: 'demo-user',
+          auth_id: 'demo',
+          school_id: demoSchool.id,
+          full_name: demoUser.name,
+          phone: '0700000000',
+          role: demoUser.role as any,
+          avatar_url: null,
+          is_active: true,
+        })
+        setSchool(demoSchool)
+        setLoading(false)
+        return
+      }
+
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
         await fetchUserData(session.user.id)
@@ -159,6 +182,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
+    // Clear demo data if present
+    localStorage.removeItem('demo_user')
+    localStorage.removeItem('demo_school')
+    
     await supabase.auth.signOut()
     setUser(null)
     setSchool(null)
