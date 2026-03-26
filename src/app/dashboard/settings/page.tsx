@@ -88,6 +88,32 @@ export default function SettingsPage() {
     await saveSettings(key, String(value))
   }
 
+  const exportAllData = async () => {
+    if (!school?.id) return
+    try {
+      toast.success('Preparing export...')
+      
+      const tables = ['students', 'classes', 'subjects', 'attendance', 'grades', 'fee_structure', 'fee_payments', 'users']
+      const allData: Record<string, unknown[]> = {}
+      
+      for (const table of tables) {
+        const { data } = await supabase.from(table).select('*').eq('school_id', school.id)
+        if (data) allData[table] = data
+      }
+      
+      const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `omuto_backup_${school.name}_${new Date().toISOString().split('T')[0]}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('Data exported successfully')
+    } catch (err) {
+      toast.error('Export failed')
+    }
+  }
+
   useEffect(() => {
     if (school) {
       setSchoolData(prev => ({
@@ -194,6 +220,7 @@ export default function SettingsPage() {
     { key: 'general', label: 'School Details' },
     { key: 'users', label: 'Staff & Users' },
     { key: 'notifications', label: 'Notifications' },
+    { key: 'backup', label: 'Backup & Export' },
   ]
 
   return (
@@ -431,6 +458,51 @@ export default function SettingsPage() {
                   className="input w-32"
                   min={0}
                 />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Backup & Export Tab */}
+      {activeTab === 'backup' && (
+        <div className="space-y-6">
+          <div className="card max-w-2xl">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Data Backup</h2>
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-medium text-gray-900 dark:text-white">Export All Data</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Download all school data as JSON</div>
+                  </div>
+                  <button onClick={exportAllData} className="btn btn-primary">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Export
+                  </button>
+                </div>
+              </div>
+              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-medium text-gray-900 dark:text-white">Student Photos Backup</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Export student photos and documents</div>
+                  </div>
+                  <button className="btn btn-secondary">Export Photos</button>
+                </div>
+              </div>
+              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                <div className="flex items-center gap-3">
+                  <svg className="w-5 h-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div>
+                    <div className="font-medium text-yellow-800 dark:text-yellow-200">Important</div>
+                    <div className="text-sm text-yellow-700 dark:text-yellow-300">Regular backups are recommended. Cloud backup is available on Premium plans.</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

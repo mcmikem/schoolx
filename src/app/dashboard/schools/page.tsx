@@ -1,27 +1,112 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/lib/auth-context'
+import { useToast } from '@/components/Toast'
+import { supabase } from '@/lib/supabase'
 
-const schools = [
-  { id: 1, name: "St. Mary's Primary School", code: 'STMS001', district: 'Kampala', type: 'primary', ownership: 'private', students: 1247, teachers: 28, plan: 'Basic', status: 'active', phone: '0701234567', revenue: 50000 },
-  { id: 2, name: 'Kampala Parents School', code: 'KPS002', district: 'Kampala', type: 'primary', ownership: 'private', students: 2100, teachers: 45, plan: 'Premium', status: 'active', phone: '0702345678', revenue: 150000 },
-  { id: 3, name: 'Nabisunsa Girls School', code: 'NAB003', district: 'Kampala', type: 'secondary', ownership: 'government_aided', students: 1800, teachers: 52, plan: 'Premium', status: 'active', phone: '0703456789', revenue: 150000 },
-  { id: 4, name: 'Lira Central Primary', code: 'LCP004', district: 'Lira', type: 'primary', ownership: 'government', students: 890, teachers: 18, plan: 'Free', status: 'trial', phone: '0704567890', revenue: 0 },
-  { id: 5, name: 'Mbale Progressive Academy', code: 'MPA005', district: 'Mbale', type: 'combined', ownership: 'private', students: 650, teachers: 22, plan: 'Basic', status: 'expired', phone: '0705678901', revenue: 50000 },
-]
+interface SchoolData {
+  id: string
+  name: string
+  school_code: string
+  district: string
+  school_type: string
+  ownership: string
+  phone: string
+  subscription_plan: string
+  subscription_status: string
+  created_at: string
+}
 
 export default function SchoolsPage() {
+  const { user } = useAuth()
+  const toast = useToast()
+  const [schools, setSchools] = useState<SchoolData[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [newSchool, setNewSchool] = useState({
+    name: '',
+    school_code: '',
+    district: '',
+    school_type: 'primary',
+    ownership: 'private',
+    phone: ''
+  })
+
+  useEffect(() => {
+    if (user?.role === 'super_admin') {
+      fetchSchools()
+    }
+  }, [user?.role])
+
+  const fetchSchools = async () => {
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('schools')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setSchools(data || [])
+    } catch (err) {
+      console.error('Error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filtered = schools.filter((s) => {
-    const matchSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.district.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchStatus = filterStatus === 'all' || s.status === filterStatus
+    const matchSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                       s.district?.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchStatus = filterStatus === 'all' || s.subscription_status === filterStatus
     return matchSearch && matchStatus
   })
 
-  const totalRevenue = schools.reduce((sum, s) => sum + s.revenue, 0)
-  const activeSchools = schools.filter((s) => s.status === 'active').length
-  const totalStudents = schools.reduce((sum, s) => sum + s.students, 0)
+  const totalRevenue = schools.reduce((sum, s) => {
+    if (s.subscription_plan === 'premium') return sum + 150000
+    if (s.subscription_plan === 'basic') return sum + 50000
+    return sum
+  }, 0)
+  const activeSchools = schools.filter((s) => s.subscription_status === 'active').length
+
+  const handleAddSchool = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const { error } = await supabase.from('schools').insert(newSchool)
+      if (error) throw error
+      toast.success('School added successfully')
+      setShowAddModal(false)
+      fetchSchools()
+      setNewSchool({
+        name: '',
+        school_code: '',
+        district: '',
+        school_type: 'primary',
+        ownership: 'private',
+        phone: ''
+      })
+    } catch (err) {
+      toast.error('Failed to add school')
+    }
+  }
+
+  if (user?.role !== 'super_admin') {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="empty-state">
+          <div className="empty-state-icon">
+            <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Access Restricted</h3>
+          <p className="text-gray-500 dark:text-gray-400">Only super admins can manage schools.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -30,7 +115,7 @@ export default function SchoolsPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Schools</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Manage all registered schools</p>
         </div>
-        <button className="btn btn-primary">
+        <button onClick={() => setShowAddModal(true)} className="btn btn-primary">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
@@ -38,76 +123,171 @@ export default function SchoolsPage() {
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="stat-card">
-          <div className="stat-value">{schools.length}</div>
-          <div className="stat-label">Total Schools</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value text-green-600 dark:text-green-400">{activeSchools}</div>
-          <div className="stat-label">Active</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value">{totalStudents.toLocaleString()}</div>
-          <div className="stat-label">Total Students</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value">UGX {(totalRevenue / 1000).toFixed(0)}K</div>
-          <div className="stat-label">Monthly Revenue</div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <input
-          type="text"
-          placeholder="Search schools..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="input flex-1"
-        />
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="input sm:w-40">
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="trial">Trial</option>
-          <option value="expired">Expired</option>
-        </select>
-      </div>
-
-      {/* Schools List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filtered.map((school) => (
-          <div key={school.id} className="card">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <div className="font-semibold text-gray-900 dark:text-white">{school.name}</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">{school.code} • {school.district}</div>
-              </div>
-              <span className={`badge ${
-                school.status === 'active' ? 'badge-success' :
-                school.status === 'trial' ? 'badge-warning' : 'badge-danger'
-              }`}>
-                {school.status}
-              </span>
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="card">
+              <div className="skeleton h-6 w-3/4 mb-2"></div>
+              <div className="skeleton h-4 w-1/2 mb-4"></div>
+              <div className="skeleton h-8 w-full"></div>
             </div>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <div className="text-lg font-bold text-gray-900 dark:text-white">{school.students}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Students</div>
-              </div>
-              <div>
-                <div className="text-lg font-bold text-gray-900 dark:text-white">{school.teachers}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Teachers</div>
-              </div>
-              <div>
-                <div className="text-lg font-bold text-gray-900 dark:text-white">{school.plan}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Plan</div>
-              </div>
+          ))}
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="stat-card">
+              <div className="stat-value">{schools.length}</div>
+              <div className="stat-label">Total Schools</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value text-green-600 dark:text-green-400">{activeSchools}</div>
+              <div className="stat-label">Active</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value">{schools.filter(s => s.subscription_plan === 'premium').length}</div>
+              <div className="stat-label">Premium</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value">UGX {(totalRevenue / 1000).toFixed(0)}K</div>
+              <div className="stat-label">Monthly Revenue</div>
             </div>
           </div>
-        ))}
-      </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 mb-6">
+            <input
+              type="text"
+              placeholder="Search schools..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="input flex-1"
+            />
+            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="input sm:w-40">
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="trial">Trial</option>
+              <option value="expired">Expired</option>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map((school) => (
+              <div key={school.id} className="card">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <div className="font-semibold text-gray-900 dark:text-white">{school.name}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">{school.school_code} • {school.district}</div>
+                  </div>
+                  <span className={`badge ${
+                    school.subscription_status === 'active' ? 'badge-success' :
+                    school.subscription_status === 'trial' ? 'badge-warning' : 'badge-danger'
+                  }`}>
+                    {school.subscription_status}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 mb-3">
+                  <span className="capitalize">{school.school_type}</span>
+                  <span className="capitalize">{school.ownership}</span>
+                  <span className="badge badge-info">{school.subscription_plan}</span>
+                </div>
+                {school.phone && (
+                  <div className="text-sm text-gray-500 dark:text-gray-400">📞 {school.phone}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {showAddModal && (
+        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Add New School</h2>
+                <button onClick={() => setShowAddModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <form onSubmit={handleAddSchool} className="p-6 space-y-4">
+              <div>
+                <label className="label">School Name</label>
+                <input 
+                  type="text" 
+                  value={newSchool.name} 
+                  onChange={(e) => setNewSchool({...newSchool, name: e.target.value})} 
+                  className="input" 
+                  required 
+                />
+              </div>
+              <div>
+                <label className="label">School Code</label>
+                <input 
+                  type="text" 
+                  value={newSchool.school_code} 
+                  onChange={(e) => setNewSchool({...newSchool, school_code: e.target.value})} 
+                  className="input" 
+                  required 
+                  placeholder="e.g., STMS001"
+                />
+              </div>
+              <div>
+                <label className="label">District</label>
+                <input 
+                  type="text" 
+                  value={newSchool.district} 
+                  onChange={(e) => setNewSchool({...newSchool, district: e.target.value})} 
+                  className="input" 
+                  required 
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">School Type</label>
+                  <select 
+                    value={newSchool.school_type} 
+                    onChange={(e) => setNewSchool({...newSchool, school_type: e.target.value})} 
+                    className="input"
+                  >
+                    <option value="primary">Primary</option>
+                    <option value="secondary">Secondary</option>
+                    <option value="combined">Combined</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Ownership</label>
+                  <select 
+                    value={newSchool.ownership} 
+                    onChange={(e) => setNewSchool({...newSchool, ownership: e.target.value})} 
+                    className="input"
+                  >
+                    <option value="private">Private</option>
+                    <option value="government">Government</option>
+                    <option value="government_aided">Government Aided</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="label">Phone</label>
+                <input 
+                  type="tel" 
+                  value={newSchool.phone} 
+                  onChange={(e) => setNewSchool({...newSchool, phone: e.target.value})} 
+                  className="input" 
+                  placeholder="0700000000"
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-secondary flex-1">Cancel</button>
+                <button type="submit" className="btn btn-primary flex-1">Add School</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
