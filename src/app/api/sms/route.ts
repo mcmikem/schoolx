@@ -13,7 +13,7 @@ interface SMSRequest {
 }
 
 function formatUgandaPhone(phone: string): string {
-  let formatted = phone.replace(/\s/g, '')
+  let formatted = phone.replace(/\s/g, '').replace(/-/g, '')
   if (formatted.startsWith('0')) {
     return '+256' + formatted.substring(1)
   } else if (!formatted.startsWith('+')) {
@@ -22,10 +22,11 @@ function formatUgandaPhone(phone: string): string {
   return formatted
 }
 
-async function sendSMS(to: string, message: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
+async function sendSMS(to: string, message: string): Promise<{ success: boolean; messageId?: string; statusCode?: number; error?: string }> {
   if (!AFRICAS_TALKING_API_KEY) {
+    // Demo mode - log instead of sending
     console.log(`[SMS Demo] To: ${to}, Message: ${message}`)
-    return { success: true, messageId: 'demo-' + Date.now() }
+    return { success: true, messageId: 'demo-' + Date.now(), statusCode: 101 }
   }
 
   try {
@@ -40,19 +41,30 @@ async function sendSMS(to: string, message: string): Promise<{ success: boolean;
         username: AFRICAS_TALKING_USERNAME,
         to,
         message,
-        from: 'OmutoSMS',
+        from: 'OMUTO', // Registered sender ID
       }),
     })
 
     const result = await response.json()
+    
+    // Africa's Talking returns SMSMessageData with Recipients array
     const recipient = result.SMSMessageData?.Recipients?.[0]
-
-    if (recipient?.status === 'Success') {
-      return { success: true, messageId: recipient.messageId }
+    
+    if (recipient) {
+      // Status codes: 101 = Sent, 102 = Queued, others = failed
+      const success = recipient.statusCode === 101 || recipient.statusCode === 102
+      return { 
+        success, 
+        messageId: recipient.messageId,
+        statusCode: recipient.statusCode,
+        error: success ? undefined : recipient.status
+      }
     }
-    return { success: false, error: recipient?.status || 'Unknown error' }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+    
+    return { success: false, error: result.SMSMessageData?.Message || 'Unknown error' }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Network error'
+    return { success: false, error: errorMessage }
   }
 }
 
@@ -84,6 +96,7 @@ async function handlePost(request: NextRequest) {
       return apiSuccess({
         status: 'sent',
         messageId: result.messageId,
+        statusCode: result.statusCode,
         demo: !AFRICAS_TALKING_API_KEY,
       })
     }
@@ -144,5 +157,25 @@ async function handlePut(request: NextRequest) {
   }
 }
 
+// Africa's Talking delivery report callback
+export async function PATCH(request: NextRequest) {
+  try {
+    // This endpoint receives delivery reports from Africa's Talking
+    const body = await request.json()
+    const { id, status, phoneNumber, failureReason } = body
+
+    // Log delivery status
+    console.log(`[SMS Delivery] ID: ${id}, Status: ${status}, Phone: ${phoneNumber}`)
+
+    // In production, update the message record in database
+    // await supabase.from('messages').update({ status, delivery_status: status }).eq('message_id', id)
+
+    return apiSuccess({ received: true })
+  } catch (error) {
+    return handleApiError(error)
+  }
+}
+
 export const POST = withSecurity(handlePost, { rateLimit: { limit: 30, windowMs: 60000 } })
 export const PUT = withSecurity(handlePut, { rateLimit: { limit: 10, windowMs: 60000 } })
+// PATCH is exported above as the delivery report handler
