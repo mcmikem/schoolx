@@ -3,6 +3,10 @@ import { useState, useRef } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 interface ImportResult {
   success: number
   failed: number
@@ -129,114 +133,104 @@ export default function ImportPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Import Students</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Upload a spreadsheet to add students in bulk</p>
+        <h1 className="text-2xl font-bold text-[#002045]">Import Students</h1>
+        <p className="text-[#5c6670] mt-1">Upload a spreadsheet to add students in bulk</p>
       </div>
 
-      {/* Download Template */}
-      <div className="card mb-6">
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="font-semibold text-gray-900 dark:text-white">Download Template</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Use our template for best results when importing students</p>
+            <h2 className="font-semibold text-[#191c1d]">Download Template</h2>
+            <p className="text-sm text-[#5c6670] mt-1">Use our template for best results when importing students</p>
           </div>
           <button onClick={downloadTemplate} className="btn btn-secondary">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
+            <MaterialIcon icon="download" className="text-lg" />
             Download Template
           </button>
         </div>
       </div>
 
-      {/* Upload Area */}
       <div
         onClick={() => fileInputRef.current?.click()}
-        className="card border-2 border-dashed border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500 cursor-pointer transition-colors mb-6"
+        className="bg-white rounded-2xl border-2 border-dashed border-[#e8eaed] hover:border-[#002045] cursor-pointer transition-all mb-6 p-8 text-center"
       >
-        <div className="text-center py-8">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-          <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-          </div>
-          <p className="text-gray-900 dark:text-white font-medium mb-2">
-            {file ? file.name : 'Click to upload or drag and drop'}
-          </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Excel or CSV file</p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+        <div className="w-16 h-16 bg-[#e3f2fd] rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <MaterialIcon icon="upload_file" className="text-3xl text-[#002045]" />
         </div>
+        <p className="text-[#191c1d] font-medium mb-2">
+          {file ? file.name : 'Click to upload or drag and drop'}
+        </p>
+        <p className="text-sm text-[#5c6670]">Excel or CSV file</p>
       </div>
 
-      {/* Preview */}
       {preview.length > 0 && (
-        <div className="card mb-6">
-          <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Preview</h2>
-          <div className="table-wrapper">
-            <table className="table">
-              <thead>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 mb-6">
+          <h2 className="font-semibold text-[#191c1d] mb-4">Preview</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-[#f8fafb]">
                 <tr>
-                  <th>Name</th>
-                  <th>Gender</th>
-                  <th>Parent</th>
-                  <th>Phone</th>
-                  <th>Class</th>
+                  <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Name</th>
+                  <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Gender</th>
+                  <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Parent</th>
+                  <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Phone</th>
+                  <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Class</th>
                 </tr>
               </thead>
               <tbody>
                 {preview.map((row: any, i) => (
-                  <tr key={i}>
-                    <td className="font-medium">{row['First Name'] || row['first_name'] || ''} {row['Last Name'] || row['last_name'] || ''}</td>
-                    <td>{row['Gender'] || row['gender'] || ''}</td>
-                    <td>{row['Parent Name'] || row['parent_name'] || ''}</td>
-                    <td>{row['Parent Phone'] || row['parent_phone'] || ''}</td>
-                    <td>{row['Class'] || row['class_name'] || ''}</td>
+                  <tr key={i} className="border-t border-[#e8eaed]">
+                    <td className="p-3 font-medium text-[#191c1d]">{row['First Name'] || row['first_name'] || ''} {row['Last Name'] || row['last_name'] || ''}</td>
+                    <td className="p-3 text-[#5c6670]">{row['Gender'] || row['gender'] || ''}</td>
+                    <td className="p-3 text-[#5c6670]">{row['Parent Name'] || row['parent_name'] || ''}</td>
+                    <td className="p-3 text-[#5c6670]">{row['Parent Phone'] || row['parent_phone'] || ''}</td>
+                    <td className="p-3 text-[#5c6670]">{row['Class'] || row['class_name'] || ''}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+          <p className="text-sm text-[#5c6670] mt-4">
             Showing first {preview.length} rows
           </p>
         </div>
       )}
 
-      {/* Import Button */}
       {file && (
         <button 
           onClick={handleImport} 
           disabled={importing}
           className="btn btn-primary w-full mb-6"
         >
+          <MaterialIcon icon="upload" className="text-lg" />
           {importing ? 'Importing...' : 'Import Students'}
         </button>
       )}
 
-      {/* Results */}
       {result && (
-        <div className="card">
-          <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Import Results</h2>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+          <h2 className="font-semibold text-[#191c1d] mb-4">Import Results</h2>
           <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="text-center p-4 bg-green-50 dark:bg-green-900/30 rounded-lg">
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{result.success}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Successful</div>
+            <div className="text-center p-4 bg-[#e8f5e9] rounded-xl">
+              <div className="text-2xl font-bold text-[#006e1c]">{result.success}</div>
+              <div className="text-sm text-[#5c6670]">Successful</div>
             </div>
-            <div className="text-center p-4 bg-red-50 dark:bg-red-900/30 rounded-lg">
-              <div className="text-2xl font-bold text-red-600 dark:text-red-400">{result.failed}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Failed</div>
+            <div className="text-center p-4 bg-[#fef2f2] rounded-xl">
+              <div className="text-2xl font-bold text-[#ba1a1a]">{result.failed}</div>
+              <div className="text-sm text-[#5c6670]">Failed</div>
             </div>
           </div>
           {result.errors.length > 0 && (
-            <div className="p-4 bg-red-50 dark:bg-red-900/30 rounded-lg">
-              <p className="text-sm font-medium text-red-700 dark:text-red-300 mb-2">Errors:</p>
-              <ul className="text-sm text-red-600 dark:text-red-400 space-y-1">
+            <div className="p-4 bg-[#fef2f2] rounded-xl">
+              <p className="text-sm font-medium text-[#ba1a1a] mb-2">Errors:</p>
+              <ul className="text-sm text-[#5c6670] space-y-1">
                 {result.errors.map((err, i) => (
                   <li key={i}>{err}</li>
                 ))}

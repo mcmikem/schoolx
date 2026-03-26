@@ -4,6 +4,10 @@ import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
+function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+}
+
 interface GradingConfig {
   schoolLevel: 'primary' | 'secondary_o' | 'secondary_a'
   caWeight: number
@@ -132,16 +136,15 @@ export default function GradingConfigPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Grading Configuration</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Configure CA and Exam weighting per UNEB standards</p>
+        <h1 className="text-2xl font-bold text-[#002045]">Grading Configuration</h1>
+        <p className="text-[#5c6670] mt-1">Configure CA and Exam weighting per UNEB standards</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card">
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="space-y-6">
-            {/* School Level */}
             <div>
-              <h2 className="font-semibold text-gray-900 dark:text-white mb-4">School Level</h2>
+              <h2 className="font-semibold text-[#191c1d] mb-4">School Level</h2>
               <select
                 value={config.schoolLevel}
                 onChange={(e) => setConfig({...config, schoolLevel: e.target.value as any})}
@@ -151,7 +154,7 @@ export default function GradingConfigPage() {
                 <option value="secondary_o">Secondary O-Level (UCE)</option>
                 <option value="secondary_a">Secondary A-Level (UACE)</option>
               </select>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+              <p className="text-sm text-[#5c6670] mt-2">
                 {config.schoolLevel === 'primary' && 'Primary Leaving Examination - Uses D1-F9 grading'}
                 {config.schoolLevel === 'secondary_o' && 'Uganda Certificate of Education - Uses D1-F9 with 8-subject division'}
                 {config.schoolLevel === 'secondary_a' && 'Uganda Advanced Certificate - Uses A-F with points system'}
@@ -160,12 +163,11 @@ export default function GradingConfigPage() {
 
             {config.schoolLevel !== 'secondary_a' && (
               <>
-                {/* Main Weighting */}
                 <div>
-                  <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Overall Weighting</h2>
+                  <h2 className="font-semibold text-[#191c1d] mb-4">Overall Weighting</h2>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="label">CA Weight (%)</label>
+                      <label className="text-sm font-medium text-[#191c1d] mb-2 block">CA Weight (%)</label>
                       <input
                         type="number"
                         value={config.caWeight}
@@ -176,7 +178,7 @@ export default function GradingConfigPage() {
                       />
                     </div>
                     <div>
-                      <label className="label">Exam Weight (%)</label>
+                      <label className="text-sm font-medium text-[#191c1d] mb-2 block">Exam Weight (%)</label>
                       <input
                         type="number"
                         value={config.examWeight}
@@ -188,16 +190,15 @@ export default function GradingConfigPage() {
                     </div>
                   </div>
                   {totalWeight !== 100 && (
-                    <p className="text-red-500 text-sm mt-2">Total must equal 100%</p>
+                    <p className="text-[#ba1a1a] text-sm mt-2">Total must equal 100%</p>
                   )}
                 </div>
 
-                {/* CA Breakdown */}
                 <div>
-                  <h2 className="font-semibold text-gray-900 dark:text-white mb-4">CA Breakdown (within CA)</h2>
+                  <h2 className="font-semibold text-[#191c1d] mb-4">CA Breakdown (within CA)</h2>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="label">CA 1 (%)</label>
+                      <label className="text-sm font-medium text-[#191c1d] mb-2 block">CA 1 (%)</label>
                       <input
                         type="number"
                         value={config.caBreakdown.ca1}
@@ -209,7 +210,7 @@ export default function GradingConfigPage() {
                       />
                     </div>
                     <div>
-                      <label className="label">CA 2 (%)</label>
+                      <label className="text-sm font-medium text-[#191c1d] mb-2 block">CA 2 (%)</label>
                       <input
                         type="number"
                         value={config.caBreakdown.ca2}
@@ -221,7 +222,7 @@ export default function GradingConfigPage() {
                       />
                     </div>
                     <div>
-                      <label className="label">CA 3 (%)</label>
+                      <label className="text-sm font-medium text-[#191c1d] mb-2 block">CA 3 (%)</label>
                       <input
                         type="number"
                         value={config.caBreakdown.ca3}
@@ -233,7 +234,7 @@ export default function GradingConfigPage() {
                       />
                     </div>
                     <div>
-                      <label className="label">CA 4 (%)</label>
+                      <label className="text-sm font-medium text-[#191c1d] mb-2 block">CA 4 (%)</label>
                       <input
                         type="number"
                         value={config.caBreakdown.ca4}
@@ -245,7 +246,7 @@ export default function GradingConfigPage() {
                       />
                     </div>
                     <div>
-                      <label className="label">Project (%)</label>
+                      <label className="text-sm font-medium text-[#191c1d] mb-2 block">Project (%)</label>
                       <input
                         type="number"
                         value={config.caBreakdown.project}
@@ -257,8 +258,8 @@ export default function GradingConfigPage() {
                       />
                     </div>
                   </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                    CA Breakdown Total: {totalCA}% {totalCA !== 100 && <span className="text-red-500">(must equal 100%)</span>}
+                  <p className="text-sm text-[#5c6670] mt-2">
+                    CA Breakdown Total: {totalCA}% {totalCA !== 100 && <span className="text-[#ba1a1a]">(must equal 100%)</span>}
                   </p>
                 </div>
               </>
@@ -266,16 +267,16 @@ export default function GradingConfigPage() {
 
             {config.schoolLevel === 'secondary_a' && (
               <div>
-                <h2 className="font-semibold text-gray-900 dark:text-white mb-4">A-Level Subject Classification</h2>
-                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                <h2 className="font-semibold text-[#191c1d] mb-4">A-Level Subject Classification</h2>
+                <div className="p-4 bg-[#fff3e0] rounded-xl border border-[#b86e00]/20">
+                  <p className="text-sm text-[#321b00]">
                     A-Level uses a points system: 3 Principal subjects + 1 Subsidiary (General Paper).<br/>
                     Points: A=6, B=5, C=4, D=3, E=2, O=1, F=0
                   </p>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-4">
                   <div>
-                    <label className="label">Principal Subjects</label>
+                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">Principal Subjects</label>
                     <input
                       type="text"
                       value={config.alevelSubjects?.principal.join(', ')}
@@ -291,7 +292,7 @@ export default function GradingConfigPage() {
                     />
                   </div>
                   <div>
-                    <label className="label">Subsidiary Subjects</label>
+                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">Subsidiary Subjects</label>
                     <input
                       type="text"
                       value={config.alevelSubjects?.subsidiary.join(', ')}
@@ -310,47 +311,46 @@ export default function GradingConfigPage() {
               </div>
             )}
 
-            {/* Save Button */}
             <button 
               onClick={saveConfig} 
               disabled={saving || (config.schoolLevel !== 'secondary_a' && (totalWeight !== 100 || totalCA !== 100))} 
               className="btn btn-primary w-full"
             >
+              <MaterialIcon icon="save" className="text-lg" />
               {saving ? 'Saving...' : 'Save Configuration'}
             </button>
           </div>
         </div>
 
-        {/* Grade Preview */}
         <div className="space-y-6">
-          <div className="card">
-            <h2 className="font-semibold text-gray-900 dark:text-white mb-4">
+          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+            <h2 className="font-semibold text-[#191c1d] mb-4">
               {config.schoolLevel === 'secondary_a' ? 'A-Level Grade Scale (A-F)' : 'UNEB Grade Scale (D1-F9)'}
             </h2>
-            <div className="table-wrapper">
-              <table className="table">
-                <thead>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-[#f8fafb]">
                   <tr>
-                    <th>Range</th>
-                    <th>Grade</th>
-                    <th>Description</th>
+                    <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Range</th>
+                    <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Grade</th>
+                    <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Description</th>
                   </tr>
                 </thead>
                 <tbody>
                   {gradePreview.map((g, i) => (
-                    <tr key={i}>
-                      <td>{g.range}</td>
-                      <td>
+                    <tr key={i} className="border-t border-[#e8eaed]">
+                      <td className="p-3 text-[#191c1d]">{g.range}</td>
+                      <td className="p-3">
                         <span className={`font-bold ${
-                          g.grade.startsWith('D') || g.grade === 'A' ? 'text-green-600' :
-                          g.grade.startsWith('C') || g.grade === 'B' ? 'text-blue-600' :
-                          g.grade.startsWith('P') || g.grade === 'C' ? 'text-yellow-600' :
-                          'text-red-500'
+                          g.grade.startsWith('D') || g.grade === 'A' ? 'text-[#006e1c]' :
+                          g.grade.startsWith('C') || g.grade === 'B' ? 'text-[#002045]' :
+                          g.grade.startsWith('P') || g.grade === 'C' ? 'text-[#b86e00]' :
+                          'text-[#ba1a1a]'
                         }`}>
                           {g.grade}
                         </span>
                       </td>
-                      <td className="text-gray-500">{g.desc}</td>
+                      <td className="p-3 text-[#5c6670]">{g.desc}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -358,35 +358,35 @@ export default function GradingConfigPage() {
             </div>
           </div>
 
-          <div className="card">
-            <h2 className="font-semibold text-gray-900 dark:text-white mb-4">
+          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+            <h2 className="font-semibold text-[#191c1d] mb-4">
               {config.schoolLevel === 'secondary_a' ? 'A-Level Division System' : 
                config.schoolLevel === 'secondary_o' ? 'UCE Division (8 subjects)' : 'PLE Division (4 subjects)'}
             </h2>
-            <div className="table-wrapper">
-              <table className="table">
-                <thead>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-[#f8fafb]">
                   <tr>
-                    <th>{config.schoolLevel === 'secondary_a' ? 'Points' : 'Aggregate'}</th>
-                    <th>Division</th>
-                    <th>Description</th>
+                    <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">{config.schoolLevel === 'secondary_a' ? 'Points' : 'Aggregate'}</th>
+                    <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Division</th>
+                    <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Description</th>
                   </tr>
                 </thead>
                 <tbody>
                   {getDivisionPreview().map((d, i) => (
-                    <tr key={i}>
-                      <td className="font-mono">{'aggregate' in d ? d.aggregate : d.points}</td>
-                      <td>
+                    <tr key={i} className="border-t border-[#e8eaed]">
+                      <td className="p-3 font-mono text-[#191c1d]">{'aggregate' in d ? d.aggregate : d.points}</td>
+                      <td className="p-3">
                         <span className={`font-bold ${
-                          d.division.includes('I') ? 'text-green-600' :
-                          d.division.includes('II') ? 'text-blue-600' :
-                          d.division.includes('III') ? 'text-yellow-600' :
-                          'text-orange-500'
+                          d.division.includes('I') ? 'text-[#006e1c]' :
+                          d.division.includes('II') ? 'text-[#002045]' :
+                          d.division.includes('III') ? 'text-[#b86e00]' :
+                          'text-[#d97706]'
                         }`}>
                           {d.division}
                         </span>
                       </td>
-                      <td className="text-gray-500">{d.desc}</td>
+                      <td className="p-3 text-[#5c6670]">{d.desc}</td>
                     </tr>
                   ))}
                 </tbody>
