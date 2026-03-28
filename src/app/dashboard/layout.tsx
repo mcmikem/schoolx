@@ -557,12 +557,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .sidebar { left: 0 !important; }
         .mobile-menu-btn { display: block !important; }
         .sidebar-overlay { display: block !important; }
+        .nav-item { min-height: 44px; }
         @media (max-width: 768px) {
           .sidebar { left: -240px !important; transition: left 0.2s ease; }
           .sidebar.open { left: 0 !important; }
           .mobile-menu-btn { display: flex !important; }
           .sidebar-overlay { display: none !important; }
           .sidebar-overlay.visible { display: block !important; }
+          .nav-item { padding: 12px 14px !important; min-height: 48px; }
         }
         @media (min-width: 769px) {
           .mobile-menu-btn { display: none !important; }

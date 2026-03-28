@@ -8,15 +8,22 @@ function MaterialIcon({ icon, className, style }: { icon?: string; className?: s
 }
 
 export default function AuditLogPage() {
-  const { user } = useAuth()
+  const { user, school } = useAuth()
   const [logs, setLogs] = useState<AuditEntry[]>([])
   const [filterAction, setFilterAction] = useState('all')
   const [filterModule, setFilterModule] = useState('all')
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Load audit logs
-    setLogs(getAuditLog())
-  }, [])
+    async function fetchLogs() {
+      if (!school?.id) return
+      setLoading(true)
+      const data = await getAuditLog(school.id)
+      setLogs(data)
+      setLoading(false)
+    }
+    fetchLogs()
+  }, [school?.id])
 
   const filteredLogs = logs.filter(log => {
     if (filterAction !== 'all' && log.action !== filterAction) return false
@@ -76,7 +83,7 @@ export default function AuditLogPage() {
               {filteredLogs.map((log) => (
                 <tr key={log.id}>
                   <td className="text-[#5c6670] whitespace-nowrap">
-                    {new Date(log.timestamp).toLocaleString()}
+                    {new Date(log.created_at).toLocaleString()}
                   </td>
                   <td className="font-medium text-[#002045]">{log.user_name}</td>
                   <td>
