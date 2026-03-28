@@ -453,24 +453,28 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Create policy for authenticated users to upload school logos
+DROP POLICY IF EXISTS "Allow authenticated users to upload school logos" ON storage.objects;
 CREATE POLICY "Allow authenticated users to upload school logos"
 ON storage.objects FOR INSERT
 TO authenticated
 WITH CHECK (bucket_id = 'school-logos');
 
 -- Create policy for authenticated users to update school logos
+DROP POLICY IF EXISTS "Allow authenticated users to update school logos" ON storage.objects;
 CREATE POLICY "Allow authenticated users to update school logos"
 ON storage.objects FOR UPDATE
 TO authenticated
 USING (bucket_id = 'school-logos');
 
 -- Create policy for anyone to view school logos (for receipt printing)
+DROP POLICY IF EXISTS "Allow public to view school logos" ON storage.objects;
 CREATE POLICY "Allow public to view school logos"
 ON storage.objects FOR SELECT
 TO public
 USING (bucket_id = 'school-logos');
 
 -- Create policy for authenticated users to delete school logos
+DROP POLICY IF EXISTS "Authenticated can delete school logos" ON storage.objects;
 CREATE POLICY "Authenticated can delete school logos"
 ON storage.objects FOR DELETE
 TO authenticated
