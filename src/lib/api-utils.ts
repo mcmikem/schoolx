@@ -26,10 +26,19 @@ export function apiError(error: string, status: number = 400): NextResponse<ApiR
 }
 
 export function handleApiError(error: unknown): NextResponse<ApiResponse> {
+  // Sanitize error messages to prevent information leakage
+  const sanitizedMessage = 'An unexpected error occurred. Please try again later.'
+  
+  // Log the full error server-side for debugging
   if (error instanceof Error) {
-    return apiError(error.message, 500)
+    console.error('[Server Error]', {
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    })
   }
-  return apiError('An unexpected error occurred', 500)
+  
+  return apiError(sanitizedMessage, 500)
 }
 
 export function validateRequiredFields(
@@ -46,6 +55,9 @@ export function validateRequiredFields(
 
 // Rate limiting
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
+let lastCleanup = Date.now()
+const CLEANUP_INTERVAL = 60000 // Cleanup every minute
+const MAX_MAP_SIZE = 10000 // Prevent unbounded growth
 
 export function rateLimit(
   request: NextRequest,
@@ -59,12 +71,18 @@ export function rateLimit(
   const now = Date.now()
   
   // Periodic cleanup of expired entries to prevent memory leak
-  if (rateLimitMap.size > 1000) {
+  if (rateLimitMap.size > MAX_MAP_SIZE || now - lastCleanup > CLEANUP_INTERVAL) {
     Array.from(rateLimitMap.entries()).forEach(([k, v]) => {
       if (now > v.resetTime) rateLimitMap.delete(k)
     })
+    lastCleanup = now
   }
 
+  // Don't allow new entries if map is too large
+  if (rateLimitMap.size >= MAX_MAP_SIZE) {
+    return { success: false, remaining: 0, resetTime: now + windowMs }
+  }
+  
   const record = rateLimitMap.get(key)
   
   if (!record || now > record.resetTime) {
