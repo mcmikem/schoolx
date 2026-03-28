@@ -439,6 +439,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <MaterialIcon icon="how_to_reg" style={{ fontSize: 17 }} />
                 Staff Attendance
               </Link>
+              <Link href="/dashboard/leave-approvals" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="approval" style={{ fontSize: 17 }} />
+                Leave Approvals
+              </Link>
+              <Link href="/dashboard/expense-approvals" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="request_quote" style={{ fontSize: 17 }} />
+                Expense Approvals
+              </Link>
               <Link href="/dashboard/leave" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="event_busy" style={{ fontSize: 17 }} />
                 Leave Requests
