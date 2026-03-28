@@ -19,7 +19,7 @@ interface SchoolSettings {
 }
 
 export default function SettingsPage() {
-  const { school, user } = useAuth()
+  const { school, user, refreshSchool } = useAuth()
   const { academicYear, currentTerm, setAcademicYear, setCurrentTerm } = useAcademic()
   const toast = useToast()
   const [activeTab, setActiveTab] = useState('general')
@@ -260,6 +260,8 @@ export default function SettingsPage() {
       
       if (updateError) {
         console.error('Update error:', updateError)
+      } else {
+        await refreshSchool()
       }
       
       setLogoUrl(publicUrl)

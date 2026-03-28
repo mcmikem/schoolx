@@ -29,6 +29,14 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  
+  // Skip caching for API calls and Supabase
+  if (event.request.url.includes('/api/') || 
+      event.request.url.includes('supabase') ||
+      event.request.url.includes('vercel') ||
+      event.request.url.includes('googleapis')) {
+    return;
+  }
 
   event.respondWith(
     fetch(event.request)
