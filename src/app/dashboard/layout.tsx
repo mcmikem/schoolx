@@ -8,6 +8,7 @@ import { useTheme } from '@/lib/theme-context'
 import { canAccess, type UserRole, type RolePermissions } from '@/lib/roles'
 import { useStudents, useClasses, useFeePayments, useAttendance } from '@/lib/hooks'
 import { useAcademic } from '@/lib/academic-context'
+import { OfflineIndicator } from '@/components/OfflineIndicator'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { useToast } from '@/components/Toast'
 
@@ -277,6 +278,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <ErrorBoundary>
+      <OfflineIndicator />
       <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
         <aside className={`sidebar${sidebarOpen ? ' open' : ''}`} style={{ width: 240, minWidth: 240, background: 'var(--surface)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100, boxShadow: 'var(--sh1)' }}>
           <div style={{ padding: '22px 18px 16px', borderBottom: '1px solid var(--border)' }}>
