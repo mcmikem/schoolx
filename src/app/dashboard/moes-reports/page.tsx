@@ -53,7 +53,7 @@ export default function MOESReportsPage() {
           name: school?.name || '',
           code: school?.school_code || '',
           district: school?.district || '',
-          type: school?.school_type || '',
+          type: (school as any)?.school_type || '',
           ownership: (school as any)?.ownership || '',
         },
         academicYear,

@@ -119,7 +119,7 @@ export default function ParentPortal() {
             <MaterialIcon icon="family_restroom" style={{ fontSize: 32, color: '#fff' }} />
           </div>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--t1)', marginBottom: 8 }}>Parent Portal</h1>
-          <p style={{ color: 'var(--t3)' }}>View your child's progress</p>
+          <p style={{ color: 'var(--t3)' }}>View your child&apos;s progress</p>
         </div>
 
         <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: 'var(--sh2)' }}>

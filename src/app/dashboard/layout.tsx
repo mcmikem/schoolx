@@ -310,11 +310,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 10px', scrollbarWidth: 'none' }}>
             <div style={{ marginBottom: 4 }}>
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.9px', textTransform: 'uppercase', color: 'var(--t4)', padding: '10px 10px 5px' }}>Overview</div>
-              <Link href="/dashboard" className="nav-item active" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: pathname === '/dashboard' ? 'var(--navy)' : 'var(--t2)', fontSize: 14, fontWeight: pathname === '/dashboard' ? 600 : 500, cursor: 'pointer', background: pathname === '/dashboard' ? 'var(--navy-soft)' : 'transparent', transition: 'all var(--dur) var(--ease)' }}>
+              <Link href="/dashboard" onClick={() => setSidebarOpen(false)} className="nav-item active" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: pathname === '/dashboard' ? 'var(--navy)' : 'var(--t2)', fontSize: 14, fontWeight: pathname === '/dashboard' ? 600 : 500, cursor: 'pointer', background: pathname === '/dashboard' ? 'var(--navy-soft)' : 'transparent', transition: 'all var(--dur) var(--ease)', textDecoration: 'none' }}>
                 <MaterialIcon icon="dashboard" style={{ fontSize: 17 }} />
                 Dashboard
               </Link>
-              <Link href="/dashboard/analytics" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/analytics" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)', textDecoration: 'none' }}>
                 <MaterialIcon icon="analytics" style={{ fontSize: 17 }} />
                 Analytics
                 <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, fontFamily: 'DM Mono', background: 'var(--green-soft)', color: 'var(--green)' }}>New</span>
@@ -323,67 +323,67 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <div style={{ marginBottom: 4 }}>
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.9px', textTransform: 'uppercase', color: 'var(--t4)', padding: '10px 10px 5px' }}>Academics</div>
-              <Link href="/dashboard/students" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/students" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="group" style={{ fontSize: 17 }} />
                 Students
                 <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, fontFamily: 'DM Mono', background: 'var(--navy-soft)', color: 'var(--navy)' }}>{students?.length || 0}</span>
               </Link>
-              <Link href="/dashboard/attendance" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/attendance" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="how_to_reg" style={{ fontSize: 17 }} />
                 Attendance
                 {classes && classes.length > 0 && (
                   <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, fontFamily: 'DM Mono', background: 'var(--amber-soft)', color: 'var(--amber)' }}>{classes.length}</span>
                 )}
               </Link>
-              <Link href="/dashboard/grades" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/grades" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="menu_book" style={{ fontSize: 17 }} />
                 Grades
               </Link>
-              <Link href="/dashboard/exams" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/exams" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="fact_check" style={{ fontSize: 17 }} />
                 Exams
               </Link>
-              <Link href="/dashboard/uneb-registration" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/uneb-registration" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="assignment_ind" style={{ fontSize: 17 }} />
                 UNEB Registration
               </Link>
-              <Link href="/dashboard/promotion" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/promotion" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="trending_up" style={{ fontSize: 17 }} />
                 Student Promotion
               </Link>
-              <Link href="/dashboard/homework-submissions" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/homework-submissions" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="assignment_turned_in" style={{ fontSize: 17 }} />
                 Homework Submissions
               </Link>
-              <Link href="/dashboard/lesson-plans" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/lesson-plans" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="menu_book" style={{ fontSize: 17 }} />
                 Lesson Plans
               </Link>
-              <Link href="/dashboard/scheme-of-work" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/scheme-of-work" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="list_alt" style={{ fontSize: 17 }} />
                 Scheme of Work
               </Link>
-              <Link href="/dashboard/fees" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/fees" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="payments" style={{ fontSize: 17 }} />
                 Finance
               </Link>
-              <Link href="/dashboard/payment-plans" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/payment-plans" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="calendar_month" style={{ fontSize: 17 }} />
                 Payment Plans
               </Link>
-              <Link href="/dashboard/reports" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/reports" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="description" style={{ fontSize: 17 }} />
                 Reports
               </Link>
-              <Link href="/dashboard/dorm" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/dorm" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="bed" style={{ fontSize: 17 }} />
                 Dormitory
               </Link>
-              <Link href="/dashboard/dorm-attendance" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/dorm-attendance" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="nightlight" style={{ fontSize: 17 }} />
                 Dorm Attendance
               </Link>
-              <Link href="/dashboard/library" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/library" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="local_library" style={{ fontSize: 17 }} />
                 Library
               </Link>
@@ -391,19 +391,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <div style={{ marginBottom: 4 }}>
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.9px', textTransform: 'uppercase', color: 'var(--t4)', padding: '10px 10px 5px' }}>Communication</div>
-              <Link href="/dashboard/messages" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/messages" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="chat" style={{ fontSize: 17 }} />
                 Messages
               </Link>
-              <Link href="/dashboard/notices" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/notices" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="campaign" style={{ fontSize: 17 }} />
                 Notices
               </Link>
-              <Link href="/dashboard/sms-templates" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/sms-templates" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="sms" style={{ fontSize: 17 }} />
                 SMS Templates
               </Link>
-              <Link href="/dashboard/homework" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/homework" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="assignment" style={{ fontSize: 17 }} />
                 Homework
               </Link>
@@ -411,83 +411,83 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <div style={{ marginBottom: 4 }}>
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.9px', textTransform: 'uppercase', color: 'var(--t4)', padding: '10px 10px 5px' }}>Administration</div>
-              <Link href="/dashboard/timetable" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/timetable" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="calendar_month" style={{ fontSize: 17 }} />
                 Timetable
               </Link>
-              <Link href="/dashboard/staff" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/staff" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="person" style={{ fontSize: 17 }} />
                 Staff
               </Link>
-              <Link href="/dashboard/discipline" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/discipline" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="warning" style={{ fontSize: 17 }} />
                 Discipline
               </Link>
-              <Link href="/dashboard/trends" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/trends" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="trending_up" style={{ fontSize: 17 }} />
                 Trends
               </Link>
-              <Link href="/dashboard/warnings" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/warnings" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="warning" style={{ fontSize: 17 }} />
                 At Risk
               </Link>
-              <Link href="/dashboard/visitors" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/visitors" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="badge" style={{ fontSize: 17 }} />
                 Visitors
               </Link>
-              <Link href="/dashboard/staff-attendance" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/staff-attendance" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="how_to_reg" style={{ fontSize: 17 }} />
                 Staff Attendance
               </Link>
-              <Link href="/dashboard/leave-approvals" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/leave-approvals" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="approval" style={{ fontSize: 17 }} />
                 Leave Approvals
               </Link>
-              <Link href="/dashboard/expense-approvals" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/expense-approvals" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="request_quote" style={{ fontSize: 17 }} />
                 Expense Approvals
               </Link>
-              <Link href="/dashboard/leave" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/leave" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="event_busy" style={{ fontSize: 17 }} />
                 Leave Requests
               </Link>
-              <Link href="/dashboard/allocations" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/allocations" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="assignment_ind" style={{ fontSize: 17 }} />
                 Subject Allocations
               </Link>
-              <Link href="/dashboard/health" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/health" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="medical_services" style={{ fontSize: 17 }} />
                 Health Records
               </Link>
-              <Link href="/dashboard/behavior" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/behavior" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="psychology" style={{ fontSize: 17 }} />
                 Behavior Log
               </Link>
-              <Link href="/dashboard/calendar" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/calendar" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="event" style={{ fontSize: 17 }} />
                 Calendar
               </Link>
-              <Link href="/dashboard/comments" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/comments" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="comment" style={{ fontSize: 17 }} />
                 Comments
               </Link>
-              <Link href="/dashboard/uneb" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/uneb" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="workspace_premium" style={{ fontSize: 17 }} />
                 UNEB
               </Link>
-              <Link href="/dashboard/cashbook" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/cashbook" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="book" style={{ fontSize: 17 }} />
                 Cashbook
               </Link>
-              <Link href="/dashboard/inventory" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/inventory" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="inventory_2" style={{ fontSize: 17 }} />
                 Inventory
               </Link>
-              <Link href="/dashboard/transport" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/transport" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="directions_bus" style={{ fontSize: 17 }} />
                 Transport
               </Link>
-              <Link href="/dashboard/budget" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/budget" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="account_balance_wallet" style={{ fontSize: 17 }} />
                 Budget & Expenses
               </Link>
@@ -495,19 +495,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <div style={{ marginBottom: 4 }}>
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.9px', textTransform: 'uppercase', color: 'var(--t4)', padding: '10px 10px 5px' }}>Data</div>
-              <Link href="/dashboard/moes-reports" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/moes-reports" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="assessment" style={{ fontSize: 17 }} />
                 MOES Reports
               </Link>
-              <Link href="/dashboard/import" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/import" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="upload" style={{ fontSize: 17 }} />
                 Import
               </Link>
-              <Link href="/dashboard/export" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/export" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="download" style={{ fontSize: 17 }} />
                 Export
               </Link>
-              <Link href="/dashboard/idcards" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/idcards" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="badge" style={{ fontSize: 17 }} />
                 ID Cards
               </Link>
@@ -515,11 +515,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <div style={{ marginBottom: 4 }}>
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.9px', textTransform: 'uppercase', color: 'var(--t4)', padding: '10px 10px 5px' }}>System</div>
-              <Link href="/dashboard/settings" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/settings" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="settings" style={{ fontSize: 17 }} />
                 Settings
               </Link>
-              <Link href="/dashboard/audit" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/audit" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="history" style={{ fontSize: 17 }} />
                 Audit Log
               </Link>

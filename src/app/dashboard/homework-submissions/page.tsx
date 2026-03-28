@@ -16,7 +16,7 @@ interface HomeworkSubmission {
   marks?: number
   feedback?: string
   status: 'pending' | 'submitted' | 'graded'
-  students?: { first_name: string; last_name: string; classes: { name: string } }
+  students?: { first_name: string; last_name: string; classes: { name: string }[] }
 }
 
 export default function HomeworkSubmissionsPage() {
@@ -91,7 +91,7 @@ export default function HomeworkSubmissionsPage() {
       students: student
     }))
 
-    setSubmissions(fullList)
+    setSubmissions(fullList as HomeworkSubmission[])
   }
 
   const markSubmission = async (submission: any, marks: number, feedback: string) => {
