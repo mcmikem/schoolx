@@ -376,7 +376,7 @@ export default function HeadmasterDashboard() {
                 <div className="card-title">Alerts</div>
                 <div className="card-sub">Needs attention</div>
               </div>
-              <span className="badge badge-red">{classesNotMarked + atRiskStudents.length} active</span>
+              <span className="badge badge-red">{loadingExtra ? '...' : classesNotMarked + atRiskStudents.length} active</span>
             </div>
             <div className="card-body" style={{ padding: '14px 16px' }}>
               <Link href="/dashboard/warnings" className="alert-box red">
@@ -384,7 +384,7 @@ export default function HeadmasterDashboard() {
                   <MaterialIcon icon="warning" style={{ fontSize: '15px' }} />
                 </div>
                 <div className="ab-body">
-                  <div className="ab-title">{atRiskStudents.length} students at risk</div>
+                  <div className="ab-title">{loadingExtra ? '...' : atRiskStudents.length} students at risk</div>
                   <div className="ab-sub">Below 50% in 2+ subjects</div>
                 </div>
                 <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>›</span>
@@ -394,7 +394,7 @@ export default function HeadmasterDashboard() {
                   <MaterialIcon icon="schedule" style={{ fontSize: '15px' }} />
                 </div>
                 <div className="ab-body">
-                  <div className="ab-title">{classesNotMarked} classes not marked</div>
+                  <div className="ab-title">{loadingExtra ? '...' : classesNotMarked} classes not marked</div>
                   <div className="ab-sub">Attendance pending today</div>
                 </div>
                 <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>›</span>
@@ -404,8 +404,8 @@ export default function HeadmasterDashboard() {
                   <MaterialIcon icon="chat" style={{ fontSize: '15px' }} />
                 </div>
                 <div className="ab-body">
-                  <div className="ab-title">{smsStats.sentToday} SMS sent today</div>
-                  <div className="ab-sub">{smsStats.deliveryRate}% delivery rate</div>
+                  <div className="ab-title">{loadingExtra ? '...' : smsStats.sentToday} SMS sent today</div>
+                  <div className="ab-sub">{loadingExtra ? '...' : smsStats.deliveryRate}% delivery rate</div>
                 </div>
                 <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>›</span>
               </Link>
@@ -475,7 +475,7 @@ export default function HeadmasterDashboard() {
                 <div className="card-title">At-Risk Students</div>
                 <div className="card-sub">Below 50% in 2+ subjects</div>
               </div>
-              <span className="badge badge-red">{atRiskStudents.length} flagged</span>
+              <span className="badge badge-red">{loadingExtra ? '...' : atRiskStudents.length} flagged</span>
             </div>
             <div>
               {loadingExtra ? (
