@@ -582,6 +582,24 @@ CREATE TABLE IF NOT EXISTS lesson_plans (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- ============================================
+-- NOTICES TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS notices (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    content TEXT,
+    type TEXT DEFAULT 'general',
+    priority TEXT DEFAULT 'normal',
+    target_audience TEXT DEFAULT 'all',
+    published_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    publish_date TIMESTAMPTZ,
+    expiry_date TIMESTAMPTZ,
+    is_published BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Add image column to notices
 ALTER TABLE notices ADD COLUMN IF NOT EXISTS image_url TEXT;
 
