@@ -108,7 +108,7 @@ export default function HeadmasterDashboard() {
           .gte('created_at', today)
 
         const sentToday = messagesData?.length || 0
-        const delivered = messagesData?.filter(m => m.status === 'delivered').length || 0
+        const delivered = messagesData?.filter((m: any) => m.status === 'delivered').length || 0
         const rate = sentToday > 0 ? Math.round((delivered / sentToday) * 100) : 0
 
         setSmsStats({ sentToday, deliveryRate: rate })
@@ -119,10 +119,10 @@ export default function HeadmasterDashboard() {
       }
     }
 
-    if (school?.id && students.length > 0) {
+    if (school?.id && students.length > 0 && !loadingExtra) {
       fetchExtraData()
     }
-  }, [school?.id, students.length, currentTerm, academicYear])
+  }, [school?.id, currentTerm, academicYear])
 
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`
