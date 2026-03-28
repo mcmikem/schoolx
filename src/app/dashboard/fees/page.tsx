@@ -184,37 +184,39 @@ export default function FeesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="content">
       {/* Header */}
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="page-header">
         <div>
-          <h2 className="font-headline font-bold text-3xl text-primary tracking-tight mb-2">Bursar Overview</h2>
-          <p className="text-on-surface-variant text-sm font-medium">Term {currentTerm}, {academicYear} Financial Operations</p>
+          <div className="ph-title">Bursar Overview</div>
+          <div className="ph-sub">Term {currentTerm}, {academicYear} Financial Operations</div>
         </div>
-        <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-outline-variant/30 text-primary font-semibold text-sm hover:bg-surface-container-low transition-all">
-            <MaterialIcon icon="receipt_long" className="text-lg" />
+        <div className="ph-actions">
+          <button className="btn btn-ghost">
+            <MaterialIcon icon="receipt_long" style={{ fontSize: '16px' }} />
             Generate Invoice
           </button>
-          <button onClick={() => setShowPaymentModal(true)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/10">
-            <MaterialIcon icon="add" className="text-lg" />
+          <button onClick={() => setShowPaymentModal(true)} className="btn btn-primary">
+            <MaterialIcon icon="add" style={{ fontSize: '16px' }} />
             Add Payment
           </button>
         </div>
-      </header>
+      </div>
 
       {/* Stats Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-surface-container-lowest p-6 rounded-xl border-t-4 border-error relative overflow-hidden group hover:bg-surface-bright transition-colors">
-          <div className="flex justify-between items-start mb-4">
-            <MaterialIcon icon="account_balance_wallet" className="text-error bg-error-container p-2 rounded-lg" style={{ fontVariationSettings: 'FILL 1' }} />
-            <span className="text-[10px] font-bold tracking-widest uppercase text-on-surface-variant opacity-60">High Priority</span>
-          </div>
-          <p className="text-on-surface-variant text-xs font-semibold uppercase tracking-wider mb-1">Total Arrears</p>
-          <h3 className="font-headline font-extrabold text-2xl text-on-surface tracking-tight">{formatCurrency(stats.totalBalance)}</h3>
-          <div className="mt-4 flex items-center gap-2 text-[11px] font-bold text-error">
-            <MaterialIcon icon="warning" className="text-sm" />
-            <span>{stats.notPaid} students unpaid</span>
+      <div className="stat-grid">
+        <div className="stat-card" style={{ borderTop: '4px solid var(--red)' }}>
+          <div className="stat-inner">
+            <div className="stat-meta">
+              <div className="stat-label">Total Arrears</div>
+              <div className="stat-icon-box" style={{ background: 'var(--red-soft)', color: 'var(--red)' }}>
+                <MaterialIcon icon="account_balance_wallet" style={{ fontSize: '17px' }} />
+              </div>
+            </div>
+            <div className="stat-val" style={{ color: 'var(--red)' }}>{formatCurrency(stats.totalBalance)}</div>
+            <div style={{ marginTop: 10, fontSize: 11, color: 'var(--red)', fontWeight: 600 }}>
+              {stats.notPaid} students unpaid
+            </div>
           </div>
         </div>
         <div className="bg-surface-container-lowest p-6 rounded-xl border-t-4 border-secondary relative overflow-hidden group hover:bg-surface-bright transition-colors">
