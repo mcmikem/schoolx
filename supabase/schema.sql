@@ -952,3 +952,69 @@ CREATE TABLE IF NOT EXISTS teacher_timetable (
     academic_year TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ============================================
+-- DORM ATTENDANCE TABLE (Nightly Attendance)
+-- ============================================
+CREATE TABLE IF NOT EXISTS dorm_attendance (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    dorm_id UUID REFERENCES dorms(id) ON DELETE CASCADE,
+    student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    status TEXT CHECK (status IN ('present', 'absent', 'sick', 'permission')) DEFAULT 'present',
+    notes TEXT,
+    checked_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    checked_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(dorm_id, student_id, date)
+);
+
+-- ============================================
+-- HOMEWORK SUBMISSIONS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS homework_submissions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    homework_id UUID REFERENCES homework(id) ON DELETE CASCADE,
+    student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+    submitted_at TIMESTAMPTZ,
+    marks INTEGER,
+    feedback TEXT,
+    status TEXT CHECK (status IN ('pending', 'submitted', 'graded', 'late')) DEFAULT 'pending',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(homework_id, student_id)
+);
+
+-- ============================================
+-- UNEB CANDIDATES TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS uneb_candidates (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+    exam_type TEXT CHECK (exam_type IN ('PLE', 'UCE', 'UACE')) NOT NULL,
+    index_number TEXT,
+    registration_status TEXT CHECK (registration_status IN ('pending', 'registered', 'confirmed')) DEFAULT 'pending',
+    fees_paid BOOLEAN DEFAULT false,
+    photo_url TEXT,
+    academic_year TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(school_id, student_id, exam_type, academic_year)
+);
+
+-- ============================================
+-- STUDENT PROMOTIONS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS student_promotions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+    from_class_id UUID REFERENCES classes(id) ON DELETE SET NULL,
+    to_class_id UUID REFERENCES classes(id) ON DELETE SET NULL,
+    academic_year TEXT NOT NULL,
+    promoted_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    promoted_at TIMESTAMPTZ DEFAULT NOW(),
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
