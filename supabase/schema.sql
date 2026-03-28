@@ -289,10 +289,10 @@ CREATE TABLE IF NOT EXISTS audit_log (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_audit_school ON audit_log(school_id);
-CREATE INDEX idx_audit_user ON audit_log(user_id);
-CREATE INDEX idx_audit_module ON audit_log(module);
-CREATE INDEX idx_audit_created ON audit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_school ON audit_log(school_id);
+CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_log(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_module ON audit_log(module);
+CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at DESC);
 
 -- ============================================
 -- 17. PARENT-STUDENT LINK
@@ -373,16 +373,16 @@ CREATE POLICY "School users access own school grades" ON grades
 -- ============================================
 -- INDEXES FOR PERFORMANCE
 -- ============================================
-CREATE INDEX idx_users_auth_id ON users(auth_id);
-CREATE INDEX idx_users_school_id ON users(school_id);
-CREATE INDEX idx_students_school_id ON students(school_id);
-CREATE INDEX idx_students_class_id ON students(class_id);
-CREATE INDEX idx_attendance_student_id ON attendance(student_id);
-CREATE INDEX idx_attendance_date ON attendance(date);
-CREATE INDEX idx_grades_student_id ON grades(student_id);
-CREATE INDEX idx_grades_subject_id ON grades(subject_id);
-CREATE INDEX idx_fee_payments_student_id ON fee_payments(student_id);
-CREATE INDEX idx_classes_school_id ON classes(school_id);
+CREATE INDEX IF NOT EXISTS idx_users_auth_id ON users(auth_id);
+CREATE INDEX IF NOT EXISTS idx_users_school_id ON users(school_id);
+CREATE INDEX IF NOT EXISTS idx_students_school_id ON students(school_id);
+CREATE INDEX IF NOT EXISTS idx_students_class_id ON students(class_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_student_id ON attendance(student_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date);
+CREATE INDEX IF NOT EXISTS idx_grades_student_id ON grades(student_id);
+CREATE INDEX IF NOT EXISTS idx_grades_subject_id ON grades(subject_id);
+CREATE INDEX IF NOT EXISTS idx_fee_payments_student_id ON fee_payments(student_id);
+CREATE INDEX IF NOT EXISTS idx_classes_school_id ON classes(school_id);
 
 -- ============================================
 -- HELPER FUNCTIONS
