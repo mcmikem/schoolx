@@ -122,7 +122,7 @@ export default function SetupWizardPage() {
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[#002045]">School Setup</h1>
-        <p className="text-[#5c6670] mt-1">Configure your school's academic structure</p>
+        <p className="text-[#5c6670] mt-1">Configure your school&apos;s academic structure</p>
       </div>
 
       {/* Progress */}
