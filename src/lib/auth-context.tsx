@@ -35,6 +35,7 @@ interface AuthContextType {
   signIn: (phone: string, password: string) => Promise<{ error: any }>
   signUp: (phone: string, password: string, name: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
+  refreshSchool: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -211,6 +212,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function refreshSchool() {
+    if (!user?.school_id) return
+    try {
+      const { data: schoolData } = await supabase
+        .from('schools')
+        .select('*')
+        .eq('id', user.school_id)
+        .single()
+      if (schoolData) {
+        setSchool(schoolData)
+      }
+    } catch (error) {
+      console.error('Error refreshing school:', error)
+    }
+  }
+
   async function signOut() {
     // Clear demo data if present
     localStorage.removeItem('demo_user')
@@ -223,7 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, school, loading, isDemo, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, school, loading, isDemo, signIn, signUp, signOut, refreshSchool }}>
       {children}
     </AuthContext.Provider>
   )

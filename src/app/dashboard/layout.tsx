@@ -278,7 +278,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <ErrorBoundary>
       <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
-        <aside className={`sidebar${sidebarOpen ? ' open' : ''}`} style={{ width: 240, minWidth: 240, background: 'var(--surface)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100, boxShadow: 'var(--sh1)', transform: 'translateX(0)' }}>
+        <aside className={`sidebar${sidebarOpen ? ' open' : ''}`} style={{ width: 240, minWidth: 240, background: 'var(--surface)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100, boxShadow: 'var(--sh1)' }}>
           <div style={{ padding: '22px 18px 16px', borderBottom: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
               {school?.logo_url ? (
@@ -557,34 +557,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .nav-item { min-height: 44px; }
         
         /* Desktop: sidebar always visible */
-        @media (min-width: 769px) {
-          .sidebar { left: 0 !important; transform: none !important; }
+        @media (min-width: 1025px) {
+          .sidebar { display: flex !important; left: 0 !important; }
           .mobile-menu-btn { display: none !important; }
           .sidebar-overlay { display: none !important; }
         }
         
         /* Mobile: sidebar hidden by default */
-        @media (max-width: 768px) {
+        @media (max-width: 768px), (max-width: 1024px) {
           .sidebar { 
-            transform: translateX(-100%) !important;
-            transition: transform 0.2s ease !important;
-            z-index: 200;
-            left: 0 !important;
-            visibility: hidden !important;
+            display: none !important;
           }
           .sidebar.open { 
-            transform: translateX(0) !important;
-            visibility: visible !important;
+            display: flex !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            bottom: 0 !important;
+            width: 280px !important;
+            z-index: 9999 !important;
           }
           .mobile-menu-btn { display: flex !important; }
-          .sidebar-overlay { display: none !important; z-index: 150; }
-          .sidebar-overlay.visible { display: block !important; }
+          .sidebar-overlay { display: none !important; }
+          .sidebar-overlay.visible { display: block !important; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9998; }
           .nav-item { padding: 12px 14px !important; min-height: 48px; }
           .main-content { 
             margin-left: 0 !important; 
             padding: 0 12px !important; 
             width: 100% !important;
-            max-width: 100vw !important;
           }
           .topbar { padding: 0 12px !important; gap: 8px !important; }
           .search-bar { display: none !important; }
