@@ -2,9 +2,10 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
+import { useToast } from '@/components/Toast'
 
-function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
 }
 
 interface SchoolEvent {
@@ -28,9 +29,10 @@ const typeColors: Record<string, { bg: string, text: string }> = {
 
 export default function CalendarPage() {
   const { school } = useAuth()
+  const toast = useToast()
   const [events, setEvents] = useState<SchoolEvent[]>([])
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
-  const currentYear = new Date().getFullYear()
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [newEvent, setNewEvent] = useState({
@@ -42,20 +44,23 @@ export default function CalendarPage() {
   })
 
   useEffect(() => {
-    fetchEvents()
+    if (school?.id) fetchEvents()
   }, [school?.id])
 
   const fetchEvents = async () => {
     if (!school?.id) return
+    setLoading(true)
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('events')
         .select('*')
         .eq('school_id', school.id)
         .order('start_date')
+      if (error) throw error
       setEvents(data || [])
     } catch (err) {
       console.error('Error:', err)
+      toast.error('Failed to load events')
     } finally {
       setLoading(false)
     }
@@ -64,9 +69,8 @@ export default function CalendarPage() {
   const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!school?.id) return
-
     try {
-      await supabase.from('events').insert({
+      const { error } = await supabase.from('events').insert({
         school_id: school.id,
         title: newEvent.title,
         description: newEvent.description || null,
@@ -74,20 +78,68 @@ export default function CalendarPage() {
         start_date: newEvent.start_date,
         end_date: newEvent.end_date || null,
       })
+      if (error) throw error
       setShowModal(false)
       setNewEvent({ title: '', description: '', event_type: 'event', start_date: '', end_date: '' })
+      toast.success('Event added')
       fetchEvents()
     } catch (err) {
       console.error('Error:', err)
+      toast.error('Failed to add event')
     }
+  }
+
+  const deleteEvent = async (id: string) => {
+    if (!confirm('Delete this event?')) return
+    try {
+      const { error } = await supabase.from('events').delete().eq('id', id)
+      if (error) throw error
+      toast.success('Event deleted')
+      fetchEvents()
+    } catch (err) {
+      toast.error('Failed to delete event')
+    }
+  }
+
+  const goPrevMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11)
+      setCurrentYear(y => y - 1)
+    } else {
+      setCurrentMonth(m => m - 1)
+    }
+  }
+
+  const goNextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0)
+      setCurrentYear(y => y + 1)
+    } else {
+      setCurrentMonth(m => m + 1)
+    }
+  }
+
+  const goToday = () => {
+    setCurrentMonth(new Date().getMonth())
+    setCurrentYear(new Date().getFullYear())
   }
 
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
   const firstDay = new Date(currentYear, currentMonth, 1).getDay()
+  const today = new Date()
 
   const getEventsForDate = (dateStr: string) => {
-    return events.filter(e => e.start_date === dateStr)
+    return events.filter(e => {
+      if (e.start_date <= dateStr && e.end_date && e.end_date >= dateStr) return true
+      return e.start_date === dateStr
+    })
   }
+
+  const monthEvents = events.filter(e => {
+    const startMonth = e.start_date?.substring(0, 7)
+    const checkMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`
+    return startMonth === checkMonth || (e.end_date && e.end_date?.substring(0, 7) === checkMonth)
+  })
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -97,21 +149,23 @@ export default function CalendarPage() {
           <p className="text-[#5c6670] mt-1">Manage school events and schedules</p>
         </div>
         <button onClick={() => setShowModal(true)} className="btn btn-primary">
-          <MaterialIcon icon="add" className="text-lg" />
+          <MaterialIcon icon="add" />
           Add Event
         </button>
       </div>
 
       <div className="flex items-center justify-between mb-6">
-        <button onClick={() => setCurrentMonth(Math.max(0, currentMonth - 1))} className="btn btn-secondary btn-sm">
-          <MaterialIcon icon="chevron_left" className="text-lg" />
-          Prev
-        </button>
+        <div className="flex gap-2">
+          <button onClick={goPrevMonth} className="btn btn-secondary btn-sm">
+            <MaterialIcon icon="chevron_left" />
+          </button>
+          <button onClick={goToday} className="btn btn-secondary btn-sm">Today</button>
+          <button onClick={goNextMonth} className="btn btn-secondary btn-sm">
+            <MaterialIcon icon="chevron_right" />
+          </button>
+        </div>
         <h2 className="text-xl font-bold text-[#191c1d]">{months[currentMonth]} {currentYear}</h2>
-        <button onClick={() => setCurrentMonth(Math.min(11, currentMonth + 1))} className="btn btn-secondary btn-sm">
-          Next
-          <MaterialIcon icon="chevron_right" className="text-lg" />
-        </button>
+        <div className="w-32" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -127,16 +181,17 @@ export default function CalendarPage() {
             {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
               const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
               const dayEvents = getEventsForDate(dateStr)
-              const isToday = day === new Date().getDate() && currentMonth === new Date().getMonth()
+              const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear()
               
               return (
                 <div 
                   key={day} 
-                  className={`min-h-[80px] p-2 rounded-xl border transition-all ${
+                  className={`min-h-[80px] p-2 rounded-xl border transition-all cursor-pointer ${
                     isToday 
                       ? 'bg-[#e3f2fd] border-[#002045]' 
                       : 'bg-white border-[#e8eaed] hover:bg-[#f8fafb]'
                   }`}
+                  onClick={() => setNewEvent(n => ({ ...n, start_date: dateStr }))}
                 >
                   <div className={`text-sm font-medium mb-1 ${isToday ? 'text-[#002045]' : 'text-[#191c1d]'}`}>
                     {day}
@@ -148,6 +203,8 @@ export default function CalendarPage() {
                         className={`text-[10px] px-2 py-1 rounded truncate font-medium ${
                           typeColors[evt.event_type]?.bg || 'bg-[#f8fafb]'
                         } ${typeColors[evt.event_type]?.text || 'text-[#5c6670]'}`}
+                        onClick={(e) => { e.stopPropagation(); deleteEvent(evt.id) }}
+                        title="Click to delete"
                       >
                         {evt.title}
                       </div>
@@ -164,7 +221,9 @@ export default function CalendarPage() {
 
         <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-            <h3 className="font-semibold text-[#191c1d] mb-4">Upcoming Events</h3>
+            <h3 className="font-semibold text-[#191c1d] mb-4">
+              Events this month ({monthEvents.length})
+            </h3>
             {loading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
@@ -174,21 +233,28 @@ export default function CalendarPage() {
                   </div>
                 ))}
               </div>
-            ) : events.length === 0 ? (
-              <p className="text-[#5c6670] text-sm">No events scheduled</p>
+            ) : monthEvents.length === 0 ? (
+              <p className="text-[#5c6670] text-sm">No events this month</p>
             ) : (
-              <div className="space-y-3">
-                {events.slice(0, 5).map((event) => (
-                  <div key={event.id} className="p-3 bg-[#f8fafb] rounded-xl">
-                    <div className="font-medium text-[#191c1d] text-sm">{event.title}</div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-[#5c6670]">
-                        {new Date(event.start_date).toLocaleDateString()}
-                      </span>
-                      <span className={`px-2 py-0.5 rounded-lg text-[10px] font-medium ${typeColors[event.event_type]?.bg || 'bg-[#f8fafb]'} ${typeColors[event.event_type]?.text || 'text-[#5c6670]'}`}>
-                        {event.event_type}
-                      </span>
+              <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                {monthEvents.map((event) => (
+                  <div key={event.id} className="flex items-start justify-between gap-2 p-3 bg-[#f8fafb] rounded-xl">
+                    <div>
+                      <div className="font-medium text-[#191c1d] text-sm">{event.title}</div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-[#5c6670]">
+                          {new Date(event.start_date).toLocaleDateString()}
+                          {event.end_date && event.end_date !== event.start_date && ` - ${new Date(event.end_date).toLocaleDateString()}`}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-medium ${typeColors[event.event_type]?.bg || 'bg-[#f8fafb]'} ${typeColors[event.event_type]?.text || 'text-[#5c6670]'}`}>
+                          {event.event_type}
+                        </span>
+                      </div>
+                      {event.description && <div className="text-xs text-[#5c6670] mt-1">{event.description}</div>}
                     </div>
+                    <button onClick={() => deleteEvent(event.id)} className="text-[#5c6670] hover:text-[#ba1a1a] flex-shrink-0">
+                      <MaterialIcon icon="close" style={{ fontSize: 16 }} />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -216,7 +282,7 @@ export default function CalendarPage() {
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-[#191c1d]">Add Event</h2>
                 <button onClick={() => setShowModal(false)} className="p-2 text-[#5c6670] hover:text-[#191c1d]">
-                  <MaterialIcon icon="close" className="text-xl" />
+                  <MaterialIcon icon="close" />
                 </button>
               </div>
             </div>

@@ -4,8 +4,8 @@ import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 
-function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
 }
 
 interface HomeworkSubmission {
@@ -221,7 +221,7 @@ export default function HomeworkSubmissionsPage() {
                         </td>
                         <td>{sub.submitted_at ? new Date(sub.submitted_at).toLocaleDateString() : '-'}</td>
                         <td>
-                          {sub.marks ? `${sub.marks}/${selectedHomework.total_marks}` : '-'}
+                          {sub.marks != null ? `${sub.marks}/${selectedHomework.total_marks}` : '-'}
                         </td>
                         <td>
                           <GradingModal 

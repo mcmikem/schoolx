@@ -8,8 +8,8 @@ import ReportCard from '@/components/reports/ReportCard'
 import type { ReportCard as ReportCardType } from '@/types'
 import { supabase } from '@/lib/supabase'
 
-function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
 }
 
 export default function ReportsPage() {

@@ -4,8 +4,8 @@ import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 
-function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
 }
 
 interface SMSTemplate {
@@ -113,15 +113,23 @@ export default function SMSTemplatesPage() {
 
   const createDefaultTemplates = async () => {
     try {
-      const templatesToCreate = DEFAULT_TEMPLATES.map(t => ({
-        school_id: school?.id,
-        ...t,
-        is_active: true,
-        created_by: user?.id
-      }))
+      const existingNames = new Set(templates.map(t => t.name))
+      const templatesToCreate = DEFAULT_TEMPLATES
+        .filter(t => !existingNames.has(t.name))
+        .map(t => ({
+          school_id: school?.id,
+          ...t,
+          is_active: true,
+          created_by: user?.id
+        }))
+
+      if (templatesToCreate.length === 0) {
+        toast.success('All default templates already exist')
+        return
+      }
 
       await supabase.from('sms_templates').insert(templatesToCreate)
-      toast.success('Default templates created')
+      toast.success(`${templatesToCreate.length} default templates created`)
       fetchTemplates()
     } catch (err: any) {
       toast.error(err.message || 'Failed to create templates')

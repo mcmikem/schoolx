@@ -5,8 +5,8 @@ import { useAuth } from '@/lib/auth-context'
 import { useStudents, useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 
-function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
 }
 
 export default function StudentsPage() {
@@ -17,8 +17,22 @@ export default function StudentsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedClass, setSelectedClass] = useState('all')
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingStudent, setEditingStudent] = useState<any>(null)
   const [saving, setSaving] = useState(false)
   const [newStudent, setNewStudent] = useState({
+    first_name: '',
+    last_name: '',
+    gender: 'M' as 'M' | 'F',
+    date_of_birth: '',
+    parent_name: '',
+    parent_phone: '',
+    parent_phone2: '',
+    class_id: '',
+    student_number: '',
+    ple_index_number: '',
+  })
+  const [editForm, setEditForm] = useState({
     first_name: '',
     last_name: '',
     gender: 'M' as 'M' | 'F',
@@ -84,6 +98,40 @@ export default function StudentsPage() {
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to remove student'
       toast.error(errorMessage)
+    }
+  }
+
+  const openEditModal = (student: any) => {
+    setEditingStudent(student)
+    setEditForm({
+      first_name: student.first_name || '',
+      last_name: student.last_name || '',
+      gender: student.gender || 'M',
+      date_of_birth: student.date_of_birth || '',
+      parent_name: student.parent_name || '',
+      parent_phone: student.parent_phone || '',
+      parent_phone2: student.parent_phone2 || '',
+      class_id: student.class_id || '',
+      student_number: student.student_number || '',
+      ple_index_number: student.ple_index_number || '',
+    })
+    setShowEditModal(true)
+  }
+
+  const handleUpdateStudent = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingStudent) return
+    try {
+      setSaving(true)
+      await updateStudent(editingStudent.id, editForm)
+      toast.success('Student updated successfully')
+      setShowEditModal(false)
+      setEditingStudent(null)
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update student'
+      toast.error(errorMessage)
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -291,9 +339,14 @@ export default function StudentsPage() {
                     <td style={{ fontSize: 13 }}>{student.parent_name || '-'}</td>
                     <td style={{ fontSize: 13, fontFamily: 'DM Mono' }}>{student.parent_phone || '-'}</td>
                     <td>
-                      <button onClick={() => handleDeleteStudent(student.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 6 }}>
-                        <MaterialIcon style={{ fontSize: 16, color: 'var(--t3)' }}>delete</MaterialIcon>
-                      </button>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button onClick={() => openEditModal(student)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 6 }}>
+                          <MaterialIcon style={{ fontSize: 16, color: 'var(--t3)' }}>edit</MaterialIcon>
+                        </button>
+                        <button onClick={() => handleDeleteStudent(student.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 6 }}>
+                          <MaterialIcon style={{ fontSize: 16, color: 'var(--t3)' }}>delete</MaterialIcon>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -367,6 +420,76 @@ export default function StudentsPage() {
               <div style={{ display: 'flex', gap: 10 }}>
                 <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-ghost" style={{ flex: 1 }}>Cancel</button>
                 <button type="submit" disabled={saving} className="btn btn-primary" style={{ flex: 1 }}>{saving ? 'Adding...' : 'Add Student'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showEditModal && editingStudent && (
+        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div style={{ fontFamily: 'Sora', fontSize: 16, fontWeight: 700 }}>Edit Student</div>
+              <button onClick={() => setShowEditModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                <MaterialIcon style={{ fontSize: 18, color: 'var(--t3)' }}>close</MaterialIcon>
+              </button>
+            </div>
+            <form onSubmit={handleUpdateStudent} style={{ padding: 20 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>First Name</label>
+                  <input type="text" value={editForm.first_name} onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })} className="input" required />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Last Name</label>
+                  <input type="text" value={editForm.last_name} onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })} className="input" required />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Gender</label>
+                  <select value={editForm.gender} onChange={(e) => setEditForm({ ...editForm, gender: e.target.value as 'M' | 'F' })} className="input">
+                    <option value="M">Male</option>
+                    <option value="F">Female</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Date of Birth</label>
+                  <input type="date" value={editForm.date_of_birth} onChange={(e) => setEditForm({ ...editForm, date_of_birth: e.target.value })} className="input" />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Class</label>
+                <select value={editForm.class_id} onChange={(e) => setEditForm({ ...editForm, class_id: e.target.value })} className="input" required>
+                  <option value="">Select class</option>
+                  {classes.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Parent Name</label>
+                <input type="text" value={editForm.parent_name} onChange={(e) => setEditForm({ ...editForm, parent_name: e.target.value })} className="input" required />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Parent Phone</label>
+                  <input type="tel" placeholder="0700000000" value={editForm.parent_phone} onChange={(e) => setEditForm({ ...editForm, parent_phone: e.target.value })} className="input" required />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Alt. Phone</label>
+                  <input type="tel" placeholder="0700000000" value={editForm.parent_phone2} onChange={(e) => setEditForm({ ...editForm, parent_phone2: e.target.value })} className="input" />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button type="button" onClick={() => setShowEditModal(false)} className="btn btn-ghost" style={{ flex: 1 }}>Cancel</button>
+                <button type="submit" disabled={saving} className="btn btn-primary" style={{ flex: 1 }}>{saving ? 'Updating...' : 'Update Student'}</button>
               </div>
             </form>
           </div>

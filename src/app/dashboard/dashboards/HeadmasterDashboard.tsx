@@ -6,8 +6,8 @@ import { useDashboardStats, useStudents, useFeePayments, useFeeStructure, useCla
 import { supabase } from '@/lib/supabase'
 import { useState, useEffect } from 'react'
 
-function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
 }
 
 function ProgressRing({ progress, color = '#2E9448' }: { progress: number; color?: string }) {
