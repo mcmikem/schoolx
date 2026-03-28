@@ -570,8 +570,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             transition: transform 0.2s ease !important;
             z-index: 200;
             left: 0 !important;
+            visibility: hidden !important;
           }
-          .sidebar.open { transform: translateX(0) !important; }
+          .sidebar.open { 
+            transform: translateX(0) !important;
+            visibility: visible !important;
+          }
           .mobile-menu-btn { display: flex !important; }
           .sidebar-overlay { display: none !important; z-index: 150; }
           .sidebar-overlay.visible { display: block !important; }
