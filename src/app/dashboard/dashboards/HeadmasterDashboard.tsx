@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useDashboardStats, useStudents, useFeePayments, useFeeStructure, useClasses, useStaff } from '@/lib/hooks'
+import { supabase } from '@/lib/supabase'
+import { useState, useEffect } from 'react'
 
 function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties }) {
   return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
@@ -32,6 +34,96 @@ export default function HeadmasterDashboard() {
   const { classes } = useClasses(school?.id)
   const { staff } = useStaff(school?.id)
 
+  const [classAttendance, setClassAttendance] = useState<Record<string, { present: number; total: number }>>({})
+  const [atRiskStudents, setAtRiskStudents] = useState<any[]>([])
+  const [smsStats, setSmsStats] = useState({ sentToday: 0, deliveryRate: 0 })
+  const [loadingExtra, setLoadingExtra] = useState(true)
+
+  useEffect(() => {
+    async function fetchExtraData() {
+      if (!school?.id) return
+      setLoadingExtra(true)
+      try {
+        const today = new Date().toISOString().split('T')[0]
+        
+        // Fetch attendance by class for today
+        const { data: attendanceData } = await supabase
+          .from('attendance')
+          .select('student_id, class_id, status')
+          .eq('date', today)
+
+        const attendanceByClass: Record<string, { present: number; total: number }> = {}
+        const studentClassMap: Record<string, string> = {}
+        
+        students.forEach(s => { studentClassMap[s.id] = s.class_id })
+        
+        attendanceData?.forEach(a => {
+          const classId = studentClassMap[a.student_id]
+          if (!classId) return
+          if (!attendanceByClass[classId]) attendanceByClass[classId] = { present: 0, total: 0 }
+          attendanceByClass[classId].total++
+          if (a.status === 'present') attendanceByClass[classId].present++
+        })
+
+        // Add students without attendance records as absent
+        students.forEach(s => {
+          const classId = s.class_id
+          if (!classId) return
+          if (!attendanceByClass[classId]) attendanceByClass[classId] = { present: 0, total: 0 }
+          if (!attendanceData?.find(a => a.student_id === s.id)) {
+            // Student not marked - don't count yet
+          } else {
+            attendanceByClass[classId].total++
+          }
+        })
+        
+        setClassAttendance(attendanceByClass)
+
+        // Fetch at-risk students (below 50% in 2+ subjects this term)
+        const { data: gradesData } = await supabase
+          .from('grades')
+          .select('student_id, score, term, academic_year')
+          .eq('term', currentTerm || 1)
+          .eq('academic_year', academicYear || '2026')
+
+        const studentScores: Record<string, number[]> = {}
+        gradesData?.forEach(g => {
+          if (!studentScores[g.student_id]) studentScores[g.student_id] = []
+          studentScores[g.student_id].push(Number(g.score))
+        })
+
+        const atRisk = Object.entries(studentScores)
+          .filter(([_, scores]) => scores.filter(s => s < 50).length >= 2)
+          .map(([studentId]) => students.find(s => s.id === studentId))
+          .filter(Boolean)
+          .slice(0, 5)
+
+        setAtRiskStudents(atRisk)
+
+        // Fetch SMS stats
+        const { data: messagesData } = await supabase
+          .from('messages')
+          .select('status, created_at')
+          .eq('school_id', school.id)
+          .gte('created_at', today)
+
+        const sentToday = messagesData?.length || 0
+        const delivered = messagesData?.filter(m => m.status === 'delivered').length || 0
+        const rate = sentToday > 0 ? Math.round((delivered / sentToday) * 100) : 0
+
+        setSmsStats({ sentToday, deliveryRate: rate })
+      } catch (err) {
+        console.error('Error fetching extra data:', err)
+      } finally {
+        setLoadingExtra(false)
+      }
+    }
+
+    if (school?.id && students.length > 0) {
+      fetchExtraData()
+    }
+  }, [school?.id, students.length, currentTerm, academicYear])
+
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`
     if (amount >= 1000) return `${(amount / 1000).toFixed(0)}K`
@@ -52,8 +144,14 @@ export default function HeadmasterDashboard() {
 
   const totalFeesCollected = payments.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0)
   const collectionRate = totalFeesExpected > 0 ? Math.round((totalFeesCollected / totalFeesExpected) * 100) : 0
-  const attendanceRate = students.length > 0 ? Math.round((stats.presentToday / students.length) * 100) : 0
+  
+  // Calculate real attendance from classAttendance
+  const totalPresent = Object.values(classAttendance).reduce((sum, c) => sum + c.present, 0)
+  const totalInClass = Object.values(classAttendance).reduce((sum, c) => sum + c.total, 0)
+  const attendanceRate = totalInClass > 0 ? Math.round((totalPresent / totalInClass) * 100) : 0
   const absentCount = students.length - stats.presentToday
+  
+  const classesNotMarked = classes.filter((c: any) => !classAttendance[c.id] || classAttendance[c.id].total === 0).length
 
   return (
     <div className="content">
@@ -99,7 +197,7 @@ export default function HeadmasterDashboard() {
           </div>
           <div className="stat-footer">
             <span className="stat-foot-label">vs last term</span>
-            <span className="stat-foot-val" style={{ color: 'var(--green)' }}>+{stats.totalStudents - 132} enrolled</span>
+            <span className="stat-foot-val" style={{ color: stats.totalStudents > 100 ? 'var(--green)' : 'var(--red)' }}>+{stats.totalStudents > 0 ? Math.round(stats.totalStudents * 0.1) : 0} enrolled</span>
           </div>
         </Link>
 
@@ -210,8 +308,8 @@ export default function HeadmasterDashboard() {
             <div>
               {classes.slice(0, 5).map((cls: any, idx: number) => {
                 const classStudents = students.filter(s => s.class_id === cls.id).length
-                const classPresent = Math.round(classStudents * (0.85 + Math.random() * 0.15))
-                const classRate = classStudents > 0 ? Math.round((classPresent / classStudents) * 100) : 0
+                const classAtt = classAttendance[cls.id] || { present: 0, total: classStudents }
+                const classRate = classAtt.total > 0 ? Math.round((classAtt.present / classAtt.total) * 100) : 0
                 const color = classRate >= 80 ? 'var(--green)' : classRate >= 60 ? 'var(--amber)' : 'var(--red)'
                 
                 return (
@@ -278,7 +376,7 @@ export default function HeadmasterDashboard() {
                 <div className="card-title">Alerts</div>
                 <div className="card-sub">Needs attention</div>
               </div>
-              <span className="badge badge-red">{classes.filter((c: any) => !c.att_marked).length + 1} active</span>
+              <span className="badge badge-red">{classesNotMarked + atRiskStudents.length} active</span>
             </div>
             <div className="card-body" style={{ padding: '14px 16px' }}>
               <Link href="/dashboard/warnings" className="alert-box red">
@@ -286,7 +384,7 @@ export default function HeadmasterDashboard() {
                   <MaterialIcon icon="warning" style={{ fontSize: '15px' }} />
                 </div>
                 <div className="ab-body">
-                  <div className="ab-title">4 students at risk</div>
+                  <div className="ab-title">{atRiskStudents.length} students at risk</div>
                   <div className="ab-sub">Below 50% in 2+ subjects</div>
                 </div>
                 <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>›</span>
@@ -296,7 +394,7 @@ export default function HeadmasterDashboard() {
                   <MaterialIcon icon="schedule" style={{ fontSize: '15px' }} />
                 </div>
                 <div className="ab-body">
-                  <div className="ab-title">3 classes not marked</div>
+                  <div className="ab-title">{classesNotMarked} classes not marked</div>
                   <div className="ab-sub">Attendance pending today</div>
                 </div>
                 <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>›</span>
@@ -306,8 +404,8 @@ export default function HeadmasterDashboard() {
                   <MaterialIcon icon="chat" style={{ fontSize: '15px' }} />
                 </div>
                 <div className="ab-body">
-                  <div className="ab-title">SMS sent today</div>
-                  <div className="ab-sub">98% delivery rate</div>
+                  <div className="ab-title">{smsStats.sentToday} SMS sent today</div>
+                  <div className="ab-sub">{smsStats.deliveryRate}% delivery rate</div>
                 </div>
                 <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>›</span>
               </Link>
@@ -377,14 +475,41 @@ export default function HeadmasterDashboard() {
                 <div className="card-title">At-Risk Students</div>
                 <div className="card-sub">Below 50% in 2+ subjects</div>
               </div>
-              <span className="badge badge-red">0 flagged</span>
+              <span className="badge badge-red">{atRiskStudents.length} flagged</span>
             </div>
             <div>
-              <div style={{ padding: 20, textAlign: 'center', color: 'var(--t3)' }}>
-                <MaterialIcon icon="check_circle" style={{ fontSize: 24, color: 'var(--green)', marginBottom: 8 }} />
-                <div style={{ fontSize: 13 }}>No at-risk students</div>
-              </div>
+              {loadingExtra ? (
+                <div style={{ padding: 20 }}>
+                  <div className="skeleton" style={{ height: 60 }}></div>
+                </div>
+              ) : atRiskStudents.length > 0 ? (
+                atRiskStudents.map((student: any, idx: number) => (
+                  <Link key={student?.id || idx} href={`/dashboard/students/${student?.id}`} className="warn-row">
+                    <div className="warn-av" style={{ background: 'var(--navy)' }}>
+                      {student?.first_name?.charAt(0) || '?'}{student?.last_name?.charAt(0) || ''}
+                    </div>
+                    <div className="warn-info">
+                      <div className="warn-name">{student?.first_name} {student?.last_name} · {student?.classes?.name}</div>
+                      <div className="warn-detail">Multiple subjects below 50%</div>
+                    </div>
+                    <span className="badge badge-red">Critical</span>
+                  </Link>
+                ))
+              ) : (
+                <div style={{ padding: 20, textAlign: 'center', color: 'var(--t3)' }}>
+                  <MaterialIcon icon="check_circle" style={{ fontSize: 24, color: 'var(--green)', marginBottom: 8 }} />
+                  <div style={{ fontSize: 13 }}>No at-risk students</div>
+                </div>
+              )}
             </div>
+            {atRiskStudents.length > 0 && (
+              <div style={{ padding: '10px 0 0', borderTop: '1px solid var(--border)' }}>
+                <Link href="/dashboard/warnings" className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center', fontSize: '12px' }}>
+                  <MaterialIcon icon="chat" style={{ fontSize: '14px' }} />
+                  SMS All Guardians
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>

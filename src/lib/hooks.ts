@@ -1645,3 +1645,753 @@ export function useExams(schoolId?: string) {
 
   return { exams, loading, createExam, deleteExam }
 }
+
+// Staff Attendance Hook
+export function useStaffAttendance(schoolId?: string, date?: string) {
+  const [attendance, setAttendance] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
+
+  const markAttendance = async (staffId: string, status: string, remarks?: string) => {
+    if (isDemo) {
+      const newRecord = {
+        id: `demo-staff-att-${Date.now()}`,
+        staff_id: staffId,
+        date: date || new Date().toISOString().split('T')[0],
+        status,
+        remarks,
+      }
+      setAttendance(prev => {
+        const existing = prev.findIndex(a => a.staff_id === staffId)
+        if (existing >= 0) {
+          const updated = [...prev]
+          updated[existing] = newRecord
+          return updated
+        }
+        return [...prev, newRecord]
+      })
+      return newRecord
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('staff_attendance')
+        .upsert({
+          staff_id: staffId,
+          date: date || new Date().toISOString().split('T')[0],
+          status,
+          remarks,
+        }, { onConflict: 'staff_id,date' })
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  useEffect(() => {
+    async function fetchAttendance() {
+      if (!schoolId || !date) {
+        setLoading(false)
+        return
+      }
+
+      if (isDemo) {
+        setAttendance([])
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        const { data, error } = await supabase
+          .from('staff_attendance')
+          .select('*, users!staff_id(full_name, phone)')
+          .eq('date', date)
+
+        if (error) throw error
+        setAttendance(data || [])
+      } catch (err) {
+        console.error('Error fetching staff attendance:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAttendance()
+  }, [schoolId, date, isDemo])
+
+  return { attendance, loading, markAttendance }
+}
+
+// Leave Requests Hook
+export function useLeaveRequests(schoolId?: string) {
+  const [requests, setRequests] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
+
+  const createRequest = async (request: {
+    staff_id: string
+    leave_type: string
+    start_date: string
+    end_date: string
+    days_count: number
+    reason: string
+  }) => {
+    if (isDemo) {
+      const newRequest = { ...request, id: `demo-leave-${Date.now()}`, status: 'pending', created_at: new Date().toISOString() }
+      setRequests(prev => [newRequest, ...prev])
+      return newRequest
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('leave_requests')
+        .insert(request)
+        .select()
+        .single()
+
+      if (error) throw error
+      setRequests(prev => [data, ...prev])
+      return data
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  const updateRequestStatus = async (id: string, status: 'approved' | 'rejected') => {
+    if (isDemo) {
+      setRequests(prev => prev.map(r => r.id === id ? { ...r, status } : r))
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('leave_requests')
+        .update({ status, approved_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+      setRequests(prev => prev.map(r => r.id === id ? data : r))
+      return data
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  useEffect(() => {
+    async function fetchRequests() {
+      if (!schoolId) {
+        setLoading(false)
+        return
+      }
+
+      if (isDemo) {
+        setRequests([
+          { id: '1', staff_id: 'demo', leave_type: 'annual', start_date: '2026-04-01', end_date: '2026-04-05', days_count: 5, reason: 'Family vacation', status: 'pending' },
+        ])
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        const { data, error } = await supabase
+          .from('leave_requests')
+          .select('*, users!staff_id(full_name, phone)')
+          .eq('school_id', schoolId)
+          .order('created_at', { ascending: false })
+
+        if (error) throw error
+        setRequests(data || [])
+      } catch (err) {
+        console.error('Error fetching leave requests:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchRequests()
+  }, [schoolId, isDemo])
+
+  return { requests, loading, createRequest, updateRequestStatus }
+}
+
+// Subject Allocations Hook
+export function useSubjectAllocations(schoolId?: string, academicYear?: string) {
+  const [allocations, setAllocations] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const createAllocation = async (allocation: {
+    teacher_id: string
+    subject_id: string
+    class_id: string
+    academic_year: string
+    term?: number
+    is_class_teacher?: boolean
+  }) => {
+    try {
+      const { data, error } = await supabase
+        .from('subject_allocations')
+        .insert(allocation)
+        .select()
+        .single()
+
+      if (error) throw error
+      setAllocations(prev => [...prev, data])
+      return data
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  const deleteAllocation = async (id: string) => {
+    try {
+      const { error } = await supabase.from('subject_allocations').delete().eq('id', id)
+      if (error) throw error
+      setAllocations(prev => prev.filter(a => a.id !== id))
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  useEffect(() => {
+    async function fetchAllocations() {
+      if (!schoolId) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        let query = supabase
+          .from('subject_allocations')
+          .select('*, users!teacher_id(full_name), subjects(name), classes(name)')
+          .eq('school_id', schoolId)
+
+        if (academicYear) query = query.eq('academic_year', academicYear)
+
+        const { data, error } = await query
+
+        if (error) throw error
+        setAllocations(data || [])
+      } catch (err) {
+        console.error('Error fetching allocations:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAllocations()
+  }, [schoolId, academicYear])
+
+  return { allocations, loading, createAllocation, deleteAllocation }
+}
+
+// Assets Hook
+export function useAssets(schoolId?: string) {
+  const [assets, setAssets] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const createAsset = async (asset: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('assets')
+        .insert({ ...asset, school_id: schoolId })
+        .select()
+        .single()
+
+      if (error) throw error
+      setAssets(prev => [data, ...prev])
+      return data
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  const updateAsset = async (id: string, updates: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('assets')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+      setAssets(prev => prev.map(a => a.id === id ? data : a))
+      return data
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  const deleteAsset = async (id: string) => {
+    try {
+      const { error } = await supabase.from('assets').delete().eq('id', id)
+      if (error) throw error
+      setAssets(prev => prev.filter(a => a.id !== id))
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  useEffect(() => {
+    async function fetchAssets() {
+      if (!schoolId) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        const { data, error } = await supabase
+          .from('assets')
+          .select('*')
+          .eq('school_id', schoolId)
+          .order('name')
+
+        if (error) throw error
+        setAssets(data || [])
+      } catch (err) {
+        console.error('Error fetching assets:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAssets()
+  }, [schoolId])
+
+  return { assets, loading, createAsset, updateAsset, deleteAsset }
+}
+
+// Transport Hook
+export function useTransport(schoolId?: string) {
+  const [routes, setRoutes] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const createRoute = async (route: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('transport_routes')
+        .insert({ ...route, school_id: schoolId })
+        .select()
+        .single()
+
+      if (error) throw error
+      setRoutes(prev => [...prev, data])
+      return data
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  const deleteRoute = async (id: string) => {
+    try {
+      const { error } = await supabase.from('transport_routes').delete().eq('id', id)
+      if (error) throw error
+      setRoutes(prev => prev.filter(r => r.id !== id))
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  useEffect(() => {
+    async function fetchRoutes() {
+      if (!schoolId) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        const { data, error } = await supabase
+          .from('transport_routes')
+          .select('*')
+          .eq('school_id', schoolId)
+          .order('route_name')
+
+        if (error) throw error
+        setRoutes(data || [])
+      } catch (err) {
+        console.error('Error fetching routes:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchRoutes()
+  }, [schoolId])
+
+  return { routes, loading, createRoute, deleteRoute }
+}
+
+// Budget & Expenses Hook
+export function useBudget(schoolId?: string) {
+  const [budgets, setBudgets] = useState<any[]>([])
+  const [expenses, setExpenses] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const createBudget = async (budget: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('budgets')
+        .insert({ ...budget, school_id: schoolId })
+        .select()
+        .single()
+
+      if (error) throw error
+      setBudgets(prev => [data, ...prev])
+      return data
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  const createExpense = async (expense: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .insert({ ...expense, school_id: schoolId })
+        .select()
+        .single()
+
+      if (error) throw error
+      setExpenses(prev => [data, ...prev])
+      return data
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  const updateExpenseStatus = async (id: string, status: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .update({ status })
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+      setExpenses(prev => prev.map(e => e.id === id ? data : e))
+      return data
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  useEffect(() => {
+    async function fetchData() {
+      if (!schoolId) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        const [budgetsRes, expensesRes] = await Promise.all([
+          supabase.from('budgets').select('*').eq('school_id', schoolId).order('created_at', { ascending: false }),
+          supabase.from('expenses').select('*').eq('school_id', schoolId).order('expense_date', { ascending: false })
+        ])
+
+        setBudgets(budgetsRes.data || [])
+        setExpenses(expensesRes.data || [])
+      } catch (err) {
+        console.error('Error fetching budget data:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [schoolId])
+
+  return { budgets, expenses, loading, createBudget, createExpense, updateExpenseStatus }
+}
+
+// Behavior Log Hook
+export function useBehaviorLogs(studentId?: string, schoolId?: string) {
+  const [logs, setLogs] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const addLog = async (log: {
+    student_id: string
+    date: string
+    incident_type: string
+    category: string
+    description: string
+    action_taken?: string
+    points?: number
+  }) => {
+    try {
+      const { data, error } = await supabase
+        .from('behavior_logs')
+        .insert(log)
+        .select()
+        .single()
+
+      if (error) throw error
+      setLogs(prev => [data, ...prev])
+      return data
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  useEffect(() => {
+    async function fetchLogs() {
+      if (!schoolId && !studentId) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        let query = supabase
+          .from('behavior_logs')
+          .select('*, users!recorded_by(full_name)')
+          .order('date', { ascending: false })
+
+        if (studentId) query = query.eq('student_id', studentId)
+        if (schoolId) query = query.eq('school_id', schoolId)
+
+        const { data, error } = await query
+
+        if (error) throw error
+        setLogs(data || [])
+      } catch (err) {
+        console.error('Error fetching behavior logs:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchLogs()
+  }, [studentId, schoolId])
+
+  return { logs, loading, addLog }
+}
+
+// Lesson Plans Hook
+export function useLessonPlans(schoolId?: string, teacherId?: string) {
+  const [plans, setPlans] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const createPlan = async (plan: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('lesson_plans')
+        .insert({ ...plan, school_id: schoolId })
+        .select()
+        .single()
+
+      if (error) throw error
+      setPlans(prev => [data, ...prev])
+      return data
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  const updatePlan = async (id: string, updates: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('lesson_plans')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+      setPlans(prev => prev.map(p => p.id === id ? data : p))
+      return data
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  const deletePlan = async (id: string) => {
+    try {
+      const { error } = await supabase.from('lesson_plans').delete().eq('id', id)
+      if (error) throw error
+      setPlans(prev => prev.filter(p => p.id !== id))
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  useEffect(() => {
+    async function fetchPlans() {
+      if (!schoolId) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        let query = supabase
+          .from('lesson_plans')
+          .select('*, subjects(name), classes(name), users!teacher_id(full_name)')
+          .eq('school_id', schoolId)
+          .order('lesson_date', { ascending: false })
+
+        if (teacherId) query = query.eq('teacher_id', teacherId)
+
+        const { data, error } = await query
+
+        if (error) throw error
+        setPlans(data || [])
+      } catch (err) {
+        console.error('Error fetching lesson plans:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchPlans()
+  }, [schoolId, teacherId])
+
+  return { plans, loading, createPlan, updatePlan, deletePlan }
+}
+
+// Scheme of Work Hook
+export function useSchemeOfWork(schoolId?: string) {
+  const [schemes, setSchemes] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const createScheme = async (scheme: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('scheme_of_work')
+        .insert({ ...scheme, school_id: schoolId })
+        .select()
+        .single()
+
+      if (error) throw error
+      setSchemes(prev => [...prev, data])
+      return data
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  const updateSchemeStatus = async (id: string, status: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('scheme_of_work')
+        .update({ status, completed_date: status === 'completed' ? new Date().toISOString().split('T')[0] : null })
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+      setSchemes(prev => prev.map(s => s.id === id ? data : s))
+      return data
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  useEffect(() => {
+    async function fetchSchemes() {
+      if (!schoolId) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        const { data, error } = await supabase
+          .from('scheme_of_work')
+          .select('*, subjects(name), classes(name)')
+          .eq('school_id', schoolId)
+          .order('week_number', { ascending: true })
+
+        if (error) throw error
+        setSchemes(data || [])
+      } catch (err) {
+        console.error('Error fetching scheme of work:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSchemes()
+  }, [schoolId])
+
+  return { schemes, loading, createScheme, updateSchemeStatus }
+}
+
+// Health Records Hook
+export function useHealthRecords(schoolId?: string) {
+  const [records, setRecords] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const createRecord = async (record: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('health_records')
+        .insert(record)
+        .select()
+        .single()
+
+      if (error) throw error
+      setRecords(prev => [...prev, data])
+      return data
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  const updateRecord = async (id: string, updates: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('health_records')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+      setRecords(prev => prev.map(r => r.id === id ? data : r))
+      return data
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  useEffect(() => {
+    async function fetchRecords() {
+      if (!schoolId) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        const { data, error } = await supabase
+          .from('health_records')
+          .select('*, students(first_name, last_name, classes(name))')
+          .order('created_at', { ascending: false })
+
+        if (error) throw error
+        setRecords(data || [])
+      } catch (err) {
+        console.error('Error fetching health records:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchRecords()
+  }, [schoolId])
+
+  return { records, loading, createRecord, updateRecord }
+}
