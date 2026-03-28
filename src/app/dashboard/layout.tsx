@@ -278,7 +278,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <ErrorBoundary>
       <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
-        <aside className="sidebar" style={{ width: 240, minWidth: 240, background: 'var(--surface)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: sidebarOpen ? 0 : -240, bottom: 0, zIndex: 100, boxShadow: 'var(--sh1)', transition: 'left 0.2s ease' }}>
+        <aside className={`sidebar${sidebarOpen ? ' open' : ''}`} style={{ width: 240, minWidth: 240, background: 'var(--surface)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100, boxShadow: 'var(--sh1)' }}>
           <div style={{ padding: '22px 18px 16px', borderBottom: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
               {school?.logo_url ? (
@@ -549,13 +549,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
       {sidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 99, display: 'none' }} className="sidebar-overlay" />
+        <div onClick={() => setSidebarOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 99 }} className="sidebar-overlay visible" />
       )}
       <style>{`
         @keyframes blink { 0%,100%{ opacity:1 } 50%{ opacity:.3 } }
         .nav-item:hover { background: var(--bg); color: var(--t1); }
+        .sidebar { left: 0 !important; }
         .mobile-menu-btn { display: block !important; }
         .sidebar-overlay { display: block !important; }
+        @media (max-width: 768px) {
+          .sidebar { left: -240px !important; transition: left 0.2s ease; }
+          .sidebar.open { left: 0 !important; }
+          .mobile-menu-btn { display: flex !important; }
+          .sidebar-overlay { display: none !important; }
+          .sidebar-overlay.visible { display: block !important; }
+        }
         @media (min-width: 769px) {
           .mobile-menu-btn { display: none !important; }
           .sidebar-overlay { display: none !important; }
