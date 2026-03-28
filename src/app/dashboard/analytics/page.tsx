@@ -18,10 +18,10 @@ interface HealthMetric {
 
 export default function AnalyticsPage() {
   const { school } = useAuth()
-  const { students } = useStudents(school?.id)
-  const { payments } = useFeePayments(school?.id)
-  const { feeStructure } = useFeeStructure(school?.id)
-  const { classes } = useClasses(school?.id)
+  const { students = [] } = useStudents(school?.id)
+  const { payments = [] } = useFeePayments(school?.id)
+  const { feeStructure = [] } = useFeeStructure(school?.id)
+  const { classes = [] } = useClasses(school?.id)
 
   const [grades, setGrades] = useState<any[]>([])
   const [attendance, setAttendance] = useState<any[]>([])

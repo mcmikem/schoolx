@@ -175,6 +175,8 @@ select.input {
   box-shadow: var(--sh2);
   overflow: hidden;
   transition: box-shadow var(--dur) var(--ease);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 .card:hover { box-shadow: var(--sh3); }
 
@@ -542,10 +544,11 @@ code.mono { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--t3)
   }
   
   /* Cards */
-  .card { margin-bottom: 12px !important; }
-  .card-header { flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
+  .card { margin-bottom: 12px !important; padding: 0 !important; }
+  .card-header { flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; padding: 12px 14px !important; }
   .card-title { font-size: 14px !important; }
   .card-sub { font-size: 11px !important; }
+  .card-body { padding: 12px 14px !important; overflow: hidden; }
   
   /* Tables */
   .tbl-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }

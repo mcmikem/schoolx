@@ -288,10 +288,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   {schoolInitial}
                 </div>
               )}
-              <div>
+              <div style={{ flex: 1 }}>
                 <div style={{ fontFamily: 'Sora', fontSize: 16, fontWeight: 700, color: 'var(--t1)', letterSpacing: '-.2px', lineHeight: 1.1 }}>{schoolName}</div>
                 <div style={{ fontSize: 10, color: 'var(--t4)', letterSpacing: '.3px', marginTop: 1 }}>by Omuto Foundation</div>
               </div>
+              <button onClick={() => setSidebarOpen(false)} className="sidebar-close-btn" style={{ display: 'none', width: 32, height: 32, borderRadius: 8, border: 'none', background: 'var(--bg)', cursor: 'pointer', alignItems: 'center', justifyContent: 'center' }}>
+                <MaterialIcon icon="close" style={{ fontSize: 20, color: 'var(--t2)' }} />
+              </button>
             </div>
             <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px' }}>
               <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--t1)', lineHeight: 1.3 }}>{school?.name || 'Loading...'}</div>
@@ -578,6 +581,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             z-index: 9999 !important;
           }
           .mobile-menu-btn { display: flex !important; }
+          .sidebar-close-btn { display: flex !important; }
           .sidebar-overlay { display: none !important; }
           .sidebar-overlay.visible { display: block !important; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9998; }
           .nav-item { padding: 12px 14px !important; min-height: 48px; }
