@@ -343,6 +343,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <MaterialIcon icon="fact_check" style={{ fontSize: 17 }} />
                 Exams
               </Link>
+              <Link href="/dashboard/uneb-registration" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="assignment_ind" style={{ fontSize: 17 }} />
+                UNEB Registration
+              </Link>
+              <Link href="/dashboard/promotion" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="trending_up" style={{ fontSize: 17 }} />
+                Student Promotion
+              </Link>
+              <Link href="/dashboard/homework-submissions" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="assignment_turned_in" style={{ fontSize: 17 }} />
+                Homework Submissions
+              </Link>
               <Link href="/dashboard/lesson-plans" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="menu_book" style={{ fontSize: 17 }} />
                 Lesson Plans
@@ -362,6 +374,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Link href="/dashboard/dorm" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="bed" style={{ fontSize: 17 }} />
                 Dormitory
+              </Link>
+              <Link href="/dashboard/dorm-attendance" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="nightlight" style={{ fontSize: 17 }} />
+                Dorm Attendance
               </Link>
               <Link href="/dashboard/library" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="local_library" style={{ fontSize: 17 }} />
@@ -463,6 +479,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <div style={{ marginBottom: 4 }}>
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.9px', textTransform: 'uppercase', color: 'var(--t4)', padding: '10px 10px 5px' }}>Data</div>
+              <Link href="/dashboard/moes-reports" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="assessment" style={{ fontSize: 17 }} />
+                MOES Reports
+              </Link>
               <Link href="/dashboard/import" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="upload" style={{ fontSize: 17 }} />
                 Import
