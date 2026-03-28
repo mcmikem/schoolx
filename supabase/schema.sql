@@ -10,7 +10,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ============================================
 -- 1. SCHOOLS TABLE
 -- ============================================
-CREATE TABLE schools (
+CREATE TABLE IF NOT EXISTS schools (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
     school_code TEXT UNIQUE NOT NULL,
@@ -34,7 +34,7 @@ CREATE TABLE schools (
 -- ============================================
 -- 2. USERS TABLE (All user types)
 -- ============================================
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     auth_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
@@ -50,7 +50,7 @@ CREATE TABLE users (
 -- ============================================
 -- 3. ACADEMIC YEARS
 -- ============================================
-CREATE TABLE academic_years (
+CREATE TABLE IF NOT EXISTS academic_years (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     year TEXT NOT NULL, -- e.g. "2026"
@@ -61,7 +61,7 @@ CREATE TABLE academic_years (
 -- ============================================
 -- 4. TERMS
 -- ============================================
-CREATE TABLE terms (
+CREATE TABLE IF NOT EXISTS terms (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     academic_year_id UUID REFERENCES academic_years(id) ON DELETE CASCADE,
@@ -75,7 +75,7 @@ CREATE TABLE terms (
 -- ============================================
 -- 5. CLASSES (e.g. P.5A, S.2B)
 -- ============================================
-CREATE TABLE classes (
+CREATE TABLE IF NOT EXISTS classes (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     name TEXT NOT NULL, -- e.g. "P.5A", "S.2B"
@@ -90,7 +90,7 @@ CREATE TABLE classes (
 -- ============================================
 -- 6. SUBJECTS
 -- ============================================
-CREATE TABLE subjects (
+CREATE TABLE IF NOT EXISTS subjects (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
@@ -129,7 +129,7 @@ INSERT INTO subjects (school_id, name, code, level, is_compulsory) VALUES
 -- ============================================
 -- 7. STUDENTS
 -- ============================================
-CREATE TABLE students (
+CREATE TABLE IF NOT EXISTS students (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id),
@@ -155,7 +155,7 @@ CREATE TABLE students (
 -- ============================================
 -- 8. TEACHER SUBJECTS (Teacher-Subject assignments)
 -- ============================================
-CREATE TABLE teacher_subjects (
+CREATE TABLE IF NOT EXISTS teacher_subjects (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     teacher_id UUID REFERENCES users(id) ON DELETE CASCADE,
     subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
@@ -166,7 +166,7 @@ CREATE TABLE teacher_subjects (
 -- ============================================
 -- 9. ATTENDANCE
 -- ============================================
-CREATE TABLE attendance (
+CREATE TABLE IF NOT EXISTS attendance (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
     class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
@@ -181,7 +181,7 @@ CREATE TABLE attendance (
 -- ============================================
 -- 10. GRADES (Continuous Assessment & Exams)
 -- ============================================
-CREATE TABLE grades (
+CREATE TABLE IF NOT EXISTS grades (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
     subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
@@ -199,7 +199,7 @@ CREATE TABLE grades (
 -- ============================================
 -- 11. FEE STRUCTURE
 -- ============================================
-CREATE TABLE fee_structure (
+CREATE TABLE IF NOT EXISTS fee_structure (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
@@ -214,7 +214,7 @@ CREATE TABLE fee_structure (
 -- ============================================
 -- 12. FEE PAYMENTS
 -- ============================================
-CREATE TABLE fee_payments (
+CREATE TABLE IF NOT EXISTS fee_payments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
     fee_id UUID REFERENCES fee_structure(id) ON DELETE CASCADE,
@@ -231,7 +231,7 @@ CREATE TABLE fee_payments (
 -- ============================================
 -- 13. EVENTS / CALENDAR
 -- ============================================
-CREATE TABLE events (
+CREATE TABLE IF NOT EXISTS events (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
@@ -246,7 +246,7 @@ CREATE TABLE events (
 -- ============================================
 -- 14. MESSAGES (SMS Log)
 -- ============================================
-CREATE TABLE messages (
+CREATE TABLE IF NOT EXISTS messages (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     recipient_type TEXT CHECK (recipient_type IN ('individual', 'class', 'all')) NOT NULL,
@@ -262,7 +262,7 @@ CREATE TABLE messages (
 -- ============================================
 -- 16. SCHOOL SETTINGS
 -- ============================================
-CREATE TABLE school_settings (
+CREATE TABLE IF NOT EXISTS school_settings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     key TEXT NOT NULL,
@@ -274,7 +274,7 @@ CREATE TABLE school_settings (
 -- ============================================
 -- 18. AUDIT LOG
 -- ============================================
-CREATE TABLE audit_log (
+CREATE TABLE IF NOT EXISTS audit_log (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id),
@@ -297,7 +297,7 @@ CREATE INDEX idx_audit_created ON audit_log(created_at DESC);
 -- ============================================
 -- 17. PARENT-STUDENT LINK
 -- ============================================
-CREATE TABLE parent_students (
+CREATE TABLE IF NOT EXISTS parent_students (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     parent_id UUID REFERENCES users(id) ON DELETE CASCADE,
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
