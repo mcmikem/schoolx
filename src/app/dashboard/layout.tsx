@@ -278,7 +278,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <ErrorBoundary>
       <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
-        <aside className={`sidebar${sidebarOpen ? ' open' : ''}`} style={{ width: 240, minWidth: 240, background: 'var(--surface)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100, boxShadow: 'var(--sh1)' }}>
+        <aside className={`sidebar${sidebarOpen ? ' open' : ''}`} style={{ width: 240, minWidth: 240, background: 'var(--surface)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100, boxShadow: 'var(--sh1)', transform: 'translateX(0)' }}>
           <div style={{ padding: '22px 18px 16px', borderBottom: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
               {school?.logo_url ? (
@@ -557,18 +557,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .nav-item { min-height: 44px; }
         
         /* Desktop: sidebar always visible */
-        .sidebar { left: 0 !important; }
-        .mobile-menu-btn { display: none !important; }
-        .sidebar-overlay { display: none !important; }
+        @media (min-width: 769px) {
+          .sidebar { left: 0 !important; transform: none !important; }
+          .mobile-menu-btn { display: none !important; }
+          .sidebar-overlay { display: none !important; }
+        }
         
         /* Mobile: sidebar hidden by default */
         @media (max-width: 768px) {
           .sidebar { 
-            left: -240px !important; 
-            transition: left 0.2s ease;
+            transform: translateX(-100%) !important;
+            transition: transform 0.2s ease !important;
             z-index: 200;
+            left: 0 !important;
           }
-          .sidebar.open { left: 0 !important; }
+          .sidebar.open { transform: translateX(0) !important; }
           .mobile-menu-btn { display: flex !important; }
           .sidebar-overlay { display: none !important; z-index: 150; }
           .sidebar-overlay.visible { display: block !important; }
