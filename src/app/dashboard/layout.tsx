@@ -531,7 +531,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </aside>
 
-        <main className="main-content" style={{ marginLeft: 240, flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh', width: 'calc(100% - 240px)' }}>
+        <main className="main-content mobile-container" style={{ marginLeft: 240, flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh', width: 'calc(100% - 240px)', overflow: 'hidden' }}>
           <header className="topbar" style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', height: 60, display: 'flex', alignItems: 'center', padding: '0 32px', gap: 18, position: 'sticky', top: 0, zIndex: 50, boxShadow: 'var(--sh1)', flexShrink: 0 }}>
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="mobile-menu-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, marginRight: 8, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>
               <MaterialIcon icon="menu" style={{ fontSize: 24, color: 'var(--t1)' }} />
