@@ -338,6 +338,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <MaterialIcon icon="fact_check" style={{ fontSize: 17 }} />
                 Exams
               </Link>
+              <Link href="/dashboard/lesson-plans" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="menu_book" style={{ fontSize: 17 }} />
+                Lesson Plans
+              </Link>
+              <Link href="/dashboard/scheme-of-work" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="list_alt" style={{ fontSize: 17 }} />
+                Scheme of Work
+              </Link>
               <Link href="/dashboard/fees" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="payments" style={{ fontSize: 17 }} />
                 Finance
@@ -398,6 +406,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <MaterialIcon icon="badge" style={{ fontSize: 17 }} />
                 Visitors
               </Link>
+              <Link href="/dashboard/staff-attendance" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="how_to_reg" style={{ fontSize: 17 }} />
+                Staff Attendance
+              </Link>
+              <Link href="/dashboard/leave" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="event_busy" style={{ fontSize: 17 }} />
+                Leave Requests
+              </Link>
+              <Link href="/dashboard/allocations" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="assignment_ind" style={{ fontSize: 17 }} />
+                Subject Allocations
+              </Link>
+              <Link href="/dashboard/health" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="medical_services" style={{ fontSize: 17 }} />
+                Health Records
+              </Link>
+              <Link href="/dashboard/behavior" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="psychology" style={{ fontSize: 17 }} />
+                Behavior Log
+              </Link>
               <Link href="/dashboard/calendar" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="event" style={{ fontSize: 17 }} />
                 Calendar
@@ -413,6 +441,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Link href="/dashboard/cashbook" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="book" style={{ fontSize: 17 }} />
                 Cashbook
+              </Link>
+              <Link href="/dashboard/inventory" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="inventory_2" style={{ fontSize: 17 }} />
+                Inventory
+              </Link>
+              <Link href="/dashboard/transport" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="directions_bus" style={{ fontSize: 17 }} />
+                Transport
+              </Link>
+              <Link href="/dashboard/budget" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="account_balance_wallet" style={{ fontSize: 17 }} />
+                Budget & Expenses
               </Link>
             </div>
 
