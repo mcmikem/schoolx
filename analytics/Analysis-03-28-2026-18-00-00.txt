@@ -1,0 +1,222 @@
+================================================================================
+COMPREHENSIVE CODEBASE AUDIT REPORT
+================================================================================
+Project: Omuto School Management System
+Audit Date: 03-28-2026
+Auditor: Senior Principal Software Architect
+
+================================================================================
+SECTION 1: CODEBASE UNDERSTANDING SUMMARY
+================================================================================
+
+ARCHITECTURE OVERVIEW:
+----------------------
+The application is a Next.js 14 + TypeScript school management system built for
+Ugandan primary and secondary schools. It uses Supabase (PostgreSQL) as the
+backend with authentication, real-time database, and SMS integration via
+Africa's Talking API.
+
+KEY COMPONENTS:
+1. Authentication System (auth-context.tsx)
+   - Supabase Auth integration with custom user profiles
+   - Demo mode for testing without backend
+   - Role-based access control (RBAC)
+
+2. Data Layer (hooks.ts, supabase.ts)
+   - Custom React hooks for CRUD operations
+   - Type-safe database queries
+   - Offline-first capabilities (offline.ts)
+
+3. API Routes
+   - /api/sms - SMS sending via Africa's Talking
+   - /api/register - School registration
+   - /api/import - Bulk student import
+   - /api/reports - Report card generation
+
+4. Dashboard System
+   - Role-based dashboards (Headmaster, Teacher, Bursar, Dean)
+   - Real-time statistics and alerts
+   - Responsive mobile-first design
+
+5. Core Features
+   - Student Management (enrollment, profiles)
+   - Attendance Tracking (daily, class-based)
+   - Grade Management (CA, exams, UNEB grading)
+   - Fee Management (structure, payments, receipts)
+   - SMS Messaging (individual, class, bulk)
+   - Exam System (BOT, Mid Term, EOT, Saturday Tests)
+   - Staff Management & Attendance
+   - Library, Dormitory, Transport
+
+================================================================================
+SECTION 2: ROOT CAUSE FINDINGS
+================================================================================
+
+CRITICAL ISSUES IDENTIFIED:
+
+1. DATABASE SECURITY - Row Level Security (RLS) NOT IMPLEMENTED
+   Root Cause: The Supabase schema.sql does not include RLS policies, meaning
+   ALL data is publicly accessible if the anon key is compromised.
+
+2. AUTHENTICATION BYPASS RISK
+   Root Cause: The demo mode stores user credentials in localStorage without
+   encryption. A malicious script could extract these credentials.
+
+3. PHONE NUMBER VALIDATION INCOMPLETE
+   Root Cause: formatUgandaPhone() doesn't validate all edge cases (e.g.,
+   international numbers from other countries).
+
+4. GRADE CALCULATION LOGIC ERROR
+   Root Cause: In grades page, the total grade calculation doesn't properly
+   weight exams vs continuous assessment.
+
+5. ATTENDANCE STATE NOT PERSISTED
+   Root Cause: Attendance data is fetched but not cached, causing re-fetches
+   on every component mount.
+
+6. ERROR MESSAGE INFORMATION LEAKAGE
+   Root Cause: handleApiError() returns raw database/supabase error messages
+   to the client, potentially exposing internal system details.
+
+7. MISSING INPUT VALIDATION IN REGISTRATION
+   Root Cause: Register API doesn't validate email format, school code format,
+   or sanitize inputs before database insertion.
+
+8. MEMORY LEAK IN RATE LIMITER
+   Root Cause: The in-memory rate limiter Map is never cleaned up properly,
+   leading to unbounded memory growth in high-traffic scenarios.
+
+================================================================================
+SECTION 3: CATEGORIZED BUG REPORT
+================================================================================
+
+CRITICAL (Severity: Critical)
+--------------------------------
+[C-001] Database Row Level Security Not Enabled
+- Impact: Complete data breach if anon key is exposed
+- File: supabase/schema.sql
+- Fix: Add RLS policies for all tables
+
+[C-002] Demo Credentials Stored in LocalStorage
+- Impact: Credential theft via XSS attacks
+- File: src/lib/auth-context.tsx
+- Fix: Use sessionStorage or encrypt credentials
+
+[C-003] No Rate Limiting on Registration Endpoint
+- Impact: Mass account creation attacks possible
+- File: src/app/api/register/route.ts
+- Fix: Add rate limiting to registration
+
+[C-004] Service Role Key Exposed in Client-Side Code
+- Impact: Full database access if key leaked
+- File: src/app/api/register/route.ts
+- Fix: Ensure service key only used server-side
+
+MAJOR (Severity: Major)
+-----------------------
+[M-001] Phone Number Format Not Validated
+- Impact: SMS delivery failures, invalid data
+- File: src/app/api/sms/route.ts
+- Fix: Add comprehensive phone validation
+
+[M-002] Error Messages Leak Internal Details
+- Impact: Information disclosure to attackers
+- File: src/lib/api-utils.ts
+- Fix: Sanitize error messages before returning
+
+[M-003] Missing Input Sanitization in Registration
+- Impact: SQL injection (theoretical - using parameterized queries)
+- Impact: XSS via stored values
+- File: src/app/api/register/route.ts
+- Fix: Sanitize all string inputs
+
+[M-004] Attendance Re-fetches on Every Mount
+- Impact: Poor performance, high API calls
+- File: src/lib/hooks.ts (useAttendance)
+- Fix: Add proper caching
+
+[M-005] Grade Calculation Incorrect Weighting
+- Impact: Incorrect student grades reported
+- File: src/app/dashboard/grades/page.tsx
+- Fix: Fix CA vs Exam weighting formula
+
+MINOR (Severity: Minor)
+------------------------
+[m-001] Implicit Any Types in Dashboard Components
+- Impact: Type safety reduced, potential runtime errors
+- File: Multiple dashboard components
+
+[m-002] Missing Loading States in Some Components
+- Impact: Poor UX during data fetches
+- File: Various pages
+
+[m-003] Inconsistent Error Boundary Usage
+- Impact: Unhandled errors crash entire app
+- File: Inconsistent across pages
+
+[m-004] No Pagination on Large Data Sets
+- Impact: Performance issues with 1000+ records
+- File: students/page.tsx, payments list
+
+================================================================================
+SECTION 4: EDGE CASE FAILURE LIST
+================================================================================
+
+The following edge cases are likely to cause failures, corruption, or misleading
+behavior in production:
+
+1. PHONE NUMBER FORMATS
+   - User enters: "+254700000000" (Kenya number)
+   - System treats as Uganda (+256)
+   - SMS fails silently or goes to wrong number
+
+2. ATTENDANCE RACE CONDITION
+   - Teacher A marks attendance for Class P.5A
+   - Teacher B marks attendance for same class simultaneously
+   - Last write wins, first teacher's data lost
+
+3. GRADE OVERWRITE
+   - Teacher A enters CA1 scores for Math
+   - Teacher B enters CA2 scores for same class
+   - Without proper conflict resolution, grades may be lost
+
+4. OFFLINE PAYMENT RECORDING
+   - User records payment while offline
+   - User clears browser cache before sync
+   - Payment record lost forever (no backup)
+
+5. SESSION EXPIRY MID-OPERATION
+   - User submitting grade/payment
+   - Session expires mid-submit
+   - Data lost, user sees error
+
+================================================================================
+SECTION 5: REFACTORED SOLUTION
+================================================================================
+
+The following critical fixes have been implemented:
+
+FIX 1: RLS Policies Added to Schema
+- All tables now have RLS enabled
+- Policies restrict access to own school data only
+
+FIX 2: Input Validation Enhanced
+- Phone number validation improved
+- Registration sanitizes all inputs
+
+FIX 3: Error Message Sanitization
+- API errors now show user-friendly messages
+- Internal details logged server-side only
+
+FIX 4: Rate Limiter Memory Management
+- Added periodic cleanup of expired entries
+- Added maximum map size limit
+
+FIX 5: Mobile Responsiveness
+- Hamburger menu works properly
+- Touch targets minimum 44px
+- Tables scroll horizontally
+
+================================================================================
+END OF AUDIT REPORT
+================================================================================

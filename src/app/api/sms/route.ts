@@ -13,13 +13,30 @@ interface SMSRequest {
 }
 
 function formatUgandaPhone(phone: string): string {
-  let formatted = phone.replace(/\s/g, '').replace(/-/g, '')
-  if (formatted.startsWith('0')) {
-    return '+256' + formatted.substring(1)
-  } else if (!formatted.startsWith('+')) {
+  // Remove all non-digit characters
+  let formatted = phone.replace(/\D/g, '')
+  
+  // Validate it's a reasonable Uganda number
+  // Must be 9 digits (without country code) or 12 digits (with +256)
+  if (formatted.startsWith('256')) {
+    // Already has country code
+    if (formatted.length !== 12) {
+      throw new Error('Invalid phone number: must be 12 digits with country code')
+    }
+    return '+' + formatted
+  } else if (formatted.startsWith('0')) {
+    // Leading zero - convert to country code
+    formatted = formatted.substring(1)
+    if (formatted.length !== 9) {
+      throw new Error('Invalid phone number: must be 9 digits after leading zero')
+    }
     return '+256' + formatted
+  } else if (formatted.length === 9) {
+    // Direct 9 digit number
+    return '+256' + formatted
+  } else {
+    throw new Error('Invalid phone number format')
   }
-  return formatted
 }
 
 async function sendSMS(to: string, message: string): Promise<{ success: boolean; messageId?: string; statusCode?: number; error?: string }> {
@@ -101,7 +118,7 @@ async function handlePost(request: NextRequest) {
       })
     }
 
-    return apiError(result.error || 'Failed to send SMS', 500)
+    return apiError('Failed to send SMS. Please verify the phone number and try again.', 500)
   } catch (error) {
     return handleApiError(error)
   }

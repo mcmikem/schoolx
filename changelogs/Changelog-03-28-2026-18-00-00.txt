@@ -1,0 +1,155 @@
+================================================================================
+CHANGELOG - Omuto School Management System
+================================================================================
+Date: 03-28-2026
+Time: 18:00:00
+
+================================================================================
+CHANGES IMPLEMENTED
+================================================================================
+
+1. MOBILE RESPONSIVENESS ENHANCEMENTS
+--------------------------------------------------------------------------------
+What: Complete mobile-first responsive design overhaul
+Why: App was not usable on mobile devices - sidebar didn't work, touch 
+     targets were too small, content overflowed
+Files Modified:
+  - src/app/globals.css (responsive breakpoints, touch targets)
+  - src/app/dashboard/layout.tsx (hamburger menu, mobile sidebar)
+  - src/app/layout.tsx (viewport configuration)
+
+Bug/Issue Addressed:
+  - Mobile users couldn't access navigation menu
+  - Buttons too small for touch (less than 44px)
+  - Tables broke layout on mobile
+  - Viewport caused unwanted zooming
+
+Behavioral Impact:
+  - Hamburger menu now toggles sidebar on mobile
+  - All buttons meet 44px minimum touch target
+  - Tables scroll horizontally instead of breaking
+  - Fixed topbar stays visible while scrolling
+
+
+2. DASHBOARD DATA LOADING FIX
+--------------------------------------------------------------------------------
+What: Fixed infinite loading loop in dashboard
+Why: useEffect had improper dependency array causing infinite re-fetches
+Files Modified:
+  - src/app/dashboard/dashboards/HeadmasterDashboard.tsx
+
+Bug/Issue Addressed:
+  - Dashboard would continuously load without displaying data
+  - Added loading state indicators while fetching
+  - Fixed dependency array to prevent infinite loops
+
+Behavioral Impact:
+  - Dashboard loads once with proper loading state
+  - Real data from database now displays correctly
+
+
+3. ENVIRONMENT CONFIGURATION
+--------------------------------------------------------------------------------
+What: Added .env.example for SMS API configuration
+Why: Developers need to know required environment variables
+Files Added:
+  - .env.example
+
+Bug/Issue Addressed:
+  - SMS API credentials not documented
+  - Developers didn't know what env vars to set
+
+Behavioral Impact:
+  - Clear documentation of required configuration
+  - Africa's Talking SMS now works when credentials added
+
+
+4. SIDEBAR NAVIGATION COMPLETION
+--------------------------------------------------------------------------------
+What: Added all feature pages to sidebar navigation
+Why: Many feature pages existed but weren't accessible from UI
+Files Modified:
+  - src/app/dashboard/layout.tsx
+
+Bug/Issue Addressed:
+  - Exam management, lesson plans, staff attendance pages existed
+  - Users couldn't find them without direct URL
+
+Behavioral Impact:
+  - All 40+ pages now accessible from sidebar
+  - Organized by category (Academics, Administration, etc.)
+
+
+5. EXAM MANAGEMENT SYSTEM ADDITION
+--------------------------------------------------------------------------------
+What: Created comprehensive exam tracking system
+Why: Secondary schools need BOT, Mid Term, EOT, Saturday Tests (not homework)
+Files Added:
+  - src/lib/exams.ts (exam type configurations)
+  - src/app/dashboard/exams/page.tsx (exam management UI)
+  - Updated src/lib/hooks.ts (useExamScores, useExams hooks)
+
+Bug/Issue Addressed:
+  - Primary school "homework" not suitable for secondary
+  - No weighted grade calculation
+  - No exam schedule management
+
+Behavioral Impact:
+  - Teachers can create and manage exams
+  - Automatic weighted grade calculation (CA 20%, Mid 20%, EOT 50%, etc.)
+  - UNEB grading applied automatically
+
+
+6. NEW DATABASE TABLES
+--------------------------------------------------------------------------------
+What: Added database schema for new features
+Why: Features need persistent storage
+Files Modified:
+  - supabase/schema.sql
+
+Tables Added:
+  - exams, exam_scores
+  - staff_attendance, leave_requests
+  - subject_allocations
+  - health_records, health_visits
+  - assets, asset_assignments
+  - transport_routes, transport_students
+  - budgets, expenses
+  - behavior_logs
+  - lesson_plans, scheme_of_work, teacher_timetable
+
+
+7. THEME CONTEXT AND DARK MODE
+--------------------------------------------------------------------------------
+What: Implemented light/dark theme toggle
+Why: User preference for app appearance
+Files Added:
+  - src/lib/theme-context.tsx
+Files Modified:
+  - src/app/providers.tsx
+  - src/app/globals.css (dark theme CSS variables)
+
+Behavioral Impact:
+  - Theme persists across sessions
+  - Toggle button in topbar
+  - Dark theme colors defined
+
+
+8. OFFLINE SUPPORT
+--------------------------------------------------------------------------------
+What: Service worker for offline functionality
+Why: App should work without internet connection
+Files Added:
+  - src/lib/useServiceWorker.ts
+  - public/sw.js
+Files Modified:
+  - src/app/providers.tsx (registers service worker)
+
+Behavioral Impact:
+  - App loads faster on repeat visits
+  - Basic functionality available offline
+
+
+================================================================================
+END OF CHANGELOG
+================================================================================
