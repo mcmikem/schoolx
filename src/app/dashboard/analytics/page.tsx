@@ -119,7 +119,7 @@ export default function AnalyticsPage() {
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-[#002045]">School Health Dashboard</h1>
-        <p className="text-[#5c6670] mt-1">Overview of your school's performance</p>
+        <p className="text-[#5c6670] mt-1">Overview of your school&apos;s performance</p>
       </div>
 
       <div className={`bg-gradient-to-r ${getStatusBg(overallScore >= 80 ? 'excellent' : overallScore >= 60 ? 'good' : overallScore >= 40 ? 'warning' : 'critical')} rounded-2xl border border-[#e8eaed] p-6 mb-8`}>

@@ -118,7 +118,7 @@ export default function VisitorsPage() {
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
           <div className="text-2xl font-bold text-[#002045]">{todayVisitors.length}</div>
-          <div className="text-sm text-[#5c6670] mt-1">Today's Visitors</div>
+          <div className="text-sm text-[#5c6670] mt-1">Today&apos;s Visitors</div>
         </div>
         <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
           <div className="text-2xl font-bold text-[#006e1c]">{todayVisitors.filter(v => v.time_out).length}</div>

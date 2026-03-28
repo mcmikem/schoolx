@@ -112,7 +112,7 @@ export default function ParentPortal() {
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-[#002045]">Parent Portal</h1>
-          <p className="text-[#5c6670] mt-1">View your child's progress</p>
+<p className="text-[#5c6670] mt-1">View your child&apos;s progress</p>
         </div>
         <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 text-center py-12">
           <div className="text-[#5c6670]">
@@ -130,7 +130,7 @@ export default function ParentPortal() {
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[#002045]">Parent Portal</h1>
-        <p className="text-[#5c6670] mt-1">View your child's progress</p>
+        <p className="text-[#5c6670] mt-1">View your child&apos;s progress</p>
       </div>
 
       <div className="max-w-2xl mx-auto space-y-6">
