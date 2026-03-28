@@ -490,8 +490,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </aside>
 
-        <main style={{ marginLeft: 240, flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-          <header className="topbar" style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', height: 60, display: 'flex', alignItems: 'center', padding: '0 32px', gap: 18, position: 'sticky', top: 0, zIndex: 50, boxShadow: 'var(--sh1)' }}>
+        <main className="main-content" style={{ marginLeft: 240, flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <header className="topbar" style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', height: 60, display: 'flex', alignItems: 'center', padding: '0 32px', gap: 18, position: 'sticky', top: 0, zIndex: 50, boxShadow: 'var(--sh1)', flexShrink: 0 }}>
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="mobile-menu-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, marginRight: 8, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>
               <MaterialIcon icon="menu" style={{ fontSize: 24, color: 'var(--t1)' }} />
             </button>
@@ -500,7 +500,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>{currentDate.toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
             </div>
 
-            <div onClick={() => setSearchOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 14px', fontSize: 13, color: 'var(--t3)', minWidth: 240, cursor: 'text' }}>
+            <div className="search-bar" onClick={() => setSearchOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 14px', fontSize: 13, color: 'var(--t3)', minWidth: 240, cursor: 'text' }}>
               <MaterialIcon icon="search" style={{ fontSize: 15, color: 'var(--t4)' }} />
               <span style={{ flex: 1 }}>Search students, fees, reports…</span>
               <span style={{ marginLeft: 'auto', fontFamily: 'DM Mono', fontSize: 10, color: 'var(--t4)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 6px' }}>⌘K</span>
@@ -565,6 +565,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           .sidebar-overlay { display: none !important; }
           .sidebar-overlay.visible { display: block !important; }
           .nav-item { padding: 12px 14px !important; min-height: 48px; }
+          .main-content { margin-left: 0 !important; padding: 0 16px !important; }
+          .topbar { padding: 0 16px !important; }
+          .search-bar { display: none !important; }
+        }
+        @media (max-width: 480px) {
+          .topbar { padding: 0 12px !important; gap: 8px !important; }
         }
         @media (min-width: 769px) {
           .mobile-menu-btn { display: none !important; }
