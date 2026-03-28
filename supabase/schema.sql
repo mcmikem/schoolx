@@ -310,65 +310,238 @@ CREATE TABLE IF NOT EXISTS parent_students (
 -- ROW LEVEL SECURITY (RLS)
 -- ============================================
 
--- Enable RLS on all tables
-ALTER TABLE schools ENABLE ROW LEVEL SECURITY;
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE academic_years ENABLE ROW LEVEL SECURITY;
-ALTER TABLE terms ENABLE ROW LEVEL SECURITY;
-ALTER TABLE classes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE subjects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE students ENABLE ROW LEVEL SECURITY;
-ALTER TABLE teacher_subjects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
-ALTER TABLE grades ENABLE ROW LEVEL SECURITY;
-ALTER TABLE fee_structure ENABLE ROW LEVEL SECURITY;
-ALTER TABLE fee_payments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE parent_students ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "schools" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "users" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "academic_years" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "terms" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "classes" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "subjects" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "students" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "teacher_subjects" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "attendance" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "grades" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "fee_structure" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "fee_payments" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "events" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "messages" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "parent_students" ENABLE ROW LEVEL SECURITY;
 
 -- Super Admin can see everything
-CREATE POLICY "Super admin full access" ON schools
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM users
-            WHERE users.auth_id = auth.uid()
-            AND users.role = 'super_admin'
-        )
-    );
+DROP POLICY IF EXISTS "Super admin full access" ON "schools";
+CREATE POLICY "Super admin full access"
+ON "schools"
+FOR ALL
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1
+    FROM "users"
+    WHERE "users"."auth_id" = auth.uid()
+      AND "users"."role" = 'super_admin'
+  )
+);
 
--- School users can only see their own school data
-CREATE POLICY "School users access own school" ON students
-    FOR ALL USING (
-        school_id IN (
-            SELECT school_id FROM users WHERE auth_id = auth.uid()
-        )
-    );
+-- =========================
+-- STUDENTS
+-- =========================
 
-CREATE POLICY "School users access own school classes" ON classes
-    FOR ALL USING (
-        school_id IN (
-            SELECT school_id FROM users WHERE auth_id = auth.uid()
-        )
-    );
+-- SELECT
+DROP POLICY IF EXISTS "School users students select" ON "students";
+CREATE POLICY "School users students select"
+ON "students"
+FOR SELECT
+TO authenticated
+USING (
+  "school_id" IN (
+    SELECT "school_id"
+    FROM "users"
+    WHERE "auth_id" = auth.uid()
+  )
+);
 
-CREATE POLICY "School users access own school attendance" ON attendance
-    FOR ALL USING (
-        class_id IN (
-            SELECT id FROM classes WHERE school_id IN (
-                SELECT school_id FROM users WHERE auth_id = auth.uid()
-            )
-        )
-    );
+-- INSERT (create students too)
+DROP POLICY IF EXISTS "School users students insert" ON "students";
+CREATE POLICY "School users students insert"
+ON "students"
+FOR INSERT
+TO authenticated
+WITH CHECK (
+  "school_id" IN (
+    SELECT "school_id"
+    FROM "users"
+    WHERE "auth_id" = auth.uid()
+  )
+);
 
-CREATE POLICY "School users access own school grades" ON grades
-    FOR ALL USING (
-        class_id IN (
-            SELECT id FROM classes WHERE school_id IN (
-                SELECT school_id FROM users WHERE auth_id = auth.uid()
-            )
-        )
-    );
+-- UPDATE
+DROP POLICY IF EXISTS "School users students update" ON "students";
+CREATE POLICY "School users students update"
+ON "students"
+FOR UPDATE
+TO authenticated
+USING (
+  "school_id" IN (
+    SELECT "school_id"
+    FROM "users"
+    WHERE "auth_id" = auth.uid()
+  )
+)
+WITH CHECK (
+  "school_id" IN (
+    SELECT "school_id"
+    FROM "users"
+    WHERE "auth_id" = auth.uid()
+  )
+);
+
+-- DELETE
+DROP POLICY IF EXISTS "School users students delete" ON "students";
+CREATE POLICY "School users students delete"
+ON "students"
+FOR DELETE
+TO authenticated
+USING (
+  "school_id" IN (
+    SELECT "school_id"
+    FROM "users"
+    WHERE "auth_id" = auth.uid()
+  )
+);
+
+-- =========================
+-- CLASSES
+-- =========================
+
+DROP POLICY IF EXISTS "School users classes select" ON "classes";
+CREATE POLICY "School users classes select"
+ON "classes"
+FOR SELECT
+TO authenticated
+USING (
+  "school_id" IN (
+    SELECT "school_id"
+    FROM "users"
+    WHERE "auth_id" = auth.uid()
+  )
+);
+
+DROP POLICY IF EXISTS "School users classes write" ON "classes";
+CREATE POLICY "School users classes write"
+ON "classes"
+FOR ALL
+TO authenticated
+USING (
+  "school_id" IN (
+    SELECT "school_id"
+    FROM "users"
+    WHERE "auth_id" = auth.uid()
+  )
+)
+WITH CHECK (
+  "school_id" IN (
+    SELECT "school_id"
+    FROM "users"
+    WHERE "auth_id" = auth.uid()
+  )
+);
+
+-- =========================
+-- ATTENDANCE
+-- =========================
+
+DROP POLICY IF EXISTS "School users attendance select" ON "attendance";
+CREATE POLICY "School users attendance select"
+ON "attendance"
+FOR SELECT
+TO authenticated
+USING (
+  "class_id" IN (
+    SELECT "id"
+    FROM "classes"
+    WHERE "school_id" IN (
+      SELECT "school_id"
+      FROM "users"
+      WHERE "auth_id" = auth.uid()
+    )
+  )
+);
+
+DROP POLICY IF EXISTS "School users attendance write" ON "attendance";
+CREATE POLICY "School users attendance write"
+ON "attendance"
+FOR ALL
+TO authenticated
+USING (
+  "class_id" IN (
+    SELECT "id"
+    FROM "classes"
+    WHERE "school_id" IN (
+      SELECT "school_id"
+      FROM "users"
+      WHERE "auth_id" = auth.uid()
+    )
+  )
+)
+WITH CHECK (
+  "class_id" IN (
+    SELECT "id"
+    FROM "classes"
+    WHERE "school_id" IN (
+      SELECT "school_id"
+      FROM "users"
+      WHERE "auth_id" = auth.uid()
+    )
+  )
+);
+
+-- =========================
+-- GRADES
+-- =========================
+
+DROP POLICY IF EXISTS "School users grades select" ON "grades";
+CREATE POLICY "School users grades select"
+ON "grades"
+FOR SELECT
+TO authenticated
+USING (
+  "class_id" IN (
+    SELECT "id"
+    FROM "classes"
+    WHERE "school_id" IN (
+      SELECT "school_id"
+      FROM "users"
+      WHERE "auth_id" = auth.uid()
+    )
+  )
+);
+
+DROP POLICY IF EXISTS "School users grades write" ON "grades";
+CREATE POLICY "School users grades write"
+ON "grades"
+FOR ALL
+TO authenticated
+USING (
+  "class_id" IN (
+    SELECT "id"
+    FROM "classes"
+    WHERE "school_id" IN (
+      SELECT "school_id"
+      FROM "users"
+      WHERE "auth_id" = auth.uid()
+    )
+  )
+)
+WITH CHECK (
+  "class_id" IN (
+    SELECT "id"
+    FROM "classes"
+    WHERE "school_id" IN (
+      SELECT "school_id"
+      FROM "users"
+      WHERE "auth_id" = auth.uid()
+    )
+  )
+);
 
 -- ============================================
 -- INDEXES FOR PERFORMANCE

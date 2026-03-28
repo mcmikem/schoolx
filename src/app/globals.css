@@ -149,6 +149,18 @@ img, video, iframe {
   background: var(--red);
   color: #fff;
 }
+.btn-secondary {
+  background: var(--surface);
+  color: var(--t1);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: var(--bg); border-color: var(--border2); }
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  min-height: 36px;
+}
+.btn-sm .material-symbols-outlined { font-size: 16px; }
 
 /* ── INPUTS ─────────────────────────────────────────────── */
 .input {

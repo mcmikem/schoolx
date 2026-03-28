@@ -7,8 +7,8 @@ import { useToast } from '@/components/Toast'
 import { EXAM_TYPES, SECONDARY_EXAM_TYPES, PRIMARY_EXAM_TYPES, calculateWeightedGrade, getExamTypeLabel, getExamColor, ExamConfig } from '@/lib/exams'
 import { getUNEBGrade, getUNEBDivision } from '@/lib/grading'
 
-function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
 }
 
 export default function ExamsPage() {

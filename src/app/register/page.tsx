@@ -5,8 +5,8 @@ import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import SchoolXLogo from '@/components/SchoolXLogo'
 
-function MaterialIcon({ icon, className }: { icon: string; className?: string }) {
-  return <span className={`material-symbols-outlined ${className || ''}`}>{icon}</span>
+function MaterialIcon({ icon, className, children }: { icon: string; className?: string; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`}>{icon || children}</span>
 }
 
 const DISTRICTS = [

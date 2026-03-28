@@ -4,8 +4,8 @@ import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
-function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
 }
 
 interface Notice {
@@ -93,16 +93,17 @@ export default function NoticeBoardPage() {
     
     setUploadingImage(true)
     try {
-      const fileName = `notice-${Date.now()}.jpg`
+      const ext = file.name.split('.').pop() || 'jpg'
+      const fileName = `notice-${Date.now()}.${ext}`
       
-      const { data, error } = await supabase.storage
-        .from('school-logos')
-        .upload(fileName, file, { upsert: true, contentType: 'image/jpeg' })
+      const { error } = await supabase.storage
+        .from('notices')
+        .upload(fileName, file, { upsert: true, contentType: file.type })
       
       if (error) throw error
       
       const { data: { publicUrl } } = supabase.storage
-        .from('school-logos')
+        .from('notices')
         .getPublicUrl(fileName)
       
       setNewNotice({...newNotice, image_url: publicUrl})
@@ -117,7 +118,8 @@ export default function NoticeBoardPage() {
   const deleteNotice = async (id: string) => {
     if (!confirm('Delete this notice?')) return
     try {
-      await supabase.from('notices').delete().eq('id', id)
+      const { error } = await supabase.from('notices').delete().eq('id', id)
+      if (error) throw error
       setNotices(notices.filter(n => n.id !== id))
       toast.success('Notice deleted')
     } catch (err: unknown) {

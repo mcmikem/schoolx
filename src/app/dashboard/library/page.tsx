@@ -5,8 +5,8 @@ import { useStudents } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
-function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
 }
 
 interface Book {
@@ -38,10 +38,21 @@ export default function LibraryPage() {
   const toast = useToast()
   const [books, setBooks] = useState<Book[]>([])
   const [checkouts, setCheckouts] = useState<Checkout[]>([])
+  const [history, setHistory] = useState<Checkout[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'books' | 'checkouts'>('books')
+  const [tab, setTab] = useState<'books' | 'checkouts' | 'history'>('books')
   const [showAddBook, setShowAddBook] = useState(false)
   const [showCheckout, setShowCheckout] = useState(false)
+  const [showEditBook, setShowEditBook] = useState(false)
+  const [editBookId, setEditBookId] = useState<string | null>(null)
+  const [editBook, setEditBook] = useState({
+    title: '',
+    author: '',
+    isbn: '',
+    category: '',
+    copies: '1',
+    location: '',
+  })
   const [searchTerm, setSearchTerm] = useState('')
   const [newBook, setNewBook] = useState({
     title: '',
@@ -64,13 +75,19 @@ export default function LibraryPage() {
   const fetchData = async () => {
     if (!school?.id) return
     try {
-      const [booksRes, checkoutsRes] = await Promise.all([
+      const [booksRes, checkoutsRes, historyRes] = await Promise.all([
         supabase.from('books').select('*').eq('school_id', school.id).order('title'),
-        supabase.from('book_checkouts').select('*, books(title), students(first_name, last_name)').eq('school_id', school.id).is('return_date', null)
+        supabase.from('book_checkouts').select('*, books(title), students(first_name, last_name)').eq('school_id', school.id).is('return_date', null),
+        supabase.from('book_checkouts').select('*, books(title), students(first_name, last_name)').eq('school_id', school.id).not('return_date', 'is', null).order('return_date', { ascending: false }),
       ])
-      
+
+      if (booksRes.error) throw booksRes.error
+      if (checkoutsRes.error) throw checkoutsRes.error
+      if (historyRes.error) throw historyRes.error
+
       setBooks(booksRes.data || [])
       setCheckouts(checkoutsRes.data || [])
+      setHistory(historyRes.data || [])
     } catch (err) {
       console.error('Error:', err)
     } finally {
@@ -104,6 +121,43 @@ export default function LibraryPage() {
     }
   }
 
+  const handleEditBook = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editBookId) return
+
+    try {
+      const { error } = await supabase.from('books').update({
+        title: editBook.title,
+        author: editBook.author,
+        isbn: editBook.isbn || null,
+        category: editBook.category || null,
+        copies: Number(editBook.copies),
+        location: editBook.location || null,
+      }).eq('id', editBookId)
+
+      if (error) throw error
+      toast.success('Book updated')
+      setShowEditBook(false)
+      setEditBookId(null)
+      fetchData()
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update book')
+    }
+  }
+
+  const openEditBook = (book: Book) => {
+    setEditBookId(book.id)
+    setEditBook({
+      title: book.title,
+      author: book.author,
+      isbn: book.isbn,
+      category: book.category,
+      copies: String(book.copies),
+      location: book.location,
+    })
+    setShowEditBook(true)
+  }
+
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!school?.id) return
@@ -122,7 +176,8 @@ export default function LibraryPage() {
 
       const book = books.find(b => b.id === newCheckout.book_id)
       if (book) {
-        await supabase.from('books').update({ available: book.available - 1 }).eq('id', book.id)
+        const { error: updateError } = await supabase.from('books').update({ available: book.available - 1 }).eq('id', book.id)
+        if (updateError) throw updateError
       }
 
       toast.success('Book checked out')
@@ -136,11 +191,13 @@ export default function LibraryPage() {
 
   const returnBook = async (checkoutId: string, bookId: string) => {
     try {
-      await supabase.from('book_checkouts').update({ return_date: new Date().toISOString().split('T')[0] }).eq('id', checkoutId)
-      
+      const { error: checkoutError } = await supabase.from('book_checkouts').update({ return_date: new Date().toISOString().split('T')[0] }).eq('id', checkoutId)
+      if (checkoutError) throw checkoutError
+
       const book = books.find(b => b.id === bookId)
       if (book) {
-        await supabase.from('books').update({ available: book.available + 1 }).eq('id', bookId)
+        const { error: bookError } = await supabase.from('books').update({ available: book.available + 1 }).eq('id', bookId)
+        if (bookError) throw bookError
       }
 
       toast.success('Book returned')
@@ -153,21 +210,24 @@ export default function LibraryPage() {
   const deleteBook = async (id: string) => {
     if (!confirm('Delete this book?')) return
     try {
-      await supabase.from('books').delete().eq('id', id)
-      setBooks(books.filter(b => b.id !== id))
+      const { error } = await supabase.from('books').delete().eq('id', id)
+      if (error) throw error
       toast.success('Book deleted')
+      fetchData()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete')
     }
   }
 
-  const filteredBooks = books.filter(b => 
+  const filteredBooks = books.filter(b =>
     b.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     b.author.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  const today = new Date().toISOString().split('T')[0]
+
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
+    <div style={{ padding: '32px', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[#002045]">Library</h1>
@@ -185,7 +245,7 @@ export default function LibraryPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
           <div className="text-2xl font-bold text-[#002045]">{books.length}</div>
           <div className="text-sm text-[#5c6670] mt-1">Total Books</div>
@@ -202,17 +262,23 @@ export default function LibraryPage() {
 
       <div className="bg-white rounded-2xl border border-[#e8eaed] p-2 mb-6">
         <div className="flex gap-2">
-          <button 
-            onClick={() => setTab('books')} 
+          <button
+            onClick={() => setTab('books')}
             className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${tab === 'books' ? 'bg-[#002045] text-white' : 'text-[#5c6670] hover:bg-[#f8fafb]'}`}
           >
             Books
           </button>
-          <button 
-            onClick={() => setTab('checkouts')} 
+          <button
+            onClick={() => setTab('checkouts')}
             className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${tab === 'checkouts' ? 'bg-[#002045] text-white' : 'text-[#5c6670] hover:bg-[#f8fafb]'}`}
           >
             Checkouts ({checkouts.length})
+          </button>
+          <button
+            onClick={() => setTab('history')}
+            className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${tab === 'history' ? 'bg-[#002045] text-white' : 'text-[#5c6670] hover:bg-[#f8fafb]'}`}
+          >
+            History ({history.length})
           </button>
         </div>
       </div>
@@ -259,9 +325,14 @@ export default function LibraryPage() {
                       <span className={`px-2 py-1 rounded-lg text-xs font-medium ${book.available > 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
                         {book.available}/{book.copies} available
                       </span>
-                      <button onClick={() => deleteBook(book.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
-                        <MaterialIcon className="text-lg">delete</MaterialIcon>
-                      </button>
+                      <div className="flex gap-1">
+                        <button onClick={() => openEditBook(book)} className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg">
+                          <MaterialIcon className="text-lg">edit</MaterialIcon>
+                        </button>
+                        <button onClick={() => deleteBook(book.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                          <MaterialIcon className="text-lg">delete</MaterialIcon>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -313,6 +384,39 @@ export default function LibraryPage() {
         </div>
       )}
 
+      {tab === 'history' && (
+        <div className="bg-white rounded-2xl border border-[#e8eaed] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-[#f8fafb]">
+                <tr>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Book</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Student</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Checkout Date</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Return Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="p-12 text-center text-gray-500">No returned books yet</td>
+                  </tr>
+                ) : (
+                  history.map((checkout) => (
+                    <tr key={checkout.id} className="border-t border-[#e8eaed]">
+                      <td className="p-4 font-medium text-[#191c1d]">{(checkout as any).books?.title}</td>
+                      <td className="p-4 text-[#191c1d]">{(checkout as any).students?.first_name} {(checkout as any).students?.last_name}</td>
+                      <td className="p-4 text-[#191c1d]">{new Date(checkout.checkout_date).toLocaleDateString()}</td>
+                      <td className="p-4 text-[#191c1d]">{checkout.return_date ? new Date(checkout.return_date).toLocaleDateString() : '—'}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {showAddBook && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowAddBook(false)}>
           <div className="bg-white rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
@@ -334,13 +438,67 @@ export default function LibraryPage() {
                   <input type="text" value={newBook.isbn} onChange={(e) => setNewBook({...newBook, isbn: e.target.value})} className="input" />
                 </div>
                 <div>
+                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Category</label>
+                  <input type="text" value={newBook.category} onChange={(e) => setNewBook({...newBook, category: e.target.value})} className="input" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
                   <label className="text-sm font-medium text-[#191c1d] mb-2 block">Copies</label>
                   <input type="number" value={newBook.copies} onChange={(e) => setNewBook({...newBook, copies: e.target.value})} className="input" min="1" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Location</label>
+                  <input type="text" value={newBook.location} onChange={(e) => setNewBook({...newBook, location: e.target.value})} className="input" />
                 </div>
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowAddBook(false)} className="btn btn-secondary flex-1">Cancel</button>
                 <button type="submit" className="btn btn-primary flex-1">Add Book</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showEditBook && editBookId && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => { setShowEditBook(false); setEditBookId(null) }}>
+          <div className="bg-white rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-[#e8eaed]">
+              <h2 className="text-lg font-semibold text-[#191c1d]">Edit Book</h2>
+            </div>
+            <form onSubmit={handleEditBook} className="p-6 space-y-4">
+              <div>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Title</label>
+                <input type="text" value={editBook.title} onChange={(e) => setEditBook({...editBook, title: e.target.value})} className="input" required />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Author</label>
+                <input type="text" value={editBook.author} onChange={(e) => setEditBook({...editBook, author: e.target.value})} className="input" required />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">ISBN</label>
+                  <input type="text" value={editBook.isbn} onChange={(e) => setEditBook({...editBook, isbn: e.target.value})} className="input" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Category</label>
+                  <input type="text" value={editBook.category} onChange={(e) => setEditBook({...editBook, category: e.target.value})} className="input" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Copies</label>
+                  <input type="number" value={editBook.copies} onChange={(e) => setEditBook({...editBook, copies: e.target.value})} className="input" min="1" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Location</label>
+                  <input type="text" value={editBook.location} onChange={(e) => setEditBook({...editBook, location: e.target.value})} className="input" />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => { setShowEditBook(false); setEditBookId(null) }} className="btn btn-secondary flex-1">Cancel</button>
+                <button type="submit" className="btn btn-primary flex-1">Save Changes</button>
               </div>
             </form>
           </div>
@@ -374,7 +532,7 @@ export default function LibraryPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-[#191c1d] mb-2 block">Due Date</label>
-                <input type="date" value={newCheckout.due_date} onChange={(e) => setNewCheckout({...newCheckout, due_date: e.target.value})} className="input" required />
+                <input type="date" value={newCheckout.due_date} onChange={(e) => setNewCheckout({...newCheckout, due_date: e.target.value})} className="input" required min={today} />
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowCheckout(false)} className="btn btn-secondary flex-1">Cancel</button>

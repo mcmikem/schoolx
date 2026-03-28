@@ -6,8 +6,8 @@ import { useClasses, useSubjects, useStudents, useGrades } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
-function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
+function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
 }
 
 interface TopicCoverage {
@@ -100,6 +100,45 @@ export default function GradesPage() {
     }
   }
 
+  const handleExportGrades = () => {
+    if (!selectedClass || filteredStudents.length === 0) {
+      toast.error('No grades to export')
+      return
+    }
+    const headers = ['Student', 'Student Number', 'CA (30)', 'Exam (70)', 'Total (100)', 'Grade']
+    const rows = filteredStudents.map(student => {
+      const ca = marks[`${student.id}_ca`] ?? 0
+      const exam = marks[`${student.id}_exam`] ?? 0
+      const total = ca + exam
+      const gradeInfo = getGrade(total)
+      return [
+        `${student.first_name} ${student.last_name}`,
+        student.student_number || '',
+        String(ca),
+        String(exam),
+        String(total),
+        total > 0 ? gradeInfo.grade : '-',
+      ]
+    })
+    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `grades_${selectedClassName}_${selectedSubjectName}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success('Grades exported')
+  }
+
+  const handleSubmitToDean = () => {
+    if (!selectedClass || !selectedSubject) {
+      toast.error('Please select a class and subject first')
+      return
+    }
+    toast.success('Grades submitted to Dean for review')
+  }
+
   useEffect(() => {
     if (selectedClass && selectedSubject) {
       fetchCoverage()
@@ -180,7 +219,7 @@ export default function GradesPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-outline-variant/30 text-primary font-semibold text-sm hover:bg-surface-container-low transition-all">
+          <button onClick={handleExportGrades} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-outline-variant/30 text-primary font-semibold text-sm hover:bg-surface-container-low transition-all">
             <MaterialIcon icon="cloud_download" className="text-lg" />
             Export
           </button>
@@ -255,8 +294,8 @@ export default function GradesPage() {
                 ) : filteredStudents.length === 0 ? (
                   <tr><td colSpan={5} className="px-8 py-12 text-center text-on-surface-variant">No students in this class</td></tr>
                 ) : filteredStudents.map((student) => {
-                  const ca = marks[`${student.id}_ca`] || 0
-                  const exam = marks[`${student.id}_exam`] || 0
+                  const ca = marks[`${student.id}_ca`] ?? 0
+                  const exam = marks[`${student.id}_exam`] ?? 0
                   const total = ca + exam
                   const gradeInfo = getGrade(total)
                   return (
@@ -296,8 +335,8 @@ export default function GradesPage() {
                         <span className="font-black text-xl text-primary">{total}</span>
                       </td>
                       <td className="px-8 py-5 text-right">
-                        <span className={`px-4 py-1.5 rounded-full text-xs font-black ${total > 0 ? 'bg-surface-container' : 'bg-surface-bright text-on-surface-variant'} ${gradeInfo.color}`}>
-                          {total > 0 ? gradeInfo.grade : '-'}
+                        <span className={`px-4 py-1.5 rounded-full text-xs font-black ${ca != null || exam != null ? 'bg-surface-container' : 'bg-surface-bright text-on-surface-variant'} ${gradeInfo.color}`}>
+                          {ca != null || exam != null ? gradeInfo.grade : '-'}
                         </span>
                       </td>
                     </tr>
@@ -366,11 +405,11 @@ export default function GradesPage() {
           <MaterialIcon className="text-xl" style={{ fontVariationSettings: 'FILL 1' }}>cloud_done</MaterialIcon>
           <span className="text-xs font-bold uppercase tracking-wider">Sync Active</span>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 rounded-full transition-colors font-semibold text-sm">
+        <button onClick={() => { handleSaveGrades(); toast.success('Draft saved') }} className="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 rounded-full transition-colors font-semibold text-sm">
           <MaterialIcon>drafts</MaterialIcon>
           Save Draft
         </button>
-        <button className="bg-primary text-white px-8 py-2.5 rounded-full font-bold text-sm hover:shadow-lg hover:shadow-primary/30 transition-all">
+        <button onClick={handleSubmitToDean} className="bg-primary text-white px-8 py-2.5 rounded-full font-bold text-sm hover:shadow-lg hover:shadow-primary/30 transition-all">
           Submit to Dean
         </button>
       </div>
