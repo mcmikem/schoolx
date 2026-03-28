@@ -1,5 +1,7 @@
 'use client'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { useAuth } from './auth-context'
+import { supabase } from './supabase'
 
 interface AcademicContextType {
   academicYear: string
@@ -11,6 +13,7 @@ interface AcademicContextType {
 const AcademicContext = createContext<AcademicContextType | undefined>(undefined)
 
 export function AcademicProvider({ children }: { children: ReactNode }) {
+  const { school } = useAuth()
   const [academicYear, setAcademicYearState] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('academic_year')
@@ -27,14 +30,58 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
     return 1
   })
 
-  const setAcademicYear = (year: string) => {
+  // Load from school settings on mount or when school changes
+  useEffect(() => {
+    if (!school?.id) return
+
+    const loadAcademicSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('school_settings')
+          .select('key, value')
+          .eq('school_id', school.id)
+          .in('key', ['current_term', 'academic_year'])
+        
+        if (error) {
+          // Table might not exist, use defaults
+          console.log('school_settings table not available, using defaults')
+          return
+        }
+        
+        if (data && data.length > 0) {
+          const settings = Object.fromEntries(data.map(s => [s.key, s.value]))
+          if (settings.academic_year && settings.academic_year !== academicYear) {
+            setAcademicYearState(settings.academic_year)
+            localStorage.setItem('academic_year', settings.academic_year)
+          }
+          if (settings.current_term && Number(settings.current_term) !== currentTerm) {
+            setCurrentTermState(Number(settings.current_term) as 1 | 2 | 3)
+            localStorage.setItem('current_term', settings.current_term)
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load academic settings', err)
+      }
+    }
+
+    loadAcademicSettings()
+  }, [school?.id])
+
+  // Save to DB when changed locally
+  const setAcademicYear = async (year: string) => {
     setAcademicYearState(year)
     localStorage.setItem('academic_year', year)
+    if (school?.id) {
+      await supabase.from('school_settings').upsert({ school_id: school.id, key: 'academic_year', value: year }, { onConflict: 'school_id,key' })
+    }
   }
 
-  const setCurrentTerm = (term: 1 | 2 | 3) => {
+  const setCurrentTerm = async (term: 1 | 2 | 3) => {
     setCurrentTermState(term)
     localStorage.setItem('current_term', term.toString())
+    if (school?.id) {
+      await supabase.from('school_settings').upsert({ school_id: school.id, key: 'current_term', value: term.toString() }, { onConflict: 'school_id,key' })
+    }
   }
 
   return (

@@ -1,13 +1,30 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables')
+const createMockClient = (): SupabaseClient => {
+  const mock = {
+    from: () => ({ select: () => ({ eq: () => ({ order: () => ({ data: [], error: null }) }), insert: () => ({ select: () => ({ data: null, error: null }) }), update: () => ({ eq: () => ({ data: null, error: null }) }), delete: () => ({ eq: () => ({ data: null, error: null }) }) }) }),
+    auth: {
+      signInWithPassword: async () => ({ data: { user: null, session: null }, error: null }),
+      signUp: async () => ({ data: { user: null, session: null }, error: null }),
+      signOut: async () => ({ error: null }),
+      getSession: async () => ({ data: { session: null }, error: null }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+    },
+    storage: {
+      from: () => ({ upload: async () => ({ data: null, error: null }), getPublicUrl: () => ({ data: { publicUrl: '' } }), createBucket: async () => ({ data: null, error: null }) }),
+    },
+  }
+  return mock as unknown as SupabaseClient
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+const realClient = (supabaseUrl && supabaseAnonKey) 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null
+
+export const supabase = realClient || createMockClient()
 
 
 export type Database = {

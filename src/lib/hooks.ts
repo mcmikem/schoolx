@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from './supabase'
 import { useAuth } from './auth-context'
+import { getDemoStudents, getDemoClasses, getDemoFeeStructure, getDemoPayments } from './demo-data'
 import type {
   School,
   User,
@@ -39,7 +40,7 @@ export function useSupabaseQuery<T>(
       setLoading(true)
       setError(null)
 
-      let query = supabase.from(table).select(options?.select || '*')
+      let query = supabase!.from(table).select(options?.select || '*')
 
       if (options?.filters) {
         Object.entries(options.filters).forEach(([key, value]) => {
@@ -87,7 +88,7 @@ export function useSupabaseMutation<T>(table: string) {
     try {
       setLoading(true)
       setError(null)
-      const { data: result, error: insertError } = await supabase
+      const { data: result, error: insertError } = await supabase!
         .from(table)
         .insert(data)
         .select()
@@ -107,7 +108,7 @@ export function useSupabaseMutation<T>(table: string) {
     try {
       setLoading(true)
       setError(null)
-      const { data: result, error: updateError } = await supabase
+      const { data: result, error: updateError } = await supabase!
         .from(table)
         .update(data)
         .eq('id', id)
@@ -144,88 +145,6 @@ export function useSupabaseMutation<T>(table: string) {
   }
 
   return { insert, update, remove, loading, error }
-}
-
-// Dashboard stats hook - Optimized for performance
-export function useDashboardStats(schoolId?: string) {
-  const [stats, setStats] = useState({
-    totalStudents: 0,
-    presentToday: 0,
-    feesCollected: 0,
-    feesBalance: 0,
-    totalClasses: 0,
-    totalTeachers: 0,
-  })
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    async function fetchStats() {
-      if (!schoolId) {
-        setLoading(false)
-        return
-      }
-
-      try {
-        setLoading(true)
-
-        // 1. Students count (optimized count only)
-        const { count: studentCount } = await supabase
-          .from('students')
-          .select('*', { count: 'exact', head: true })
-          .eq('school_id', schoolId)
-          .eq('status', 'active')
-
-        // 2. Classes count
-        const { count: classCount } = await supabase
-          .from('classes')
-          .select('*', { count: 'exact', head: true })
-          .eq('school_id', schoolId)
-
-        // 3. Today's attendance - using !inner join to filter by school_id
-        const today = new Date().toISOString().split('T')[0]
-        const { count: presentCount } = await supabase
-          .from('attendance')
-          .select('*, students!inner(school_id)', { count: 'exact', head: true })
-          .eq('students.school_id', schoolId)
-          .eq('date', today)
-          .eq('status', 'present')
-
-        // 4. Fees Collected - using !inner join for aggregation
-        const { data: payments } = await supabase
-          .from('fee_payments')
-          .select('amount_paid, students!inner(school_id)')
-          .eq('students.school_id', schoolId)
-
-        const totalCollected = payments?.reduce((sum, p) => sum + Number(p.amount_paid), 0) || 0
-
-        // 5. Total Expected Fees (from active students' class fee structures)
-        // We'll approximate this by summing fee structures for the school
-        const { data: feeStructure } = await supabase
-          .from('fee_structure')
-          .select('amount')
-          .eq('school_id', schoolId)
-
-        const totalExpected = feeStructure?.reduce((sum, f) => sum + Number(f.amount), 0) || 0
-
-        setStats({
-          totalStudents: studentCount || 0,
-          presentToday: presentCount || 0,
-          feesCollected: totalCollected,
-          feesBalance: Math.max(0, totalExpected - totalCollected),
-          totalClasses: classCount || 0,
-          totalTeachers: 0,
-        })
-      } catch (err) {
-        console.error('Error fetching stats:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchStats()
-  }, [schoolId])
-
-  return { stats, loading }
 }
 
 // Announcements/Notifications hook
@@ -296,10 +215,19 @@ export function useStudents(schoolId?: string) {
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { isDemo } = useAuth()
 
   const fetchStudents = useCallback(async () => {
     if (!schoolId) {
       setLoading(false)
+      return
+    }
+
+    // Demo mode: only for demo-school (check localStorage directly for reliability)
+    const isDemoMode = isDemo || localStorage.getItem('demo_user') !== null
+    if (isDemoMode && schoolId === 'demo-school') {
+      setLoading(false)
+      setStudents(getDemoStudents() as unknown as Student[])
       return
     }
 
@@ -326,7 +254,7 @@ export function useStudents(schoolId?: string) {
     } finally {
       setLoading(false)
     }
-  }, [schoolId])
+  }, [schoolId, isDemo])
 
   const createStudent = async (student: CreateStudentInput) => {
     try {
@@ -435,11 +363,20 @@ export function useStudent(id: string) {
 export function useClasses(schoolId?: string) {
   const [classes, setClasses] = useState<Class[]>([])
   const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
 
   useEffect(() => {
     async function fetchClasses() {
       if (!schoolId) {
         setLoading(false)
+        return
+      }
+
+      // Demo mode check
+      const isDemoMode = isDemo || localStorage.getItem('demo_user') !== null
+      if (isDemoMode && schoolId === 'demo-school') {
+        setLoading(false)
+        setClasses(getDemoClasses() as unknown as Class[])
         return
       }
 
@@ -461,7 +398,7 @@ export function useClasses(schoolId?: string) {
     }
 
     fetchClasses()
-  }, [schoolId])
+  }, [schoolId, isDemo])
 
   return { classes, loading }
 }
@@ -471,10 +408,19 @@ export function useFeePayments(schoolId?: string) {
   const [payments, setPayments] = useState<FeePayment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { isDemo } = useAuth()
 
   const fetchPayments = useCallback(async () => {
     if (!schoolId) {
       setLoading(false)
+      return
+    }
+
+    // Demo mode check
+    const isDemoMode = isDemo || localStorage.getItem('demo_user') !== null
+    if (isDemoMode && schoolId === 'demo-school') {
+      setLoading(false)
+      setPayments(getDemoPayments() as unknown as FeePayment[])
       return
     }
 
@@ -484,18 +430,17 @@ export function useFeePayments(schoolId?: string) {
         .from('fee_payments')
         .select(`
           *,
-          students (
+          students!inner (
             id,
             first_name,
             last_name,
+            school_id,
             classes (
               name
             )
           )
         `)
-        .in('student_id',
-          (await supabase.from('students').select('id').eq('school_id', schoolId)).data?.map(s => s.id) || []
-        )
+        .eq('students.school_id', schoolId)
         .order('payment_date', { ascending: false })
 
       if (fetchError) throw fetchError
@@ -506,9 +451,29 @@ export function useFeePayments(schoolId?: string) {
     } finally {
       setLoading(false)
     }
-  }, [schoolId])
+  }, [schoolId, isDemo])
 
   const createPayment = async (payment: CreatePaymentInput) => {
+    // Demo mode - add to local state
+    if (isDemo) {
+      const { getDemoStudents } = await import('@/lib/demo-data')
+      const students = getDemoStudents()
+      const student = students.find(s => s.id === payment.student_id)
+      const newPaymentRecord = {
+        ...payment,
+        id: `demo-pay-${Date.now()}`,
+        payment_date: new Date().toISOString().split('T')[0],
+        students: student ? { 
+          id: student.id, 
+          first_name: student.first_name, 
+          last_name: student.last_name,
+          classes: student.classes
+        } : null
+      }
+      setPayments((prev) => [newPaymentRecord as FeePayment, ...prev])
+      return newPaymentRecord as FeePayment
+    }
+
     try {
       const { data, error: insertError } = await supabase
         .from('fee_payments')
@@ -536,6 +501,11 @@ export function useFeePayments(schoolId?: string) {
   }
 
   const deletePayment = async (id: string) => {
+    // Demo mode
+    if (isDemo) {
+      setPayments((prev) => prev.filter((p) => p.id !== id))
+      return true
+    }
     try {
       const { error: deleteError } = await supabase
         .from('fee_payments')
@@ -561,10 +531,19 @@ export function useFeePayments(schoolId?: string) {
 export function useFeeStructure(schoolId?: string) {
   const [feeStructure, setFeeStructure] = useState<FeeStructure[]>([])
   const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
 
   const fetchFeeStructure = useCallback(async () => {
     if (!schoolId) {
       setLoading(false)
+      return
+    }
+
+    // Demo mode check
+    const isDemoMode = isDemo || localStorage.getItem('demo_user') !== null
+    if (isDemoMode && schoolId === 'demo-school') {
+      setLoading(false)
+      setFeeStructure(getDemoFeeStructure() as unknown as FeeStructure[])
       return
     }
 
@@ -588,7 +567,7 @@ export function useFeeStructure(schoolId?: string) {
     } finally {
       setLoading(false)
     }
-  }, [schoolId])
+  }, [schoolId, isDemo])
 
   const deleteFeeStructure = async (id: string) => {
     try {
@@ -615,8 +594,31 @@ export function useFeeStructure(schoolId?: string) {
 export function useAttendance(classId?: string, date?: string) {
   const [attendance, setAttendance] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
 
   const markAttendance = async (studentId: string, status: string, recordedBy?: string) => {
+    // Demo mode - just add to local state
+    if (isDemo) {
+      const newRecord = {
+        id: `demo-att-${Date.now()}`,
+        student_id: studentId,
+        class_id: classId,
+        date: date || new Date().toISOString().split('T')[0],
+        status,
+        recorded_by: recordedBy,
+      }
+      setAttendance((prev) => {
+        const existing = prev.findIndex((a) => a.student_id === studentId)
+        if (existing >= 0) {
+          const updated = [...prev]
+          updated[existing] = newRecord
+          return updated
+        }
+        return [...prev, newRecord]
+      })
+      return newRecord
+    }
+
     try {
       const { data, error } = await supabase
         .from('attendance')
@@ -653,6 +655,20 @@ export function useAttendance(classId?: string, date?: string) {
         return
       }
 
+      // Demo mode - only for demo accounts
+      if (isDemo) {
+        const { getDemoAttendance } = await import('@/lib/demo-data')
+        const demoAtt = getDemoAttendance(classId, date)
+        // Map to match expected format
+        const mapped = demoAtt.map(a => ({
+          ...a,
+          students: { id: a.student_id }
+        }))
+        setAttendance(mapped)
+        setLoading(false)
+        return
+      }
+
       try {
         setLoading(true)
         const { data, error } = await supabase
@@ -671,7 +687,7 @@ export function useAttendance(classId?: string, date?: string) {
     }
 
     fetchAttendance()
-  }, [classId, date])
+  }, [classId, date, isDemo])
 
   return { attendance, loading, markAttendance }
 }
@@ -680,6 +696,7 @@ export function useAttendance(classId?: string, date?: string) {
 export function useGrades(classId?: string, subjectId?: string, term?: number, academicYear?: string) {
   const [grades, setGrades] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
 
   const saveGrade = async (grade: {
     student_id: string
@@ -691,6 +708,30 @@ export function useGrades(classId?: string, subjectId?: string, term?: number, a
     academic_year: string
     recorded_by?: string
   }) => {
+    // Demo mode
+    if (isDemo) {
+      const newGrade = {
+        ...grade,
+        id: `demo-grade-${Date.now()}`,
+        max_score: 100,
+      }
+      setGrades((prev) => {
+        const existing = prev.findIndex(
+          (g) =>
+            g.student_id === grade.student_id &&
+            g.subject_id === grade.subject_id &&
+            g.assessment_type === grade.assessment_type
+        )
+        if (existing >= 0) {
+          const updated = [...prev]
+          updated[existing] = newGrade
+          return updated
+        }
+        return [...prev, newGrade]
+      })
+      return newGrade
+    }
+
     try {
       const { data, error } = await supabase
         .from('grades')
@@ -722,6 +763,21 @@ export function useGrades(classId?: string, subjectId?: string, term?: number, a
   useEffect(() => {
     async function fetchGrades() {
       if (!classId) {
+        setLoading(false)
+        return
+      }
+
+      // Demo mode - get demo grades
+      if (isDemo) {
+        const { getDemoGrades, getDemoStudents } = await import('@/lib/demo-data')
+        const demoGrades = getDemoGrades(classId, subjectId)
+        const students = getDemoStudents()
+        const mapped = demoGrades.map(g => ({
+          ...g,
+          students: students.find(s => s.id === g.student_id),
+          subjects: { id: g.subject_id, name: 'Subject' }
+        }))
+        setGrades(mapped)
         setLoading(false)
         return
       }
@@ -761,20 +817,36 @@ export function useGrades(classId?: string, subjectId?: string, term?: number, a
     }
 
     fetchGrades()
-  }, [classId, subjectId, term, academicYear])
+  }, [classId, subjectId, term, academicYear, isDemo])
 
   return { grades, loading, saveGrade }
 }
 
 // Subjects hook
-export function useSubjects(schoolId?: string) {
+export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
   const [subjects, setSubjects] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
 
   useEffect(() => {
     async function fetchSubjects() {
       if (!schoolId) {
         setLoading(false)
+        return
+      }
+
+      // Demo mode - return curriculum subjects
+      if (isDemo) {
+        setLoading(false)
+        const { getDefaultSubjects } = await import('@/lib/curriculum')
+        const demoSubjects = getDefaultSubjects('primary').map(s => ({
+          id: s.id,
+          name: s.name,
+          code: s.code,
+          level: s.level,
+          is_compulsory: s.is_compulsory,
+        }))
+        setSubjects(demoSubjects)
         return
       }
 
@@ -787,7 +859,33 @@ export function useSubjects(schoolId?: string) {
           .order('name')
 
         if (error) throw error
-        setSubjects(data || [])
+
+        let currentSubjects = data || []
+
+        // Auto-seed basic subjects if none exist
+        if (currentSubjects.length === 0 && autoSeed) {
+          const { getDefaultSubjects } = await import('@/lib/curriculum')
+          const defaultSubjects = getDefaultSubjects('primary')
+          
+          const seeds = defaultSubjects.map(s => ({ 
+            name: s.name, 
+            code: s.code, 
+            level: s.level, 
+            is_compulsory: s.is_compulsory,
+            school_id: schoolId 
+          }))
+          
+          const { data: inserted, error: insertError } = await supabase
+            .from('subjects')
+            .insert(seeds)
+            .select()
+
+          if (!insertError && inserted) {
+            currentSubjects = inserted.sort((a, b) => a.name.localeCompare(b.name))
+          }
+        }
+
+        setSubjects(currentSubjects)
       } catch (err) {
         console.error('Error fetching subjects:', err)
       } finally {
@@ -796,7 +894,7 @@ export function useSubjects(schoolId?: string) {
     }
 
     fetchSubjects()
-  }, [schoolId])
+  }, [schoolId, autoSeed, isDemo])
 
   return { subjects, loading }
 }
@@ -870,7 +968,7 @@ export function useAnalytics(schoolId?: string) {
         })
 
         // Fetch class names for mapping
-        const { data: classes } = await supabase.from('classes').select('id, name').eq('school_id', schoolId)
+        const { data: classes } = await supabase!.from('classes').select('id, name').eq('school_id', schoolId)
         const classNameMap = classes?.reduce((acc: any, c: any) => ({ ...acc, [c.id]: c.name }), {})
 
         const classPerformance = Object.keys(classMap).map(id => ({
@@ -881,7 +979,7 @@ export function useAnalytics(schoolId?: string) {
         }))
 
         // Fetch subject names for mapping
-        const { data: subjects } = await supabase.from('subjects').select('id, name').eq('school_id', schoolId)
+        const { data: subjects } = await supabase!.from('subjects').select('id, name').eq('school_id', schoolId)
         const subjectNameMap = subjects?.reduce((acc: any, s: any) => ({ ...acc, [s.id]: s.name }), {})
 
         const subjectPerformance = Object.keys(subjectMap).map(id => ({
@@ -922,7 +1020,7 @@ export function useAnalytics(schoolId?: string) {
         })
 
         // Approximate expected fees (sum of all fee structures * students)
-        const { data: feeStructure } = await supabase.from('fee_structure').select('amount').eq('school_id', schoolId)
+        const { data: feeStructure } = await supabase!.from('fee_structure').select('amount').eq('school_id', schoolId)
         const totalExpectedPerStudent = feeStructure?.reduce((sum, f) => sum + Number(f.amount), 0) || 0
         const monthlyExpected = totalExpectedPerStudent * (students?.length || 1) / 3 // Roughly per term month
 
@@ -1038,7 +1136,7 @@ export function useTimetable(classId?: string) {
 
   const deleteEntry = async (id: string) => {
     try {
-      const { error } = await supabase.from('timetable').delete().eq('id', id)
+      const { error } = await supabase!.from('timetable').delete().eq('id', id)
       if (error) throw error
       setTimetable(prev => prev.filter(t => t.id !== id))
     } catch (err: any) {
@@ -1047,4 +1145,503 @@ export function useTimetable(classId?: string) {
   }
 
   return { timetable, loading, saveEntry, deleteEntry }
+}
+
+// Staff hook - get all staff for a school
+export function useStaff(schoolId?: string) {
+  const [staff, setStaff] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
+
+  useEffect(() => {
+    async function fetchStaff() {
+      if (!schoolId) {
+        setLoading(false)
+        return
+      }
+
+      // Demo mode
+      if (isDemo) {
+        setLoading(false)
+        const { getDemoStaff } = await import('@/lib/demo-data')
+        setStaff(getDemoStaff())
+        return
+      }
+
+      try {
+        setLoading(true)
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('school_id', schoolId)
+          .eq('is_active', true)
+          .order('full_name')
+
+        if (error) throw error
+        setStaff(data || [])
+      } catch (err) {
+        console.error('Error fetching staff:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStaff()
+  }, [schoolId, isDemo])
+
+  return { staff, loading }
+}
+
+// Events hook
+export function useEvents(schoolId?: string) {
+  const [events, setEvents] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
+
+  useEffect(() => {
+    async function fetchEvents() {
+      if (!schoolId) {
+        setLoading(false)
+        return
+      }
+
+      // Demo mode
+      if (isDemo) {
+        setLoading(false)
+        const { getDemoEvents } = await import('@/lib/demo-data')
+        setEvents(getDemoEvents())
+        return
+      }
+
+      try {
+        setLoading(true)
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .eq('school_id', schoolId)
+          .order('start_date', { ascending: true })
+
+        if (error) throw error
+        setEvents(data || [])
+      } catch (err) {
+        console.error('Error fetching events:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchEvents()
+  }, [schoolId, isDemo])
+
+  return { events, loading }
+}
+
+// Messages hook
+export function useMessages(schoolId?: string) {
+  const [messages, setMessages] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
+
+  useEffect(() => {
+    async function fetchMessages() {
+      if (!schoolId) {
+        setLoading(false)
+        return
+      }
+
+      // Demo mode
+      if (isDemo) {
+        setLoading(false)
+        const { getDemoMessages } = await import('@/lib/demo-data')
+        setMessages(getDemoMessages())
+        return
+      }
+
+      try {
+        setLoading(true)
+        const { data, error } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('school_id', schoolId)
+          .order('created_at', { ascending: false })
+          .limit(50)
+
+        if (error) throw error
+        setMessages(data || [])
+      } catch (err) {
+        console.error('Error fetching messages:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchMessages()
+  }, [schoolId, isDemo])
+
+  return { messages, loading }
+}
+
+// Dashboard Stats - enhanced for demo
+export function useDashboardStats(schoolId?: string) {
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    presentToday: 0,
+    feesCollected: 0,
+    feesBalance: 0,
+    totalClasses: 0,
+    totalTeachers: 0,
+  })
+  const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
+
+  useEffect(() => {
+    async function fetchStats() {
+      if (!schoolId) {
+        setLoading(false)
+        return
+      }
+
+      // Demo mode check
+      const isDemoMode = isDemo || localStorage.getItem('demo_user') !== null
+      if (isDemoMode && schoolId === 'demo-school') {
+        setLoading(false)
+        const { getDemoStats, getDemoStudents, getDemoPayments, getDemoFeeStructure, getDemoClasses } = await import('@/lib/demo-data')
+        const demoStats = getDemoStats()
+        const students = getDemoStudents()
+        const payments = getDemoPayments()
+        const feeStructure = getDemoFeeStructure()
+        const classes = getDemoClasses()
+        
+        const totalExpected = feeStructure.reduce((sum, f) => sum + Number(f.amount || 0), 0)
+        const totalCollected = payments.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0)
+        
+        setStats({
+          totalStudents: demoStats.totalStudents,
+          presentToday: Math.floor(demoStats.totalStudents * 0.85),
+          feesCollected: totalCollected,
+          feesBalance: Math.max(0, totalExpected - totalCollected),
+          totalClasses: demoStats.totalClasses,
+          totalTeachers: demoStats.totalStaff,
+        })
+        return
+      }
+
+      try {
+        setLoading(true)
+
+        const { count: studentCount } = await supabase
+          .from('students')
+          .select('*', { count: 'exact', head: true })
+          .eq('school_id', schoolId)
+          .eq('status', 'active')
+
+        const { count: classCount } = await supabase
+          .from('classes')
+          .select('*', { count: 'exact', head: true })
+          .eq('school_id', schoolId)
+
+        const { count: teacherCount } = await supabase
+          .from('users')
+          .select('*', { count: 'exact', head: true })
+          .eq('school_id', schoolId)
+          .eq('role', 'teacher')
+
+        const today = new Date().toISOString().split('T')[0]
+        const { count: presentCount } = await supabase
+          .from('attendance')
+          .select('*, students!inner(school_id)', { count: 'exact', head: true })
+          .eq('students.school_id', schoolId)
+          .eq('date', today)
+          .eq('status', 'present')
+
+        const { data: payments } = await supabase
+          .from('fee_payments')
+          .select('amount_paid, students!inner(school_id)')
+          .eq('students.school_id', schoolId)
+
+        const totalCollected = payments?.reduce((sum, p) => sum + Number(p.amount_paid), 0) || 0
+
+        const { data: feeStructure } = await supabase
+          .from('fee_structure')
+          .select('amount')
+          .eq('school_id', schoolId)
+
+        const totalExpected = feeStructure?.reduce((sum, f) => sum + Number(f.amount), 0) || 0
+
+        setStats({
+          totalStudents: studentCount || 0,
+          presentToday: presentCount || 0,
+          feesCollected: totalCollected,
+          feesBalance: Math.max(0, totalExpected - totalCollected),
+          totalClasses: classCount || 0,
+          totalTeachers: teacherCount || 0,
+        })
+      } catch (err) {
+        console.error('Error fetching stats:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStats()
+  }, [schoolId, isDemo])
+
+  return { stats, loading }
+}
+
+// Exam scores hook - for secondary school exams (BOT, EOT, Mid Term, Saturday Tests)
+export function useExamScores(classId?: string, subjectId?: string, term?: number, academicYear?: string) {
+  const [examScores, setExamScores] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
+
+  const saveExamScore = async (score: {
+    student_id: string
+    subject_id: string
+    class_id: string
+    exam_type: string  // bot, mid_term, saturday, eot, class_test
+    score: number
+    max_score?: number
+    term: number
+    academic_year: string
+    recorded_by?: string
+  }) => {
+    if (isDemo) {
+      const newScore = { ...score, id: `demo-exam-${Date.now()}`, max_score: score.max_score || 100 }
+      setExamScores(prev => {
+        const existing = prev.findIndex(s => 
+          s.student_id === score.student_id && 
+          s.subject_id === score.subject_id && 
+          s.exam_type === score.exam_type
+        )
+        if (existing >= 0) {
+          const updated = [...prev]
+          updated[existing] = newScore
+          return updated
+        }
+        return [...prev, newScore]
+      })
+      return newScore
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('exam_scores')
+        .upsert({
+          student_id: score.student_id,
+          subject_id: score.subject_id,
+          class_id: score.class_id,
+          exam_type: score.exam_type,
+          score: score.score,
+          max_score: score.max_score || 100,
+          term: score.term,
+          academic_year: score.academic_year,
+          recorded_by: score.recorded_by,
+        }, { onConflict: 'student_id,subject_id,exam_type,term,academic_year' })
+        .select()
+        .single()
+
+      if (error) throw error
+      setExamScores(prev => {
+        const existing = prev.findIndex(s => 
+          s.student_id === score.student_id && 
+          s.subject_id === score.subject_id && 
+          s.exam_type === score.exam_type
+        )
+        if (existing >= 0) {
+          const updated = [...prev]
+          updated[existing] = data
+          return updated
+        }
+        return [...prev, data]
+      })
+      return data
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  const deleteExamScore = async (id: string) => {
+    if (isDemo) {
+      setExamScores(prev => prev.filter(s => s.id !== id))
+      return
+    }
+
+    try {
+      const { error } = await supabase.from('exam_scores').delete().eq('id', id)
+      if (error) throw error
+      setExamScores(prev => prev.filter(s => s.id !== id))
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  useEffect(() => {
+    async function fetchExamScores() {
+      if (!classId) {
+        setLoading(false)
+        return
+      }
+
+      if (isDemo) {
+        const { getDemoStudents } = await import('@/lib/demo-data')
+        const students = getDemoStudents()
+        const demoScores = students.slice(0, 10).map(s => ({
+          id: `demo-exam-${s.id}`,
+          student_id: s.id,
+          subject_id: subjectId || 'demo-subject',
+          class_id: classId,
+          exam_type: 'eot',
+          score: Math.floor(Math.random() * 40) + 60,
+          max_score: 100,
+          term: term || 1,
+          academic_year: academicYear || '2026',
+        }))
+        setExamScores(demoScores)
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        let query = supabase
+          .from('exam_scores')
+          .select(`
+            *,
+            students (id, first_name, last_name),
+            subjects (id, name, code)
+          `)
+          .eq('class_id', classId)
+
+        if (subjectId) query = query.eq('subject_id', subjectId)
+        if (term) query = query.eq('term', term)
+        if (academicYear) query = query.eq('academic_year', academicYear)
+
+        const { data, error } = await query
+
+        if (error) {
+          if (error.code === '42P01') {
+            console.warn('exam_scores table does not exist yet')
+            setExamScores([])
+            setLoading(false)
+            return
+          }
+          throw error
+        }
+        setExamScores(data || [])
+      } catch (err) {
+        console.error('Error fetching exam scores:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchExamScores()
+  }, [classId, subjectId, term, academicYear, isDemo])
+
+  return { examScores, loading, saveExamScore, deleteExamScore }
+}
+
+// Get all exams for a school
+export function useExams(schoolId?: string) {
+  const [exams, setExams] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
+
+  const createExam = async (exam: {
+    name: string
+    exam_type: string
+    class_id: string
+    subject_id: string
+    term: number
+    academic_year: string
+    exam_date: string
+    max_score: number
+    weight: number
+  }) => {
+    if (isDemo) {
+      const newExam = { ...exam, id: `demo-exam-${Date.now()}`, school_id: 'demo-school' }
+      setExams(prev => [newExam, ...prev])
+      return newExam
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('exams')
+        .insert({ ...exam, school_id: schoolId })
+        .select()
+        .single()
+
+      if (error) throw error
+      setExams(prev => [data, ...prev])
+      return data
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  const deleteExam = async (id: string) => {
+    if (isDemo) {
+      setExams(prev => prev.filter(e => e.id !== id))
+      return
+    }
+
+    try {
+      const { error } = await supabase.from('exams').delete().eq('id', id)
+      if (error) throw error
+      setExams(prev => prev.filter(e => e.id !== id))
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
+  useEffect(() => {
+    async function fetchExams() {
+      if (!schoolId) {
+        setLoading(false)
+        return
+      }
+
+      if (isDemo) {
+        setExams([
+          { id: '1', name: 'End of Term 1', exam_type: 'eot', term: 1, academic_year: '2026', exam_date: '2026-04-01', max_score: 100, weight: 50 },
+          { id: '2', name: 'Mid Term 1', exam_type: 'mid_term', term: 1, academic_year: '2026', exam_date: '2026-02-15', max_score: 100, weight: 20 },
+        ])
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        const { data, error } = await supabase
+          .from('exams')
+          .select(`
+            *,
+            classes (name),
+            subjects (name)
+          `)
+          .eq('school_id', schoolId)
+          .order('exam_date', { ascending: false })
+
+        if (error) {
+          if (error.code === '42P01') {
+            console.warn('exams table does not exist yet')
+            setExams([])
+            setLoading(false)
+            return
+          }
+          throw error
+        }
+        setExams(data || [])
+      } catch (err) {
+        console.error('Error fetching exams:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchExams()
+  }, [schoolId, isDemo])
+
+  return { exams, loading, createExam, deleteExam }
 }

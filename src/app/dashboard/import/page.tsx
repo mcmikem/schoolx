@@ -16,11 +16,22 @@ interface ImportResult {
 export default function ImportPage() {
   const { user } = useAuth()
   const toast = useToast()
+  
+  const [activeTab, setActiveTab] = useState<'upload' | 'ai_paste'>('ai_paste')
+  
+  // File state
   const [file, setFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // AI Paste state
+  const [rawText, setRawText] = useState('')
+  const [analyzing, setAnalyzing] = useState(false)
+  
+  // Shared state
   const [preview, setPreview] = useState<any[]>([])
+  const [mappedData, setMappedData] = useState<any[]>([])
   const [importing, setImporting] = useState(false)
   const [result, setResult] = useState<ImportResult | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
@@ -28,6 +39,7 @@ export default function ImportPage() {
 
     setFile(selectedFile)
     setResult(null)
+    setRawText('')
 
     try {
       const XLSX = await import('xlsx')
@@ -35,26 +47,9 @@ export default function ImportPage() {
       const workbook = XLSX.read(data)
       const sheetName = workbook.SheetNames[0]
       const sheet = workbook.Sheets[sheetName]
-      const jsonData = XLSX.utils.sheet_to_json(sheet)
-      setPreview(jsonData.slice(0, 10))
-    } catch (err) {
-      toast.error('Failed to read file')
-    }
-  }
-
-  const handleImport = async () => {
-    if (!file) return
-
-    setImporting(true)
-    try {
-      const XLSX = await import('xlsx')
-      const data = await file.arrayBuffer()
-      const workbook = XLSX.read(data)
-      const sheetName = workbook.SheetNames[0]
-      const sheet = workbook.Sheets[sheetName]
       const allStudents = XLSX.utils.sheet_to_json(sheet)
-
-      const mappedStudents = allStudents.map((row: any) => ({
+      
+      const mapped = allStudents.map((row: any) => ({
         first_name: row['First Name'] || row['first_name'] || '',
         last_name: row['Last Name'] || row['last_name'] || '',
         gender: row['Gender'] || row['gender'] || '',
@@ -67,6 +62,52 @@ export default function ImportPage() {
         ple_index_number: row['PLE Index'] || row['ple_index_number'] || row['PLE'] || '',
       }))
 
+      setMappedData(mapped)
+      setPreview(mapped.slice(0, 10))
+    } catch (err) {
+      toast.error('Failed to read file')
+    }
+  }
+
+  const handleAIAnalysis = async () => {
+    if (!rawText.trim()) {
+      toast.error('Please paste some text first')
+      return
+    }
+
+    setAnalyzing(true)
+    setResult(null)
+    setFile(null)
+
+    try {
+      const response = await fetch('/api/parse-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rawText })
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to parse text')
+      }
+
+      const students = data.data?.students || []
+      setMappedData(students)
+      setPreview(students.slice(0, 10))
+      toast.success(`Successfully extracted \${students.length} students`)
+    } catch (error: any) {
+      toast.error(error.message || 'Analysis failed')
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
+  const handleImport = async () => {
+    if (mappedData.length === 0) return
+
+    setImporting(true)
+    try {
       if (!user?.school_id) {
         throw new Error('No school associated with your account')
       }
@@ -75,7 +116,7 @@ export default function ImportPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          students: mappedStudents,
+          students: mappedData,
           schoolId: user.school_id,
         }),
       })
@@ -84,7 +125,7 @@ export default function ImportPage() {
       setResult(importResult)
       
       if (importResult.success > 0) {
-        toast.success(`Imported ${importResult.success} students`)
+        toast.success(`Imported \${importResult.success} students`)
       }
     } catch (error: any) {
       setResult({ success: 0, failed: 0, errors: [error.message] })
@@ -105,22 +146,10 @@ export default function ImportPage() {
         'Parent Name': 'James Nakato',
         'Parent Phone': '0701234567',
         'Parent Phone 2': '0702345678',
-        'Class': 'P.5A',
+        'Class': 'P.5',
         'Student Number': '',
         'PLE Index': '',
-      },
-      {
-        'First Name': 'Peter',
-        'Last Name': 'Okello',
-        'Gender': 'M',
-        'Date of Birth': '2014-06-20',
-        'Parent Name': 'Joseph Okello',
-        'Parent Phone': '0703456789',
-        'Parent Phone 2': '',
-        'Class': 'P.5A',
-        'Student Number': '',
-        'PLE Index': '',
-      },
+      }
     ]
 
     const ws = XLSX.utils.json_to_sheet(templateData)
@@ -131,86 +160,148 @@ export default function ImportPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[#002045]">Import Students</h1>
-        <p className="text-[#5c6670] mt-1">Upload a spreadsheet to add students in bulk</p>
+        <p className="text-[#5c6670] mt-1">Add students using AI smart paste or file upload</p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="font-semibold text-[#191c1d]">Download Template</h2>
-            <p className="text-sm text-[#5c6670] mt-1">Use our template for best results when importing students</p>
-          </div>
-          <button onClick={downloadTemplate} className="btn btn-secondary">
-            <MaterialIcon icon="download" className="text-lg" />
-            Download Template
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-2 mb-6 overflow-x-auto">
+        <div className="flex gap-2 min-w-max">
+          <button
+            onClick={() => { setActiveTab('ai_paste'); setPreview([]); setMappedData([]); }}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all \${
+              activeTab === 'ai_paste' 
+                ? 'bg-[#002045] text-white shadow-md' 
+                : 'text-[#5c6670] hover:bg-[#f8fafb]'
+            }`}
+          >
+            <MaterialIcon icon="smart_toy" className="text-lg" />
+            AI Smart Paste
+          </button>
+          <button
+            onClick={() => { setActiveTab('upload'); setPreview([]); setMappedData([]); }}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all \${
+              activeTab === 'upload' 
+                ? 'bg-[#002045] text-white shadow-md' 
+                : 'text-[#5c6670] hover:bg-[#f8fafb]'
+            }`}
+          >
+            <MaterialIcon icon="upload_file" className="text-lg" />
+            File Upload
           </button>
         </div>
       </div>
 
-      <div
-        onClick={() => fileInputRef.current?.click()}
-        className="bg-white rounded-2xl border-2 border-dashed border-[#e8eaed] hover:border-[#002045] cursor-pointer transition-all mb-6 p-8 text-center"
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".xlsx,.xls,.csv"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
-        <div className="w-16 h-16 bg-[#e3f2fd] rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <MaterialIcon icon="upload_file" className="text-3xl text-[#002045]" />
+      {activeTab === 'ai_paste' ? (
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 mb-6">
+          <div className="mb-4">
+            <h2 className="font-semibold text-[#191c1d] flex items-center gap-2">
+              <MaterialIcon icon="auto_awesome" className="text-primary" />
+              Paste Data Automatically
+            </h2>
+            <p className="text-sm text-[#5c6670] mt-1">
+              Copied a messy table from Excel, Word, or an email? Paste it here and our AI will automatically structure it into valid student records.
+            </p>
+          </div>
+          <textarea
+            value={rawText}
+            onChange={(e) => setRawText(e.target.value)}
+            className="w-full h-48 p-4 bg-[#f8fafb] border border-[#e8eaed] rounded-xl focus:ring-2 focus:ring-[#002045] focus:border-[#002045] outline-none resize-none mb-4"
+            placeholder="John Doe M P.3 0701234567\nJane Smith Female S.4 0771234567..."
+          />
+          <button 
+            onClick={handleAIAnalysis} 
+            disabled={analyzing || !rawText.trim()}
+            className="btn btn-primary"
+          >
+            <MaterialIcon icon="psychology" className="text-lg" />
+            {analyzing ? 'Analyzing with AI...' : 'Analyze Data'}
+          </button>
         </div>
-        <p className="text-[#191c1d] font-medium mb-2">
-          {file ? file.name : 'Click to upload or drag and drop'}
-        </p>
-        <p className="text-sm text-[#5c6670]">Excel or CSV file</p>
-      </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="font-semibold text-[#191c1d]">Download Template</h2>
+                <p className="text-sm text-[#5c6670] mt-1">Use our template for best results when importing students</p>
+              </div>
+              <button onClick={downloadTemplate} className="btn btn-secondary">
+                <MaterialIcon icon="download" className="text-lg" />
+                Template
+              </button>
+            </div>
+          </div>
+
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="bg-white rounded-2xl border-2 border-dashed border-[#e8eaed] hover:border-[#002045] cursor-pointer transition-all p-8 text-center"
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            <div className="w-16 h-16 bg-[#e3f2fd] rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <MaterialIcon icon="upload_file" className="text-3xl text-[#002045]" />
+            </div>
+            <p className="text-[#191c1d] font-medium mb-2">
+              {file ? file.name : 'Click to upload or drag and drop'}
+            </p>
+            <p className="text-sm text-[#5c6670]">Excel or CSV file</p>
+          </div>
+        </div>
+      )}
 
       {preview.length > 0 && (
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 mb-6">
-          <h2 className="font-semibold text-[#191c1d] mb-4">Preview</h2>
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 mb-6 mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-[#191c1d]">Review Data Preview</h2>
+            <span className="px-3 py-1 bg-blue-50 text-blue-700 text-sm font-medium rounded-lg">
+              {mappedData.length} records ready
+            </span>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-[#f8fafb]">
                 <tr>
-                  <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Name</th>
+                  <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">First Name</th>
+                  <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Last Name</th>
                   <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Gender</th>
-                  <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Parent</th>
-                  <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Phone</th>
                   <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Class</th>
+                  <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Parent Phone</th>
                 </tr>
               </thead>
               <tbody>
                 {preview.map((row: any, i) => (
                   <tr key={i} className="border-t border-[#e8eaed]">
-                    <td className="p-3 font-medium text-[#191c1d]">{row['First Name'] || row['first_name'] || ''} {row['Last Name'] || row['last_name'] || ''}</td>
-                    <td className="p-3 text-[#5c6670]">{row['Gender'] || row['gender'] || ''}</td>
-                    <td className="p-3 text-[#5c6670]">{row['Parent Name'] || row['parent_name'] || ''}</td>
-                    <td className="p-3 text-[#5c6670]">{row['Parent Phone'] || row['parent_phone'] || ''}</td>
-                    <td className="p-3 text-[#5c6670]">{row['Class'] || row['class_name'] || ''}</td>
+                    <td className="p-3 font-medium text-[#191c1d]">{row.first_name || ''}</td>
+                    <td className="p-3 font-medium text-[#191c1d]">{row.last_name || ''}</td>
+                    <td className="p-3 text-[#5c6670]">{row.gender || ''}</td>
+                    <td className="p-3 text-[#5c6670] font-medium">{row.class_name || ''}</td>
+                    <td className="p-3 text-[#5c6670]">{row.parent_phone || ''}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <p className="text-sm text-[#5c6670] mt-4">
-            Showing first {preview.length} rows
+            Showing first {preview.length} of {mappedData.length} rows to import.
           </p>
         </div>
       )}
 
-      {file && (
+      {mappedData.length > 0 && (
         <button 
           onClick={handleImport} 
           disabled={importing}
-          className="btn btn-primary w-full mb-6"
+          className="btn btn-primary w-full mb-6 py-4 text-lg"
         >
-          <MaterialIcon icon="upload" className="text-lg" />
-          {importing ? 'Importing...' : 'Import Students'}
+          <MaterialIcon icon="database" className="text-xl" />
+          {importing ? 'Saving to Database...' : `Confirm & Import \${mappedData.length} Students`}
         </button>
       )}
 
@@ -220,17 +311,17 @@ export default function ImportPage() {
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="text-center p-4 bg-[#e8f5e9] rounded-xl">
               <div className="text-2xl font-bold text-[#006e1c]">{result.success}</div>
-              <div className="text-sm text-[#5c6670]">Successful</div>
+              <div className="text-sm text-[#5c6670]">Successful Inserts</div>
             </div>
             <div className="text-center p-4 bg-[#fef2f2] rounded-xl">
               <div className="text-2xl font-bold text-[#ba1a1a]">{result.failed}</div>
-              <div className="text-sm text-[#5c6670]">Failed</div>
+              <div className="text-sm text-[#5c6670]">Failed Inserts</div>
             </div>
           </div>
           {result.errors.length > 0 && (
             <div className="p-4 bg-[#fef2f2] rounded-xl">
-              <p className="text-sm font-medium text-[#ba1a1a] mb-2">Errors:</p>
-              <ul className="text-sm text-[#5c6670] space-y-1">
+              <p className="text-sm font-medium text-[#ba1a1a] mb-2">Errors details (check class names exist):</p>
+              <ul className="text-sm text-[#5c6670] space-y-1 max-h-40 overflow-y-auto">
                 {result.errors.map((err, i) => (
                   <li key={i}>{err}</li>
                 ))}

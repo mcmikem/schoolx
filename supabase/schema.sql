@@ -437,3 +437,243 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+-- ============================================
+-- STORAGE BUCKETS SETUP
+-- ============================================
+
+-- Create storage bucket for school logos
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'school-logos',
+    'school-logos',
+    true,
+    5242880,
+    ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+) ON CONFLICT (id) DO NOTHING;
+
+-- Create policy for authenticated users to upload school logos
+CREATE POLICY IF NOT EXISTS "Allow authenticated users to upload school logos"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'school-logos');
+
+-- Create policy for authenticated users to update school logos
+CREATE POLICY IF NOT EXISTS "Allow authenticated users to update school logos"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (bucket_id = 'school-logos');
+
+-- Create policy for anyone to view school logos (for receipt printing)
+CREATE POLICY IF NOT EXISTS "Allow public to view school logos"
+ON storage.objects FOR SELECT
+TO public
+USING (bucket_id = 'school-logos');
+
+-- Create policy for authenticated users to delete school logos
+CREATE POLICY IF NOT EXISTS "Authenticated can delete school logos"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (bucket_id = 'school-logos');
+
+-- ============================================
+-- DORMITORY TABLES
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS dorms (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    type TEXT CHECK (type IN ('boys', 'girls')) NOT NULL,
+    capacity INTEGER DEFAULT 30,
+    location TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS dorm_students (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    dorm_id UUID NOT NULL REFERENCES dorms(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    bed_number TEXT,
+    assigned_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(dorm_id, student_id)
+);
+
+-- ============================================
+-- HOMEWORK TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS homework (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    description TEXT,
+    subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
+    class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
+    due_date DATE NOT NULL,
+    marks INTEGER DEFAULT 10,
+    academic_year TEXT,
+    term INTEGER,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Homework submissions
+CREATE TABLE IF NOT EXISTS homework_submissions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    homework_id UUID NOT NULL REFERENCES homework(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    submitted_at TIMESTAMPTZ DEFAULT NOW(),
+    marks_obtained INTEGER,
+    feedback TEXT,
+    UNIQUE(homework_id, student_id)
+);
+
+-- ============================================
+-- SYLLABUS / SCHEME OF WORK
+-- ============================================
+CREATE TABLE IF NOT EXISTS syllabus (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+    class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    term INTEGER NOT NULL,
+    academic_year TEXT NOT NULL,
+    topic TEXT NOT NULL,
+    subtopics TEXT, -- JSON array of subtopics
+    objectives TEXT,
+    weeks_covered TEXT, -- e.g., "Week 1-2"
+    resources TEXT,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Topic coverage tracking
+CREATE TABLE IF NOT EXISTS topic_coverage (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    syllabus_id UUID NOT NULL REFERENCES syllabus(id) ON DELETE CASCADE,
+    class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    teacher_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    status TEXT CHECK (status IN ('not_started', 'in_progress', 'completed')) DEFAULT 'not_started',
+    completed_date DATE,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Lesson Plans
+CREATE TABLE IF NOT EXISTS lesson_plans (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
+    class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    topic TEXT NOT NULL,
+    lesson_title TEXT NOT NULL,
+    objectives TEXT,
+    materials TEXT,
+    procedure TEXT, -- Lesson procedure/steps
+    duration INTEGER, -- minutes
+    date DATE,
+    term INTEGER,
+    academic_year TEXT,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Add image column to notices
+ALTER TABLE notices ADD COLUMN IF NOT EXISTS image_url TEXT;
+
+-- ============================================
+-- EXAMS TABLE (For Secondary Schools)
+-- ============================================
+CREATE TABLE IF NOT EXISTS exams (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    exam_type TEXT CHECK (exam_type IN ('class_test', 'bot', 'mid_term', 'saturday', 'eot', 'mock')) NOT NULL,
+    class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
+    subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
+    exam_date DATE NOT NULL,
+    max_score INTEGER DEFAULT 100,
+    weight INTEGER DEFAULT 100,
+    term INTEGER,
+    academic_year TEXT,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
+-- EXAM SCORES TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS exam_scores (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
+    class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
+    exam_type TEXT NOT NULL,
+    exam_id UUID REFERENCES exams(id) ON DELETE SET NULL,
+    score NUMERIC(5,2) NOT NULL,
+    max_score NUMERIC(5,2) DEFAULT 100,
+    term INTEGER,
+    academic_year TEXT,
+    recorded_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(student_id, subject_id, exam_type, term, academic_year)
+);
+
+-- ============================================
+-- DORMS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS dorms (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    type TEXT CHECK (type IN ('boys', 'girls')) NOT NULL,
+    capacity INTEGER DEFAULT 30,
+    location TEXT,
+    warden_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
+-- DORM STUDENTS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS dorm_students (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    dorm_id UUID NOT NULL REFERENCES dorms(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    bed_number TEXT,
+    assigned_date DATE DEFAULT CURRENT_DATE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(dorm_id, student_id)
+);
+
+-- ============================================
+-- LIBRARY BOOKS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS library_books (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    isbn TEXT,
+    title TEXT NOT NULL,
+    author TEXT,
+    publisher TEXT,
+    year_published INTEGER,
+    category TEXT,
+    copies INTEGER DEFAULT 1,
+    available_copies INTEGER,
+    shelf_location TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
+-- LIBRARY CHECKOUTS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS library_checkouts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    book_id UUID NOT NULL REFERENCES library_books(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    checkout_date DATE DEFAULT CURRENT_DATE,
+    due_date DATE,
+    return_date DATE,
+    status TEXT CHECK (status IN ('checked_out', 'returned', 'overdue')) DEFAULT 'checked_out',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);

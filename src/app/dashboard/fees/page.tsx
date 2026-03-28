@@ -1,6 +1,7 @@
 'use client'
 import { useState, useMemo, useRef } from 'react'
 import { useAuth } from '@/lib/auth-context'
+import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useFeePayments, useFeeStructure, useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 
@@ -27,6 +28,7 @@ interface StudentBalance {
 
 export default function FeesPage() {
   const { school } = useAuth()
+  const { academicYear, currentTerm } = useAcademic()
   const toast = useToast()
   const { students } = useStudents(school?.id)
   const { classes } = useClasses(school?.id)
@@ -144,8 +146,37 @@ export default function FeesPage() {
     if (receiptRef.current) {
       const printContent = receiptRef.current.innerHTML
       const printWindow = window.open('', '_blank')
+      const logoUrl = school?.logo_url || ''
+      const schoolName = school?.name || 'School'
+      const schoolColor = school?.primary_color || '#002045'
+      
       if (printWindow) {
-        printWindow.document.write(`<html><head><title>Fee Receipt</title><style>body{font-family:Arial,sans-serif;padding:20px;max-width:400px;margin:0 auto}.header{text-align:center;border-bottom:2px solid #002045;padding-bottom:10px;margin-bottom:15px}.school-name{font-size:18px;font-weight:bold;color:#002045}.receipt-title{font-size:14px;color:#666;margin-top:5px}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed #ddd}.label{color:#666;font-size:13px}.value{font-weight:bold;font-size:13px}.total{font-size:16px;border-top:2px solid #002045;margin-top:10px;padding-top:10px}.footer{text-align:center;margin-top:20px;font-size:11px;color:#999}</style></head><body>${printContent}</body></html>`)
+        printWindow.document.write(`<html><head><title>Fee Receipt</title><style>
+          body{font-family:Arial,sans-serif;padding:20px;max-width:400px;margin:0 auto}
+          .header{text-align:center;border-bottom:2px solid ${schoolColor};padding-bottom:15px;margin-bottom:15px}
+          .logo{max-width:80px;max-height:60px;margin-bottom:10px}
+          .school-name{font-size:20px;font-weight:bold;color:${schoolColor};margin:5px 0}
+          .school-info{font-size:11px;color:#666;margin-bottom:5px}
+          .receipt-title{font-size:14px;color:#666;margin-top:5px;font-weight:bold}
+          .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed #ddd}
+          .label{color:#666;font-size:13px}
+          .value{font-weight:bold;font-size:13px}
+          .total{font-size:16px;border-top:2px solid ${schoolColor};margin-top:10px;padding-top:10px;font-weight:bold}
+          .footer{text-align:center;margin-top:25px;font-size:11px;color:#999;border-top:1px solid #eee;padding-top:15px}
+          .thank-you{font-weight:bold;color:${schoolColor};margin-bottom:5px}
+        </style></head><body>
+          <div class="header">
+            ${logoUrl ? `<img src="${logoUrl}" class="logo" alt="${schoolName}">` : ''}
+            <div class="school-name">${schoolName}</div>
+            <div class="school-info">Tel: ${school?.phone || ''} | Email: ${school?.email || ''}</div>
+            <div class="receipt-title">OFFICIAL RECEIPT</div>
+          </div>
+          ${printContent}
+          <div class="footer">
+            <div class="thank-you">Thank you for your payment!</div>
+            <div>Powered by Omuto SMS</div>
+          </div>
+        </body></html>`)
         printWindow.document.close()
         printWindow.print()
       }
@@ -158,15 +189,15 @@ export default function FeesPage() {
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h2 className="font-headline font-bold text-3xl text-primary tracking-tight mb-2">Bursar Overview</h2>
-          <p className="text-on-surface-variant text-sm font-medium">Term III, 2024 Financial Operations</p>
+          <p className="text-on-surface-variant text-sm font-medium">Term {currentTerm}, {academicYear} Financial Operations</p>
         </div>
         <div className="flex gap-3">
           <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-outline-variant/30 text-primary font-semibold text-sm hover:bg-surface-container-low transition-all">
-            <MaterialIcon className="text-lg">receipt_long</MaterialIcon>
+            <MaterialIcon icon="receipt_long" className="text-lg" />
             Generate Invoice
           </button>
           <button onClick={() => setShowPaymentModal(true)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/10">
-            <MaterialIcon className="text-lg">add</MaterialIcon>
+            <MaterialIcon icon="add" className="text-lg" />
             Add Payment
           </button>
         </div>
@@ -176,38 +207,38 @@ export default function FeesPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-surface-container-lowest p-6 rounded-xl border-t-4 border-error relative overflow-hidden group hover:bg-surface-bright transition-colors">
           <div className="flex justify-between items-start mb-4">
-            <MaterialIcon className="text-error bg-error-container p-2 rounded-lg" style={{ fontVariationSettings: 'FILL 1' }}>account_balance_wallet</MaterialIcon>
+            <MaterialIcon icon="account_balance_wallet" className="text-error bg-error-container p-2 rounded-lg" style={{ fontVariationSettings: 'FILL 1' }} />
             <span className="text-[10px] font-bold tracking-widest uppercase text-on-surface-variant opacity-60">High Priority</span>
           </div>
           <p className="text-on-surface-variant text-xs font-semibold uppercase tracking-wider mb-1">Total Arrears</p>
           <h3 className="font-headline font-extrabold text-2xl text-on-surface tracking-tight">{formatCurrency(stats.totalBalance)}</h3>
           <div className="mt-4 flex items-center gap-2 text-[11px] font-bold text-error">
-            <MaterialIcon className="text-sm">trending_up</MaterialIcon>
-            <span>12% from last month</span>
+            <MaterialIcon icon="warning" className="text-sm" />
+            <span>{stats.notPaid} students unpaid</span>
           </div>
         </div>
         <div className="bg-surface-container-lowest p-6 rounded-xl border-t-4 border-secondary relative overflow-hidden group hover:bg-surface-bright transition-colors">
           <div className="flex justify-between items-start mb-4">
-            <MaterialIcon className="text-secondary bg-secondary-container p-2 rounded-lg" style={{ fontVariationSettings: 'FILL 1' }}>payments</MaterialIcon>
+            <MaterialIcon icon="payments" className="text-secondary bg-secondary-container p-2 rounded-lg" style={{ fontVariationSettings: 'FILL 1' }} />
             <span className="text-[10px] font-bold tracking-widest uppercase text-on-surface-variant opacity-60">Real-time</span>
           </div>
           <p className="text-on-surface-variant text-xs font-semibold uppercase tracking-wider mb-1">Total Collected</p>
           <h3 className="font-headline font-extrabold text-2xl text-on-surface tracking-tight">{formatCurrency(stats.totalPaid)}</h3>
           <div className="mt-4 flex items-center gap-2 text-[11px] font-bold text-secondary">
-            <MaterialIcon className="text-sm">check_circle</MaterialIcon>
+            <MaterialIcon icon="check_circle" className="text-sm" />
             <span>{stats.fullyPaid} Fully Paid</span>
           </div>
         </div>
         <div className="bg-surface-container-lowest p-6 rounded-xl border-t-4 border-tertiary-fixed-dim relative overflow-hidden group hover:bg-surface-bright transition-colors">
           <div className="flex justify-between items-start mb-4">
-            <MaterialIcon className="text-tertiary bg-tertiary-fixed p-2 rounded-lg" style={{ fontVariationSettings: 'FILL 1' }}>sync</MaterialIcon>
+            <MaterialIcon icon="sync" className="text-tertiary bg-tertiary-fixed p-2 rounded-lg" style={{ fontVariationSettings: 'FILL 1' }} />
             <span className="text-[10px] font-bold tracking-widest uppercase text-on-surface-variant opacity-60">Processing</span>
           </div>
           <p className="text-on-surface-variant text-xs font-semibold uppercase tracking-wider mb-1">Partial Payments</p>
           <h3 className="font-headline font-extrabold text-2xl text-on-surface tracking-tight">{stats.partialPaid} Students</h3>
           <div className="mt-4 flex items-center gap-2 text-[11px] font-bold text-on-tertiary-fixed-variant">
-            <MaterialIcon className="text-sm">schedule</MaterialIcon>
-            <span>Last sync 14 mins ago</span>
+            <MaterialIcon icon="schedule" className="text-sm" />
+            <span>{payments.length} total transactions</span>
           </div>
         </div>
       </div>
@@ -216,7 +247,7 @@ export default function FeesPage() {
       <div className="bg-surface-container-low rounded-xl p-6">
         <div className="flex flex-col lg:flex-row gap-4 items-center">
           <div className="relative w-full lg:flex-1">
-            <MaterialIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</MaterialIcon>
+            <MaterialIcon icon="search" className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant" />
             <input type="text" placeholder="Search by name or student number..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-surface-container-lowest border-none rounded-xl py-3 pl-12 pr-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 transition-all" />
           </div>
           <div className="flex gap-3 w-full lg:w-auto overflow-x-auto no-scrollbar">
@@ -225,7 +256,7 @@ export default function FeesPage() {
               {classes.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
             </select>
             <button className="bg-surface-container-highest px-4 py-3 rounded-xl flex items-center justify-center hover:bg-outline-variant/30">
-              <MaterialIcon className="text-lg">filter_list</MaterialIcon>
+                <MaterialIcon icon="filter_list" className="text-lg" />
             </button>
           </div>
         </div>
@@ -277,7 +308,7 @@ export default function FeesPage() {
                     </td>
                     <td className="px-6 py-4">
                       <button onClick={() => { setSelectedStudent(student); setShowReceiptModal(true) }} className="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg">
-                        <MaterialIcon className="text-lg">visibility</MaterialIcon>
+                        <MaterialIcon icon="visibility" className="text-lg" />
                       </button>
                     </td>
                   </tr>
@@ -453,7 +484,7 @@ export default function FeesPage() {
             </div>
             <div className="p-6 border-t border-outline-variant/10">
               <button onClick={handlePrintReceipt} className="w-full py-3 bg-primary text-white font-semibold rounded-xl flex items-center justify-center gap-2">
-                <MaterialIcon className="text-lg">print</MaterialIcon>
+                <MaterialIcon icon="print" className="text-lg" />
                 Print Receipt
               </button>
             </div>

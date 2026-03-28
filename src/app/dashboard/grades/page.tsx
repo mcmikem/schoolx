@@ -51,6 +51,54 @@ export default function GradesPage() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [marks, setMarks] = useState<Record<string, number>>({})
+  const { students: classStudents, loading: studentsLoading } = useStudents(school?.id)
+  const { grades: existingGrades, saveGrade } = useGrades(selectedClass, selectedSubject, currentTerm, academicYear)
+
+  // Filter students by selected class
+  const filteredStudents = useMemo(() => {
+    if (!selectedClass) return []
+    return classStudents.filter(s => s.class_id === selectedClass)
+  }, [classStudents, selectedClass])
+
+  // Initialize marks from existing grades
+  useEffect(() => {
+    if (existingGrades.length > 0) {
+      const marksMap: Record<string, number> = {}
+      existingGrades.forEach((g: any) => {
+        marksMap[`${g.student_id}_${g.assessment_type}`] = g.score
+      })
+      setMarks(marksMap)
+    }
+  }, [existingGrades])
+
+  const handleMarkChange = (studentId: string, type: string, value: number) => {
+    setMarks(prev => ({ ...prev, [`${studentId}_${type}`]: value }))
+  }
+
+  const handleSaveGrades = async () => {
+    if (!selectedClass || !selectedSubject) return
+    try {
+      setSaving(true)
+      for (const [key, score] of Object.entries(marks)) {
+        const [studentId, assessmentType] = key.split('_')
+        await saveGrade({
+          student_id: studentId,
+          subject_id: selectedSubject,
+          class_id: selectedClass,
+          assessment_type: assessmentType,
+          score,
+          term: currentTerm,
+          academic_year: academicYear,
+          recorded_by: user?.id,
+        })
+      }
+      toast.success('Grades saved successfully')
+    } catch (err) {
+      toast.error('Failed to save grades')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   useEffect(() => {
     if (selectedClass && selectedSubject) {
@@ -109,6 +157,7 @@ export default function GradesPage() {
   }
 
   const selectedSubjectName = subjects.find(s => s.id === selectedSubject)?.name || ''
+  const selectedClassName = classes.find(c => c.id === selectedClass)?.name || ''
   const topics = NCDC_TOPICS[selectedSubjectName] || ['Topic 1', 'Topic 2', 'Topic 3', 'Topic 4', 'Topic 5']
 
   const coverageStats = useMemo(() => {
@@ -124,16 +173,20 @@ export default function GradesPage() {
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h2 className="font-headline font-bold text-3xl text-primary tracking-tight mb-2">Academic Records</h2>
-          <p className="text-on-surface-variant text-sm font-medium">Primary 5 Blue • Mathematics</p>
+          <p className="text-on-surface-variant text-sm font-medium">
+            {selectedClassName && selectedSubjectName
+              ? `${selectedClassName} • ${selectedSubjectName}`
+              : 'Select a class and subject to begin'}
+          </p>
         </div>
         <div className="flex gap-3">
           <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-outline-variant/30 text-primary font-semibold text-sm hover:bg-surface-container-low transition-all">
-            <MaterialIcon className="text-lg">cloud_download</MaterialIcon>
+            <MaterialIcon icon="cloud_download" className="text-lg" />
             Export
           </button>
-          <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/10">
-            <MaterialIcon className="text-lg" style={{ fontVariationSettings: 'FILL 1' }}>send</MaterialIcon>
-            Submit to Dean
+          <button onClick={handleSaveGrades} disabled={saving || !selectedClass || !selectedSubject} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/10 disabled:opacity-50">
+            <MaterialIcon icon="save" className="text-lg" style={{ fontVariationSettings: 'FILL 1' }} />
+            {saving ? 'Saving...' : 'Save Grades'}
           </button>
         </div>
       </header>
@@ -161,7 +214,7 @@ export default function GradesPage() {
         </div>
         <div className="bg-primary text-on-primary p-6 rounded-3xl relative overflow-hidden flex flex-col justify-between">
           <div className="absolute top-0 right-0 p-4 opacity-10">
-            <MaterialIcon className="text-6xl">functions</MaterialIcon>
+            <MaterialIcon icon="functions" className="text-6xl" />
           </div>
           <p className="text-xs uppercase tracking-widest font-bold opacity-70">Weightage</p>
           <div>
@@ -197,52 +250,59 @@ export default function GradesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-container">
-                <tr className="hover:bg-surface-bright">
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-primary-container text-white flex items-center justify-center font-bold text-sm">AM</div>
-                      <div>
-                        <p className="font-bold text-primary">Amina Mukasa</p>
-                        <p className="text-xs text-on-surface-variant">ID: SX-2024-001</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <input className="w-16 mx-auto block bg-surface-container rounded-lg border-none text-center font-bold focus:ring-2 focus:ring-primary py-2 px-1" type="number" defaultValue={28} />
-                  </td>
-                  <td className="px-6 py-5">
-                    <input className="w-16 mx-auto block bg-surface-container rounded-lg border-none text-center font-bold focus:ring-2 focus:ring-primary py-2 px-1" type="number" defaultValue={65} />
-                  </td>
-                  <td className="px-6 py-5 text-center">
-                    <span className="font-black text-xl text-primary">93</span>
-                  </td>
-                  <td className="px-8 py-5 text-right">
-                    <span className="px-4 py-1.5 rounded-full bg-secondary-container text-on-secondary-container text-xs font-black">D1</span>
-                  </td>
-                </tr>
-                <tr className="hover:bg-surface-bright">
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center font-bold text-sm">JK</div>
-                      <div>
-                        <p className="font-bold text-primary">John Kwizera</p>
-                        <p className="text-xs text-on-surface-variant">ID: SX-2024-012</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <input className="w-16 mx-auto block bg-surface-container rounded-lg border-none text-center font-bold focus:ring-2 focus:ring-primary py-2 px-1" type="number" defaultValue={22} />
-                  </td>
-                  <td className="px-6 py-5">
-                    <input className="w-16 mx-auto block bg-surface-container rounded-lg border-none text-center font-bold focus:ring-2 focus:ring-primary py-2 px-1" type="number" defaultValue={48} />
-                  </td>
-                  <td className="px-6 py-5 text-center">
-                    <span className="font-black text-xl text-primary">70</span>
-                  </td>
-                  <td className="px-8 py-5 text-right">
-                    <span className="px-4 py-1.5 rounded-full bg-primary-fixed text-on-primary-fixed text-xs font-black">C3</span>
-                  </td>
-                </tr>
+                {studentsLoading ? (
+                  <tr><td colSpan={5} className="px-8 py-12 text-center text-on-surface-variant">Loading students...</td></tr>
+                ) : filteredStudents.length === 0 ? (
+                  <tr><td colSpan={5} className="px-8 py-12 text-center text-on-surface-variant">No students in this class</td></tr>
+                ) : filteredStudents.map((student) => {
+                  const ca = marks[`${student.id}_ca`] || 0
+                  const exam = marks[`${student.id}_exam`] || 0
+                  const total = ca + exam
+                  const gradeInfo = getGrade(total)
+                  return (
+                    <tr key={student.id} className="hover:bg-surface-bright">
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center font-bold text-sm text-on-primary-container">
+                            {student.first_name?.charAt(0)}{student.last_name?.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-bold text-primary">{student.first_name} {student.last_name}</p>
+                            <p className="text-xs text-on-surface-variant">{student.student_number || '-'}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <input
+                          className="w-16 mx-auto block bg-surface-container rounded-lg border-none text-center font-bold focus:ring-2 focus:ring-primary py-2 px-1"
+                          type="number"
+                          min={0}
+                          max={30}
+                          value={ca || ''}
+                          onChange={(e) => handleMarkChange(student.id, 'ca', Math.min(30, Number(e.target.value)))}
+                        />
+                      </td>
+                      <td className="px-6 py-5">
+                        <input
+                          className="w-16 mx-auto block bg-surface-container rounded-lg border-none text-center font-bold focus:ring-2 focus:ring-primary py-2 px-1"
+                          type="number"
+                          min={0}
+                          max={70}
+                          value={exam || ''}
+                          onChange={(e) => handleMarkChange(student.id, 'exam', Math.min(70, Number(e.target.value)))}
+                        />
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <span className="font-black text-xl text-primary">{total}</span>
+                      </td>
+                      <td className="px-8 py-5 text-right">
+                        <span className={`px-4 py-1.5 rounded-full text-xs font-black ${total > 0 ? 'bg-surface-container' : 'bg-surface-bright text-on-surface-variant'} ${gradeInfo.color}`}>
+                          {total > 0 ? gradeInfo.grade : '-'}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

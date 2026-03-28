@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
@@ -21,6 +21,12 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Clear any demo data on register page load
+  useEffect(() => {
+    localStorage.removeItem('demo_user')
+    localStorage.removeItem('demo_school')
+  }, [])
 
   const [form, setForm] = useState({
     schoolName: '',
@@ -57,6 +63,9 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000)
+      
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -72,7 +81,10 @@ export default function RegisterPage() {
           adminPhone: form.adminPhone,
           password: form.password,
         }),
+        signal: controller.signal,
       })
+      
+      clearTimeout(timeoutId)
 
       const data = await response.json()
 
@@ -108,8 +120,12 @@ export default function RegisterPage() {
 
       router.push('/dashboard')
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Registration failed. Please try again.'
-      setError(errorMessage)
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Registration timed out. Please try again.')
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Registration failed. Please try again.'
+        setError(errorMessage)
+      }
     } finally {
       setLoading(false)
     }

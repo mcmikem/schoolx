@@ -5,6 +5,96 @@ import { apiSuccess, apiError, handleApiError } from '@/lib/api-utils'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
+// Get default subjects based on school type
+function getDefaultSubjects(schoolType: string) {
+  if (schoolType === 'primary') {
+    return [
+      { name: 'English', code: 'ENG', level: 'primary', is_compulsory: true },
+      { name: 'Mathematics', code: 'MTC', level: 'primary', is_compulsory: true },
+      { name: 'Integrated Science', code: 'SCI', level: 'primary', is_compulsory: true },
+      { name: 'Social Studies', code: 'SST', level: 'primary', is_compulsory: true },
+      { name: 'Religious Education', code: 'CRE', level: 'primary', is_compulsory: true },
+      { name: 'Physical Education', code: 'PE', level: 'primary', is_compulsory: true },
+      { name: 'Local Language', code: 'LNG', level: 'primary', is_compulsory: false },
+    ]
+  } else if (schoolType === 'secondary') {
+    return [
+      { name: 'English', code: 'ENG', level: 'secondary', is_compulsory: true },
+      { name: 'Mathematics', code: 'MTC', level: 'secondary', is_compulsory: true },
+      { name: 'Biology', code: 'BIO', level: 'secondary', is_compulsory: true },
+      { name: 'Chemistry', code: 'CHEM', level: 'secondary', is_compulsory: true },
+      { name: 'Physics', code: 'PHY', level: 'secondary', is_compulsory: true },
+      { name: 'Geography', code: 'GEO', level: 'secondary', is_compulsory: true },
+      { name: 'History', code: 'HIS', level: 'secondary', is_compulsory: true },
+      { name: 'Christian Religious Education', code: 'CRE', level: 'secondary', is_compulsory: true },
+    ]
+  } else {
+    // Combined - primary + secondary subjects
+    return [
+      { name: 'English', code: 'ENG', level: 'primary', is_compulsory: true },
+      { name: 'Mathematics', code: 'MTC', level: 'primary', is_compulsory: true },
+      { name: 'Science', code: 'SCI', level: 'primary', is_compulsory: true },
+      { name: 'Social Studies', code: 'SST', level: 'primary', is_compulsory: true },
+      { name: 'Religious Education', code: 'CRE', level: 'primary', is_compulsory: true },
+      // Secondary
+      { name: 'English', code: 'ENG', level: 'secondary', is_compulsory: true },
+      { name: 'Mathematics', code: 'MTC', level: 'secondary', is_compulsory: true },
+      { name: 'Biology', code: 'BIO', level: 'secondary', is_compulsory: true },
+      { name: 'Chemistry', code: 'CHEM', level: 'secondary', is_compulsory: true },
+    ]
+  }
+}
+
+// Get default classes based on school type
+function getDefaultClasses(schoolType: string, schoolId: string) {
+  const currentYear = new Date().getFullYear()
+  
+  if (schoolType === 'primary') {
+    return [
+      { school_id: schoolId, name: 'Baby', level: 'primary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'Middle', level: 'primary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'Top', level: 'primary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'P1', level: 'primary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'P2', level: 'primary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'P3', level: 'primary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'P4', level: 'primary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'P5', level: 'primary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'P6', level: 'primary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'P7', level: 'primary', stream: null, academic_year: currentYear.toString() },
+    ]
+  } else if (schoolType === 'secondary') {
+    return [
+      { school_id: schoolId, name: 'S1', level: 'secondary', stream: 'Science', academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S1', level: 'secondary', stream: 'Arts', academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S1', level: 'secondary', stream: 'Commercial', academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S2', level: 'secondary', stream: 'Science', academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S2', level: 'secondary', stream: 'Arts', academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S2', level: 'secondary', stream: 'Commercial', academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S3', level: 'secondary', stream: 'Science', academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S3', level: 'secondary', stream: 'Arts', academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S3', level: 'secondary', stream: 'Commercial', academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S4', level: 'secondary', stream: 'Science', academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S4', level: 'secondary', stream: 'Arts', academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S4', level: 'secondary', stream: 'Commercial', academic_year: currentYear.toString() },
+    ]
+  } else {
+    // Combined - include both primary and secondary
+    return [
+      { school_id: schoolId, name: 'P1', level: 'primary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'P2', level: 'primary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'P3', level: 'primary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'P4', level: 'primary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'P5', level: 'primary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'P6', level: 'primary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'P7', level: 'primary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S1', level: 'secondary', stream: 'Science', academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S1', level: 'secondary', stream: 'Arts', academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S2', level: 'secondary', stream: 'Science', academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S2', level: 'secondary', stream: 'Arts', academic_year: currentYear.toString() },
+    ]
+  }
+}
+
 interface RegisterRequest {
   schoolName: string
   district: string
@@ -181,6 +271,25 @@ export async function POST(request: NextRequest) {
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
       await supabaseAdmin.from('schools').delete().eq('id', schoolData.id)
       throw userError
+    }
+
+    // 6. Auto-seed subjects based on school type
+    const defaultSubjects = getDefaultSubjects(schoolType)
+    if (defaultSubjects.length > 0) {
+      const subjectRecords = defaultSubjects.map(s => ({
+        school_id: schoolData.id,
+        name: s.name,
+        code: s.code,
+        level: s.level,
+        is_compulsory: s.is_compulsory,
+      }))
+      await supabaseAdmin.from('subjects').insert(subjectRecords).select()
+    }
+
+    // 7. Auto-seed classes based on school type
+    const defaultClasses = getDefaultClasses(schoolType, schoolData.id)
+    if (defaultClasses.length > 0) {
+      await supabaseAdmin.from('classes').insert(defaultClasses).select()
     }
 
     // Return success - client will sign in separately

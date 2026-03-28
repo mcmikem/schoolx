@@ -17,6 +17,7 @@ interface Notice {
   created_by: string
   created_at: string
   expires_at: string | null
+  image_url?: string
   users?: { full_name: string }
 }
 
@@ -26,13 +27,16 @@ export default function NoticeBoardPage() {
   const [notices, setNotices] = useState<Notice[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [categoryFilter, setCategoryFilter] = useState('')
   const [newNotice, setNewNotice] = useState({
     title: '',
     content: '',
     category: 'General',
     priority: 'normal',
     expires_at: '',
+    image_url: '',
   })
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   useEffect(() => {
     fetchNotices()
@@ -70,15 +74,43 @@ export default function NoticeBoardPage() {
         priority: newNotice.priority,
         created_by: user.id,
         expires_at: newNotice.expires_at || null,
+        image_url: newNotice.image_url || null,
       })
 
       if (error) throw error
       toast.success('Notice posted')
       setShowModal(false)
-      setNewNotice({ title: '', content: '', category: 'General', priority: 'normal', expires_at: '' })
+      setNewNotice({ title: '', content: '', category: 'General', priority: 'normal', expires_at: '', image_url: '' })
       fetchNotices()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to post notice')
+    }
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !school?.id) return
+    
+    setUploadingImage(true)
+    try {
+      const fileName = `notice-${Date.now()}.jpg`
+      
+      const { data, error } = await supabase.storage
+        .from('school-logos')
+        .upload(fileName, file, { upsert: true, contentType: 'image/jpeg' })
+      
+      if (error) throw error
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('school-logos')
+        .getPublicUrl(fileName)
+      
+      setNewNotice({...newNotice, image_url: publicUrl})
+      toast.success('Image uploaded')
+    } catch (err) {
+      toast.error('Failed to upload image')
+    } finally {
+      setUploadingImage(false)
     }
   }
 
@@ -102,16 +134,36 @@ export default function NoticeBoardPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#002045]">Notice Board</h1>
-          <p className="text-[#5c6670] mt-1">Internal staff notices</p>
+          <h2 className="font-bold text-2xl text-gray-900">Notice Board</h2>
+          <p className="text-gray-500 mt-1">Stay updated with school announcements</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn btn-primary">
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 shadow-lg transition-all"
+        >
           <MaterialIcon icon="add" className="text-lg" />
           Post Notice
         </button>
+      </div>
+
+      {/* Category Filter */}
+      <div className="flex gap-2 flex-wrap">
+        {['All', 'General', 'Meeting', 'Event', 'Urgent'].map(cat => (
+          <button
+            key={cat}
+            onClick={() => setCategoryFilter(cat === 'All' ? '' : cat)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+              (cat === 'All' && !categoryFilter) || categoryFilter === cat
+                ? 'bg-gray-900 text-white shadow-md'
+                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
       </div>
 
       {loading ? (
@@ -134,32 +186,43 @@ export default function NoticeBoardPage() {
       ) : (
         <div className="space-y-4">
           {notices.map((notice) => (
-            <div key={notice.id} className={`bg-white rounded-2xl border border-[#e8eaed] border-l-4 p-6 ${getPriorityColor(notice.priority)}`}>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="px-3 py-1 rounded-lg text-xs font-medium bg-[#e3f2fd] text-[#002045]">
-                      {notice.category}
-                    </span>
-                    {notice.priority !== 'normal' && (
-                      <span className={`px-3 py-1 rounded-lg text-xs font-medium ${notice.priority === 'high' ? 'bg-[#fef2f2] text-[#ba1a1a]' : 'bg-[#fff3e0] text-[#b86e00]'}`}>
-                        {notice.priority} priority
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="font-semibold text-[#191c1d] mb-2">{notice.title}</h3>
-                  <p className="text-[#5c6670] whitespace-pre-wrap">{notice.content}</p>
-                  <div className="flex items-center gap-4 mt-3 text-sm text-[#5c6670]">
-                    <span>By: {notice.users?.full_name || 'Unknown'}</span>
-                    <span>{new Date(notice.created_at).toLocaleDateString()}</span>
-                  </div>
+            <div key={notice.id} className={`bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow ${notice.priority === 'high' ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-gray-900'}`}>
+              {notice.image_url && (
+                <div className="h-48 overflow-hidden">
+                  <img src={notice.image_url} alt={notice.title} className="w-full h-full object-cover" />
                 </div>
-                <button
-                  onClick={() => deleteNotice(notice.id)}
-                  className="p-2 text-[#5c6670] hover:text-[#ba1a1a] rounded-lg hover:bg-[#fef2f2] ml-4"
-                >
-                  <MaterialIcon icon="delete" className="text-lg" />
-                </button>
+              )}
+              <div className="p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700">
+                    {notice.category}
+                  </span>
+                  {notice.priority !== 'normal' && (
+                    <span className={`px-3 py-1 rounded-lg text-xs font-medium ${notice.priority === 'high' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'}`}>
+                      {notice.priority} priority
+                    </span>
+                  )}
+                </div>
+                <h3 className="font-bold text-gray-900 mb-2">{notice.title}</h3>
+                <p className="text-gray-500 text-sm whitespace-pre-wrap line-clamp-3">{notice.content}</p>
+                <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
+                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <MaterialIcon className="text-sm">person</MaterialIcon>
+                      {notice.users?.full_name || 'Unknown'}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MaterialIcon className="text-sm">calendar_today</MaterialIcon>
+                      {new Date(notice.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => deleteNotice(notice.id)}
+                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <MaterialIcon className="text-lg">delete</MaterialIcon>
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -218,6 +281,28 @@ export default function NoticeBoardPage() {
                   className="input min-h-[120px]"
                   required
                 />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Image (Optional)</label>
+                <div className="flex items-center gap-3">
+                  <label className="btn btn-secondary cursor-pointer">
+                    <MaterialIcon icon="upload" className="text-lg" />
+                    {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleImageUpload} 
+                      className="hidden"
+                      disabled={uploadingImage}
+                    />
+                  </label>
+                  {newNotice.image_url && (
+                    <span className="text-sm text-green-600 flex items-center gap-1">
+                      <MaterialIcon className="text-sm">check_circle</MaterialIcon>
+                      Image attached
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary flex-1">Cancel</button>

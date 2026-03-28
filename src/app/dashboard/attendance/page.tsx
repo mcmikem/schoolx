@@ -106,20 +106,22 @@ export default function AttendancePage() {
   const lateCount = Object.values(attendance).filter(s => s === 'late').length
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Attendance</h1>
-        <p className="text-[#5c6670] mt-1">Mark daily student attendance</p>
-      </div>
+    <div className="space-y-6">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <h2 className="font-headline font-bold text-3xl text-primary tracking-tight mb-2">Attendance</h2>
+          <p className="text-on-surface-variant text-sm font-medium">Mark daily student attendance</p>
+        </div>
+      </header>
 
-      <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 mb-6">
+      <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
-            <label className="text-sm font-medium text-[#5c6670] mb-2 block">Select Class</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 block">Select Class</label>
             <select
               value={selectedClass || ''}
               onChange={(e) => setSelectedClass(e.target.value || null)}
-              className="input"
+              className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20"
             >
               <option value="">Select a class</option>
               {classes.map((c) => (
@@ -128,103 +130,103 @@ export default function AttendancePage() {
             </select>
           </div>
           <div className="sm:w-48">
-            <label className="text-sm font-medium text-[#5c6670] mb-2 block">Date</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 block">Date</label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="input"
+              className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20"
             />
           </div>
         </div>
       </div>
 
       {!selectedClass ? (
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 text-center">
-          <div className="w-16 h-16 bg-[#f8fafb] rounded-full flex items-center justify-center mx-auto mb-4">
-            <MaterialIcon icon="fact_check" className="text-3xl text-[#5c6670]" />
+        <div className="bg-surface-container-lowest p-12 rounded-xl text-center border border-outline-variant/10">
+          <div className="w-16 h-16 bg-surface-container-low rounded-full flex items-center justify-center mx-auto mb-4">
+            <MaterialIcon icon="fact_check" className="text-3xl text-on-surface-variant" />
           </div>
-          <h3 className="text-lg font-semibold text-[#191c1d] mb-2">Select a class</h3>
-          <p className="text-[#5c6670]">Choose a class to mark attendance</p>
+          <h3 className="font-headline font-bold text-lg text-primary mb-2">Select a class</h3>
+          <p className="text-on-surface-variant text-sm">Choose a class to mark attendance</p>
         </div>
       ) : loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-white rounded-2xl border border-[#e8eaed] p-4">
+            <div key={i} className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-[#f0f4f8] rounded-full" />
+                <div className="w-10 h-10 bg-surface-container rounded-full" />
                 <div className="flex-1">
-                  <div className="w-32 h-4 bg-[#e8eaed] rounded mb-2" />
-                  <div className="w-20 h-3 bg-[#e8eaed] rounded" />
+                  <div className="w-32 h-4 bg-surface-container rounded mb-2" />
+                  <div className="w-20 h-3 bg-surface-container rounded" />
                 </div>
               </div>
             </div>
           ))}
         </div>
       ) : students.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 text-center">
-          <div className="w-16 h-16 bg-[#f8fafb] rounded-full flex items-center justify-center mx-auto mb-4">
-            <MaterialIcon icon="group" className="text-3xl text-[#5c6670]" />
+        <div className="bg-surface-container-lowest p-12 rounded-xl text-center border border-outline-variant/10">
+          <div className="w-16 h-16 bg-surface-container-low rounded-full flex items-center justify-center mx-auto mb-4">
+            <MaterialIcon icon="group" className="text-3xl text-on-surface-variant" />
           </div>
-          <h3 className="text-lg font-semibold text-[#191c1d] mb-2">No students in this class</h3>
-          <p className="text-[#5c6670]">Add students to this class first</p>
+          <h3 className="font-headline font-bold text-lg text-primary mb-2">No students in this class</h3>
+          <p className="text-on-surface-variant text-sm">Add students to this class first</p>
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-              <div className="text-3xl font-bold text-[#006e1c]">{presentCount}</div>
-              <div className="text-sm text-[#5c6670] mt-1">Present</div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4 text-center">
+              <div className="text-3xl font-bold text-secondary">{presentCount}</div>
+              <div className="text-sm text-on-surface-variant mt-1">Present</div>
             </div>
-            <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-              <div className="text-3xl font-bold text-[#ba1a1a]">{absentCount}</div>
-              <div className="text-sm text-[#5c6670] mt-1">Absent</div>
+            <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4 text-center">
+              <div className="text-3xl font-bold text-error">{absentCount}</div>
+              <div className="text-sm text-on-surface-variant mt-1">Absent</div>
             </div>
-            <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-              <div className="text-3xl font-bold text-[#b86e00]">{lateCount}</div>
-              <div className="text-sm text-[#5c6670] mt-1">Late</div>
+            <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4 text-center">
+              <div className="text-3xl font-bold text-tertiary">{lateCount}</div>
+              <div className="text-sm text-on-surface-variant mt-1">Late</div>
             </div>
           </div>
 
-          <div className="flex gap-2 mb-4">
-            <button onClick={() => markAll('present')} className="btn btn-secondary text-sm py-2">
+          <div className="flex gap-2">
+            <button onClick={() => markAll('present')} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-outline-variant/30 text-primary font-semibold text-sm hover:bg-surface-container-low transition-all">
               <MaterialIcon icon="check_circle" className="text-lg" />
               Mark All Present
             </button>
-            <button onClick={() => markAll('absent')} className="btn btn-secondary text-sm py-2">
+            <button onClick={() => markAll('absent')} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-outline-variant/30 text-primary font-semibold text-sm hover:bg-surface-container-low transition-all">
               <MaterialIcon icon="cancel" className="text-lg" />
               Mark All Absent
             </button>
           </div>
 
-          <div className="space-y-3 mb-6">
+          <div className="space-y-3">
             {students.map((student) => (
-              <div key={student.id} className="bg-white rounded-2xl border border-[#e8eaed] p-4">
+              <div key={student.id} className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#f0f4f8] rounded-full flex items-center justify-center">
-                      <span className="text-[#002045] font-semibold text-sm">
+                    <div className="w-10 h-10 bg-primary-container rounded-full flex items-center justify-center">
+                      <span className="text-on-primary-container font-bold text-sm">
                         {student.first_name?.charAt(0)}{student.last_name?.charAt(0)}
                       </span>
                     </div>
                     <div>
-                      <div className="font-medium text-[#191c1d]">{student.first_name} {student.last_name}</div>
-                      <div className="text-xs text-[#5c6670]">{student.student_number}</div>
+                      <div className="font-bold text-primary">{student.first_name} {student.last_name}</div>
+                      <div className="text-xs text-on-surface-variant">{student.student_number}</div>
                     </div>
                   </div>
                   <div className="flex gap-2">
                     {[
-                      { status: 'present', label: 'Present', color: 'bg-[#ecfdf5] text-[#006e1c] border-[#006e1c]', active: attendance[student.id] === 'present' },
-                      { status: 'absent', label: 'Absent', color: 'bg-[#fef2f2] text-[#ba1a1a] border-[#ba1a1a]', active: attendance[student.id] === 'absent' },
-                      { status: 'late', label: 'Late', color: 'bg-[#fff7ed] text-[#b86e00] border-[#b86e00]', active: attendance[student.id] === 'late' },
+                      { status: 'present', label: 'Present', activeClass: 'bg-secondary-container text-on-secondary-container border-secondary', active: attendance[student.id] === 'present' },
+                      { status: 'absent', label: 'Absent', activeClass: 'bg-error-container text-on-error-container border-error', active: attendance[student.id] === 'absent' },
+                      { status: 'late', label: 'Late', activeClass: 'bg-tertiary-fixed text-on-tertiary-fixed border-tertiary', active: attendance[student.id] === 'late' },
                     ].map((option) => (
                       <button
                         key={option.status}
                         onClick={() => markAttendance(student.id, option.status)}
                         className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
                           option.active
-                            ? option.color
-                            : 'bg-white text-[#5c6670] border-[#e8eaed] hover:border-[#c4c6cf]'
+                            ? option.activeClass
+                            : 'bg-surface-container-lowest text-on-surface-variant border-outline-variant/30 hover:border-outline-variant'
                         }`}
                       >
                         {option.label}
@@ -236,7 +238,7 @@ export default function AttendancePage() {
             ))}
           </div>
 
-          <button onClick={saveAttendance} disabled={saving || Object.keys(attendance).length === 0} className="btn btn-primary w-full">
+          <button onClick={saveAttendance} disabled={saving || Object.keys(attendance).length === 0} className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-white font-semibold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/10 disabled:opacity-50">
             <MaterialIcon icon="save" className="text-lg" />
             {saving ? 'Saving...' : 'Save Attendance'}
           </button>

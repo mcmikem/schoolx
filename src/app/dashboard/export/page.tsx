@@ -10,7 +10,7 @@ function MaterialIcon({ icon, className, style }: { icon?: string; className?: s
 }
 
 export default function ExportPage() {
-  const { school } = useAuth()
+  const { school, isDemo } = useAuth()
   const toast = useToast()
   const { students } = useStudents(school?.id)
   const { classes } = useClasses(school?.id)
@@ -31,85 +31,160 @@ export default function ExportPage() {
       let data: any[] = []
       let filename = ''
 
-      switch (exportType) {
-        case 'students':
-          data = filteredStudents.map(s => ({
-            'First Name': s.first_name,
-            'Last Name': s.last_name,
-            'Gender': s.gender === 'M' ? 'Male' : 'Female',
-            'Student Number': s.student_number || '',
-            'Class': s.classes?.name || '',
-            'Parent Name': s.parent_name || '',
-            'Parent Phone': s.parent_phone || '',
-            'Parent Phone 2': s.parent_phone2 || '',
-            'Date of Birth': s.date_of_birth || '',
-            'Status': s.status || 'active',
-          }))
-          filename = 'students_export.xlsx'
-          break
+      // Demo mode - use demo data
+      if (isDemo) {
+        const { getDemoStudents, getDemoPayments, getDemoGrades, getDemoAttendance, getDemoClasses } = await import('@/lib/demo-data')
+        
+        switch (exportType) {
+          case 'students':
+            data = filteredStudents.map(s => ({
+              'First Name': s.first_name,
+              'Last Name': s.last_name,
+              'Gender': s.gender === 'M' ? 'Male' : 'Female',
+              'Student Number': s.student_number || '',
+              'Class': s.classes?.name || '',
+              'Parent Name': s.parent_name || '',
+              'Parent Phone': s.parent_phone || '',
+              'Date of Birth': s.date_of_birth || '',
+              'Status': s.status || 'active',
+            }))
+            filename = 'students_export.xlsx'
+            break
 
-        case 'uneb':
-          data = filteredStudents.map(s => ({
-            'Index Number': s.ple_index_number || '',
-            'Student Number': s.student_number || '',
-            'First Name': s.first_name,
-            'Last Name': s.last_name,
-            'Gender': s.gender === 'M' ? 'Male' : 'Female',
-            'Date of Birth': s.date_of_birth || '',
-            'Class': s.classes?.name || '',
-            'School Code': school?.school_code || '',
-          }))
-          filename = 'uneb_candidate_list.xlsx'
-          break
+          case 'uneb':
+            data = filteredStudents.map(s => ({
+              'Index Number': s.ple_index_number || '',
+              'Student Number': s.student_number || '',
+              'First Name': s.first_name,
+              'Last Name': s.last_name,
+              'Gender': s.gender === 'M' ? 'Male' : 'Female',
+              'Date of Birth': s.date_of_birth || '',
+              'Class': s.classes?.name || '',
+              'School Code': school?.school_code || '',
+            }))
+            filename = 'uneb_candidate_list.xlsx'
+            break
 
-        case 'grades':
-          const { data: grades } = await supabase
-            .from('grades')
-            .select('*, students(first_name, last_name, student_number), subjects(name, code)')
-            .eq('class_id', selectedClass !== 'all' ? selectedClass : undefined)
-          
-          data = grades?.map(g => ({
-            'Student Name': `${g.students?.first_name} ${g.students?.last_name}`,
-            'Student Number': g.students?.student_number || '',
-            'Subject': g.subjects?.name || '',
-            'Assessment': g.assessment_type,
-            'Score': g.score,
-            'Term': g.term,
-            'Year': g.academic_year,
-          })) || []
-          filename = 'grades_export.xlsx'
-          break
+          case 'grades':
+            const demoGrades = getDemoGrades()
+            data = demoGrades.map(g => ({
+              'Student Name': 'Demo Student',
+              'Student Number': g.student_id,
+              'Subject': 'Subject',
+              'Assessment': g.assessment_type,
+              'Score': g.score,
+              'Term': g.term,
+              'Year': g.academic_year,
+            }))
+            filename = 'grades_export.xlsx'
+            break
 
-        case 'attendance':
-          const { data: attendance } = await supabase
-            .from('attendance')
-            .select('*, students(first_name, last_name, student_number)')
-            .gte('date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
-          
-          data = attendance?.map(a => ({
-            'Student Name': `${a.students?.first_name} ${a.students?.last_name}`,
-            'Student Number': a.students?.student_number || '',
-            'Date': a.date,
-            'Status': a.status,
-          })) || []
-          filename = 'attendance_export.xlsx'
-          break
+          case 'attendance':
+            const demoAtt = getDemoAttendance()
+            data = demoAtt.slice(0, 50).map(a => ({
+              'Student Name': 'Demo Student',
+              'Student Number': a.student_id,
+              'Date': a.date,
+              'Status': a.status,
+            }))
+            filename = 'attendance_export.xlsx'
+            break
 
-        case 'fees':
-          const { data: payments } = await supabase
-            .from('fee_payments')
-            .select('*, students(first_name, last_name, student_number)')
-          
-          data = payments?.map(p => ({
-            'Student Name': `${p.students?.first_name} ${p.students?.last_name}`,
-            'Student Number': p.students?.student_number || '',
-            'Amount': p.amount_paid,
-            'Method': p.payment_method,
-            'Reference': p.payment_reference || '',
-            'Date': p.payment_date,
-          })) || []
-          filename = 'fees_export.xlsx'
-          break
+          case 'fees':
+            const demoPayments = getDemoPayments()
+            data = demoPayments.map(p => ({
+              'Student Name': `${p.students?.first_name || 'Demo'} ${p.students?.last_name || 'Student'}`,
+              'Student Number': p.student_id,
+              'Amount': p.amount_paid,
+              'Method': p.payment_method,
+              'Reference': p.payment_reference || '',
+              'Date': p.payment_date,
+            }))
+            filename = 'fees_export.xlsx'
+            break
+        }
+      } else {
+        // Real mode
+        switch (exportType) {
+          case 'students':
+            data = filteredStudents.map(s => ({
+              'First Name': s.first_name,
+              'Last Name': s.last_name,
+              'Gender': s.gender === 'M' ? 'Male' : 'Female',
+              'Student Number': s.student_number || '',
+              'Class': s.classes?.name || '',
+              'Parent Name': s.parent_name || '',
+              'Parent Phone': s.parent_phone || '',
+              'Parent Phone 2': s.parent_phone2 || '',
+              'Date of Birth': s.date_of_birth || '',
+              'Status': s.status || 'active',
+            }))
+            filename = 'students_export.xlsx'
+            break
+
+          case 'uneb':
+            data = filteredStudents.map(s => ({
+              'Index Number': s.ple_index_number || '',
+              'Student Number': s.student_number || '',
+              'First Name': s.first_name,
+              'Last Name': s.last_name,
+              'Gender': s.gender === 'M' ? 'Male' : 'Female',
+              'Date of Birth': s.date_of_birth || '',
+              'Class': s.classes?.name || '',
+              'School Code': school?.school_code || '',
+            }))
+            filename = 'uneb_candidate_list.xlsx'
+            break
+
+          case 'grades':
+            const { data: grades } = await supabase
+              .from('grades')
+              .select('*, students(first_name, last_name, student_number), subjects(name, code)')
+              .eq('class_id', selectedClass !== 'all' ? selectedClass : undefined)
+            
+            data = grades?.map(g => ({
+              'Student Name': `${g.students?.first_name} ${g.students?.last_name}`,
+              'Student Number': g.students?.student_number || '',
+              'Subject': g.subjects?.name || '',
+              'Assessment': g.assessment_type,
+              'Score': g.score,
+              'Term': g.term,
+              'Year': g.academic_year,
+            })) || []
+            filename = 'grades_export.xlsx'
+            break
+
+          case 'attendance':
+            const { data: attendance } = await supabase
+              .from('attendance')
+              .select('*, students(first_name, last_name, student_number)')
+              .gte('date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+            
+            data = attendance?.map(a => ({
+              'Student Name': `${a.students?.first_name} ${a.students?.last_name}`,
+              'Student Number': a.students?.student_number || '',
+              'Date': a.date,
+              'Status': a.status,
+            })) || []
+            filename = 'attendance_export.xlsx'
+            break
+
+          case 'fees':
+            const { data: payments } = await supabase
+              .from('fee_payments')
+              .select('*, students(first_name, last_name, student_number)')
+            
+            data = payments?.map(p => ({
+              'Student Name': `${p.students?.first_name} ${p.students?.last_name}`,
+              'Student Number': p.students?.student_number || '',
+              'Amount': p.amount_paid,
+              'Method': p.payment_method,
+              'Reference': p.payment_reference || '',
+              'Date': p.payment_date,
+            })) || []
+            filename = 'fees_export.xlsx'
+            break
+        }
       }
 
       const ws = XLSX.utils.json_to_sheet(data)
@@ -119,6 +194,7 @@ export default function ExportPage() {
 
       toast.success('Export downloaded successfully')
     } catch (err: unknown) {
+      console.error('Export error:', err)
       toast.error(err instanceof Error ? err.message : 'Export failed')
     } finally {
       setExporting(false)

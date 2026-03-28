@@ -213,6 +213,97 @@ CREATE TABLE IF NOT EXISTS topic_coverage (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Dorms table
+CREATE TABLE IF NOT EXISTS dorms (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  type TEXT CHECK (type IN ('boys', 'girls', 'mixed')) DEFAULT 'boys',
+  capacity INTEGER DEFAULT 30,
+  location TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Dorm students table
+CREATE TABLE IF NOT EXISTS dorm_students (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  dorm_id UUID REFERENCES dorms(id) ON DELETE CASCADE,
+  student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+  academic_year TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(dorm_id, student_id, academic_year)
+);
+
+-- Homework table
+CREATE TABLE IF NOT EXISTS homework (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
+  subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  due_date DATE,
+  created_by UUID REFERENCES users(id),
+  academic_year TEXT,
+  term INTEGER,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Homework submissions table
+CREATE TABLE IF NOT EXISTS homework_submissions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  homework_id UUID REFERENCES homework(id) ON DELETE CASCADE,
+  student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+  submitted_at TIMESTAMPTZ DEFAULT NOW(),
+  status TEXT DEFAULT 'pending',
+  notes TEXT
+);
+
+-- Syllabus table
+CREATE TABLE IF NOT EXISTS syllabus (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+  subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
+  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
+  term INTEGER NOT NULL,
+  academic_year TEXT NOT NULL,
+  topic TEXT NOT NULL,
+  subtopics TEXT,
+  objectives TEXT,
+  weeks_covered TEXT,
+  resources TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Lesson plans table
+CREATE TABLE IF NOT EXISTS lesson_plans (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+  subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
+  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
+  topic TEXT,
+  lesson_title TEXT NOT NULL,
+  objectives TEXT,
+  materials TEXT,
+  procedure TEXT,
+  duration INTEGER DEFAULT 40,
+  date DATE,
+  term INTEGER,
+  academic_year TEXT,
+  created_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- School settings table
+CREATE TABLE IF NOT EXISTS school_settings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+  key TEXT NOT NULL,
+  value TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(school_id, key)
+);
+
 -- Create indexes
 CREATE INDEX IF NOT EXISTS idx_users_auth_id ON users(auth_id);
 CREATE INDEX IF NOT EXISTS idx_users_school_id ON users(school_id);
@@ -233,6 +324,13 @@ ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE timetable ENABLE ROW LEVEL SECURITY;
 ALTER TABLE topic_coverage ENABLE ROW LEVEL SECURITY;
+ALTER TABLE dorms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE dorm_students ENABLE ROW LEVEL SECURITY;
+ALTER TABLE homework ENABLE ROW LEVEL SECURITY;
+ALTER TABLE homework_submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE syllabus ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lesson_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE school_settings ENABLE ROW LEVEL SECURITY;
 
 -- Allow authenticated users to access their data
 CREATE POLICY "Allow all for authenticated" ON schools FOR ALL USING (true);
@@ -246,7 +344,14 @@ CREATE POLICY "Allow all for authenticated" ON fee_payments FOR ALL USING (true)
 CREATE POLICY "Allow all for authenticated" ON events FOR ALL USING (true);
 CREATE POLICY "Allow all for authenticated" ON messages FOR ALL USING (true);
 CREATE POLICY "Allow all for authenticated" ON timetable FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON topic_coverage FOR ALL USING (true);`
+CREATE POLICY "Allow all for authenticated" ON topic_coverage FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON dorms FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON dorm_students FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON homework FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON homework_submissions FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON syllabus FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON lesson_plans FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON school_settings FOR ALL USING (true);`
 
 export default function SetupPage() {
   const toast = useToast()

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#002045',
+  themeColor: '#17325F',
 }
 
 export default function RootLayout({
@@ -21,7 +21,7 @@ export default function RootLayout({
     <html lang="en" className="light">
       <head>
         <link
-          href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700;800&display=swap"
           rel="stylesheet"
         />
         <link
@@ -31,7 +31,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className="antialiased min-h-screen" style={{ backgroundColor: '#f8fafb', color: '#191c1d', fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <body className="antialiased min-h-screen" style={{ backgroundColor: 'var(--bg)', color: 'var(--t1)', fontFamily: "'Instrument Sans', 'Inter', system-ui, sans-serif" }}>
         <Providers>{children}</Providers>
       </body>
     </html>

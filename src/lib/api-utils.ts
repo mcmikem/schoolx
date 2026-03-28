@@ -58,6 +58,13 @@ export function rateLimit(
   const key = `rate_limit:${ip}`
   const now = Date.now()
   
+  // Periodic cleanup of expired entries to prevent memory leak
+  if (rateLimitMap.size > 1000) {
+    Array.from(rateLimitMap.entries()).forEach(([k, v]) => {
+      if (now > v.resetTime) rateLimitMap.delete(k)
+    })
+  }
+
   const record = rateLimitMap.get(key)
   
   if (!record || now > record.resetTime) {

@@ -60,26 +60,23 @@ export default function StaffPage() {
       setSaving(true)
       
       const normalizedPhone = newStaff.phone.replace(/[^0-9]/g, '')
-      const email = `${normalizedPhone}@omuto.sms`
       
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email,
-        password: newStaff.password,
-        email_confirm: true,
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schoolId: school.id,
+          fullName: newStaff.full_name,
+          phone: normalizedPhone,
+          password: newStaff.password,
+          role: newStaff.role
+        })
       })
 
-      if (authError) throw authError
-
-      const { error: userError } = await supabase.from('users').insert({
-        auth_id: authData.user.id,
-        school_id: school.id,
-        full_name: newStaff.full_name,
-        phone: normalizedPhone,
-        role: newStaff.role,
-        is_active: true,
-      })
-
-      if (userError) throw userError
+      const result = await response.json()
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to add staff')
+      }
 
       toast.success('Staff member added')
       setShowAddModal(false)

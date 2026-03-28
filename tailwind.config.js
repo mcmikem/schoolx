@@ -10,6 +10,7 @@ module.exports = {
     extend: {
       colors: {
         primary: {
+          DEFAULT: '#002045',
           50: '#d6e3ff',
           100: '#adc7f7',
           200: '#86a0cd',
@@ -22,6 +23,7 @@ module.exports = {
           900: '#001333',
         },
         secondary: {
+          DEFAULT: '#006e1c',
           50: '#98f994',
           100: '#7ddc7a',
           200: '#5cc95d',
@@ -34,6 +36,7 @@ module.exports = {
           900: '#003101',
         },
         tertiary: {
+          DEFAULT: '#321b00',
           50: '#ffddba',
           100: '#f2bc82',
           200: '#e59b4a',
@@ -46,6 +49,7 @@ module.exports = {
           900: '#1d0f00',
         },
         error: {
+          DEFAULT: '#ba1a1a',
           50: '#ffdad6',
           100: '#ffb4ab',
           200: '#ff8982',
@@ -58,14 +62,15 @@ module.exports = {
           900: '#4a0000',
         },
         surface: {
+          DEFAULT: '#f8fafb',
           brightest: '#f8fafb',
           bright: '#f8fafb',
-          default: '#f8fafb',
           dim: '#d8dadb',
           container: '#eceeef',
           'container-high': '#e6e8e9',
           'container-highest': '#e1e3e4',
           'container-low': '#f2f4f5',
+          'container-lowest': '#ffffff',
           lowest: '#ffffff',
         },
         onSurface: {
@@ -77,6 +82,7 @@ module.exports = {
           variant: '#c4c6cf',
         },
         inverse: {
+          DEFAULT: '#2e3132',
           surface: '#2e3132',
           onSurface: '#eff1f2',
           primary: '#adc7f7',
@@ -84,6 +90,64 @@ module.exports = {
         'surface-tint': '#455f88',
         background: '#f8fafb',
         'on-background': '#191c1d',
+        'primary-container': {
+          DEFAULT: '#d6e3ff',
+          50: '#ffffff',
+          100: '#f0f4ff',
+          200: '#d6e3ff',
+          300: '#b3c9ff',
+          400: '#adc7f7',
+        },
+        'on-primary-container': {
+          DEFAULT: '#001a3c',
+          50: '#001a3c',
+          100: '#001833',
+          200: '#001a3c',
+        },
+        'secondary-container': {
+          DEFAULT: '#b6f2ab',
+          50: '#c8f7bc',
+          100: '#b6f2ab',
+          200: '#9ceb82',
+        },
+        'on-secondary-container': {
+          DEFAULT: '#002106',
+          50: '#002106',
+          100: '#001b05',
+          200: '#002106',
+        },
+        'tertiary-container': {
+          DEFAULT: '#ffddba',
+          50: '#fff0e0',
+          100: '#ffe8cf',
+          200: '#ffddba',
+        },
+        'on-tertiary-container': {
+          DEFAULT: '#2b1700',
+          50: '#2b1700',
+          100: '#261400',
+          200: '#2b1700',
+        },
+        'tertiary-fixed': {
+          DEFAULT: '#d87a12',
+          50: '#ffddba',
+          100: '#f2bc82',
+          200: '#e59b4a',
+          300: '#d87a12',
+        },
+        'on-tertiary-fixed': {
+          DEFAULT: '#ffffff',
+          50: '#321b00',
+          100: '#321b00',
+          200: '#321b00',
+          300: '#ffffff',
+        },
+        'tertiary-fixed-dim': '#d87a12',
+        'on-surface-variant': '#43474e',
+        'on-primary': '#ffffff',
+        'on-primary-fixed': '#321b00',
+        'on-secondary': '#ffffff',
+        'on-tertiary': '#ffffff',
       },
        fontFamily: {
          headline: ['Manrope', 'sans-serif'],

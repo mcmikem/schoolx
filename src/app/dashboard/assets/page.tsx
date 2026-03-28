@@ -61,7 +61,7 @@ export default function AssetsPage() {
   }, [school?.id])
 
   const fetchAssets = async () => {
-    if (!school?.id) return
+    if (!school?.id || !supabase) return
     try {
       const { data, error } = await supabase
         .from('assets')
@@ -80,7 +80,7 @@ export default function AssetsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!school?.id) return
+    if (!school?.id || !supabase) return
 
     try {
       const { error } = await supabase.from('assets').insert({
@@ -106,7 +106,7 @@ export default function AssetsPage() {
   }
 
   const deleteAsset = async (id: string) => {
-    if (!confirm('Delete this asset?')) return
+    if (!confirm('Delete this asset?') || !supabase) return
     try {
       const { error } = await supabase.from('assets').delete().eq('id', id)
       if (error) throw error

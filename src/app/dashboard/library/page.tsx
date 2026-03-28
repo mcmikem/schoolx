@@ -238,47 +238,34 @@ export default function LibraryPage() {
               ))}
             </div>
           ) : filteredBooks.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 text-center">
-              <div className="w-16 h-16 bg-[#f8fafb] rounded-full flex items-center justify-center mx-auto mb-4">
-                <MaterialIcon icon="menu_book" className="text-3xl text-[#5c6670]" />
+            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MaterialIcon className="text-3xl text-gray-400">menu_book</MaterialIcon>
               </div>
-              <h3 className="text-lg font-semibold text-[#191c1d] mb-2">No books</h3>
-              <p className="text-[#5c6670]">Add your first book</p>
+              <h3 className="font-bold text-gray-900 mb-2">No books</h3>
+              <p className="text-gray-500">Add your first book</p>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-[#e8eaed] overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-[#f8fafb]">
-                    <tr>
-                      <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Title</th>
-                      <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Author</th>
-                      <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Category</th>
-                      <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Available</th>
-                      <th className="text-left p-4 text-sm font-semibold text-[#191c1d]"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredBooks.map((book) => (
-                      <tr key={book.id} className="border-t border-[#e8eaed]">
-                        <td className="p-4 font-medium text-[#191c1d]">{book.title}</td>
-                        <td className="p-4 text-[#5c6670]">{book.author}</td>
-                        <td className="p-4 text-[#5c6670]">{book.category || '-'}</td>
-                        <td className="p-4">
-                          <span className={`px-3 py-1 rounded-lg text-xs font-medium ${book.available > 0 ? 'bg-[#e8f5e9] text-[#006e1c]' : 'bg-[#fef2f2] text-[#ba1a1a]'}`}>
-                            {book.available}/{book.copies}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          <button onClick={() => deleteBook(book.id)} className="p-2 text-[#5c6670] hover:text-[#ba1a1a]">
-                            <MaterialIcon icon="delete" className="text-lg" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {filteredBooks.map((book) => (
+                <div key={book.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                  <div className="h-32 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+                    <MaterialIcon className="text-5xl text-blue-300">menu_book</MaterialIcon>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-bold text-gray-900 mb-1 line-clamp-2">{book.title}</h3>
+                    <p className="text-sm text-gray-500 mb-2">{book.author}</p>
+                    <div className="flex items-center justify-between">
+                      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${book.available > 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                        {book.available}/{book.copies} available
+                      </span>
+                      <button onClick={() => deleteBook(book.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                        <MaterialIcon className="text-lg">delete</MaterialIcon>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </>

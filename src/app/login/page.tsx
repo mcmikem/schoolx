@@ -48,6 +48,11 @@ export default function LoginPage() {
     }
 
     const cleanPhone = phone.replace(/[^0-9]/g, '')
+    
+    // Clear any previous demo data before login
+    localStorage.removeItem('demo_user')
+    localStorage.removeItem('demo_school')
+    
     if (password === 'demo1234' && demoUsers[cleanPhone]) {
       const demoUser = demoUsers[cleanPhone]
       localStorage.setItem('demo_user', JSON.stringify(demoUser))
@@ -60,6 +65,12 @@ export default function LoginPage() {
     }
 
     try {
+      if (!supabase) {
+        toast.error('Supabase not configured. Please use demo account.')
+        setLoading(false)
+        return
+      }
+      
       const email = `${cleanPhone}@omuto.sms`
       
       const { data, error: authError } = await supabase.auth.signInWithPassword({
