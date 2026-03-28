@@ -1018,3 +1018,73 @@ CREATE TABLE IF NOT EXISTS student_promotions (
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ============================================
+-- PAYMENT PLANS TABLE (EMI)
+-- ============================================
+CREATE TABLE IF NOT EXISTS payment_plans (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+    total_amount INTEGER NOT NULL,
+    installments INTEGER NOT NULL DEFAULT 3,
+    start_date DATE NOT NULL,
+    status TEXT CHECK (status IN ('active', 'completed', 'defaulted', 'cancelled')) DEFAULT 'active',
+    academic_year TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
+-- PAYMENT PLAN INSTALLMENTS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS payment_plan_installments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    plan_id UUID REFERENCES payment_plans(id) ON DELETE CASCADE,
+    due_date DATE NOT NULL,
+    amount INTEGER NOT NULL,
+    paid BOOLEAN DEFAULT false,
+    paid_date TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
+-- SMS TEMPLATES TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS sms_templates (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL, -- fee_reminder, attendance, exam, general
+    message TEXT NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
+-- LEAVE APPROVAL WORKFLOW TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS leave_approvals (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    leave_request_id UUID REFERENCES leave_requests(id) ON DELETE CASCADE,
+    approver_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    status TEXT CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+    comments TEXT,
+    approved_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
+-- EXPENSE APPROVAL TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS expense_approvals (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    expense_id UUID REFERENCES expenses(id) ON DELETE CASCADE,
+    approver_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    status TEXT CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+    comments TEXT,
+    approved_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);

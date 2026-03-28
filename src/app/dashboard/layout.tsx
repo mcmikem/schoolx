@@ -367,6 +367,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <MaterialIcon icon="payments" style={{ fontSize: 17 }} />
                 Finance
               </Link>
+              <Link href="/dashboard/payment-plans" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="calendar_month" style={{ fontSize: 17 }} />
+                Payment Plans
+              </Link>
               <Link href="/dashboard/reports" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="description" style={{ fontSize: 17 }} />
                 Reports
@@ -394,6 +398,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Link href="/dashboard/notices" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="campaign" style={{ fontSize: 17 }} />
                 Notices
+              </Link>
+              <Link href="/dashboard/sms-templates" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="sms" style={{ fontSize: 17 }} />
+                SMS Templates
               </Link>
               <Link href="/dashboard/homework" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="assignment" style={{ fontSize: 17 }} />
