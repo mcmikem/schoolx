@@ -490,7 +490,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </aside>
 
-        <main className="main-content" style={{ marginLeft: 240, flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <main className="main-content" style={{ marginLeft: 240, flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh', width: 'calc(100% - 240px)' }}>
           <header className="topbar" style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', height: 60, display: 'flex', alignItems: 'center', padding: '0 32px', gap: 18, position: 'sticky', top: 0, zIndex: 50, boxShadow: 'var(--sh1)', flexShrink: 0 }}>
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="mobile-menu-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, marginRight: 8, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>
               <MaterialIcon icon="menu" style={{ fontSize: 24, color: 'var(--t1)' }} />
@@ -554,27 +554,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <style>{`
         @keyframes blink { 0%,100%{ opacity:1 } 50%{ opacity:.3 } }
         .nav-item:hover { background: var(--bg); color: var(--t1); }
-        .sidebar { left: 0 !important; }
-        .mobile-menu-btn { display: block !important; }
-        .sidebar-overlay { display: block !important; }
         .nav-item { min-height: 44px; }
+        
+        /* Desktop: sidebar always visible */
+        .sidebar { left: 0 !important; }
+        .mobile-menu-btn { display: none !important; }
+        .sidebar-overlay { display: none !important; }
+        
+        /* Mobile: sidebar hidden by default */
         @media (max-width: 768px) {
-          .sidebar { left: -240px !important; transition: left 0.2s ease; }
+          .sidebar { 
+            left: -240px !important; 
+            transition: left 0.2s ease;
+            z-index: 200;
+          }
           .sidebar.open { left: 0 !important; }
           .mobile-menu-btn { display: flex !important; }
-          .sidebar-overlay { display: none !important; }
+          .sidebar-overlay { display: none !important; z-index: 150; }
           .sidebar-overlay.visible { display: block !important; }
           .nav-item { padding: 12px 14px !important; min-height: 48px; }
-          .main-content { margin-left: 0 !important; padding: 0 16px !important; }
-          .topbar { padding: 0 16px !important; }
+          .main-content { 
+            margin-left: 0 !important; 
+            padding: 0 12px !important; 
+            width: 100% !important;
+            max-width: 100vw !important;
+          }
+          .topbar { padding: 0 12px !important; gap: 8px !important; }
           .search-bar { display: none !important; }
         }
         @media (max-width: 480px) {
-          .topbar { padding: 0 12px !important; gap: 8px !important; }
-        }
-        @media (min-width: 769px) {
-          .mobile-menu-btn { display: none !important; }
-          .sidebar-overlay { display: none !important; }
+          .topbar { padding: 0 8px !important; gap: 4px !important; }
+          .main-content { padding: 0 8px !important; }
         }
       `}</style>
     </ErrorBoundary>
