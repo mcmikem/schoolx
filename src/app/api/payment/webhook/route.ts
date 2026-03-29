@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { stripe } from '@/lib/payments/stripe'
 import { updateSchoolSubscription, sendPaymentReceipt, handleSubscriptionChange } from '@/lib/subscription'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
@@ -8,6 +7,13 @@ export async function POST(request: Request) {
   const body = await request.text()
   const sig = request.headers.get('stripe-signature') as string
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+
+  if (!webhookSecret) {
+    return new NextResponse('Webhook secret not configured', { status: 500 })
+  }
+
+  const Stripe = require('stripe')
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '')
 
   let event;
   

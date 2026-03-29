@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe } from '@/lib/payments/stripe'
 import { createPayPalOrder } from '@/lib/payments/paypal'
 import {
   PlanType,
@@ -64,6 +63,18 @@ export async function POST(request: NextRequest) {
     const amount = getPlanPrice(plan)
 
     if (provider === 'stripe') {
+      const stripeSecretKey = process.env.STRIPE_SECRET_KEY
+      
+      if (!stripeSecretKey) {
+        return NextResponse.json(
+          { error: 'Payment processing not configured. Please contact support.' },
+          { status: 503 }
+        )
+      }
+
+      const Stripe = require('stripe')
+      const stripe = new Stripe(stripeSecretKey)
+      
       const priceId = STRIPE_PRICE_IDS[plan]
       
       let customerId = school.stripe_customer_id
