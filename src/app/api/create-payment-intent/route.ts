@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { stripe } from '../../../lib/payments/stripe';
 import { createSupabaseServerClient } from '../../../lib/supabase/server';
 
 export async function POST(request: Request) {
@@ -36,11 +35,24 @@ export async function POST(request: Request) {
 
     let customerId = school.stripe_customer_id;
 
+    // Only initialize Stripe if we have the API key
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    
+    if (!stripeSecretKey) {
+      return NextResponse.json(
+        { error: 'Payment processing not configured. Please contact support.' },
+        { status: 503 }
+      );
+    }
+
+    // Dynamic import to avoid build-time initialization
+    const Stripe = require('stripe');
+    const stripe = new Stripe(stripeSecretKey);
+
     // If no Stripe customer exists, create one
     if (!customerId) {
-      // In a real implementation, we would get the email from the school or user
       const customer = await stripe.customers.create({
-        email: 'school@example.com', // This should come from the school data
+        email: 'school@example.com',
         metadata: {
           school_id: schoolId,
         },
@@ -48,7 +60,6 @@ export async function POST(request: Request) {
       
       customerId = customer.id;
       
-      // Update the school with the Stripe customer ID
       await supabase
         .from('schools')
         .update({ stripe_customer_id: customerId })
