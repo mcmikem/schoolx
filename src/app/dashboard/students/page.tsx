@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 import { useStudents, useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
+import { SendSMSModal } from '@/components/SendSMSModal'
 
 function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
   return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
@@ -44,6 +45,7 @@ export default function StudentsPage() {
     student_number: '',
     ple_index_number: '',
   })
+  const [smsTarget, setSmsTarget] = useState<{ id: string; first_name: string; last_name: string; parent_phone?: string } | null>(null)
 
   const filtered = useMemo(() => {
     return students.filter((s) => {
@@ -340,6 +342,9 @@ export default function StudentsPage() {
                     <td style={{ fontSize: 13, fontFamily: 'DM Mono' }}>{student.parent_phone || '-'}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 4 }}>
+                        <button onClick={() => setSmsTarget(student)} title="SMS Parent" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 6 }}>
+                          <MaterialIcon style={{ fontSize: 16, color: 'var(--t3)' }}>sms</MaterialIcon>
+                        </button>
                         <button onClick={() => openEditModal(student)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 6 }}>
                           <MaterialIcon style={{ fontSize: 16, color: 'var(--t3)' }}>edit</MaterialIcon>
                         </button>
@@ -494,6 +499,14 @@ export default function StudentsPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {smsTarget && (
+        <SendSMSModal
+          student={smsTarget}
+          isOpen={!!smsTarget}
+          onClose={() => setSmsTarget(null)}
+        />
       )}
     </div>
   )

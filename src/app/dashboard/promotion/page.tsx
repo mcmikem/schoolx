@@ -16,6 +16,7 @@ interface Student {
   gender: string
   status: string
   class_id: string
+  repeating?: boolean
   classes?: { id: string; name: string; level: string }
 }
 
@@ -23,6 +24,11 @@ interface ClassData {
   id: string
   name: string
   level: string
+}
+
+type StudentAction = 'promote' | 'repeat' | 'demote' | 'skip'
+interface StudentActionMap {
+  [studentId: string]: { action: StudentAction; targetClassId?: string; reason?: string }
 }
 
 export default function StudentPromotionPage() {
@@ -35,9 +41,13 @@ export default function StudentPromotionPage() {
   const [toClass, setToClass] = useState('')
   const [students, setStudents] = useState<Student[]>([])
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set())
+  const [studentActions, setStudentActions] = useState<StudentActionMap>({})
   const [loading, setLoading] = useState(false)
   const [promoting, setPromoting] = useState(false)
   const [promotionHistory, setPromotionHistory] = useState<any[]>([])
+  const [showDemoteModal, setShowDemoteModal] = useState<string | null>(null)
+  const [demoteReason, setDemoteReason] = useState('')
+  const [demoteClass, setDemoteClass] = useState('')
 
   useEffect(() => {
     if (school?.id) fetchClasses()
@@ -71,6 +81,12 @@ export default function StudentPromotionPage() {
       .order('first_name')
     setStudents(data || [])
     setSelectedStudents(new Set(data?.map(s => s.id) || []))
+    // Default all to promote
+    const defaultActions: StudentActionMap = {}
+    data?.forEach(s => {
+      defaultActions[s.id] = { action: 'promote' }
+    })
+    setStudentActions(defaultActions)
     setLoading(false)
   }
 
@@ -88,8 +104,14 @@ export default function StudentPromotionPage() {
     const newSelected = new Set(selectedStudents)
     if (newSelected.has(id)) {
       newSelected.delete(id)
+      setStudentActions(prev => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
     } else {
       newSelected.add(id)
+      setStudentActions(prev => ({ ...prev, [id]: { action: 'promote' } }))
     }
     setSelectedStudents(newSelected)
   }
@@ -97,55 +119,125 @@ export default function StudentPromotionPage() {
   const toggleAll = () => {
     if (selectedStudents.size === students.length) {
       setSelectedStudents(new Set())
+      setStudentActions({})
     } else {
-      setSelectedStudents(new Set(students.map(s => s.id)))
+      const newSet = new Set(students.map(s => s.id))
+      const newActions: StudentActionMap = {}
+      students.forEach(s => {
+        newActions[s.id] = { action: 'promote' }
+      })
+      setSelectedStudents(newSet)
+      setStudentActions(newActions)
     }
   }
 
-  const promoteStudents = async () => {
-    if (selectedStudents.size === 0) {
+  const setAction = (studentId: string, action: StudentAction) => {
+    if (action === 'demote') {
+      setShowDemoteModal(studentId)
+      return
+    }
+    setStudentActions(prev => ({
+      ...prev,
+      [studentId]: { ...prev[studentId], action, targetClassId: undefined, reason: undefined }
+    }))
+  }
+
+  const confirmDemote = () => {
+    if (!showDemoteModal || !demoteClass) {
+      toast.error('Please select a class to demote to')
+      return
+    }
+    setStudentActions(prev => ({
+      ...prev,
+      [showDemoteModal]: { action: 'demote', targetClassId: demoteClass, reason: demoteReason }
+    }))
+    setShowDemoteModal(null)
+    setDemoteReason('')
+    setDemoteClass('')
+  }
+
+  const processPromotions = async () => {
+    const selectedArray = Array.from(selectedStudents)
+    if (selectedArray.length === 0) {
       toast.error('No students selected')
       return
     }
 
-    if (!toClass) {
-      toast.error('Please select promotion class')
+    // Check that promote students have a target class
+    const promoteStudents = selectedArray.filter(id => studentActions[id]?.action === 'promote')
+    if (promoteStudents.length > 0 && !toClass) {
+      toast.error('Please select a target class for promoted students')
       return
     }
 
     setPromoting(true)
     try {
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser()
-      const selectedArray = Array.from(selectedStudents)
+      let promoted = 0, repeating = 0, transferred = 0, demoted = 0
 
-      const promotions = selectedArray.map(studentId => ({
-        school_id: school?.id,
-        student_id: studentId,
-        from_class_id: fromClass,
-        to_class_id: toClass,
-        academic_year: academicYear,
-        promoted_by: user?.id,
-        promoted_at: new Date().toISOString()
-      }))
-
-      // Update student class_ids
       for (const studentId of selectedArray) {
-        await supabase
-          .from('students')
-          .update({ class_id: toClass })
-          .eq('id', studentId)
+        const actionData = studentActions[studentId]
+        if (!actionData) continue
+
+        const action = actionData.action
+
+        if (action === 'promote') {
+          await supabase.from('students').update({ class_id: toClass, repeating: false }).eq('id', studentId)
+          await supabase.from('student_promotions').insert({
+            school_id: school?.id,
+            student_id: studentId,
+            from_class_id: fromClass,
+            to_class_id: toClass,
+            academic_year: academicYear,
+            promotion_type: 'promoted',
+            promoted_by: user?.id,
+            promoted_at: new Date().toISOString()
+          })
+          promoted++
+        } else if (action === 'repeat') {
+          await supabase.from('students').update({ repeating: true }).eq('id', studentId)
+          await supabase.from('student_promotions').insert({
+            school_id: school?.id,
+            student_id: studentId,
+            from_class_id: fromClass,
+            to_class_id: fromClass,
+            academic_year: academicYear,
+            promotion_type: 'repeating',
+            notes: 'Repeating class',
+            promoted_by: user?.id,
+            promoted_at: new Date().toISOString()
+          })
+          repeating++
+        } else if (action === 'demote') {
+          const targetClass = actionData.targetClassId || fromClass
+          await supabase.from('students').update({ class_id: targetClass, repeating: false }).eq('id', studentId)
+          await supabase.from('student_promotions').insert({
+            school_id: school?.id,
+            student_id: studentId,
+            from_class_id: fromClass,
+            to_class_id: targetClass,
+            academic_year: academicYear,
+            promotion_type: 'demoted',
+            notes: actionData.reason || 'Demoted',
+            promoted_by: user?.id,
+            promoted_at: new Date().toISOString()
+          })
+          demoted++
+        }
       }
 
-      // Record promotions
-      await supabase.from('student_promotions').insert(promotions)
-
-      toast.success(`${selectedStudents.size} students promoted successfully`)
+      const summaryParts = []
+      if (promoted > 0) summaryParts.push(`${promoted} promoted`)
+      if (repeating > 0) summaryParts.push(`${repeating} repeating`)
+      if (demoted > 0) summaryParts.push(`${demoted} demoted`)
+      
+      toast.success(summaryParts.join(', ') + ' successfully')
       fetchStudents()
       fetchPromotionHistory()
       setSelectedStudents(new Set())
+      setStudentActions({})
     } catch (err: any) {
-      toast.error(err.message || 'Promotion failed')
+      toast.error(err.message || 'Processing failed')
     } finally {
       setPromoting(false)
     }
@@ -157,39 +249,72 @@ export default function StudentPromotionPage() {
     if (!currentClass) return []
 
     const levelNum = parseInt(currentClass.level.replace(/\D/g, ''))
-    const stream = currentClass.name.includes('A') ? 'A' : currentClass.name.includes('B') ? 'B' : ''
-
-    // Suggest next class
     const nextLevel = levelNum + 1
-    
-    // For P7 -> S1 transition
+
     if (currentClass.level === 'P.7' || currentClass.level.includes('P7')) {
       return classes.filter(c => c.level.includes('S.1') || c.level.includes('S1'))
     }
-    
-    // For S4 -> S5 transition
     if (currentClass.level === 'S.4' || currentClass.level.includes('S4')) {
       return classes.filter(c => c.level.includes('S.5') || c.level.includes('S5'))
     }
 
-    // Normal promotion (P1->P2, S1->S2, etc.)
     return classes.filter(c => {
       const cLevel = parseInt(c.level.replace(/\D/g, ''))
       return cLevel === nextLevel
     })
   }
 
+  const getPrevClassOptions = () => {
+    if (!fromClass) return []
+    const currentClass = classes.find(c => c.id === fromClass)
+    if (!currentClass) return []
+    const levelNum = parseInt(currentClass.level.replace(/\D/g, ''))
+    if (levelNum <= 1) return []
+    const prevLevel = levelNum - 1
+    return classes.filter(c => {
+      const cLevel = parseInt(c.level.replace(/\D/g, ''))
+      return cLevel === prevLevel
+    })
+  }
+
+  const actionCounts = {
+    promote: Object.values(studentActions).filter(a => a.action === 'promote').length,
+    repeat: Object.values(studentActions).filter(a => a.action === 'repeat').length,
+    demote: Object.values(studentActions).filter(a => a.action === 'demote').length,
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[#002045]">Student Promotion</h1>
-        <p className="text-[#5c6670] mt-1">Promote students to next class (P7→S1, S4→S5, etc.)</p>
+        <p className="text-[#5c6670] mt-1">Promote, repeat, or demote students per class</p>
       </div>
+
+      {/* Summary badges */}
+      {selectedStudents.size > 0 && (
+        <div className="flex gap-2 mb-4 flex-wrap">
+          {actionCounts.promote > 0 && (
+            <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+              {actionCounts.promote} to promote
+            </span>
+          )}
+          {actionCounts.repeat > 0 && (
+            <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+              {actionCounts.repeat} repeating
+            </span>
+          )}
+          {actionCounts.demote > 0 && (
+            <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">
+              {actionCounts.demote} to demote
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Promotion Controls */}
       <div className="card mb-6">
         <div className="card-header">
-          <div className="card-title">Select Students to Promote</div>
+          <div className="card-title">Select Students</div>
         </div>
         <div className="card-body">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -203,7 +328,7 @@ export default function StudentPromotionPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">To Class</label>
+              <label className="block text-sm font-medium mb-1">Promote To Class</label>
               <select value={toClass} onChange={(e) => setToClass(e.target.value)} className="input">
                 <option value="">Select target class...</option>
                 {getNextClassOptions().map(c => (
@@ -214,12 +339,12 @@ export default function StudentPromotionPage() {
             <div>
               <label className="block text-sm font-medium mb-1">&nbsp;</label>
               <button 
-                onClick={promoteStudents}
-                disabled={promoting || selectedStudents.size === 0 || !toClass}
+                onClick={processPromotions}
+                disabled={promoting || selectedStudents.size === 0}
                 className="btn btn-primary w-full"
               >
                 <MaterialIcon icon="upgrade" style={{ fontSize: 18 }} />
-                {promoting ? 'Promoting...' : `Promote ${selectedStudents.size} Students`}
+                {promoting ? 'Processing...' : `Process ${selectedStudents.size} Students`}
               </button>
             </div>
           </div>
@@ -247,31 +372,69 @@ export default function StudentPromotionPage() {
                       <th style={{ width: 40 }}>#</th>
                       <th>Name</th>
                       <th>Gender</th>
-                      <th>Status</th>
+                      <th>Current Status</th>
+                      <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {students.map((student, idx) => (
-                      <tr key={student.id}>
-                        <td>
-                          <input 
-                            type="checkbox" 
-                            checked={selectedStudents.has(student.id)}
-                            onChange={() => toggleStudent(student.id)}
-                            className="w-4 h-4"
-                          />
-                        </td>
-                        <td>{student.first_name} {student.last_name}</td>
-                        <td>{student.gender}</td>
-                        <td>
-                          <span className={`badge ${student.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                            {student.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {students.map((student) => {
+                      const action = studentActions[student.id]?.action || 'promote'
+                      return (
+                        <tr key={student.id}>
+                          <td>
+                            <input 
+                              type="checkbox" 
+                              checked={selectedStudents.has(student.id)}
+                              onChange={() => toggleStudent(student.id)}
+                              className="w-4 h-4"
+                            />
+                          </td>
+                          <td className="font-medium text-sm">{student.first_name} {student.last_name}</td>
+                          <td className="text-sm">{student.gender}</td>
+                          <td>
+                            <span className={`badge ${student.repeating ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
+                              {student.repeating ? 'Repeating' : 'Active'}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => setAction(student.id, 'promote')}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                                  action === 'promote'
+                                    ? 'bg-green-100 border-green-300 text-green-800'
+                                    : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                                }`}
+                              >
+                                Promote
+                              </button>
+                              <button
+                                onClick={() => setAction(student.id, 'repeat')}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                                  action === 'repeat'
+                                    ? 'bg-yellow-100 border-yellow-300 text-yellow-800'
+                                    : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                                }`}
+                              >
+                                Repeat
+                              </button>
+                              <button
+                                onClick={() => setAction(student.id, 'demote')}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                                  action === 'demote'
+                                    ? 'bg-red-100 border-red-300 text-red-800'
+                                    : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                                }`}
+                              >
+                                Demote
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
                     {students.length === 0 && !loading && (
-                      <tr><td colSpan={4} className="text-center py-8 text-[#5c6670]">No active students in this class</td></tr>
+                      <tr><td colSpan={5} className="text-center py-8 text-[#5c6670]">No active students in this class</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -294,26 +457,69 @@ export default function StudentPromotionPage() {
                 <th>Student</th>
                 <th>From</th>
                 <th>To</th>
-                <th>Promoted By</th>
+                <th>Type</th>
+                <th>By</th>
               </tr>
             </thead>
             <tbody>
               {promotionHistory.map((p, idx) => (
                 <tr key={idx}>
-                  <td>{new Date(p.promoted_at).toLocaleDateString()}</td>
-                  <td>{p.student_id?.substring(0, 8)}...</td>
-                  <td>{p.from_classes?.name}</td>
-                  <td>{p.to_classes?.name}</td>
-                  <td>{p.users?.full_name || 'System'}</td>
+                  <td className="text-sm">{new Date(p.promoted_at).toLocaleDateString()}</td>
+                  <td className="text-sm">{p.student_id?.substring(0, 8)}...</td>
+                  <td className="text-sm">{p.from_classes?.name}</td>
+                  <td className="text-sm">{p.to_classes?.name}</td>
+                  <td>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                      p.promotion_type === 'repeating' ? 'bg-yellow-100 text-yellow-800'
+                      : p.promotion_type === 'demoted' ? 'bg-red-100 text-red-800'
+                      : 'bg-green-100 text-green-800'
+                    }`}>
+                      {p.promotion_type || 'promoted'}
+                    </span>
+                  </td>
+                  <td className="text-sm">{p.users?.full_name || 'System'}</td>
                 </tr>
               ))}
               {promotionHistory.length === 0 && (
-                <tr><td colSpan={5} className="text-center py-8 text-[#5c6670]">No promotion history</td></tr>
+                <tr><td colSpan={6} className="text-center py-8 text-[#5c6670]">No promotion history</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Demote Modal */}
+      {showDemoteModal && (
+        <div className="modal-overlay" onClick={() => setShowDemoteModal(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
+            <div className="modal-header">
+              <div style={{ fontFamily: 'Sora', fontSize: 16, fontWeight: 700 }}>Demote Student</div>
+              <button onClick={() => setShowDemoteModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                <MaterialIcon style={{ fontSize: 18, color: 'var(--t3)' }}>close</MaterialIcon>
+              </button>
+            </div>
+            <div style={{ padding: 20 }}>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Demote to Class</label>
+                <select value={demoteClass} onChange={(e) => setDemoteClass(e.target.value)} className="input" required>
+                  <option value="">Select class...</option>
+                  {getPrevClassOptions().map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Reason</label>
+                <textarea value={demoteReason} onChange={(e) => setDemoteReason(e.target.value)} className="input" rows={3} placeholder="Reason for demotion..." style={{ resize: 'vertical' }} />
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setShowDemoteModal(null)} className="btn btn-ghost" style={{ flex: 1 }}>Cancel</button>
+                <button onClick={confirmDemote} disabled={!demoteClass} className="btn btn-primary" style={{ flex: 1 }}>Confirm Demote</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

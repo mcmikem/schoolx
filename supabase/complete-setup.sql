@@ -158,7 +158,7 @@ CREATE TABLE IF NOT EXISTS events (
   school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
-  event_type TEXT CHECK (event_type IN ('exam', 'meeting', 'holiday', 'event', 'academic')) NOT NULL,
+  event_type TEXT CHECK (event_type IN ('exam', 'meeting', 'holiday', 'event', 'academic', 'substitution')) NOT NULL,
   start_date DATE NOT NULL,
   end_date DATE,
   created_by UUID,

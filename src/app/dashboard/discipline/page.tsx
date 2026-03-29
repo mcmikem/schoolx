@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useStudents } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
+import { SendSMSModal } from '@/components/SendSMSModal'
 
 function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
   return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
@@ -19,15 +20,20 @@ interface DisciplineRecord {
   resolved: boolean
   reported_by: string
   created_at: string
+  exam_id: string | null
   students?: {
     first_name: string
     last_name: string
     student_number: string
   }
+  exams?: {
+    title: string
+  }
 }
 
 const incidentTypes = [
   'Late arrival',
+  'Exam Malpractice',
   'Absence without permission',
   'Disrespectful behavior',
   'Fighting',
@@ -56,24 +62,33 @@ export default function DisciplinePage() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [filterResolved, setFilterResolved] = useState('all')
+  const [exams, setExams] = useState<any[]>([])
+  const [smsTarget, setSmsTarget] = useState<{ id: string; first_name: string; last_name: string; parent_phone?: string } | null>(null)
   const [newRecord, setNewRecord] = useState({
     student_id: '',
     incident_type: '',
     description: '',
     action_taken: '',
     follow_up_date: '',
+    exam_id: '',
   })
 
   useEffect(() => {
     fetchRecords()
   }, [school?.id])
 
+  useEffect(() => {
+    if (showModal) {
+      fetchExams()
+    }
+  }, [showModal])
+
   const fetchRecords = async () => {
     if (!school?.id) return
     try {
       const { data, error } = await supabase
         .from('discipline')
-        .select('*, students(first_name, last_name, student_number)')
+        .select('*, students(first_name, last_name, student_number), exams(title)')
         .eq('school_id', school.id)
         .order('created_at', { ascending: false })
 
@@ -83,6 +98,23 @@ export default function DisciplinePage() {
       console.error('Error:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchExams = async () => {
+    if (!school?.id) return
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('id, title, start_date')
+        .eq('school_id', school.id)
+        .eq('event_type', 'exam')
+        .order('start_date', { ascending: false })
+
+      if (error) throw error
+      setExams(data || [])
+    } catch (err) {
+      console.error('Error fetching exams:', err)
     }
   }
 
@@ -100,13 +132,14 @@ export default function DisciplinePage() {
         follow_up_date: newRecord.follow_up_date || null,
         resolved: false,
         reported_by: user.id,
+        exam_id: newRecord.exam_id || null,
       })
 
       if (error) throw error
 
       toast.success('Incident recorded')
       setShowModal(false)
-      setNewRecord({ student_id: '', incident_type: '', description: '', action_taken: '', follow_up_date: '' })
+      setNewRecord({ student_id: '', incident_type: '', description: '', action_taken: '', follow_up_date: '', exam_id: '' })
       fetchRecords()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to record incident')
@@ -215,12 +248,25 @@ export default function DisciplinePage() {
                     <span>Recorded: {new Date(record.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
-                <button
-                  onClick={() => toggleResolved(record.id, record.resolved)}
-                  className={`btn btn-sm ${record.resolved ? 'btn-secondary' : 'btn-primary'}`}
-                >
-                  {record.resolved ? 'Reopen' : 'Resolve'}
-                </button>
+                <div className="flex gap-2 ml-4">
+                  <button
+                    onClick={() => setSmsTarget({
+                      id: record.student_id,
+                      first_name: record.students?.first_name || '',
+                      last_name: record.students?.last_name || '',
+                    })}
+                    className="btn btn-sm btn-secondary"
+                    title="SMS Parent"
+                  >
+                    <MaterialIcon icon="sms" className="text-sm" />
+                  </button>
+                  <button
+                    onClick={() => toggleResolved(record.id, record.resolved)}
+                    className={`btn btn-sm ${record.resolved ? 'btn-secondary' : 'btn-primary'}`}
+                  >
+                    {record.resolved ? 'Reopen' : 'Resolve'}
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -258,7 +304,7 @@ export default function DisciplinePage() {
                 <label className="text-sm font-medium text-[#191c1d] mb-2 block">Incident Type</label>
                 <select 
                   value={newRecord.incident_type}
-                  onChange={(e) => setNewRecord({...newRecord, incident_type: e.target.value})}
+                  onChange={(e) => setNewRecord({...newRecord, incident_type: e.target.value, exam_id: e.target.value !== 'Exam Malpractice' ? '' : newRecord.exam_id})}
                   className="input"
                   required
                 >
@@ -268,6 +314,22 @@ export default function DisciplinePage() {
                   ))}
                 </select>
               </div>
+
+              {newRecord.incident_type === 'Exam Malpractice' && (
+                <div>
+                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Link to Exam (Optional)</label>
+                  <select 
+                    value={newRecord.exam_id}
+                    onChange={(e) => setNewRecord({...newRecord, exam_id: e.target.value})}
+                    className="input"
+                  >
+                    <option value="">Select exam</option>
+                    {exams.map((exam) => (
+                      <option key={exam.id} value={exam.id}>{exam.title} ({exam.start_date})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="text-sm font-medium text-[#191c1d] mb-2 block">Description</label>
@@ -312,6 +374,14 @@ export default function DisciplinePage() {
             </form>
           </div>
         </div>
+      )}
+
+      {smsTarget && (
+        <SendSMSModal
+          student={smsTarget}
+          isOpen={!!smsTarget}
+          onClose={() => setSmsTarget(null)}
+        />
       )}
     </div>
   )

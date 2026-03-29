@@ -48,6 +48,7 @@ export default function HeadmasterDashboard() {
   const [staffOnDuty, setStaffOnDuty] = useState(0)
   const [overdueFeeCount, setOverdueFeeCount] = useState(0)
   const [lowAttendanceClasses, setLowAttendanceClasses] = useState(0)
+  const [dropoutRiskCount, setDropoutRiskCount] = useState(0)
 
   useEffect(() => {
     async function fetchExtraData() {
@@ -116,6 +117,42 @@ export default function HeadmasterDashboard() {
           .slice(0, 5)
 
         setAtRiskStudents(atRisk)
+
+        // Dropout risk: students absent 14+ consecutive days
+        try {
+          const fourteenDaysAgo = new Date(now)
+          fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
+          const { data: dropoutAttData } = await supabase
+            .from('attendance')
+            .select('student_id, status, date')
+            .gte('date', fourteenDaysAgo.toISOString().split('T')[0])
+            .lte('date', today)
+            .order('date', { ascending: false })
+
+          const studentAbsenceMap: Record<string, { allAbsent: boolean; count: number }> = {}
+          const activeStudentIds = new Set(students.filter(s => s.status === 'active').map(s => s.id))
+
+          dropoutAttData?.forEach((r: any) => {
+            if (!activeStudentIds.has(r.student_id)) return
+            if (!studentAbsenceMap[r.student_id]) {
+              studentAbsenceMap[r.student_id] = { allAbsent: r.status === 'absent', count: r.status === 'absent' ? 1 : 0 }
+            } else if (studentAbsenceMap[r.student_id].allAbsent && r.status === 'absent') {
+              studentAbsenceMap[r.student_id].count++
+            } else {
+              studentAbsenceMap[r.student_id].allAbsent = false
+            }
+          })
+
+          // Students with attendance records but all absent for 14+ days
+          let dropoutCount = Object.values(studentAbsenceMap).filter(v => v.allAbsent && v.count >= 14).length
+          // Also count active students with NO attendance records at all in the period
+          activeStudentIds.forEach(id => {
+            if (!studentAbsenceMap[id]) dropoutCount++
+          })
+          setDropoutRiskCount(dropoutCount)
+        } catch {
+          setDropoutRiskCount(0)
+        }
 
         // Fetch SMS stats
         const { data: messagesData } = await supabase
@@ -232,7 +269,7 @@ export default function HeadmasterDashboard() {
   const totalPendingApprovals = pendingExpenses + pendingLeave
 
   // Alert count
-  const alertCount = (loadingExtra ? 0 : classesNotMarked + atRiskStudents.length + lowAttendanceClasses + (overdueFeeCount > 0 ? 1 : 0) + (totalPendingApprovals > 0 ? 1 : 0))
+  const alertCount = (loadingExtra ? 0 : classesNotMarked + atRiskStudents.length + dropoutRiskCount + lowAttendanceClasses + (overdueFeeCount > 0 ? 1 : 0) + (totalPendingApprovals > 0 ? 1 : 0))
 
   return (
     <div className="content">
@@ -513,6 +550,18 @@ export default function HeadmasterDashboard() {
                   <div className="ab-body">
                     <div className="ab-title">{atRiskStudents.length} students at risk</div>
                     <div className="ab-sub">Below 50% in 2+ subjects</div>
+                  </div>
+                  <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>›</span>
+                </Link>
+              )}
+              {dropoutRiskCount > 0 && (
+                <Link href="/dashboard/dropout-tracking" className="alert-box red">
+                  <div className="ab-icon" style={{ background: 'rgba(231,76,60,.12)', color: '#e74c3c', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <MaterialIcon icon="person_off" style={{ fontSize: '15px' }} />
+                  </div>
+                  <div className="ab-body">
+                    <div className="ab-title">{dropoutRiskCount} students at risk of dropout</div>
+                    <div className="ab-sub">Absent 14+ consecutive days</div>
                   </div>
                   <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>›</span>
                 </Link>
