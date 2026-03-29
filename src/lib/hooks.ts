@@ -18,7 +18,17 @@ import type {
   Message,
   CalendarEvent,
   DashboardStats,
-  TimetableEntry
+  TimetableEntry,
+  StaffSalary,
+  SalaryPayment,
+  StaffReview,
+  InventoryTransaction,
+  TimetableSlot,
+  TimetableConstraint,
+  DormRoom,
+  DormIncident,
+  TransportLog,
+  TransportRoute
 } from '@/types'
 
 // Generic hook for fetching data

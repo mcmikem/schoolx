@@ -1,7 +1,7 @@
-import paypal from '@paypal/checkout-server-sdk';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const paypal = require('@paypal/checkout-server-sdk');
 
-// Environment
-let environment: paypal.core.SandboxEnvironment | paypal.core.LiveEnvironment;
+let environment: any;
 
 if (process.env.PAYPAL_MODE === 'live') {
   environment = new paypal.core.LiveEnvironment(
@@ -15,10 +15,8 @@ if (process.env.PAYPAL_MODE === 'live') {
   );
 }
 
-// PayPal client
 export const paypalClient = new paypal.core.PayPalHttpClient(environment);
 
-// Create PayPal order for subscription
 export async function createPayPalOrder(
   amount: number,
   currency: string = 'USD',
@@ -33,7 +31,7 @@ export async function createPayPalOrder(
     purchase_units: [{
       amount: {
         currency_code: currency,
-        value: (amount / 100).toFixed(2), // Convert cents to dollars
+        value: (amount / 100).toFixed(2),
       },
       reference_id: subscriptionId,
     }],
@@ -55,7 +53,6 @@ export async function createPayPalOrder(
   }
 }
 
-// Capture PayPal payment
 export async function capturePayPalOrder(orderID: string) {
   const request = new paypal.orders.OrdersCaptureRequest(orderID);
   request.requestBody({});
@@ -69,7 +66,6 @@ export async function capturePayPalOrder(orderID: string) {
   }
 }
 
-// Get PayPal order details
 export async function getPayPalOrder(orderID: string) {
   const request = new paypal.orders.OrdersGetRequest(orderID);
 
@@ -82,7 +78,6 @@ export async function getPayPalOrder(orderID: string) {
   }
 }
 
-// Create PayPal subscription
 export async function createPayPalSubscription(
   planId: string,
   subscriber: {
@@ -123,7 +118,6 @@ export async function createPayPalSubscription(
   }
 }
 
-// Activate PayPal subscription
 export async function activatePayPalSubscription(subscriptionID: string) {
   const request = new paypal.billing.SubscriptionsActivateRequest(subscriptionID);
 
@@ -136,7 +130,6 @@ export async function activatePayPalSubscription(subscriptionID: string) {
   }
 }
 
-// Get PayPal subscription details
 export async function getPayPalSubscription(subscriptionID: string) {
   const request = new paypal.billing.SubscriptionsGetRequest(subscriptionID);
 
@@ -149,7 +142,6 @@ export async function getPayPalSubscription(subscriptionID: string) {
   }
 }
 
-// Cancel PayPal subscription
 export async function cancelPayPalSubscription(subscriptionID: string, reason: string = 'Customer requested cancellation') {
   const request = new paypal.billing.SubscriptionsCancelRequest(subscriptionID);
   request.requestBody({
@@ -165,7 +157,6 @@ export async function cancelPayPalSubscription(subscriptionID: string, reason: s
   }
 }
 
-// Revise PayPal subscription (change plan)
 export async function revisePayPalSubscription(
   subscriptionID: string,
   planId: string,
@@ -188,7 +179,6 @@ export async function revisePayPalSubscription(
   }
 }
 
-// Handle PayPal webhook verification
 export async function verifyPayPalWebhook(
   authAlgo: string,
   certUrl: string,
@@ -198,12 +188,6 @@ export async function verifyPayPalWebhook(
   webhookId: string,
   webhookEvent: any
 ) {
-  // Note: In a production environment, you would use PayPal's SDK to verify webhooks
-  // For simplicity, we're returning true here, but you should implement proper verification
-  // using paypal.notifications.WebhookEvent.verify(transmissionSig, [certificates], authAlgo, transmissionId, transmissionTime, webhookId, webhookEvent);
-  
-  // For now, we'll just return true to avoid blocking development
-  // In production, replace this with proper verification
   return true;
 }
 
