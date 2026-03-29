@@ -1100,6 +1100,7 @@ interface SMSTrigger {
   threshold_days: number
   is_active: boolean
   created_at: string
+  last_run_at?: string
 }
 
 export function useSMSTriggers(schoolId?: string) {
