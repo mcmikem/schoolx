@@ -1,5 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const paypal = require('@paypal/checkout-server-sdk');
+const paypal: any = require('@paypal/checkout-server-sdk');
 
 let environment: any;
 
