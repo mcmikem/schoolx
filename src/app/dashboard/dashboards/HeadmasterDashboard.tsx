@@ -235,7 +235,7 @@ export default function HeadmasterDashboard() {
     if (school?.id) {
       fetchExtraData()
     }
-  }, [school?.id, currentTerm, academicYear, students.length])
+  }, [school?.id, currentTerm, academicYear, students, feeStructure])
 
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`
