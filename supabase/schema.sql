@@ -25,9 +25,14 @@ CREATE TABLE IF NOT EXISTS schools (
     logo_url TEXT,
     primary_color TEXT DEFAULT '#1e3a5f',
     uneab_center_number TEXT,
-    subscription_plan TEXT CHECK (subscription_plan IN ('free', 'basic', 'premium')) DEFAULT 'free',
-    subscription_status TEXT CHECK (subscription_status IN ('active', 'expired', 'trial')) DEFAULT 'trial',
+    subscription_plan TEXT CHECK (subscription_plan IN ('free_trial', 'basic', 'premium', 'max')) DEFAULT 'free_trial',
+    subscription_status TEXT CHECK (subscription_status IN ('active', 'expired', 'trial', 'past_due')) DEFAULT 'trial',
     trial_ends_at TIMESTAMPTZ,
+    stripe_customer_id TEXT,
+    stripe_subscription_id TEXT,
+    paypal_subscription_id TEXT,
+    last_payment_at TIMESTAMPTZ,
+    next_payment_date TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -1267,3 +1272,65 @@ CREATE TABLE IF NOT EXISTS expense_approvals (
     approved_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ============================================
+-- SUBSCRIPTION PAYMENTS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS subscription_payments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE NOT NULL,
+    plan TEXT CHECK (plan IN ('free_trial', 'basic', 'premium', 'max')) NOT NULL,
+    amount NUMERIC(12,2) NOT NULL,
+    currency TEXT DEFAULT 'UGX',
+    provider TEXT CHECK (provider IN ('stripe', 'paypal', 'mtn', 'airtel')) NOT NULL,
+    transaction_id TEXT NOT NULL,
+    payment_status TEXT CHECK (payment_status IN ('pending', 'completed', 'failed', 'refunded')) DEFAULT 'pending',
+    customer_id TEXT,
+    subscription_id TEXT,
+    invoice_url TEXT,
+    receipt_url TEXT,
+    payment_method_detail TEXT,
+    phone_number TEXT,
+    paid_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_subscription_payments_school ON subscription_payments(school_id);
+CREATE INDEX IF NOT EXISTS idx_subscription_payments_status ON subscription_payments(payment_status);
+CREATE INDEX IF NOT EXISTS idx_subscription_payments_transaction ON subscription_payments(transaction_id);
+
+-- ============================================
+-- PAYMENT HISTORY TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS payment_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE NOT NULL,
+    payment_id UUID REFERENCES subscription_payments(id) ON DELETE SET NULL,
+    action TEXT NOT NULL,
+    description TEXT,
+    metadata JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_payment_history_school ON payment_history(school_id);
+CREATE INDEX IF NOT EXISTS idx_payment_history_payment ON payment_history(payment_id);
+
+-- ============================================
+-- MOBILE MONEY PENDING PAYMENTS
+-- ============================================
+CREATE TABLE IF NOT EXISTS pending_mobile_payments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE NOT NULL,
+    plan TEXT NOT NULL,
+    amount NUMERIC(12,2) NOT NULL,
+    provider TEXT CHECK (provider IN ('mtn', 'airtel')) NOT NULL,
+    phone_number TEXT NOT NULL,
+    tx_ref TEXT NOT NULL,
+    status TEXT CHECK (status IN ('pending', 'completed', 'failed', 'expired')) DEFAULT 'pending',
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(tx_ref)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pending_mobile_payments_txref ON pending_mobile_payments(tx_ref);
+CREATE INDEX IF NOT EXISTS idx_pending_mobile_payments_school ON pending_mobile_payments(school_id);

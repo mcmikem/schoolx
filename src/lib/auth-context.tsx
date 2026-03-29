@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { supabase } from './supabase'
 import { useRouter } from 'next/navigation'
+import { PlanType } from './subscription'
 
 interface User {
   id: string
@@ -23,6 +24,11 @@ interface School {
   primary_color: string
   subscription_plan: string
   subscription_status: string
+  stripe_customer_id?: string | null
+  stripe_subscription_id?: string | null
+  paypal_subscription_id?: string | null
+  last_payment_at?: string | null
+  next_payment_date?: string | null
   phone?: string
   email?: string
 }
@@ -36,6 +42,9 @@ interface AuthContextType {
   signUp: (phone: string, password: string, name: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
   refreshSchool: () => Promise<void>
+  // Subscription status checking methods
+  isSubscriptionActive: () => boolean
+  getSubscriptionPlan: () => PlanType | null
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -46,6 +55,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [isDemo, setIsDemo] = useState(false)
   const router = useRouter()
+  
+  // Subscription status checking methods
+  const isSubscriptionActive = () => {
+    return school?.subscription_status === 'active' || school?.subscription_status === 'trial';
+  };
+  
+  const getSubscriptionPlan = () => {
+    return school?.subscription_plan as PlanType | null;
+  };
 
   useEffect(() => {
     checkUser()
@@ -240,7 +258,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, school, loading, isDemo, signIn, signUp, signOut, refreshSchool }}>
+    <AuthContext.Provider value={{ user, school, loading, isDemo, signIn, signUp, signOut, refreshSchool, isSubscriptionActive, getSubscriptionPlan }}>
       {children}
     </AuthContext.Provider>
   )
