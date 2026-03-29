@@ -133,7 +133,7 @@ export default function BoardReportPage() {
           {/* Enrollment */}
           <div className="p-4 bg-[#f8fafb] rounded-lg">
             <h3 className="font-medium text-[#002045] mb-3">1. Enrollment</h3>
-            <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
               <div>
                 <div className="text-2xl font-bold text-[#002045]">{stats.totalStudents}</div>
                 <div className="text-xs text-[#5c6670]">Total</div>

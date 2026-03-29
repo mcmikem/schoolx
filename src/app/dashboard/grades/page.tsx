@@ -352,7 +352,7 @@ export default function GradesPage() {
       {tab === 'coverage' && selectedSubject && (
         <div className="space-y-6">
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-surface-container-low p-6 rounded-xl text-center">
               <div className="text-2xl font-bold text-secondary">{coverageStats.completed}</div>
               <div className="text-sm text-on-surface-variant">Completed</div>

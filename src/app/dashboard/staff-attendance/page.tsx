@@ -132,7 +132,7 @@ export default function StaffAttendancePage() {
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
           <div className="text-2xl font-bold text-[#006e1c]">{presentCount}</div>
           <div className="text-sm text-[#5c6670] mt-1">Present</div>

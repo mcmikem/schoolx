@@ -173,7 +173,7 @@ export default function AttendancePage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4 text-center">
               <div className="text-3xl font-bold text-secondary">{presentCount}</div>
               <div className="text-sm text-on-surface-variant mt-1">Present</div>

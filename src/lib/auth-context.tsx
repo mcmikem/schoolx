@@ -9,7 +9,7 @@ interface User {
   school_id: string | null
   full_name: string
   phone: string
-  role: 'super_admin' | 'school_admin' | 'headmaster' | 'dean_of_studies' | 'bursar' | 'teacher' | 'student' | 'parent'
+  role: 'super_admin' | 'school_admin' | 'headmaster' | 'dean_of_studies' | 'bursar' | 'teacher' | 'student' | 'parent' | 'secretary' | 'dorm_master'
   avatar_url: string | null
   is_active: boolean
 }

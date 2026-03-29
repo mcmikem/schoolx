@@ -148,7 +148,7 @@ export default function ParentPortal() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 text-center">
             <div className="text-2xl font-bold text-green-600">{attendanceRate}%</div>
             <div className="text-xs text-[#5c6670] mt-1">Attendance</div>
