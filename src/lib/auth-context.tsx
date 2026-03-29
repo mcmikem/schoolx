@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
 import { supabase } from './supabase'
 import { useRouter } from 'next/navigation'
 import { PlanType } from './subscription'
@@ -65,35 +65,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return school?.subscription_plan as PlanType | null;
   };
 
-  useEffect(() => {
-    checkUser()
+  const fetchUserData = useCallback(async (authId: string) => {
+    if (!supabase) return
+    try {
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('auth_id', authId)
+        .maybeSingle()
 
-    if (supabase) {
-      const { data: { subscription } } = supabase!.auth.onAuthStateChange(
-        async (event, session) => {
-          // Don't override demo user with Supabase session
-          const demoUserStr = localStorage.getItem('demo_user')
-          if (demoUserStr) {
-            return // Ignore Supabase auth for demo users
-          }
-          
-          if (event === 'SIGNED_IN' && session) {
-            await fetchUserData(session.user.id)
-          } else if (event === 'SIGNED_OUT') {
-            setUser(null)
-            setSchool(null)
-            setIsDemo(false)
-          }
+      if (userError) {
+        console.error('Error fetching user:', userError)
+        return
+      }
+
+      if (!userData) {
+        console.error('No user profile found for auth_id:', authId)
+        return
+      }
+
+      setUser(userData)
+
+      if (userData.school_id) {
+        const { data: schoolData } = await supabase
+          .from('schools')
+          .select('*')
+          .eq('id', userData.school_id)
+          .single()
+
+        if (schoolData) {
+          setSchool(schoolData)
         }
-      )
-
-      return () => subscription.unsubscribe()
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error)
     }
   }, [])
 
-  async function checkUser() {
+  const checkUser = useCallback(async () => {
     try {
-      // Check for demo user FIRST, before any Supabase checks
       const demoUserStr = localStorage.getItem('demo_user')
       const demoSchoolStr = localStorage.getItem('demo_school')
       
@@ -114,12 +124,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSchool(demoSchool)
         setIsDemo(true)
         setLoading(false)
-        
-        // Skip Supabase session check for demo users
         return
       }
 
-      // Only check Supabase for non-demo users
       if (supabase?.auth) {
         const { data: { session } } = await supabase!.auth.getSession()
         if (session) {
@@ -132,47 +139,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [fetchUserData])
 
-  async function fetchUserData(authId: string) {
-    if (!supabase) return
-    try {
-      // Fetch user profile
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('auth_id', authId)
-        .maybeSingle()
+  useEffect(() => {
+    checkUser()
 
-
-      if (userError) {
-        console.error('Error fetching user:', userError)
-        return
-      }
-
-      if (!userData) {
-        console.error('No user profile found for auth_id:', authId)
-        return
-      }
-
-      setUser(userData)
-
-      // Fetch school if user has one
-      if (userData.school_id) {
-        const { data: schoolData } = await supabase
-          .from('schools')
-          .select('*')
-          .eq('id', userData.school_id)
-          .single()
-
-        if (schoolData) {
-          setSchool(schoolData)
+    if (supabase) {
+      const { data: { subscription } } = supabase!.auth.onAuthStateChange(
+        async (event, session) => {
+          const demoUserStr = localStorage.getItem('demo_user')
+          if (demoUserStr) return
+          
+          if (event === 'SIGNED_IN' && session) {
+            await fetchUserData(session.user.id)
+          } else if (event === 'SIGNED_OUT') {
+            setUser(null)
+            setSchool(null)
+            setIsDemo(false)
+          }
         }
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error)
+      )
+
+      return () => subscription.unsubscribe()
     }
-  }
+  }, [checkUser, fetchUserData])
 
   async function signIn(phone: string, password: string) {
     try {

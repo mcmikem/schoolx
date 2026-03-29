@@ -292,7 +292,7 @@ export function createMobileMoneyPaymentLink(request: {
 
 export async function verifyMobileMoneyPayment(
   txRef: string
-): Promise<{ status: 'pending' | 'completed' | 'failed'; amount?: number }> {
+): Promise<{ status: 'pending' | 'completed' | 'failed'; amount?: number; message?: string }> {
   const flutterwave = new FlutterwaveMobileMoney()
   const result = await flutterwave.getTransactionStatus(txRef)
   return result

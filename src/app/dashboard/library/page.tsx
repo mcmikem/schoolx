@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useStudents } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
@@ -68,11 +68,7 @@ export default function LibraryPage() {
     due_date: '',
   })
 
-  useEffect(() => {
-    fetchData()
-  }, [school?.id])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!school?.id) return
     try {
       const [booksRes, checkoutsRes, historyRes] = await Promise.all([
@@ -93,7 +89,11 @@ export default function LibraryPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   const handleAddBook = async (e: React.FormEvent) => {
     e.preventDefault()

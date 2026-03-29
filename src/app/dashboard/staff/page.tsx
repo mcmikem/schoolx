@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
@@ -37,11 +37,7 @@ export default function StaffPage() {
     password: '',
   })
 
-  useEffect(() => {
-    fetchStaff()
-  }, [school?.id])
-
-  const fetchStaff = async () => {
+  const fetchStaff = useCallback(async () => {
     if (!school?.id) return
     try {
       setLoading(true)
@@ -57,7 +53,11 @@ export default function StaffPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id])
+
+  useEffect(() => {
+    fetchStaff()
+  }, [fetchStaff])
 
   const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault()

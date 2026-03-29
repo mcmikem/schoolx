@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
@@ -47,11 +47,7 @@ export default function LeavePage() {
     substitute_suggestion: '',
   })
 
-  useEffect(() => {
-    if (school?.id) fetchRequests()
-  }, [school?.id])
-
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     if (!school?.id) return
     setLoading(true)
     try {
@@ -68,7 +64,11 @@ export default function LeavePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id])
+
+  useEffect(() => {
+    if (school?.id) fetchRequests()
+  }, [school?.id, fetchRequests])
 
   const calcDays = (start: string, end: string) => {
     if (!start || !end) return 0

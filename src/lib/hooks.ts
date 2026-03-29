@@ -34,30 +34,35 @@ export function useSupabaseQuery<T>(
   const [data, setData] = useState<T[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const select = options?.select || '*'
+  const filters = options?.filters
+  const orderBy = options?.orderBy
+  const limit = options?.limit
+  const serializedFilters = JSON.stringify(filters ?? {})
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
 
-      let query = supabase!.from(table).select(options?.select || '*')
+      let query = supabase!.from(table).select(select)
 
-      if (options?.filters) {
-        Object.entries(options.filters).forEach(([key, value]) => {
+      if (filters) {
+        Object.entries(filters).forEach(([key, value]) => {
           if (value !== undefined && value !== null && value !== '') {
             query = query.eq(key, value)
           }
         })
       }
 
-      if (options?.orderBy) {
-        query = query.order(options.orderBy.column, {
-          ascending: options.orderBy.ascending ?? false,
+      if (orderBy) {
+        query = query.order(orderBy.column, {
+          ascending: orderBy.ascending ?? false,
         })
       }
 
-      if (options?.limit) {
-        query = query.limit(options.limit)
+      if (limit) {
+        query = query.limit(limit)
       }
 
       const { data: result, error: fetchError } = await query
@@ -70,7 +75,7 @@ export function useSupabaseQuery<T>(
     } finally {
       setLoading(false)
     }
-  }, [table, JSON.stringify(options)])
+  }, [table, select, filters, orderBy, limit])
 
   useEffect(() => {
     fetchData()
@@ -205,7 +210,7 @@ export function useAcademicEvents(schoolId?: string, limit = 5) {
       }
     }
     fetch()
-  }, [schoolId])
+  }, [schoolId, limit])
 
   return { events, loading }
 }
