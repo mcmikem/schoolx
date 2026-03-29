@@ -288,7 +288,7 @@ export default function ExpenseApprovalsPage() {
                                 <span className="text-[#5c6670]"> ({new Date(a.approved_at).toLocaleDateString()})</span>
                               )}
                               {a.comments && (
-                                <div className="text-[#5c6670] italic">"{a.comments}"</div>
+                                <div className="text-[#5c6670] italic">&quot;{a.comments}&quot;</div>
                               )}
                             </div>
                           ))}

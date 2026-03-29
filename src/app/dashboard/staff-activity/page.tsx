@@ -115,7 +115,7 @@ export default function StaffActivityPage() {
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[#002045]">Staff Activity Log</h1>
-        <p className="text-[#5c6670] mt-1">Today's activity — {new Date(date).toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+        <p className="text-[#5c6670] mt-1">Today&apos;s activity — {new Date(date).toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
       </div>
 
       {/* Stats */}

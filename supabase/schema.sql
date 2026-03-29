@@ -192,6 +192,10 @@ CREATE TABLE IF NOT EXISTS grades (
     term INTEGER CHECK (term IN (1, 2, 3)) NOT NULL,
     academic_year TEXT NOT NULL,
     recorded_by UUID REFERENCES users(id),
+    exam_supervisor_id UUID REFERENCES users(id),
+    ca_locked BOOLEAN DEFAULT false,
+    locked_by UUID REFERENCES users(id),
+    locked_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(student_id, subject_id, assessment_type, term, academic_year)
 );
@@ -236,7 +240,7 @@ CREATE TABLE IF NOT EXISTS events (
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     description TEXT,
-    event_type TEXT CHECK (event_type IN ('exam', 'meeting', 'holiday', 'event', 'academic')) NOT NULL,
+    event_type TEXT CHECK (event_type IN ('exam', 'meeting', 'holiday', 'event', 'academic', 'substitution')) NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE,
     created_by UUID REFERENCES users(id),
@@ -894,13 +898,15 @@ CREATE TABLE IF NOT EXISTS staff_attendance (
 -- ============================================
 CREATE TABLE IF NOT EXISTS leave_requests (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     staff_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    leave_type TEXT CHECK (leave_type IN ('sick', 'annual', 'maternity', 'paternity', 'unpaid', 'other')) NOT NULL,
+    leave_type TEXT CHECK (leave_type IN ('sick', 'personal', 'bereavement', 'maternity', 'paternity', 'study', 'annual', 'unpaid', 'other')) NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     days_count INTEGER NOT NULL,
     reason TEXT,
-    status TEXT CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+    substitute_suggestion TEXT,
+    status TEXT CHECK (status IN ('pending', 'dos_approved', 'approved', 'rejected')) DEFAULT 'pending',
     approved_by UUID REFERENCES users(id) ON DELETE SET NULL,
     approved_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()

@@ -590,6 +590,82 @@ export function useFeeStructure(schoolId?: string) {
   return { feeStructure, loading, deleteFeeStructure, refetch: fetchFeeStructure }
 }
 
+// Attendance History hook - for dropout tracking
+export function useAttendanceHistory(schoolId?: string) {
+  const [loading, setLoading] = useState(false)
+
+  const getConsecutiveAbsentStudents = useCallback(async () => {
+    if (!schoolId) return []
+    setLoading(true)
+    try {
+      const today = new Date()
+      const thirtyDaysAgo = new Date(today)
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+      const { data: attendanceData, error } = await supabase
+        .from('attendance')
+        .select('student_id, date, status, students!inner(id, first_name, last_name, class_id, school_id, status, classes(name))')
+        .eq('students.school_id', schoolId)
+        .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+        .order('date', { ascending: false })
+
+      if (error) throw error
+
+      const studentAttendance: Record<string, { dates: string[], statuses: Record<string, string>, student: any }> = {}
+      attendanceData?.forEach((record: any) => {
+        const sid = record.student_id
+        if (!studentAttendance[sid]) {
+          studentAttendance[sid] = { dates: [], statuses: {}, student: record.students }
+        }
+        studentAttendance[sid].dates.push(record.date)
+        studentAttendance[sid].statuses[record.date] = record.status
+      })
+
+      const atRiskStudents: Array<{
+        student: any
+        consecutiveAbsent: number
+        lastAttendanceDate: string | null
+        riskLevel: 'at_risk' | 'likely_dropout'
+      }> = []
+
+      for (const [studentId, data] of Object.entries(studentAttendance)) {
+        if (data.student?.status !== 'active') continue
+
+        const sortedDates = data.dates.sort().reverse()
+        let consecutiveAbsent = 0
+        let lastAttendanceDate: string | null = null
+
+        for (const date of sortedDates) {
+          if (data.statuses[date] === 'absent') {
+            consecutiveAbsent++
+          } else {
+            lastAttendanceDate = date
+            break
+          }
+        }
+
+        if (consecutiveAbsent >= 14) {
+          atRiskStudents.push({
+            student: data.student,
+            consecutiveAbsent,
+            lastAttendanceDate,
+            riskLevel: consecutiveAbsent >= 30 ? 'likely_dropout' : 'at_risk',
+          })
+        }
+      }
+
+      return atRiskStudents.sort((a, b) => b.consecutiveAbsent - a.consecutiveAbsent)
+    } catch (err) {
+      console.error('Error fetching attendance history:', err)
+      return []
+    } finally {
+      setLoading(false)
+    }
+  }, [schoolId])
+
+  return { getConsecutiveAbsentStudents, loading }
+}
+
 // Attendance hook
 export function useAttendance(classId?: string, date?: string) {
   const [attendance, setAttendance] = useState<any[]>([])

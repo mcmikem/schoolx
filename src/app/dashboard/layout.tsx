@@ -34,6 +34,8 @@ const roleBasedRoutes: Record<string, keyof RolePermissions> = {
   '/dashboard/dorm-attendance': 'attendance',
   '/dashboard/health': 'students',
   '/dashboard/behavior': 'discipline',
+  '/dashboard/student-transfers': 'students',
+  '/dashboard/dropout-tracking': 'students',
 }
 
 const navItemsByRole: Record<string, { href: string; label: string; icon: string; badge?: string }[]> = {
@@ -46,6 +48,8 @@ const navItemsByRole: Record<string, { href: string; label: string; icon: string
     { href: '/dashboard/exams', label: 'Exams', icon: 'fact_check' },
     { href: '/dashboard/uneb-registration', label: 'UNEB Registration', icon: 'assignment_ind' },
     { href: '/dashboard/promotion', label: 'Promotion', icon: 'trending_up' },
+    { href: '/dashboard/student-transfers', label: 'Student Transfers', icon: 'swap_horiz' },
+    { href: '/dashboard/dropout-tracking', label: 'Dropout Tracking', icon: 'person_off' },
     { href: '/dashboard/uneb', label: 'UNEB', icon: 'workspace_premium' },
     { href: '/dashboard/timetable', label: 'Timetable', icon: 'calendar_month' },
     { href: '/dashboard/homework', label: 'Homework', icon: 'assignment' },
@@ -101,6 +105,8 @@ const navItemsByRole: Record<string, { href: string; label: string; icon: string
     { href: '/dashboard/scheme-of-work', label: 'Scheme of Work', icon: 'list_alt' },
     { href: '/dashboard/uneb', label: 'UNEB', icon: 'workspace_premium' },
     { href: '/dashboard/promotion', label: 'Promotion', icon: 'trending_up' },
+    { href: '/dashboard/student-transfers', label: 'Student Transfers', icon: 'swap_horiz' },
+    { href: '/dashboard/dropout-tracking', label: 'Dropout Tracking', icon: 'person_off' },
     { href: '/dashboard/discipline', label: 'Discipline', icon: 'warning' },
     { href: '/dashboard/reports', label: 'Reports', icon: 'description' },
     { href: '/dashboard/calendar', label: 'Calendar', icon: 'event' },

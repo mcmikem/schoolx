@@ -297,7 +297,7 @@ export default function MarksCompletionPage() {
       <div className="card">
         <div className="card-header">
           <div className="card-title">Teacher Marks Submission</div>
-          <div className="card-sub">Chase teachers who haven't submitted marks</div>
+          <div className="card-sub">Chase teachers who haven&apos;t submitted marks</div>
         </div>
         <div className="table-wrapper">
           <table className="table">

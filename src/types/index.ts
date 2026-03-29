@@ -58,6 +58,14 @@ export interface Student {
   nationality?: string
   photo_url?: string
   status: 'active' | 'transferred' | 'dropped' | 'completed'
+  transfer_from?: string
+  transfer_to?: string
+  transfer_reason?: string
+  dropout_reason?: string
+  dropout_date?: string
+  repeating?: boolean
+  last_attendance_date?: string
+  consecutive_absent_days?: number
   created_at: string
   classes?: Class
 }
@@ -73,7 +81,10 @@ export interface CreateStudentInput {
   class_id: string
   student_number?: string
   ple_index_number?: string
-  status?: 'active'
+  status?: 'active' | 'transferred' | 'dropped' | 'completed'
+  transfer_from?: string
+  transfer_reason?: string
+  repeating?: boolean
 }
 
 // Class types

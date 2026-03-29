@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useStudents, useFeePayments, useFeeStructure } from '@/lib/hooks'
 import { supabase } from '@/lib/supabase'
+import { SendSMSModal } from '@/components/SendSMSModal'
 
 function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
   return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
@@ -21,6 +22,7 @@ export default function StudentLookupPage() {
   const { feeStructure } = useFeeStructure(school?.id)
   const [searchTerm, setSearchTerm] = useState('')
   const [todayAttendance, setTodayAttendance] = useState<Record<string, string>>({})
+  const [smsTarget, setSmsTarget] = useState<{ id: string; first_name: string; last_name: string; parent_phone?: string } | null>(null)
 
   const today = useMemo(() => {
     const now = new Date()
@@ -149,6 +151,17 @@ export default function StudentLookupPage() {
                   </span>
                 </div>
 
+                {/* SMS Button */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSmsTarget(student)}
+                    className="btn btn-sm btn-secondary flex items-center gap-1"
+                  >
+                    <MaterialIcon icon="sms" className="text-sm" />
+                    SMS Parent
+                  </button>
+                </div>
+
                 {/* Info grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* Parent info */}
@@ -212,6 +225,14 @@ export default function StudentLookupPage() {
             )
           })}
         </div>
+      )}
+
+      {smsTarget && (
+        <SendSMSModal
+          student={smsTarget}
+          isOpen={!!smsTarget}
+          onClose={() => setSmsTarget(null)}
+        />
       )}
     </div>
   )

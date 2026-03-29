@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
-import { useClasses, useSubjects, useStudents, useGrades } from '@/lib/hooks'
+import { useClasses, useSubjects, useStudents, useGrades, useStaff } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 
@@ -48,6 +48,7 @@ export default function GradesPage() {
   const toast = useToast()
   const { classes } = useClasses(school?.id)
   const { subjects } = useSubjects(school?.id)
+  const { staff } = useStaff(school?.id)
 
   const [tab, setTab] = useState<'marks' | 'coverage'>('marks')
   const [selectedClass, setSelectedClass] = useState('')
@@ -56,6 +57,9 @@ export default function GradesPage() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [marks, setMarks] = useState<StudentMarks>({})
+  const [caLocked, setCaLocked] = useState(false)
+  const [lockedByName, setLockedByName] = useState('')
+  const [marksBy, setMarksBy] = useState<Record<string, { name: string, type: string }>>({})
   const [submissionStatus, setSubmissionStatus] = useState<'draft' | 'submitted'>('draft')
   const { students: classStudents, loading: studentsLoading } = useStudents(school?.id)
   const { grades: existingGrades, saveGrade } = useGrades(selectedClass, selectedSubject, currentTerm, academicYear)
@@ -69,20 +73,110 @@ export default function GradesPage() {
   useEffect(() => {
     if (existingGrades.length > 0) {
       const marksMap: StudentMarks = {}
+      const newMarksBy: Record<string, { name: string, type: string }> = {}
+      let isCaLocked = false
+      let lockedBy = ''
+
       existingGrades.forEach((g: any) => {
         marksMap[`${g.student_id}_${g.assessment_type}`] = g.score ?? null
+        if (g.recorded_by) {
+          const staffMember = staff.find(s => s.id === g.recorded_by)
+          newMarksBy[g.recorded_by] = { name: staffMember?.full_name || 'Unknown', type: g.assessment_type }
+        }
+        if (g.ca_locked === true) {
+          isCaLocked = true
+          lockedBy = g.locked_by
+        }
       })
       setMarks(marksMap)
+      setMarksBy(newMarksBy)
+      setCaLocked(isCaLocked)
+
+      if (lockedBy) {
+        const lockedByStaff = staff.find(s => s.id === lockedBy)
+        setLockedByName(lockedByStaff?.full_name || 'Unknown')
+      } else {
+        setLockedByName('')
+      }
 
       const hasSubmitted = existingGrades.some((g: any) => g.status === 'submitted')
       setSubmissionStatus(hasSubmitted ? 'submitted' : 'draft')
     } else {
       setMarks({})
+      setMarksBy({})
+      setCaLocked(false)
+      setLockedByName('')
       setSubmissionStatus('draft')
     }
-  }, [existingGrades])
+  }, [existingGrades, staff])
+
+  const handleLockCA = async () => {
+    if (!selectedClass || !selectedSubject || !user?.id) return
+    
+    if (!confirm('Are you sure you want to lock CA marks? This will prevent further edits to CA1, CA2, and CA3 marks for this subject/class combination.')) return
+
+    try {
+      setSaving(true)
+      await supabase
+        .from('grades')
+        .update({ 
+          ca_locked: true, 
+          locked_by: user.id,
+          locked_at: new Date().toISOString()
+        })
+        .eq('class_id', selectedClass)
+        .eq('subject_id', selectedSubject)
+        .in('assessment_type', ['ca1', 'ca2', 'ca3'])
+        .eq('term', currentTerm)
+        .eq('academic_year', academicYear)
+      
+      setCaLocked(true)
+      setLockedByName(staff.find(s => s.id === user.id)?.full_name || 'You')
+      toast.success('CA marks have been locked')
+    } catch (err) {
+      console.error('Error locking CA:', err)
+      toast.error('Failed to lock CA marks')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleUnlockCA = async () => {
+    if (!selectedClass || !selectedSubject || !user?.id) return
+    
+    if (!confirm('Are you sure you want to unlock CA marks?')) return
+
+    try {
+      setSaving(true)
+      await supabase
+        .from('grades')
+        .update({ 
+          ca_locked: false, 
+          locked_by: null,
+          locked_at: null
+        })
+        .eq('class_id', selectedClass)
+        .eq('subject_id', selectedSubject)
+        .in('assessment_type', ['ca1', 'ca2', 'ca3'])
+        .eq('term', currentTerm)
+        .eq('academic_year', academicYear)
+      
+      setCaLocked(false)
+      setLockedByName('')
+      toast.success('CA marks have been unlocked')
+    } catch (err) {
+      console.error('Error unlocking CA:', err)
+      toast.error('Failed to unlock CA marks')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleMarkChange = (studentId: string, type: string, value: string) => {
+    if (caLocked && type.startsWith('ca')) {
+      toast.error('CA marks are locked. Contact DOS to unlock.')
+      return
+    }
     if (value === '') {
       setMarks(prev => ({ ...prev, [`${studentId}_${type}`]: null }))
     } else {
@@ -290,6 +384,19 @@ export default function GradesPage() {
           </p>
         </div>
         <div className="flex gap-3">
+          {selectedClass && selectedSubject && (
+            caLocked ? (
+              <button onClick={handleUnlockCA} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-tertiary text-tertiary font-semibold text-sm hover:bg-tertiary/10 transition-all">
+                <MaterialIcon icon="lock_open" className="text-lg" />
+                Unlock CA ({lockedByName})
+              </button>
+            ) : (
+              <button onClick={handleLockCA} disabled={saving || !selectedClass || !selectedSubject} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-red-600 text-red-600 font-semibold text-sm hover:bg-red-50 transition-all">
+                <MaterialIcon icon="lock" className="text-lg" />
+                Lock CA
+              </button>
+            )
+          )}
           <button onClick={handleExportGrades} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-outline-variant/30 text-primary font-semibold text-sm hover:bg-surface-container-low transition-all">
             <MaterialIcon icon="cloud_download" className="text-lg" />
             Export
@@ -300,6 +407,31 @@ export default function GradesPage() {
           </button>
         </div>
       </header>
+
+      {/* Marks Entry Info */}
+      {selectedClass && selectedSubject && Object.keys(marksBy).length > 0 && (
+        <div className="flex gap-4 flex-wrap">
+          {Object.values(marksBy).some(m => ['ca1', 'ca2', 'ca3'].includes(m.type)) && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full text-xs font-medium">
+              <MaterialIcon icon="person" className="text-sm" />
+              <span>CA entered by: {marksBy[Object.keys(marksBy).find(k => marksBy[k].type.startsWith('ca')) || '']?.name || 'Unknown'}</span>
+            </div>
+          )}
+          {Object.values(marksBy).some(m => m.type === 'exam') && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full text-xs font-medium">
+              <MaterialIcon icon="supervisor_account" className="text-sm" />
+              <span>Exam entered by (Supervisor): {marksBy[Object.keys(marksBy).find(k => marksBy[k].type === 'exam') || '']?.name || 'Unknown'}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {caLocked && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 rounded-xl text-sm font-medium text-red-700">
+          <MaterialIcon icon="lock" className="text-lg" />
+          CA marks are locked for this subject/class. Contact DOS to unlock.
+        </div>
+      )}
 
       {/* Configuration Bento */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

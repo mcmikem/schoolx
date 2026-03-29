@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
+import { useStaff } from '@/lib/hooks'
 import { supabase } from '@/lib/supabase'
 
 function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
@@ -18,12 +19,15 @@ interface Notice {
   created_at: string
   expires_at: string | null
   image_url?: string
+  send_sms?: boolean
   users?: { full_name: string }
+  acknowledged_by?: string[]
 }
 
 export default function NoticeBoardPage() {
   const { school, user } = useAuth()
   const toast = useToast()
+  const { staff } = useStaff(school?.id)
   const [notices, setNotices] = useState<Notice[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -35,8 +39,10 @@ export default function NoticeBoardPage() {
     priority: 'normal',
     expires_at: '',
     image_url: '',
+    send_sms: false,
   })
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [sendingSMS, setSendingSMS] = useState(false)
 
   useEffect(() => {
     fetchNotices()
@@ -61,29 +67,79 @@ export default function NoticeBoardPage() {
     }
   }
 
+  const sendNoticeSMS = async (title: string, content: string, category: string) => {
+    if (!school?.id || staff.length === 0) return
+
+    const phones = staff
+      .filter((s: any) => s.phone)
+      .map((s: any) => s.phone)
+
+    if (phones.length === 0) return
+
+    const smsMessage = `[${category}] ${title}: ${content.slice(0, 100)}${content.length > 100 ? '...' : ''}`
+
+    try {
+      await fetch('/api/sms', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phones,
+          message: smsMessage,
+          schoolId: school.id,
+        })
+      })
+
+      await supabase.from('messages').insert({
+        school_id: school.id,
+        recipient_type: 'staff',
+        message: smsMessage,
+        status: 'sent',
+        sent_by: user?.id,
+        sent_at: new Date().toISOString(),
+        recipient_count: phones.length,
+      })
+    } catch (err) {
+      console.error('Failed to send notice SMS:', err)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!school?.id || !user?.id) return
 
+    const isEmergency = newNotice.category === 'Emergency' || newNotice.priority === 'high'
+    const shouldSendSMS = newNotice.send_sms || isEmergency
+
     try {
+      setSendingSMS(true)
+
       const { error } = await supabase.from('notices').insert({
         school_id: school.id,
         title: newNotice.title,
         content: newNotice.content,
         category: newNotice.category,
-        priority: newNotice.priority,
+        priority: isEmergency && newNotice.category !== 'Emergency' ? 'high' : newNotice.priority,
         created_by: user.id,
         expires_at: newNotice.expires_at || null,
         image_url: newNotice.image_url || null,
       })
 
       if (error) throw error
-      toast.success('Notice posted')
+
+      if (shouldSendSMS) {
+        await sendNoticeSMS(newNotice.title, newNotice.content, newNotice.category)
+        toast.success(`Notice posted and SMS sent to ${staff.filter((s: any) => s.phone).length} staff`)
+      } else {
+        toast.success('Notice posted')
+      }
+
       setShowModal(false)
-      setNewNotice({ title: '', content: '', category: 'General', priority: 'normal', expires_at: '', image_url: '' })
+      setNewNotice({ title: '', content: '', category: 'General', priority: 'normal', expires_at: '', image_url: '', send_sms: false })
       fetchNotices()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to post notice')
+    } finally {
+      setSendingSMS(false)
     }
   }
 
@@ -127,13 +183,40 @@ export default function NoticeBoardPage() {
     }
   }
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'border-l-[#ba1a1a] bg-[#fef2f2]'
-      case 'medium': return 'border-l-[#b86e00] bg-[#fff3e0]'
-      default: return 'border-l-[#002045] bg-white'
+  const acknowledgeNotice = async (noticeId: string) => {
+    if (!user?.id) return
+    try {
+      const { error } = await supabase.from('notice_acknowledgments').upsert({
+        notice_id: noticeId,
+        user_id: user.id,
+        acknowledged_at: new Date().toISOString(),
+      }, { onConflict: 'notice_id,user_id' })
+
+      if (error) {
+        if (error.code === '42P01') {
+          toast.error('Acknowledgment feature not yet configured')
+          return
+        }
+        throw error
+      }
+      toast.success('Notice acknowledged')
+      fetchNotices()
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to acknowledge')
     }
   }
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'Academic': return 'school'
+      case 'Finance': return 'payments'
+      case 'Sports': return 'sports_soccer'
+      case 'Emergency': return 'warning'
+      default: return 'campaign'
+    }
+  }
+
+  const categories = ['All', 'General', 'Academic', 'Finance', 'Sports', 'Emergency']
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
@@ -153,16 +236,17 @@ export default function NoticeBoardPage() {
 
       {/* Category Filter */}
       <div className="flex gap-2 flex-wrap">
-        {['All', 'General', 'Meeting', 'Event', 'Urgent'].map(cat => (
+        {categories.map(cat => (
           <button
             key={cat}
             onClick={() => setCategoryFilter(cat === 'All' ? '' : cat)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 ${
               (cat === 'All' && !categoryFilter) || categoryFilter === cat
                 ? 'bg-gray-900 text-white shadow-md'
                 : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
             }`}
           >
+            {cat !== 'All' && <MaterialIcon icon={getCategoryIcon(cat)} className="text-sm" />}
             {cat}
           </button>
         ))}
@@ -187,8 +271,14 @@ export default function NoticeBoardPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {notices.map((notice) => (
-            <div key={notice.id} className={`bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow ${notice.priority === 'high' ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-gray-900'}`}>
+          {notices
+            .filter(n => !categoryFilter || n.category === categoryFilter)
+            .map((notice) => (
+            <div key={notice.id} className={`bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-shadow ${
+              notice.priority === 'high' ? 'border-l-4 border-l-red-500' :
+              notice.category === 'Emergency' ? 'border-l-4 border-l-red-600 bg-red-50/30' :
+              'border-l-4 border-l-gray-900'
+            }`}>
               {notice.image_url && (
                 <div className="h-48 overflow-hidden">
                   <img src={notice.image_url} alt={notice.title} className="w-full h-full object-cover" />
@@ -196,7 +286,8 @@ export default function NoticeBoardPage() {
               )}
               <div className="p-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700">
+                  <span className="px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 flex items-center gap-1">
+                    <MaterialIcon icon={getCategoryIcon(notice.category)} className="text-xs" />
                     {notice.category}
                   </span>
                   {notice.priority !== 'normal' && (
@@ -204,9 +295,15 @@ export default function NoticeBoardPage() {
                       {notice.priority} priority
                     </span>
                   )}
+                  {notice.category === 'Emergency' && (
+                    <span className="px-3 py-1 rounded-lg text-xs font-medium bg-red-100 text-red-700 flex items-center gap-1">
+                      <MaterialIcon icon="sms" className="text-xs" />
+                      SMS Sent
+                    </span>
+                  )}
                 </div>
                 <h3 className="font-bold text-gray-900 mb-2">{notice.title}</h3>
-                <p className="text-gray-500 text-sm whitespace-pre-wrap line-clamp-3">{notice.content}</p>
+                <p className="text-gray-500 text-sm whitespace-pre-wrap">{notice.content}</p>
                 <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
                   <div className="flex items-center gap-3 text-xs text-gray-500">
                     <span className="flex items-center gap-1">
@@ -218,12 +315,21 @@ export default function NoticeBoardPage() {
                       {new Date(notice.created_at).toLocaleDateString()}
                     </span>
                   </div>
-                  <button
-                    onClick={() => deleteNotice(notice.id)}
-                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <MaterialIcon className="text-lg">delete</MaterialIcon>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => acknowledgeNotice(notice.id)}
+                      className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors flex items-center gap-1"
+                    >
+                      <MaterialIcon className="text-sm">check_circle</MaterialIcon>
+                      Acknowledge
+                    </button>
+                    <button
+                      onClick={() => deleteNotice(notice.id)}
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <MaterialIcon className="text-lg">delete</MaterialIcon>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -233,8 +339,8 @@ export default function NoticeBoardPage() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-[#e8eaed]">
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-[#e8eaed] sticky top-0 bg-white rounded-t-2xl">
               <h2 className="text-lg font-semibold text-[#191c1d]">Post Notice</h2>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -257,9 +363,10 @@ export default function NoticeBoardPage() {
                     className="input"
                   >
                     <option value="General">General</option>
-                    <option value="Meeting">Meeting</option>
-                    <option value="Event">Event</option>
-                    <option value="Urgent">Urgent</option>
+                    <option value="Academic">Academic</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Emergency">Emergency</option>
                   </select>
                 </div>
                 <div>
@@ -306,9 +413,44 @@ export default function NoticeBoardPage() {
                   )}
                 </div>
               </div>
+
+              {/* SMS Notification */}
+              <div className={`p-4 rounded-xl border-2 transition-all ${
+                newNotice.category === 'Emergency' || newNotice.send_sms
+                  ? 'border-red-200 bg-red-50'
+                  : 'border-[#e8eaed] bg-[#f8fafb]'
+              }`}>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={newNotice.send_sms || newNotice.category === 'Emergency'}
+                    onChange={(e) => setNewNotice({...newNotice, send_sms: e.target.checked})}
+                    disabled={newNotice.category === 'Emergency'}
+                    className="w-4 h-4 mt-0.5"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-[#191c1d]">
+                      Send SMS notification to all staff
+                    </span>
+                    {newNotice.category === 'Emergency' && (
+                      <p className="text-xs text-red-600 mt-1">
+                        Emergency notices automatically send SMS to all staff
+                      </p>
+                    )}
+                    {!newNotice.category && newNotice.send_sms && (
+                      <p className="text-xs text-[#5c6670] mt-1">
+                        SMS will be sent to {staff.filter((s: any) => s.phone).length} staff members
+                      </p>
+                    )}
+                  </div>
+                </label>
+              </div>
+
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary flex-1">Cancel</button>
-                <button type="submit" className="btn btn-primary flex-1">Post Notice</button>
+                <button type="submit" disabled={sendingSMS} className="btn btn-primary flex-1">
+                  {sendingSMS ? 'Posting...' : 'Post Notice'}
+                </button>
               </div>
             </form>
           </div>
