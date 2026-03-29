@@ -76,8 +76,10 @@ const navItemsByRole: Record<string, { href: string; label: string; icon: string
     { href: '/dashboard/visitors', label: 'Visitors', icon: 'badge' },
     { href: '/dashboard/staff', label: 'Staff', icon: 'person' },
     { href: '/dashboard/staff-attendance', label: 'Staff Attendance', icon: 'how_to_reg' },
+    { href: '/dashboard/staff-activity', label: 'Staff Activity', icon: 'monitoring' },
     { href: '/dashboard/leave', label: 'Leave Requests', icon: 'event_busy' },
     { href: '/dashboard/leave-approvals', label: 'Leave Approvals', icon: 'approval' },
+    { href: '/dashboard/marks-completion', label: 'Marks Completion', icon: 'checklist' },
     { href: '/dashboard/allocations', label: 'Subject Allocations', icon: 'assignment_ind' },
     { href: '/dashboard/inventory', label: 'Inventory', icon: 'inventory_2' },
     { href: '/dashboard/transport', label: 'Transport', icon: 'directions_bus' },
@@ -103,6 +105,7 @@ const navItemsByRole: Record<string, { href: string; label: string; icon: string
     { href: '/dashboard/reports', label: 'Reports', icon: 'description' },
     { href: '/dashboard/calendar', label: 'Calendar', icon: 'event' },
     { href: '/dashboard/comments', label: 'Comments', icon: 'comment' },
+    { href: '/dashboard/marks-completion', label: 'Marks Completion', icon: 'checklist' },
   ],
   bursar: [
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
