@@ -1050,7 +1050,7 @@ export function useAnalytics(schoolId?: string) {
             return {
               student_id: s.id,
               full_name: s.full_name,
-              class_name: s.classes?.name || 'N/A',
+              class_name: s.classes?.[0]?.name || 'N/A',
               risk_reason: attRate < 75 && avgScore < 50 ? 'both' : (attRate < 75 ? 'low_attendance' : 'low_grades'),
               attendance_rate: attRate,
               avg_score: avgScore
