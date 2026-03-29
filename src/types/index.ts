@@ -256,22 +256,6 @@ export interface DashboardStats {
   femaleStudents: number
 }
 
-// Timetable types
-export interface TimetableEntry {
-  id: string
-  school_id: string
-  class_id: string
-  subject_id: string
-  teacher_id?: string
-  day_of_week: number
-  start_time: string
-  end_time: string
-  room?: string
-  created_at: string
-  classes?: Class
-  subjects?: Subject
-}
-
 // Navigation types
 export interface NavItem {
   href: string
@@ -485,6 +469,7 @@ export interface DormIncident {
   incident_date: string
   reported_by?: string
   created_at: string
+  students?: { first_name: string; last_name: string }
 }
 
 export interface TransportLog {
@@ -517,10 +502,11 @@ export interface TransportRoute {
   vehicle_number?: string
   driver_name?: string
   driver_phone?: string
-  pickup_points?: string // Legacy JSON field
+  pickup_points?: string
   monthly_fee?: number
   created_at: string
   stops?: TransportStop[]
+  transport_stops?: TransportStop[]
 }
 
 // Intelligence & Communication types
