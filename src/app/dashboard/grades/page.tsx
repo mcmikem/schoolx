@@ -360,7 +360,10 @@ export default function GradesPage() {
 
   const selectedSubjectName = subjects.find(s => s.id === selectedSubject)?.name || ''
   const selectedClassName = classes.find(c => c.id === selectedClass)?.name || ''
-  const topics = NCDC_TOPICS[selectedSubjectName] || ['Topic 1', 'Topic 2', 'Topic 3', 'Topic 4', 'Topic 5']
+  const topics = useMemo(
+    () => NCDC_TOPICS[selectedSubjectName] || ['Topic 1', 'Topic 2', 'Topic 3', 'Topic 4', 'Topic 5'],
+    [selectedSubjectName]
+  )
 
   const coverageStats = useMemo(() => {
     const total = topics.length

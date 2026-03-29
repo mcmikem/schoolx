@@ -20,20 +20,21 @@ interface ActivityEntry {
 
 export default function StaffActivityPage() {
   const { school } = useAuth()
+  const schoolId = school?.id
   const { staff = [], loading: staffLoading } = useStaff(school?.id)
   const [activities, setActivities] = useState<ActivityEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [date] = useState(() => new Date().toISOString().split('T')[0])
 
   const fetchActivity = useCallback(async () => {
-    if (!school?.id || staff.length === 0) return
+    if (!schoolId || staff.length === 0) return
     setLoading(true)
     try {
       // Fetch staff attendance for today
       const { data: staffAttData } = await supabase
         .from('staff_attendance')
         .select('user_id, status, time_in')
-        .eq('school_id', school!.id)
+        .eq('school_id', schoolId)
         .eq('date', date)
 
       const attendanceMap: Record<string, { status: string; time_in: string | null }> = {}
@@ -101,12 +102,12 @@ export default function StaffActivityPage() {
     } finally {
       setLoading(false)
     }
-  }, [school?.id, staff, date])
+  }, [schoolId, staff, date])
 
   useEffect(() => {
-    if (!school?.id || staff.length === 0) return
+    if (!schoolId || staff.length === 0) return
     fetchActivity()
-  }, [school?.id, staff.length, date, fetchActivity])
+  }, [schoolId, staff.length, date, fetchActivity])
 
   const activeToday = activities.filter(a => a.other_actions.length > 0).length
   const markedAtt = activities.filter(a => a.marked_attendance).length

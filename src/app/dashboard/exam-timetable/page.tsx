@@ -89,7 +89,7 @@ export default function ExamTimetablePage() {
     }
   }, [school?.id])
 
-  const detectConflicts = (exam: typeof newExam, excludeId?: string): string[] => {
+  const detectConflicts = useCallback((exam: typeof newExam, excludeId?: string): string[] => {
     const conflicts: string[] = []
     const examDate = exam.exam_date
     const examStart = exam.start_time
@@ -124,7 +124,7 @@ export default function ExamTimetablePage() {
     }
 
     return conflicts
-  }
+  }, [examSlots, classes, staff])
 
   const handleSaveExam = async () => {
     if (!school?.id || !user?.id) return
@@ -254,7 +254,7 @@ export default function ExamTimetablePage() {
     }
     const detected = detectConflicts(newExam, editingId || undefined)
     setConflicts(detected)
-  }, [newExam, editingId, examSlots, classes, staff])
+  }, [newExam, editingId, detectConflicts])
 
   useEffect(() => {
     fetchExamTimetable()
