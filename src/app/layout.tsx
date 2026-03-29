@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   title: 'SchoolX | Academic Management System',
   description: 'Comprehensive school management for Ugandan schools - Primary & Secondary',
   manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'SchoolX',
+  },
 }
 
 export const viewport: Viewport = {
@@ -34,9 +39,36 @@ export default function RootLayout({
         />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="SchoolX" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.svg" />
       </head>
       <body className="antialiased min-h-screen" style={{ backgroundColor: 'var(--bg)', color: 'var(--t1)', fontFamily: "'Instrument Sans', 'Inter', system-ui, sans-serif" }}>
         <Providers>{children}</Providers>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                    reg.addEventListener('updatefound', function() {
+                      var newWorker = reg.installing;
+                      if (newWorker) {
+                        newWorker.addEventListener('statechange', function() {
+                          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            var evt = new CustomEvent('sw-update-available', { detail: { registration: reg } });
+                            window.dispatchEvent(evt);
+                          }
+                        });
+                      }
+                    });
+                  }).catch(function(err) {
+                    console.warn('SW registration failed:', err);
+                  });
+                });
+              }
+            })();
+          `
+        }} />
       </body>
     </html>
   )

@@ -1,112 +1,252 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { offlineDB } from '@/lib/offline'
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+}
 
 export function OfflineIndicator() {
   const [isOnline, setIsOnline] = useState(true)
   const [pendingSync, setPendingSync] = useState(0)
   const [syncing, setSyncing] = useState(false)
   const [showIndicator, setShowIndicator] = useState(false)
+  const [swUpdateReady, setSwUpdateReady] = useState(false)
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const [showInstall, setShowInstall] = useState(false)
+
+  const syncData = useCallback(async () => {
+    if (!navigator.onLine) return
+    setSyncing(true)
+    try {
+      const pending = await offlineDB.getPendingSync()
+      if (pending.length > 0) {
+        const result = await offlineDB.syncToServer('/api/sync')
+        if (result.success > 0) {
+          setPendingSync(0)
+        }
+      }
+    } catch {
+      // Sync will retry on next online event
+    }
+    setSyncing(false)
+  }, [])
 
   useEffect(() => {
     const handleOnline = async () => {
       setIsOnline(true)
       setShowIndicator(true)
-      // Auto-sync when back online
       await syncData()
-      setTimeout(() => setShowIndicator(false), 3000)
+      setTimeout(() => {
+        setShowIndicator(false)
+        setShowInstall(false)
+      }, 3000)
     }
-    
+
     const handleOffline = () => {
       setIsOnline(false)
       setShowIndicator(true)
+      setShowInstall(false)
     }
 
-    // Check pending sync count
+    const handleSwUpdate = () => {
+      setSwUpdateReady(true)
+    }
+
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault()
+      setInstallPrompt(e as BeforeInstallPromptEvent)
+      setShowInstall(true)
+    }
+
     const checkPending = async () => {
       try {
         const pending = await offlineDB.getPendingSync()
         setPendingSync(pending.length)
+        if (pending.length > 0) setShowIndicator(true)
       } catch {
         // Ignore errors
       }
     }
-    
+
     checkPending()
     const interval = setInterval(checkPending, 10000)
 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
+    window.addEventListener('sw-update-available', handleSwUpdate)
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall)
+
     setIsOnline(navigator.onLine)
+    if (!navigator.onLine) setShowIndicator(true)
 
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
+      window.removeEventListener('sw-update-available', handleSwUpdate)
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall)
       clearInterval(interval)
     }
-  }, [])
+  }, [syncData])
 
-  const syncData = async () => {
-    if (!navigator.onLine) return
-    setSyncing(true)
-    try {
-      const result = await offlineDB.syncToServer('/api/sync')
-      if (result.success > 0) {
-        console.log(`Synced ${result.success} records`)
-      }
-    } catch (e) {
-      console.error('Sync failed:', e)
+  const handleInstall = async () => {
+    if (!installPrompt) return
+    await installPrompt.prompt()
+    const { outcome } = await installPrompt.userChoice
+    if (outcome === 'accepted') {
+      setShowInstall(false)
     }
-    setSyncing(false)
+    setInstallPrompt(null)
   }
 
-  if (!showIndicator && isOnline && pendingSync === 0) return null
+  const handleUpdate = () => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        if (reg?.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' })
+          window.location.reload()
+        }
+      })
+    }
+  }
+
+  if (!showIndicator && isOnline && pendingSync === 0 && !swUpdateReady && !showInstall) return null
 
   return (
-    <div className={`offline-indicator ${isOnline ? 'online' : 'offline'}`}
-      style={{
-        position: 'fixed',
-        bottom: 20,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 99999,
-        padding: '10px 20px',
-        borderRadius: 25,
-        fontSize: 13,
-        fontWeight: 600,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-        background: isOnline ? '#22c55e' : '#ef4444',
-        color: '#fff',
-      }}
-    >
-      {syncing ? (
-        <>
-          <span style={{ animation: 'spin 1s linear infinite' }}>⟳</span>
-          Syncing...
-        </>
-      ) : !isOnline ? (
-        <>
-          <span>📴</span>
-          Offline Mode - Changes saved locally
-          {pendingSync > 0 && <span style={{ opacity: 0.8 }}>({pendingSync} pending)</span>}
-        </>
-      ) : pendingSync > 0 ? (
-        <>
-          <span>📶</span>
-          {pendingSync} changes pending sync
-        </>
-      ) : (
-        <>
-          <span>✓</span>
-          Back online
-        </>
+    <div style={{
+      position: 'fixed',
+      bottom: 20,
+      left: '50%',
+      transform: 'translateX(-50%)',
+      zIndex: 99999,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 8,
+    }}>
+      {swUpdateReady && (
+        <div style={{
+          padding: '10px 20px',
+          borderRadius: 12,
+          fontSize: 13,
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+          background: 'var(--navy)',
+          color: '#fff',
+        }}>
+          <span style={{ fontSize: 18 }}>material_symbol:refresh</span>
+          New version available
+          <button
+            onClick={handleUpdate}
+            style={{
+              background: '#fff',
+              color: 'var(--navy)',
+              border: 'none',
+              padding: '6px 14px',
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: 'pointer',
+              marginLeft: 4,
+            }}
+          >
+            Update
+          </button>
+        </div>
       )}
-      <style>{`
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-      `}</style>
+
+      {showInstall && (
+        <div style={{
+          padding: '10px 20px',
+          borderRadius: 12,
+          fontSize: 13,
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+          background: 'var(--navy)',
+          color: '#fff',
+        }}>
+          <span style={{ fontSize: 18 }}>material_symbol:install_desktop</span>
+          Install SchoolX app
+          <button
+            onClick={handleInstall}
+            style={{
+              background: '#fff',
+              color: 'var(--navy)',
+              border: 'none',
+              padding: '6px 14px',
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: 'pointer',
+              marginLeft: 4,
+            }}
+          >
+            Install
+          </button>
+          <button
+            onClick={() => setShowInstall(false)}
+            style={{
+              background: 'transparent',
+              color: '#fff',
+              border: '1px solid rgba(255,255,255,0.3)',
+              padding: '5px 10px',
+              borderRadius: 6,
+              fontSize: 12,
+              cursor: 'pointer',
+            }}
+          >
+            Later
+          </button>
+        </div>
+      )}
+
+      {(showIndicator && (syncing || !isOnline || pendingSync > 0)) && (
+        <div style={{
+          padding: '10px 20px',
+          borderRadius: 25,
+          fontSize: 13,
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+          background: isOnline ? '#22c55e' : '#ef4444',
+          color: '#fff',
+          animation: 'fadeInUp 0.3s ease',
+        }}>
+          {syncing ? (
+            <>
+              <span style={{ animation: 'spin 1s linear infinite', fontSize: 16 }}>material_symbol:sync</span>
+              Syncing {pendingSync} items...
+            </>
+          ) : !isOnline ? (
+            <>
+              <span style={{ fontSize: 16 }}>material_symbol:wifi_off</span>
+              Offline - Changes saved locally
+              {pendingSync > 0 && <span style={{ opacity: 0.9, fontWeight: 400 }}>({pendingSync} pending)</span>}
+            </>
+          ) : pendingSync > 0 ? (
+            <>
+              <span style={{ fontSize: 16 }}>material_symbol:cloud_upload</span>
+              {pendingSync} changes syncing
+            </>
+          ) : null}
+        </div>
+      )}
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes spin { 100% { transform: rotate(360deg); } }
+          @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        `
+      }} />
     </div>
   )
 }
@@ -122,13 +262,13 @@ export function useOfflineSync() {
         setPendingCount(pending.length)
       } catch {}
     }
-    
+
     check()
     const interval = setInterval(check, 5000)
-    
+
     const handleOnline = () => setIsOnline(true)
     const handleOffline = () => setIsOnline(false)
-    
+
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
     setIsOnline(navigator.onLine)
