@@ -22,6 +22,26 @@ const proofPoints = [
 
 const roleStrip = ['Head teacher', 'Dean of studies', 'Bursar', 'Class teacher', 'Secretary', 'Dorm master']
 
+const storyMoments = [
+  'Registers getting lost between offices and classrooms.',
+  'Marks being calculated late into the night before report deadlines.',
+  'Report cards taking weeks because the workflow lives in separate books and spreadsheets.',
+  'Headteachers making serious decisions without a clear view of attendance, fees, or performance.',
+]
+
+const storyPrinciples = [
+  'Simple enough for any teacher to use',
+  'Reliable even when the internet is not',
+  'Built around attendance, marks, fees, and communication in one flow',
+  'Made to save time instead of creating more admin work',
+]
+
+const osxLinks = [
+  'When student leaders track attendance or activities through OSX, SchoolX makes that data visible and usable.',
+  'When schools are working to improve academic performance, SchoolX helps identify where students are struggling early.',
+  'When leadership needs to act, SchoolX replaces guesswork with a clean, current picture of the school.',
+]
+
 const stories = [
   {
     eyebrow: 'Academic control',
@@ -82,7 +102,7 @@ const plans = [
 
 function DesktopMockup() {
   return (
-    <div className="relative rounded-[32px] border border-slate-200 bg-white p-3 shadow-[0_40px_90px_rgba(15,23,42,0.14)]">
+    <div className="mockup-shell mockup-desktop relative rounded-[32px] border border-slate-200 bg-white p-3 shadow-[0_40px_90px_rgba(15,23,42,0.14)]">
       <div className="rounded-[28px] border border-slate-200 bg-[#f8fbff] overflow-hidden">
         <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-3">
           <div className="flex items-center gap-2">
@@ -127,7 +147,7 @@ function DesktopMockup() {
                 ['Staff on duty', '43', 'present and late captured'],
                 ['Low-attendance classes', '3', 'follow-up before assembly'],
               ].map(([label, value, note]) => (
-                <div key={label} className="rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-slate-200">
+                <div key={label} className="story-card rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-slate-200">
                   <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">{label}</p>
                   <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">{value}</p>
                   <p className="mt-1 text-sm text-slate-500">{note}</p>
@@ -183,7 +203,7 @@ function DesktopMockup() {
                     ['Send fee reminder', 'S.2 Blue parents with balances', 'sms'],
                     ['Print report cards', 'S.4 candidate review', 'description'],
                   ].map(([title, note, icon]) => (
-                    <div key={title} className="flex items-start gap-3 rounded-[22px] bg-white p-3.5 shadow-sm">
+                    <div key={title} className="story-card flex items-start gap-3 rounded-[22px] bg-white p-3.5 shadow-sm">
                       <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-[#17325F]/8 text-[#17325F]">
                         <MaterialIcon icon={icon} className="text-[20px]" />
                       </div>
@@ -205,7 +225,7 @@ function DesktopMockup() {
 
 function PhoneMockup() {
   return (
-    <div className="mx-auto w-[280px] rounded-[36px] border border-slate-200 bg-[#0b1220] p-2.5 shadow-[0_35px_80px_rgba(15,23,42,0.2)]">
+    <div className="mockup-shell mockup-phone mx-auto w-[280px] rounded-[36px] border border-slate-200 bg-[#0b1220] p-2.5 shadow-[0_35px_80px_rgba(15,23,42,0.2)]">
       <div className="overflow-hidden rounded-[30px] bg-white">
         <div className="flex items-center justify-between bg-[#17325F] px-4 pb-3 pt-4 text-white">
           <div>
@@ -253,9 +273,10 @@ export default function HomePage() {
           <nav className="flex items-center justify-between rounded-full border border-white/70 bg-white/80 px-4 py-3 shadow-[0_8px_30px_rgba(15,23,42,0.06)] backdrop-blur sm:px-6">
             <SchoolXLogo size="md" />
             <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
-              <a href="#features" className="transition hover:text-slate-950">Features</a>
-              <a href="#how-it-works" className="transition hover:text-slate-950">How it works</a>
-              <a href="#pricing" className="transition hover:text-slate-950">Pricing</a>
+              <a href="#features" className="nav-link transition hover:text-slate-950">Features</a>
+              <a href="#story" className="nav-link transition hover:text-slate-950">Story</a>
+              <a href="#osx" className="nav-link transition hover:text-slate-950">OSX</a>
+              <a href="#pricing" className="nav-link transition hover:text-slate-950">Pricing</a>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               <Link href="/login" className="btn btn-secondary btn-sm">
@@ -282,19 +303,19 @@ export default function HomePage() {
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-[#d7e4fb] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-[#17325F] shadow-sm">
                 <MaterialIcon icon="bolt" className="text-[18px]" />
-                Built for head teachers, deans, bursars, and teachers
+                Built from xperience on the ground in schools
               </div>
               <h1 className="mt-6 font-['Sora'] text-5xl font-semibold leading-[0.95] tracking-[-0.05em] text-slate-950 sm:text-6xl lg:text-7xl">
-                The school
+                The school system
                 <br />
-                management system
+                built from what
                 <br />
-                that finally feels
+                schools actually
                 <br />
-                like control.
+                go through.
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600 sm:text-xl">
-            SchoolX helps Ugandan schools run attendance, exams, fees, report cards, SMS, payroll, UNEB workflows, and day-to-day operations from one calm dashboard instead of ten disconnected books and spreadsheets.
+                SchoolX came from the daily reality we kept seeing in schools: lost registers, late-night marks entry, delayed report cards, and leaders forced to decide without clear data. It brings attendance, academics, fees, communication, and operations into one steady system that fits how schools here already work.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -308,7 +329,7 @@ export default function HomePage() {
 
               <div className="mt-10 grid gap-4 sm:grid-cols-3">
                 {stats.map((item) => (
-                  <div key={item.label} className="rounded-[24px] border border-slate-200 bg-white/90 p-4 shadow-sm">
+                  <div key={item.label} className="story-card rounded-[24px] border border-slate-200 bg-white/90 p-4 shadow-sm">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{item.label}</p>
                     <p className="mt-2 text-sm font-semibold text-slate-900">{item.value}</p>
                   </div>
@@ -316,8 +337,8 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="relative">
-              <div className="absolute -right-4 top-0 z-10 hidden w-52 rounded-[28px] border border-white/70 bg-white/88 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.14)] backdrop-blur xl:block">
+            <div className="relative hero-stage">
+              <div className="floating-note absolute right-0 top-0 z-20 hidden w-52 rounded-[28px] border border-white/70 bg-white/88 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.14)] backdrop-blur xl:block">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Today at a glance</p>
                 <div className="mt-4 space-y-3">
                   {[
@@ -332,11 +353,15 @@ export default function HomePage() {
                   ))}
                 </div>
               </div>
-              <div className="absolute -left-4 top-10 hidden xl:block">
+              <div className="phone-stage relative z-10 mx-auto mb-6 max-w-[320px] lg:absolute lg:-left-8 lg:top-10 lg:mb-0 xl:block">
                 <PhoneMockup />
               </div>
-              <div className="lg:ml-16">
+              <div className="desktop-stage relative z-0 lg:ml-16">
                 <DesktopMockup />
+              </div>
+              <div className="floating-callout absolute bottom-5 left-3 z-20 hidden rounded-[24px] border border-[#d7e4fb] bg-white/92 px-4 py-3 shadow-[0_22px_55px_rgba(15,23,42,0.12)] backdrop-blur md:block">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#17325F]">From registers to reports</p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">One flow, one view, one calmer morning.</p>
               </div>
             </div>
           </div>
@@ -399,6 +424,57 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section id="story" className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
+        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+          <div className="rounded-[34px] bg-[#0f1f3d] p-7 text-white shadow-[0_24px_60px_rgba(15,23,42,0.16)] lg:p-8">
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/60">The story behind SchoolX</p>
+            <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl">
+              It did not start as an idea. It started with what schools kept carrying every day.
+            </h2>
+            <p className="mt-5 text-base leading-7 text-white/76">
+              At Omuto Foundation, the work has been close enough to schools to see the real picture, not an abstract one. The issue was never that people were not trying. The issue was that the system around them kept slowing the work down.
+            </p>
+            <div className="mt-8 grid gap-3">
+              {storyMoments.map((item) => (
+                <div key={item} className="story-card rounded-[22px] border border-white/10 bg-white/6 px-4 py-4">
+                  <p className="text-sm leading-6 text-white/82">{item}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-5">
+            <div className="rounded-[34px] border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">What became obvious</p>
+              <h3 className="mt-4 font-['Sora'] text-2xl font-semibold leading-tight tracking-[-0.03em] text-slate-950">
+                Schools do not need more pressure. They need better tools.
+              </h3>
+              <p className="mt-4 text-base leading-7 text-slate-600">
+                SchoolX was built to match the real flow of school life: attendance, marks, fees, communication, and decision-making in one place. Not another generic system. A calmer operating layer for schools that are already working hard.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {storyPrinciples.map((item) => (
+                <div key={item} className="story-card rounded-[28px] border border-slate-200 bg-[#f8fbff] p-5 shadow-sm">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#17325F]/8 text-[#17325F]">
+                    <MaterialIcon icon="bolt" className="text-[20px]" />
+                  </div>
+                  <p className="mt-4 text-base font-semibold leading-7 text-slate-900">{item}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-[34px] border border-[#d7e4fb] bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_100%)] p-6 shadow-sm lg:p-8">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">What changes when the system runs well</p>
+              <p className="mt-4 text-base leading-7 text-slate-600">
+                Teachers get more time to focus on students. Leaders can see what is working and what is not. Parents stay informed. Students are noticed early instead of slipping through the cracks. The X in SchoolX stands for Xperience, because this system comes from what has been seen, learned, and asked for in the field.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
         <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
           <div>
@@ -422,6 +498,55 @@ export default function HomePage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="osx" className="bg-white py-18 lg:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-start">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">SchoolX and OSX</p>
+              <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
+                SchoolX is the system layer inside the wider Omuto School Xperience.
+              </h2>
+              <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
+                OSX is the broader transformation model. SchoolX is the layer that helps that transformation hold, because progress is hard to sustain when the underlying school systems stay scattered and manual.
+              </p>
+            </div>
+
+            <div className="grid gap-4">
+              <div className="rounded-[32px] border border-slate-200 bg-[#f7f9fc] p-6 shadow-sm lg:p-8">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="rounded-[24px] bg-white p-5 ring-1 ring-slate-200">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">OSX</p>
+                    <p className="mt-3 text-xl font-semibold tracking-tight text-slate-950">Drives transformation</p>
+                    <p className="mt-3 text-sm leading-6 text-slate-600">Leadership, student engagement, accountability, and a culture where schools do not just operate, but perform.</p>
+                  </div>
+                  <div className="rounded-[24px] bg-[#17325F] p-5 text-white">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/60">SchoolX</p>
+                    <p className="mt-3 text-xl font-semibold tracking-tight">Sustains it daily</p>
+                    <p className="mt-3 text-sm leading-6 text-white/76">Attendance, academics, fees, communication, and operational visibility working in one reliable school workflow.</p>
+                  </div>
+                </div>
+              </div>
+
+              {osxLinks.map((item) => (
+                <div key={item} className="story-card flex items-start gap-3 rounded-[26px] border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                  <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448]">
+                    <MaterialIcon icon="north_east" className="text-[18px]" />
+                  </div>
+                  <p className="text-sm leading-6 text-slate-700">{item}</p>
+                </div>
+              ))}
+
+              <div className="rounded-[30px] border border-[#d7e4fb] bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] p-6">
+                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">The result</p>
+                <p className="mt-4 text-base leading-7 text-slate-700">
+                  Together, OSX drives the transformation and SchoolX makes it visible, usable, and measurable. That is the complete school experience: organised systems, informed decisions, earlier support, and progress that leaders can actually track.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
