@@ -309,7 +309,10 @@ export default function StaffPage() {
                   className="input"
                 >
                   <option value="teacher">Teacher</option>
-                  <option value="school_admin">Administrator</option>
+                  <option value="dean_of_studies">Director of Studies (DOS)</option>
+                  <option value="bursar">Bursar</option>
+                  <option value="secretary">Secretary</option>
+                  <option value="dorm_master">Dorm Master/Mistress</option>
                 </select>
               </div>
 
