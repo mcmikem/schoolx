@@ -321,3 +321,234 @@ export interface FeeFilter {
   classId: string
   paymentMethod?: 'cash' | 'mobile_money' | 'bank' | 'installment'
 }
+
+// Staff Salary types
+export interface StaffSalary {
+  id: string
+  school_id: string
+  staff_id: string
+  base_salary: number
+  allowances: number
+  deductions: number
+  currency: string
+  payment_method: 'bank' | 'mobile_money' | 'cash' | 'cheque'
+  bank_name?: string
+  account_number?: string
+  mobile_money_number?: string
+  is_active: boolean
+  created_at: string
+  staff?: User
+}
+
+export interface SalaryPayment {
+  id: string
+  school_id: string
+  staff_id: string
+  academic_year_id: string
+  month: number
+  year: number
+  base_paid: number
+  allowances_paid: number
+  deductions_applied: number
+  net_paid: number
+  payment_date: string
+  payment_status: 'pending' | 'processing' | 'paid' | 'failed'
+  reference_number?: string
+  remarks?: string
+  processed_by?: string
+  created_at: string
+  staff?: User
+}
+
+// Staff Review types
+export interface StaffReview {
+  id: string
+  school_id: string
+  staff_id: string
+  reviewer_id?: string
+  review_date: string
+  period_start?: string
+  period_end?: string
+  rating: number
+  strengths?: string
+  areas_for_improvement?: string
+  goals?: string
+  comments?: string
+  status: 'draft' | 'shared' | 'completed'
+  created_at: string
+  staff?: User
+  reviewer?: User
+}
+
+// Inventory types
+export interface Asset {
+  id: string
+  school_id: string
+  name: string
+  category: 'furniture' | 'electronics' | 'textbooks' | 'equipment' | 'vehicle' | 'building' | 'other'
+  description?: string
+  current_stock: number
+  unit_price?: number
+  total_value?: number
+  location?: string
+  condition: 'new' | 'good' | 'fair' | 'poor' | 'damaged'
+  purchased_date?: string
+  supplier?: string
+  serial_number?: string
+  is_consumable: boolean
+  min_stock_level: number
+  created_at: string
+}
+
+export interface InventoryTransaction {
+  id: string
+  school_id: string
+  asset_id: string
+  transaction_type: 'in' | 'out' | 'adjustment' | 'return'
+  quantity: number
+  recorded_by?: string
+  notes?: string
+  transaction_date: string
+  created_at: string
+  asset?: Asset
+}
+
+// Timetable Enhancement types
+export interface TimetableSlot {
+  id: string
+  school_id: string
+  name: string
+  start_time: string
+  end_time: string
+  is_lesson: boolean
+  order_number: number
+  created_at: string
+}
+
+export interface TimetableConstraint {
+  id: string
+  school_id: string
+  teacher_id: string
+  day_of_week?: number
+  slot_id?: string
+  constraint_type: 'unavailable' | 'preferred'
+  notes?: string
+  created_at: string
+}
+
+export interface TimetableEntry {
+  id: string
+  school_id: string
+  class_id: string
+  subject_id: string
+  teacher_id: string
+  day_of_week: number
+  slot_id?: string // New field for enhanced timetable
+  start_time: string
+  end_time: string
+  room?: string
+  created_at: string
+  classes?: Class
+  subjects?: Subject
+  slots?: TimetableSlot
+}
+
+// Student Welfare types
+export interface DormRoom {
+  id: string
+  dorm_id: string
+  room_number: string
+  capacity: number
+  current_occupancy: number
+  created_at: string
+}
+
+export interface DormStudent {
+  id: string
+  dorm_id: string
+  student_id: string
+  room_id?: string
+  bed_number?: string
+  assigned_date: string
+  created_at: string
+  student?: Student
+}
+
+export interface DormIncident {
+  id: string
+  school_id: string
+  student_id: string
+  dorm_id: string
+  incident_type: 'misbehavior' | 'health' | 'maintenance' | 'other'
+  description: string
+  action_taken?: string
+  incident_date: string
+  reported_by?: string
+  created_at: string
+}
+
+export interface TransportLog {
+  id: string
+  school_id: string
+  route_id: string
+  log_type: 'fuel' | 'maintenance' | 'incident' | 'mileage'
+  description?: string
+  amount?: number
+  odometer_reading?: number
+  log_date: string
+  recorded_by?: string
+  created_at: string
+}
+
+export interface TransportStop {
+  id: string
+  route_id: string
+  stop_name: string
+  pickup_time?: string
+  dropoff_time?: string
+  order_number: number
+  created_at: string
+}
+
+export interface TransportRoute {
+  id: string
+  school_id: string
+  route_name: string
+  vehicle_number?: string
+  driver_name?: string
+  driver_phone?: string
+  pickup_points?: string // Legacy JSON field
+  monthly_fee?: number
+  created_at: string
+  stops?: TransportStop[]
+}
+
+// Intelligence & Communication types
+export interface SMSTrigger {
+  id: string
+  school_id: string
+  name: string
+  event_type: 'fee_overdue' | 'student_absent' | 'staff_absent' | 'exam_results'
+  threshold_days: number
+  template_id?: string
+  is_active: boolean
+  last_run_at?: string
+  created_at: string
+}
+
+export interface RevenueProjection {
+  school_id: string
+  academic_year: string
+  term: number
+  total_expected: number
+  total_collected: number
+}
+
+export interface AtRiskStudent {
+  student_id: string
+  full_name: string
+  class_name: string
+  risk_reason: 'low_attendance' | 'low_grades' | 'both'
+  attendance_rate: number
+  avg_score: number
+}

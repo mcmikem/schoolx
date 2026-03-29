@@ -1,12 +1,12 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { useSyncStatus } from '@/lib/useSyncStatus'
 import { useTheme } from '@/lib/theme-context'
 import { canAccess, type UserRole, type RolePermissions } from '@/lib/roles'
-import { useStudents, useClasses, useFeePayments, useAttendance } from '@/lib/hooks'
+import { useStudents, useClasses, useFeePayments, useFeeStructure } from '@/lib/hooks'
 import { useAcademic } from '@/lib/academic-context'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
 import ErrorBoundary from '@/components/ErrorBoundary'
@@ -36,6 +36,8 @@ const roleBasedRoutes: Record<string, keyof RolePermissions> = {
   '/dashboard/behavior': 'discipline',
   '/dashboard/student-transfers': 'students',
   '/dashboard/dropout-tracking': 'students',
+  '/dashboard/payroll': 'payroll',
+  '/dashboard/staff-reviews': 'performance',
 }
 
 const navItemsByRole: Record<string, { href: string; label: string; icon: string; badge?: string }[]> = {
@@ -67,6 +69,7 @@ const navItemsByRole: Record<string, { href: string; label: string; icon: string
     { href: '/dashboard/fees', label: 'Finance', icon: 'payments' },
     { href: '/dashboard/payment-plans', label: 'Payment Plans', icon: 'calendar_month' },
     { href: '/dashboard/invoicing', label: 'Invoicing', icon: 'description' },
+    { href: '/dashboard/payroll', label: 'Payroll', icon: 'payments', badge: 'New' },
     { href: '/dashboard/cashbook', label: 'Cashbook', icon: 'book' },
     { href: '/dashboard/budget', label: 'Budget & Expenses', icon: 'account_balance_wallet' },
     { href: '/dashboard/expense-approvals', label: 'Expense Approvals', icon: 'request_quote' },
@@ -80,6 +83,7 @@ const navItemsByRole: Record<string, { href: string; label: string; icon: string
     { href: '/dashboard/visitors', label: 'Visitors', icon: 'badge' },
     { href: '/dashboard/staff', label: 'Staff', icon: 'person' },
     { href: '/dashboard/staff-attendance', label: 'Staff Attendance', icon: 'how_to_reg' },
+    { href: '/dashboard/staff-reviews', label: 'Staff Performance', icon: 'monitoring', badge: 'New' },
     { href: '/dashboard/staff-activity', label: 'Staff Activity', icon: 'monitoring' },
     { href: '/dashboard/leave', label: 'Leave Requests', icon: 'event_busy' },
     { href: '/dashboard/leave-approvals', label: 'Leave Approvals', icon: 'approval' },
@@ -119,6 +123,7 @@ const navItemsByRole: Record<string, { href: string; label: string; icon: string
     { href: '/dashboard/fees', label: 'Finance', icon: 'payments' },
     { href: '/dashboard/payment-plans', label: 'Payment Plans', icon: 'calendar_month' },
     { href: '/dashboard/invoicing', label: 'Invoicing', icon: 'description' },
+    { href: '/dashboard/payroll', label: 'Payroll', icon: 'payments', badge: 'New' },
     { href: '/dashboard/cashbook', label: 'Cashbook', icon: 'book' },
     { href: '/dashboard/budget', label: 'Budget & Expenses', icon: 'account_balance_wallet' },
     { href: '/dashboard/expense-approvals', label: 'Expense Approvals', icon: 'request_quote' },
@@ -161,6 +166,42 @@ function MaterialIcon({ icon, className, style }: { icon: string; className?: st
   )
 }
 
+type DashboardSearchResult = {
+  id: string
+  type: 'student' | 'class' | 'payment' | 'page'
+  name: string
+  description: string
+  link: string
+  icon: string
+}
+
+type DashboardNotification = {
+  id: string
+  title: string
+  desc: string
+  time: string
+  icon: string
+  color: string
+  href: string
+}
+
+function formatRelativeTime(date?: string) {
+  if (!date) return 'Just now'
+
+  const timestamp = new Date(date).getTime()
+  if (Number.isNaN(timestamp)) return 'Recently'
+
+  const diffMinutes = Math.max(0, Math.round((Date.now() - timestamp) / 60000))
+  if (diffMinutes < 1) return 'Just now'
+  if (diffMinutes < 60) return `${diffMinutes}m ago`
+
+  const diffHours = Math.round(diffMinutes / 60)
+  if (diffHours < 24) return `${diffHours}h ago`
+
+  const diffDays = Math.round(diffHours / 24)
+  return `${diffDays}d ago`
+}
+
 function SyncStatus() {
   const { isOnline, pendingCount, isSyncing } = useSyncStatus()
   
@@ -173,10 +214,18 @@ function SyncStatus() {
   )
 }
 
-function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+function SearchModal({
+  open,
+  onClose,
+  resultsSource,
+}: {
+  open: boolean
+  onClose: () => void
+  resultsSource: DashboardSearchResult[]
+}) {
   const router = useRouter()
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<{ type: string; name: string; link: string }[]>([])
+  const [results, setResults] = useState<DashboardSearchResult[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -187,17 +236,18 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
 
   useEffect(() => {
     if (!query.trim()) {
-      setResults([])
+      setResults(resultsSource.slice(0, 6))
       return
     }
-    const searchResults = [
-      { type: 'Student', name: `${query} (P7A)`, link: '/dashboard/students' },
-      { type: 'Page', name: 'Fees Management', link: '/dashboard/fees' },
-      { type: 'Page', name: 'Attendance Report', link: '/dashboard/attendance' },
-      { type: 'Page', name: 'Student Reports', link: '/dashboard/reports' },
-    ].filter(r => r.name.toLowerCase().includes(query.toLowerCase()))
+    const normalizedQuery = query.toLowerCase()
+    const searchResults = resultsSource
+      .filter(result =>
+        result.name.toLowerCase().includes(normalizedQuery) ||
+        result.description.toLowerCase().includes(normalizedQuery)
+      )
+      .slice(0, 8)
     setResults(searchResults)
-  }, [query])
+  }, [query, resultsSource])
 
   const handleSelect = (link: string) => {
     router.push(link)
@@ -219,10 +269,10 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
           <div style={{ maxHeight: 300, overflowY: 'auto' }}>
             {results.map((r, i) => (
               <div key={i} onClick={() => handleSelect(r.link)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid var(--border)' }}>
-                <MaterialIcon icon={r.type === 'Student' ? 'person' : 'description'} style={{ fontSize: 16, color: 'var(--t3)' }} />
+                <MaterialIcon icon={r.icon} style={{ fontSize: 16, color: 'var(--t3)' }} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--t1)' }}>{r.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--t3)' }}>{r.type}</div>
+                  <div style={{ fontSize: 11, color: 'var(--t3)' }}>{r.description}</div>
                 </div>
               </div>
             ))}
@@ -234,8 +284,16 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
         {!query && (
           <div style={{ padding: 16, fontSize: 11, color: 'var(--t4)' }}>
             <div style={{ marginBottom: 8, fontWeight: 600 }}>Quick Links</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ background: 'var(--bg)', padding: '4px 8px', borderRadius: 4, fontSize: 11 }}>⌘K to search</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {results.slice(0, 4).map(result => (
+                <button
+                  key={result.id}
+                  onClick={() => handleSelect(result.link)}
+                  style={{ background: 'var(--bg)', border: '1px solid var(--border)', padding: '8px 10px', borderRadius: 8, fontSize: 11, textAlign: 'left', color: 'var(--t2)', cursor: 'pointer' }}
+                >
+                  {result.name}
+                </button>
+              ))}
             </div>
           </div>
         )}
@@ -244,14 +302,15 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
   )
 }
 
-function NotificationsPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const notifications = [
-    { id: 1, title: '3 classes not marked', desc: 'Attendance pending today', time: '5m ago', icon: 'schedule', color: 'var(--amber)' },
-    { id: 2, title: '4 students at risk', desc: 'Below 50% in 2+ subjects', time: '1h ago', icon: 'warning', color: 'var(--red)' },
-    { id: 3, title: 'Fee payment received', desc: 'UGX 150,000 from Parent', time: '2h ago', icon: 'payments', color: 'var(--green)' },
-    { id: 4, title: 'SMS sent successfully', desc: '98% delivery rate', time: '3h ago', icon: 'sms', color: 'var(--navy)' },
-  ]
-
+function NotificationsPanel({
+  open,
+  onClose,
+  notifications,
+}: {
+  open: boolean
+  onClose: () => void
+  notifications: DashboardNotification[]
+}) {
   if (!open) return null
 
   return (
@@ -261,6 +320,11 @@ function NotificationsPanel({ open, onClose }: { open: boolean; onClose: () => v
         <button style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--navy)', cursor: 'pointer' }}>Mark all read</button>
       </div>
       <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+        {notifications.length === 0 && (
+          <div style={{ padding: '18px 14px', fontSize: 12, color: 'var(--t3)' }}>
+            You are caught up. No urgent items right now.
+          </div>
+        )}
         {notifications.map(n => (
           <div key={n.id} style={{ display: 'flex', gap: 12, padding: '12px 14px', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
             <div style={{ width: 32, height: 32, borderRadius: 8, background: `${n.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -274,8 +338,8 @@ function NotificationsPanel({ open, onClose }: { open: boolean; onClose: () => v
           </div>
         ))}
       </div>
-      <Link href="/dashboard/notices" onClick={onClose} style={{ display: 'block', padding: '10px 14px', textAlign: 'center', fontSize: 12, color: 'var(--navy)', borderTop: '1px solid var(--border)', textDecoration: 'none' }}>
-        View all notifications
+      <Link href={notifications[0]?.href || '/dashboard/notices'} onClick={onClose} style={{ display: 'block', padding: '10px 14px', textAlign: 'center', fontSize: 12, color: 'var(--navy)', borderTop: '1px solid var(--border)', textDecoration: 'none' }}>
+        Open priority queue
       </Link>
     </div>
   )
@@ -295,7 +359,124 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { students } = useStudents(school?.id)
   const { classes } = useClasses(school?.id)
   const { payments } = useFeePayments(school?.id)
+  const { feeStructure } = useFeeStructure(school?.id)
   const { currentTerm, academicYear } = useAcademic()
+
+  const searchResults = useMemo<DashboardSearchResult[]>(() => {
+    const studentResults = students.slice(0, 8).map(student => ({
+      id: `student-${student.id}`,
+      type: 'student' as const,
+      name: `${student.first_name} ${student.last_name}`,
+      description: `${student.student_number || 'No student number'} · ${student.classes?.name || 'Unassigned class'}`,
+      link: `/dashboard/students/${student.id}`,
+      icon: 'person',
+    }))
+
+    const classResults = classes.slice(0, 6).map(cls => ({
+      id: `class-${cls.id}`,
+      type: 'class' as const,
+      name: cls.name,
+      description: `${cls.level} class`,
+      link: '/dashboard/students',
+      icon: 'school',
+    }))
+
+    const paymentResults = payments
+      .slice()
+      .sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime())
+      .slice(0, 5)
+      .map(payment => ({
+        id: `payment-${payment.id}`,
+        type: 'payment' as const,
+        name: `${Number(payment.amount_paid).toLocaleString()} UGX payment`,
+        description: `${payment.students?.first_name || 'Student'} ${payment.students?.last_name || ''}`.trim(),
+        link: '/dashboard/fees',
+        icon: 'payments',
+      }))
+
+    const pages: DashboardSearchResult[] = [
+      { id: 'page-students', type: 'page', name: 'Student Registry', description: 'Admissions, profiles, and parent contacts', link: '/dashboard/students', icon: 'group' },
+      { id: 'page-fees', type: 'page', name: 'Finance', description: 'Balances, receipts, and collection tracking', link: '/dashboard/fees', icon: 'account_balance_wallet' },
+      { id: 'page-attendance', type: 'page', name: 'Attendance', description: 'Daily roll call and absentee follow-up', link: '/dashboard/attendance', icon: 'how_to_reg' },
+      { id: 'page-reports', type: 'page', name: 'Reports', description: 'Report cards, class summaries, and exports', link: '/dashboard/reports', icon: 'description' },
+    ]
+
+    return [...pages, ...studentResults, ...classResults, ...paymentResults]
+  }, [students, classes, payments])
+
+  const notifications = useMemo<DashboardNotification[]>(() => {
+    const items: DashboardNotification[] = []
+    const totalExpectedPerStudent = feeStructure.reduce((sum, item) => sum + Number(item.amount || 0), 0)
+    const totalExpected = totalExpectedPerStudent * students.length
+    const totalCollected = payments.reduce((sum, payment) => sum + Number(payment.amount_paid || 0), 0)
+    const outstanding = Math.max(0, totalExpected - totalCollected)
+    const collectionRate = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0
+    const latestPayment = payments
+      .slice()
+      .sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime())[0]
+
+    if (students.length === 0) {
+      items.push({
+        id: 'setup-students',
+        title: 'Student registry is empty',
+        desc: 'Add your first students to activate admissions, fees, and reporting flows.',
+        time: 'Action needed',
+        icon: 'group',
+        color: 'var(--amber)',
+        href: '/dashboard/students',
+      })
+    }
+
+    if (classes.length === 0) {
+      items.push({
+        id: 'setup-classes',
+        title: 'No classes configured yet',
+        desc: 'Create classes before tracking attendance, marks, and timetables.',
+        time: 'Action needed',
+        icon: 'school',
+        color: 'var(--red)',
+        href: '/dashboard/setup',
+      })
+    }
+
+    if (totalExpected > 0) {
+      items.push({
+        id: 'fees-health',
+        title: `${collectionRate}% fee collection this term`,
+        desc: outstanding > 0 ? `${outstanding.toLocaleString()} UGX still outstanding across active students.` : 'All expected fees are currently covered.',
+        time: `Term ${currentTerm || '-'} · ${academicYear || 'Current year'}`,
+        icon: outstanding > 0 ? 'warning' : 'check_circle',
+        color: outstanding > 0 ? 'var(--amber)' : 'var(--green)',
+        href: '/dashboard/fees',
+      })
+    }
+
+    if (latestPayment) {
+      items.push({
+        id: 'latest-payment',
+        title: 'Latest payment received',
+        desc: `${Number(latestPayment.amount_paid).toLocaleString()} UGX via ${latestPayment.payment_method.replace('_', ' ')}.`,
+        time: formatRelativeTime(latestPayment.payment_date),
+        icon: 'payments',
+        color: 'var(--green)',
+        href: '/dashboard/fees',
+      })
+    }
+
+    if (payments.length === 0 && students.length > 0) {
+      items.push({
+        id: 'no-payments',
+        title: 'No fee payments recorded yet',
+        desc: 'Start with the bursar workflow so balances and receipts become reliable.',
+        time: 'Action needed',
+        icon: 'receipt_long',
+        color: 'var(--navy)',
+        href: '/dashboard/fees',
+      })
+    }
+
+    return items.slice(0, 5)
+  }, [students, classes, payments, feeStructure, currentTerm, academicYear])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -476,6 +657,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <MaterialIcon icon="sms" style={{ fontSize: 17 }} />
                 SMS Templates
               </Link>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/auto-sms" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="bolt" style={{ fontSize: 17 }} />
+                Smart Triggers
+                <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, fontFamily: 'DM Mono', background: 'var(--amber-soft)', color: 'var(--amber)' }}>Auto</span>
+              </Link>
               <Link onClick={() => setSidebarOpen(false)} href="/dashboard/homework" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="assignment" style={{ fontSize: 17 }} />
                 Homework
@@ -512,6 +698,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <MaterialIcon icon="how_to_reg" style={{ fontSize: 17 }} />
                 Staff Attendance
               </Link>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/staff-reviews" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="monitoring" style={{ fontSize: 17 }} />
+                Staff Performance
+                <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, fontFamily: 'DM Mono', background: 'var(--green-soft)', color: 'var(--green)' }}>New</span>
+              </Link>
               <Link onClick={() => setSidebarOpen(false)} href="/dashboard/leave-approvals" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="approval" style={{ fontSize: 17 }} />
                 Leave Approvals
@@ -519,6 +710,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Link onClick={() => setSidebarOpen(false)} href="/dashboard/expense-approvals" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="request_quote" style={{ fontSize: 17 }} />
                 Expense Approvals
+              </Link>
+              <Link onClick={() => setSidebarOpen(false)} href="/dashboard/payroll" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
+                <MaterialIcon icon="payments" style={{ fontSize: 17 }} />
+                Payroll
+                <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, fontFamily: 'DM Mono', background: 'var(--green-soft)', color: 'var(--green)' }}>New</span>
               </Link>
               <Link onClick={() => setSidebarOpen(false)} href="/dashboard/leave" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, color: 'var(--t2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all var(--dur) var(--ease)' }}>
                 <MaterialIcon icon="event_busy" style={{ fontSize: 17 }} />
@@ -624,9 +820,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="notif-panel" style={{ position: 'relative' }}>
                 <div onClick={() => setNotifOpen(!notifOpen)} style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: 'var(--sh1)', position: 'relative' }}>
                   <MaterialIcon icon="notifications" style={{ fontSize: 16, color: 'var(--t2)' }} />
-                  <div style={{ position: 'absolute', top: 6, right: 6, width: 7, height: 7, borderRadius: '50%', background: 'var(--red)', border: '1.5px solid var(--surface)' }} />
+                  {notifications.length > 0 && (
+                    <div style={{ position: 'absolute', top: 6, right: 6, width: 7, height: 7, borderRadius: '50%', background: 'var(--red)', border: '1.5px solid var(--surface)' }} />
+                  )}
                 </div>
-                <NotificationsPanel open={notifOpen} onClose={() => setNotifOpen(false)} />
+                <NotificationsPanel open={notifOpen} onClose={() => setNotifOpen(false)} notifications={notifications} />
               </div>
               <div onClick={toggleTheme} style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: 'var(--sh1)' }}>
                 <MaterialIcon icon={theme === 'dark' ? 'light_mode' : 'dark_mode'} style={{ fontSize: 16, color: 'var(--t2)' }} />
@@ -661,7 +859,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
-      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} resultsSource={searchResults} />
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 99 }} className="sidebar-overlay visible" />
       )}

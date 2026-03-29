@@ -2,256 +2,188 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
+import { useDormManager } from '@/lib/hooks'
+import GlassCard from '@/components/GlassCard'
 import { supabase } from '@/lib/supabase'
 
-function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
+function MaterialIcon({ icon, className }: { icon: string; className?: string }) {
+  return <span className={`material-symbols-outlined ${className || ''}`}>{icon}</span>
 }
 
-interface Dorm {
-  id: string
-  name: string
-  type: 'boys' | 'girls'
-  capacity: number
-  warden_id?: string
-  location?: string
-}
-
-interface DormStudent {
-  id: string
-  dorm_id: string
-  student_id: string
-  bed_number?: string
-  students?: {
-    first_name: string
-    last_name: string
-    gender: string
-    class_id?: string
-    classes?: { name: string }
-  }
-}
-
-export default function DormPage() {
-  const { school } = useAuth()
+export default function DormitoryPage() {
+  const { school, user } = useAuth()
   const toast = useToast()
-  const [dorms, setDorms] = useState<Dorm[]>([])
-  const [dormStudents, setDormStudents] = useState<DormStudent[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showAddDorm, setShowAddDorm] = useState(false)
-  const [showAssign, setShowAssign] = useState(false)
-  const [selectedDorm, setSelectedDorm] = useState<Dorm | null>(null)
-  const [newDorm, setNewDorm] = useState({ name: '', type: 'boys' as 'boys' | 'girls', capacity: 30, location: '' })
-
-  const fetchDorms = async () => {
-    if (!school?.id) return
-    setLoading(true)
-    try {
-      const { data } = await supabase
-        .from('dorms')
-        .select('*')
-        .eq('school_id', school.id)
-        .order('name')
-      setDorms(data || [])
-      
-      const { data: ds } = await supabase
-        .from('dorm_students')
-        .select('*, students(first_name, last_name, gender, class_id, classes(name))')
-        .in('dorm_id', (data || []).map(d => d.id))
-      setDormStudents(ds || [])
-    } catch (err) {
-      console.error('Error:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [dorms, setDorms] = useState<any[]>([])
+  const [selectedDormId, setSelectedDormId] = useState('')
+  const { rooms, incidents, loading } = useDormManager(school?.id, selectedDormId)
+  
+  const [showIncidentModal, setShowIncidentModal] = useState(false)
+  const [showRoomModal, setShowRoomModal] = useState(false)
 
   useEffect(() => {
     fetchDorms()
   }, [school?.id])
 
-  const handleAddDorm = async () => {
-    if (!school?.id || !newDorm.name) return
-    try {
-      const { error } = await supabase.from('dorms').insert({
-        school_id: school.id,
-        name: newDorm.name,
-        type: newDorm.type,
-        capacity: newDorm.capacity,
-        location: newDorm.location
-      })
-      if (error) throw error
-      toast.success('Dorm added successfully')
-      setShowAddDorm(false)
-      setNewDorm({ name: '', type: 'boys', capacity: 30, location: '' })
-      fetchDorms()
-    } catch (err) {
-      toast.error('Failed to add dorm')
-    }
+  const fetchDorms = async () => {
+    if (!school?.id) return
+    const { data } = await supabase.from('dorms').select('*').eq('school_id', school.id)
+    setDorms(data || [])
+    if (data && data.length > 0 && !selectedDormId) setSelectedDormId(data[0].id)
   }
 
-  const handleDeleteDorm = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this dorm?')) return
-    try {
-      const { error } = await supabase.from('dorms').delete().eq('id', id)
-      if (error) throw error
-      toast.success('Dorm deleted')
-      fetchDorms()
-    } catch (err) {
-      toast.error('Failed to delete dorm')
+  const handleAddIncident = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    const incident = {
+      school_id: school!.id,
+      dorm_id: selectedDormId,
+      student_id: formData.get('student_id'),
+      incident_type: formData.get('incident_type'),
+      description: formData.get('description'),
+      incident_date: new Date().toISOString().split('T')[0],
+      reported_by: user!.id
     }
-  }
 
-  const getStudentsInDorm = (dormId: string) => {
-    return dormStudents.filter(ds => ds.dorm_id === dormId)
+    const { error } = await supabase.from('dorm_incidents').insert([incident])
+    if (error) {
+      toast.error('Failed to record incident')
+    } else {
+      toast.success('Incident recorded')
+      setShowIncidentModal(false)
+    }
   }
 
   return (
-    <div className="content">
-      <div className="page-header">
+    <div className="p-8 max-w-7xl mx-auto space-y-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="ph-title">Dormitory Management</div>
-          <div className="ph-sub">Manage boarding facilities and students</div>
+          <h1 className="text-3xl font-bold text-white">Dormitory Management</h1>
+          <p className="text-white/60">Monitor student welfare and hostel occupancy</p>
         </div>
-        <div className="ph-actions">
-          <button onClick={() => setShowAddDorm(true)} className="btn btn-primary">
-            <MaterialIcon icon="add" style={{ fontSize: '16px' }} />
-            Add Dorm
+
+        <div className="flex items-center gap-3">
+          <select 
+            value={selectedDormId}
+            onChange={(e) => setSelectedDormId(e.target.value)}
+            className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:ring-2 focus:ring-purple-500/50"
+          >
+            {dorms.map(d => (
+              <option key={d.id} value={d.id} className="bg-slate-900">{d.name} ({d.type})</option>
+            ))}
+          </select>
+          <button 
+            onClick={() => setShowIncidentModal(true)}
+            className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl hover:bg-red-500/30 transition-all flex items-center gap-2"
+          >
+            <MaterialIcon icon="report_problem" />
+            Report Incident
           </button>
         </div>
       </div>
 
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[1,2,3].map(i => (
-            <div key={i} className="card" style={{ padding: 20 }}>
-              <div className="skeleton h-6 w-32 mb-4"></div>
-              <div className="skeleton h-4 w-24"></div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-6">
+          <GlassCard>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <MaterialIcon icon="bed" className="text-blue-400" />
+                Visual Room Map
+              </h2>
+              <button 
+                onClick={() => setShowRoomModal(true)}
+                className="text-xs font-bold text-purple-400 hover:text-purple-300 uppercase tracking-widest"
+              >
+                + Add Room
+              </button>
             </div>
-          ))}
-        </div>
-      ) : dorms.length === 0 ? (
-        <div className="card" style={{ padding: 40 }}>
-          <div className="empty-state">
-            <div className="empty-state-icon">
-              <MaterialIcon icon="home" style={{ fontSize: 24 }} />
-            </div>
-            <div className="empty-title">No Dorms Added</div>
-            <div className="empty-sub">Add your first dormitory to get started</div>
-            <button onClick={() => setShowAddDorm(true)} className="btn btn-primary" style={{ marginTop: 16 }}>
-              <MaterialIcon icon="add" style={{ fontSize: '16px' }} />
-              Add Dorm
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {dorms.map(dorm => {
-            const students = getStudentsInDorm(dorm.id)
-            const occupancy = Math.round((students.length / dorm.capacity) * 100)
-            
-            return (
-              <div key={dorm.id} className="card" style={{ padding: 20 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <div>
-                    <div style={{ fontFamily: 'Sora', fontSize: 16, fontWeight: 700, color: 'var(--t1)', marginBottom: 6 }}>{dorm.name}</div>
-                    <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: dorm.type === 'boys' ? 'rgba(23,50,95,.1)' : 'rgba(192,57,43,.1)', color: dorm.type === 'boys' ? 'var(--navy)' : 'var(--red)' }}>
-                      {dorm.type === 'boys' ? 'Boys' : 'Girls'}
-                    </span>
-                  </div>
-                  <button onClick={() => handleDeleteDorm(dorm.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                    <MaterialIcon style={{ fontSize: 18, color: 'var(--t3)' }}>delete</MaterialIcon>
-                  </button>
-                </div>
-                
-                <div style={{ marginBottom: 12 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
-                    <span style={{ color: 'var(--t3)' }}>Occupancy</span>
-                    <span style={{ fontWeight: 600, color: 'var(--t1)' }}>{students.length} / {dorm.capacity}</span>
-                  </div>
-                  <div style={{ height: 6, background: 'var(--border)', borderRadius: 99, overflow: 'hidden' }}>
-                    <div style={{ width: `${occupancy}%`, height: '100%', borderRadius: 99, background: occupancy >= 90 ? 'var(--red)' : occupancy >= 70 ? 'var(--amber)' : 'var(--green)' }}></div>
-                  </div>
-                  {dorm.location && (
-                    <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <MaterialIcon style={{ fontSize: 12 }}>location_on</MaterialIcon>
-                      {dorm.location}
+
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+              {rooms.map(room => (
+                <div key={room.id} className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-blue-500/30 transition-all group cursor-pointer relative overflow-hidden">
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="font-bold text-white">{room.room_number}</p>
+                      <MaterialIcon icon="meeting_room" className="text-white/20 group-hover:text-blue-400 transition-colors" />
                     </div>
-                  )}
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-[10px] text-white/40 font-bold uppercase tracking-wider">
+                        <span>Occupancy</span>
+                        <span>{room.current_occupancy}/{room.capacity}</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full transition-all duration-500 ${
+                            (room.current_occupancy / room.capacity) > 0.9 ? 'bg-red-500' : 'bg-blue-500'
+                          }`}
+                          style={{ width: `${(room.current_occupancy / room.capacity) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-
-                <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 4 }}>
-                  <button onClick={() => { setSelectedDorm(dorm); setShowAssign(true) }} style={{ flex: 1, padding: '8px 12px', fontSize: 12, fontWeight: 500, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', color: 'var(--t2)' }}>
-                    Assign
-                  </button>
-                  <button style={{ flex: 1, padding: '8px 12px', fontSize: 12, fontWeight: 500, background: 'var(--navy-soft)', border: 'none', borderRadius: 8, cursor: 'pointer', color: 'var(--navy)' }}>
-                    View All
-                  </button>
-                </div>
-              </div>
-            )
-          })}
+              ))}
+            </div>
+          </GlassCard>
         </div>
-      )}
 
-      {showAddDorm && (
-        <div className="modal-overlay" onClick={() => setShowAddDorm(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <div style={{ fontFamily: 'Sora', fontSize: 16, fontWeight: 700 }}>Add New Dorm</div>
-              <button onClick={() => setShowAddDorm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                <MaterialIcon style={{ fontSize: 18, color: 'var(--t3)' }}>close</MaterialIcon>
+        <div className="space-y-6">
+          <GlassCard>
+            <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+              <MaterialIcon icon="history" className="text-amber-400" />
+              Recent Incidents
+            </h2>
+            <div className="space-y-4">
+              {incidents.slice(0, 5).map(incident => (
+                <div key={incident.id} className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                      incident.incident_type === 'health' ? 'bg-red-500/10 text-red-400' : 'bg-amber-500/10 text-amber-400'
+                    }`}>
+                      {incident.incident_type}
+                    </span>
+                    <p className="text-[10px] text-white/40">{incident.incident_date}</p>
+                  </div>
+                  <p className="text-sm font-semibold text-white">Student: {incident.students?.first_name || 'Loading...'}</p>
+                  <p className="text-xs text-white/60 line-clamp-2">{incident.description}</p>
+                </div>
+              ))}
+            </div>
+          </GlassCard>
+        </div>
+      </div>
+
+      {showIncidentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <GlassCard className="w-full max-w-md">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white">Report Dorm Incident</h2>
+              <button onClick={() => setShowIncidentModal(false)} className="text-white/40 hover:text-white">
+                <MaterialIcon icon="close" />
               </button>
             </div>
-            <div className="modal-body" style={{ padding: 20 }}>
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--t2)', marginBottom: 6, display: 'block' }}>Dorm Name</label>
-                <input type="text" value={newDorm.name} onChange={e => setNewDorm({...newDorm, name: e.target.value})} placeholder="e.g., Senior Boys Dorm" className="input" />
+            <form onSubmit={handleAddIncident} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-white/60">Student ID</label>
+                <input name="student_id" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none" placeholder="Enter student ID..." />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--t2)', marginBottom: 6, display: 'block' }}>Type</label>
-                  <select value={newDorm.type} onChange={e => setNewDorm({...newDorm, type: e.target.value as 'boys' | 'girls'})} className="input">
-                    <option value="boys">Boys</option>
-                    <option value="girls">Girls</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--t2)', marginBottom: 6, display: 'block' }}>Capacity</label>
-                  <input type="number" value={newDorm.capacity} onChange={e => setNewDorm({...newDorm, capacity: parseInt(e.target.value) || 30})} className="input" />
-                </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-white/60">Type</label>
+                <select name="incident_type" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none">
+                  <option value="misbehavior" className="bg-slate-900">Misbehavior</option>
+                  <option value="health" className="bg-slate-900">Health Issue</option>
+                  <option value="maintenance" className="bg-slate-900">Maintenance</option>
+                  <option value="other" className="bg-slate-900">Other</option>
+                </select>
               </div>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--t2)', marginBottom: 6, display: 'block' }}>Location (Optional)</label>
-                <input type="text" value={newDorm.location} onChange={e => setNewDorm({...newDorm, location: e.target.value})} placeholder="e.g., Block A, Ground Floor" className="input" />
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-white/60">Description</label>
+                <textarea name="description" required rows={3} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none" placeholder="Details of the incident..."></textarea>
               </div>
-            </div>
-            <div className="modal-footer">
-              <button onClick={() => setShowAddDorm(false)} className="btn btn-ghost">Cancel</button>
-              <button onClick={handleAddDorm} className="btn btn-primary">Add Dorm</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showAssign && selectedDorm && (
-        <div className="modal-overlay" onClick={() => setShowAssign(false)}>
-          <div className="modal" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <div style={{ fontFamily: 'Sora', fontSize: 16, fontWeight: 700 }}>Assign Students to {selectedDorm.name}</div>
-              <button onClick={() => setShowAssign(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                <MaterialIcon style={{ fontSize: 18, color: 'var(--t3)' }}>close</MaterialIcon>
+              <button type="submit" className="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold shadow-lg shadow-red-500/20 mt-4 transition-all">
+                Submit Report
               </button>
-            </div>
-            <div className="modal-body" style={{ padding: 20 }}>
-              <div style={{ padding: 20, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>
-                <MaterialIcon style={{ fontSize: 32, color: 'var(--t4)', marginBottom: 8 }}>group</MaterialIcon>
-                <div>Student selection - Select from enrolled students</div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button onClick={() => setShowAssign(false)} className="btn btn-ghost">Close</button>
-            </div>
-          </div>
+            </form>
+          </GlassCard>
         </div>
       )}
     </div>

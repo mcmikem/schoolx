@@ -31,6 +31,8 @@ export interface RolePermissions {
   autoSMS: boolean
   warnings: boolean
   visitors: boolean
+  payroll: boolean
+  performance: boolean
 }
 
 export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
@@ -52,6 +54,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     autoSMS: false,
     warnings: false,
     visitors: false,
+    payroll: false,
+    performance: false,
   },
   dean_of_studies: {
     students: true,
@@ -71,6 +75,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     autoSMS: false,
     warnings: true,
     visitors: false,
+    payroll: false,
+    performance: true,
   },
   bursar: {
     students: true,
@@ -90,6 +96,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     autoSMS: true,
     warnings: false,
     visitors: false,
+    payroll: true,
+    performance: false,
   },
   headmaster: {
     students: true,
@@ -109,6 +117,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     autoSMS: true,
     warnings: true,
     visitors: true,
+    payroll: true,
+    performance: true,
   },
   board: {
     students: false,
@@ -128,6 +138,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     autoSMS: false,
     warnings: false,
     visitors: false,
+    payroll: false,
+    performance: false,
   },
   parent: {
     students: false,
@@ -147,6 +159,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     autoSMS: false,
     warnings: false,
     visitors: false,
+    payroll: false,
+    performance: false,
   },
   admin: {
     students: true,
@@ -166,6 +180,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     autoSMS: true,
     warnings: true,
     visitors: true,
+    payroll: true,
+    performance: true,
   },
   school_admin: {
     students: true,
@@ -185,6 +201,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     autoSMS: true,
     warnings: true,
     visitors: true,
+    payroll: true,
+    performance: true,
   },
   super_admin: {
     students: true,
@@ -204,6 +222,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     autoSMS: true,
     warnings: true,
     visitors: true,
+    payroll: true,
+    performance: true,
   },
   secretary: {
     students: false,
@@ -223,6 +243,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     autoSMS: true,
     warnings: false,
     visitors: true,
+    payroll: false,
+    performance: false,
   },
   dorm_master: {
     students: true,
@@ -242,6 +264,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     autoSMS: false,
     warnings: false,
     visitors: false,
+    payroll: false,
+    performance: false,
   },
 }
 
