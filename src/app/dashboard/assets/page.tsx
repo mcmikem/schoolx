@@ -138,7 +138,7 @@ export default function AssetsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="stat-value">{assets.length}</div>
           <div className="stat-label">Total Assets</div>

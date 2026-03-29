@@ -48,7 +48,7 @@ export default function ClassComparisonPage() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
           <div className="stat-value">{totals.students}</div>
           <div className="stat-label">Total Students</div>

@@ -10,6 +10,8 @@ export type UserRole =
   | 'admin'
   | 'school_admin'
   | 'super_admin'
+  | 'secretary'
+  | 'dorm_master'
 
 export interface RolePermissions {
   students: boolean
@@ -203,6 +205,44 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     warnings: true,
     visitors: true,
   },
+  secretary: {
+    students: false,
+    attendance: false,
+    grades: false,
+    fees: false,
+    messages: true,
+    reports: false,
+    staff: false,
+    settings: false,
+    discipline: false,
+    invoicing: false,
+    assets: false,
+    analytics: false,
+    export: false,
+    boardReport: false,
+    autoSMS: true,
+    warnings: false,
+    visitors: true,
+  },
+  dorm_master: {
+    students: true,
+    attendance: true,
+    grades: false,
+    fees: false,
+    messages: false,
+    reports: false,
+    staff: false,
+    settings: false,
+    discipline: true,
+    invoicing: false,
+    assets: false,
+    analytics: false,
+    export: false,
+    boardReport: false,
+    autoSMS: false,
+    warnings: false,
+    visitors: false,
+  },
 }
 
 export const ROLE_LABELS: Record<UserRole, string> = {
@@ -215,6 +255,8 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   admin: 'Administrator',
   school_admin: 'School Admin',
   super_admin: 'Super Admin',
+  secretary: 'Secretary',
+  dorm_master: 'Dorm Master',
 }
 
 export function canAccess(role: UserRole, feature: keyof RolePermissions): boolean {

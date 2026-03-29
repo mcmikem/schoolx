@@ -154,7 +154,7 @@ export default function TrendAnalyticsPage() {
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="space-y-6">
           <div className="h-8 bg-[#e8eaed] rounded w-48"></div>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[1,2,3,4].map((i) => <div key={i} className="h-24 bg-[#e8eaed] rounded-2xl"></div>)}
           </div>
         </div>
