@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useClasses, useSubjects, useTimetableManager } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
