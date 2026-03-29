@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useClasses, useSubjects, useStudents, useGrades } from '@/lib/hooks'
@@ -25,6 +25,9 @@ const NCDC_TOPICS: Record<string, string[]> = {
   'Science': ['Living things', 'Materials', 'Forces and energy', 'Earth and space', 'Human body', 'Plants', 'Animals'],
 }
 
+const ASSESSMENT_TYPES = ['ca1', 'ca2', 'ca3', 'exam'] as const
+const ASSESSMENT_MAX: Record<string, number> = { ca1: 10, ca2: 10, ca3: 10, exam: 70 }
+
 function getGrade(score: number) {
   if (score >= 80) return { grade: 'D1', color: 'text-secondary' }
   if (score >= 70) return { grade: 'D2', color: 'text-secondary' }
@@ -37,24 +40,26 @@ function getGrade(score: number) {
   return { grade: 'F9', color: 'text-error' }
 }
 
+type StudentMarks = Record<string, number | null>
+
 export default function GradesPage() {
   const { school, user } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
   const toast = useToast()
   const { classes } = useClasses(school?.id)
   const { subjects } = useSubjects(school?.id)
-  
+
   const [tab, setTab] = useState<'marks' | 'coverage'>('marks')
   const [selectedClass, setSelectedClass] = useState('')
   const [selectedSubject, setSelectedSubject] = useState('')
   const [coverage, setCoverage] = useState<TopicCoverage[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [marks, setMarks] = useState<Record<string, number>>({})
+  const [marks, setMarks] = useState<StudentMarks>({})
+  const [submissionStatus, setSubmissionStatus] = useState<'draft' | 'submitted'>('draft')
   const { students: classStudents, loading: studentsLoading } = useStudents(school?.id)
   const { grades: existingGrades, saveGrade } = useGrades(selectedClass, selectedSubject, currentTerm, academicYear)
 
-  // Filter students by selected class
   const filteredStudents = useMemo(() => {
     if (!selectedClass) return []
     return classStudents.filter(s => s.class_id === selectedClass)
@@ -63,24 +68,64 @@ export default function GradesPage() {
   // Initialize marks from existing grades
   useEffect(() => {
     if (existingGrades.length > 0) {
-      const marksMap: Record<string, number> = {}
+      const marksMap: StudentMarks = {}
       existingGrades.forEach((g: any) => {
-        marksMap[`${g.student_id}_${g.assessment_type}`] = g.score
+        marksMap[`${g.student_id}_${g.assessment_type}`] = g.score ?? null
       })
       setMarks(marksMap)
+
+      const hasSubmitted = existingGrades.some((g: any) => g.status === 'submitted')
+      setSubmissionStatus(hasSubmitted ? 'submitted' : 'draft')
+    } else {
+      setMarks({})
+      setSubmissionStatus('draft')
     }
   }, [existingGrades])
 
-  const handleMarkChange = (studentId: string, type: string, value: number) => {
-    setMarks(prev => ({ ...prev, [`${studentId}_${type}`]: value }))
+  const handleMarkChange = (studentId: string, type: string, value: string) => {
+    if (value === '') {
+      setMarks(prev => ({ ...prev, [`${studentId}_${type}`]: null }))
+    } else {
+      const num = Math.min(ASSESSMENT_MAX[type] || 100, Math.max(0, Number(value)))
+      setMarks(prev => ({ ...prev, [`${studentId}_${type}`]: num }))
+    }
   }
 
-  const handleSaveGrades = async () => {
+  const getMark = (studentId: string, type: string): number | null => {
+    return marks[`${studentId}_${type}`] ?? null
+  }
+
+  const getStudentTotal = (studentId: string): number | null => {
+    const parts = ASSESSMENT_TYPES.map(t => marks[`${studentId}_${t}`])
+    if (parts.some(p => p === null || p === undefined)) return null
+    return parts.reduce((sum, p) => (sum ?? 0) + (p ?? 0), 0) ?? null
+  }
+
+  const isStudentGraded = (studentId: string): boolean => {
+    return ASSESSMENT_TYPES.every(t => marks[`${studentId}_${t}`] !== null && marks[`${studentId}_${t}`] !== undefined)
+  }
+
+  // Completion stats
+  const completionStats = useMemo(() => {
+    const total = filteredStudents.length
+    const graded = filteredStudents.filter(s => isStudentGraded(s.id)).length
+    const notGraded = total - graded
+    const notGradedNames = filteredStudents
+      .filter(s => !isStudentGraded(s.id))
+      .map(s => `${s.first_name} ${s.last_name}`)
+    const percentage = total > 0 ? Math.round((graded / total) * 100) : 0
+    return { total, graded, notGraded, notGradedNames, percentage }
+  }, [filteredStudents, marks])
+
+  const handleSaveGrades = async (status: 'draft' | 'submitted' = 'draft') => {
     if (!selectedClass || !selectedSubject) return
     try {
       setSaving(true)
       for (const [key, score] of Object.entries(marks)) {
-        const [studentId, assessmentType] = key.split('_')
+        if (score === null || score === undefined) continue
+        const parts = key.split('_')
+        const assessmentType = parts.pop()!
+        const studentId = parts.join('_')
         await saveGrade({
           student_id: studentId,
           subject_id: selectedSubject,
@@ -90,10 +135,12 @@ export default function GradesPage() {
           term: currentTerm,
           academic_year: academicYear,
           recorded_by: user?.id,
-        })
+          status,
+        } as any)
       }
-      toast.success('Grades saved successfully')
-    } catch (err) {
+      setSubmissionStatus(status)
+      toast.success(status === 'submitted' ? 'Grades submitted to Dean' : 'Draft saved successfully')
+    } catch {
       toast.error('Failed to save grades')
     } finally {
       setSaving(false)
@@ -105,19 +152,23 @@ export default function GradesPage() {
       toast.error('No grades to export')
       return
     }
-    const headers = ['Student', 'Student Number', 'CA (30)', 'Exam (70)', 'Total (100)', 'Grade']
+    const headers = ['Student Name', 'Student Number', 'CA1', 'CA2', 'CA3', 'Exam', 'Total', 'Grade']
     const rows = filteredStudents.map(student => {
-      const ca = marks[`${student.id}_ca`] ?? 0
-      const exam = marks[`${student.id}_exam`] ?? 0
-      const total = ca + exam
-      const gradeInfo = getGrade(total)
+      const ca1 = getMark(student.id, 'ca1')
+      const ca2 = getMark(student.id, 'ca2')
+      const ca3 = getMark(student.id, 'ca3')
+      const exam = getMark(student.id, 'exam')
+      const total = getStudentTotal(student.id)
+      const gradeInfo = total !== null ? getGrade(total) : null
       return [
         `${student.first_name} ${student.last_name}`,
         student.student_number || '',
-        String(ca),
-        String(exam),
-        String(total),
-        total > 0 ? gradeInfo.grade : '-',
+        ca1 !== null ? String(ca1) : '',
+        ca2 !== null ? String(ca2) : '',
+        ca3 !== null ? String(ca3) : '',
+        exam !== null ? String(exam) : '',
+        total !== null ? String(total) : '',
+        gradeInfo ? gradeInfo.grade : '',
       ]
     })
     const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n')
@@ -136,7 +187,25 @@ export default function GradesPage() {
       toast.error('Please select a class and subject first')
       return
     }
-    toast.success('Grades submitted to Dean for review')
+    if (submissionStatus === 'submitted') {
+      toast.info('Grades already submitted')
+      return
+    }
+    if (completionStats.notGraded > 0) {
+      const proceed = window.confirm(
+        `${completionStats.notGraded} student${completionStats.notGraded > 1 ? 's' : ''} not graded: ${completionStats.notGradedNames.slice(0, 3).join(', ')}${completionStats.notGradedNames.length > 3 ? '...' : ''}. Submit anyway?`
+      )
+      if (!proceed) return
+    }
+    handleSaveGrades('submitted')
+  }
+
+  const handleSaveDraft = () => {
+    if (!selectedClass || !selectedSubject) {
+      toast.error('Please select a class and subject first')
+      return
+    }
+    handleSaveGrades('draft')
   }
 
   useEffect(() => {
@@ -186,7 +255,7 @@ export default function GradesPage() {
       }
       fetchCoverage()
       toast.success('Topic status updated')
-    } catch (err) {
+    } catch {
       toast.error('Failed to update')
     }
   }
@@ -206,6 +275,8 @@ export default function GradesPage() {
     return { total, completed, inProgress, percentage: total > 0 ? Math.round((completed / total) * 100) : 0 }
   }, [topics, coverage])
 
+  const isSubmitted = submissionStatus === 'submitted'
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -214,7 +285,7 @@ export default function GradesPage() {
           <h2 className="font-headline font-bold text-3xl text-primary tracking-tight mb-2">Academic Records</h2>
           <p className="text-on-surface-variant text-sm font-medium">
             {selectedClassName && selectedSubjectName
-              ? `${selectedClassName} • ${selectedSubjectName}`
+              ? `${selectedClassName} \u2022 ${selectedSubjectName}`
               : 'Select a class and subject to begin'}
           </p>
         </div>
@@ -223,7 +294,7 @@ export default function GradesPage() {
             <MaterialIcon icon="cloud_download" className="text-lg" />
             Export
           </button>
-          <button onClick={handleSaveGrades} disabled={saving || !selectedClass || !selectedSubject} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/10 disabled:opacity-50">
+          <button onClick={() => handleSaveGrades()} disabled={saving || !selectedClass || !selectedSubject || isSubmitted} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/10 disabled:opacity-50">
             <MaterialIcon icon="save" className="text-lg" style={{ fontVariationSettings: 'FILL 1' }} />
             {saving ? 'Saving...' : 'Save Grades'}
           </button>
@@ -258,8 +329,8 @@ export default function GradesPage() {
           <p className="text-xs uppercase tracking-widest font-bold opacity-70">Weightage</p>
           <div>
             <div className="flex justify-between items-baseline">
-              <span className="text-2xl font-bold font-headline">30:70</span>
-              <span className="text-xs font-medium">CA : Exam</span>
+              <span className="text-2xl font-bold font-headline">10+10+10+70</span>
+              <span className="text-xs font-medium">CA1+CA2+CA3 : Exam</span>
             </div>
             <div className="w-full bg-white/20 h-1.5 rounded-full mt-3">
               <div className="bg-secondary-fixed w-[30%] h-full rounded-full"></div>
@@ -267,6 +338,60 @@ export default function GradesPage() {
           </div>
         </div>
       </div>
+
+      {/* Completion Tracker */}
+      {tab === 'marks' && selectedClass && selectedSubject && filteredStudents.length > 0 && (
+        <div className={`p-5 rounded-2xl border ${
+          completionStats.percentage === 100
+            ? 'bg-green-50 border-green-200'
+            : completionStats.percentage >= 50
+              ? 'bg-yellow-50 border-yellow-200'
+              : 'bg-red-50 border-red-200'
+        }`}>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm ${
+                completionStats.percentage === 100
+                  ? 'bg-green-500 text-white'
+                  : completionStats.percentage >= 50
+                    ? 'bg-yellow-500 text-white'
+                    : 'bg-red-500 text-white'
+              }`}>
+                {completionStats.percentage}%
+              </div>
+              <div>
+                <p className="font-bold text-sm">
+                  {completionStats.graded}/{completionStats.total} students graded
+                </p>
+                {isSubmitted && (
+                  <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold">
+                    <MaterialIcon icon="lock" className="text-xs" />
+                    Submitted
+                  </span>
+                )}
+              </div>
+            </div>
+            {completionStats.notGraded > 0 && (
+              <p className="text-xs font-medium text-red-700">
+                <MaterialIcon icon="warning" className="text-xs align-text-bottom mr-1" />
+                {completionStats.notGraded} student{completionStats.notGraded > 1 ? 's' : ''} not graded: {completionStats.notGradedNames.join(', ')}
+              </p>
+            )}
+          </div>
+          <div className="w-full bg-white/60 h-2 rounded-full mt-3">
+            <div
+              className={`h-full rounded-full transition-all ${
+                completionStats.percentage === 100
+                  ? 'bg-green-500'
+                  : completionStats.percentage >= 50
+                    ? 'bg-yellow-500'
+                    : 'bg-red-500'
+              }`}
+              style={{ width: `${completionStats.percentage}%` }}
+            ></div>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
@@ -282,22 +407,26 @@ export default function GradesPage() {
               <thead>
                 <tr className="bg-surface-container-low/50 text-left">
                   <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Student Identity</th>
-                  <th className="px-6 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">CA (30)</th>
-                  <th className="px-6 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">Exam (70)</th>
-                  <th className="px-6 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">Total (100)</th>
+                  <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">CA1 (10)</th>
+                  <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">CA2 (10)</th>
+                  <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">CA3 (10)</th>
+                  <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">Exam (70)</th>
+                  <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">Total (100)</th>
                   <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-right">Grade</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-container">
                 {studentsLoading ? (
-                  <tr><td colSpan={5} className="px-8 py-12 text-center text-on-surface-variant">Loading students...</td></tr>
+                  <tr><td colSpan={7} className="px-8 py-12 text-center text-on-surface-variant">Loading students...</td></tr>
                 ) : filteredStudents.length === 0 ? (
-                  <tr><td colSpan={5} className="px-8 py-12 text-center text-on-surface-variant">No students in this class</td></tr>
+                  <tr><td colSpan={7} className="px-8 py-12 text-center text-on-surface-variant">No students in this class</td></tr>
                 ) : filteredStudents.map((student) => {
-                  const ca = marks[`${student.id}_ca`] ?? 0
-                  const exam = marks[`${student.id}_exam`] ?? 0
-                  const total = ca + exam
-                  const gradeInfo = getGrade(total)
+                  const ca1 = getMark(student.id, 'ca1')
+                  const ca2 = getMark(student.id, 'ca2')
+                  const ca3 = getMark(student.id, 'ca3')
+                  const exam = getMark(student.id, 'exam')
+                  const total = getStudentTotal(student.id)
+                  const gradeInfo = total !== null ? getGrade(total) : null
                   return (
                     <tr key={student.id} className="hover:bg-surface-bright">
                       <td className="px-8 py-5">
@@ -311,32 +440,28 @@ export default function GradesPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-5">
-                        <input
-                          className="w-16 mx-auto block bg-surface-container rounded-lg border-none text-center font-bold focus:ring-2 focus:ring-primary py-2 px-1"
-                          type="number"
-                          min={0}
-                          max={30}
-                          value={ca || ''}
-                          onChange={(e) => handleMarkChange(student.id, 'ca', Math.min(30, Number(e.target.value)))}
-                        />
-                      </td>
-                      <td className="px-6 py-5">
-                        <input
-                          className="w-16 mx-auto block bg-surface-container rounded-lg border-none text-center font-bold focus:ring-2 focus:ring-primary py-2 px-1"
-                          type="number"
-                          min={0}
-                          max={70}
-                          value={exam || ''}
-                          onChange={(e) => handleMarkChange(student.id, 'exam', Math.min(70, Number(e.target.value)))}
-                        />
-                      </td>
-                      <td className="px-6 py-5 text-center">
-                        <span className="font-black text-xl text-primary">{total}</span>
+                      {['ca1', 'ca2', 'ca3', 'exam'].map((type) => (
+                        <td key={type} className="px-4 py-5">
+                          <input
+                            className="w-14 mx-auto block bg-surface-container rounded-lg border-none text-center font-bold focus:ring-2 focus:ring-primary py-2 px-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                            type="number"
+                            min={0}
+                            max={ASSESSMENT_MAX[type]}
+                            placeholder="\u2014"
+                            value={marks[`${student.id}_${type}`] !== null && marks[`${student.id}_${type}`] !== undefined ? String(marks[`${student.id}_${type}`]) : ''}
+                            onChange={(e) => handleMarkChange(student.id, type, e.target.value)}
+                            disabled={isSubmitted}
+                          />
+                        </td>
+                      ))}
+                      <td className="px-4 py-5 text-center">
+                        <span className="font-black text-xl text-primary">
+                          {total !== null ? total : '\u2014'}
+                        </span>
                       </td>
                       <td className="px-8 py-5 text-right">
-                        <span className={`px-4 py-1.5 rounded-full text-xs font-black ${ca != null || exam != null ? 'bg-surface-container' : 'bg-surface-bright text-on-surface-variant'} ${gradeInfo.color}`}>
-                          {ca != null || exam != null ? gradeInfo.grade : '-'}
+                        <span className={`px-4 py-1.5 rounded-full text-xs font-black ${gradeInfo ? 'bg-surface-container' : 'bg-surface-bright text-on-surface-variant'} ${gradeInfo?.color || ''}`}>
+                          {gradeInfo ? gradeInfo.grade : '-'}
                         </span>
                       </td>
                     </tr>
@@ -405,12 +530,12 @@ export default function GradesPage() {
           <MaterialIcon className="text-xl" style={{ fontVariationSettings: 'FILL 1' }}>cloud_done</MaterialIcon>
           <span className="text-xs font-bold uppercase tracking-wider">Sync Active</span>
         </div>
-        <button onClick={() => { handleSaveGrades(); toast.success('Draft saved') }} className="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 rounded-full transition-colors font-semibold text-sm">
+        <button onClick={handleSaveDraft} disabled={isSubmitted || saving || !selectedClass || !selectedSubject} className="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 rounded-full transition-colors font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed">
           <MaterialIcon>drafts</MaterialIcon>
           Save Draft
         </button>
-        <button onClick={handleSubmitToDean} className="bg-primary text-white px-8 py-2.5 rounded-full font-bold text-sm hover:shadow-lg hover:shadow-primary/30 transition-all">
-          Submit to Dean
+        <button onClick={handleSubmitToDean} disabled={isSubmitted || saving || !selectedClass || !selectedSubject} className="bg-primary text-white px-8 py-2.5 rounded-full font-bold text-sm hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+          {isSubmitted ? 'Submitted' : 'Submit to Dean'}
         </button>
       </div>
     </div>

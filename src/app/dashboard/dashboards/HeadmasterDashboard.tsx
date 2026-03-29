@@ -14,7 +14,7 @@ function ProgressRing({ progress, color = '#2E9448' }: { progress: number; color
   const radius = 22
   const circumference = radius * 2 * Math.PI
   const offset = circumference - (progress / 100) * circumference
-  
+
   return (
     <svg className="ring-svg" viewBox="0 0 52 52" style={{ width: '56px', height: '56px' }}>
       <circle className="ring-track" cx="26" cy="26" r={radius} />
@@ -39,13 +39,35 @@ export default function HeadmasterDashboard() {
   const [smsStats, setSmsStats] = useState({ sentToday: 0, deliveryRate: 0 })
   const [loadingExtra, setLoadingExtra] = useState(true)
 
+  // New: pending approvals, fees by period, staff on duty, overdue fees
+  const [pendingExpenses, setPendingExpenses] = useState(0)
+  const [pendingLeave, setPendingLeave] = useState(0)
+  const [feesToday, setFeesToday] = useState(0)
+  const [feesThisWeek, setFeesThisWeek] = useState(0)
+  const [feesThisTerm, setFeesThisTerm] = useState(0)
+  const [staffOnDuty, setStaffOnDuty] = useState(0)
+  const [overdueFeeCount, setOverdueFeeCount] = useState(0)
+  const [lowAttendanceClasses, setLowAttendanceClasses] = useState(0)
+
   useEffect(() => {
     async function fetchExtraData() {
       if (!school?.id) return
       setLoadingExtra(true)
       try {
         const today = new Date().toISOString().split('T')[0]
-        
+
+        // Week start
+        const now = new Date()
+        const dayOfWeek = now.getDay()
+        const monday = new Date(now)
+        monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1))
+        const weekStart = monday.toISOString().split('T')[0]
+
+        // Term start approximation (3 months ago)
+        const termStart = new Date(now)
+        termStart.setMonth(termStart.getMonth() - 3)
+        const termStartStr = termStart.toISOString().split('T')[0]
+
         // Fetch attendance by class for today
         const { data: attendanceData } = await supabase
           .from('attendance')
@@ -54,9 +76,9 @@ export default function HeadmasterDashboard() {
 
         const attendanceByClass: Record<string, { present: number; total: number }> = {}
         const studentClassMap: Record<string, string> = {}
-        
+
         students.forEach(s => { studentClassMap[s.id] = s.class_id })
-        
+
         attendanceData?.forEach(a => {
           const classId = studentClassMap[a.student_id]
           if (!classId) return
@@ -65,19 +87,14 @@ export default function HeadmasterDashboard() {
           if (a.status === 'present') attendanceByClass[classId].present++
         })
 
-        // Add students without attendance records as absent
-        students.forEach(s => {
-          const classId = s.class_id
-          if (!classId) return
-          if (!attendanceByClass[classId]) attendanceByClass[classId] = { present: 0, total: 0 }
-          if (!attendanceData?.find(a => a.student_id === s.id)) {
-            // Student not marked - don't count yet
-          } else {
-            attendanceByClass[classId].total++
-          }
-        })
-        
         setClassAttendance(attendanceByClass)
+
+        // Count classes with low attendance (< 70%)
+        let lowAtt = 0
+        Object.values(attendanceByClass).forEach(c => {
+          if (c.total > 0 && (c.present / c.total) < 0.7) lowAtt++
+        })
+        setLowAttendanceClasses(lowAtt)
 
         // Fetch at-risk students (below 50% in 2+ subjects this term)
         const { data: gradesData } = await supabase
@@ -112,6 +129,65 @@ export default function HeadmasterDashboard() {
         const rate = sentToday > 0 ? Math.round((delivered / sentToday) * 100) : 0
 
         setSmsStats({ sentToday, deliveryRate: rate })
+
+        // Fetch pending approvals
+        const { count: expCount } = await supabase
+          .from('expenses')
+          .select('*', { count: 'exact', head: true })
+          .eq('school_id', school.id)
+          .eq('status', 'pending')
+        setPendingExpenses(expCount || 0)
+
+        const { count: leaveCount } = await supabase
+          .from('leave_requests')
+          .select('*', { count: 'exact', head: true })
+          .eq('school_id', school.id)
+          .eq('status', 'pending')
+        setPendingLeave(leaveCount || 0)
+
+        // Fees collected by period
+        const { data: allPayments } = await supabase
+          .from('fee_payments')
+          .select('amount_paid, payment_date, students!inner(school_id)')
+          .eq('students.school_id', school.id)
+
+        let todayTotal = 0
+        let weekTotal = 0
+        let termTotal = 0
+
+        allPayments?.forEach((p: any) => {
+          const pDate = p.payment_date || ''
+          const amt = Number(p.amount_paid) || 0
+          termTotal += amt
+          if (pDate >= weekStart) weekTotal += amt
+          if (pDate >= today) todayTotal += amt
+        })
+
+        setFeesToday(todayTotal)
+        setFeesThisWeek(weekTotal)
+        setFeesThisTerm(termTotal)
+
+        // Staff on duty today
+        const { data: staffAttData } = await supabase
+          .from('staff_attendance')
+          .select('status')
+          .eq('school_id', school.id)
+          .eq('date', today)
+          .in('status', ['present', 'late'])
+
+        setStaffOnDuty(staffAttData?.length || 0)
+
+        // Overdue fees count (students with balance > 0)
+        const totalExpectedPerStudent = feeStructure.reduce((sum, f) => sum + Number(f.amount || 0), 0)
+        if (totalExpectedPerStudent > 0) {
+          const paidByStudent: Record<string, number> = {}
+          allPayments?.forEach((p: any) => {
+            const sid = p.students?.id || ''
+            if (sid) paidByStudent[sid] = (paidByStudent[sid] || 0) + Number(p.amount_paid)
+          })
+          const overdue = students.filter(s => (paidByStudent[s.id] || 0) < totalExpectedPerStudent * 0.5).length
+          setOverdueFeeCount(overdue)
+        }
       } catch (err) {
         console.error('Error fetching extra data:', err)
       } finally {
@@ -119,10 +195,10 @@ export default function HeadmasterDashboard() {
       }
     }
 
-    if (school?.id && students.length > 0 && !loadingExtra) {
+    if (school?.id) {
       fetchExtraData()
     }
-  }, [school?.id, currentTerm, academicYear])
+  }, [school?.id, currentTerm, academicYear, students.length])
 
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`
@@ -135,7 +211,7 @@ export default function HeadmasterDashboard() {
 
   const boysCount = students.filter(s => s.gender === 'M').length
   const girlsCount = students.filter(s => s.gender === 'F').length
-  
+
   const totalFeesExpected = students.reduce((total, student) => {
     const classFees = feeStructure.filter(f => !f.class_id || f.class_id === student.class_id)
     const studentExpected = classFees.reduce((sum, f) => sum + Number(f.amount || 0), 0)
@@ -144,14 +220,19 @@ export default function HeadmasterDashboard() {
 
   const totalFeesCollected = payments.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0)
   const collectionRate = totalFeesExpected > 0 ? Math.round((totalFeesCollected / totalFeesExpected) * 100) : 0
-  
+
   // Calculate real attendance from classAttendance
   const totalPresent = Object.values(classAttendance).reduce((sum, c) => sum + c.present, 0)
   const totalInClass = Object.values(classAttendance).reduce((sum, c) => sum + c.total, 0)
   const attendanceRate = totalInClass > 0 ? Math.round((totalPresent / totalInClass) * 100) : 0
   const absentCount = students.length - stats.presentToday
-  
+
   const classesNotMarked = classes.filter((c: any) => !classAttendance[c.id] || classAttendance[c.id].total === 0).length
+
+  const totalPendingApprovals = pendingExpenses + pendingLeave
+
+  // Alert count
+  const alertCount = (loadingExtra ? 0 : classesNotMarked + atRiskStudents.length + lowAttendanceClasses + (overdueFeeCount > 0 ? 1 : 0) + (totalPendingApprovals > 0 ? 1 : 0))
 
   return (
     <div className="content">
@@ -173,34 +254,8 @@ export default function HeadmasterDashboard() {
         </div>
       </div>
 
-      {/* STAT CARDS */}
+      {/* STAT CARDS - Row 1: Core Metrics */}
       <div className="stat-grid">
-        {/* Students */}
-        <Link href="/dashboard/students" className="stat-card">
-          <div className="stat-accent" style={{ background: 'var(--navy)' }} />
-          <div className="stat-inner">
-            <div className="stat-meta">
-              <div className="stat-label">Total Enrolled</div>
-              <div className="stat-icon-box" style={{ background: 'var(--navy-soft)', color: 'var(--navy)' }}>
-                <MaterialIcon icon="group" style={{ fontSize: '17px' }} />
-              </div>
-            </div>
-            <div className="stat-val" style={{ color: 'var(--navy)' }}>{statsLoading ? '...' : stats.totalStudents}</div>
-            <div style={{ display: 'flex', height: '5px', borderRadius: '99px', overflow: 'hidden', gap: '2px', marginTop: '10px' }}>
-              <div style={{ width: `${boysCount > 0 ? (boysCount / students.length) * 100 : 50}%`, background: 'var(--navy)', borderRadius: '99px' }} />
-              <div style={{ width: `${girlsCount > 0 ? (girlsCount / students.length) * 100 : 50}%`, background: '#93A9CA', borderRadius: '99px' }} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '11px', color: 'var(--t3)' }}>
-              <span><b style={{ color: 'var(--t2)' }}>{boysCount}</b> Boys</span>
-              <span><b style={{ color: 'var(--t2)' }}>{girlsCount}</b> Girls</span>
-            </div>
-          </div>
-          <div className="stat-footer">
-            <span className="stat-foot-label">vs last term</span>
-            <span className="stat-foot-val" style={{ color: stats.totalStudents > 100 ? 'var(--green)' : 'var(--red)' }}>+{stats.totalStudents > 0 ? Math.round(stats.totalStudents * 0.1) : 0} enrolled</span>
-          </div>
-        </Link>
-
         {/* Attendance */}
         <Link href="/dashboard/attendance" className="stat-card">
           <div className="stat-accent" style={{ background: 'var(--green)' }} />
@@ -211,7 +266,9 @@ export default function HeadmasterDashboard() {
                 <MaterialIcon icon="check_circle" style={{ fontSize: '17px' }} />
               </div>
             </div>
-            <div className="stat-val" style={{ color: 'var(--green)' }}>{stats.presentToday || 0}</div>
+            <div className="stat-val" style={{ color: 'var(--green)' }}>
+              {loadingExtra ? '...' : `${stats.presentToday || 0} / ${stats.totalStudents}`}
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '6px' }}>
               <ProgressRing progress={attendanceRate} color="var(--green)" />
               <div>
@@ -222,12 +279,12 @@ export default function HeadmasterDashboard() {
             </div>
           </div>
           <div className="stat-footer">
-            <span className="stat-foot-label">{classes.filter((c: any) => !c.att_marked).length} classes not marked</span>
-            <span className="stat-foot-val" style={{ color: 'var(--amber)' }}>Action needed</span>
+            <span className="stat-foot-label">{classesNotMarked} classes not marked</span>
+            <span className="stat-foot-val" style={{ color: classesNotMarked > 0 ? 'var(--amber)' : 'var(--green)' }}>{classesNotMarked > 0 ? 'Action needed' : 'All marked'}</span>
           </div>
         </Link>
 
-        {/* Fees */}
+        {/* Fees Collected Today/Week/Term */}
         <Link href="/dashboard/fees" className="stat-card">
           <div className="stat-accent" style={{ background: 'var(--amber)' }} />
           <div className="stat-inner">
@@ -244,13 +301,82 @@ export default function HeadmasterDashboard() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '11px', color: 'var(--t3)' }}>
                 <span>Target: UGX {formatCurrency(totalFeesExpected)}</span>
-                <span><b style={{ color: 'var(--green)' }}>{collectionRate}% of target</b></span>
+                <span><b style={{ color: 'var(--green)' }}>{collectionRate}%</b></span>
+              </div>
+            </div>
+            {/* Fees breakdown */}
+            <div style={{ display: 'flex', gap: '8px', marginTop: '8px', fontSize: '11px' }}>
+              <div style={{ flex: 1, background: 'var(--bg)', borderRadius: '6px', padding: '6px 8px' }}>
+                <div style={{ color: 'var(--t3)' }}>Today</div>
+                <div style={{ fontWeight: 700, color: 'var(--t1)' }}>{formatCurrency(feesToday)}</div>
+              </div>
+              <div style={{ flex: 1, background: 'var(--bg)', borderRadius: '6px', padding: '6px 8px' }}>
+                <div style={{ color: 'var(--t3)' }}>This Week</div>
+                <div style={{ fontWeight: 700, color: 'var(--t1)' }}>{formatCurrency(feesThisWeek)}</div>
+              </div>
+              <div style={{ flex: 1, background: 'var(--bg)', borderRadius: '6px', padding: '6px 8px' }}>
+                <div style={{ color: 'var(--t3)' }}>This Term</div>
+                <div style={{ fontWeight: 700, color: 'var(--t1)' }}>{formatCurrency(feesThisTerm)}</div>
               </div>
             </div>
           </div>
           <div className="stat-footer">
             <span className="stat-foot-label">Cash + MTN MoMo + Airtel</span>
-            <span className="stat-foot-val" style={{ color: 'var(--green)' }}>Above target</span>
+            <span className="stat-foot-val" style={{ color: collectionRate >= 80 ? 'var(--green)' : 'var(--amber)' }}>{collectionRate >= 80 ? 'On target' : 'Below target'}</span>
+          </div>
+        </Link>
+
+        {/* Pending Approvals */}
+        <Link href="/dashboard/expense-approvals" className="stat-card">
+          <div className="stat-accent" style={{ background: totalPendingApprovals > 0 ? 'var(--red)' : 'var(--navy)' }} />
+          <div className="stat-inner">
+            <div className="stat-meta">
+              <div className="stat-label">Pending Approvals</div>
+              <div className="stat-icon-box" style={{ background: totalPendingApprovals > 0 ? 'rgba(192,57,43,.1)' : 'var(--navy-soft)', color: totalPendingApprovals > 0 ? 'var(--red)' : 'var(--navy)' }}>
+                <MaterialIcon icon="approval" style={{ fontSize: '17px' }} />
+              </div>
+            </div>
+            <div className="stat-val" style={{ color: totalPendingApprovals > 0 ? 'var(--red)' : 'var(--green)' }}>{loadingExtra ? '...' : totalPendingApprovals}</div>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '11px', color: 'var(--t3)' }}>Expenses</div>
+                <div style={{ fontWeight: 700, fontSize: '16px', color: pendingExpenses > 0 ? 'var(--amber)' : 'var(--t3)' }}>{loadingExtra ? '...' : pendingExpenses}</div>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '11px', color: 'var(--t3)' }}>Leave</div>
+                <div style={{ fontWeight: 700, fontSize: '16px', color: pendingLeave > 0 ? 'var(--amber)' : 'var(--t3)' }}>{loadingExtra ? '...' : pendingLeave}</div>
+              </div>
+            </div>
+          </div>
+          <div className="stat-footer">
+            <span className="stat-foot-label">Expenses + Leave requests</span>
+            <span className="stat-foot-val" style={{ color: totalPendingApprovals > 0 ? 'var(--red)' : 'var(--green)' }}>{totalPendingApprovals > 0 ? 'Review now' : 'All clear'}</span>
+          </div>
+        </Link>
+
+        {/* Staff on Duty */}
+        <Link href="/dashboard/staff-attendance" className="stat-card">
+          <div className="stat-accent" style={{ background: 'var(--navy)' }} />
+          <div className="stat-inner">
+            <div className="stat-meta">
+              <div className="stat-label">Staff on Duty</div>
+              <div className="stat-icon-box" style={{ background: 'var(--navy-soft)', color: 'var(--navy)' }}>
+                <MaterialIcon icon="badge" style={{ fontSize: '17px' }} />
+              </div>
+            </div>
+            <div className="stat-val" style={{ color: 'var(--navy)' }}>{loadingExtra ? '...' : `${staffOnDuty} / ${staff?.length || 0}`}</div>
+            <div style={{ marginTop: '10px' }}>
+              <div style={{ height: '6px', background: 'var(--border)', borderRadius: '99px', overflow: 'hidden' }}>
+                <div style={{ width: `${staff?.length ? Math.min((staffOnDuty / staff.length) * 100, 100) : 0}%`, height: '100%', background: 'var(--navy)', borderRadius: '99px' }} />
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--t3)', marginTop: '4px' }}>
+                {staff?.length ? Math.round((staffOnDuty / staff.length) * 100) : 0}% attendance
+              </div>
+            </div>
+          </div>
+          <div className="stat-footer">
+            <span className="stat-foot-label">Teachers + Admin</span>
+            <span className="stat-foot-val" style={{ color: 'var(--navy)' }}>Today</span>
           </div>
         </Link>
       </div>
@@ -311,7 +437,7 @@ export default function HeadmasterDashboard() {
                 const classAtt = classAttendance[cls.id] || { present: 0, total: classStudents }
                 const classRate = classAtt.total > 0 ? Math.round((classAtt.present / classAtt.total) * 100) : 0
                 const color = classRate >= 80 ? 'var(--green)' : classRate >= 60 ? 'var(--amber)' : 'var(--red)'
-                
+
                 return (
                   <div key={cls.id} className="att-row">
                     <div className="att-pill" style={{ background: `${color.replace('var(', 'rgba(').replace(')', ',.15)')}`, color }}>
@@ -376,49 +502,87 @@ export default function HeadmasterDashboard() {
                 <div className="card-title">Alerts</div>
                 <div className="card-sub">Needs attention</div>
               </div>
-              <span className="badge badge-red">{loadingExtra ? '...' : classesNotMarked + atRiskStudents.length} active</span>
+              <span className="badge badge-red">{loadingExtra ? '...' : alertCount} active</span>
             </div>
             <div className="card-body" style={{ padding: '14px 16px' }}>
-              <Link href="/dashboard/warnings" className="alert-box red">
-                <div className="ab-icon" style={{ background: 'rgba(192,57,43,.12)', color: 'var(--red)', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <MaterialIcon icon="warning" style={{ fontSize: '15px' }} />
+              {atRiskStudents.length > 0 && (
+                <Link href="/dashboard/warnings" className="alert-box red">
+                  <div className="ab-icon" style={{ background: 'rgba(192,57,43,.12)', color: 'var(--red)', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <MaterialIcon icon="warning" style={{ fontSize: '15px' }} />
+                  </div>
+                  <div className="ab-body">
+                    <div className="ab-title">{atRiskStudents.length} students at risk</div>
+                    <div className="ab-sub">Below 50% in 2+ subjects</div>
+                  </div>
+                  <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>›</span>
+                </Link>
+              )}
+              {classesNotMarked > 0 && (
+                <Link href="/dashboard/attendance" className="alert-box amb">
+                  <div className="ab-icon" style={{ background: 'rgba(184,107,12,.12)', color: 'var(--amber)', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <MaterialIcon icon="schedule" style={{ fontSize: '15px' }} />
+                  </div>
+                  <div className="ab-body">
+                    <div className="ab-title">{classesNotMarked} classes not marked</div>
+                    <div className="ab-sub">Attendance pending today</div>
+                  </div>
+                  <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>›</span>
+                </Link>
+              )}
+              {lowAttendanceClasses > 0 && (
+                <Link href="/dashboard/attendance" className="alert-box red">
+                  <div className="ab-icon" style={{ background: 'rgba(192,57,43,.12)', color: 'var(--red)', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <MaterialIcon icon="trending_down" style={{ fontSize: '15px' }} />
+                  </div>
+                  <div className="ab-body">
+                    <div className="ab-title">{lowAttendanceClasses} classes below 70%</div>
+                    <div className="ab-sub">Low attendance today</div>
+                  </div>
+                  <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>›</span>
+                </Link>
+              )}
+              {overdueFeeCount > 0 && (
+                <Link href="/dashboard/fees" className="alert-box amb">
+                  <div className="ab-icon" style={{ background: 'rgba(184,107,12,.12)', color: 'var(--amber)', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <MaterialIcon icon="money_off" style={{ fontSize: '15px' }} />
+                  </div>
+                  <div className="ab-body">
+                    <div className="ab-title">{overdueFeeCount} students with overdue fees</div>
+                    <div className="ab-sub">Less than 50% paid</div>
+                  </div>
+                  <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>›</span>
+                </Link>
+              )}
+              {totalPendingApprovals > 0 && (
+                <Link href="/dashboard/expense-approvals" className="alert-box navy">
+                  <div className="ab-icon" style={{ background: 'rgba(23,50,95,.10)', color: 'var(--navy)', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <MaterialIcon icon="approval" style={{ fontSize: '15px' }} />
+                  </div>
+                  <div className="ab-body">
+                    <div className="ab-title">{totalPendingApprovals} pending approvals</div>
+                    <div className="ab-sub">{pendingExpenses} expenses · {pendingLeave} leave</div>
+                  </div>
+                  <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>›</span>
+                </Link>
+              )}
+              {smsStats.sentToday > 0 && (
+                <Link href="/dashboard/messages" className="alert-box green">
+                  <div className="ab-icon" style={{ background: 'rgba(46,148,72,.12)', color: 'var(--green)', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <MaterialIcon icon="chat" style={{ fontSize: '15px' }} />
+                  </div>
+                  <div className="ab-body">
+                    <div className="ab-title">{smsStats.sentToday} SMS sent today</div>
+                    <div className="ab-sub">{smsStats.deliveryRate}% delivery rate</div>
+                  </div>
+                  <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>›</span>
+                </Link>
+              )}
+              {!loadingExtra && alertCount === 0 && (
+                <div style={{ padding: 20, textAlign: 'center', color: 'var(--t3)' }}>
+                  <MaterialIcon icon="check_circle" style={{ fontSize: 24, color: 'var(--green)', marginBottom: 8 }} />
+                  <div style={{ fontSize: 13 }}>No alerts — everything looks good!</div>
                 </div>
-                <div className="ab-body">
-                  <div className="ab-title">{loadingExtra ? '...' : atRiskStudents.length} students at risk</div>
-                  <div className="ab-sub">Below 50% in 2+ subjects</div>
-                </div>
-                <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>›</span>
-              </Link>
-              <Link href="/dashboard/attendance" className="alert-box amb">
-                <div className="ab-icon" style={{ background: 'rgba(184,107,12,.12)', color: 'var(--amber)', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <MaterialIcon icon="schedule" style={{ fontSize: '15px' }} />
-                </div>
-                <div className="ab-body">
-                  <div className="ab-title">{loadingExtra ? '...' : classesNotMarked} classes not marked</div>
-                  <div className="ab-sub">Attendance pending today</div>
-                </div>
-                <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>›</span>
-              </Link>
-              <Link href="/dashboard/messages" className="alert-box navy">
-                <div className="ab-icon" style={{ background: 'rgba(23,50,95,.10)', color: 'var(--navy)', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <MaterialIcon icon="chat" style={{ fontSize: '15px' }} />
-                </div>
-                <div className="ab-body">
-                  <div className="ab-title">{loadingExtra ? '...' : smsStats.sentToday} SMS sent today</div>
-                  <div className="ab-sub">{loadingExtra ? '...' : smsStats.deliveryRate}% delivery rate</div>
-                </div>
-                <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>›</span>
-              </Link>
-              <Link href="/dashboard/fees" className="alert-box green">
-                <div className="ab-icon" style={{ background: 'rgba(46,148,72,.12)', color: 'var(--green)', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <MaterialIcon icon="trending_up" style={{ fontSize: '15px' }} />
-                </div>
-                <div className="ab-body">
-                  <div className="ab-title">{collectionRate}% of fee target</div>
-                  <div className="ab-sub">UGX {formatCurrency(totalFeesCollected)} collected</div>
-                </div>
-                <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>›</span>
-              </Link>
+              )}
             </div>
           </div>
 
