@@ -101,7 +101,7 @@ export async function POST(request: Request) {
             date: new Date(invoice.created * 1000).toISOString(),
             plan: 'premium', // TODO: Determine from price
             provider: 'stripe',
-            transactionId: invoice.payment_intent as string
+            transactionId: (invoice as any).payment_intent as string
           }
         );
       } catch (error) {

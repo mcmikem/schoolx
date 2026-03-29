@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
@@ -35,11 +35,7 @@ export default function StaffAttendancePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    fetchStaffAndAttendance()
-  }, [school?.id, date])
-
-  const fetchStaffAndAttendance = async () => {
+  const fetchStaffAndAttendance = useCallback(async () => {
     if (!school?.id) return
     try {
       setLoading(true)
@@ -70,7 +66,11 @@ export default function StaffAttendancePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id, date])
+
+  useEffect(() => {
+    fetchStaffAndAttendance()
+  }, [fetchStaffAndAttendance])
 
   const markAttendance = (userId: string, status: string) => {
     setAttendance(prev => ({ ...prev, [userId]: status }))

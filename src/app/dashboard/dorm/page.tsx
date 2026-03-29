@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { useDormManager } from '@/lib/hooks'
@@ -20,16 +20,16 @@ export default function DormitoryPage() {
   const [showIncidentModal, setShowIncidentModal] = useState(false)
   const [showRoomModal, setShowRoomModal] = useState(false)
 
-  useEffect(() => {
-    fetchDorms()
-  }, [school?.id])
-
-  const fetchDorms = async () => {
+  const fetchDorms = useCallback(async () => {
     if (!school?.id) return
     const { data } = await supabase.from('dorms').select('*').eq('school_id', school.id)
     setDorms(data || [])
     if (data && data.length > 0 && !selectedDormId) setSelectedDormId(data[0].id)
-  }
+  }, [school?.id, selectedDormId])
+
+  useEffect(() => {
+    fetchDorms()
+  }, [fetchDorms])
 
   const handleAddIncident = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()

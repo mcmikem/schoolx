@@ -32,11 +32,7 @@ export default function TimetablePage() {
   const [selectedSlot, setSelectedSlot] = useState<any>(null)
   const [selectedDay, setSelectedDay] = useState<number>(1)
 
-  useEffect(() => {
-    if (selectedClassId) fetchTimetable()
-  }, [selectedClassId])
-
-  const fetchTimetable = async () => {
+  const fetchTimetable = useCallback(async () => {
     setLoading(true)
     try {
       const { data, error } = await supabase
@@ -51,7 +47,11 @@ export default function TimetablePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedClassId])
+
+  useEffect(() => {
+    if (selectedClassId) fetchTimetable()
+  }, [selectedClassId, fetchTimetable])
 
   const handleAddEntry = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
