@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
@@ -42,11 +42,7 @@ export default function BudgetPage() {
   const [budgetItems, setBudgetItems] = useState<Record<string, BudgetItem>>({})
   const [activeTab, setActiveTab] = useState<'planner' | 'actual'>('planner')
 
-  useEffect(() => {
-    if (school?.id) loadData()
-  }, [school?.id])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!school?.id) return
     setLoading(true)
     try {
@@ -122,7 +118,11 @@ export default function BudgetPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id])
+
+  useEffect(() => {
+    if (school?.id) loadData()
+  }, [school?.id, loadData])
 
   const updateBudgeted = (key: string, value: number) => {
     setBudgetItems(prev => ({

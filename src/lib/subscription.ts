@@ -131,7 +131,7 @@ export function getUpgradeMessage(feature: string): string {
 // These would be implemented in the payments directory and imported as needed
 
 // We'll add types for payment processing
-export type PaymentProvider = 'stripe' | 'paypal'
+export type PaymentProvider = 'stripe' | 'paypal' | 'mtn' | 'airtel'
 
 export interface PaymentRequest {
   plan: PlanType
@@ -195,7 +195,7 @@ export async function sendPaymentReceipt(
     currency: string
     date: string
     plan: PlanType
-    provider: 'stripe' | 'paypal'
+    provider: PaymentProvider
     transactionId: string
   }
 ) {

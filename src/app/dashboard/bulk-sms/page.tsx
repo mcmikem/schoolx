@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
@@ -40,11 +40,7 @@ export default function BulkSMSPage() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (school?.id) fetchData()
-  }, [school?.id])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!school?.id) return
     try {
       const [classesRes, studentsRes, templatesRes] = await Promise.all([
@@ -60,7 +56,11 @@ export default function BulkSMSPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id])
+
+  useEffect(() => {
+    if (school?.id) fetchData()
+  }, [school?.id, fetchData])
 
   const recipients = useMemo(() => {
     let filtered = allStudents.filter(s => s.parent_phone)

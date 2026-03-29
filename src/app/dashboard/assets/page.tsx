@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
@@ -56,11 +56,7 @@ export default function AssetsPage() {
     notes: '',
   })
 
-  useEffect(() => {
-    fetchAssets()
-  }, [school?.id])
-
-  const fetchAssets = async () => {
+  const fetchAssets = useCallback(async () => {
     if (!school?.id || !supabase) return
     try {
       const { data, error } = await supabase
@@ -76,7 +72,11 @@ export default function AssetsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id])
+
+  useEffect(() => {
+    fetchAssets()
+  }, [fetchAssets])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

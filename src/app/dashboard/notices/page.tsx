@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { useStaff } from '@/lib/hooks'
@@ -44,11 +44,7 @@ export default function NoticeBoardPage() {
   const [uploadingImage, setUploadingImage] = useState(false)
   const [sendingSMS, setSendingSMS] = useState(false)
 
-  useEffect(() => {
-    fetchNotices()
-  }, [school?.id])
-
-  const fetchNotices = async () => {
+  const fetchNotices = useCallback(async () => {
     if (!school?.id) return
     try {
       const { data, error } = await supabase
@@ -65,7 +61,11 @@ export default function NoticeBoardPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id])
+
+  useEffect(() => {
+    fetchNotices()
+  }, [fetchNotices])
 
   const sendNoticeSMS = async (title: string, content: string, category: string) => {
     if (!school?.id || staff.length === 0) return

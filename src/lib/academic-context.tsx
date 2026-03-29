@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
 import { useAuth } from './auth-context'
 import { supabase } from './supabase'
 
@@ -31,41 +31,40 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
   })
 
   // Load from school settings on mount or when school changes
-  useEffect(() => {
+  const loadAcademicSettings = useCallback(async () => {
     if (!school?.id) return
 
-    const loadAcademicSettings = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('school_settings')
-          .select('key, value')
-          .eq('school_id', school.id)
-          .in('key', ['current_term', 'academic_year'])
-        
-        if (error) {
-          // Table might not exist, use defaults
-          console.log('school_settings table not available, using defaults')
-          return
-        }
-        
-        if (data && data.length > 0) {
-          const settings = Object.fromEntries(data.map(s => [s.key, s.value]))
-          if (settings.academic_year && settings.academic_year !== academicYear) {
-            setAcademicYearState(settings.academic_year)
-            localStorage.setItem('academic_year', settings.academic_year)
-          }
-          if (settings.current_term && Number(settings.current_term) !== currentTerm) {
-            setCurrentTermState(Number(settings.current_term) as 1 | 2 | 3)
-            localStorage.setItem('current_term', settings.current_term)
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load academic settings', err)
+    try {
+      const { data, error } = await supabase
+        .from('school_settings')
+        .select('key, value')
+        .eq('school_id', school.id)
+        .in('key', ['current_term', 'academic_year'])
+      
+      if (error) {
+        console.log('school_settings table not available, using defaults')
+        return
       }
+      
+      if (data && data.length > 0) {
+        const settings = Object.fromEntries(data.map(s => [s.key, s.value]))
+        if (settings.academic_year && settings.academic_year !== academicYear) {
+          setAcademicYearState(settings.academic_year)
+          localStorage.setItem('academic_year', settings.academic_year)
+        }
+        if (settings.current_term && Number(settings.current_term) !== currentTerm) {
+          setCurrentTermState(Number(settings.current_term) as 1 | 2 | 3)
+          localStorage.setItem('current_term', settings.current_term)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load academic settings', err)
     }
+  }, [school?.id, academicYear, currentTerm])
 
+  useEffect(() => {
     loadAcademicSettings()
-  }, [school?.id])
+  }, [loadAcademicSettings])
 
   // Save to DB when changed locally
   const setAcademicYear = async (year: string) => {

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
@@ -43,11 +43,7 @@ export default function CalendarPage() {
     end_date: '',
   })
 
-  useEffect(() => {
-    if (school?.id) fetchEvents()
-  }, [school?.id])
-
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     if (!school?.id) return
     setLoading(true)
     try {
@@ -64,7 +60,11 @@ export default function CalendarPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id, toast])
+
+  useEffect(() => {
+    if (school?.id) fetchEvents()
+  }, [school?.id, fetchEvents])
 
   const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from './supabase'
 import { offlineDB, useOnlineStatus } from './offline'
 import type { Student, Attendance, Grade, FeePayment, FeeStructure } from '@/types'
@@ -21,12 +21,18 @@ function useOfflineData<T>(
   const [error, setError] = useState<string | null>(null)
   const [isFromCache, setIsFromCache] = useState(false)
   const isOnline = useOnlineStatus()
+  const skipCache = options?.skipCache ?? false
+  const serializedFilters = JSON.stringify(filters ?? {})
+  const stableFilters = useMemo(
+    () => (serializedFilters ? JSON.parse(serializedFilters) as Record<string, unknown> : {}),
+    [serializedFilters]
+  )
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
 
-    if (isOnline && !options?.skipCache) {
+    if (isOnline && !skipCache) {
       try {
         const result = await fetcher()
         setData(result)
@@ -43,7 +49,7 @@ function useOfflineData<T>(
 
     // Offline or server fetch failed: try cache
     try {
-      const cached = await offlineDB.getAllFromCache(cacheKey, filters)
+      const cached = await offlineDB.getAllFromCache(cacheKey, stableFilters)
       setData(cached as T[])
       setIsFromCache(true)
     } catch (e: unknown) {
@@ -52,7 +58,7 @@ function useOfflineData<T>(
     } finally {
       setLoading(false)
     }
-  }, [isOnline, table, cacheKey, JSON.stringify(filters), options?.skipCache])
+  }, [isOnline, table, cacheKey, fetcher, skipCache, stableFilters])
 
   useEffect(() => {
     fetchData()

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import Stripe from 'stripe'
 import { stripe } from '@/lib/payments/stripe'
 import { updateSchoolSubscription, sendPaymentReceipt, handleSubscriptionChange } from '@/lib/subscription'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -56,15 +57,24 @@ export async function POST(request: Request) {
     }
     
     case 'invoice.payment_succeeded': {
-      const invoice = event.data.object;
+      const invoice = event.data.object as Stripe.Invoice;
       
       // Handle successful recurring subscription payment
       console.log(`Invoice payment succeeded: ${invoice.id}`);
       
       try {
+        const subscriptionId =
+          typeof invoice.parent?.subscription_details?.subscription === 'string'
+            ? invoice.parent.subscription_details.subscription
+            : null
+
+        if (!subscriptionId) {
+          throw new Error('Missing subscription id on paid invoice')
+        }
+
         // Get the subscription to determine the plan
         const subscription = await stripe.subscriptions.retrieve(
-          invoice.subscription as string,
+          subscriptionId,
           { expand: ['customer', 'items.data.price'] }
         );
         
@@ -88,7 +98,7 @@ export async function POST(request: Request) {
           {
             amount: invoice.amount_paid / 100, // Convert from cents
             currency: invoice.currency,
-            date: new Date(invoice.timestamp * 1000).toISOString(),
+            date: new Date(invoice.created * 1000).toISOString(),
             plan: 'premium', // TODO: Determine from price
             provider: 'stripe',
             transactionId: invoice.payment_intent as string
@@ -102,7 +112,7 @@ export async function POST(request: Request) {
     }
     
     case 'invoice.payment_failed': {
-      const invoice = event.data.object;
+      const invoice = event.data.object as Stripe.Invoice;
       
       // Handle failed recurring subscription payment
       console.log(`Invoice payment failed: ${invoice.id}`);

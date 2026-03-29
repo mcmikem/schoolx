@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
@@ -20,11 +20,7 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetchData()
-  }, [user])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!user?.school_id) return
     
     try {
@@ -40,7 +36,11 @@ export default function MessagesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.school_id])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   const handleSend = async () => {
     if (!message.trim() || !user?.school_id) return

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useToast } from '@/components/Toast'
@@ -88,13 +88,7 @@ export default function SettingsPage() {
     }
   }
 
-  useEffect(() => {
-    if (school?.id) {
-      fetchSettings()
-    }
-  }, [school?.id])
-
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     if (!school?.id) return
     try {
       const { data } = await supabase
@@ -131,7 +125,13 @@ export default function SettingsPage() {
     } catch (err) {
       console.error('Error:', err)
     }
-  }
+  }, [school?.id])
+
+  useEffect(() => {
+    if (school?.id) {
+      fetchSettings()
+    }
+  }, [school?.id, fetchSettings])
 
   // Compress image file
   const compressImage = async (file: File, maxWidth = 400, maxHeight = 400): Promise<File> => {
@@ -327,13 +327,7 @@ export default function SettingsPage() {
     }
   }, [school])
 
-  useEffect(() => {
-    if (activeTab === 'users' && school?.id) {
-      fetchUsers()
-    }
-  }, [activeTab, school?.id])
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     if (!school?.id) return
     try {
       setLoadingUsers(true)
@@ -349,7 +343,13 @@ export default function SettingsPage() {
     } finally {
       setLoadingUsers(false)
     }
-  }
+  }, [school?.id])
+
+  useEffect(() => {
+    if (activeTab === 'users' && school?.id) {
+      fetchUsers()
+    }
+  }, [activeTab, school?.id, fetchUsers])
 
   const saveSchoolSettings = async () => {
     if (!school?.id) return
