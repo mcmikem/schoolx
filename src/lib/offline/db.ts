@@ -42,7 +42,11 @@ export function getDB(): Promise<IDBDatabase> {
       }
 
       // Cached data stores
-      const cachedTables = ['students', 'attendance', 'grades', 'classes', 'fee_payments']
+      const cachedTables = [
+        'students', 'attendance', 'grades', 'classes', 'fee_payments',
+        'staff_salaries', 'salary_payments', 'assets', 'inventory_transactions',
+        'timetable_slots', 'teacher_timetable', 'dorm_rooms', 'transport_routes'
+      ]
       cachedTables.forEach((tableName) => {
         if (!database.objectStoreNames.contains(tableName)) {
           database.createObjectStore(tableName, { keyPath: 'id' })
