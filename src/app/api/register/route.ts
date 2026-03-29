@@ -64,18 +64,12 @@ function getDefaultClasses(schoolType: string, schoolId: string) {
     ]
   } else if (schoolType === 'secondary') {
     return [
-      { school_id: schoolId, name: 'S1', level: 'secondary', stream: 'Science', academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S1', level: 'secondary', stream: 'Arts', academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S1', level: 'secondary', stream: 'Commercial', academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S2', level: 'secondary', stream: 'Science', academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S2', level: 'secondary', stream: 'Arts', academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S2', level: 'secondary', stream: 'Commercial', academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S3', level: 'secondary', stream: 'Science', academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S3', level: 'secondary', stream: 'Arts', academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S3', level: 'secondary', stream: 'Commercial', academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S4', level: 'secondary', stream: 'Science', academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S4', level: 'secondary', stream: 'Arts', academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S4', level: 'secondary', stream: 'Commercial', academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S1', level: 'secondary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S2', level: 'secondary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S3', level: 'secondary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S4', level: 'secondary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S5', level: 'secondary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S6', level: 'secondary', stream: null, academic_year: currentYear.toString() },
     ]
   } else {
     // Combined - include both primary and secondary
@@ -87,10 +81,12 @@ function getDefaultClasses(schoolType: string, schoolId: string) {
       { school_id: schoolId, name: 'P5', level: 'primary', stream: null, academic_year: currentYear.toString() },
       { school_id: schoolId, name: 'P6', level: 'primary', stream: null, academic_year: currentYear.toString() },
       { school_id: schoolId, name: 'P7', level: 'primary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S1', level: 'secondary', stream: 'Science', academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S1', level: 'secondary', stream: 'Arts', academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S2', level: 'secondary', stream: 'Science', academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S2', level: 'secondary', stream: 'Arts', academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S1', level: 'secondary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S2', level: 'secondary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S3', level: 'secondary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S4', level: 'secondary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S5', level: 'secondary', stream: null, academic_year: currentYear.toString() },
+      { school_id: schoolId, name: 'S6', level: 'secondary', stream: null, academic_year: currentYear.toString() },
     ]
   }
 }

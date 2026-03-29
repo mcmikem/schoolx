@@ -62,12 +62,42 @@ export default function StudentsPage() {
     e.preventDefault()
     if (!school?.id) return
 
+    // Validate required fields
+    if (!newStudent.first_name?.trim()) {
+      toast.error('First name is required')
+      return
+    }
+    if (!newStudent.last_name?.trim()) {
+      toast.error('Last name is required')
+      return
+    }
+    if (!newStudent.class_id) {
+      toast.error('Please select a class')
+      return
+    }
+    if (!newStudent.parent_name?.trim()) {
+      toast.error('Parent/Guardian name is required')
+      return
+    }
+    if (!newStudent.parent_phone?.trim()) {
+      toast.error('Parent phone is required')
+      return
+    }
+
     try {
       setSaving(true)
       const studentNumber = newStudent.student_number || `STU${String(students.length + 1).padStart(5, '0')}`
       await createStudent({
-        ...newStudent,
+        first_name: newStudent.first_name.trim(),
+        last_name: newStudent.last_name.trim(),
+        gender: newStudent.gender,
+        date_of_birth: newStudent.date_of_birth || null,
+        parent_name: newStudent.parent_name.trim(),
+        parent_phone: newStudent.parent_phone.trim(),
+        parent_phone2: newStudent.parent_phone2?.trim() || null,
+        class_id: newStudent.class_id,
         student_number: studentNumber,
+        ple_index_number: newStudent.ple_index_number?.trim() || null,
         status: 'active',
       })
       toast.success('Student added successfully')
