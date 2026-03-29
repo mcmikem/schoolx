@@ -1092,6 +1092,16 @@ export function useAnalytics(schoolId?: string) {
 }
 
 // SMS Triggers Hook
+interface SMSTrigger {
+  id: string
+  school_id: string
+  name: string
+  event_type: string
+  threshold_days: number
+  is_active: boolean
+  created_at: string
+}
+
 export function useSMSTriggers(schoolId?: string) {
   const [triggers, setTriggers] = useState<SMSTrigger[]>([])
   const [loading, setLoading] = useState(true)
