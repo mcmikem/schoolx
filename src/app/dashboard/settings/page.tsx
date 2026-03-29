@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useToast } from '@/components/Toast'
@@ -458,7 +459,7 @@ export default function SettingsPage() {
           <div className="flex items-center gap-6 mb-6">
             <div className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50">
               {logoUrl ? (
-                <img src={logoUrl} alt="School Logo" className="w-full h-full object-contain" />
+                <Image src={logoUrl} alt="School Logo" width={96} height={96} className="w-full h-full object-contain" />
               ) : (
                 <MaterialIcon className="text-4xl text-gray-300">school</MaterialIcon>
               )}

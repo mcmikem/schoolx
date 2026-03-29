@@ -382,7 +382,7 @@ export function determinePayPalPlanFromId(planId: string): PlanType {
   return planIdToPlan[planId] || 'free_trial'
 }
 
-export default {
+const subscriptionApi = {
   updateSchoolSubscription,
   sendPaymentReceipt,
   handleSubscriptionChange,
@@ -391,3 +391,5 @@ export default {
   determinePayPalPlanFromAmount,
   determinePayPalPlanFromId
 }
+
+export default subscriptionApi

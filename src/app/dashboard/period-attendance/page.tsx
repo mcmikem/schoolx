@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
@@ -26,13 +26,7 @@ export default function PeriodAttendancePage() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    if (selectedClass) {
-      fetchStudents()
-    }
-  }, [selectedClass, date, selectedPeriod])
-
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     if (!selectedClass || !school?.id) return
     try {
       setLoading(true)
@@ -61,7 +55,13 @@ export default function PeriodAttendancePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedClass, school?.id, date, selectedPeriod])
+
+  useEffect(() => {
+    if (selectedClass) {
+      fetchStudents()
+    }
+  }, [selectedClass, date, selectedPeriod, fetchStudents])
 
   const markAttendance = (studentId: string, status: string) => {
     setAttendance(prev => ({ ...prev, [studentId]: status }))

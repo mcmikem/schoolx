@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
 import { supabase } from './supabase'
 import { useRouter } from 'next/navigation'
-import { PlanType } from './subscription'
+import { PlanType } from './payments/subscription-client'
 
 interface User {
   id: string

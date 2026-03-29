@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
@@ -30,11 +30,8 @@ export default function UNEBRegistrationPage() {
   const [students, setStudents] = useState<any[]>([])
   const [registering, setRegistering] = useState(false)
 
-  useEffect(() => {
-    if (school?.id) fetchCandidates()
-  }, [school?.id])
-
-  const fetchCandidates = async () => {
+  const fetchCandidates = useCallback(async () => {
+    if (!school?.id) return
     setLoading(true)
     const { data } = await supabase
       .from('uneb_candidates')
@@ -43,7 +40,11 @@ export default function UNEBRegistrationPage() {
       .order('created_at', { ascending: false })
     setCandidates(data || [])
     setLoading(false)
-  }
+  }, [school?.id])
+
+  useEffect(() => {
+    if (school?.id) fetchCandidates()
+  }, [school?.id, fetchCandidates])
 
   const fetchClassStudents = async () => {
     if (!selectedClass) return

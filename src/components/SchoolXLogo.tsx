@@ -15,9 +15,9 @@ export default function SchoolXLogo({ size = 'md', variant = 'default', showText
   }
 
   const colors = {
-    default: { primary: '#6366f1', accent: '#8b5cf6', text: '#6366f1' },
-    white: { primary: '#ffffff', accent: '#e0e7ff', text: '#ffffff' },
-    dark: { primary: '#4f46e5', accent: '#7c3aed', text: '#4f46e5' },
+    default: { primary: '#17325F', accent: '#2E9448', text: '#17325F' },
+    white: { primary: '#ffffff', accent: '#D9F1E0', text: '#ffffff' },
+    dark: { primary: '#17325F', accent: '#2E9448', text: '#17325F' },
   }
 
   const s = sizes[size]

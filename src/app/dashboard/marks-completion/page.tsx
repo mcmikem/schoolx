@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useClasses, useSubjects, useStaff } from '@/lib/hooks'
@@ -42,12 +42,8 @@ export default function MarksCompletionPage() {
   const [loading, setLoading] = useState(true)
   const [chasing, setChasing] = useState<string | null>(null)
 
-  useEffect(() => {
+  const fetchCompletionData = useCallback(async () => {
     if (!school?.id || classes.length === 0) return
-    fetchCompletionData()
-  }, [school?.id, classes.length, subjects.length, academicYear, currentTerm])
-
-  const fetchCompletionData = async () => {
     setLoading(true)
     try {
       // Fetch all grades for this term
@@ -160,7 +156,12 @@ export default function MarksCompletionPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id, classes, subjects, staff, academicYear, currentTerm])
+
+  useEffect(() => {
+    if (!school?.id || classes.length === 0) return
+    fetchCompletionData()
+  }, [school?.id, classes.length, fetchCompletionData])
 
   const handleChase = async (teacherId: string, teacherName: string) => {
     setChasing(teacherId)

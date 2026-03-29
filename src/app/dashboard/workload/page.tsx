@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 
@@ -34,13 +34,7 @@ export default function WorkloadPage() {
   const [teachers, setTeachers] = useState<Array<{ id: string; full_name: string }>>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (school?.id) {
-      fetchData()
-    }
-  }, [school?.id])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!school?.id) return
     setLoading(true)
     try {
@@ -68,7 +62,13 @@ export default function WorkloadPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id])
+
+  useEffect(() => {
+    if (school?.id) {
+      fetchData()
+    }
+  }, [school?.id, fetchData])
 
   const workloads = useMemo<TeacherWorkload[]>(() => {
     return teachers.map((teacher) => {

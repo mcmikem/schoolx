@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useFeePayments } from '@/lib/hooks'
@@ -28,14 +28,8 @@ export default function TrendAnalyticsPage() {
   const [academicYears, setAcademicYears] = useState<string[]>([])
   const [selectedYear, setSelectedYear] = useState(academicYear)
 
-  useEffect(() => {
-    if (school?.id) {
-      fetchHistoricalData()
-      fetchAcademicYears()
-    }
-  }, [school?.id])
-
-  const fetchAcademicYears = async () => {
+  const fetchAcademicYears = useCallback(async () => {
+    if (!school?.id) return
     try {
       const { data } = await supabase
         .from('academic_years')
@@ -50,9 +44,9 @@ export default function TrendAnalyticsPage() {
     } catch (err) {
       console.error('Error:', err)
     }
-  }
+  }, [school?.id])
 
-  const fetchHistoricalData = async () => {
+  const fetchHistoricalData = useCallback(async () => {
     if (!school?.id) return
     
     setLoading(true)
@@ -117,7 +111,14 @@ export default function TrendAnalyticsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id, academicYear, students, payments])
+
+  useEffect(() => {
+    if (school?.id) {
+      fetchHistoricalData()
+      fetchAcademicYears()
+    }
+  }, [school?.id, fetchHistoricalData, fetchAcademicYears])
 
   const stats = useMemo(() => {
     if (historicalData.length === 0) return null

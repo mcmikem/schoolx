@@ -378,6 +378,10 @@ code.mono { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--t3)
   display: flex; align-items: flex-start; justify-content: space-between;
   margin-bottom: 26px;
 }
+
+.content {
+  padding: 24px;
+}
 .ph-title { font-family: 'Sora', sans-serif; font-size: 26px; font-weight: 800; color: var(--t1); letter-spacing: -.4px; line-height: 1; }
 .ph-sub   { font-size: 13px; color: var(--t3); marginTop: 6px; }
 .ph-actions { display: flex; gap: 10px; }

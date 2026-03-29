@@ -256,9 +256,11 @@ export async function generateReceiptNumber(): Promise<string> {
   return `OMR-${timestamp}-${random}`
 }
 
-export default {
+const receiptsApi = {
   generateReceiptPDF,
   sendEmailReceipt,
   sendSMSReceipt,
   generateReceiptNumber,
 }
+
+export default receiptsApi

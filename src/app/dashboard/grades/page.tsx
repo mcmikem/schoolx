@@ -195,9 +195,9 @@ export default function GradesPage() {
     return parts.reduce((sum, p) => (sum ?? 0) + (p ?? 0), 0) ?? null
   }
 
-  const isStudentGraded = (studentId: string): boolean => {
+  const isStudentGraded = useCallback((studentId: string): boolean => {
     return ASSESSMENT_TYPES.every(t => marks[`${studentId}_${t}`] !== null && marks[`${studentId}_${t}`] !== undefined)
-  }
+  }, [marks])
 
   // Completion stats
   const completionStats = useMemo(() => {
@@ -209,7 +209,7 @@ export default function GradesPage() {
       .map(s => `${s.first_name} ${s.last_name}`)
     const percentage = total > 0 ? Math.round((graded / total) * 100) : 0
     return { total, graded, notGraded, notGradedNames, percentage }
-  }, [filteredStudents, marks])
+  }, [filteredStudents, isStudentGraded])
 
   const handleSaveGrades = async (status: 'draft' | 'submitted' = 'draft') => {
     if (!selectedClass || !selectedSubject) return
@@ -302,13 +302,7 @@ export default function GradesPage() {
     handleSaveGrades('draft')
   }
 
-  useEffect(() => {
-    if (selectedClass && selectedSubject) {
-      fetchCoverage()
-    }
-  }, [selectedClass, selectedSubject, currentTerm, academicYear])
-
-  const fetchCoverage = async () => {
+  const fetchCoverage = useCallback(async () => {
     try {
       setLoading(true)
       const { data } = await supabase
@@ -324,7 +318,13 @@ export default function GradesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedClass, selectedSubject, currentTerm, academicYear])
+
+  useEffect(() => {
+    if (selectedClass && selectedSubject) {
+      fetchCoverage()
+    }
+  }, [selectedClass, selectedSubject, fetchCoverage])
 
   const updateTopicStatus = async (topicName: string, status: 'not_started' | 'in_progress' | 'completed') => {
     try {
@@ -354,9 +354,9 @@ export default function GradesPage() {
     }
   }
 
-  const getTopicStatus = (topicName: string): string => {
+  const getTopicStatus = useCallback((topicName: string): string => {
     return coverage.find(c => c.topic_name === topicName)?.status || 'not_started'
-  }
+  }, [coverage])
 
   const selectedSubjectName = subjects.find(s => s.id === selectedSubject)?.name || ''
   const selectedClassName = classes.find(c => c.id === selectedClass)?.name || ''
@@ -367,7 +367,7 @@ export default function GradesPage() {
     const completed = topics.filter(t => getTopicStatus(t) === 'completed').length
     const inProgress = topics.filter(t => getTopicStatus(t) === 'in_progress').length
     return { total, completed, inProgress, percentage: total > 0 ? Math.round((completed / total) * 100) : 0 }
-  }, [topics, coverage])
+  }, [topics, getTopicStatus])
 
   const isSubmitted = submissionStatus === 'submitted'
 

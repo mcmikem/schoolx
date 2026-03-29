@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
@@ -53,11 +53,7 @@ export default function VisitorsPage() {
     time: timeStr,
   })
 
-  useEffect(() => {
-    fetchVisitors()
-  }, [school?.id])
-
-  const fetchVisitors = async () => {
+  const fetchVisitors = useCallback(async () => {
     if (!school?.id) return
     try {
       const { data, error } = await supabase
@@ -74,7 +70,11 @@ export default function VisitorsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id])
+
+  useEffect(() => {
+    fetchVisitors()
+  }, [school?.id, fetchVisitors])
 
   const handleQuickSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

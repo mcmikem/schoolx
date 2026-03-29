@@ -281,7 +281,7 @@ export async function updatePendingMobilePayment(
   return data
 }
 
-export default {
+const paymentUtils = {
   PAYMENT_PROVIDERS,
   PAYMENT_PRICES_UGX,
   STRIPE_PRICE_IDS,
@@ -297,3 +297,5 @@ export default {
   getPendingMobilePayment,
   updatePendingMobilePayment,
 }
+
+export default paymentUtils

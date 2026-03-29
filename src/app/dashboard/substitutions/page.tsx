@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
@@ -53,18 +53,7 @@ export default function SubstitutionsPage() {
     reason: 'Sick',
   })
 
-  useEffect(() => {
-    if (school?.id) {
-      fetchTeachers()
-      fetchSubstitutions()
-    }
-  }, [school?.id])
-
-  useEffect(() => {
-    if (school?.id) fetchSubstitutions()
-  }, [selectedMonth])
-
-  const fetchTeachers = async () => {
+  const fetchTeachers = useCallback(async () => {
     if (!school?.id) return
     const { data } = await supabase
       .from('users')
@@ -74,9 +63,9 @@ export default function SubstitutionsPage() {
       .eq('is_active', true)
       .order('full_name')
     setTeachers(data || [])
-  }
+  }, [school?.id])
 
-  const fetchSubstitutions = async () => {
+  const fetchSubstitutions = useCallback(async () => {
     if (!school?.id) return
     setLoading(true)
     try {
@@ -100,7 +89,18 @@ export default function SubstitutionsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id, selectedMonth])
+
+  useEffect(() => {
+    if (school?.id) {
+      fetchTeachers()
+      fetchSubstitutions()
+    }
+  }, [school?.id, fetchTeachers, fetchSubstitutions])
+
+  useEffect(() => {
+    if (school?.id) fetchSubstitutions()
+  }, [selectedMonth, school?.id, fetchSubstitutions])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

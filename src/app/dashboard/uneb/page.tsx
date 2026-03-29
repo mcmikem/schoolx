@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useClasses } from '@/lib/hooks'
@@ -38,11 +38,7 @@ export default function UNEBAnalysisPage() {
   const [selectedClass, setSelectedClass] = useState('')
   const [examType, setExamType] = useState<'ple' | 'uce' | 'uace'>('uce')
 
-  useEffect(() => {
-    fetchResults()
-  }, [selectedClass, examType, school?.id, currentTerm, academicYear])
-
-  const fetchResults = async () => {
+  const fetchResults = useCallback(async () => {
     if (!school?.id) return
     
     setLoading(true)
@@ -127,7 +123,11 @@ export default function UNEBAnalysisPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id, currentTerm, academicYear, selectedClass, examType])
+
+  useEffect(() => {
+    fetchResults()
+  }, [fetchResults])
 
   const stats = useMemo(() => {
     if (results.length === 0) return null

@@ -2,6 +2,22 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSchoolPaymentHistory } from '@/lib/payments/utils'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
+type InvoicePayment = {
+  id: string
+  plan: string
+  amount: number
+  currency: string
+  provider: string
+  payment_status: string
+  transaction_id: string | null
+  invoice_url: string | null
+  receipt_url: string | null
+  paid_at: string | null
+  created_at: string
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -30,7 +46,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const payments = await getSchoolPaymentHistory(userData.school_id, limit)
+    const payments = ((await getSchoolPaymentHistory(userData.school_id, limit)) ?? []) as InvoicePayment[]
 
     return NextResponse.json({
       success: true,

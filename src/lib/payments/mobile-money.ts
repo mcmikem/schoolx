@@ -298,8 +298,10 @@ export async function verifyMobileMoneyPayment(
   return result
 }
 
-export default {
+const mobileMoneyApi = {
   FlutterwaveMobileMoney,
   createMobileMoneyPaymentLink,
   verifyMobileMoneyPayment,
 }
+
+export default mobileMoneyApi

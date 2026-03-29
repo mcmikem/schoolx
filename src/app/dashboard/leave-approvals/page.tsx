@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
@@ -44,11 +44,7 @@ export default function LeaveApprovalsPage() {
   const isDOS = user?.role === 'dean_of_studies'
   const isHM = user?.role === 'headmaster' || user?.role === 'school_admin'
 
-  useEffect(() => {
-    if (school?.id) fetchRequests()
-  }, [school?.id])
-
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     if (!school?.id) return
     setLoading(true)
     try {
@@ -65,7 +61,11 @@ export default function LeaveApprovalsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id])
+
+  useEffect(() => {
+    if (school?.id) fetchRequests()
+  }, [school?.id, fetchRequests])
 
   const handleApproval = async (requestId: string, action: 'approved' | 'rejected', commentText: string = '') => {
     if (!user?.id || !school?.id) return

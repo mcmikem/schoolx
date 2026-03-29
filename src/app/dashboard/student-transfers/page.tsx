@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useStudents, useClasses } from '@/lib/hooks'
 import { supabase } from '@/lib/supabase'
@@ -69,11 +69,7 @@ export default function StudentTransfersPage() {
     transfer_date: new Date().toISOString().split('T')[0],
   })
 
-  useEffect(() => {
-    if (school?.id) fetchTransferHistory()
-  }, [school?.id])
-
-  const fetchTransferHistory = async () => {
+  const fetchTransferHistory = useCallback(async () => {
     if (!school?.id) return
     setLoadingHistory(true)
     try {
@@ -104,7 +100,11 @@ export default function StudentTransfersPage() {
     } finally {
       setLoadingHistory(false)
     }
-  }
+  }, [school?.id])
+
+  useEffect(() => {
+    if (school?.id) fetchTransferHistory()
+  }, [school?.id, fetchTransferHistory])
 
   const activeStudents = students.filter(s => s.status === 'active')
 

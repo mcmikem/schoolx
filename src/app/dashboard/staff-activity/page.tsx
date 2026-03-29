@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useStaff } from '@/lib/hooks'
@@ -25,12 +25,8 @@ export default function StaffActivityPage() {
   const [loading, setLoading] = useState(true)
   const [date] = useState(() => new Date().toISOString().split('T')[0])
 
-  useEffect(() => {
+  const fetchActivity = useCallback(async () => {
     if (!school?.id || staff.length === 0) return
-    fetchActivity()
-  }, [school?.id, staff.length, date])
-
-  const fetchActivity = async () => {
     setLoading(true)
     try {
       // Fetch staff attendance for today
@@ -105,7 +101,12 @@ export default function StaffActivityPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id, staff, date])
+
+  useEffect(() => {
+    if (!school?.id || staff.length === 0) return
+    fetchActivity()
+  }, [school?.id, staff.length, date, fetchActivity])
 
   const activeToday = activities.filter(a => a.other_actions.length > 0).length
   const markedAtt = activities.filter(a => a.marked_attendance).length
