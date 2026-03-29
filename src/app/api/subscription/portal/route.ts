@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { stripe } from '@/lib/payments/stripe';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 // Create Stripe customer portal session
@@ -31,6 +30,18 @@ export async function POST(request: Request) {
     }
 
     // Create the portal session
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY
+    
+    if (!stripeSecretKey) {
+      return NextResponse.json(
+        { error: 'Payment processing not configured' },
+        { status: 503 }
+      )
+    }
+
+    const Stripe = require('stripe')
+    const stripe = new Stripe(stripeSecretKey)
+
     const portalUrl = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: returnUrl || `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/billing`,
