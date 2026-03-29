@@ -190,7 +190,7 @@ export async function verifyPayPalWebhook(
   return true;
 }
 
-export default {
+const paypalApi = {
   createPayPalOrder,
   capturePayPalOrder,
   getPayPalOrder,
@@ -201,4 +201,6 @@ export default {
   revisePayPalSubscription,
   verifyPayPalWebhook,
   paypalClient,
-};
+}
+
+export default paypalApi

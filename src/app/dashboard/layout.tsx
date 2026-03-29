@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { useSyncStatus } from '@/lib/useSyncStatus'
@@ -538,7 +539,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div style={{ padding: '22px 18px 16px', borderBottom: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
               {school?.logo_url ? (
-                <img src={school.logo_url} alt={schoolName} style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover' }} />
+                <Image src={school.logo_url} alt={schoolName} width={36} height={36} style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover' }} />
               ) : (
                 <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--navy)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: '#fff' }}>
                   {schoolInitial}

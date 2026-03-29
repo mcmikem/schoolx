@@ -3,14 +3,69 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+const isValidHttpUrl = (value?: string | null) => {
+  if (!value || value.includes('your-supabase-url')) return false
+  try {
+    const parsed = new URL(value)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+const hasUsableSupabaseConfig =
+  isValidHttpUrl(supabaseUrl) &&
+  !!supabaseAnonKey &&
+  !supabaseAnonKey.startsWith('your-') &&
+  !supabaseAnonKey.includes('xxxxxxxx')
+
+const createMockQueryBuilder = () => {
+  const listResult = { data: [], error: null, count: 0 }
+  const itemResult = { data: null, error: null, count: 0 }
+
+  const builder: Record<string, any> = {
+    select: () => builder,
+    insert: () => builder,
+    update: () => builder,
+    upsert: () => builder,
+    delete: () => builder,
+    eq: () => builder,
+    neq: () => builder,
+    gt: () => builder,
+    gte: () => builder,
+    lt: () => builder,
+    lte: () => builder,
+    like: () => builder,
+    ilike: () => builder,
+    in: () => builder,
+    contains: () => builder,
+    overlaps: () => builder,
+    is: () => builder,
+    or: () => builder,
+    order: () => builder,
+    limit: () => builder,
+    range: () => builder,
+    match: () => builder,
+    abortSignal: () => builder,
+    then: (resolve: (value: typeof listResult) => unknown) => Promise.resolve(resolve(listResult)),
+    catch: () => Promise.resolve(listResult),
+    finally: () => Promise.resolve(listResult),
+    single: async () => itemResult,
+    maybeSingle: async () => itemResult,
+  }
+
+  return builder
+}
+
 const createMockClient = (): SupabaseClient => {
   const mock = {
-    from: () => ({ select: () => ({ eq: () => ({ order: () => ({ data: [], error: null }) }), insert: () => ({ select: () => ({ data: null, error: null }) }), update: () => ({ eq: () => ({ data: null, error: null }) }), delete: () => ({ eq: () => ({ data: null, error: null }) }) }) }),
+    from: () => createMockQueryBuilder(),
     auth: {
       signInWithPassword: async () => ({ data: { user: null, session: null }, error: null }),
       signUp: async () => ({ data: { user: null, session: null }, error: null }),
       signOut: async () => ({ error: null }),
       getSession: async () => ({ data: { session: null }, error: null }),
+      getUser: async () => ({ data: { user: null }, error: null }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
     },
     storage: {
@@ -20,8 +75,8 @@ const createMockClient = (): SupabaseClient => {
   return mock as unknown as SupabaseClient
 }
 
-const realClient = (supabaseUrl && supabaseAnonKey) 
-  ? createClient(supabaseUrl, supabaseAnonKey)
+const realClient = hasUsableSupabaseConfig
+  ? createClient(supabaseUrl as string, supabaseAnonKey as string)
   : null
 
 export const supabase = realClient || createMockClient()

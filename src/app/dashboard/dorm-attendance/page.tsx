@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
@@ -46,25 +46,15 @@ export default function DormAttendancePage() {
   const [saving, setSaving] = useState(false)
   const [editingReason, setEditingReason] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (school?.id) fetchDorms()
-  }, [school?.id])
-
-  useEffect(() => {
-    if (selectedDorm && date && checkType) {
-      fetchStudentsAndAttendance()
-    }
-  }, [selectedDorm, date, checkType])
-
-  const fetchDorms = async () => {
+  const fetchDorms = useCallback(async () => {
     const { data } = await supabase
       .from('dorms')
       .select('*')
       .eq('school_id', school?.id)
     setDorms(data || [])
-  }
+  }, [school?.id])
 
-  const fetchStudentsAndAttendance = async () => {
+  const fetchStudentsAndAttendance = useCallback(async () => {
     if (!selectedDorm) return
     setLoading(true)
 
@@ -95,7 +85,17 @@ export default function DormAttendancePage() {
     })
     setAttendance(attendanceMap)
     setLoading(false)
-  }
+  }, [selectedDorm, date, checkType])
+
+  useEffect(() => {
+    if (school?.id) fetchDorms()
+  }, [fetchDorms, school?.id])
+
+  useEffect(() => {
+    if (selectedDorm && date && checkType) {
+      fetchStudentsAndAttendance()
+    }
+  }, [selectedDorm, date, checkType, fetchStudentsAndAttendance])
 
   const updateStatus = (studentId: string, status: AttendanceStatus) => {
     const newAttendance = new Map(attendance)

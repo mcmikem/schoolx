@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useClasses } from '@/lib/hooks'
@@ -37,11 +37,7 @@ export default function EarlyWarningsPage() {
   const [filterSeverity, setFilterSeverity] = useState('all')
   const [thresholds, setThresholds] = useState<WarningThresholds>({ attendance: 80, grade: 50, fee: 50000 })
 
-  useEffect(() => {
-    if (school?.id) fetchThresholds()
-  }, [school?.id])
-
-  const fetchThresholds = async () => {
+  const fetchThresholds = useCallback(async () => {
     if (!school?.id) return
     try {
       const { data } = await supabase
@@ -62,9 +58,9 @@ export default function EarlyWarningsPage() {
     } catch (err) {
       console.error('Error:', err)
     }
-  }
+  }, [school?.id])
 
-  const fetchWarnings = async () => {
+  const fetchWarnings = useCallback(async () => {
     if (!school?.id) return
     
     setLoading(true)
@@ -152,11 +148,15 @@ export default function EarlyWarningsPage() {
 
     setWarnings(allWarnings)
     setLoading(false)
-  }
+  }, [school?.id, students, currentTerm, academicYear, thresholds])
+
+  useEffect(() => {
+    if (school?.id) fetchThresholds()
+  }, [school?.id, fetchThresholds])
 
   useEffect(() => {
     if (students.length > 0) fetchWarnings()
-  }, [students, currentTerm, academicYear])
+  }, [students, fetchWarnings])
 
   const sendBulkSMS = async () => {
     if (filteredWarnings.length === 0) return

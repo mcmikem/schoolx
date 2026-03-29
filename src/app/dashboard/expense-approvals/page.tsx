@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
@@ -66,15 +66,7 @@ export default function ExpenseApprovalsPage() {
   const isBursar = user?.role === 'bursar'
   const isDos = user?.role === 'dean_of_studies'
 
-  useEffect(() => {
-    if (school?.id) fetchExpenses()
-  }, [school?.id])
-
-  useEffect(() => {
-    fetchExpenses()
-  }, [filter])
-
-  const fetchExpenses = async () => {
+  const fetchExpenses = useCallback(async () => {
     setLoading(true)
     let query = supabase
       .from('expenses')
@@ -93,7 +85,11 @@ export default function ExpenseApprovalsPage() {
     const { data } = await query
     setExpenses(data || [])
     setLoading(false)
-  }
+  }, [school?.id, filter])
+
+  useEffect(() => {
+    if (school?.id) fetchExpenses()
+  }, [school?.id, fetchExpenses])
 
   const handleApprove = async (expenseId: string) => {
     const expense = expenses.find(e => e.id === expenseId)

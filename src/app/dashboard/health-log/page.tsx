@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
@@ -44,14 +44,7 @@ export default function HealthLogPage() {
   const todayIncidents = incidents.filter(i => i.incident_time?.startsWith(today))
   const sickBayToday = todayIncidents.filter(i => i.action_taken === 'Rested in sick bay').length
 
-  useEffect(() => {
-    if (school?.id) {
-      fetchIncidents()
-      fetchStudents()
-    }
-  }, [school?.id])
-
-  const fetchIncidents = async () => {
+  const fetchIncidents = useCallback(async () => {
     if (!school?.id) return
     setLoading(true)
     try {
@@ -66,9 +59,9 @@ export default function HealthLogPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id])
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     if (!school?.id) return
     const { data } = await supabase
       .from('students')
@@ -76,7 +69,14 @@ export default function HealthLogPage() {
       .eq('school_id', school.id)
       .order('first_name')
     setStudents(data || [])
-  }
+  }, [school?.id])
+
+  useEffect(() => {
+    if (school?.id) {
+      fetchIncidents()
+      fetchStudents()
+    }
+  }, [school?.id, fetchIncidents, fetchStudents])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

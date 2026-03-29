@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
@@ -46,12 +46,7 @@ export default function HealthPage() {
   const [submitting, setSubmitting] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchRecords()
-    if (school?.id) fetchStudents()
-  }, [school?.id])
-
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     if (!school?.id) return
     try {
       const { data, error } = await supabase
@@ -68,9 +63,9 @@ export default function HealthPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id, toast])
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     if (!school?.id) return
     try {
       const { data, error } = await supabase
@@ -84,7 +79,12 @@ export default function HealthPage() {
     } catch (err) {
       console.error('Error fetching students:', err)
     }
-  }
+  }, [school?.id])
+
+  useEffect(() => {
+    fetchRecords()
+    if (school?.id) fetchStudents()
+  }, [fetchRecords, fetchStudents, school?.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

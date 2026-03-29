@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { supabase } from '@/lib/supabase'
@@ -47,20 +47,8 @@ export default function PaymentPlansPage() {
     start_date: new Date().toISOString().split('T')[0]
   })
 
-  useEffect(() => {
-    if (school?.id) {
-      fetchPlans()
-      fetchStudents()
-    }
-  }, [school?.id])
-
-  useEffect(() => {
-    if (selectedPlan) {
-      fetchInstallments()
-    }
-  }, [selectedPlan])
-
-  const fetchPlans = async () => {
+  const fetchPlans = useCallback(async () => {
+    if (!school?.id) return
     setLoading(true)
     const { data } = await supabase
       .from('payment_plans')
@@ -69,18 +57,19 @@ export default function PaymentPlansPage() {
       .order('created_at', { ascending: false })
     setPlans(data || [])
     setLoading(false)
-  }
+  }, [school?.id])
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
+    if (!school?.id) return
     const { data } = await supabase
       .from('students')
       .select('id, first_name, last_name, classes(name)')
       .eq('school_id', school?.id)
       .eq('status', 'active')
     setStudents(data || [])
-  }
+  }, [school?.id])
 
-  const fetchInstallments = async () => {
+  const fetchInstallments = useCallback(async () => {
     if (!selectedPlan) return
     const { data } = await supabase
       .from('payment_plan_installments')
@@ -88,7 +77,20 @@ export default function PaymentPlansPage() {
       .eq('plan_id', selectedPlan.id)
       .order('due_date')
     setInstallments(data || [])
-  }
+  }, [selectedPlan])
+
+  useEffect(() => {
+    if (school?.id) {
+      fetchPlans()
+      fetchStudents()
+    }
+  }, [school?.id, fetchPlans, fetchStudents])
+
+  useEffect(() => {
+    if (selectedPlan) {
+      fetchInstallments()
+    }
+  }, [selectedPlan, fetchInstallments])
 
   const createPlan = async () => {
     if (!newPlan.student_id || newPlan.total_amount <= 0) {

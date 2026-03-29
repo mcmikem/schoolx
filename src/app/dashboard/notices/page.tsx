@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { useStaff } from '@/lib/hooks'
@@ -281,7 +282,7 @@ export default function NoticeBoardPage() {
             }`}>
               {notice.image_url && (
                 <div className="h-48 overflow-hidden">
-                  <img src={notice.image_url} alt={notice.title} className="w-full h-full object-cover" />
+                  <Image src={notice.image_url} alt={notice.title} width={1200} height={384} className="w-full h-full object-cover" />
                 </div>
               )}
               <div className="p-5">

@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenAI } from '@google/genai'
 import { apiError, apiSuccess, handleApiError, withSecurity } from '@/lib/api-utils'
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' })
-
 const promptTemplate = `
 You are a robust data extraction parser for a School Management System. 
 The user is going to paste raw text copied from an Excel spreadsheet, a Word document, or a messy email. 
@@ -34,6 +32,8 @@ async function handlePost(request: NextRequest) {
     if (!process.env.GEMINI_API_KEY) {
       return apiError('Gemini API key is not configured on the server', 500)
     }
+
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',

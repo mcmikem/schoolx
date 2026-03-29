@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { supabase } from '@/lib/supabase'
@@ -49,28 +49,18 @@ export default function StudentPromotionPage() {
   const [demoteReason, setDemoteReason] = useState('')
   const [demoteClass, setDemoteClass] = useState('')
 
-  useEffect(() => {
-    if (school?.id) fetchClasses()
-  }, [school?.id])
-
-  useEffect(() => {
-    if (fromClass) fetchStudents()
-  }, [fromClass])
-
-  useEffect(() => {
-    fetchPromotionHistory()
-  }, [school?.id])
-
-  const fetchClasses = async () => {
+  const fetchClasses = useCallback(async () => {
+    if (!school?.id) return
     const { data } = await supabase
       .from('classes')
       .select('*')
       .eq('school_id', school?.id)
       .order('level', { ascending: true })
     setClasses(data || [])
-  }
+  }, [school?.id])
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
+    if (!school?.id || !fromClass) return
     setLoading(true)
     const { data } = await supabase
       .from('students')
@@ -88,9 +78,10 @@ export default function StudentPromotionPage() {
     })
     setStudentActions(defaultActions)
     setLoading(false)
-  }
+  }, [school?.id, fromClass])
 
-  const fetchPromotionHistory = async () => {
+  const fetchPromotionHistory = useCallback(async () => {
+    if (!school?.id) return
     const { data } = await supabase
       .from('student_promotions')
       .select('*, from_classes(name), to_classes(name), users(full_name)')
@@ -98,7 +89,19 @@ export default function StudentPromotionPage() {
       .order('promoted_at', { ascending: false })
       .limit(20)
     setPromotionHistory(data || [])
-  }
+  }, [school?.id])
+
+  useEffect(() => {
+    if (school?.id) fetchClasses()
+  }, [school?.id, fetchClasses])
+
+  useEffect(() => {
+    if (fromClass) fetchStudents()
+  }, [fromClass, fetchStudents])
+
+  useEffect(() => {
+    if (school?.id) fetchPromotionHistory()
+  }, [school?.id, fetchPromotionHistory])
 
   const toggleStudent = (id: string) => {
     const newSelected = new Set(selectedStudents)

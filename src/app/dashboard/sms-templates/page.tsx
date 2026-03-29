@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
@@ -40,11 +40,8 @@ export default function SMSTemplatesPage() {
     message: ''
   })
 
-  useEffect(() => {
-    if (school?.id) fetchTemplates()
-  }, [school?.id])
-
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
+    if (!school?.id) return
     setLoading(true)
     const { data } = await supabase
       .from('sms_templates')
@@ -53,7 +50,11 @@ export default function SMSTemplatesPage() {
       .order('name')
     setTemplates(data || [])
     setLoading(false)
-  }
+  }, [school?.id])
+
+  useEffect(() => {
+    if (school?.id) fetchTemplates()
+  }, [school?.id, fetchTemplates])
 
   const createTemplate = async () => {
     if (!newTemplate.name || !newTemplate.message) {

@@ -9,6 +9,8 @@ import {
 import { sendPaymentReceipt } from '@/lib/subscription'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()

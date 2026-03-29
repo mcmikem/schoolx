@@ -188,7 +188,7 @@ export async function handleWebhookEvent(
   return event;
 }
 
-export default {
+const stripeApi = {
   createPaymentIntent,
   confirmPaymentIntent,
   createSubscription,
@@ -199,4 +199,6 @@ export default {
   createCustomer,
   getCustomer,
   handleWebhookEvent,
-};
+}
+
+export default stripeApi

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useStudents } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
@@ -73,17 +73,7 @@ export default function DisciplinePage() {
     exam_id: '',
   })
 
-  useEffect(() => {
-    fetchRecords()
-  }, [school?.id])
-
-  useEffect(() => {
-    if (showModal) {
-      fetchExams()
-    }
-  }, [showModal])
-
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     if (!school?.id) return
     try {
       const { data, error } = await supabase
@@ -99,9 +89,9 @@ export default function DisciplinePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id])
 
-  const fetchExams = async () => {
+  const fetchExams = useCallback(async () => {
     if (!school?.id) return
     try {
       const { data, error } = await supabase
@@ -116,7 +106,17 @@ export default function DisciplinePage() {
     } catch (err) {
       console.error('Error fetching exams:', err)
     }
-  }
+  }, [school?.id])
+
+  useEffect(() => {
+    fetchRecords()
+  }, [fetchRecords])
+
+  useEffect(() => {
+    if (showModal) {
+      fetchExams()
+    }
+  }, [showModal, fetchExams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

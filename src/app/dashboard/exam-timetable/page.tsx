@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useClasses, useSubjects, useStaff } from '@/lib/hooks'
@@ -54,11 +54,7 @@ export default function ExamTimetablePage() {
     supervisor_id: '',
   })
 
-  useEffect(() => {
-    fetchExamTimetable()
-  }, [school?.id])
-
-  const fetchExamTimetable = async () => {
+  const fetchExamTimetable = useCallback(async () => {
     if (!school?.id) return
     try {
       const { data, error } = await supabase
@@ -91,7 +87,7 @@ export default function ExamTimetablePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id])
 
   const detectConflicts = (exam: typeof newExam, excludeId?: string): string[] => {
     const conflicts: string[] = []
@@ -251,20 +247,24 @@ export default function ExamTimetablePage() {
     return groups
   }, [sortedSlots])
 
-  const checkConflictsWithCurrent = () => {
+  const checkConflictsWithCurrent = useCallback(() => {
     if (!newExam.exam_date) {
       setConflicts([])
       return
     }
     const detected = detectConflicts(newExam, editingId || undefined)
     setConflicts(detected)
-  }
+  }, [newExam, editingId, examSlots, classes, staff])
+
+  useEffect(() => {
+    fetchExamTimetable()
+  }, [fetchExamTimetable])
 
   useEffect(() => {
     if (showAddModal) {
       checkConflictsWithCurrent()
     }
-  }, [newExam.exam_date, newExam.start_time, newExam.end_time, newExam.class_id, newExam.room, newExam.supervisor_id, showAddModal])
+  }, [checkConflictsWithCurrent, showAddModal])
 
   return (
     <div className="content">

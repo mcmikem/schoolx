@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
@@ -31,20 +31,12 @@ export default function DormSuppliesPage() {
   const [bulkSupply, setBulkSupply] = useState<Supply | ''>('')
   const [bulkAction, setBulkAction] = useState<'issue' | 'return'>('issue')
 
-  useEffect(() => {
-    if (school?.id) fetchDorms()
-  }, [school?.id])
-
-  useEffect(() => {
-    if (selectedDorm) fetchStudentSupplies()
-  }, [selectedDorm])
-
-  const fetchDorms = async () => {
+  const fetchDorms = useCallback(async () => {
     const { data } = await supabase.from('dorms').select('*').eq('school_id', school?.id)
     setDorms(data || [])
-  }
+  }, [school?.id])
 
-  const fetchStudentSupplies = async () => {
+  const fetchStudentSupplies = useCallback(async () => {
     if (!selectedDorm) return
     setLoading(true)
 
@@ -68,7 +60,15 @@ export default function DormSuppliesPage() {
     })
     setSupplies(supplyMap)
     setLoading(false)
-  }
+  }, [selectedDorm])
+
+  useEffect(() => {
+    if (school?.id) fetchDorms()
+  }, [fetchDorms, school?.id])
+
+  useEffect(() => {
+    if (selectedDorm) fetchStudentSupplies()
+  }, [selectedDorm, fetchStudentSupplies])
 
   const toggleSupply = async (studentId: string, supply: Supply) => {
     const current = supplies.get(studentId) || new Set()

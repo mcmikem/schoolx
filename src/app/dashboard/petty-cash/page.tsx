@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
@@ -39,14 +39,7 @@ export default function PettyCashPage() {
     category: '' as ExpenseCategory | '',
   })
 
-  useEffect(() => {
-    if (school?.id) {
-      fetchEntries()
-      fetchBalance()
-    }
-  }, [school?.id])
-
-  const fetchEntries = async () => {
+  const fetchEntries = useCallback(async () => {
     if (!school?.id) return
     setLoading(true)
     try {
@@ -61,9 +54,9 @@ export default function PettyCashPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [school?.id])
 
-  const fetchBalance = async () => {
+  const fetchBalance = useCallback(async () => {
     if (!school?.id) return
     const { data } = await supabase
       .from('petty_cash_replenishments')
@@ -72,7 +65,19 @@ export default function PettyCashPage() {
     const totalReplenished = data?.reduce((s: number, r: any) => s + Number(r.amount), 0) || 0
     const totalSpent = entries.reduce((s, e) => s + e.amount, 0)
     setBalance(totalReplenished - totalSpent)
-  }
+  }, [school?.id, entries])
+
+  useEffect(() => {
+    if (school?.id) {
+      fetchEntries()
+    }
+  }, [school?.id, fetchEntries])
+
+  useEffect(() => {
+    if (school?.id) {
+      fetchBalance()
+    }
+  }, [school?.id, entries, fetchBalance])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

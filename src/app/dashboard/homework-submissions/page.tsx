@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
@@ -30,25 +30,12 @@ export default function HomeworkSubmissionsPage() {
   const [classFilter, setClassFilter] = useState('')
   const [classes, setClasses] = useState<any[]>([])
 
-  useEffect(() => {
-    if (school?.id) {
-      fetchClasses()
-      fetchHomeworks()
-    }
-  }, [school?.id])
-
-  useEffect(() => {
-    if (selectedHomework) {
-      fetchSubmissions()
-    }
-  }, [selectedHomework])
-
-  const fetchClasses = async () => {
+  const fetchClasses = useCallback(async () => {
     const { data } = await supabase.from('classes').select('*').eq('school_id', school?.id).order('name')
     setClasses(data || [])
-  }
+  }, [school?.id])
 
-  const fetchHomeworks = async () => {
+  const fetchHomeworks = useCallback(async () => {
     setLoading(true)
     let query = supabase
       .from('homework')
@@ -63,9 +50,9 @@ export default function HomeworkSubmissionsPage() {
     const { data } = await query
     setHomeworks(data || [])
     setLoading(false)
-  }
+  }, [school?.id, classFilter])
 
-  const fetchSubmissions = async () => {
+  const fetchSubmissions = useCallback(async () => {
     if (!selectedHomework) return
     
     const { data: submissionsData } = await supabase
@@ -92,7 +79,20 @@ export default function HomeworkSubmissionsPage() {
     }))
 
     setSubmissions(fullList as HomeworkSubmission[])
-  }
+  }, [selectedHomework, school?.id])
+
+  useEffect(() => {
+    if (school?.id) {
+      fetchClasses()
+      fetchHomeworks()
+    }
+  }, [school?.id, fetchClasses, fetchHomeworks])
+
+  useEffect(() => {
+    if (selectedHomework) {
+      fetchSubmissions()
+    }
+  }, [selectedHomework, fetchSubmissions])
 
   const markSubmission = async (submission: any, marks: number, feedback: string) => {
     if (!submission.id) {
