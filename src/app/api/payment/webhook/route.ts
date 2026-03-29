@@ -1,0 +1,229 @@
+import { NextResponse } from 'next/server'
+import { stripe } from '@/lib/payments/stripe'
+import { updateSchoolSubscription, sendPaymentReceipt, handleSubscriptionChange } from '@/lib/subscription'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+
+export async function POST(request: Request) {
+  const body = await request.text()
+  const sig = request.headers.get('stripe-signature') as string
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+
+  let event;
+  
+  try {
+    event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
+  } catch (err: any) {
+    console.error(`Webhook signature verification failed: ${err.message}`);
+    return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
+  }
+
+  // Handle the event
+  switch (event.type) {
+    case 'checkout.session.completed': {
+      const session = event.data.object;
+      
+      // Handle successful checkout
+      // This would be used for one-time payments or subscription payments via checkout
+      console.log(`Checkout session completed: ${session.id}`);
+      
+      // If this is a subscription checkout, we'll handle it via invoice.payment_succeeded
+      // but we can still get the customer and subscription info here
+      if (session.mode === 'subscription' && session.subscription) {
+        try {
+          const subscription = await stripe.subscriptions.retrieve(
+            session.subscription as string,
+            { expand: ['customer', 'items.data.price'] }
+          );
+          
+          // Update school subscription
+          await handleSubscriptionChange(
+            // We need to get the school ID from the customer metadata
+            // Assuming we stored school_id in customer metadata
+            session.metadata?.school_id || '',
+            {
+              status: mapStripeSubscriptionStatus(subscription.status),
+              plan: 'premium', // TODO: Determine from price
+              provider: 'stripe',
+              subscriptionId: subscription.id
+            }
+          );
+        } catch (error) {
+          console.error('Error handling checkout session completed:', error);
+        }
+      }
+      
+      break;
+    }
+    
+    case 'invoice.payment_succeeded': {
+      const invoice = event.data.object;
+      
+      // Handle successful recurring subscription payment
+      console.log(`Invoice payment succeeded: ${invoice.id}`);
+      
+      try {
+        // Get the subscription to determine the plan
+        const subscription = await stripe.subscriptions.retrieve(
+          invoice.subscription as string,
+          { expand: ['customer', 'items.data.price'] }
+        );
+        
+        // Update school subscription status to active
+        await handleSubscriptionChange(
+          // Get school ID from customer metadata
+          invoice.metadata?.school_id || 
+          (subscription.customer as any)?.metadata?.school_id || '',
+          {
+            status: 'active',
+            plan: 'premium', // TODO: Determine from price
+            provider: 'stripe',
+            subscriptionId: subscription.id
+          }
+        );
+        
+        // Send payment receipt
+        await sendPaymentReceipt(
+          invoice.metadata?.school_id || 
+          (subscription.customer as any)?.metadata?.school_id || '',
+          {
+            amount: invoice.amount_paid / 100, // Convert from cents
+            currency: invoice.currency,
+            date: new Date(invoice.timestamp * 1000).toISOString(),
+            plan: 'premium', // TODO: Determine from price
+            provider: 'stripe',
+            transactionId: invoice.payment_intent as string
+          }
+        );
+      } catch (error) {
+        console.error('Error handling invoice.payment_succeeded:', error);
+      }
+      
+      break;
+    }
+    
+    case 'invoice.payment_failed': {
+      const invoice = event.data.object;
+      
+      // Handle failed recurring subscription payment
+      console.log(`Invoice payment failed: ${invoice.id}`);
+      
+      try {
+        // Update school subscription status to past_due
+        await handleSubscriptionChange(
+          invoice.metadata?.school_id || '',
+          {
+            status: 'past_due',
+            provider: 'stripe'
+          }
+        );
+        
+        // Notify administrator (we'll implement this later)
+        console.log(`Payment failed for school ${invoice.metadata?.school_id}`);
+      } catch (error) {
+        console.error('Error handling invoice.payment_failed:', error);
+      }
+      
+      break;
+    }
+    
+    case 'customer.subscription.created': {
+      const subscription = event.data.object;
+      
+      // Handle new subscription creation
+      console.log(`Subscription created: ${subscription.id}`);
+      
+      try {
+        await handleSubscriptionChange(
+          subscription.metadata?.school_id || '',
+          {
+            status: mapStripeSubscriptionStatus(subscription.status),
+            plan: 'premium', // TODO: Determine from price
+            provider: 'stripe',
+            subscriptionId: subscription.id
+          }
+        );
+      } catch (error) {
+        console.error('Error handling customer.subscription.created:', error);
+      }
+      
+      break;
+    }
+    
+    case 'customer.subscription.updated': {
+      const subscription = event.data.object;
+      
+      // Handle subscription updates (e.g., plan change)
+      console.log(`Subscription updated: ${subscription.id}`);
+      
+      try {
+        await handleSubscriptionChange(
+          subscription.metadata?.school_id || '',
+          {
+            status: mapStripeSubscriptionStatus(subscription.status),
+            plan: 'premium', // TODO: Determine from price
+            provider: 'stripe',
+            subscriptionId: subscription.id
+          }
+        );
+      } catch (error) {
+        console.error('Error handling customer.subscription.updated:', error);
+      }
+      
+      break;
+    }
+    
+    case 'customer.subscription.deleted': {
+      const subscription = event.data.object;
+      
+      // Handle subscription cancellation or ending
+      console.log(`Subscription deleted: ${subscription.id}`);
+      
+      try {
+        await handleSubscriptionChange(
+          subscription.metadata?.school_id || '',
+          {
+            status: 'canceled',
+            provider: 'stripe'
+          }
+        );
+      } catch (error) {
+        console.error('Error handling customer.subscription.deleted:', error);
+      }
+      
+      break;
+    }
+    
+    default:
+      console.log(`Unhandled event type ${event.type}`);
+  }
+
+  // Return a 200 response to Stripe to acknowledge receipt of the webhook
+  return new NextResponse(JSON.stringify({ received: true }), { status: 200 });
+}
+
+// Helper function to map Stripe subscription status to our accepted status values
+function mapStripeSubscriptionStatus(status: any): 
+  | 'active' 
+  | 'canceled' 
+  | 'past_due' 
+  | 'unpaid' {
+  switch (status) {
+    case 'active':
+      return 'active';
+    case 'canceled':
+      return 'canceled';
+    case 'past_due':
+      return 'past_due';
+    case 'unpaid':
+      return 'unpaid';
+    // Map other Stripe statuses to our closest match
+    case 'incomplete':
+    case 'incomplete_expired':
+    case 'trialing':
+    case 'paused':
+    default:
+      // For trialing, incomplete, etc., we'll treat as active for now
+      // but this could be adjusted based on business logic
+      return 'active';
+  }
+}
