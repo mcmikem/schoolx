@@ -292,6 +292,50 @@ export async function POST(request: NextRequest) {
       await supabaseAdmin.from('classes').insert(defaultClasses).select()
     }
 
+    // 8. Create current academic year and terms
+    const currentYear = new Date().getFullYear().toString()
+    const { data: academicYear, error: ayError } = await supabaseAdmin
+      .from('academic_years')
+      .insert({
+        school_id: schoolData.id,
+        name: `${currentYear}`,
+        start_date: `${currentYear}-01-01`,
+        end_date: `${currentYear}-12-31`,
+        is_current: true,
+      })
+      .select()
+      .single()
+
+    if (academicYear && !ayError) {
+      // Create 3 terms for the academic year
+      await supabaseAdmin.from('terms').insert([
+        {
+          school_id: schoolData.id,
+          academic_year_id: academicYear.id,
+          term_number: 1,
+          start_date: `${currentYear}-02-01`,
+          end_date: `${currentYear}-04-30`,
+          is_current: true,
+        },
+        {
+          school_id: schoolData.id,
+          academic_year_id: academicYear.id,
+          term_number: 2,
+          start_date: `${currentYear}-05-01`,
+          end_date: `${currentYear}-07-31`,
+          is_current: false,
+        },
+        {
+          school_id: schoolData.id,
+          academic_year_id: academicYear.id,
+          term_number: 3,
+          start_date: `${currentYear}-08-01`,
+          end_date: `${currentYear}-11-30`,
+          is_current: false,
+        },
+      ])
+    }
+
     // Return success - client will sign in separately
     return apiSuccess(
       {
@@ -302,6 +346,7 @@ export async function POST(request: NextRequest) {
       'Registration successful'
     )
   } catch (error) {
+    console.error('[Register Error]', error)
     return handleApiError(error)
   }
 }
