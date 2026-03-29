@@ -91,13 +91,13 @@ export default function StudentsPage() {
         first_name: newStudent.first_name.trim(),
         last_name: newStudent.last_name.trim(),
         gender: newStudent.gender,
-        date_of_birth: newStudent.date_of_birth || null,
+        date_of_birth: newStudent.date_of_birth || undefined,
         parent_name: newStudent.parent_name.trim(),
         parent_phone: newStudent.parent_phone.trim(),
-        parent_phone2: newStudent.parent_phone2?.trim() || null,
+        parent_phone2: newStudent.parent_phone2?.trim() || undefined,
         class_id: newStudent.class_id,
         student_number: studentNumber,
-        ple_index_number: newStudent.ple_index_number?.trim() || null,
+        ple_index_number: newStudent.ple_index_number?.trim() || undefined,
         status: 'active',
       })
       toast.success('Student added successfully')
