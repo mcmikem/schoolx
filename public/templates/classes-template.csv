@@ -1,0 +1,4 @@
+class_name,class_level,stream,capacity
+Primary 1,Primary,,50
+Senior 1,Secondary,Stream A,60
+Senior 2,Secondary,Stream B,55

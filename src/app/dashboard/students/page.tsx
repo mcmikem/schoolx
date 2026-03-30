@@ -1,6 +1,7 @@
 'use client'
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import Papa from 'papaparse'
 import { useAuth } from '@/lib/auth-context'
 import { useStudents, useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
@@ -9,6 +10,19 @@ import { SendSMSModal } from '@/components/SendSMSModal'
 function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
   return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
 }
+
+const STUDENT_TEMPLATE_COLUMNS = [
+  'student_number',
+  'first_name',
+  'last_name',
+  'gender',
+  'class_name',
+  'class_id',
+  'ple_index_number',
+  'parent_name',
+  'parent_phone',
+  'parent_phone2',
+]
 
 export default function StudentsPage() {
   const { school } = useAuth()
@@ -46,6 +60,19 @@ export default function StudentsPage() {
     ple_index_number: '',
   })
   const [smsTarget, setSmsTarget] = useState<{ id: string; first_name: string; last_name: string; parent_phone?: string } | null>(null)
+  const [templateRows, setTemplateRows] = useState<Record<string, string>[]>([])
+  const [templatePreviewRows, setTemplatePreviewRows] = useState<Record<string, string>[]>([])
+  const [templateStatus, setTemplateStatus] = useState<'idle' | 'parsing' | 'ready'>('idle')
+  const [templateErrors, setTemplateErrors] = useState<string | null>(null)
+  const [importingTemplate, setImportingTemplate] = useState(false)
+  const [importSummary, setImportSummary] = useState<{ success: number; failed: number; total: number } | null>(null)
+
+  const resolveClassId = (row: Record<string, string>) => {
+    if (row.class_id) return row.class_id
+    if (!row.class_name) return ''
+    const match = classes.find((c) => c.name.toLowerCase() === row.class_name?.toLowerCase())
+    return match?.id || ''
+  }
 
   const filtered = useMemo(() => {
     return students.filter((s) => {
@@ -57,6 +84,82 @@ export default function StudentsPage() {
       return matchesSearch && matchesClass
     })
   }, [students, searchTerm, selectedClass])
+
+  const handleStudentTemplateUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setTemplateStatus('parsing')
+    setTemplateErrors(null)
+    setTemplateRows([])
+    setTemplatePreviewRows([])
+    setImportSummary(null)
+
+    Papa.parse<Record<string, string>>(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const normalized: Record<string, string>[] = results.data.map((row) => ({
+          student_number: row.student_number?.trim() || '',
+          first_name: row.first_name?.trim() || '',
+          last_name: row.last_name?.trim() || '',
+          gender: row.gender?.trim().toUpperCase() === 'F' ? 'F' : 'M',
+          class_name: row.class_name?.trim() || '',
+          class_id: row.class_id?.trim() || '',
+          ple_index_number: row.ple_index_number?.trim() || '',
+          parent_name: row.parent_name?.trim() || '',
+          parent_phone: row.parent_phone?.trim() || '',
+          parent_phone2: row.parent_phone2?.trim() || '',
+        }))
+
+        setTemplateRows(normalized)
+        setTemplatePreviewRows(normalized.slice(0, 5))
+        setTemplateStatus('ready')
+      },
+      error: (error) => {
+        setTemplateErrors(error.message)
+        setTemplateStatus('idle')
+      },
+    })
+  }
+
+  const handleSeedStudentsFromTemplate = async () => {
+    if (!templateRows.length) {
+      setTemplateErrors('Upload a template before seeding.')
+      return
+    }
+    setImportingTemplate(true)
+    let success = 0
+    let failed = 0
+
+    for (const row of templateRows) {
+      const classId = resolveClassId(row)
+      if (!row.first_name || !row.last_name || !classId) {
+        failed++
+        continue
+      }
+      try {
+        await createStudent({
+          first_name: row.first_name,
+          last_name: row.last_name,
+          gender: row.gender === 'F' ? 'F' : 'M',
+          class_id: classId,
+          student_number: row.student_number || undefined,
+          ple_index_number: row.ple_index_number || undefined,
+          parent_name: row.parent_name || '',
+          parent_phone: row.parent_phone || '',
+          parent_phone2: row.parent_phone2 || undefined,
+          status: 'active',
+        })
+        success++
+      } catch (error) {
+        console.error('Bulk student import error:', error)
+        failed++
+      }
+    }
+
+    setImportSummary({ success, failed, total: templateRows.length })
+    setImportingTemplate(false)
+  }
 
   const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -247,6 +350,76 @@ export default function StudentsPage() {
             <MaterialIcon icon="person_add" style={{ fontSize: '16px' }} />
             Add Student
           </button>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: '22px', borderRadius: '24px', marginBottom: '20px' }}>
+        <div className="text-sm font-semibold uppercase tracking-[0.3em] text-[#17325F] mb-2">Quick import</div>
+        <div className="flex flex-wrap gap-3 text-sm text-[#5c6670]">
+          <p className="flex-1 min-w-[220px]">
+            Download the structured templates, drop your data, and let the AI-like parser map columns to fields. The preview lets you confirm before seeding the students registry.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <a href="/templates/classes-template.csv" download target="_blank" className="btn btn-ghost btn-sm">Class template</a>
+            <a href="/templates/staff-template.csv" download target="_blank" className="btn btn-ghost btn-sm">Staff template</a>
+            <a href="/templates/students-template.csv" download target="_blank" className="btn btn-ghost btn-sm">Student template</a>
+          </div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 mt-6">
+          <div className="space-y-3 rounded-[20px] border border-[#e5e9f0] bg-white/60 p-4">
+            <div className="text-sm font-semibold text-[#10233b]">Upload student list</div>
+            <input
+              type="file"
+              accept=".csv,.xlsx"
+              onChange={handleStudentTemplateUpload}
+              className="w-full text-sm text-slate-600"
+              disabled={templateStatus === 'parsing'}
+            />
+            <p className="text-xs text-[#5c6670]">We auto-map Excel columns using simple heuristics; add headers exactly as shown.</p>
+            {templateStatus === 'parsing' && <p className="text-xs text-[#2e7d32]">Parsing file...</p>}
+            {templateErrors && <p className="text-xs text-[#b45309]">{templateErrors}</p>}
+            {templateStatus === 'ready' && (
+              <button
+                onClick={handleSeedStudentsFromTemplate}
+                className="btn btn-primary btn-sm"
+                disabled={importingTemplate}
+              >
+                {importingTemplate ? 'Seeding...' : 'Seed students from template'}
+              </button>
+            )}
+            {importSummary && (
+              <p className="text-xs text-[#17325F]">
+                Imported {importSummary.success}/{importSummary.total} students ({importSummary.failed} failed).
+              </p>
+            )}
+          </div>
+          <div className="rounded-[20px] border border-[#e5e9f0] bg-[#f8fbff] p-4 space-y-3">
+            <div className="text-sm font-semibold text-[#10233b]">Preview & AI hints</div>
+            {templatePreviewRows.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr>
+                      {Object.keys(templatePreviewRows[0]).map((col) => (
+                        <th key={col} className="px-2 py-1 text-left text-[11px] uppercase tracking-[0.2em] text-[#5b6272]">{col}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {templatePreviewRows.map((row, index) => (
+                      <tr key={index} className="border-t border-[#d8dee9]">
+                        {Object.values(row).map((value, idx) => (
+                          <td key={`${index}-${idx}`} className="px-2 py-1 truncate max-w-[120px]">{value || '—'}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-xs text-[#5c6670]">Upload a file to preview the parsed rows.</p>
+            )}
+          </div>
         </div>
       </div>
 
