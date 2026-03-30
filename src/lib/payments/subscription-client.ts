@@ -106,7 +106,7 @@ export const PLAN_PRICES = {
   max: { term: 370000 },
 }
 
-export type PaymentProvider = 'stripe' | 'paypal'
+export type PaymentProvider = 'paypal' | 'mtn' | 'airtel'
 
 export interface PaymentRequest {
   plan: PlanType

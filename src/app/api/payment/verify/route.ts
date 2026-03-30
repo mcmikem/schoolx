@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { txRef, provider } = body as {
       txRef: string
-      provider: 'stripe' | 'paypal' | 'mtn' | 'airtel'
+      provider: 'paypal' | 'mtn' | 'airtel'
     }
 
     if (!txRef || !provider) {
