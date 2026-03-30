@@ -218,7 +218,52 @@ export default function DeanDashboard() {
             grid-template-columns: 1fr !important;
           }
         }
+
+        /* Mobile Bottom Nav */
+        .mobile-bottom-nav {
+          display: none;
+        }
+        @media (max-width: 768px) {
+          .mobile-bottom-nav {
+            display: flex !important;
+          }
+          .content {
+            padding-bottom: 80px !important;
+          }
+        }
       `}</style>
+
+      {/* Mobile Bottom Nav */}
+      <div className="mobile-bottom-nav" style={{ 
+        position: 'fixed', 
+        bottom: 0, 
+        left: 0, 
+        right: 0, 
+        background: 'var(--white)', 
+        borderTop: '1px solid var(--border)', 
+        padding: '10px 8px 24px',
+        display: 'flex',
+        justifyContent: 'space-around',
+        zIndex: 100,
+        boxShadow: '0 -2px 10px rgba(0,0,0,0.08)'
+      }}>
+        <Link href="/dashboard" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
+          <MaterialIcon icon="home" style={{ fontSize: 22, color: 'var(--navy)' }} />
+          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--navy)' }}>Home</span>
+        </Link>
+        <Link href="/dashboard/grades" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
+          <MaterialIcon icon="menu_book" style={{ fontSize: 22, color: 'var(--t3)' }} />
+          <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--t3)' }}>Grades</span>
+        </Link>
+        <Link href="/dashboard/attendance" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
+          <MaterialIcon icon="how_to_reg" style={{ fontSize: 22, color: 'var(--t3)' }} />
+          <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--t3)' }}>Attendance</span>
+        </Link>
+        <Link href="/dashboard/timetable" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
+          <MaterialIcon icon="calendar_month" style={{ fontSize: 22, color: 'var(--t3)' }} />
+          <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--t3)' }}>Timetable</span>
+        </Link>
+      </div>
     </div>
   )
 }
