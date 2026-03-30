@@ -397,22 +397,30 @@ export default function ExamTimetablePage() {
 
               <div style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Subject *</label>
-                <select value={newExam.subject_id} onChange={e => setNewExam({...newExam, subject_id: e.target.value})} className="input">
-                  <option value="">Select subject</option>
-                  {subjects.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
+                {subjects.length === 0 ? (
+                  <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#92400E' }}>No subjects available</div>
+                ) : (
+                  <select value={newExam.subject_id} onChange={e => setNewExam({...newExam, subject_id: e.target.value})} className="input">
+                    <option value="">Select subject</option>
+                    {subjects.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Class *</label>
-                <select value={newExam.class_id} onChange={e => setNewExam({...newExam, class_id: e.target.value})} className="input">
-                  <option value="">Select class</option>
-                  {classes.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                {classes.length === 0 ? (
+                  <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#92400E' }}>No classes available</div>
+                ) : (
+                  <select value={newExam.class_id} onChange={e => setNewExam({...newExam, class_id: e.target.value})} className="input">
+                    <option value="">Select class</option>
+                    {classes.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div style={{ marginBottom: 16 }}>

@@ -187,10 +187,14 @@ export default function BulkSMSPage() {
             {audience === 'class' && (
               <div className="mt-4">
                 <label className="text-sm font-medium text-[#191c1d] mb-2 block">Select Class</label>
-                <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input">
-                  <option value="">Choose class</option>
-                  {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                {classes.length === 0 ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No classes available</div>
+                ) : (
+                  <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input">
+                    <option value="">Choose class</option>
+                    {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                )}
               </div>
             )}
 
