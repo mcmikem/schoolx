@@ -155,8 +155,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (supabase) {
       const { data: { subscription } } = supabase!.auth.onAuthStateChange(
         async (event, session) => {
-          const demoUserStr = localStorage.getItem('demo_user')
-          if (demoUserStr) return
+          // Only use demo data if explicitly in demo mode, not blocking real auth
+          if (isDemo) return
           
           if (event === 'SIGNED_IN' && session) {
             await fetchUserData(session.user.id)
@@ -252,9 +252,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('demo_user')
     localStorage.removeItem('demo_school')
     
-    await supabase!.auth.signOut()
+    try {
+      await supabase!.auth.signOut()
+    } catch (e) {
+      // Continue even if signOut fails
+    }
     setUser(null)
     setSchool(null)
+    setIsDemo(false)
     router.push('/login')
   }
 
