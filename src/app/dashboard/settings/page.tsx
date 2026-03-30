@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
+import { FEATURE_STAGES, FeatureStage, DEFAULT_FEATURE_STAGE } from '@/lib/featureStages'
 
 function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
   return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
@@ -47,6 +48,9 @@ export default function SettingsPage() {
   const [logoUrl, setLogoUrl] = useState(school?.logo_url || '')
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [storageStatus, setStorageStatus] = useState<'unknown' | 'ok' | 'error'>('unknown')
+  const [selectedStage, setSelectedStage] = useState<FeatureStage>(school?.feature_stage as FeatureStage || DEFAULT_FEATURE_STAGE)
+  const [savingStage, setSavingStage] = useState(false)
+  const stageOrder: FeatureStage[] = ['core', 'academic', 'finance', 'full']
 
   // Test storage connectivity - uses server-side API to create bucket
   const testStorage = async () => {
@@ -127,6 +131,12 @@ export default function SettingsPage() {
       console.error('Error:', err)
     }
   }, [school?.id])
+
+  useEffect(() => {
+    if (school?.feature_stage) {
+      setSelectedStage(school.feature_stage as FeatureStage)
+    }
+  }, [school?.feature_stage])
 
   useEffect(() => {
     if (school?.id) {
@@ -273,6 +283,25 @@ export default function SettingsPage() {
       toast.error('Failed to upload logo. Check console for details.')
     } finally {
       setUploadingLogo(false)
+    }
+  }
+
+  const handleStageChange = async (stage: FeatureStage) => {
+    if (!school?.id || stage === selectedStage) return
+    try {
+      setSavingStage(true)
+      const { error } = await supabase
+        .from('schools')
+        .update({ feature_stage: stage })
+        .eq('id', school.id)
+      if (error) throw error
+      setSelectedStage(stage)
+      await refreshSchool()
+      toast.success(`Stage updated to ${FEATURE_STAGES[stage].label}`)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Could not update stage')
+    } finally {
+      setSavingStage(false)
     }
   }
 
@@ -543,6 +572,46 @@ export default function SettingsPage() {
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'general' && (
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 max-w-2xl mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-[#191c1d]">Package stage</h2>
+              <p className="text-sm text-[#5c6670]">Disable modules that fall outside your current package.</p>
+            </div>
+            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-[#2E9448]">{selectedStage}</span>
+          </div>
+          <div className="grid gap-3">
+            {stageOrder.map((stageKey) => {
+              const stage = FEATURE_STAGES[stageKey]
+              const isActive = stageKey === selectedStage
+              return (
+                <button
+                  key={stageKey}
+                  onClick={() => handleStageChange(stageKey)}
+                  disabled={savingStage || isActive}
+                  className={`w-full text-left rounded-2xl border px-4 py-4 transition ${
+                    isActive
+                      ? 'border-[#2E9448] bg-[#eaf4ed]'
+                      : 'border-[#e1e7f0] bg-white hover:border-[#2E9448]/60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-[#191c1d]">{stage.label}</p>
+                      <p className="text-xs text-[#5c6670] mt-1">{stage.description}</p>
+                    </div>
+                    {isActive && (
+                      <span className="text-xs font-semibold text-[#2E9448]">Active</span>
+                    )}
+                  </div>
+                </button>
+              )
+            })}
           </div>
         </div>
       )}
