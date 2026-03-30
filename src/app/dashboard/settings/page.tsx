@@ -5,7 +5,53 @@ import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
-import { FEATURE_STAGES, FeatureStage, DEFAULT_FEATURE_STAGE } from '@/lib/featureStages'
+import { ROLE_LABELS, type UserRole } from '@/lib/roles'
+import { FEATURE_STAGES, FeatureStage, DEFAULT_FEATURE_STAGE, canUseModule, ModuleKey } from '@/lib/featureStages'
+
+const ROLE_OPTIONS: { value: UserRole; description: string; modules: ModuleKey[] }[] = [
+  {
+    value: 'teacher',
+    description: 'Attendance, grades, homework, lesson plans and classroom communication.',
+    modules: ['attendance', 'marks', 'communications'],
+  },
+  {
+    value: 'school_admin',
+    description: 'Oversee operations, exports, dashboards, and general settings.',
+    modules: ['operations', 'exports', 'reports'],
+  },
+  {
+    value: 'dean_of_studies',
+    description: 'Academic oversight, grading, exams, and report card views.',
+    modules: ['marks', 'exam', 'reports'],
+  },
+  {
+    value: 'bursar',
+    description: 'Finance, invoicing, payroll, budgeting, and payment tracking.',
+    modules: ['finance', 'exports'],
+  },
+  {
+    value: 'secretary',
+    description: 'Communications, visits, notices and calendar management.',
+    modules: ['communications', 'operations'],
+  },
+]
+
+const MODULE_LABELS: Record<ModuleKey, string> = {
+  dashboard: 'Dashboard',
+  attendance: 'Attendance',
+  marks: 'Marks & Exams',
+  exam: 'Exams',
+  communications: 'Communication',
+  finance: 'Finance',
+  reports: 'Reports',
+  exports: 'Exports',
+  staff: 'Staff',
+  operations: 'Operations',
+  parentPortal: 'Parent Portal',
+  dorm: 'Dorm',
+  health: 'Health',
+  analytics: 'Analytics',
+}
 
 function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
   return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
@@ -29,7 +75,7 @@ export default function SettingsPage() {
   const [users, setUsers] = useState<Array<{id: string, full_name: string, phone: string, role: string, is_active: boolean}>>([])
   const [loadingUsers, setLoadingUsers] = useState(false)
   const [showAddUser, setShowAddUser] = useState(false)
-  const [newUser, setNewUser] = useState({ full_name: '', phone: '', role: 'teacher', password: '' })
+  const [newUser, setNewUser] = useState({ full_name: '', phone: '', role: 'teacher' as UserRole, password: '' })
   const [settings, setSettings] = useState<SchoolSettings>({
     sms_notifications: true,
     attendance_alerts: true,
@@ -51,6 +97,9 @@ export default function SettingsPage() {
   const [selectedStage, setSelectedStage] = useState<FeatureStage>(school?.feature_stage as FeatureStage || DEFAULT_FEATURE_STAGE)
   const [savingStage, setSavingStage] = useState(false)
   const stageOrder: FeatureStage[] = ['core', 'academic', 'finance', 'full']
+  const selectedRoleOption = ROLE_OPTIONS.find((option) => option.value === newUser.role)
+  const missingModules = selectedRoleOption?.modules.filter((module) => !canUseModule(selectedStage, module)) || []
+  const missingModuleLabels = missingModules.map((module) => MODULE_LABELS[module])
 
   // Test storage connectivity - uses server-side API to create bucket
   const testStorage = async () => {
@@ -873,13 +922,27 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-[#191c1d] mb-2 block">Role</label>
-                <select value={newUser.role} onChange={(e) => setNewUser({...newUser, role: e.target.value})} className="input">
-                  <option value="teacher">Teacher</option>
-                  <option value="school_admin">Administrator</option>
-                  <option value="dos">Director of Studies</option>
-                  <option value="bursar">Bursar</option>
-                  <option value="secretary">Secretary</option>
+                <select value={newUser.role} onChange={(e) => setNewUser({...newUser, role: e.target.value as UserRole})} className="input">
+                  {ROLE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {ROLE_LABELS[option.value] || option.value}
+                    </option>
+                  ))}
                 </select>
+              </div>
+              <div className="rounded-2xl border border-[#e8eaed] bg-[#f8fafb] p-4 text-sm space-y-1">
+                <div className="text-xs font-semibold uppercase tracking-[0.4em] text-[#7f8ea3]">Access summary</div>
+                <div className="text-sm text-[#191c1d]">
+                  {selectedRoleOption?.description || 'This role inherits the default access for the selected profile.'}
+                </div>
+                <div className="text-xs text-[#5c6670]">
+                  Current stage: {FEATURE_STAGES[selectedStage].label}
+                </div>
+                {missingModuleLabels.length > 0 && (
+                  <div className="text-xs text-[#b45309]">
+                    Stage {FEATURE_STAGES[selectedStage].label} does not include {missingModuleLabels.join(', ')}. Upgrade or choose a broader stage before assigning this role.
+                  </div>
+                )}
               </div>
               <div>
                 <label className="text-sm font-medium text-[#191c1d] mb-2 block">Password</label>

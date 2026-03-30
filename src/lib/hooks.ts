@@ -598,11 +598,42 @@ export function useFeeStructure(schoolId?: string) {
     }
   }
 
+  const createFeeStructure = async (fee: {
+    name: string
+    class_id?: string
+    amount: number
+    term: number
+    academic_year: string
+    due_date?: string
+  }) => {
+    try {
+      const { data, error } = await supabase
+        .from('fee_structure')
+        .insert({
+          school_id: schoolId,
+          name: fee.name,
+          class_id: fee.class_id || null,
+          amount: fee.amount,
+          term: fee.term,
+          academic_year: fee.academic_year,
+          due_date: fee.due_date || null,
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+      setFeeStructure((prev) => [...prev, data])
+      return data
+    } catch (err: any) {
+      throw new Error(err.message)
+    }
+  }
+
   useEffect(() => {
     fetchFeeStructure()
   }, [fetchFeeStructure])
 
-  return { feeStructure, loading, deleteFeeStructure, refetch: fetchFeeStructure }
+  return { feeStructure, loading, deleteFeeStructure, createFeeStructure, refetch: fetchFeeStructure }
 }
 
 // Attendance History hook - for dropout tracking
