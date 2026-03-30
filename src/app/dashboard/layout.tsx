@@ -609,13 +609,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (!user || !pathname || pathname === '/dashboard') return
+    
     const routeKey = Object.keys(roleBasedRoutes).find(key => pathname.startsWith(key))
     if (routeKey) {
       const permission = roleBasedRoutes[routeKey]
       if (user.role && !canAccess(user.role as UserRole, permission)) {
-        console.log('[Access Denied]', user.role, 'trying to access', routeKey, 'requires', permission)
-        if (toast) toast.error('Access denied - you do not have permission to view this page')
-        router.push('/dashboard')
+        // Prevent duplicate toasts by checking last denied path
+        const lastDenied = sessionStorage.getItem('lastDeniedPath')
+        if (lastDenied !== pathname) {
+          sessionStorage.setItem('lastDeniedPath', pathname)
+          console.log('[Access Denied]', user.role, 'trying to access', routeKey, 'requires', permission)
+          if (toast) toast.error(`Access denied: ${routeKey.split('/').pop()} requires ${permission} permission`)
+        }
+        router.replace('/dashboard')
         return
       }
     }
@@ -623,14 +629,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (stageRoute) {
       const moduleKey = MODULE_FOR_ROUTE[stageRoute]
       if (moduleKey && !canUseModule(featureStage, moduleKey)) {
-        if (toast) toast.error('Upgrade your package to access this module')
-        router.push('/dashboard')
+        const lastDenied = sessionStorage.getItem('lastDeniedPath')
+        if (lastDenied !== pathname) {
+          sessionStorage.setItem('lastDeniedPath', pathname)
+          if (toast) toast.error('Upgrade your package to access this module')
+        }
+        router.replace('/dashboard')
         return
       }
     }
+    // Clear denied path when accessing an allowed route
+    sessionStorage.removeItem('lastDeniedPath')
   }, [user, pathname, router, toast, featureStage])
 
   const handleSignOut = async () => {
+    sessionStorage.removeItem('lastDeniedPath')
     await signOut()
     toast.success('Signed out successfully')
   }

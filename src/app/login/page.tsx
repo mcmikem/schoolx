@@ -54,12 +54,114 @@ export default function LoginPage() {
     localStorage.removeItem('demo_school')
     
     if (password === 'demo1234' && demoUsers[cleanPhone]) {
-      const demoUser = demoUsers[cleanPhone]
-      localStorage.setItem('demo_user', JSON.stringify(demoUser))
-      localStorage.setItem('demo_school', JSON.stringify({ id: 'demo-school', name: "St. Mary's Primary School" }))
-      toast.success(`Welcome, ${demoUser.name} (Demo Mode)`)
-      router.push('/dashboard')
-      router.refresh()
+      // Check if demo school exists, if not create it
+      if (!supabase) {
+        // No supabase - use local demo mode
+        const demoUser = demoUsers[cleanPhone]
+        localStorage.setItem('demo_user', JSON.stringify(demoUser))
+        localStorage.setItem('demo_school', JSON.stringify({ id: 'demo-school', name: "St. Mary's Primary School" }))
+        toast.success(`Welcome, ${demoUser.name} (Demo Mode - Offline)`)
+        router.push('/dashboard')
+        router.refresh()
+        setLoading(false)
+        return
+      }
+      
+      // Try to get or create demo school in Supabase
+      const DEMO_SCHOOL_ID = '00000000-0000-0000-0000-000000000001'
+      
+      try {
+        const { data: existingDemoSchool } = await supabase
+          .from('schools')
+          .select('id, name')
+          .eq('id', DEMO_SCHOOL_ID)
+          .single()
+        
+        let demoSchool = existingDemoSchool
+        
+        if (!demoSchool) {
+          console.log('Creating demo school...')
+          // Create demo school with all required fields
+          const { data: newSchool, error: schoolError } = await supabase
+            .from('schools')
+            .insert({
+              id: DEMO_SCHOOL_ID,
+              name: "St. Mary's Primary School (Demo)",
+              school_code: 'DEMO001',
+              district: 'Kampala',
+              subcounty: 'Kampala Central',
+              parish: 'Kampala',
+              village: 'Kampala',
+              school_type: 'primary',
+              ownership: 'private',
+              phone: '+256700000000',
+              email: 'demo@stmartin.edu.ug',
+              primary_color: '#17325F',
+              subscription_plan: 'premium',
+              subscription_status: 'active',
+            })
+            .select('id, name')
+            .single()
+          
+          if (schoolError) {
+            console.error('School creation error:', schoolError)
+          }
+          
+          if (newSchool) {
+            demoSchool = newSchool
+            console.log('Demo school created:', demoSchool)
+          }
+          
+          // Seed demo classes
+          const demoClasses = [
+            { school_id: DEMO_SCHOOL_ID, name: 'P.1', level: 'primary', academic_year: '2026', max_students: 40 },
+            { school_id: DEMO_SCHOOL_ID, name: 'P.2', level: 'primary', academic_year: '2026', max_students: 40 },
+            { school_id: DEMO_SCHOOL_ID, name: 'P.3', level: 'primary', academic_year: '2026', max_students: 40 },
+            { school_id: DEMO_SCHOOL_ID, name: 'P.4', level: 'primary', academic_year: '2026', max_students: 40 },
+            { school_id: DEMO_SCHOOL_ID, name: 'P.5', level: 'primary', academic_year: '2026', max_students: 40 },
+            { school_id: DEMO_SCHOOL_ID, name: 'P.6', level: 'primary', academic_year: '2026', max_students: 40 },
+            { school_id: DEMO_SCHOOL_ID, name: 'P.7', level: 'primary', academic_year: '2026', max_students: 40 },
+          ]
+          const { error: classError } = await supabase.from('classes').insert(demoClasses)
+          if (classError) console.error('Classes error:', classError)
+          
+          // Seed demo subjects
+          const demoSubjects = [
+            { school_id: DEMO_SCHOOL_ID, name: 'English Language', code: 'ENG', level: 'primary', is_compulsory: true },
+            { school_id: DEMO_SCHOOL_ID, name: 'Mathematics', code: 'MATH', level: 'primary', is_compulsory: true },
+            { school_id: DEMO_SCHOOL_ID, name: 'Integrated Science', code: 'SCI', level: 'primary', is_compulsory: true },
+            { school_id: DEMO_SCHOOL_ID, name: 'Social Studies', code: 'SST', level: 'primary', is_compulsory: true },
+            { school_id: DEMO_SCHOOL_ID, name: 'Religious Education', code: 'RE', level: 'primary', is_compulsory: false },
+          ]
+          const { error: subjectError } = await supabase.from('subjects').insert(demoSubjects)
+          if (subjectError) console.error('Subjects error:', subjectError)
+          
+          // Seed demo students
+          const demoStudents = [
+            { school_id: DEMO_SCHOOL_ID, first_name: 'John', last_name: 'Omongoin', gender: 'M', date_of_birth: '2015-01-15', parent_name: 'James Omongoin', parent_phone: '0772123456', status: 'active', student_number: 'DEMO001', admission_date: '2024-01-15' },
+            { school_id: DEMO_SCHOOL_ID, first_name: 'Mary', last_name: 'Akello', gender: 'F', date_of_birth: '2015-03-20', parent_name: 'Peter Akello', parent_phone: '0772987654', status: 'active', student_number: 'DEMO002', admission_date: '2024-01-15' },
+            { school_id: DEMO_SCHOOL_ID, first_name: 'Sam', last_name: 'Wekesa', gender: 'M', date_of_birth: '2014-07-10', parent_name: 'Joseph Wekesa', parent_phone: '0772555432', status: 'active', student_number: 'DEMO003', admission_date: '2024-01-15' },
+          ]
+          const { error: studentError } = await supabase.from('students').insert(demoStudents)
+          if (studentError) console.error('Students error:', studentError)
+        }
+        
+        const demoUser = demoUsers[cleanPhone]
+        localStorage.setItem('demo_user', JSON.stringify(demoUser))
+        localStorage.setItem('demo_school', JSON.stringify({ id: DEMO_SCHOOL_ID, name: demoSchool?.name || "St. Mary's Primary School (Demo)" }))
+        toast.success(`Welcome, ${demoUser.name} (Demo Mode)`)
+        router.push('/dashboard')
+        router.refresh()
+      } catch (err) {
+        console.error('Demo login error:', err)
+        // Still allow login even if seeding fails
+        const demoUser = demoUsers[cleanPhone]
+        localStorage.setItem('demo_user', JSON.stringify(demoUser))
+        localStorage.setItem('demo_school', JSON.stringify({ id: DEMO_SCHOOL_ID, name: "St. Mary's Primary School (Demo)" }))
+        toast.success(`Welcome, ${demoUser.name} (Demo Mode)`)
+        router.push('/dashboard')
+        router.refresh()
+      }
       setLoading(false)
       return
     }

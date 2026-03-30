@@ -109,32 +109,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkUser = useCallback(async () => {
     try {
+      // First check localStorage (同步检查本地存储)
       const demoUserStr = localStorage.getItem('demo_user')
       const demoSchoolStr = localStorage.getItem('demo_school')
       
       if (demoUserStr && demoSchoolStr) {
-        const demoUser = JSON.parse(demoUserStr)
-        const demoSchool = JSON.parse(demoSchoolStr)
-        
-        setUser({
-          id: 'demo-user',
-          auth_id: 'demo',
-          school_id: demoSchool.id,
-          full_name: demoUser.name,
-          phone: '0700000000',
-          role: demoUser.role as any,
-          avatar_url: null,
-          is_active: true,
-        })
-        setSchool({
-          ...demoSchool,
-          feature_stage: (demoSchool.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
-        })
-        setIsDemo(true)
-        setLoading(false)
-        return
+        try {
+          const demoUser = JSON.parse(demoUserStr)
+          const demoSchool = JSON.parse(demoSchoolStr)
+          
+          setUser({
+            id: 'demo-user',
+            auth_id: 'demo',
+            school_id: demoSchool.id,
+            full_name: demoUser.name,
+            phone: '0700000000',
+            role: demoUser.role as any,
+            avatar_url: null,
+            is_active: true,
+          })
+          setSchool({
+            ...demoSchool,
+            feature_stage: (demoSchool.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
+          })
+          setIsDemo(true)
+          setLoading(false)
+          return
+        } catch (e) {
+          // Invalid JSON in localStorage, clear it
+          localStorage.removeItem('demo_user')
+          localStorage.removeItem('demo_school')
+        }
       }
 
+      // Check for real auth session
       if (supabase?.auth) {
         const { data: { session } } = await supabase!.auth.getSession()
         if (session) {
