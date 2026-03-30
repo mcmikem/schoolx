@@ -509,22 +509,22 @@ export default function StudentsPage() {
             )}
           </div>
         ) : (
-          <div className="tbl-wrap">
+          <div className="tbl-wrap table-responsive">
             <table>
               <thead>
                 <tr>
-                  <th>Student</th>
-                  <th>Number</th>
-                  <th>Class</th>
-                  <th>Parent</th>
-                  <th>Phone</th>
-                  <th style={{ width: 50 }}></th>
+                  <th data-label="Student">Student</th>
+                  <th data-label="Number">Number</th>
+                  <th data-label="Class">Class</th>
+                  <th data-label="Parent">Parent</th>
+                  <th data-label="Phone">Phone</th>
+                  <th data-label="Actions"></th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((student) => (
                   <tr key={student.id}>
-                    <td>
+                    <td data-label="Student">
                       <Link href={`/dashboard/students/${student.id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
                         <div style={{ width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', background: student.gender === 'M' ? 'var(--navy)' : 'var(--red)' }}>
                           {student.first_name?.charAt(0)}{student.last_name?.charAt(0)}
@@ -535,15 +535,15 @@ export default function StudentsPage() {
                         </div>
                       </Link>
                     </td>
-                    <td style={{ fontFamily: 'DM Mono', fontSize: 12 }}>{student.student_number || '-'}</td>
-                    <td>
+                    <td data-label="Number" style={{ fontFamily: 'DM Mono', fontSize: 12 }}>{student.student_number || '-'}</td>
+                    <td data-label="Class">
                       <span style={{ padding: '4px 10px', background: 'var(--bg)', borderRadius: 20, fontSize: 11, fontWeight: 600 }}>
                         {student.classes?.name || '-'}
                       </span>
                     </td>
-                    <td style={{ fontSize: 13 }}>{student.parent_name || '-'}</td>
-                    <td style={{ fontSize: 13, fontFamily: 'DM Mono' }}>{student.parent_phone || '-'}</td>
-                    <td>
+                    <td data-label="Parent" style={{ fontSize: 13 }}>{student.parent_name || '-'}</td>
+                    <td data-label="Phone" style={{ fontSize: 13, fontFamily: 'DM Mono' }}>{student.parent_phone || '-'}</td>
+                    <td data-label="Actions">
                       <div style={{ display: 'flex', gap: 4 }}>
                         <button onClick={() => setSmsTarget(student)} title="SMS Parent" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 6 }}>
                           <MaterialIcon style={{ fontSize: 16, color: 'var(--t3)' }}>sms</MaterialIcon>

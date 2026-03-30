@@ -372,11 +372,11 @@ export default function FeesPage() {
         <button onClick={() => setTab('structure')} className={`px-6 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap ${tab === 'structure' ? 'bg-primary text-white' : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'}`}>Fee Structure</button>
       </div>
 
-      {/* Content */}
-      {tab === 'balances' && (
-        <div className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-outline-variant/5">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
+{/* Content */}
+       {tab === 'balances' && (
+         <div className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-outline-variant/5">
+           <div className="overflow-x-auto table-responsive">
+             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-surface-container-low text-left">
                   <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Student</th>
@@ -421,10 +421,10 @@ export default function FeesPage() {
         </div>
       )}
 
-      {tab === 'momo' && (
-        <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
+{tab === 'momo' && (
+         <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
+           <div className="overflow-x-auto table-responsive">
+             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-surface-container-low text-left">
                   <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Date</th>
@@ -497,17 +497,17 @@ export default function FeesPage() {
         </div>
       )}
 
-      {tab === 'structure' && (
-        <div>
-          <div className="flex justify-end mb-4">
-            <button onClick={() => setShowFeeModal(true)} className="btn btn-primary">
-              <MaterialIcon icon="add" />
-              Add Fee
-            </button>
-          </div>
-          <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
+{tab === 'structure' && (
+         <div>
+           <div className="flex justify-end mb-4">
+             <button onClick={() => setShowFeeModal(true)} className="btn btn-primary">
+               <MaterialIcon icon="add" />
+               Add Fee
+             </button>
+           </div>
+           <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
+             <div className="overflow-x-auto table-responsive">
+               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-surface-container-low text-left">
                     <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Fee Name</th>
