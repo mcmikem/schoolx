@@ -528,12 +528,16 @@ export default function StudentTransfersPage() {
             <form onSubmit={handleTransferOut} style={{ padding: 20 }}>
               <div style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Select Student</label>
-                <select value={transferOutForm.student_id} onChange={(e) => setTransferOutForm({ ...transferOutForm, student_id: e.target.value })} className="input" required>
-                  <option value="">Select student...</option>
-                  {activeStudents.map(s => (
-                    <option key={s.id} value={s.id}>{s.first_name} {s.last_name} - {s.classes?.name || 'No class'}</option>
-                  ))}
-                </select>
+                {activeStudents.length === 0 ? (
+                  <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#92400E' }}>No active students</div>
+                ) : (
+                  <select value={transferOutForm.student_id} onChange={(e) => setTransferOutForm({ ...transferOutForm, student_id: e.target.value })} className="input" required>
+                    <option value="">Select student...</option>
+                    {activeStudents.map(s => (
+                      <option key={s.id} value={s.id}>{s.first_name} {s.last_name} - {s.classes?.name || 'No class'}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div style={{ marginBottom: 16 }}>

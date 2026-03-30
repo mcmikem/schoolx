@@ -188,16 +188,20 @@ export default function DormAttendancePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Dorm</label>
-              <select
-                value={selectedDorm?.id || ''}
-                onChange={(e) => setSelectedDorm(dorms.find(d => d.id === e.target.value))}
-                className="input"
-              >
-                <option value="">Select dorm...</option>
-                {dorms.map(d => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
+              {dorms.length === 0 ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No dorms</div>
+              ) : (
+                <select
+                  value={selectedDorm?.id || ''}
+                  onChange={(e) => setSelectedDorm(dorms.find(d => d.id === e.target.value))}
+                  className="input"
+                >
+                  <option value="">Select dorm...</option>
+                  {dorms.map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Date</label>
