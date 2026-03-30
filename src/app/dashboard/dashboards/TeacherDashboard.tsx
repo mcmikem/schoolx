@@ -1,17 +1,14 @@
 'use client'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useClasses, useSubjects } from '@/lib/hooks'
-import { 
-  Bell, Moon, Building2, Users, BookOpen, Calendar, 
-  Plus, UserCheck, PenTool, FileText, ClipboardList,
-  Home, GraduationCap
-} from 'lucide-react'
+
+function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
+}
 
 export default function TeacherDashboard() {
-  const pathname = usePathname()
   const { school, user } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
   const { students } = useStudents(school?.id)
@@ -32,185 +29,164 @@ export default function TeacherDashboard() {
     return students.filter(s => s.class_id === classId).length
   }
 
-  const navItems = [
-    { href: '/dashboard', icon: Home, label: 'Home', active: pathname === '/dashboard' },
-    { href: '/dashboard/attendance', icon: UserCheck, label: 'My Classes' },
-    { href: '/dashboard/grades', icon: BookOpen, label: 'Subjects' },
-    { href: '/dashboard/profile', icon: GraduationCap, label: 'Profile' },
-  ]
-
   return (
-    <div className="min-h-screen bg-slate-100" style={{ maxWidth: 430, margin: '0 auto' }}>
-      {/* TOPBAR */}
-      <div className="bg-white px-5 pt-12 pb-4 border-b border-slate-200 flex justify-between items-start sticky top-0 z-50 shadow-sm">
+    <div className="content">
+      {/* PAGE HEADER - Wireframe style */}
+      <div className="page-header" style={{ background: 'var(--white)', padding: '24px 20px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
         <div>
-          <h1 className="text-xl font-extrabold text-[#1A3A6B] leading-tight" style={{ letterSpacing: '-0.3px' }}>
-            Dashboard<br />Overview
-          </h1>
-          <p className="text-xs text-slate-500 font-semibold mt-1">{formatDate(currentDate)}</p>
+          <div className="ph-title" style={{ fontSize: '21px', fontWeight: 900, color: '#1A3A6B', lineHeight: 1.1, letterSpacing: '-0.3px' }}>
+            {greeting}, {user?.full_name?.split(' ')[0]}
+          </div>
+          <div className="ph-sub" style={{ fontSize: '12px', color: 'var(--slate)', fontWeight: 600, marginTop: '4px' }}>
+            {school?.name} • {formatDate(currentDate)}
+          </div>
         </div>
-        <div className="flex items-center gap-2 mt-1">
-          <button className="w-9 h-9 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center relative">
-            <Bell className="w-4 h-4 text-slate-500" />
-            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full border border-white"></span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+          <button className="icon-btn" style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}>
+            <MaterialIcon icon="notifications" style={{ fontSize: 18, color: 'var(--slate)' }} />
+            <span style={{ position: 'absolute', top: 7, right: 7, width: 7, height: 7, background: '#EF4444', borderRadius: '50%', border: '1.5px solid var(--white)' }}></span>
           </button>
-          <button className="w-9 h-9 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center">
-            <Moon className="w-4 h-4 text-slate-500" />
+          <button className="icon-btn" style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <MaterialIcon icon="dark_mode" style={{ fontSize: 18, color: 'var(--slate)' }} />
           </button>
-          <button className="h-9 bg-[#1A3A6B] rounded-full flex items-center gap-1.5 px-3 pl-1.5 shadow-md">
-            <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-              <span className="text-xs font-extrabold text-white">{user?.full_name?.charAt(0) || 'T'}</span>
+          <button style={{ height: 36, background: '#1A3A6B', border: 'none', borderRadius: 20, display: 'flex', alignItems: 'center', gap: '6px', padding: '0 12px 0 5px', cursor: 'pointer', boxShadow: 'var(--shadow)' }}>
+            <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(255,255,255,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: 'white' }}>{user?.full_name?.charAt(0) || 'T'}</span>
             </div>
-            <span className="text-sm font-bold text-white">{user?.full_name?.split(' ')[0] || 'Teacher'}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{user?.full_name?.split(' ')[0]}</span>
           </button>
         </div>
       </div>
 
-      {/* BODY */}
-      <div className="p-4 pb-28 flex flex-col gap-4">
-        {/* GREETING CARD */}
-        <div className="bg-[#1A3A6B] rounded-2xl p-4.5 shadow-lg relative overflow-hidden">
-          <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/5"></div>
-          <div className="absolute -bottom-10 left-5 w-24 h-24 rounded-full bg-white/4"></div>
+      <div style={{ padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* GREETING CARD - Blue wireframe style */}
+        <div style={{ background: '#1A3A6B', borderRadius: 16, padding: '18px 18px 16px', boxShadow: 'var(--shadow-md)', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: -30, right: -30, width: 130, height: 130, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }}></div>
+          <div style={{ position: 'absolute', bottom: -40, left: 20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }}></div>
           
-          <div className="flex justify-between items-start relative z-10">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', zIndex: 2 }}>
             <div>
-              <h2 className="text-lg font-extrabold text-white leading-tight">{greeting}, {user?.full_name?.split(' ')[0]}</h2>
-              <p className="text-xs text-white/60 mt-1 font-medium">{school?.name}</p>
+              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', fontWeight: 500, marginTop: 4 }}>{school?.name}</div>
             </div>
-            <div className="bg-white/12 rounded-lg px-2.5 py-1.5 text-right">
-              <p className="text-xs font-bold text-white/85">{academicYear}</p>
-              <p className="text-xs font-bold text-white/85">Term {currentTerm}</p>
+            <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 8, padding: '6px 10px', textAlign: 'right' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>{academicYear}</div>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>Term {currentTerm}</div>
             </div>
           </div>
 
           {/* STATS */}
-          <div className="grid grid-cols-3 gap-2 mt-4 relative z-10">
-            <div className="bg-white/10 rounded-xl p-2.5 text-center border border-white/8">
-              <div className="flex justify-center mb-1">
-                <Building2 className="w-4 h-4 text-amber-300" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '14px', position: 'relative', zIndex: 2 }}>
+            <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: '10px 8px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 5 }}>
+                <MaterialIcon icon="school" style={{ fontSize: 16, color: '#FCD34D' }} />
               </div>
-              <div className="text-xl font-extrabold text-white">{myClasses.length}</div>
-              <div className="text-[9.5px] text-white/55 font-semibold mt-0.5 uppercase tracking-wide">My Classes</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: 'white', letterSpacing: '-0.8px', lineHeight: 1 }}>{myClasses.length}</div>
+              <div style={{ fontSize: '9.5px', color: 'rgba(255,255,255,0.55)', fontWeight: 600, marginTop: 3 }}>My Classes</div>
             </div>
-            <div className="bg-white/10 rounded-xl p-2.5 text-center border border-white/8">
-              <div className="flex justify-center mb-1">
-                <BookOpen className="w-4 h-4 text-violet-300" />
+            <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: '10px 8px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 5 }}>
+                <MaterialIcon icon="menu_book" style={{ fontSize: 16, color: '#C4B5FD' }} />
               </div>
-              <div className="text-xl font-extrabold text-white">{mySubjects.length}</div>
-              <div className="text-[9.5px] text-white/55 font-semibold mt-0.5 uppercase tracking-wide">Subjects</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: 'white', letterSpacing: '-0.8px', lineHeight: 1 }}>{mySubjects.length}</div>
+              <div style={{ fontSize: '9.5px', color: 'rgba(255,255,255,0.55)', fontWeight: 600, marginTop: 3 }}>Subjects</div>
             </div>
-            <div className="bg-white/10 rounded-xl p-2.5 text-center border border-white/8">
-              <div className="flex justify-center mb-1">
-                <Users className="w-4 h-4 text-blue-300" />
+            <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: '10px 8px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 5 }}>
+                <MaterialIcon icon="group" style={{ fontSize: 16, color: '#93C5FD' }} />
               </div>
-              <div className="text-xl font-extrabold text-white">{students.length}</div>
-              <div className="text-[9.5px] text-white/55 font-semibold mt-0.5 uppercase tracking-wide">Students</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: 'white', letterSpacing: '-0.8px', lineHeight: 1 }}>{students.length}</div>
+              <div style={{ fontSize: '9.5px', color: 'rgba(255,255,255,0.55)', fontWeight: 600, marginTop: 3 }}>Students</div>
             </div>
           </div>
         </div>
 
         {/* QUICK BTNS */}
-        <div className="grid grid-cols-2 gap-2.5">
-          <Link href="/dashboard/timetable" className="flex items-center justify-center gap-2 py-3 rounded-xl border border-slate-200 bg-white shadow-sm text-sm font-bold text-slate-900">
-            <Calendar className="w-4 h-4" />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          <Link href="/dashboard/timetable" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '13px', borderRadius: 12, border: '1.5px solid var(--border)', background: 'var(--white)', fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', cursor: 'pointer', textDecoration: 'none', boxShadow: 'var(--shadow-sm)' }}>
+            <MaterialIcon icon="calendar_month" style={{ fontSize: 16 }} />
             My Schedule
           </Link>
-          <Link href="/dashboard/grades" className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[#1A3A6B] shadow-md text-sm font-bold text-white">
-            <Plus className="w-4 h-4" />
+          <Link href="/dashboard/grades" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '13px', borderRadius: 12, border: 'none', background: '#1A3A6B', fontSize: '13.5px', fontWeight: 700, color: 'white', cursor: 'pointer', textDecoration: 'none', boxShadow: 'var(--shadow)' }}>
+            <MaterialIcon icon="add" style={{ fontSize: 16 }} />
             Quick Entry
           </Link>
         </div>
 
-        {/* QUICK ACTIONS */}
+        {/* QUICK ACTIONS - Scrollable tiles */}
         <div>
-          <div className="flex justify-between items-center mb-2.5">
-            <h3 className="text-sm font-extrabold text-slate-900">Quick Actions</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.1px' }}>Quick Actions</div>
           </div>
-          <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
-            <Link href="/dashboard/attendance" className="flex-shrink-0 bg-white border border-slate-200 rounded-2xl p-3 flex flex-col gap-2 shadow-sm w-24 active:scale-95 transition-transform">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#FEF3C7' }}>
-                <UserCheck className="w-4.5 h-4.5 text-amber-600" />
+          <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', margin: '0 -16px', padding: '2px 16px 6px', scrollbarWidth: 'none' }}>
+            <Link href="/dashboard/attendance" style={{ flexShrink: 0, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: '13px 11px', width: 92, display: 'flex', flexDirection: 'column', gap: 9, cursor: 'pointer', textDecoration: 'none', boxShadow: 'var(--shadow-sm)' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FEF3C7' }}>
+                <MaterialIcon icon="how_to_reg" style={{ fontSize: 18, color: '#D97706' }} />
               </div>
-              <div className="text-xs font-bold text-slate-900 leading-tight">Take Attendance</div>
-              <div className="text-[10px] text-slate-500 -mt-0.5 font-medium">Daily register</div>
+              <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.3 }}>Take Attendance</div>
+              <div style={{ fontSize: 10, color: 'var(--slate)', lineHeight: 1.2, marginTop: -5, fontWeight: 500 }}>Daily register</div>
             </Link>
-            <Link href="/dashboard/grades" className="flex-shrink-0 bg-white border border-slate-200 rounded-2xl p-3 flex flex-col gap-2 shadow-sm w-24 active:scale-95 transition-transform">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#EDE9FE' }}>
-                <PenTool className="w-4.5 h-4.5 text-violet-600" />
+            <Link href="/dashboard/grades" style={{ flexShrink: 0, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: '13px 11px', width: 92, display: 'flex', flexDirection: 'column', gap: 9, cursor: 'pointer', textDecoration: 'none', boxShadow: 'var(--shadow-sm)' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#EDE9FE' }}>
+                <MaterialIcon icon="edit_note" style={{ fontSize: 18, color: '#6D28D9' }} />
               </div>
-              <div className="text-xs font-bold text-slate-900 leading-tight">Enter Grades</div>
-              <div className="text-[10px] text-slate-500 -mt-0.5 font-medium">Marks entry</div>
+              <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.3 }}>Enter Grades</div>
+              <div style={{ fontSize: 10, color: 'var(--slate)', lineHeight: 1.2, marginTop: -5, fontWeight: 500 }}>Marks entry</div>
             </Link>
-            <Link href="/dashboard/homework" className="flex-shrink-0 bg-white border border-slate-200 rounded-2xl p-3 flex flex-col gap-2 shadow-sm w-24 active:scale-95 transition-transform">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#DCFCE7' }}>
-                <FileText className="w-4.5 h-4.5 text-green-600" />
+            <Link href="/dashboard/homework" style={{ flexShrink: 0, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: '13px 11px', width: 92, display: 'flex', flexDirection: 'column', gap: 9, cursor: 'pointer', textDecoration: 'none', boxShadow: 'var(--shadow-sm)' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#DCFCE7' }}>
+                <MaterialIcon icon="assignment_add" style={{ fontSize: 18, color: '#15803D' }} />
               </div>
-              <div className="text-xs font-bold text-slate-900 leading-tight">Assign Homework</div>
-              <div className="text-[10px] text-slate-500 -mt-0.5 font-medium">Create assignment</div>
+              <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.3 }}>Assign Homework</div>
+              <div style={{ fontSize: 10, color: 'var(--slate)', lineHeight: 1.2, marginTop: -5, fontWeight: 500 }}>Create assignment</div>
             </Link>
-            <Link href="/dashboard/lesson-plans" className="flex-shrink-0 bg-white border border-slate-200 rounded-2xl p-3 flex flex-col gap-2 shadow-sm w-24 active:scale-95 transition-transform">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#FEFCE8' }}>
-                <ClipboardList className="w-4.5 h-4.5 text-yellow-600" />
+            <Link href="/dashboard/lesson-plans" style={{ flexShrink: 0, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: '13px 11px', width: 92, display: 'flex', flexDirection: 'column', gap: 9, cursor: 'pointer', textDecoration: 'none', boxShadow: 'var(--shadow-sm)' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FEFCE8' }}>
+                <MaterialIcon icon="event_note" style={{ fontSize: 18, color: '#CA8A04' }} />
               </div>
-              <div className="text-xs font-bold text-slate-900 leading-tight">Lesson Plans</div>
-              <div className="text-[10px] text-slate-500 -mt-0.5 font-medium">Plan lessons</div>
+              <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.3 }}>Lesson Plans</div>
+              <div style={{ fontSize: 10, color: 'var(--slate)', lineHeight: 1.2, marginTop: -5, fontWeight: 500 }}>Plan lessons</div>
             </Link>
           </div>
         </div>
 
         {/* CLASSES & SUBJECTS */}
-        <div className="grid grid-cols-2 gap-3">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           {/* CLASSES */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-sm">
-            <h3 className="text-sm font-extrabold text-slate-900">My Classes</h3>
-            <p className="text-[10.5px] text-slate-500 mt-0.5 mb-3 font-medium">{myClasses.length} classes assigned</p>
-            <div className="h-px bg-slate-200 mb-3"></div>
-            <div className="grid grid-cols-2 gap-1.5">
+          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 14, boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text)' }}>My Classes</div>
+            <div style={{ fontSize: '10.5px', color: 'var(--slate)', marginTop: 2, marginBottom: 10, fontWeight: 500 }}>{myClasses.length} classes assigned</div>
+            <div style={{ height: 1, background: 'var(--border)', marginBottom: 10 }}></div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
               {myClasses.map((cls: any) => (
-                <Link key={cls.id} href={`/dashboard/grades?class=${cls.id}`} className="border border-slate-200 rounded-xl p-2 text-center active:bg-slate-100 transition-colors">
-                  <div className="flex justify-center mb-1">
-                    <Building2 className="w-3.5 h-3.5 text-amber-600" />
+                <Link key={cls.id} href={`/dashboard/grades?class=${cls.id}`} style={{ border: '1.5px solid var(--border)', borderRadius: 10, padding: '9px 6px', textAlign: 'center', cursor: 'pointer', background: 'var(--white)', textDecoration: 'none' }}>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 5 }}>
+                    <MaterialIcon icon="school" style={{ fontSize: 14, color: '#D97706' }} />
                   </div>
-                  <div className="text-[10.5px] font-bold text-slate-900">{cls.name}</div>
-                  <div className="text-[9px] text-slate-500 mt-0.5 font-medium">{getStudentCountForClass(cls.id)} students</div>
+                  <div style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>{cls.name}</div>
+                  <div style={{ fontSize: 9, color: 'var(--slate)', marginTop: 2, fontWeight: 500 }}>{getStudentCountForClass(cls.id)} students</div>
                 </Link>
               ))}
             </div>
           </div>
 
           {/* SUBJECTS */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-sm">
-            <h3 className="text-sm font-extrabold text-slate-900">My Subjects</h3>
-            <p className="text-[10.5px] text-slate-500 mt-0.5 mb-3 font-medium">{mySubjects.length} subjects assigned</p>
-            <div className="h-px bg-slate-200 mb-3"></div>
-            <div className="grid grid-cols-2 gap-1.5">
+          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 14, boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text)' }}>My Subjects</div>
+            <div style={{ fontSize: '10.5px', color: 'var(--slate)', marginTop: 2, marginBottom: 10, fontWeight: 500 }}>{mySubjects.length} subjects assigned</div>
+            <div style={{ height: 1, background: 'var(--border)', marginBottom: 10 }}></div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
               {mySubjects.map((subject: any) => (
-                <Link key={subject.id} href={`/dashboard/grades?subject=${subject.id}`} className="border border-slate-200 rounded-xl p-2 text-center active:bg-slate-100 transition-colors">
-                  <div className="flex justify-center mb-1">
-                    <BookOpen className="w-3.5 h-3.5 text-violet-600" />
+                <Link key={subject.id} href={`/dashboard/grades?subject=${subject.id}`} style={{ border: '1.5px solid var(--border)', borderRadius: 10, padding: '9px 6px', textAlign: 'center', cursor: 'pointer', background: 'var(--white)', textDecoration: 'none' }}>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 5 }}>
+                    <MaterialIcon icon="menu_book" style={{ fontSize: 14, color: '#6D28D9' }} />
                   </div>
-                  <div className="text-[10.5px] font-bold text-slate-900">{subject.name}</div>
-                  <div className="text-[9px] text-slate-500 mt-0.5 font-medium">{subject.code}</div>
+                  <div style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>{subject.name}</div>
+                  <div style={{ fontSize: 9, color: 'var(--slate)', marginTop: 2, fontWeight: 500 }}>{subject.code}</div>
                 </Link>
               ))}
             </div>
           </div>
         </div>
-      </div>
-
-      {/* BOTTOM NAV */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full bg-white border-t border-slate-200 flex py-2.5 px-1 shadow-lg z-100" style={{ maxWidth: 430 }}>
-        {navItems.map((item) => {
-          const Icon = item.icon
-          const isActive = item.active
-          return (
-            <Link key={item.href} href={item.href} className="flex-1 flex flex-col items-center gap-0.5 py-1 px-0.5 rounded-xl">
-              <Icon className={`w-5 h-5 ${isActive ? 'text-[#1D4ED8]' : 'text-slate-400'}`} />
-              <span className={`text-[9.5px] font-semibold ${isActive ? 'text-[#1D4ED8] font-extrabold' : 'text-slate-500'}`}>{item.label}</span>
-            </Link>
-          )
-        })}
       </div>
     </div>
   )
