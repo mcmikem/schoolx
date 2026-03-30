@@ -1,12 +1,12 @@
 {
-  "name": "SchoolX - School Management",
+  "name": "SchoolX - School Management System",
   "short_name": "SchoolX",
-  "description": "Modern school management system for educational institutions",
+  "description": "Complete school management for Ugandan schools - attendance, fees, grades, SMS & more",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f9fafb",
   "theme_color": "#17325F",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
   "scope": "/",
   "categories": ["education", "productivity"],
   "icons": [
@@ -14,41 +14,57 @@
       "src": "/icons/icon-192x192.svg",
       "sizes": "192x192",
       "type": "image/svg+xml",
-      "purpose": "maskable any"
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-512x512.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
-      "purpose": "maskable any"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
     {
       "name": "Dashboard",
+      "short_name": "Dashboard",
       "url": "/dashboard",
-      "icons": [{ "src": "/icons/icon-192x192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+      "icons": [{ "src": "/icons/icon-192x192.svg", "sizes": "192x192" }]
     },
     {
       "name": "Attendance",
+      "short_name": "Attendance",
       "url": "/dashboard/attendance",
-      "icons": [{ "src": "/icons/icon-192x192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+      "icons": [{ "src": "/icons/icon-192x192.svg", "sizes": "192x192" }]
     },
     {
       "name": "Students",
+      "short_name": "Students",
       "url": "/dashboard/students",
-      "icons": [{ "src": "/icons/icon-192x192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
-    }
-  ],
-  "screenshots": [
+      "icons": [{ "src": "/icons/icon-192x192.svg", "sizes": "192x192" }]
+    },
     {
-      "src": "/icons/icon-512x512.svg",
-      "sizes": "512x512",
-      "type": "image/svg+xml",
-      "form_factor": "wide",
-      "label": "Dashboard"
+      "name": "Fees",
+      "short_name": "Fees",
+      "url": "/dashboard/fees",
+      "icons": [{ "src": "/icons/icon-192x192.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Messages",
+      "short_name": "Messages",
+      "url": "/dashboard/messages",
+      "icons": [{ "src": "/icons/icon-192x192.svg", "sizes": "192x192" }]
     }
   ],
+  "screenshots": [],
   "related_applications": [],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
 }
