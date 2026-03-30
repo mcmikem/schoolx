@@ -655,10 +655,17 @@ export default function FeesPage() {
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Class (Optional - leave empty for all)</label>
-                <select value={newFee.class_id} onChange={(e) => setNewFee({...newFee, class_id: e.target.value})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm">
-                  <option value="">All Classes</option>
-                  {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                {classes.length === 0 ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <p className="text-amber-800 text-sm font-medium">No classes found</p>
+                    <p className="text-amber-600 text-xs mt-1">Contact support if this persists.</p>
+                  </div>
+                ) : (
+                  <select value={newFee.class_id} onChange={(e) => setNewFee({...newFee, class_id: e.target.value})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm">
+                    <option value="">All Classes</option>
+                    {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

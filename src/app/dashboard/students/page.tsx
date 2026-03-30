@@ -601,12 +601,19 @@ export default function StudentsPage() {
 
               <div style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Class</label>
-                <select value={newStudent.class_id} onChange={(e) => setNewStudent({ ...newStudent, class_id: e.target.value })} className="input" required>
-                  <option value="">Select class</option>
-                  {classes.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                {classes.length === 0 ? (
+                  <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 12, padding: 16 }}>
+                    <p style={{ color: '#92400E', fontSize: 14, fontWeight: 600 }}>No classes found</p>
+                    <p style={{ color: '#B45309', fontSize: 12, marginTop: 4 }}>Contact support if this persists.</p>
+                  </div>
+                ) : (
+                  <select value={newStudent.class_id} onChange={(e) => setNewStudent({ ...newStudent, class_id: e.target.value })} className="input" required>
+                    <option value="">Select class</option>
+                    {classes.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div style={{ marginBottom: 16 }}>
