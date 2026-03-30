@@ -228,7 +228,7 @@ export default function AttendancePage() {
             >
               <option value="">Select a class</option>
               {filteredClasses.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+                <option key={c.id} value={c.id}>{c.name} ({c.level})</option>
               ))}
             </select>
           </div>
