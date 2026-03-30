@@ -229,31 +229,39 @@ export default function HomeworkPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-2 block">Class</label>
-                  <select
-                    value={newHomework.class_id}
-                    onChange={e => setNewHomework({...newHomework, class_id: e.target.value})}
-                    className="input"
-                    required
-                  >
-                    <option value="">Select Class</option>
-                    {classes.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+                  {classes.length === 0 ? (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">No classes available</div>
+                  ) : (
+                    <select
+                      value={newHomework.class_id}
+                      onChange={e => setNewHomework({...newHomework, class_id: e.target.value})}
+                      className="input"
+                      required
+                    >
+                      <option value="">Select Class</option>
+                      {classes.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-2 block">Subject</label>
-                  <select
-                    value={newHomework.subject_id}
-                    onChange={e => setNewHomework({...newHomework, subject_id: e.target.value})}
-                    className="input"
-                    required
-                  >
-                    <option value="">Select Subject</option>
-                    {subjects.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
+                  {subjects.length === 0 ? (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">No subjects available</div>
+                  ) : (
+                    <select
+                      value={newHomework.subject_id}
+                      onChange={e => setNewHomework({...newHomework, subject_id: e.target.value})}
+                      className="input"
+                      required
+                    >
+                      <option value="">Select Subject</option>
+                      {subjects.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">

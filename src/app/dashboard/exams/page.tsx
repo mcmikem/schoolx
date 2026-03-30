@@ -145,21 +145,29 @@ export default function ExamsPage() {
         <div style={{ padding: 14, borderBottom: '1px solid var(--border)', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ minWidth: 150 }}>
             <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 4, display: 'block' }}>Class</label>
-            <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="input" style={{ height: 36 }}>
-              <option value="">Select class</option>
-              {classes.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+            {classes.length === 0 ? (
+              <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#92400E' }}>No classes</div>
+            ) : (
+              <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="input" style={{ height: 36 }}>
+                <option value="">Select class</option>
+                {classes.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            )}
           </div>
           <div style={{ minWidth: 150 }}>
             <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 4, display: 'block' }}>Subject</label>
-            <select value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)} className="input" style={{ height: 36 }}>
-              <option value="">Select subject</option>
-              {subjects.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
+            {subjects.length === 0 ? (
+              <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#92400E' }}>No subjects</div>
+            ) : (
+              <select value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)} className="input" style={{ height: 36 }}>
+                <option value="">Select subject</option>
+                {subjects.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            )}
           </div>
           <div style={{ minWidth: 150 }}>
             <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 4, display: 'block' }}>Exam Type</label>
