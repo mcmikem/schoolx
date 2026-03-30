@@ -695,10 +695,6 @@ code.mono { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--t3)
   }
 }
 
-  .mockup-phone {
-    transform: rotate(-2deg);
-  }
-}
 @media (max-width: 768px) {
   html { font-size: 14px; }
   body { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
