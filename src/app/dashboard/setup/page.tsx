@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS schools (
   uneab_center_number TEXT,
   subscription_plan TEXT DEFAULT 'free',
   subscription_status TEXT DEFAULT 'trial',
+  feature_stage TEXT DEFAULT 'core',
   trial_ends_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

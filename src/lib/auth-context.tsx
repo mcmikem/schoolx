@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import { supabase } from './supabase'
 import { useRouter } from 'next/navigation'
 import { PlanType } from './payments/subscription-client'
+import { FeatureStage, DEFAULT_FEATURE_STAGE } from './featureStages'
 
 interface User {
   id: string
@@ -31,6 +32,7 @@ interface School {
   next_payment_date?: string | null
   phone?: string
   email?: string
+  feature_stage?: FeatureStage
 }
 
 interface AuthContextType {
@@ -94,7 +96,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .single()
 
         if (schoolData) {
-          setSchool(schoolData)
+          setSchool({
+            ...schoolData,
+            feature_stage: (schoolData.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
+          })
         }
       }
     } catch (error) {
@@ -121,7 +126,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           avatar_url: null,
           is_active: true,
         })
-        setSchool(demoSchool)
+        setSchool({
+          ...demoSchool,
+          feature_stage: (demoSchool.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
+        })
         setIsDemo(true)
         setLoading(false)
         return
@@ -229,7 +237,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', user.school_id)
         .single()
       if (schoolData) {
-        setSchool(schoolData)
+        setSchool({
+          ...schoolData,
+          feature_stage: (schoolData.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
+        })
       }
     } catch (error) {
       console.error('Error refreshing school:', error)

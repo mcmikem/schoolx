@@ -12,6 +12,13 @@ import { useAcademic } from '@/lib/academic-context'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { useToast } from '@/components/Toast'
+import {
+  FEATURE_STAGES,
+  FeatureStage,
+  DEFAULT_FEATURE_STAGE,
+  canUseModule,
+  ModuleKey,
+} from '@/lib/featureStages'
 
 const roleBasedRoutes: Record<string, keyof RolePermissions> = {
   '/dashboard/students': 'students',
@@ -39,6 +46,55 @@ const roleBasedRoutes: Record<string, keyof RolePermissions> = {
   '/dashboard/dropout-tracking': 'students',
   '/dashboard/payroll': 'payroll',
   '/dashboard/staff-reviews': 'performance',
+}
+
+const MODULE_FOR_ROUTE: Record<string, ModuleKey> = {
+  '/dashboard': 'dashboard',
+  '/dashboard/attendance': 'attendance',
+  '/dashboard/students': 'attendance',
+  '/dashboard/grades': 'marks',
+  '/dashboard/exams': 'exam',
+  '/dashboard/uneb': 'exam',
+  '/dashboard/uneb-registration': 'exam',
+  '/dashboard/marks-completion': 'marks',
+  '/dashboard/comments': 'communications',
+  '/dashboard/messages': 'communications',
+  '/dashboard/notices': 'communications',
+  '/dashboard/sms-templates': 'communications',
+  '/dashboard/homework': 'marks',
+  '/dashboard/homework-submissions': 'marks',
+  '/dashboard/lesson-plans': 'marks',
+  '/dashboard/scheme-of-work': 'marks',
+  '/dashboard/discipline': 'operations',
+  '/dashboard/behavior': 'operations',
+  '/dashboard/warnings': 'reports',
+  '/dashboard/dorm': 'dorm',
+  '/dashboard/dorm-attendance': 'dorm',
+  '/dashboard/health': 'health',
+  '/dashboard/library': 'operations',
+  '/dashboard/visitors': 'operations',
+  '/dashboard/fees': 'finance',
+  '/dashboard/payment-plans': 'finance',
+  '/dashboard/invoicing': 'finance',
+  '/dashboard/payroll': 'finance',
+  '/dashboard/cashbook': 'finance',
+  '/dashboard/budget': 'finance',
+  '/dashboard/expense-approvals': 'finance',
+  '/dashboard/reports': 'reports',
+  '/dashboard/moes-reports': 'reports',
+  '/dashboard/analytics': 'analytics',
+  '/dashboard/trends': 'analytics',
+  '/dashboard/export': 'exports',
+  '/dashboard/import': 'exports',
+  '/dashboard/settings': 'operations',
+  '/dashboard/staff': 'staff',
+  '/dashboard/staff-attendance': 'staff',
+  '/dashboard/staff-reviews': 'staff',
+  '/dashboard/staff-activity': 'staff',
+  '/dashboard/leave': 'staff',
+  '/dashboard/leave-approvals': 'staff',
+  '/dashboard/transport': 'operations',
+  '/dashboard/dorm-supplies': 'operations',
 }
 
 const navItemsByRole: Record<string, { href: string; label: string; icon: string; badge?: string }[]> = {
@@ -363,6 +419,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { feeStructure } = useFeeStructure(school?.id)
   const { currentTerm, academicYear } = useAcademic()
 
+  const featureStage = (school?.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE
+  const shouldShowRoute = (route: string) => {
+    const moduleKey = MODULE_FOR_ROUTE[route]
+    if (!moduleKey) return true
+    return canUseModule(featureStage, moduleKey)
+  }
+
   const searchResults = useMemo<DashboardSearchResult[]>(() => {
     const studentResults = students.slice(0, 8).map(student => ({
       id: `student-${student.id}`,
@@ -517,7 +580,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         router.push('/dashboard')
       }
     }
-  }, [user, pathname, router, toast])
+    const stageRoute = Object.keys(MODULE_FOR_ROUTE).find(key => pathname.startsWith(key))
+    if (stageRoute) {
+      const moduleKey = MODULE_FOR_ROUTE[stageRoute]
+      if (moduleKey && !canUseModule(featureStage, moduleKey)) {
+        toast.error('Upgrade your package to access this module')
+        router.push('/dashboard')
+      }
+    }
+  }, [user, pathname, router, toast, featureStage])
 
   const handleSignOut = async () => {
     await signOut()
