@@ -8,6 +8,38 @@ function MaterialIcon({ icon, className, style, children }: { icon?: string; cla
   return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
 }
 
+const subjectIcons: Record<string, string> = {
+  'English': 'menu_book',
+  'Maths': 'calculate',
+  'Mathematics': 'calculate',
+  'Science': 'science',
+  'SST': 'public',
+  'Social Studies': 'public',
+  'CRE': 'auto_stories',
+  'Religious Education': 'auto_stories',
+  'PE': 'sports_soccer',
+  'Physical Education': 'sports_soccer',
+  'Music': 'music_note',
+  'Art': 'palette',
+  'ICT': 'computer',
+  'Agriculture': 'grass',
+}
+
+const getSubjectIcon = (name: string) => {
+  const key = Object.keys(subjectIcons).find(k => name.toLowerCase().includes(k.toLowerCase()))
+  return subjectIcons[key || ''] || 'school'
+}
+
+const classColors = [
+  { bg: '#FEF3C7', color: '#D97706' },
+  { bg: '#DCFCE7', color: '#15803D' },
+  { bg: '#EDE9FE', color: '#6D28D9' },
+  { bg: '#FEE2E2', color: '#DC2626' },
+  { bg: '#E0F2FE', color: '#0284C7' },
+  { bg: '#FCE7F3', color: '#DB2777' },
+]
+const getClassColor = (index: number) => classColors[index % classColors.length]
+
 export default function TeacherDashboard() {
   const { school, user } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
@@ -184,23 +216,24 @@ export default function TeacherDashboard() {
             <Link href="/dashboard/attendance" style={{ fontSize: 12, color: '#1D4ED8', fontWeight: 600, textDecoration: 'none' }}>View all</Link>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-            {myClasses.map((cls: any) => {
+            {myClasses.map((cls: any, idx: number) => {
               const count = getStudentCountForClass(cls.id)
+              const colors = getClassColor(idx)
               return (
                 <Link key={cls.id} href={`/dashboard/grades?class=${cls.id}`} style={{ 
-                  border: '1px solid var(--border)', 
                   borderRadius: 10, 
                   padding: '12px', 
                   textAlign: 'center', 
                   cursor: 'pointer', 
-                  background: 'var(--bg)',
-                  textDecoration: 'none'
+                  background: colors.bg,
+                  textDecoration: 'none',
+                  border: 'none'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}>
-                    <MaterialIcon icon="school" style={{ fontSize: 18, color: '#D97706' }} />
+                    <MaterialIcon icon="school" style={{ fontSize: 18, color: colors.color }} />
                   </div>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--t1)' }}>{cls.name}</div>
-                  <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 2, fontWeight: 500 }}>{count} students</div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: colors.color }}>{cls.name}</div>
+                  <div style={{ fontSize: 10, color: colors.color, marginTop: 2, fontWeight: 500, opacity: 0.8 }}>{count} students</div>
                 </Link>
               )
             })}
@@ -219,16 +252,16 @@ export default function TeacherDashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
             {mySubjects.map((subject: any) => (
               <Link key={subject.id} href={`/dashboard/grades?subject=${subject.id}`} style={{ 
-                border: '1px solid var(--border)', 
                 borderRadius: 10, 
                 padding: '12px', 
                 textAlign: 'center', 
                 cursor: 'pointer', 
                 background: 'var(--bg)',
-                textDecoration: 'none'
+                textDecoration: 'none',
+                border: '1px solid var(--border)'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}>
-                  <MaterialIcon icon="menu_book" style={{ fontSize: 18, color: '#6D28D9' }} />
+                  <MaterialIcon icon={getSubjectIcon(subject.name)} style={{ fontSize: 18, color: 'var(--navy)' }} />
                 </div>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--t1)' }}>{subject.name}</div>
                 <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 2, fontWeight: 500 }}>{subject.code}</div>
@@ -262,16 +295,32 @@ export default function TeacherDashboard() {
         /* Mobile */
         @media (max-width: 768px) {
           .content {
-            padding: 70px 12px 20px !important;
+            padding: 12px 12px 90px !important;
           }
           .page-header-responsive {
             flex-direction: column !important;
             align-items: stretch !important;
-            padding: 16px !important;
+            padding: 12px !important;
+            gap: 8px !important;
+            margin-bottom: 12px !important;
+          }
+          .page-header-responsive > div:first-child {
+            min-width: unset !important;
+          }
+          .page-header-responsive > div:first-child > div:first-child {
+            font-size: 16px !important;
+          }
+          .page-header-responsive > div:first-child > div:last-child {
+            font-size: 11px !important;
+            display: none !important;
           }
           .page-header-responsive > div:last-child {
             justify-content: flex-start !important;
-            margin-top: 12px;
+            margin-top: 0;
+          }
+          .page-header-responsive > div:last-child > a {
+            padding: 8px 12px !important;
+            font-size: 12px !important;
           }
           .greeting-responsive {
             padding: 16px !important;
