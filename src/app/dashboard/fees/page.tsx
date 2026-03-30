@@ -533,6 +533,7 @@ export default function FeesPage() {
               </table>
             </div>
           </div>
+        </div>
       )}
 
       {/* Payment Modal */}
