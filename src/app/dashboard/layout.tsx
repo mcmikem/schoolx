@@ -40,12 +40,49 @@ const roleBasedRoutes: Record<string, keyof RolePermissions> = {
   '/dashboard/visitors': 'visitors',
   '/dashboard/dorm': 'students',
   '/dashboard/dorm-attendance': 'attendance',
+  '/dashboard/dorm-supplies': 'students',
   '/dashboard/health': 'students',
   '/dashboard/behavior': 'discipline',
   '/dashboard/student-transfers': 'students',
   '/dashboard/dropout-tracking': 'students',
   '/dashboard/payroll': 'payroll',
   '/dashboard/staff-reviews': 'performance',
+  '/dashboard/exams': 'grades',
+  '/dashboard/uneb': 'grades',
+  '/dashboard/uneb-registration': 'grades',
+  '/dashboard/timetable': 'grades',
+  '/dashboard/homework': 'grades',
+  '/dashboard/homework-submissions': 'grades',
+  '/dashboard/lesson-plans': 'grades',
+  '/dashboard/scheme-of-work': 'grades',
+  '/dashboard/promotion': 'students',
+  '/dashboard/trends': 'reports',
+  '/dashboard/notices': 'messages',
+  '/dashboard/sms-templates': 'messages',
+  '/dashboard/calendar': 'messages',
+  '/dashboard/staff-attendance': 'staff',
+  '/dashboard/staff-activity': 'staff',
+  '/dashboard/leave': 'staff',
+  '/dashboard/leave-approvals': 'staff',
+  '/dashboard/expense-approvals': 'fees',
+  '/dashboard/cashbook': 'fees',
+  '/dashboard/budget': 'fees',
+  '/dashboard/payment-plans': 'fees',
+  '/dashboard/transport': 'students',
+  '/dashboard/inventory': 'assets',
+  '/dashboard/allocations': 'grades',
+  '/dashboard/marks-completion': 'grades',
+  '/dashboard/substitutions': 'grades',
+  '/dashboard/workload': 'staff',
+  '/dashboard/comments': 'discipline',
+  '/dashboard/health-log': 'students',
+  '/dashboard/library': 'students',
+  '/dashboard/moes-reports': 'reports',
+  '/dashboard/idcards': 'students',
+  '/dashboard/import': 'export',
+  '/dashboard/report-cards': 'reports',
+  '/dashboard/pricing': 'settings',
+  '/dashboard/audit': 'settings',
 }
 
 const MODULE_FOR_ROUTE: Record<string, ModuleKey> = {
@@ -571,21 +608,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [])
 
   useEffect(() => {
-    if (!user || !pathname) return
+    if (!user || !pathname || pathname === '/dashboard') return
     const routeKey = Object.keys(roleBasedRoutes).find(key => pathname.startsWith(key))
     if (routeKey) {
       const permission = roleBasedRoutes[routeKey]
       if (user.role && !canAccess(user.role as UserRole, permission)) {
-        toast.error('Access denied')
+        console.log('[Access Denied]', user.role, 'trying to access', routeKey, 'requires', permission)
+        if (toast) toast.error('Access denied - you do not have permission to view this page')
         router.push('/dashboard')
+        return
       }
     }
     const stageRoute = Object.keys(MODULE_FOR_ROUTE).find(key => pathname.startsWith(key))
     if (stageRoute) {
       const moduleKey = MODULE_FOR_ROUTE[stageRoute]
       if (moduleKey && !canUseModule(featureStage, moduleKey)) {
-        toast.error('Upgrade your package to access this module')
+        if (toast) toast.error('Upgrade your package to access this module')
         router.push('/dashboard')
+        return
       }
     }
   }, [user, pathname, router, toast, featureStage])
