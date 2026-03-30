@@ -357,7 +357,9 @@ export default function HomePage() {
                 <PhoneMockup />
               </div>
               <div className="desktop-stage relative z-0 lg:ml-16">
-                <DesktopMockup />
+                <div className="desktop-shell">
+                  <DesktopMockup />
+                </div>
               </div>
               <div className="floating-callout absolute bottom-5 left-3 z-20 hidden rounded-[24px] border border-[#d7e4fb] bg-white/92 px-4 py-3 shadow-[0_22px_55px_rgba(15,23,42,0.12)] backdrop-blur md:block">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#17325F]">From registers to reports</p>
