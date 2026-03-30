@@ -324,17 +324,21 @@ export default function SubstitutionsPage() {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
                 <label className="text-sm font-medium text-[#191c1d] mb-2 block">Absent Teacher</label>
-                <select
-                  value={form.absent_teacher_id}
-                  onChange={(e) => setForm({ ...form, absent_teacher_id: e.target.value })}
-                  className="input"
-                  required
-                >
-                  <option value="">Select teacher</option>
-                  {teachers.map((t) => (
-                    <option key={t.id} value={t.id}>{t.full_name}</option>
-                  ))}
-                </select>
+                {teachers.length === 0 ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">No teachers available</div>
+                ) : (
+                  <select
+                    value={form.absent_teacher_id}
+                    onChange={(e) => setForm({ ...form, absent_teacher_id: e.target.value })}
+                    className="input"
+                    required
+                  >
+                    <option value="">Select teacher</option>
+                    {teachers.map((t) => (
+                      <option key={t.id} value={t.id}>{t.full_name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">

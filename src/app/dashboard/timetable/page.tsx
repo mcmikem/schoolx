@@ -94,16 +94,20 @@ export default function TimetablePage() {
           <p className="text-white/60">Schedule lessons and resolve conflicts</p>
         </div>
 
-        <select 
-          value={selectedClassId}
-          onChange={(e) => setSelectedClassId(e.target.value)}
-          className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:ring-2 focus:ring-purple-500/50"
-        >
-          <option value="" className="bg-slate-900">Select a Class...</option>
-          {classes.map(c => (
-            <option key={c.id} value={c.id} className="bg-slate-900">{c.name}</option>
-          ))}
-        </select>
+        {classes.length === 0 ? (
+          <div className="bg-amber-500/20 border border-amber-500/30 rounded-xl px-4 py-2 text-amber-200 text-sm">No classes available</div>
+        ) : (
+          <select 
+            value={selectedClassId}
+            onChange={(e) => setSelectedClassId(e.target.value)}
+            className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:ring-2 focus:ring-purple-500/50"
+          >
+            <option value="" className="bg-slate-900">Select a Class...</option>
+            {classes.map(c => (
+              <option key={c.id} value={c.id} className="bg-slate-900">{c.name}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       <GlassCard className="overflow-x-auto p-0">
