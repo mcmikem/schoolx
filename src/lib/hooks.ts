@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from './supabase'
 import { useAuth } from './auth-context'
-import { getDemoStudents, getDemoClasses, getDemoFeeStructure, getDemoPayments } from './demo-data'
 import type {
   School,
   User,
@@ -30,6 +29,28 @@ import type {
   TransportLog,
   TransportRoute
 } from '@/types'
+
+const DEMO_SCHOOL_ID = '00000000-0000-0000-0000-000000000001'
+
+function getQuerySchoolId(schoolId: string | undefined, isDemo: boolean): string | undefined {
+  if (!schoolId) return undefined
+  if (isDemo && schoolId === 'demo-school') return DEMO_SCHOOL_ID
+  return schoolId
+}
+
+async function withTimeout<T>(promise: PromiseLike<T>, ms: number, fallback: T): Promise<T> {
+  try {
+    return await Promise.race([
+      Promise.resolve(promise),
+      new Promise<T>((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), ms)
+      )
+    ])
+  } catch (e) {
+    console.warn('Query timeout or error:', e)
+    return fallback
+  }
+}
 
 // Generic hook for fetching data
 export function useSupabaseQuery<T>(
@@ -238,30 +259,20 @@ export function useStudents(schoolId?: string) {
       return
     }
 
-    // Demo mode: only for demo-school (check localStorage directly for reliability)
-    const isDemoMode = isDemo || localStorage.getItem('demo_user') !== null
-    if (isDemoMode && schoolId === 'demo-school') {
-      setLoading(false)
-      setStudents(getDemoStudents() as unknown as Student[])
-      return
-    }
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
     try {
       setLoading(true)
-      const { data, error: fetchError } = await supabase
-        .from('students')
-        .select(`
-          *,
-          classes (
-            id,
-            name,
-            level
-          )
-        `)
-        .eq('school_id', schoolId)
-        .order('created_at', { ascending: false })
-
-      if (fetchError) throw fetchError
+      const data = await withTimeout(
+        supabase
+          .from('students')
+          .select(`*, classes (id, name, level)`)
+          .eq('school_id', querySchoolId)
+          .order('created_at', { ascending: false })
+          .then(r => { if (r.error) throw r.error; return r.data }),
+        8000,
+        [] as Student[]
+      )
       setStudents((data as Student[]) || [])
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
@@ -272,10 +283,12 @@ export function useStudents(schoolId?: string) {
   }, [schoolId, isDemo])
 
   const createStudent = async (student: CreateStudentInput) => {
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
     try {
       const { data, error: insertError } = await supabase
         .from('students')
-        .insert({ ...student, school_id: schoolId })
+        .insert({ ...student, school_id: querySchoolId })
         .select(`
           *,
           classes (
@@ -381,38 +394,33 @@ export function useClasses(schoolId?: string) {
   const { isDemo } = useAuth()
 
   useEffect(() => {
+    let cancelled = false
+    
     async function fetchClasses() {
       if (!schoolId) {
         setLoading(false)
         return
       }
 
-      // Demo mode check
-      const isDemoMode = isDemo || localStorage.getItem('demo_user') !== null
-      if (isDemoMode && schoolId === 'demo-school') {
-        setLoading(false)
-        setClasses(getDemoClasses() as unknown as Class[])
-        return
-      }
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
       try {
         setLoading(true)
-        const { data, error } = await supabase
-          .from('classes')
-          .select('*')
-          .eq('school_id', schoolId)
-          .order('name')
-
-        if (error) throw error
-        setClasses((data as Class[]) || [])
+        const data = await withTimeout(
+          supabase.from('classes').select('*').eq('school_id', querySchoolId).order('name').then(r => { if (r.error) throw r.error; return r.data }),
+          5000,
+          [] as Class[]
+        )
+        if (!cancelled) setClasses((data as Class[]) || [])
       } catch (err) {
         console.error('Error fetching classes:', err)
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
     fetchClasses()
+    return () => { cancelled = true }
   }, [schoolId, isDemo])
 
   return { classes, loading }
@@ -431,34 +439,20 @@ export function useFeePayments(schoolId?: string) {
       return
     }
 
-    // Demo mode check
-    const isDemoMode = isDemo || localStorage.getItem('demo_user') !== null
-    if (isDemoMode && schoolId === 'demo-school') {
-      setLoading(false)
-      setPayments(getDemoPayments() as unknown as FeePayment[])
-      return
-    }
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
     try {
       setLoading(true)
-      const { data, error: fetchError } = await supabase
-        .from('fee_payments')
-        .select(`
-          *,
-          students!inner (
-            id,
-            first_name,
-            last_name,
-            school_id,
-            classes (
-              name
-            )
-          )
-        `)
-        .eq('students.school_id', schoolId)
-        .order('payment_date', { ascending: false })
-
-      if (fetchError) throw fetchError
+      const data = await withTimeout(
+        supabase
+          .from('fee_payments')
+          .select(`*, students!inner (id, first_name, last_name, school_id, classes (name))`)
+          .eq('students.school_id', querySchoolId)
+          .order('payment_date', { ascending: false })
+          .then(r => { if (r.error) throw r.error; return r.data }),
+        8000,
+        [] as FeePayment[]
+      )
       setPayments((data as FeePayment[]) || [])
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
@@ -469,30 +463,12 @@ export function useFeePayments(schoolId?: string) {
   }, [schoolId, isDemo])
 
   const createPayment = async (payment: CreatePaymentInput) => {
-    // Demo mode - add to local state
-    if (isDemo) {
-      const { getDemoStudents } = await import('@/lib/demo-data')
-      const students = getDemoStudents()
-      const student = students.find(s => s.id === payment.student_id)
-      const newPaymentRecord = {
-        ...payment,
-        id: `demo-pay-${Date.now()}`,
-        payment_date: new Date().toISOString().split('T')[0],
-        students: student ? { 
-          id: student.id, 
-          first_name: student.first_name, 
-          last_name: student.last_name,
-          classes: student.classes
-        } : null
-      }
-      setPayments((prev) => [newPaymentRecord as FeePayment, ...prev])
-      return newPaymentRecord as FeePayment
-    }
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
     try {
       const { data, error: insertError } = await supabase
         .from('fee_payments')
-        .insert(payment)
+        .insert({ ...payment, school_id: querySchoolId })
         .select(`
           *,
           students (
@@ -516,11 +492,6 @@ export function useFeePayments(schoolId?: string) {
   }
 
   const deletePayment = async (id: string) => {
-    // Demo mode
-    if (isDemo) {
-      setPayments((prev) => prev.filter((p) => p.id !== id))
-      return true
-    }
     try {
       const { error: deleteError } = await supabase
         .from('fee_payments')
@@ -554,28 +525,15 @@ export function useFeeStructure(schoolId?: string) {
       return
     }
 
-    // Demo mode check
-    const isDemoMode = isDemo || localStorage.getItem('demo_user') !== null
-    if (isDemoMode && schoolId === 'demo-school') {
-      setLoading(false)
-      setFeeStructure(getDemoFeeStructure() as unknown as FeeStructure[])
-      return
-    }
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
     try {
       setLoading(true)
-      const { data, error } = await supabase
-        .from('fee_structure')
-        .select(`
-          *,
-          classes (
-            name
-          )
-        `)
-        .eq('school_id', schoolId)
-        .order('name')
-
-      if (error) throw error
+      const data = await withTimeout(
+        supabase.from('fee_structure').select(`*, classes (name)`).eq('school_id', querySchoolId).order('name').then(r => { if (r.error) throw r.error; return r.data }),
+        5000,
+        [] as FeeStructure[]
+      )
       setFeeStructure((data as FeeStructure[]) || [])
     } catch (err) {
       console.error('Error fetching fee structure:', err)
@@ -606,11 +564,13 @@ export function useFeeStructure(schoolId?: string) {
     academic_year: string
     due_date?: string
   }) => {
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
     try {
       const { data, error } = await supabase
         .from('fee_structure')
         .insert({
-          school_id: schoolId,
+          school_id: querySchoolId,
           name: fee.name,
           class_id: fee.class_id || null,
           amount: fee.amount,
@@ -719,28 +679,6 @@ export function useAttendance(classId?: string, date?: string) {
   const { isDemo } = useAuth()
 
   const markAttendance = async (studentId: string, status: string, recordedBy?: string) => {
-    // Demo mode - just add to local state
-    if (isDemo) {
-      const newRecord = {
-        id: `demo-att-${Date.now()}`,
-        student_id: studentId,
-        class_id: classId,
-        date: date || new Date().toISOString().split('T')[0],
-        status,
-        recorded_by: recordedBy,
-      }
-      setAttendance((prev) => {
-        const existing = prev.findIndex((a) => a.student_id === studentId)
-        if (existing >= 0) {
-          const updated = [...prev]
-          updated[existing] = newRecord
-          return updated
-        }
-        return [...prev, newRecord]
-      })
-      return newRecord
-    }
-
     try {
       const { data, error } = await supabase
         .from('attendance')
@@ -773,20 +711,6 @@ export function useAttendance(classId?: string, date?: string) {
   useEffect(() => {
     async function fetchAttendance() {
       if (!classId || !date) {
-        setLoading(false)
-        return
-      }
-
-      // Demo mode - only for demo accounts
-      if (isDemo) {
-        const { getDemoAttendance } = await import('@/lib/demo-data')
-        const demoAtt = getDemoAttendance(classId, date)
-        // Map to match expected format
-        const mapped = demoAtt.map(a => ({
-          ...a,
-          students: { id: a.student_id }
-        }))
-        setAttendance(mapped)
         setLoading(false)
         return
       }
@@ -830,30 +754,6 @@ export function useGrades(classId?: string, subjectId?: string, term?: number, a
     academic_year: string
     recorded_by?: string
   }) => {
-    // Demo mode
-    if (isDemo) {
-      const newGrade = {
-        ...grade,
-        id: `demo-grade-${Date.now()}`,
-        max_score: 100,
-      }
-      setGrades((prev) => {
-        const existing = prev.findIndex(
-          (g) =>
-            g.student_id === grade.student_id &&
-            g.subject_id === grade.subject_id &&
-            g.assessment_type === grade.assessment_type
-        )
-        if (existing >= 0) {
-          const updated = [...prev]
-          updated[existing] = newGrade
-          return updated
-        }
-        return [...prev, newGrade]
-      })
-      return newGrade
-    }
-
     try {
       const { data, error } = await supabase
         .from('grades')
@@ -885,21 +785,6 @@ export function useGrades(classId?: string, subjectId?: string, term?: number, a
   useEffect(() => {
     async function fetchGrades() {
       if (!classId) {
-        setLoading(false)
-        return
-      }
-
-      // Demo mode - get demo grades
-      if (isDemo) {
-        const { getDemoGrades, getDemoStudents } = await import('@/lib/demo-data')
-        const demoGrades = getDemoGrades(classId, subjectId)
-        const students = getDemoStudents()
-        const mapped = demoGrades.map(g => ({
-          ...g,
-          students: students.find(s => s.id === g.student_id),
-          subjects: { id: g.subject_id, name: 'Subject' }
-        }))
-        setGrades(mapped)
         setLoading(false)
         return
       }
@@ -957,34 +842,20 @@ export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
         return
       }
 
-      // Demo mode - return curriculum subjects
-      if (isDemo) {
-        setLoading(false)
-        const { getDefaultSubjects } = await import('@/lib/curriculum')
-        const demoSubjects = getDefaultSubjects('primary').map(s => ({
-          id: s.id,
-          name: s.name,
-          code: s.code,
-          level: s.level,
-          is_compulsory: s.is_compulsory,
-        }))
-        setSubjects(demoSubjects)
-        return
-      }
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
       try {
         setLoading(true)
         const { data, error } = await supabase
           .from('subjects')
           .select('*')
-          .eq('school_id', schoolId)
+          .eq('school_id', querySchoolId)
           .order('name')
 
         if (error) throw error
 
         let currentSubjects = data || []
 
-        // Auto-seed basic subjects if none exist
         if (currentSubjects.length === 0 && autoSeed) {
           const { getDefaultSubjects } = await import('@/lib/curriculum')
           const defaultSubjects = getDefaultSubjects('primary')
@@ -994,7 +865,7 @@ export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
             code: s.code, 
             level: s.level, 
             is_compulsory: s.is_compulsory,
-            school_id: schoolId 
+            school_id: querySchoolId 
           }))
           
           const { data: inserted, error: insertError } = await supabase
@@ -1285,39 +1156,33 @@ export function useStaff(schoolId?: string) {
   const { isDemo } = useAuth()
 
   useEffect(() => {
+    let cancelled = false
+    
     async function fetchStaff() {
       if (!schoolId) {
         setLoading(false)
         return
       }
 
-      // Demo mode
-      if (isDemo) {
-        setLoading(false)
-        const { getDemoStaff } = await import('@/lib/demo-data')
-        setStaff(getDemoStaff())
-        return
-      }
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
       try {
         setLoading(true)
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('school_id', schoolId)
-          .eq('is_active', true)
-          .order('full_name')
-
-        if (error) throw error
-        setStaff(data || [])
+        const data = await withTimeout(
+          supabase.from('users').select('*').eq('school_id', querySchoolId).eq('is_active', true).order('full_name').then(r => { if (r.error) throw r.error; return r.data }),
+          5000,
+          [] as any[]
+        )
+        if (!cancelled) setStaff(data || [])
       } catch (err) {
         console.error('Error fetching staff:', err)
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
     fetchStaff()
+    return () => { cancelled = true }
   }, [schoolId, isDemo])
 
   return { staff, loading }
@@ -1336,20 +1201,14 @@ export function useEvents(schoolId?: string) {
         return
       }
 
-      // Demo mode
-      if (isDemo) {
-        setLoading(false)
-        const { getDemoEvents } = await import('@/lib/demo-data')
-        setEvents(getDemoEvents())
-        return
-      }
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
       try {
         setLoading(true)
         const { data, error } = await supabase
           .from('events')
           .select('*')
-          .eq('school_id', schoolId)
+          .eq('school_id', querySchoolId)
           .order('start_date', { ascending: true })
 
         if (error) throw error
@@ -1380,20 +1239,14 @@ export function useMessages(schoolId?: string) {
         return
       }
 
-      // Demo mode
-      if (isDemo) {
-        setLoading(false)
-        const { getDemoMessages } = await import('@/lib/demo-data')
-        setMessages(getDemoMessages())
-        return
-      }
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
       try {
         setLoading(true)
         const { data, error } = await supabase
           .from('messages')
           .select('*')
-          .eq('school_id', schoolId)
+          .eq('school_id', querySchoolId)
           .order('created_at', { ascending: false })
           .limit(50)
 
@@ -1426,78 +1279,51 @@ export function useDashboardStats(schoolId?: string) {
   const { isDemo } = useAuth()
 
   useEffect(() => {
+    let cancelled = false
+    
     async function fetchStats() {
       if (!schoolId) {
         setLoading(false)
         return
       }
 
-      // Demo mode check
-      const isDemoMode = isDemo || localStorage.getItem('demo_user') !== null
-      if (isDemoMode && schoolId === 'demo-school') {
-        setLoading(false)
-        const { getDemoStats, getDemoStudents, getDemoPayments, getDemoFeeStructure, getDemoClasses } = await import('@/lib/demo-data')
-        const demoStats = getDemoStats()
-        const students = getDemoStudents()
-        const payments = getDemoPayments()
-        const feeStructure = getDemoFeeStructure()
-        const classes = getDemoClasses()
-        
-        const totalExpected = feeStructure.reduce((sum, f) => sum + Number(f.amount || 0), 0)
-        const totalCollected = payments.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0)
-        
-        setStats({
-          totalStudents: demoStats.totalStudents,
-          presentToday: Math.floor(demoStats.totalStudents * 0.85),
-          feesCollected: totalCollected,
-          feesBalance: Math.max(0, totalExpected - totalCollected),
-          totalClasses: demoStats.totalClasses,
-          totalTeachers: demoStats.totalStaff,
-        })
-        return
-      }
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
       try {
         setLoading(true)
 
-        const { count: studentCount } = await supabase
-          .from('students')
-          .select('*', { count: 'exact', head: true })
-          .eq('school_id', schoolId)
-          .eq('status', 'active')
+        // Run queries in parallel with timeout
+        const [studentCount, classCount, teacherCount, presentCount, payments, feeStructure] = await Promise.all([
+          withTimeout(
+            supabase.from('students').select('*', { count: 'exact', head: true }).eq('school_id', querySchoolId).eq('status', 'active').then(r => r.count),
+            5000, 0
+          ),
+          withTimeout(
+            supabase.from('classes').select('*', { count: 'exact', head: true }).eq('school_id', querySchoolId).then(r => r.count),
+            5000, 0
+          ),
+          withTimeout(
+            supabase.from('users').select('*', { count: 'exact', head: true }).eq('school_id', querySchoolId).eq('role', 'teacher').then(r => r.count),
+            5000, 0
+          ),
+          withTimeout(
+            supabase.from('attendance').select('*, students!inner(school_id)', { count: 'exact', head: true }).eq('students.school_id', querySchoolId).eq('date', new Date().toISOString().split('T')[0]).eq('status', 'present').then(r => r.count),
+            5000, 0
+          ),
+          withTimeout(
+            supabase.from('fee_payments').select('amount_paid, students!inner(school_id)').eq('students.school_id', querySchoolId).then(r => r.data),
+            5000, []
+          ),
+          withTimeout(
+            supabase.from('fee_structure').select('amount').eq('school_id', querySchoolId).then(r => r.data),
+            5000, []
+          ),
+        ])
 
-        const { count: classCount } = await supabase
-          .from('classes')
-          .select('*', { count: 'exact', head: true })
-          .eq('school_id', schoolId)
+        if (cancelled) return
 
-        const { count: teacherCount } = await supabase
-          .from('users')
-          .select('*', { count: 'exact', head: true })
-          .eq('school_id', schoolId)
-          .eq('role', 'teacher')
-
-        const today = new Date().toISOString().split('T')[0]
-        const { count: presentCount } = await supabase
-          .from('attendance')
-          .select('*, students!inner(school_id)', { count: 'exact', head: true })
-          .eq('students.school_id', schoolId)
-          .eq('date', today)
-          .eq('status', 'present')
-
-        const { data: payments } = await supabase
-          .from('fee_payments')
-          .select('amount_paid, students!inner(school_id)')
-          .eq('students.school_id', schoolId)
-
-        const totalCollected = payments?.reduce((sum, p) => sum + Number(p.amount_paid), 0) || 0
-
-        const { data: feeStructure } = await supabase
-          .from('fee_structure')
-          .select('amount')
-          .eq('school_id', schoolId)
-
-        const totalExpected = feeStructure?.reduce((sum, f) => sum + Number(f.amount), 0) || 0
+        const totalCollected = (payments || []).reduce((sum: number, p: any) => sum + Number(p.amount_paid || 0), 0)
+        const totalExpected = (feeStructure || []).reduce((sum: number, f: any) => sum + Number(f.amount || 0), 0)
 
         setStats({
           totalStudents: studentCount || 0,
@@ -1510,11 +1336,13 @@ export function useDashboardStats(schoolId?: string) {
       } catch (err) {
         console.error('Error fetching stats:', err)
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
     fetchStats()
+    
+    return () => { cancelled = true }
   }, [schoolId, isDemo])
 
   return { stats, loading }
@@ -1530,31 +1358,13 @@ export function useExamScores(classId?: string, subjectId?: string, term?: numbe
     student_id: string
     subject_id: string
     class_id: string
-    exam_type: string  // bot, mid_term, saturday, eot, class_test
+    exam_type: string
     score: number
     max_score?: number
     term: number
     academic_year: string
     recorded_by?: string
   }) => {
-    if (isDemo) {
-      const newScore = { ...score, id: `demo-exam-${Date.now()}`, max_score: score.max_score || 100 }
-      setExamScores(prev => {
-        const existing = prev.findIndex(s => 
-          s.student_id === score.student_id && 
-          s.subject_id === score.subject_id && 
-          s.exam_type === score.exam_type
-        )
-        if (existing >= 0) {
-          const updated = [...prev]
-          updated[existing] = newScore
-          return updated
-        }
-        return [...prev, newScore]
-      })
-      return newScore
-    }
-
     try {
       const { data, error } = await supabase
         .from('exam_scores')
@@ -1593,11 +1403,6 @@ export function useExamScores(classId?: string, subjectId?: string, term?: numbe
   }
 
   const deleteExamScore = async (id: string) => {
-    if (isDemo) {
-      setExamScores(prev => prev.filter(s => s.id !== id))
-      return
-    }
-
     try {
       const { error } = await supabase.from('exam_scores').delete().eq('id', id)
       if (error) throw error
@@ -1610,25 +1415,6 @@ export function useExamScores(classId?: string, subjectId?: string, term?: numbe
   useEffect(() => {
     async function fetchExamScores() {
       if (!classId) {
-        setLoading(false)
-        return
-      }
-
-      if (isDemo) {
-        const { getDemoStudents } = await import('@/lib/demo-data')
-        const students = getDemoStudents()
-        const demoScores = students.slice(0, 10).map(s => ({
-          id: `demo-exam-${s.id}`,
-          student_id: s.id,
-          subject_id: subjectId || 'demo-subject',
-          class_id: classId,
-          exam_type: 'eot',
-          score: Math.floor(Math.random() * 40) + 60,
-          max_score: 100,
-          term: term || 1,
-          academic_year: academicYear || '2026',
-        }))
-        setExamScores(demoScores)
         setLoading(false)
         return
       }
@@ -1690,16 +1476,12 @@ export function useExams(schoolId?: string) {
     max_score: number
     weight: number
   }) => {
-    if (isDemo) {
-      const newExam = { ...exam, id: `demo-exam-${Date.now()}`, school_id: 'demo-school' }
-      setExams(prev => [newExam, ...prev])
-      return newExam
-    }
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
     try {
       const { data, error } = await supabase
         .from('exams')
-        .insert({ ...exam, school_id: schoolId })
+        .insert({ ...exam, school_id: querySchoolId })
         .select()
         .single()
 
@@ -1712,11 +1494,6 @@ export function useExams(schoolId?: string) {
   }
 
   const deleteExam = async (id: string) => {
-    if (isDemo) {
-      setExams(prev => prev.filter(e => e.id !== id))
-      return
-    }
-
     try {
       const { error } = await supabase.from('exams').delete().eq('id', id)
       if (error) throw error
@@ -1733,14 +1510,7 @@ export function useExams(schoolId?: string) {
         return
       }
 
-      if (isDemo) {
-        setExams([
-          { id: '1', name: 'End of Term 1', exam_type: 'eot', term: 1, academic_year: '2026', exam_date: '2026-04-01', max_score: 100, weight: 50 },
-          { id: '2', name: 'Mid Term 1', exam_type: 'mid_term', term: 1, academic_year: '2026', exam_date: '2026-02-15', max_score: 100, weight: 20 },
-        ])
-        setLoading(false)
-        return
-      }
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
       try {
         setLoading(true)
@@ -1751,7 +1521,7 @@ export function useExams(schoolId?: string) {
             classes (name),
             subjects (name)
           `)
-          .eq('school_id', schoolId)
+          .eq('school_id', querySchoolId)
           .order('exam_date', { ascending: false })
 
         if (error) {
@@ -1784,31 +1554,14 @@ export function useStaffAttendance(schoolId?: string, date?: string) {
   const { isDemo } = useAuth()
 
   const markAttendance = async (staffId: string, status: string, remarks?: string) => {
-    if (isDemo) {
-      const newRecord = {
-        id: `demo-staff-att-${Date.now()}`,
-        staff_id: staffId,
-        date: date || new Date().toISOString().split('T')[0],
-        status,
-        remarks,
-      }
-      setAttendance(prev => {
-        const existing = prev.findIndex(a => a.staff_id === staffId)
-        if (existing >= 0) {
-          const updated = [...prev]
-          updated[existing] = newRecord
-          return updated
-        }
-        return [...prev, newRecord]
-      })
-      return newRecord
-    }
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
     try {
       const { data, error } = await supabase
         .from('staff_attendance')
         .upsert({
           staff_id: staffId,
+          school_id: querySchoolId,
           date: date || new Date().toISOString().split('T')[0],
           status,
           remarks,
@@ -1830,17 +1583,14 @@ export function useStaffAttendance(schoolId?: string, date?: string) {
         return
       }
 
-      if (isDemo) {
-        setAttendance([])
-        setLoading(false)
-        return
-      }
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
       try {
         setLoading(true)
         const { data, error } = await supabase
           .from('staff_attendance')
           .select('*, users!staff_id(full_name, phone)')
+          .eq('school_id', querySchoolId)
           .eq('date', date)
 
         if (error) throw error
@@ -1872,16 +1622,12 @@ export function useLeaveRequests(schoolId?: string) {
     days_count: number
     reason: string
   }) => {
-    if (isDemo) {
-      const newRequest = { ...request, id: `demo-leave-${Date.now()}`, status: 'pending', created_at: new Date().toISOString() }
-      setRequests(prev => [newRequest, ...prev])
-      return newRequest
-    }
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
     try {
       const { data, error } = await supabase
         .from('leave_requests')
-        .insert(request)
+        .insert({ ...request, school_id: querySchoolId })
         .select()
         .single()
 
@@ -1894,11 +1640,6 @@ export function useLeaveRequests(schoolId?: string) {
   }
 
   const updateRequestStatus = async (id: string, status: 'approved' | 'rejected') => {
-    if (isDemo) {
-      setRequests(prev => prev.map(r => r.id === id ? { ...r, status } : r))
-      return
-    }
-
     try {
       const { data, error } = await supabase
         .from('leave_requests')
@@ -1922,20 +1663,14 @@ export function useLeaveRequests(schoolId?: string) {
         return
       }
 
-      if (isDemo) {
-        setRequests([
-          { id: '1', staff_id: 'demo', leave_type: 'annual', start_date: '2026-04-01', end_date: '2026-04-05', days_count: 5, reason: 'Family vacation', status: 'pending' },
-        ])
-        setLoading(false)
-        return
-      }
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
       try {
         setLoading(true)
         const { data, error } = await supabase
           .from('leave_requests')
           .select('*, users!staff_id(full_name, phone)')
-          .eq('school_id', schoolId)
+          .eq('school_id', querySchoolId)
           .order('created_at', { ascending: false })
 
         if (error) throw error
@@ -1957,6 +1692,7 @@ export function useLeaveRequests(schoolId?: string) {
 export function useSubjectAllocations(schoolId?: string, academicYear?: string) {
   const [allocations, setAllocations] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
 
   const createAllocation = async (allocation: {
     teacher_id: string
@@ -1966,10 +1702,12 @@ export function useSubjectAllocations(schoolId?: string, academicYear?: string) 
     term?: number
     is_class_teacher?: boolean
   }) => {
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
     try {
       const { data, error } = await supabase
         .from('subject_allocations')
-        .insert(allocation)
+        .insert({ ...allocation, school_id: querySchoolId })
         .select()
         .single()
 
@@ -1998,12 +1736,14 @@ export function useSubjectAllocations(schoolId?: string, academicYear?: string) 
         return
       }
 
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
       try {
         setLoading(true)
         let query = supabase
           .from('subject_allocations')
           .select('*, users!teacher_id(full_name), subjects(name), classes(name)')
-          .eq('school_id', schoolId)
+          .eq('school_id', querySchoolId)
 
         if (academicYear) query = query.eq('academic_year', academicYear)
 
@@ -2019,7 +1759,7 @@ export function useSubjectAllocations(schoolId?: string, academicYear?: string) 
     }
 
     fetchAllocations()
-  }, [schoolId, academicYear])
+  }, [schoolId, academicYear, isDemo])
 
   return { allocations, loading, createAllocation, deleteAllocation }
 }
@@ -2028,12 +1768,15 @@ export function useSubjectAllocations(schoolId?: string, academicYear?: string) 
 export function useAssets(schoolId?: string) {
   const [assets, setAssets] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
 
   const createAsset = async (asset: any) => {
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
     try {
       const { data, error } = await supabase
         .from('assets')
-        .insert({ ...asset, school_id: schoolId })
+        .insert({ ...asset, school_id: querySchoolId })
         .select()
         .single()
 
@@ -2079,12 +1822,14 @@ export function useAssets(schoolId?: string) {
         return
       }
 
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
       try {
         setLoading(true)
         const { data, error } = await supabase
           .from('assets')
           .select('*')
-          .eq('school_id', schoolId)
+          .eq('school_id', querySchoolId)
           .order('name')
 
         if (error) throw error
@@ -2097,7 +1842,7 @@ export function useAssets(schoolId?: string) {
     }
 
     fetchAssets()
-  }, [schoolId])
+  }, [schoolId, isDemo])
 
   return { assets, loading, createAsset, updateAsset, deleteAsset }
 }
@@ -2106,12 +1851,15 @@ export function useAssets(schoolId?: string) {
 export function useTransport(schoolId?: string) {
   const [routes, setRoutes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
 
   const createRoute = async (route: any) => {
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
     try {
       const { data, error } = await supabase
         .from('transport_routes')
-        .insert({ ...route, school_id: schoolId })
+        .insert({ ...route, school_id: querySchoolId })
         .select()
         .single()
 
@@ -2140,12 +1888,14 @@ export function useTransport(schoolId?: string) {
         return
       }
 
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
       try {
         setLoading(true)
         const { data, error } = await supabase
           .from('transport_routes')
           .select('*')
-          .eq('school_id', schoolId)
+          .eq('school_id', querySchoolId)
           .order('route_name')
 
         if (error) throw error
@@ -2158,7 +1908,7 @@ export function useTransport(schoolId?: string) {
     }
 
     fetchRoutes()
-  }, [schoolId])
+  }, [schoolId, isDemo])
 
   return { routes, loading, createRoute, deleteRoute }
 }
@@ -2168,12 +1918,15 @@ export function useBudget(schoolId?: string) {
   const [budgets, setBudgets] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
 
   const createBudget = async (budget: any) => {
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
     try {
       const { data, error } = await supabase
         .from('budgets')
-        .insert({ ...budget, school_id: schoolId })
+        .insert({ ...budget, school_id: querySchoolId })
         .select()
         .single()
 
@@ -2186,10 +1939,12 @@ export function useBudget(schoolId?: string) {
   }
 
   const createExpense = async (expense: any) => {
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
     try {
       const { data, error } = await supabase
         .from('expenses')
-        .insert({ ...expense, school_id: schoolId })
+        .insert({ ...expense, school_id: querySchoolId })
         .select()
         .single()
 
@@ -2225,11 +1980,13 @@ export function useBudget(schoolId?: string) {
         return
       }
 
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
       try {
         setLoading(true)
         const [budgetsRes, expensesRes] = await Promise.all([
-          supabase.from('budgets').select('*').eq('school_id', schoolId).order('created_at', { ascending: false }),
-          supabase.from('expenses').select('*').eq('school_id', schoolId).order('expense_date', { ascending: false })
+          supabase.from('budgets').select('*').eq('school_id', querySchoolId).order('created_at', { ascending: false }),
+          supabase.from('expenses').select('*').eq('school_id', querySchoolId).order('expense_date', { ascending: false })
         ])
 
         setBudgets(budgetsRes.data || [])
@@ -2242,7 +1999,7 @@ export function useBudget(schoolId?: string) {
     }
 
     fetchData()
-  }, [schoolId])
+  }, [schoolId, isDemo])
 
   return { budgets, expenses, loading, createBudget, createExpense, updateExpenseStatus }
 }
@@ -2251,6 +2008,7 @@ export function useBudget(schoolId?: string) {
 export function useBehaviorLogs(studentId?: string, schoolId?: string) {
   const [logs, setLogs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
 
   const addLog = async (log: {
     student_id: string
@@ -2261,10 +2019,12 @@ export function useBehaviorLogs(studentId?: string, schoolId?: string) {
     action_taken?: string
     points?: number
   }) => {
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
     try {
       const { data, error } = await supabase
         .from('behavior_logs')
-        .insert(log)
+        .insert({ ...log, school_id: querySchoolId })
         .select()
         .single()
 
@@ -2283,6 +2043,8 @@ export function useBehaviorLogs(studentId?: string, schoolId?: string) {
         return
       }
 
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
       try {
         setLoading(true)
         let query = supabase
@@ -2291,7 +2053,7 @@ export function useBehaviorLogs(studentId?: string, schoolId?: string) {
           .order('date', { ascending: false })
 
         if (studentId) query = query.eq('student_id', studentId)
-        if (schoolId) query = query.eq('school_id', schoolId)
+        if (querySchoolId) query = query.eq('school_id', querySchoolId)
 
         const { data, error } = await query
 
@@ -2305,7 +2067,7 @@ export function useBehaviorLogs(studentId?: string, schoolId?: string) {
     }
 
     fetchLogs()
-  }, [studentId, schoolId])
+  }, [studentId, schoolId, isDemo])
 
   return { logs, loading, addLog }
 }
@@ -2314,12 +2076,15 @@ export function useBehaviorLogs(studentId?: string, schoolId?: string) {
 export function useLessonPlans(schoolId?: string, teacherId?: string) {
   const [plans, setPlans] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
 
   const createPlan = async (plan: any) => {
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
     try {
       const { data, error } = await supabase
         .from('lesson_plans')
-        .insert({ ...plan, school_id: schoolId })
+        .insert({ ...plan, school_id: querySchoolId })
         .select()
         .single()
 
@@ -2365,12 +2130,14 @@ export function useLessonPlans(schoolId?: string, teacherId?: string) {
         return
       }
 
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
       try {
         setLoading(true)
         let query = supabase
           .from('lesson_plans')
           .select('*, subjects(name), classes(name), users!teacher_id(full_name)')
-          .eq('school_id', schoolId)
+          .eq('school_id', querySchoolId)
           .order('lesson_date', { ascending: false })
 
         if (teacherId) query = query.eq('teacher_id', teacherId)
@@ -2387,7 +2154,7 @@ export function useLessonPlans(schoolId?: string, teacherId?: string) {
     }
 
     fetchPlans()
-  }, [schoolId, teacherId])
+  }, [schoolId, teacherId, isDemo])
 
   return { plans, loading, createPlan, updatePlan, deletePlan }
 }
@@ -2396,12 +2163,15 @@ export function useLessonPlans(schoolId?: string, teacherId?: string) {
 export function useSchemeOfWork(schoolId?: string) {
   const [schemes, setSchemes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
 
   const createScheme = async (scheme: any) => {
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
     try {
       const { data, error } = await supabase
         .from('scheme_of_work')
-        .insert({ ...scheme, school_id: schoolId })
+        .insert({ ...scheme, school_id: querySchoolId })
         .select()
         .single()
 
@@ -2437,12 +2207,14 @@ export function useSchemeOfWork(schoolId?: string) {
         return
       }
 
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
       try {
         setLoading(true)
         const { data, error } = await supabase
           .from('scheme_of_work')
           .select('*, subjects(name), classes(name)')
-          .eq('school_id', schoolId)
+          .eq('school_id', querySchoolId)
           .order('week_number', { ascending: true })
 
         if (error) throw error
@@ -2455,7 +2227,7 @@ export function useSchemeOfWork(schoolId?: string) {
     }
 
     fetchSchemes()
-  }, [schoolId])
+  }, [schoolId, isDemo])
 
   return { schemes, loading, createScheme, updateSchemeStatus }
 }
@@ -2464,12 +2236,15 @@ export function useSchemeOfWork(schoolId?: string) {
 export function useHealthRecords(schoolId?: string) {
   const [records, setRecords] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
 
   const createRecord = async (record: any) => {
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
     try {
       const { data, error } = await supabase
         .from('health_records')
-        .insert(record)
+        .insert({ ...record, school_id: querySchoolId })
         .select()
         .single()
 
@@ -2505,11 +2280,14 @@ export function useHealthRecords(schoolId?: string) {
         return
       }
 
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
       try {
         setLoading(true)
         const { data, error } = await supabase
           .from('health_records')
           .select('*, students(first_name, last_name, classes(name))')
+          .eq('school_id', querySchoolId)
           .order('created_at', { ascending: false })
 
         if (error) throw error
@@ -2522,7 +2300,7 @@ export function useHealthRecords(schoolId?: string) {
     }
 
     fetchRecords()
-  }, [schoolId])
+  }, [schoolId, isDemo])
 
   return { records, loading, createRecord, updateRecord }
 }
@@ -2534,14 +2312,12 @@ export function useSalaries(schoolId?: string) {
   const { isDemo } = useAuth()
 
   const updateSalary = async (staffId: string, updates: Partial<StaffSalary>) => {
-    if (isDemo) {
-      setSalaries(prev => prev.map(s => s.staff_id === staffId ? { ...s, ...updates } : s))
-      return { success: true }
-    }
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
     try {
       const { error } = await supabase
         .from('staff_salaries')
-        .upsert({ staff_id: staffId, school_id: schoolId, ...updates }, { onConflict: 'staff_id' })
+        .upsert({ staff_id: staffId, school_id: querySchoolId, ...updates }, { onConflict: 'staff_id' })
       if (error) throw error
       return { success: true }
     } catch (err: any) {
@@ -2556,21 +2332,14 @@ export function useSalaries(schoolId?: string) {
         return
       }
 
-      if (isDemo) {
-        setSalaries([
-          { id: '1', school_id: schoolId, staff_id: '1', base_salary: 800000, allowances: 50000, deductions: 20000, currency: 'UGX', payment_method: 'bank', is_active: true, created_at: new Date().toISOString() },
-          { id: '2', school_id: schoolId, staff_id: '2', base_salary: 600000, allowances: 30000, deductions: 10000, currency: 'UGX', payment_method: 'cash', is_active: true, created_at: new Date().toISOString() },
-        ])
-        setLoading(false)
-        return
-      }
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
       try {
         setLoading(true)
         const { data, error } = await supabase
           .from('staff_salaries')
           .select('*, staff:users(*)')
-          .eq('school_id', schoolId)
+          .eq('school_id', querySchoolId)
 
         if (error) throw error
         setSalaries(data || [])
@@ -2594,15 +2363,12 @@ export function useSalaryPayments(schoolId?: string) {
   const { isDemo } = useAuth()
 
   const processPayment = async (payment: Omit<SalaryPayment, 'id' | 'created_at'>) => {
-    if (isDemo) {
-      const newPayment = { ...payment, id: Math.random().toString(), created_at: new Date().toISOString() } as SalaryPayment
-      setPayments(prev => [newPayment, ...prev])
-      return { success: true, data: newPayment }
-    }
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
     try {
       const { data, error } = await supabase
         .from('salary_payments')
-        .insert([payment])
+        .insert([{ ...payment, school_id: querySchoolId }])
         .select()
         .single()
       if (error) throw error
@@ -2619,20 +2385,14 @@ export function useSalaryPayments(schoolId?: string) {
         return
       }
 
-      if (isDemo) {
-        setPayments([
-          { id: '1', school_id: schoolId, staff_id: '1', academic_year_id: '1', month: 3, year: 2026, base_paid: 800000, allowances_paid: 50000, deductions_applied: 20000, net_paid: 830000, payment_date: '2026-03-25', payment_status: 'paid', created_at: new Date().toISOString() },
-        ])
-        setLoading(false)
-        return
-      }
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
       try {
         setLoading(true)
         const { data, error } = await supabase
           .from('salary_payments')
           .select('*, staff:users(*)')
-          .eq('school_id', schoolId)
+          .eq('school_id', querySchoolId)
           .order('payment_date', { ascending: false })
 
         if (error) throw error
@@ -2657,15 +2417,12 @@ export function useStaffReviews(schoolId?: string, staffId?: string) {
   const { isDemo } = useAuth()
 
   const submitReview = async (review: Omit<StaffReview, 'id' | 'created_at'>) => {
-    if (isDemo) {
-      const newReview = { ...review, id: Math.random().toString(), created_at: new Date().toISOString() } as StaffReview
-      setReviews(prev => [newReview, ...prev])
-      return { success: true, data: newReview }
-    }
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
     try {
       const { data, error } = await supabase
         .from('staff_reviews')
-        .insert([review])
+        .insert([{ ...review, school_id: querySchoolId }])
         .select()
         .single()
       if (error) throw error
@@ -2682,20 +2439,14 @@ export function useStaffReviews(schoolId?: string, staffId?: string) {
         return
       }
 
-      if (isDemo) {
-        setReviews([
-          { id: '1', school_id: schoolId, staff_id: staffId || '1', rating: 4, review_date: '2026-03-01', strengths: 'Excellent lesson delivery', status: 'shared', created_at: new Date().toISOString() },
-        ])
-        setLoading(false)
-        return
-      }
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
       try {
         setLoading(true)
         let query = supabase
           .from('staff_reviews')
           .select('*, staff:users(*), reviewer:users(*)')
-          .eq('school_id', schoolId)
+          .eq('school_id', querySchoolId)
         
         if (staffId) {
           query = query.eq('staff_id', staffId)
@@ -2725,21 +2476,16 @@ export function useInventory(schoolId?: string) {
   const { isDemo } = useAuth()
 
   const recordTransaction = async (transaction: Omit<InventoryTransaction, 'id' | 'created_at'>) => {
-    if (isDemo) {
-      const newTx = { ...transaction, id: Math.random().toString(), created_at: new Date().toISOString() } as InventoryTransaction
-      setTransactions(prev => [newTx, ...prev])
-      return { success: true, data: newTx }
-    }
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
     try {
-      // 1. Record the transaction
       const { data, error } = await supabase
         .from('inventory_transactions')
-        .insert([transaction])
+        .insert([{ ...transaction, school_id: querySchoolId }])
         .select()
         .single()
       if (error) throw error
 
-      // 2. Update the asset stock
       const stockChange = transaction.transaction_type === 'in' || transaction.transaction_type === 'return' 
         ? transaction.quantity 
         : -transaction.quantity
@@ -2763,20 +2509,14 @@ export function useInventory(schoolId?: string) {
         return
       }
 
-      if (isDemo) {
-        setTransactions([
-          { id: '1', school_id: schoolId, asset_id: '1', transaction_type: 'out', quantity: 5, transaction_date: '2026-03-28', created_at: new Date().toISOString() },
-        ])
-        setLoading(false)
-        return
-      }
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
       try {
         setLoading(true)
         const { data, error } = await supabase
           .from('inventory_transactions')
           .select('*, asset:assets(*)')
-          .eq('school_id', schoolId)
+          .eq('school_id', querySchoolId)
           .order('transaction_date', { ascending: false })
 
         if (error) throw error
@@ -2808,20 +2548,13 @@ export function useTimetableManager(schoolId?: string) {
         return
       }
 
-      if (isDemo) {
-        setSlots([
-          { id: '1', school_id: schoolId, name: 'Period 1', start_time: '08:00', end_time: '08:40', is_lesson: true, order_number: 1, created_at: new Date().toISOString() },
-          { id: '2', school_id: schoolId, name: 'Break', start_time: '10:40', end_time: '11:10', is_lesson: false, order_number: 4, created_at: new Date().toISOString() },
-        ])
-        setLoading(false)
-        return
-      }
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
       try {
         setLoading(true)
         const [slotsRes, constraintsRes] = await Promise.all([
-          supabase.from('timetable_slots').select('*').eq('school_id', schoolId).order('order_number'),
-          supabase.from('timetable_constraints').select('*').eq('school_id', schoolId)
+          supabase.from('timetable_slots').select('*').eq('school_id', querySchoolId).order('order_number'),
+          supabase.from('timetable_constraints').select('*').eq('school_id', querySchoolId)
         ])
 
         if (slotsRes.error) throw slotsRes.error
@@ -2856,22 +2589,13 @@ export function useDormManager(schoolId?: string, dormId?: string) {
         return
       }
 
-      if (isDemo) {
-        setRooms([
-          { id: '1', dorm_id: dormId || '1', room_number: 'Room 101', capacity: 10, current_occupancy: 8, created_at: new Date().toISOString() },
-        ])
-        setIncidents([
-          { id: '1', school_id: schoolId, student_id: '1', dorm_id: dormId || '1', incident_type: 'health', description: 'Fever reported', incident_date: '2026-03-29', created_at: new Date().toISOString() },
-        ])
-        setLoading(false)
-        return
-      }
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
       try {
         setLoading(true)
         const [roomsRes, incidentsRes] = await Promise.all([
           supabase.from('dorm_rooms').select('*').eq('dorm_id', dormId),
-          supabase.from('dorm_incidents').select('*, students(first_name, last_name)').eq('dorm_id', dormId)
+          supabase.from('dorm_incidents').select('*, students(first_name, last_name)').eq('dorm_id', dormId).eq('school_id', querySchoolId)
         ])
         setRooms(roomsRes.data || [])
         setIncidents(incidentsRes.data || [])
@@ -2901,22 +2625,13 @@ export function useTransportManager(schoolId?: string) {
         return
       }
 
-      if (isDemo) {
-        setRoutes([
-          { id: '1', school_id: schoolId, route_name: 'Entebbe Road', vehicle_number: 'UBA 123X', driver_name: 'Muloni John', created_at: new Date().toISOString() },
-        ])
-        setLogs([
-          { id: '1', school_id: schoolId, route_id: '1', log_type: 'fuel', amount: 150000, log_date: '2026-03-25', description: 'Full tank refill', created_at: new Date().toISOString() },
-        ])
-        setLoading(false)
-        return
-      }
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
       try {
         setLoading(true)
         const [routesRes, logsRes] = await Promise.all([
-          supabase.from('transport_routes').select('*, transport_stops(*)').eq('school_id', schoolId),
-          supabase.from('transport_vehicle_logs').select('*').eq('school_id', schoolId).order('log_date', { ascending: false })
+          supabase.from('transport_routes').select('*, transport_stops(*)').eq('school_id', querySchoolId),
+          supabase.from('transport_vehicle_logs').select('*').eq('school_id', querySchoolId).order('log_date', { ascending: false })
         ])
         setRoutes(routesRes.data || [])
         setLogs(logsRes.data || [])
