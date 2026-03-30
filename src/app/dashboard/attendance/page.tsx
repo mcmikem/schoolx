@@ -224,7 +224,7 @@ export default function AttendancePage() {
             {classes.length === 0 ? (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                 <p className="text-amber-800 text-sm font-medium">No classes found</p>
-                <p className="text-amber-600 text-xs mt-1">Classes are created automatically when you register a school. If you're seeing this, please contact support or re-register.</p>
+                <p className="text-amber-600 text-xs mt-1">Classes are created automatically when you register a school. If you are seeing this, please contact support or re-register.</p>
               </div>
             ) : (
               <select
