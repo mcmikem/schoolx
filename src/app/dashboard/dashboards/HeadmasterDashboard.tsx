@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useDashboardStats, useStudents, useFeePayments, useFeeStructure, useClasses, useStaff } from '@/lib/hooks'
 import { supabase } from '@/lib/supabase'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 
 function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
   return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
@@ -271,6 +271,33 @@ export default function HeadmasterDashboard() {
   // Alert count
   const alertCount = (loadingExtra ? 0 : classesNotMarked + atRiskStudents.length + dropoutRiskCount + lowAttendanceClasses + (overdueFeeCount > 0 ? 1 : 0) + (totalPendingApprovals > 0 ? 1 : 0))
 
+  const focusItems = useMemo(() => [
+    {
+      id: 'low-attendance',
+      label: 'Low attendance classes',
+      value: loadingExtra ? null : lowAttendanceClasses,
+      description: 'Classes with less than 70% present today',
+      link: '/dashboard/attendance',
+      status: lowAttendanceClasses > 0 ? 'alert' : 'ok',
+    },
+    {
+      id: 'overdue-fees',
+      label: 'Overdue fees',
+      value: loadingExtra ? null : overdueFeeCount,
+      description: 'Students with unsettled balances this term',
+      link: '/dashboard/fees',
+      status: overdueFeeCount > 0 ? 'alert' : 'ok',
+    },
+    {
+      id: 'pending-approvals',
+      label: 'Pending approvals',
+      value: loadingExtra ? null : totalPendingApprovals,
+      description: 'Expenses or leave requests waiting for action',
+      link: totalPendingApprovals > 0 ? '/dashboard/expense-approvals' : '/dashboard/leave-approvals',
+      status: totalPendingApprovals > 0 ? 'alert' : 'ok',
+    },
+  ], [lowAttendanceClasses, overdueFeeCount, totalPendingApprovals, loadingExtra])
+
   return (
     <div className="content">
       {/* PAGE HEADER */}
@@ -289,6 +316,26 @@ export default function HeadmasterDashboard() {
             Add Student
           </Link>
         </div>
+      </div>
+      <div className="grid gap-4 mb-6 lg:grid-cols-3">
+        {focusItems.map((item) => (
+          <Link
+            key={item.id}
+            href={item.link}
+            className={`rounded-[22px] border p-4 shadow-sm transition ${item.status === 'alert' ? 'border-[#f5b13d] bg-[#fff7eb]' : 'border-[#e8eaed] bg-white/95'} `}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-[#10233b]">{item.label}</p>
+              {item.status === 'alert' && (
+                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#b45309]">Urgent</span>
+              )}
+            </div>
+            <div className="mt-4 text-3xl font-semibold text-[#111827]">
+              {item.value === null ? '…' : item.value}
+            </div>
+            <p className="text-sm text-slate-500 mt-3">{item.description}</p>
+          </Link>
+        ))}
       </div>
 
       {/* STAT CARDS - Row 1: Core Metrics */}

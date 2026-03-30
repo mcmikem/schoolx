@@ -33,17 +33,19 @@ export default function FeesPage() {
   const { students } = useStudents(school?.id)
   const { classes } = useClasses(school?.id)
   const { payments, createPayment, deletePayment } = useFeePayments(school?.id)
-  const { feeStructure } = useFeeStructure(school?.id)
+  const { feeStructure, createFeeStructure, deleteFeeStructure } = useFeeStructure(school?.id)
   const receiptRef = useRef<HTMLDivElement>(null)
   
   const [tab, setTab] = useState<'balances' | 'payments' | 'momo' | 'structure'>('balances')
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showReceiptModal, setShowReceiptModal] = useState(false)
   const [showInvoiceModal, setShowInvoiceModal] = useState(false)
+  const [showFeeModal, setShowFeeModal] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<StudentBalance | null>(null)
   const [selectedClass, setSelectedClass] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [saving, setSaving] = useState(false)
+  const [newFee, setNewFee] = useState({ name: '', class_id: '', amount: '', term: currentTerm || 1, due_date: '' })
   const [newPayment, setNewPayment] = useState({
     student_id: '',
     amount_paid: '',
@@ -150,6 +152,42 @@ export default function FeesPage() {
       toast.success('Payment deleted')
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete payment')
+    }
+  }
+
+  const handleCreateFee = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newFee.name || !newFee.amount) {
+      toast.error('Please fill fee name and amount')
+      return
+    }
+    try {
+      setSaving(true)
+      await createFeeStructure({
+        name: newFee.name,
+        class_id: newFee.class_id || undefined,
+        amount: Number(newFee.amount),
+        term: Number(newFee.term),
+        academic_year: academicYear,
+        due_date: newFee.due_date || undefined,
+      })
+      toast.success('Fee structure created')
+      setShowFeeModal(false)
+      setNewFee({ name: '', class_id: '', amount: '', term: currentTerm || 1, due_date: '' })
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create fee')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteFee = async (feeId: string) => {
+    if (!confirm('Delete this fee structure?')) return
+    try {
+      await deleteFeeStructure(feeId)
+      toast.success('Fee deleted')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete fee')
     }
   }
 
@@ -460,30 +498,41 @@ export default function FeesPage() {
       )}
 
       {tab === 'structure' && (
-        <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-surface-container-low text-left">
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Fee Name</th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Class</th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Amount</th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Term</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/5">
-                {feeStructure.map((fee) => (
-                  <tr key={fee.id} className="hover:bg-surface-bright">
-                    <td className="px-6 py-4 font-medium">{fee.name}</td>
-                    <td className="px-6 py-4">{fee.classes?.name || 'All Classes'}</td>
-                    <td className="px-6 py-4 font-bold text-primary">{formatCurrency(Number(fee.amount))}</td>
-                    <td className="px-6 py-4 text-sm text-on-surface-variant">Term {fee.term}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div>
+          <div className="flex justify-end mb-4">
+            <button onClick={() => setShowFeeModal(true)} className="btn btn-primary">
+              <MaterialIcon icon="add" />
+              Add Fee
+            </button>
           </div>
-        </div>
+          <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-surface-container-low text-left">
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Fee Name</th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Class</th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Amount</th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Term</th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/5">
+                  {feeStructure.map((fee) => (
+                    <tr key={fee.id} className="hover:bg-surface-bright">
+                      <td className="px-6 py-4 font-medium">{fee.name}</td>
+                      <td className="px-6 py-4">{fee.classes?.name || 'All Classes'}</td>
+                      <td className="px-6 py-4 font-bold text-primary">{formatCurrency(Number(fee.amount))}</td>
+                      <td className="px-6 py-4 text-sm text-on-surface-variant">Term {fee.term}</td>
+                      <td className="px-6 py-4">
+                        <button onClick={() => handleDeleteFee(fee.id)} className="text-error hover:underline text-sm">Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
       )}
 
       {/* Payment Modal */}
@@ -587,6 +636,52 @@ export default function FeesPage() {
                 Print Receipt
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Fee Modal */}
+      {showFeeModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowFeeModal(false)}>
+          <div className="bg-surface-container-lowest rounded-2xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-outline-variant/10">
+              <h2 className="font-headline font-bold text-xl text-primary">Add New Fee</h2>
+            </div>
+            <form onSubmit={handleCreateFee} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Fee Name</label>
+                <input type="text" value={newFee.name} onChange={(e) => setNewFee({...newFee, name: e.target.value})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm" placeholder="e.g. Tuition, Development, Library" required />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Class (Optional - leave empty for all)</label>
+                <select value={newFee.class_id} onChange={(e) => setNewFee({...newFee, class_id: e.target.value})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm">
+                  <option value="">All Classes</option>
+                  {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Amount (UGX)</label>
+                  <input type="number" value={newFee.amount} onChange={(e) => setNewFee({...newFee, amount: e.target.value})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm" required />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Term</label>
+                  <select value={newFee.term} onChange={(e) => setNewFee({...newFee, term: Number(e.target.value)})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm">
+                    <option value={1}>Term 1</option>
+                    <option value={2}>Term 2</option>
+                    <option value={3}>Term 3</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Due Date (Optional)</label>
+                <input type="date" value={newFee.due_date} onChange={(e) => setNewFee({...newFee, due_date: e.target.value})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm" />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowFeeModal(false)} className="btn btn-ghost flex-1">Cancel</button>
+                <button type="submit" disabled={saving} className="btn btn-primary flex-1">{saving ? 'Saving...' : 'Add Fee'}</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
