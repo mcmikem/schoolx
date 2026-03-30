@@ -443,17 +443,31 @@ export default function GradesPage() {
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-[200px]">
               <label className="block text-sm font-semibold mb-2 text-primary">Target Class</label>
-              <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="w-full bg-surface-container-lowest border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary text-sm font-medium">
-                <option value="">Select Class</option>
-                {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              {classes.length === 0 ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                  <p className="text-amber-800 text-sm font-medium">No classes found</p>
+                  <p className="text-amber-600 text-xs mt-1">Contact support if this persists.</p>
+                </div>
+              ) : (
+                <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="w-full bg-surface-container-lowest border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary text-sm font-medium">
+                  <option value="">Select Class</option>
+                  {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              )}
             </div>
             <div className="flex-1 min-w-[200px]">
               <label className="block text-sm font-semibold mb-2 text-primary">Subject Area</label>
-              <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)} className="w-full bg-surface-container-lowest border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary text-sm font-medium">
-                <option value="">Select Subject</option>
-                {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
+              {subjects.length === 0 ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                  <p className="text-amber-800 text-sm font-medium">No subjects found</p>
+                  <p className="text-amber-600 text-xs mt-1">Contact support if this persists.</p>
+                </div>
+              ) : (
+                <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)} className="w-full bg-surface-container-lowest border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary text-sm font-medium">
+                  <option value="">Select Subject</option>
+                  {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              )}
             </div>
           </div>
         </div>

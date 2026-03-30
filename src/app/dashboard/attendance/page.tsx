@@ -221,16 +221,23 @@ export default function AttendancePage() {
                 <span className="ml-2 normal-case font-medium text-primary">(your classes)</span>
               )}
             </label>
-            <select
-              value={selectedClass || ''}
-              onChange={(e) => setSelectedClass(e.target.value || null)}
-              className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20"
-            >
-              <option value="">Select a class</option>
-              {filteredClasses.map((c) => (
-                <option key={c.id} value={c.id}>{c.name} ({c.level})</option>
-              ))}
-            </select>
+            {classes.length === 0 ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <p className="text-amber-800 text-sm font-medium">No classes found</p>
+                <p className="text-amber-600 text-xs mt-1">Classes are created automatically when you register a school. If you're seeing this, please contact support or re-register.</p>
+              </div>
+            ) : (
+              <select
+                value={selectedClass || ''}
+                onChange={(e) => setSelectedClass(e.target.value || null)}
+                className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20"
+              >
+                <option value="">Select a class</option>
+                {filteredClasses.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name} ({c.level})</option>
+                ))}
+              </select>
+            )}
           </div>
           <div className="sm:w-48">
             <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 block">Date</label>
