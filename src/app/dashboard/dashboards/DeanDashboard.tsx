@@ -18,145 +18,207 @@ export default function DeanDashboard() {
   const currentDate = new Date()
   const greeting = currentDate.getHours() < 12 ? 'Good Morning' : currentDate.getHours() < 17 ? 'Good Afternoon' : 'Good Evening'
 
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  }
+
+  const getStudentCountForClass = (classId: string) => {
+    return students.filter(s => s.class_id === classId).length
+  }
+
   return (
-    <div className="content">
+    <div className="content" style={{ padding: '20px 24px', maxWidth: 1400, margin: '0 auto', width: '100%' }}>
       {/* PAGE HEADER */}
-      <div className="page-header">
-        <div>
-          <div className="ph-title">{greeting}, {user?.full_name?.split(' ')[0]}</div>
-          <div className="ph-sub">{school?.name} • {academicYear} Term {currentTerm}</div>
+      <div style={{ 
+        background: 'var(--white)', 
+        padding: '20px 24px', 
+        borderBottom: '1px solid var(--border)', 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        gap: '16px',
+        marginBottom: '20px',
+        borderRadius: 'var(--r)',
+        boxShadow: 'var(--shadow-sm)',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <div style={{ fontSize: '22px', fontWeight: 900, color: '#1A3A6B', lineHeight: 1.2 }}>
+            {greeting}, {user?.full_name?.split(' ')[0]}
+          </div>
+          <div style={{ fontSize: '13px', color: 'var(--t3)', marginTop: '4px', fontWeight: 500 }}>
+            {school?.name} • {formatDate(currentDate)}
+          </div>
         </div>
-        <div className="ph-actions">
-          <button className="btn btn-ghost">
-            <MaterialIcon icon="filter_list" style={{ fontSize: '16px' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <button style={{ 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', 
+            padding: '10px 16px', borderRadius: 10, border: '1px solid var(--border)', 
+            background: 'var(--white)', fontSize: '13px', fontWeight: 600, color: 'var(--t1)', 
+            cursor: 'pointer', boxShadow: 'var(--shadow-sm)'
+          }}>
+            <MaterialIcon icon="filter_list" style={{ fontSize: 16, color: 'var(--t2)' }} />
             Filter
           </button>
-          <button className="btn btn-primary">
-            <MaterialIcon icon="add" style={{ fontSize: '16px' }} />
+          <button style={{ 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', 
+            padding: '10px 16px', borderRadius: 10, border: 'none', 
+            background: '#1A3A6B', fontSize: '13px', fontWeight: 600, color: 'white', 
+            cursor: 'pointer', boxShadow: 'var(--shadow)'
+          }}>
+            <MaterialIcon icon="add" style={{ fontSize: 16 }} />
             Quick Entry
           </button>
         </div>
       </div>
 
       {/* STATS */}
-      <div className="stat-grid">
-        <div className="stat-card">
-          <div className="stat-accent" style={{ background: 'var(--navy)' }} />
-          <div className="stat-inner">
-            <div className="stat-meta">
-              <div className="stat-label">Students</div>
-              <div className="stat-icon-box" style={{ background: 'var(--navy-soft)', color: 'var(--navy)' }}>
-                <MaterialIcon icon="group" style={{ fontSize: '17px' }} />
-              </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
+        <div style={{ background: 'var(--white)', padding: '16px', borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--navy-soft)', color: 'var(--navy)' }}>
+              <MaterialIcon icon="group" style={{ fontSize: 18 }} />
             </div>
-            <div className="stat-val" style={{ color: 'var(--navy)' }}>{students.length}</div>
-            <div style={{ fontSize: '11px', color: 'var(--t3)', marginTop: '4px' }}>{classes.length} Classes · {subjects.length} Subjects</div>
+            <div>
+              <div style={{ fontSize: 12, color: 'var(--t3)', fontWeight: 500 }}>Students</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--navy)' }}>{students.length}</div>
+              <div style={{ fontSize: 11, color: 'var(--t3)' }}>{classes.length} Classes · {subjects.length} Subjects</div>
+            </div>
           </div>
         </div>
-
-        <div className="stat-card">
-          <div className="stat-accent" style={{ background: 'var(--green)' }} />
-          <div className="stat-inner">
-            <div className="stat-meta">
-              <div className="stat-label">Attendance</div>
-              <div className="stat-icon-box" style={{ background: 'var(--green-soft)', color: 'var(--green)' }}>
-                <MaterialIcon icon="how_to_reg" style={{ fontSize: '17px' }} />
-              </div>
+        <div style={{ background: 'var(--white)', padding: '16px', borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--green-soft)', color: 'var(--green)' }}>
+              <MaterialIcon icon="how_to_reg" style={{ fontSize: 18 }} />
             </div>
-            <div className="stat-val" style={{ color: 'var(--green)' }}>85%</div>
-            <div style={{ fontSize: '11px', color: 'var(--t3)', marginTop: '4px' }}>Average attendance rate</div>
+            <div>
+              <div style={{ fontSize: 12, color: 'var(--t3)', fontWeight: 500 }}>Attendance</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--green)' }}>85%</div>
+              <div style={{ fontSize: 11, color: 'var(--t3)' }}>Average rate</div>
+            </div>
           </div>
         </div>
-
-        <div className="stat-card">
-          <div className="stat-accent" style={{ background: '#7C3AED' }} />
-          <div className="stat-inner">
-            <div className="stat-meta">
-              <div className="stat-label">Classes</div>
-              <div className="stat-icon-box" style={{ background: '#EDE9FE', color: '#7C3AED' }}>
-                <MaterialIcon icon="school" style={{ fontSize: '17px' }} />
-              </div>
+        <div style={{ background: 'var(--white)', padding: '16px', borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#EDE9FE', color: '#7C3AED' }}>
+              <MaterialIcon icon="school" style={{ fontSize: 18 }} />
             </div>
-            <div className="stat-val" style={{ color: '#7C3AED' }}>{classes.length}</div>
-            <div style={{ fontSize: '11px', color: 'var(--t3)', marginTop: '4px' }}>{classes.filter((c: any) => c.is_active).length} Active</div>
+            <div>
+              <div style={{ fontSize: 12, color: 'var(--t3)', fontWeight: 500 }}>Classes</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: '#7C3AED' }}>{classes.length}</div>
+              <div style={{ fontSize: 11, color: 'var(--t3)' }}>{classes.filter((c: any) => c.is_active).length} Active</div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* QUICK ACTIONS */}
-      <div className="card" style={{ marginBottom: '20px' }}>
-        <div className="card-header">
-          <div>
-            <div className="card-title">Academic Actions</div>
-            <div className="card-sub">Common academic tasks</div>
-          </div>
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{ marginBottom: '12px' }}>
+          <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text)' }}>Academic Actions</h3>
+          <p style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>Common academic tasks</p>
         </div>
-        <div className="card-body">
-          <div className="qa-grid">
-            <Link href="/dashboard/grades" className="qa-item">
-              <div className="qa-icon" style={{ background: '#EDE9FE', borderColor: 'rgba(124,58,237,.12)', color: '#7C3AED' }}>
-                <MaterialIcon icon="grade" style={{ fontSize: '20px' }} />
-              </div>
-              <div className="qa-label">Grades</div>
-            </Link>
-            <Link href="/dashboard/attendance" className="qa-item">
-              <div className="qa-icon" style={{ background: 'var(--navy-soft)', borderColor: 'rgba(23,50,95,.12)', color: 'var(--navy)' }}>
-                <MaterialIcon icon="how_to_reg" style={{ fontSize: '20px' }} />
-              </div>
-              <div className="qa-label">Attendance</div>
-            </Link>
-            <Link href="/dashboard/homework" className="qa-item">
-              <div className="qa-icon" style={{ background: 'var(--green-soft)', borderColor: 'rgba(46,148,72,.12)', color: 'var(--green)' }}>
-                <MaterialIcon icon="assignment" style={{ fontSize: '20px' }} />
-              </div>
-              <div className="qa-label">Homework</div>
-            </Link>
-            <Link href="/dashboard/planning" className="qa-item">
-              <div className="qa-icon" style={{ background: 'var(--amber-soft)', borderColor: 'rgba(184,107,12,.12)', color: 'var(--amber)' }}>
-                <MaterialIcon icon="event_note" style={{ fontSize: '20px' }} />
-              </div>
-              <div className="qa-label">Lesson Plans</div>
-            </Link>
-            <Link href="/dashboard/timetable" className="qa-item">
-              <div className="qa-icon" style={{ background: 'var(--red-soft)', borderColor: 'rgba(192,57,43,.12)', color: 'var(--red)' }}>
-                <MaterialIcon icon="calendar_month" style={{ fontSize: '20px' }} />
-              </div>
-              <div className="qa-label">Timetable</div>
-            </Link>
-            <Link href="/dashboard/uneb" className="qa-item">
-              <div className="qa-icon" style={{ background: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--t2)' }}>
-                <MaterialIcon icon="workspace_premium" style={{ fontSize: '20px' }} />
-              </div>
-              <div className="qa-label">UNEB</div>
-            </Link>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
+          <Link href="/dashboard/grades" style={{ padding: '14px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer', textDecoration: 'none', background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)', textAlign: 'center' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#EDE9FE' }}>
+              <MaterialIcon icon="grade" style={{ fontSize: 18, color: '#7C3AED' }} />
+            </div>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--t1)' }}>Grades</div>
+          </Link>
+          <Link href="/dashboard/attendance" style={{ padding: '14px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer', textDecoration: 'none', background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)', textAlign: 'center' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--navy-soft)' }}>
+              <MaterialIcon icon="how_to_reg" style={{ fontSize: 18, color: 'var(--navy)' }} />
+            </div>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--t1)' }}>Attendance</div>
+          </Link>
+          <Link href="/dashboard/homework" style={{ padding: '14px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer', textDecoration: 'none', background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)', textAlign: 'center' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--green-soft)' }}>
+              <MaterialIcon icon="assignment" style={{ fontSize: 18, color: 'var(--green)' }} />
+            </div>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--t1)' }}>Homework</div>
+          </Link>
+          <Link href="/dashboard/planning" style={{ padding: '14px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer', textDecoration: 'none', background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)', textAlign: 'center' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--amber-soft)' }}>
+              <MaterialIcon icon="event_note" style={{ fontSize: 18, color: 'var(--amber)' }} />
+            </div>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--t1)' }}>Lesson Plans</div>
+          </Link>
+          <Link href="/dashboard/timetable" style={{ padding: '14px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer', textDecoration: 'none', background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)', textAlign: 'center' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--red-soft)' }}>
+              <MaterialIcon icon="calendar_month" style={{ fontSize: 18, color: 'var(--red)' }} />
+            </div>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--t1)' }}>Timetable</div>
+          </Link>
+          <Link href="/dashboard/uneb" style={{ padding: '14px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer', textDecoration: 'none', background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)', textAlign: 'center' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+              <MaterialIcon icon="workspace_premium" style={{ fontSize: 18, color: 'var(--t2)' }} />
+            </div>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--t1)' }}>UNEB</div>
+          </Link>
         </div>
       </div>
 
       {/* CLASSES */}
-      <div className="card">
-        <div className="card-header">
+      <div style={{ background: 'var(--white)', padding: '20px', borderRadius: 14, border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
           <div>
-            <div className="card-title">Classes - {academicYear} Term {currentTerm}</div>
-            <div className="card-sub">{classes.length} classes enrolled</div>
+            <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text)' }}>Classes - {academicYear} Term {currentTerm}</div>
+            <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>{classes.length} classes enrolled</div>
           </div>
-          <button className="btn btn-ghost" style={{ fontSize: '11px', padding: '5px 10px' }}>Manage</button>
+          <button style={{ fontSize: '12px', padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--t2)', cursor: 'pointer' }}>Manage</button>
         </div>
-        <div style={{ padding: '8px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
-            {classes.map((cls: any) => {
-              const count = students.filter(s => s.class_id === cls.id).length
-              return (
-                <Link key={cls.id} href={`/dashboard/grades?class=${cls.id}`} className="qa-item" style={{ padding: '14px 10px' }}>
-                  <MaterialIcon icon="school" style={{ fontSize: '22px', color: '#7C3AED' }} />
-                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--t1)' }}>{cls.name}</div>
-                  <div style={{ fontSize: '10px', color: 'var(--t3)' }}>{count} students</div>
-                </Link>
-              )
-            })}
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+          {classes.map((cls: any) => {
+            const count = getStudentCountForClass(cls.id)
+            return (
+              <Link key={cls.id} href={`/dashboard/grades?class=${cls.id}`} style={{ padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer', textDecoration: 'none', background: 'var(--bg)', borderRadius: 10, border: '1px solid var(--border)', textAlign: 'center' }}>
+                <MaterialIcon icon="school" style={{ fontSize: 24, color: '#7C3AED' }} />
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--t1)' }}>{cls.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--t3)' }}>{count} students</div>
+              </Link>
+            )
+          })}
         </div>
       </div>
+
+      <style jsx global>{`
+        @media (max-width: 1024px) {
+          .content > div:nth-child(3) > div:last-child {
+            grid-template-columns: repeat(3, 1fr) !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .content {
+            padding: 70px 12px 20px !important;
+          }
+          .content > div:first-child {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            padding: 16px !important;
+          }
+          .content > div:first-child > div:last-child {
+            justify-content: flex-start !important;
+            margin-top: 12px;
+          }
+          .content > div:nth-child(2) {
+            grid-template-columns: 1fr !important;
+          }
+          .content > div:nth-child(3) > div:last-child {
+            grid-template-columns: repeat(3, 1fr) !important;
+          }
+          .content > div:nth-child(4) > div:last-child {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .content > div:nth-child(3) > div:last-child {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          .content > div:nth-child(4) > div:last-child {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   )
 }
