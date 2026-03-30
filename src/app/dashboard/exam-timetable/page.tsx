@@ -425,12 +425,16 @@ export default function ExamTimetablePage() {
 
               <div style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Supervisor (Teacher) *</label>
-                <select value={newExam.supervisor_id} onChange={e => setNewExam({...newExam, supervisor_id: e.target.value})} className="input">
-                  <option value="">Select teacher</option>
-                  {staff.map(t => (
-                    <option key={t.id} value={t.id}>{t.full_name}</option>
-                  ))}
-                </select>
+                {staff.length === 0 ? (
+                  <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#92400E' }}>No teachers available</div>
+                ) : (
+                  <select value={newExam.supervisor_id} onChange={e => setNewExam({...newExam, supervisor_id: e.target.value})} className="input">
+                    <option value="">Select teacher</option>
+                    {staff.map(t => (
+                      <option key={t.id} value={t.id}>{t.full_name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
             </div>
             <div className="modal-footer">
