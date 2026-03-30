@@ -546,10 +546,14 @@ export default function FeesPage() {
             <form onSubmit={handleRecordPayment} className="p-6 space-y-5">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Student</label>
-                <select value={newPayment.student_id} onChange={(e) => setNewPayment({...newPayment, student_id: e.target.value})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm" required>
-                  <option value="">Select student</option>
-                  {studentBalances.map((s) => <option key={s.id} value={s.id}>{s.name} - {formatCurrency(s.balance)}</option>)}
-                </select>
+                {studentBalances.length === 0 ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">No students found - add students first</div>
+                ) : (
+                  <select value={newPayment.student_id} onChange={(e) => setNewPayment({...newPayment, student_id: e.target.value})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm" required>
+                    <option value="">Select student</option>
+                    {studentBalances.map((s) => <option key={s.id} value={s.id}>{s.name} - {formatCurrency(s.balance)}</option>)}
+                  </select>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

@@ -129,12 +129,16 @@ export default function HomeworkSubmissionsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Filter by Class</label>
-              <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} className="input">
-                <option value="">All Classes</option>
-                {classes.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              {classes.length === 0 ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No classes available</div>
+              ) : (
+                <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} className="input">
+                  <option value="">All Classes</option>
+                  {classes.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              )}
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium mb-1">&nbsp;</label>

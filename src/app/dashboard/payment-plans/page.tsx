@@ -273,16 +273,20 @@ export default function PaymentPlansPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Student</label>
-                <select 
-                  value={newPlan.student_id}
-                  onChange={(e) => setNewPlan({...newPlan, student_id: e.target.value})}
-                  className="input"
-                >
-                  <option value="">Select student...</option>
-                  {students.map(s => (
-                    <option key={s.id} value={s.id}>{s.first_name} {s.last_name} - {s.classes?.name}</option>
-                  ))}
-                </select>
+                {students.length === 0 ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No students available</div>
+                ) : (
+                  <select 
+                    value={newPlan.student_id}
+                    onChange={(e) => setNewPlan({...newPlan, student_id: e.target.value})}
+                    className="input"
+                  >
+                    <option value="">Select student...</option>
+                    {students.map(s => (
+                      <option key={s.id} value={s.id}>{s.first_name} {s.last_name} - {s.classes?.name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div>
