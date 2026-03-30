@@ -103,10 +103,14 @@ export default function PeriodAttendancePage() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <select value={selectedClass || ''} onChange={(e) => setSelectedClass(e.target.value || null)} className="input sm:w-48">
-          <option value="">Select class</option>
-          {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+        {classes.length === 0 ? (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2 text-sm text-amber-800">No classes available</div>
+        ) : (
+          <select value={selectedClass || ''} onChange={(e) => setSelectedClass(e.target.value || null)} className="input sm:w-48">
+            <option value="">Select class</option>
+            {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        )}
         <select value={selectedPeriod} onChange={(e) => setSelectedPeriod(e.target.value)} className="input sm:w-40">
           {PERIODS.map((p) => <option key={p} value={p}>{p}</option>)}
         </select>

@@ -366,10 +366,14 @@ export default function ReportCardsPage() {
         <div className="flex flex-col md:flex-row gap-4 items-end">
           <div className="flex-1">
             <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Select Class</label>
-            <select value={selectedClass} onChange={(e) => { setSelectedClass(e.target.value); setGenerated(false); setReports([]) }} className="w-full bg-surface-container-low border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20">
-              <option value="">Select Class</option>
-              {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            {classes.length === 0 ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">No classes available</div>
+            ) : (
+              <select value={selectedClass} onChange={(e) => { setSelectedClass(e.target.value); setGenerated(false); setReports([]) }} className="w-full bg-surface-container-low border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20">
+                <option value="">Select Class</option>
+                {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            )}
           </div>
           <div className="flex-1">
             <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Term</label>

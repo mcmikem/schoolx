@@ -287,17 +287,21 @@ export default function DisciplinePage() {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
                 <label className="text-sm font-medium text-[#191c1d] mb-2 block">Student</label>
-                <select 
-                  value={newRecord.student_id}
-                  onChange={(e) => setNewRecord({...newRecord, student_id: e.target.value})}
-                  className="input"
-                  required
-                >
-                  <option value="">Select student</option>
-                  {students.map((s) => (
-                    <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>
-                  ))}
-                </select>
+                {students.length === 0 ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No students available</div>
+                ) : (
+                  <select 
+                    value={newRecord.student_id}
+                    onChange={(e) => setNewRecord({...newRecord, student_id: e.target.value})}
+                    className="input"
+                    required
+                  >
+                    <option value="">Select student</option>
+                    {students.map((s) => (
+                      <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div>

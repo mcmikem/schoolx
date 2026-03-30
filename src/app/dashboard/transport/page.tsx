@@ -150,17 +150,21 @@ export default function TransportPage() {
             <form onSubmit={handleAddLog} className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-white/60">Select Route/Vehicle</label>
-                <select 
-                  required
-                  value={selectedRouteId}
-                  onChange={(e) => setSelectedRouteId(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none"
-                >
-                  <option value="" className="bg-slate-900">Choose route...</option>
-                  {routes.map(r => (
-                    <option key={r.id} value={r.id} className="bg-slate-900">{r.route_name} ({r.vehicle_number})</option>
-                  ))}
-                </select>
+                {routes.length === 0 ? (
+                  <div className="bg-amber-500/20 border border-amber-500/30 rounded-xl px-4 py-3 text-amber-200 text-sm">No routes available</div>
+                ) : (
+                  <select 
+                    required
+                    value={selectedRouteId}
+                    onChange={(e) => setSelectedRouteId(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none"
+                  >
+                    <option value="" className="bg-slate-900">Choose route...</option>
+                    {routes.map(r => (
+                      <option key={r.id} value={r.id} className="bg-slate-900">{r.route_name} ({r.vehicle_number})</option>
+                    ))}
+                  </select>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
