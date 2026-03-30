@@ -667,7 +667,7 @@ export default function FeesPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Term</label>
-                  <select value={newFee.term} onChange={(e) => setNewFee({...newFee, term: Number(e.target.value)})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm">
+                  <select value={newFee.term} onChange={(e) => setNewFee({...newFee, term: Number(e.target.value) as 1 | 2 | 3})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm">
                     <option value={1}>Term 1</option>
                     <option value={2}>Term 2</option>
                     <option value={3}>Term 3</option>
