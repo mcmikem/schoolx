@@ -553,6 +553,17 @@ code.mono { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--t3)
   transform-origin: center top;
 }
 
+.desktop-shell {
+  max-width: 520px;
+  max-height: 600px;
+  margin: 0 auto;
+  padding: 0 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
 .mockup-shell {
   transition: transform 280ms var(--ease), box-shadow 280ms var(--ease), border-color 280ms var(--ease);
   will-change: transform;
@@ -634,6 +645,10 @@ code.mono { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--t3)
 
   .mockup-phone {
     animation-duration: 7.5s;
+  }
+
+  .desktop-shell {
+    max-height: 520px;
   }
   
   /* Page content - full width on mobile */
@@ -855,5 +870,15 @@ code.mono { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--t3)
   .modal form [style*="grid-template-columns"],
   .modal-overlay form [style*="grid-template-columns"] {
     grid-template-columns: 1fr !important;
+  }
+}
+
+@media (min-width: 1280px) {
+  .desktop-shell {
+    max-height: 520px;
+  }
+
+  .desktop-stage .mockup-shell {
+    transform: translateY(-6px);
   }
 }
