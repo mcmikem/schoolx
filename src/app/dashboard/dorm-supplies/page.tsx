@@ -149,10 +149,14 @@ export default function DormSuppliesPage() {
           <p className="text-[#5c6670] mt-1">Track supplies issued to boarding students</p>
         </div>
         <div className="flex gap-3">
-          <select value={selectedDorm?.id || ''} onChange={e => setSelectedDorm(dorms.find(d => d.id === e.target.value))} className="input sm:w-48">
-            <option value="">Select dorm...</option>
-            {dorms.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
+          {dorms.length === 0 ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2 text-sm text-amber-800">No dorms available</div>
+          ) : (
+            <select value={selectedDorm?.id || ''} onChange={e => setSelectedDorm(dorms.find(d => d.id === e.target.value))} className="input sm:w-48">
+              <option value="">Select dorm...</option>
+              {dorms.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          )}
           {selectedDorm && (
             <button onClick={() => setShowBulk(true)} className="btn btn-primary">
               <MaterialIcon icon="inventory_2" style={{ fontSize: 18 }} />
