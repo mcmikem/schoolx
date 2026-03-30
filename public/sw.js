@@ -1,8 +1,15 @@
-const CACHE_VERSION = 'schoolx-v2';
+const CACHE_VERSION = 'schoolx-v3';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 const OFFLINE_FALLBACK = '/offline.html';
+
+const PAGES_TO_CACHE = [
+  '/',
+  '/login',
+  '/manifest.json',
+  '/offline.html',
+];
 
 const SUPABASE_URL = 'https://pgbfrmqteduyxjlgafkb.supabase.co';
 
@@ -10,10 +17,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     Promise.all([
       caches.open(STATIC_CACHE).then((cache) => {
-        return cache.addAll([
-          '/',
-          '/manifest.json',
-        ]);
+        return cache.addAll(PAGES_TO_CACHE);
       }),
       self.skipWaiting(),
     ])
