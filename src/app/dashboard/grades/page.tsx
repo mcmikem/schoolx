@@ -548,11 +548,11 @@ export default function GradesPage() {
         <button onClick={() => setTab('coverage')} className={`px-6 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap ${tab === 'coverage' ? 'bg-primary text-white' : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'}`}>Topic Coverage</button>
       </div>
 
-      {/* Marks Entry Table */}
-      {tab === 'marks' && selectedClass && (
-        <div className="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
+{/* Marks Entry Table */}
+       {tab === 'marks' && selectedClass && (
+         <div className="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm">
+           <div className="overflow-x-auto table-responsive">
+             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-surface-container-low/50 text-left">
                   <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Student Identity</th>
