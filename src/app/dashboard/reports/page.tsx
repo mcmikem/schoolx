@@ -146,7 +146,7 @@ export default function ReportsPage() {
           </div>
           <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input sm:w-48">
             <option value="">All Classes</option>
-            {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {classes.length > 0 ? classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>) : <option disabled>No classes</option>}
           </select>
         </div>
       </div>
