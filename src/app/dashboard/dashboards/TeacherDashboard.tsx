@@ -375,7 +375,6 @@ export default function TeacherDashboard() {
         background: 'var(--white)', 
         borderTop: '1px solid var(--border)', 
         padding: '10px 8px 24px',
-        display: 'flex',
         justifyContent: 'space-around',
         zIndex: 100,
         boxShadow: '0 -2px 10px rgba(0,0,0,0.08)'
