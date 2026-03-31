@@ -175,7 +175,7 @@ export default function HomeworkSubmissionsPage() {
                     <div style={{ fontWeight: 600, fontSize: 14 }}>{hw.subjects?.name}</div>
                     <div style={{ fontSize: 12, color: 'var(--t3)' }}>{hw.classes?.name} - Due {new Date(hw.due_date).toLocaleDateString()}</div>
                     <div style={{ fontSize: 11, marginTop: 4 }}>
-                      <span style={{ color: 'var(--navy)' }}>{hw.total_marks} marks</span>
+                      <span style={{ color: 'var(--navy)' }}>{hw.marks} marks</span>
                     </div>
                   </div>
                 ))

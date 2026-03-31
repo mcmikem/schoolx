@@ -118,10 +118,10 @@ export default function NoticeBoardPage() {
         school_id: school.id,
         title: newNotice.title,
         content: newNotice.content,
-        category: newNotice.category,
+        type: newNotice.category,
         priority: isEmergency && newNotice.category !== 'Emergency' ? 'high' : newNotice.priority,
         created_by: user.id,
-        expires_at: newNotice.expires_at || null,
+        expiry_date: newNotice.expires_at || null,
         image_url: newNotice.image_url || null,
       })
 
