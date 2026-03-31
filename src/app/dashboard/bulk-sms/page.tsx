@@ -46,7 +46,7 @@ export default function BulkSMSPage() {
         supabase.from('sms_templates').select('*').eq('school_id', school.id).eq('is_active', true)
       ])
       if (classesRes.data) setClasses(classesRes.data)
-      if (studentsRes.data) setAllStudents(studentsRes.data as any)
+      if (studentsRes.data) setAllStudents(studentsRes.data)
       if (templatesRes.data) setTemplates(templatesRes.data)
     } catch (err) {
       console.error('Error:', err)

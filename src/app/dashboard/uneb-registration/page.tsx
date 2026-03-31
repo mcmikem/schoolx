@@ -206,7 +206,7 @@ export default function UNEBRegistrationPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Exam Type</label>
-                <select value={selectedExam} onChange={(e) => setSelectedExam(e.target.value as any)} className="input">
+                <select value={selectedExam} onChange={(e) => setSelectedExam(e.target.value as 'PLE' | 'UCE' | 'UACE')} className="input">
                   <option value="PLE">PLE (Primary Leaving Exam)</option>
                   <option value="UCE">UCE (Uganda Certificate of Education)</option>
                   <option value="UACE">UACE (Uganda Advanced Certificate of Education)</option>

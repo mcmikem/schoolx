@@ -53,7 +53,7 @@ export default function CashbookPage() {
     const headers = ['Date', 'Student', 'Amount', 'Method', 'Reference']
     const rows = filteredPayments.map(p => [
       p.payment_date,
-      `${(p as any).students?.first_name || ''} ${(p as any).students?.last_name || ''}`,
+      `${(p as { students?: { first_name?: string; last_name?: string } }).students?.first_name || ''} ${(p as { students?: { first_name?: string; last_name?: string } }).students?.last_name || ''}`,
       p.amount_paid,
       p.payment_method,
       p.payment_reference || '',
@@ -129,7 +129,7 @@ export default function CashbookPage() {
               filteredPayments.map((payment) => (
                 <tr key={payment.id}>
                   <td>{new Date(payment.payment_date).toLocaleDateString()}</td>
-                  <td className="font-medium">{(payment as any).students?.first_name} {(payment as any).students?.last_name}</td>
+                  <td className="font-medium">{(payment as { students?: { first_name?: string; last_name?: string } }).students?.first_name} {(payment as { students?: { first_name?: string; last_name?: string } }).students?.last_name}</td>
                   <td className="text-green-600 font-medium">{formatCurrency(Number(payment.amount_paid))}</td>
                   <td>
                     <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-[#e3f2fd] text-[#1565c0]">
