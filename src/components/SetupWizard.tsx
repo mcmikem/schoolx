@@ -371,7 +371,7 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
               Great Start!
             </h2>
             <p style={{ fontSize: 14, color: 'var(--t2)', marginBottom: 24 }}>
-              Your classes have been created. You're ready to start managing your school.
+              Your classes have been created. You&apos;re ready to start managing your school.
             </p>
 
             <div style={{ 
@@ -381,7 +381,7 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
               marginBottom: 24
             }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--t1)', marginBottom: 8 }}>
-                What's next?
+                What&apos;s next?
               </h3>
               <ul style={{ fontSize: 13, color: 'var(--t2)', textAlign: 'left', paddingLeft: 20, margin: 0, lineHeight: 1.8 }}>
                 <li>Add students to your classes</li>
@@ -420,7 +420,7 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
                 fontSize: 13,
               }}
             >
-              I'll add students later
+              I&apos;ll add students later
             </button>
           </div>
         )}

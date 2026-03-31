@@ -178,7 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return () => subscription.unsubscribe()
     }
-  }, [checkUser, fetchUserData])
+  }, [checkUser, fetchUserData, isDemo])
 
   async function signIn(phone: string, password: string) {
     try {
