@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useClasses, useSubjects } from '@/lib/hooks'
+import { useState } from 'react'
+import { supabase } from '@/lib/supabase'
 
 function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
   return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
@@ -14,12 +16,62 @@ export default function TeacherDashboard() {
   const { students } = useStudents(school?.id)
   const { classes } = useClasses(school?.id)
   const { subjects } = useSubjects(school?.id)
+  const [settingUp, setSettingUp] = useState(false)
 
   const currentDate = new Date()
   const greeting = currentDate.getHours() < 12 ? 'Good Morning' : currentDate.getHours() < 17 ? 'Good Afternoon' : 'Good Evening'
 
   const myClasses = classes.slice(0, 6)
   const mySubjects = subjects.slice(0, 6)
+
+  const needsSetup = classes.length === 0 || subjects.length === 0
+
+  const runSetup = async () => {
+    if (!school?.id) return
+    setSettingUp(true)
+    try {
+      const currentYear = new Date().getFullYear().toString()
+      
+      // Create default classes
+      const defaultClasses = [
+        { school_id: school.id, name: 'P1', level: 'primary', academic_year: currentYear },
+        { school_id: school.id, name: 'P2', level: 'primary', academic_year: currentYear },
+        { school_id: school.id, name: 'P3', level: 'primary', academic_year: currentYear },
+        { school_id: school.id, name: 'P4', level: 'primary', academic_year: currentYear },
+        { school_id: school.id, name: 'P5', level: 'primary', academic_year: currentYear },
+        { school_id: school.id, name: 'P6', level: 'primary', academic_year: currentYear },
+        { school_id: school.id, name: 'P7', level: 'primary', academic_year: currentYear },
+      ]
+      await supabase.from('classes').insert(defaultClasses)
+      
+      // Create default subjects
+      const defaultSubjects = [
+        { school_id: school.id, name: 'English', code: 'ENG', level: 'primary' },
+        { school_id: school.id, name: 'Mathematics', code: 'MTC', level: 'primary' },
+        { school_id: school.id, name: 'Science', code: 'SCI', level: 'primary' },
+        { school_id: school.id, name: 'Social Studies', code: 'SST', level: 'primary' },
+        { school_id: school.id, name: 'Religious Education', code: 'CRE', level: 'primary' },
+        { school_id: school.id, name: 'Physical Education', code: 'PE', level: 'primary' },
+      ]
+      await supabase.from('subjects').insert(defaultSubjects)
+      
+      // Create academic year
+      await supabase.from('academic_years').insert({
+        school_id: school.id,
+        name: currentYear,
+        start_date: `${currentYear}-01-01`,
+        end_date: `${currentYear}-12-31`,
+        is_current: true,
+      })
+      
+      window.location.reload()
+    } catch (err) {
+      console.error('Setup error:', err)
+      alert('Setup failed. Please try again.')
+    } finally {
+      setSettingUp(false)
+    }
+  }
 
   return (
     <div className="content">
@@ -85,6 +137,30 @@ export default function TeacherDashboard() {
           </div>
         </div>
       </div>
+
+      {/* SETUP NEEDED PROMPT */}
+      {needsSetup && (
+        <div className="card" style={{ background: '#FEF3C7', border: '1px solid #FCD34D', padding: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+            <MaterialIcon icon="warning" style={{ fontSize: 24, color: '#D97706' }} />
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#92400E' }}>Setup Required</div>
+              <div style={{ fontSize: '12px', color: '#A16207' }}>Your school needs initial setup</div>
+            </div>
+          </div>
+          <p style={{ fontSize: '12px', color: '#92400E', marginBottom: '12px' }}>
+            It looks like your school doesn't have classes or subjects yet. Click below to set up automatically.
+          </p>
+          <button 
+            onClick={runSetup} 
+            disabled={settingUp}
+            className="btn btn-primary"
+            style={{ background: '#D97706' }}
+          >
+            {settingUp ? 'Setting up...' : 'Run Setup'}
+          </button>
+        </div>
+      )}
 
       {/* QUICK ACTIONS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
