@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useClasses, useSubjects } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
+import { useFormDraft } from '@/lib/useAutoSave'
 import { supabase } from '@/lib/supabase'
 
 function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
@@ -37,6 +38,9 @@ export default function HomeworkPage() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [selectedClass, setSelectedClass] = useState('')
+  
+  // Auto-save for homework form
+  const homeworkDraft = useFormDraft('homework_add_form')
   const [newHomework, setNewHomework] = useState({
     title: '',
     description: '',
@@ -91,6 +95,7 @@ export default function HomeworkPage() {
       if (error) throw error
       toast.success('Homework assigned')
       setShowModal(false)
+      homeworkDraft.clearSaved() // Clear auto-save after success
       setNewHomework({ title: '', description: '', subject_id: '', class_id: '', due_date: '', marks: 10 })
       fetchHomework()
     } catch (err) {

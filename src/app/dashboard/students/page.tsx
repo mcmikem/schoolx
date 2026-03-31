@@ -5,6 +5,7 @@ import Papa from 'papaparse'
 import { useAuth } from '@/lib/auth-context'
 import { useStudents, useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
+import { useFormDraft } from '@/lib/useAutoSave'
 import { SendSMSModal } from '@/components/SendSMSModal'
 
 function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
@@ -35,6 +36,9 @@ export default function StudentsPage() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingStudent, setEditingStudent] = useState<any>(null)
   const [saving, setSaving] = useState(false)
+  
+  // Auto-save for new student form
+  const newStudentDraft = useFormDraft('student_add_form')
   const [newStudent, setNewStudent] = useState({
     first_name: '',
     last_name: '',
@@ -205,6 +209,7 @@ export default function StudentsPage() {
       })
       toast.success('Student added successfully')
       setShowAddModal(false)
+      newStudentDraft.clearSaved() // Clear auto-save after success
       setNewStudent({
         first_name: '',
         last_name: '',
