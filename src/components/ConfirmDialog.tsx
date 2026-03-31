@@ -1,9 +1,6 @@
 'use client'
 import { useState, useEffect, ReactNode } from 'react'
-
-function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
-}
+import MaterialIcon from '@/components/MaterialIcon'
 
 interface ConfirmDialogProps {
   open: boolean
