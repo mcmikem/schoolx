@@ -2,10 +2,7 @@
 import { useState, useMemo } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useStudents, useFeePayments, useFeeStructure } from '@/lib/hooks'
-
-function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
-}
+import MaterialIcon from '@/components/MaterialIcon'
 
 export default function FeesLookupPage() {
   const { school } = useAuth()

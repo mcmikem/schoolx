@@ -4,9 +4,7 @@ import { useSMSTriggers } from '@/lib/hooks'
 import GlassCard from '@/components/GlassCard'
 import { useToast } from '@/components/Toast'
 
-function MaterialIcon({ icon, className }: { icon: string; className?: string }) {
-  return <span className={`material-symbols-outlined ${className || ''}`}>{icon}</span>
-}
+import MaterialIcon from '@/components/MaterialIcon'
 
 export default function AutoSMSPage() {
   const { school } = useAuth()

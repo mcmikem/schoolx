@@ -4,11 +4,8 @@ import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { useStaffReviews } from '@/lib/hooks'
 import GlassCard from '@/components/GlassCard'
+import MaterialIcon from '@/components/MaterialIcon'
 import { StaffReview } from '@/types'
-
-function MaterialIcon({ icon, className }: { icon: string; className?: string }) {
-  return <span className={`material-symbols-outlined ${className || ''}`}>{icon}</span>
-}
 
 export default function StaffReviewsPage() {
   const { school, user } = useAuth()

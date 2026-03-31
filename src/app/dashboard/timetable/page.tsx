@@ -5,10 +5,7 @@ import { useClasses, useSubjects, useTimetableManager } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import GlassCard from '@/components/GlassCard'
-
-function MaterialIcon({ icon, className }: { icon: string; className?: string }) {
-  return <span className={`material-symbols-outlined ${className || ''}`}>{icon}</span>
-}
+import MaterialIcon from '@/components/MaterialIcon'
 
 const DAYS = [
   { value: 1, label: 'Mon', full: 'Monday' },
