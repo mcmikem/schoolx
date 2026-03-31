@@ -170,7 +170,7 @@ export default function UNEBAnalysisPage() {
         <div className="flex flex-col sm:flex-row gap-4">
           <select 
             value={examType} 
-            onChange={(e) => setExamType(e.target.value as any)}
+            onChange={(e) => setExamType(e.target.value as 'ple' | 'uce' | 'uace')}
             className="input"
           >
             <option value="uce">O-Level (UCE)</option>

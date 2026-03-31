@@ -144,7 +144,7 @@ export default function GradingConfigPage() {
               <h2 className="font-semibold text-[#191c1d] mb-4">School Level</h2>
               <select
                 value={config.schoolLevel}
-                onChange={(e) => setConfig({...config, schoolLevel: e.target.value as any})}
+                onChange={(e) => setConfig({...config, schoolLevel: e.target.value as 'primary' | 'secondary_o' | 'secondary_a'})}
                 className="input"
               >
                 <option value="primary">Primary (PLE)</option>

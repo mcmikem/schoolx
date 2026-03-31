@@ -180,7 +180,7 @@ export default function CommentsPage() {
                 <label className="label">Performance Level</label>
                 <select 
                   value={newComment.performance}
-                  onChange={(e) => setNewComment({...newComment, performance: e.target.value as any})}
+                  onChange={(e) => setNewComment({...newComment, performance: e.target.value as 'excellent' | 'good' | 'average' | 'weak'})}
                   className="input"
                 >
                   <option value="excellent">Excellent</option>

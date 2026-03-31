@@ -58,7 +58,7 @@ export default function PayrollPage() {
       base_salary: Number(formData.get('base_salary')),
       allowances: Number(formData.get('allowances')),
       deductions: Number(formData.get('deductions')),
-      payment_method: formData.get('payment_method') as any,
+      payment_method: formData.get('payment_method') as 'bank' | 'mobile_money' | 'cash' | 'cheque',
     }
 
     if (selectedStaff) {

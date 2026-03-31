@@ -6,6 +6,7 @@ import { useStudents, useFeePayments, useFeeStructure, useClasses } from '@/lib/
 import { useToast } from '@/components/Toast'
 import { useFormDraft } from '@/lib/useAutoSave'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PAYMENT_METHODS } from '@/lib/constants'
 
 interface StudentBalance {
   id: string
@@ -580,7 +581,7 @@ export default function FeesPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Method</label>
-                  <select value={newPayment.payment_method} onChange={(e) => setNewPayment({...newPayment, payment_method: e.target.value as any})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm">
+                  <select value={newPayment.payment_method} onChange={(e) => setNewPayment({...newPayment, payment_method: e.target.value as typeof PAYMENT_METHODS[keyof typeof PAYMENT_METHODS]})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm">
                     <option value="cash">Cash</option>
                     <option value="mobile_money">Mobile Money</option>
                     <option value="bank">Bank Transfer</option>
@@ -772,7 +773,7 @@ export default function FeesPage() {
             <p className="text-sm text-on-surface-variant mb-6">Would you like to restore your previous draft from {feeDraft.lastSaved?.toLocaleTimeString()}?</p>
             <div className="flex gap-3">
               <button onClick={feeDraft.discardDraft} className="flex-1 py-3 bg-surface-container font-semibold rounded-xl text-on-surface-variant">Discard</button>
-              <button onClick={() => { setNewFee(feeDraft.savedDraft as any); feeDraft.restoreDraft(); }} className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl">Restore</button>
+              <button onClick={() => { setNewFee(feeDraft.savedDraft as typeof newFee); feeDraft.restoreDraft(); }} className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl">Restore</button>
             </div>
           </div>
         </div>

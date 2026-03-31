@@ -226,8 +226,7 @@ export default function GradesPage() {
           term: currentTerm,
           academic_year: academicYear,
           recorded_by: user?.id,
-          status,
-        } as any)
+        })
       }
       setSubmissionStatus(status)
       toast.success(status === 'submitted' ? 'Grades submitted to Dean' : 'Draft saved successfully')

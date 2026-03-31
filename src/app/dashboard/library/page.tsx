@@ -358,8 +358,8 @@ export default function LibraryPage() {
                   const isOverdue = new Date(checkout.due_date) < new Date()
                   return (
                     <tr key={checkout.id} className="border-t border-[#e8eaed]">
-                      <td className="p-4 font-medium text-[#191c1d]">{(checkout as any).books?.title}</td>
-                      <td className="p-4 text-[#191c1d]">{(checkout as any).students?.first_name} {(checkout as any).students?.last_name}</td>
+                      <td className="p-4 font-medium text-[#191c1d]">{checkout.books?.title}</td>
+                      <td className="p-4 text-[#191c1d]">{checkout.students?.first_name} {checkout.students?.last_name}</td>
                       <td className="p-4 text-[#191c1d]">{new Date(checkout.checkout_date).toLocaleDateString()}</td>
                       <td className="p-4 text-[#191c1d]">{new Date(checkout.due_date).toLocaleDateString()}</td>
                       <td className="p-4">
@@ -401,8 +401,8 @@ export default function LibraryPage() {
                 ) : (
                   history.map((checkout) => (
                     <tr key={checkout.id} className="border-t border-[#e8eaed]">
-                      <td className="p-4 font-medium text-[#191c1d]">{(checkout as any).books?.title}</td>
-                      <td className="p-4 text-[#191c1d]">{(checkout as any).students?.first_name} {(checkout as any).students?.last_name}</td>
+                      <td className="p-4 font-medium text-[#191c1d]">{checkout.books?.title}</td>
+                      <td className="p-4 text-[#191c1d]">{checkout.students?.first_name} {checkout.students?.last_name}</td>
                       <td className="p-4 text-[#191c1d]">{new Date(checkout.checkout_date).toLocaleDateString()}</td>
                       <td className="p-4 text-[#191c1d]">{checkout.return_date ? new Date(checkout.return_date).toLocaleDateString() : '—'}</td>
                     </tr>

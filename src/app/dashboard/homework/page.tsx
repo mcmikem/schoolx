@@ -326,7 +326,7 @@ export default function HomeworkPage() {
             <p className="text-sm text-gray-500 mb-6">Would you like to restore your previous draft?</p>
             <div className="flex gap-3">
               <button onClick={homeworkDraft.discardDraft} className="flex-1 py-3 bg-gray-100 font-semibold rounded-xl text-gray-600">Discard</button>
-              <button onClick={() => { setNewHomework(homeworkDraft.savedDraft as any); homeworkDraft.restoreDraft(); }} className="flex-1 py-3 bg-gray-900 text-white font-semibold rounded-xl">Restore</button>
+              <button onClick={() => { setNewHomework(homeworkDraft.savedDraft as typeof newHomework); homeworkDraft.restoreDraft(); }} className="flex-1 py-3 bg-gray-900 text-white font-semibold rounded-xl">Restore</button>
             </div>
           </div>
         </div>

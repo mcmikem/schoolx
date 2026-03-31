@@ -212,7 +212,7 @@ export default function ExportPage() {
             <label className="label">What do you want to export?</label>
             <select 
               value={exportType} 
-              onChange={(e) => setExportType(e.target.value as any)}
+              onChange={(e) => setExportType(e.target.value as 'students' | 'uneb' | 'grades' | 'attendance' | 'fees')}
               className="input"
             >
               <option value="students">Student List</option>

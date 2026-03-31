@@ -746,7 +746,7 @@ export default function StudentsPage() {
             <p className="text-sm text-gray-500 mb-6">Would you like to restore your previous draft?</p>
             <div className="flex gap-3">
               <button onClick={newStudentDraft.discardDraft} className="flex-1 py-3 bg-gray-100 font-semibold rounded-xl text-gray-600">Discard</button>
-              <button onClick={() => { setNewStudent(newStudentDraft.savedDraft as any); newStudentDraft.restoreDraft(); }} className="flex-1 py-3 bg-gray-900 text-white font-semibold rounded-xl">Restore</button>
+              <button onClick={() => { setNewStudent(newStudentDraft.savedDraft as typeof newStudent); newStudentDraft.restoreDraft(); }} className="flex-1 py-3 bg-gray-900 text-white font-semibold rounded-xl">Restore</button>
             </div>
           </div>
         </div>
