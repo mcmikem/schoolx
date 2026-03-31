@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "jest"
   },
   "dependencies": {
     "@google/genai": "^1.46.0",
@@ -29,6 +30,8 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^22.0.0",
     "@types/papaparse": "^5.5.2",
     "@types/react": "^18.3.0",
@@ -37,8 +40,11 @@
     "autoprefixer": "^10.4.0",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.35",
+    "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.3.0",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.5.0"
   }
 }
