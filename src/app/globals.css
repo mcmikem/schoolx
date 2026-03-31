@@ -989,7 +989,4 @@ code.mono { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--t3)
   }
 }
 
-  .desktop-stage .mockup-shell {
-    transform: translateY(-6px);
-  }
-}
+
