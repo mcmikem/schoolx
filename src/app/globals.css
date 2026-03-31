@@ -755,9 +755,6 @@ code.mono { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--t3)
   .card { margin-bottom: 8px !important; border-radius: 8px !important; }
   .btn { padding: 10px 14px !important; font-size: 12px !important; }
 }
-    padding: 10px 12px !important;
-    font-size: 12px !important;
-  }
   
   /* Cards */
   .card { 
