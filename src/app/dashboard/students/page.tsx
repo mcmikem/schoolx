@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import Papa from 'papaparse'
 import { useAuth } from '@/lib/auth-context'
@@ -51,6 +51,15 @@ export default function StudentsPage() {
     student_number: '',
     ple_index_number: '',
   })
+
+  // Update draft when form changes
+  const handleNewStudentChange = (updates: Partial<typeof newStudent>) => {
+    setNewStudent(prev => {
+      const newState = { ...prev, ...updates }
+      newStudentDraft.updateData(newState)
+      return newState
+    })
+  }
   const [editForm, setEditForm] = useState({
     first_name: '',
     last_name: '',
@@ -582,25 +591,25 @@ export default function StudentsPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>First Name</label>
-                  <input type="text" value={newStudent.first_name} onChange={(e) => setNewStudent({ ...newStudent, first_name: e.target.value })} className="input" required />
+                  <input type="text" value={newStudent.first_name} onChange={(e) => handleNewStudentChange({ first_name: e.target.value })} className="input" required />
                 </div>
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Last Name</label>
-                  <input type="text" value={newStudent.last_name} onChange={(e) => setNewStudent({ ...newStudent, last_name: e.target.value })} className="input" required />
+                  <input type="text" value={newStudent.last_name} onChange={(e) => handleNewStudentChange({ last_name: e.target.value })} className="input" required />
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Gender</label>
-                  <select value={newStudent.gender} onChange={(e) => setNewStudent({ ...newStudent, gender: e.target.value as 'M' | 'F' })} className="input">
+                  <select value={newStudent.gender} onChange={(e) => handleNewStudentChange({ gender: e.target.value as 'M' | 'F' })} className="input">
                     <option value="M">Male</option>
                     <option value="F">Female</option>
                   </select>
                 </div>
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Date of Birth</label>
-                  <input type="date" value={newStudent.date_of_birth} onChange={(e) => setNewStudent({ ...newStudent, date_of_birth: e.target.value })} className="input" />
+                  <input type="date" value={newStudent.date_of_birth} onChange={(e) => handleNewStudentChange({ date_of_birth: e.target.value })} className="input" />
                 </div>
               </div>
 
@@ -612,7 +621,7 @@ export default function StudentsPage() {
                     <p style={{ color: '#B45309', fontSize: 12, marginTop: 4 }}>Contact support if this persists.</p>
                   </div>
                 ) : (
-                  <select value={newStudent.class_id} onChange={(e) => setNewStudent({ ...newStudent, class_id: e.target.value })} className="input" required>
+                  <select value={newStudent.class_id} onChange={(e) => handleNewStudentChange({ class_id: e.target.value })} className="input" required>
                     <option value="">Select class</option>
                     {classes.map((c) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
@@ -623,17 +632,17 @@ export default function StudentsPage() {
 
               <div style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Parent Name</label>
-                <input type="text" value={newStudent.parent_name} onChange={(e) => setNewStudent({ ...newStudent, parent_name: e.target.value })} className="input" required />
+                <input type="text" value={newStudent.parent_name} onChange={(e) => handleNewStudentChange({ parent_name: e.target.value })} className="input" required />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Parent Phone</label>
-                  <input type="tel" placeholder="0700000000" value={newStudent.parent_phone} onChange={(e) => setNewStudent({ ...newStudent, parent_phone: e.target.value })} className="input" required />
+                  <input type="tel" placeholder="0700000000" value={newStudent.parent_phone} onChange={(e) => handleNewStudentChange({ parent_phone: e.target.value })} className="input" required />
                 </div>
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Alt. Phone</label>
-                  <input type="tel" placeholder="0700000000" value={newStudent.parent_phone2} onChange={(e) => setNewStudent({ ...newStudent, parent_phone2: e.target.value })} className="input" />
+                  <input type="tel" placeholder="0700000000" value={newStudent.parent_phone2} onChange={(e) => handleNewStudentChange({ parent_phone2: e.target.value })} className="input" />
                 </div>
               </div>
 
@@ -722,6 +731,28 @@ export default function StudentsPage() {
           isOpen={!!smsTarget}
           onClose={() => setSmsTarget(null)}
         />
+      )}
+
+      {/* Draft Restore Dialog */}
+      {newStudentDraft.showRestoreDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                <MaterialIcon icon="restore" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900">Restore Draft?</h3>
+                <p className="text-sm text-gray-500">You have an unsaved student form</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 mb-6">Would you like to restore your previous draft?</p>
+            <div className="flex gap-3">
+              <button onClick={newStudentDraft.discardDraft} className="flex-1 py-3 bg-gray-100 font-semibold rounded-xl text-gray-600">Discard</button>
+              <button onClick={() => { setNewStudent(newStudentDraft.savedDraft as any); newStudentDraft.restoreDraft(); }} className="flex-1 py-3 bg-gray-900 text-white font-semibold rounded-xl">Restore</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

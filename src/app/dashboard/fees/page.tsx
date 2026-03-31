@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useFeePayments, useFeeStructure, useClasses } from '@/lib/hooks'
@@ -50,6 +50,22 @@ export default function FeesPage() {
   // Auto-save for fee form
   const feeDraft = useFormDraft('fee_add_form')
   const [newFee, setNewFee] = useState({ name: '', class_id: '', amount: '', term: currentTerm || 1, due_date: '' })
+
+  // Restore draft on mount
+  useEffect(() => {
+    if (feeDraft.showRestoreDialog && feeDraft.savedDraft) {
+      // Show restore dialog - the form will handle this via the draft system
+    }
+  }, [feeDraft.showRestoreDialog, feeDraft.savedDraft])
+
+  // Update draft when form changes
+  const handleNewFeeChange = (updates: Partial<typeof newFee>) => {
+    setNewFee(prev => {
+      const newState = { ...prev, ...updates }
+      feeDraft.updateData(newState)
+      return newState
+    })
+  }
   const [newPayment, setNewPayment] = useState({
     student_id: '',
     amount_paid: '',
@@ -660,7 +676,7 @@ export default function FeesPage() {
             <form onSubmit={handleCreateFee} className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Fee Name</label>
-                <input type="text" value={newFee.name} onChange={(e) => setNewFee({...newFee, name: e.target.value})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm" placeholder="e.g. Tuition, Development, Library" required />
+                <input type="text" value={newFee.name} onChange={(e) => handleNewFeeChange({ name: e.target.value })} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm" placeholder="e.g. Tuition, Development, Library" required />
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Class (Optional - leave empty for all)</label>
@@ -670,7 +686,7 @@ export default function FeesPage() {
                     <p className="text-amber-600 text-xs mt-1">Contact support if this persists.</p>
                   </div>
                 ) : (
-                  <select value={newFee.class_id} onChange={(e) => setNewFee({...newFee, class_id: e.target.value})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm">
+                  <select value={newFee.class_id} onChange={(e) => handleNewFeeChange({ class_id: e.target.value })} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm">
                     <option value="">All Classes</option>
                     {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
@@ -679,11 +695,11 @@ export default function FeesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Amount (UGX)</label>
-                  <input type="number" value={newFee.amount} onChange={(e) => setNewFee({...newFee, amount: e.target.value})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm" required />
+                  <input type="number" value={newFee.amount} onChange={(e) => handleNewFeeChange({ amount: e.target.value })} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm" required />
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Term</label>
-                  <select value={newFee.term} onChange={(e) => setNewFee({...newFee, term: Number(e.target.value) as 1 | 2 | 3})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm">
+                  <select value={newFee.term} onChange={(e) => handleNewFeeChange({ term: Number(e.target.value) as 1 | 2 | 3 })} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm">
                     <option value={1}>Term 1</option>
                     <option value={2}>Term 2</option>
                     <option value={3}>Term 3</option>
@@ -692,7 +708,7 @@ export default function FeesPage() {
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Due Date (Optional)</label>
-                <input type="date" value={newFee.due_date} onChange={(e) => setNewFee({...newFee, due_date: e.target.value})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm" />
+                <input type="date" value={newFee.due_date} onChange={(e) => handleNewFeeChange({ due_date: e.target.value })} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm" />
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowFeeModal(false)} className="btn btn-ghost flex-1">Cancel</button>
@@ -738,6 +754,28 @@ export default function FeesPage() {
                   Print Invoice
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Draft Restore Dialog */}
+      {feeDraft.showRestoreDialog && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-surface-container-lowest rounded-2xl w-full max-w-sm p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <MaterialIcon icon="restore" className="text-primary" />
+              </div>
+              <div>
+                <h3 className="font-bold text-on-surface">Restore Draft?</h3>
+                <p className="text-sm text-on-surface-variant">You have an unsaved fee form</p>
+              </div>
+            </div>
+            <p className="text-sm text-on-surface-variant mb-6">Would you like to restore your previous draft from {feeDraft.lastSaved?.toLocaleTimeString()}?</p>
+            <div className="flex gap-3">
+              <button onClick={feeDraft.discardDraft} className="flex-1 py-3 bg-surface-container font-semibold rounded-xl text-on-surface-variant">Discard</button>
+              <button onClick={() => { setNewFee(feeDraft.savedDraft as any); feeDraft.restoreDraft(); }} className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl">Restore</button>
             </div>
           </div>
         </div>
