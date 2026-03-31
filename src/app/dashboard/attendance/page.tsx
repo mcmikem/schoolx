@@ -5,6 +5,7 @@ import { useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import { offlineDB, useOnlineStatus } from '@/lib/offline'
+import MaterialIcon from '@/components/MaterialIcon'
 
 const STATUS_CYCLE = ['absent', 'present', 'late'] as const
 type AttendanceStatus = typeof STATUS_CYCLE[number]

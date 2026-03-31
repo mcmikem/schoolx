@@ -6,10 +6,7 @@ import { useStudents, useClasses, useSubjects, useExamScores, useExams } from '@
 import { useToast } from '@/components/Toast'
 import { EXAM_TYPES, SECONDARY_EXAM_TYPES, PRIMARY_EXAM_TYPES, calculateWeightedGrade, getExamTypeLabel, getExamColor, ExamConfig } from '@/lib/exams'
 import { getUNEBGrade, getUNEBDivision } from '@/lib/grading'
-
-function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
-}
+import MaterialIcon from '@/components/MaterialIcon'
 
 export default function ExamsPage() {
   const { school } = useAuth()
