@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useFeePayments, useFeeStructure, useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
+import { useFormDraft } from '@/lib/useAutoSave'
 
 function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
   return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
@@ -45,6 +46,9 @@ export default function FeesPage() {
   const [selectedClass, setSelectedClass] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [saving, setSaving] = useState(false)
+  
+  // Auto-save for fee form
+  const feeDraft = useFormDraft('fee_add_form')
   const [newFee, setNewFee] = useState({ name: '', class_id: '', amount: '', term: currentTerm || 1, due_date: '' })
   const [newPayment, setNewPayment] = useState({
     student_id: '',
@@ -173,6 +177,7 @@ export default function FeesPage() {
       })
       toast.success('Fee structure created')
       setShowFeeModal(false)
+      feeDraft.clearSaved() // Clear auto-save after success
       setNewFee({ name: '', class_id: '', amount: '', term: currentTerm || 1, due_date: '' })
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to create fee')

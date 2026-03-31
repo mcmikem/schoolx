@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { useStaff } from '@/lib/hooks'
+import { useFormDraft } from '@/lib/useAutoSave'
 import { supabase } from '@/lib/supabase'
 
 function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
