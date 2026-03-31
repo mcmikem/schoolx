@@ -294,14 +294,12 @@ export async function POST(request: NextRequest) {
           await supabaseAdmin.from('classes').insert(defaultClasses)
         }
 
-        // Create academic year
+        // Create academic year (use correct column names from schema)
         const { data: academicYear } = await supabaseAdmin
           .from('academic_years')
           .insert({
             school_id: schoolData.id,
-            name: `${currentYear}`,
-            start_date: `${currentYear}-01-01`,
-            end_date: `${currentYear}-12-31`,
+            year: `${currentYear}`,
             is_current: true,
           })
           .select()
