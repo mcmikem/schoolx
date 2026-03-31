@@ -1,4 +1,4 @@
-export function MaterialIcon({ 
+export default function MaterialIcon({ 
   icon, 
   className, 
   style, 
