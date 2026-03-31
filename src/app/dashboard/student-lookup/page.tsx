@@ -4,10 +4,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useStudents, useFeePayments, useFeeStructure } from '@/lib/hooks'
 import { supabase } from '@/lib/supabase'
 import { SendSMSModal } from '@/components/SendSMSModal'
-
-function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
-}
+import MaterialIcon from '@/components/MaterialIcon'
 
 interface AttendanceRecord {
   student_id: string

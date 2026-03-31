@@ -16,10 +16,6 @@ const STATUS_CONFIG: Record<AttendanceStatus, { color: string; bg: string; label
   late: { color: 'bg-tertiary', bg: 'bg-tertiary-container', label: 'Late', icon: 'schedule' },
 }
 
-function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
-}
-
 function cycleStatus(current: string | undefined): AttendanceStatus {
   if (!current) return 'present'
   const idx = STATUS_CYCLE.indexOf(current as AttendanceStatus)

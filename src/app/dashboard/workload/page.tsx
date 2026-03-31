@@ -3,9 +3,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 
-function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
-}
+import MaterialIcon from '@/components/MaterialIcon'
 
 interface TimetableEntry {
   id: string

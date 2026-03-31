@@ -4,9 +4,7 @@ import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 
-function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
-}
+import MaterialIcon from '@/components/MaterialIcon'
 
 type IncidentType = 'Fever' | 'Headache' | 'Injury' | 'Stomach pain' | 'Allergic reaction' | 'Other'
 type ActionType = 'Rested in sick bay' | 'Given paracetamol' | 'Sent to hospital' | 'Called parent'

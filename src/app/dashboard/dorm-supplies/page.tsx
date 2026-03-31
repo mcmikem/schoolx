@@ -3,10 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
-
-function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
-}
+import MaterialIcon from '@/components/MaterialIcon'
 
 const SUPPLIES = ['Mattress', 'Blanket', 'Mosquito net', 'Bed sheet', 'Pillow'] as const
 type Supply = typeof SUPPLIES[number]

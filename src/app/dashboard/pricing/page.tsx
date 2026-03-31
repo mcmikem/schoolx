@@ -4,9 +4,7 @@ import { useAuth } from '@/lib/auth-context'
 import { PLANS, PLAN_PRICES, PlanType, PlanFeatures, formatPrice } from '@/lib/payments/subscription-client'
 import { useToast } from '@/components/Toast'
 
-function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
-}
+import MaterialIcon from '@/components/MaterialIcon'
 
 const plans: PlanType[] = ['free_trial', 'basic', 'premium', 'max']
 

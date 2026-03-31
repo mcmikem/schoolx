@@ -5,10 +5,7 @@ import { useToast } from '@/components/Toast'
 import { useTransportManager } from '@/lib/hooks'
 import GlassCard from '@/components/GlassCard'
 import { supabase } from '@/lib/supabase'
-
-function MaterialIcon({ icon, className }: { icon: string; className?: string }) {
-  return <span className={`material-symbols-outlined ${className || ''}`}>{icon}</span>
-}
+import MaterialIcon from '@/components/MaterialIcon'
 
 export default function TransportPage() {
   const { school, user } = useAuth()

@@ -4,9 +4,7 @@ import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 
-function MaterialIcon({ icon, className, style }: { icon?: string; className?: string; style?: React.CSSProperties }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon}</span>
-}
+import MaterialIcon from '@/components/MaterialIcon'
 
 type ExpenseCategory = 'Supplies' | 'Transport' | 'Food' | 'Repairs' | 'Other'
 const CATEGORIES: ExpenseCategory[] = ['Supplies', 'Transport', 'Food', 'Repairs', 'Other']

@@ -2,11 +2,8 @@
 import { useAuth } from '@/lib/auth-context'
 import { useAnalytics } from '@/lib/hooks'
 import GlassCard from '@/components/GlassCard'
+import MaterialIcon from '@/components/MaterialIcon'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
-
-function MaterialIcon({ icon, className }: { icon: string; className?: string }) {
-  return <span className={`material-symbols-outlined ${className || ''}`}>{icon}</span>
-}
 
 export default function AnalyticsPage() {
   const { school } = useAuth()
