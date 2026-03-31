@@ -149,7 +149,7 @@ export default function TeacherDashboard() {
             </div>
           </div>
           <p style={{ fontSize: '12px', color: '#92400E', marginBottom: '12px' }}>
-            It looks like your school doesn't have classes or subjects yet. Click below to set up automatically.
+            It looks like your school doesn&apos;t have classes or subjects yet. Click below to set up automatically.
           </p>
           <button 
             onClick={runSetup} 
