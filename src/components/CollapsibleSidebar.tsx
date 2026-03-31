@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import MaterialIcon from '@/components/MaterialIcon'
+import { NavGroup } from '@/lib/navigation'
 
 interface CollapsibleSidebarProps {
   groups: NavGroup[]

@@ -8,7 +8,7 @@ interface NavItem {
   badge?: string
 }
 
-interface NavGroup {
+export interface NavGroup {
   label: string
   icon?: string
   items: NavItem[]
