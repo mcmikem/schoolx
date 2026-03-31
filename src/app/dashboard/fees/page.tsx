@@ -6,7 +6,12 @@ import { useStudents, useFeePayments, useFeeStructure, useClasses } from '@/lib/
 import { useToast } from '@/components/Toast'
 import { useFormDraft } from '@/lib/useAutoSave'
 import MaterialIcon from '@/components/MaterialIcon'
-import { PAYMENT_METHODS } from '@/lib/constants'
+import FeeStats from '@/components/fees/FeeStats'
+import FeeTable from '@/components/fees/FeeTable'
+import PaymentModal from '@/components/fees/PaymentModal'
+import FeeFormModal from '@/components/fees/FeeFormModal'
+import ReceiptModal from '@/components/fees/ReceiptModal'
+import InvoiceModal from '@/components/fees/InvoiceModal'
 
 interface StudentBalance {
   id: string
@@ -45,18 +50,14 @@ export default function FeesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [saving, setSaving] = useState(false)
   
-  // Auto-save for fee form
   const feeDraft = useFormDraft('fee_add_form')
   const [newFee, setNewFee] = useState({ name: '', class_id: '', amount: '', term: currentTerm || 1, due_date: '' })
 
-  // Restore draft on mount
   useEffect(() => {
     if (feeDraft.showRestoreDialog && feeDraft.savedDraft) {
-      // Show restore dialog - the form will handle this via the draft system
     }
   }, [feeDraft.showRestoreDialog, feeDraft.savedDraft])
 
-  // Update draft when form changes
   const handleNewFeeChange = (updates: Partial<typeof newFee>) => {
     setNewFee(prev => {
       const newState = { ...prev, ...updates }
@@ -191,7 +192,7 @@ export default function FeesPage() {
       })
       toast.success('Fee structure created')
       setShowFeeModal(false)
-      feeDraft.clearSaved() // Clear auto-save after success
+      feeDraft.clearSaved()
       setNewFee({ name: '', class_id: '', amount: '', term: currentTerm || 1, due_date: '' })
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to create fee')
@@ -302,9 +303,17 @@ export default function FeesPage() {
     }
   }
 
+  const handleViewReceipt = (student: StudentBalance) => {
+    setSelectedStudent(student)
+    setShowReceiptModal(true)
+  }
+
+  const handlePaymentChange = (updates: Partial<typeof newPayment>) => {
+    setNewPayment(prev => ({ ...prev, ...updates }))
+  }
+
   return (
     <div className="content">
-      {/* Header */}
       <div className="page-header">
         <div>
           <div className="ph-title">Bursar Overview</div>
@@ -322,49 +331,8 @@ export default function FeesPage() {
         </div>
       </div>
 
-      {/* Stats Bento Grid */}
-      <div className="stat-grid">
-        <div className="stat-card" style={{ borderTop: '4px solid var(--red)' }}>
-          <div className="stat-inner">
-            <div className="stat-meta">
-              <div className="stat-label">Total Arrears</div>
-              <div className="stat-icon-box" style={{ background: 'var(--red-soft)', color: 'var(--red)' }}>
-                <MaterialIcon icon="account_balance_wallet" style={{ fontSize: '17px' }} />
-              </div>
-            </div>
-            <div className="stat-val" style={{ color: 'var(--red)' }}>{formatCurrency(stats.totalBalance)}</div>
-            <div style={{ marginTop: 10, fontSize: 11, color: 'var(--red)', fontWeight: 600 }}>
-              {stats.notPaid} students unpaid
-            </div>
-          </div>
-        </div>
-        <div className="bg-surface-container-lowest p-6 rounded-xl border-t-4 border-secondary relative overflow-hidden group hover:bg-surface-bright transition-colors">
-          <div className="flex justify-between items-start mb-4">
-            <MaterialIcon icon="payments" className="text-secondary bg-secondary-container p-2 rounded-lg" style={{ fontVariationSettings: 'FILL 1' }} />
-            <span className="text-[10px] font-bold tracking-widest uppercase text-on-surface-variant opacity-60">Real-time</span>
-          </div>
-          <p className="text-on-surface-variant text-xs font-semibold uppercase tracking-wider mb-1">Total Collected</p>
-          <h3 className="font-headline font-extrabold text-2xl text-on-surface tracking-tight">{formatCurrency(stats.totalPaid)}</h3>
-          <div className="mt-4 flex items-center gap-2 text-[11px] font-bold text-secondary">
-            <MaterialIcon icon="check_circle" className="text-sm" />
-            <span>{stats.fullyPaid} Fully Paid</span>
-          </div>
-        </div>
-        <div className="bg-surface-container-lowest p-6 rounded-xl border-t-4 border-tertiary-fixed-dim relative overflow-hidden group hover:bg-surface-bright transition-colors">
-          <div className="flex justify-between items-start mb-4">
-            <MaterialIcon icon="sync" className="text-tertiary bg-tertiary-fixed p-2 rounded-lg" style={{ fontVariationSettings: 'FILL 1' }} />
-            <span className="text-[10px] font-bold tracking-widest uppercase text-on-surface-variant opacity-60">Processing</span>
-          </div>
-          <p className="text-on-surface-variant text-xs font-semibold uppercase tracking-wider mb-1">Partial Payments</p>
-          <h3 className="font-headline font-extrabold text-2xl text-on-surface tracking-tight">{stats.partialPaid} Students</h3>
-          <div className="mt-4 flex items-center gap-2 text-[11px] font-bold text-on-tertiary-fixed-variant">
-            <MaterialIcon icon="schedule" className="text-sm" />
-            <span>{payments.length} total transactions</span>
-          </div>
-        </div>
-      </div>
+      <FeeStats stats={stats} paymentsCount={payments.length} />
 
-      {/* Filters */}
       <div className="bg-surface-container-low rounded-xl p-6">
         <div className="flex flex-col lg:flex-row gap-4 items-center">
           <div className="relative w-full lg:flex-1">
@@ -383,7 +351,6 @@ export default function FeesPage() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
         <button onClick={() => setTab('balances')} className={`px-6 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap ${tab === 'balances' ? 'bg-primary text-white' : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'}`}>Student Balances</button>
         <button onClick={() => setTab('payments')} className={`px-6 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap ${tab === 'payments' ? 'bg-primary text-white' : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'}`}>All Payments</button>
@@ -391,59 +358,14 @@ export default function FeesPage() {
         <button onClick={() => setTab('structure')} className={`px-6 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap ${tab === 'structure' ? 'bg-primary text-white' : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'}`}>Fee Structure</button>
       </div>
 
-{/* Content */}
-       {tab === 'balances' && (
-         <div className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-outline-variant/5">
-           <div className="overflow-x-auto table-responsive">
-             <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-surface-container-low text-left">
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Student</th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Class</th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Expected</th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Paid</th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Balance</th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Status</th>
-                  <th className="px-6 py-4"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/5">
-                {filteredBalances.map((student) => (
-                  <tr key={student.id} className="hover:bg-surface-bright transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-primary">{student.name}</div>
-                      <div className="text-xs text-on-surface-variant">{student.student_number}</div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-on-surface-variant">{student.class_name}</td>
-                    <td className="px-6 py-4 font-medium">{formatCurrency(student.expected)}</td>
-                    <td className="px-6 py-4 font-bold text-secondary">{formatCurrency(student.paid)}</td>
-                    <td className={`px-6 py-4 font-bold ${student.balance > 0 ? 'text-error' : 'text-secondary'}`}>{formatCurrency(student.balance)}</td>
-                    <td className="px-6 py-4">
-                      {student.balance === 0 ? (
-                        <span className="px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container text-xs font-bold uppercase">Paid</span>
-                      ) : student.paid > 0 ? (
-                        <span className="px-3 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed text-xs font-bold uppercase">Partial</span>
-                      ) : (
-                        <span className="px-3 py-1 rounded-full bg-error-container text-on-error-container text-xs font-bold uppercase">Not Paid</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <button onClick={() => { setSelectedStudent(student); setShowReceiptModal(true) }} className="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg">
-                        <MaterialIcon icon="visibility" className="text-lg" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      {tab === 'balances' && (
+        <FeeTable balances={filteredBalances} onViewReceipt={handleViewReceipt} />
       )}
 
-{tab === 'momo' && (
-         <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
-           <div className="overflow-x-auto table-responsive">
-             <table className="w-full border-collapse">
+      {tab === 'momo' && (
+        <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
+          <div className="overflow-x-auto table-responsive">
+            <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-surface-container-low text-left">
                   <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Date</th>
@@ -516,17 +438,17 @@ export default function FeesPage() {
         </div>
       )}
 
-{tab === 'structure' && (
-         <div>
-           <div className="flex justify-end mb-4">
-             <button onClick={() => setShowFeeModal(true)} className="btn btn-primary">
-               <MaterialIcon icon="add" />
-               Add Fee
-             </button>
-           </div>
-           <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
-             <div className="overflow-x-auto table-responsive">
-               <table className="w-full border-collapse">
+      {tab === 'structure' && (
+        <div>
+          <div className="flex justify-end mb-4">
+            <button onClick={() => setShowFeeModal(true)} className="btn btn-primary">
+              <MaterialIcon icon="add" />
+              Add Fee
+            </button>
+          </div>
+          <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
+            <div className="overflow-x-auto table-responsive">
+              <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-surface-container-low text-left">
                     <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Fee Name</th>
@@ -555,209 +477,43 @@ export default function FeesPage() {
         </div>
       )}
 
-      {/* Payment Modal */}
-      {showPaymentModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowPaymentModal(false)}>
-          <div className="bg-surface-container-lowest rounded-2xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-outline-variant/10">
-              <h2 className="font-headline font-bold text-xl text-primary">Record Payment</h2>
-            </div>
-            <form onSubmit={handleRecordPayment} className="p-6 space-y-5">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Student</label>
-                {studentBalances.length === 0 ? (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">No students found - add students first</div>
-                ) : (
-                  <select value={newPayment.student_id} onChange={(e) => setNewPayment({...newPayment, student_id: e.target.value})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm" required>
-                    <option value="">Select student</option>
-                    {studentBalances.map((s) => <option key={s.id} value={s.id}>{s.name} - {formatCurrency(s.balance)}</option>)}
-                  </select>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Amount (UGX)</label>
-                  <input type="number" value={newPayment.amount_paid} onChange={(e) => setNewPayment({...newPayment, amount_paid: e.target.value})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm" required />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Method</label>
-                  <select value={newPayment.payment_method} onChange={(e) => setNewPayment({...newPayment, payment_method: e.target.value as typeof PAYMENT_METHODS[keyof typeof PAYMENT_METHODS]})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm">
-                    <option value="cash">Cash</option>
-                    <option value="mobile_money">Mobile Money</option>
-                    <option value="bank">Bank Transfer</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Payment Reference</label>
-                <input type="text" value={newPayment.payment_reference} onChange={(e) => setNewPayment({...newPayment, payment_reference: e.target.value})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm" placeholder="e.g. Receipt number" />
-              </div>
-              {newPayment.payment_method === 'mobile_money' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">MoMo Provider</label>
-                    <select value={newPayment.momo_provider} onChange={(e) => setNewPayment({...newPayment, momo_provider: e.target.value as 'mtn' | 'airtel'})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm">
-                      <option value="mtn">MTN</option>
-                      <option value="airtel">Airtel</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Transaction ID</label>
-                    <input type="text" value={newPayment.momo_transaction_id} onChange={(e) => setNewPayment({...newPayment, momo_transaction_id: e.target.value})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm" placeholder="MoMo transaction ID" />
-                  </div>
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Paid By</label>
-                  <input type="text" value={newPayment.paid_by} onChange={(e) => setNewPayment({...newPayment, paid_by: e.target.value})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm" placeholder="Name of payer" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Notes</label>
-                  <input type="text" value={newPayment.notes} onChange={(e) => setNewPayment({...newPayment, notes: e.target.value})} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm" placeholder="Additional notes" />
-                </div>
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowPaymentModal(false)} className="flex-1 py-3 bg-surface-container text-on-surface-variant font-semibold rounded-xl">Cancel</button>
-                <button type="submit" disabled={saving} className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl">{saving ? 'Saving...' : 'Record Payment'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        students={studentBalances.map(s => ({ id: s.id, name: s.name, balance: s.balance }))}
+        onSubmit={handleRecordPayment}
+        newPayment={newPayment}
+        onPaymentChange={handlePaymentChange}
+        saving={saving}
+      />
 
-      {/* Receipt Modal */}
-      {showReceiptModal && selectedStudent && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowReceiptModal(false)}>
-          <div className="bg-surface-container-lowest rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div ref={receiptRef} className="p-6">
-              <div className="text-center border-b-2 border-primary pb-4 mb-4">
-                <h3 className="font-headline font-bold text-xl text-primary">{school?.name || 'School Name'}</h3>
-                <p className="text-sm text-on-surface-variant">Fee Payment Receipt</p>
-              </div>
-              <div className="space-y-3">
-                <div className="flex justify-between py-2 border-b border-dashed">
-                  <span className="text-on-surface-variant">Student:</span>
-                  <span className="font-bold text-primary">{selectedStudent.name}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-dashed">
-                  <span className="text-on-surface-variant">Student No:</span>
-                  <span className="font-bold">{selectedStudent.student_number}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-dashed">
-                  <span className="text-on-surface-variant">Total Paid:</span>
-                  <span className="font-bold text-secondary">{formatCurrency(selectedStudent.paid)}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-dashed">
-                  <span className="text-on-surface-variant">Balance:</span>
-                  <span className={`font-bold ${selectedStudent.balance > 0 ? 'text-error' : 'text-secondary'}`}>{formatCurrency(selectedStudent.balance)}</span>
-                </div>
-              </div>
-            </div>
-            <div className="p-6 border-t border-outline-variant/10">
-              <button onClick={handlePrintReceipt} className="w-full py-3 bg-primary text-white font-semibold rounded-xl flex items-center justify-center gap-2">
-                <MaterialIcon icon="print" className="text-lg" />
-                Print Receipt
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ReceiptModal
+        isOpen={showReceiptModal}
+        student={selectedStudent}
+        schoolName={school?.name || 'School'}
+        onClose={() => setShowReceiptModal(false)}
+        onPrint={handlePrintReceipt}
+      />
 
-      {/* Add Fee Modal */}
-      {showFeeModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowFeeModal(false)}>
-          <div className="bg-surface-container-lowest rounded-2xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-outline-variant/10">
-              <h2 className="font-headline font-bold text-xl text-primary">Add New Fee</h2>
-            </div>
-            <form onSubmit={handleCreateFee} className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Fee Name</label>
-                <input type="text" value={newFee.name} onChange={(e) => handleNewFeeChange({ name: e.target.value })} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm" placeholder="e.g. Tuition, Development, Library" required />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Class (Optional - leave empty for all)</label>
-                {classes.length === 0 ? (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                    <p className="text-amber-800 text-sm font-medium">No classes found</p>
-                    <p className="text-amber-600 text-xs mt-1">Contact support if this persists.</p>
-                  </div>
-                ) : (
-                  <select value={newFee.class_id} onChange={(e) => handleNewFeeChange({ class_id: e.target.value })} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm">
-                    <option value="">All Classes</option>
-                    {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Amount (UGX)</label>
-                  <input type="number" value={newFee.amount} onChange={(e) => handleNewFeeChange({ amount: e.target.value })} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm" required />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Term</label>
-                  <select value={newFee.term} onChange={(e) => handleNewFeeChange({ term: Number(e.target.value) as 1 | 2 | 3 })} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm">
-                    <option value={1}>Term 1</option>
-                    <option value={2}>Term 2</option>
-                    <option value={3}>Term 3</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Due Date (Optional)</label>
-                <input type="date" value={newFee.due_date} onChange={(e) => handleNewFeeChange({ due_date: e.target.value })} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm" />
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowFeeModal(false)} className="btn btn-ghost flex-1">Cancel</button>
-                <button type="submit" disabled={saving} className="btn btn-primary flex-1">{saving ? 'Saving...' : 'Add Fee'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FeeFormModal
+        isOpen={showFeeModal}
+        onClose={() => setShowFeeModal(false)}
+        classes={classes}
+        onSubmit={handleCreateFee}
+        newFee={newFee}
+        onFeeChange={handleNewFeeChange}
+        saving={saving}
+      />
 
-      {/* Invoice Selection Modal */}
-      {showInvoiceModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowInvoiceModal(false)}>
-          <div className="bg-surface-container-lowest rounded-2xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-outline-variant/10">
-              <h2 className="font-headline font-bold text-xl text-primary">Generate Invoice</h2>
-              <p className="text-sm text-on-surface-variant mt-1">Select a student to generate their fee invoice</p>
-            </div>
-            <div className="p-6">
-              <div className="max-h-80 overflow-y-auto space-y-2">
-                {studentBalances.map((student) => (
-                  <button
-                    key={student.id}
-                    onClick={() => { handleGenerateInvoice(student) }}
-                    className="w-full text-left p-4 rounded-xl hover:bg-surface-container transition-colors flex items-center justify-between"
-                  >
-                    <div>
-                      <div className="font-bold text-primary">{student.name}</div>
-                      <div className="text-xs text-on-surface-variant">{student.student_number} • {student.class_name}</div>
-                    </div>
-                    <div className={`text-sm font-bold ${student.balance > 0 ? 'text-error' : 'text-secondary'}`}>
-                      {formatCurrency(student.balance)} due
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="p-6 border-t border-outline-variant/10 flex gap-3">
-              <button onClick={() => setShowInvoiceModal(false)} className="flex-1 py-3 bg-surface-container text-on-surface-variant font-semibold rounded-xl">Cancel</button>
-              {selectedStudent && (
-                <button onClick={handlePrintInvoice} className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl flex items-center justify-center gap-2">
-                  <MaterialIcon icon="print" className="text-lg" />
-                  Print Invoice
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <InvoiceModal
+        isOpen={showInvoiceModal}
+        onClose={() => setShowInvoiceModal(false)}
+        students={studentBalances.map(s => ({ id: s.id, name: s.name, student_number: s.student_number, class_name: s.class_name, balance: s.balance }))}
+        selectedStudent={selectedStudent}
+        onSelectStudent={handleGenerateInvoice}
+        onPrintInvoice={handlePrintInvoice}
+      />
 
-      {/* Draft Restore Dialog */}
       {feeDraft.showRestoreDialog && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-surface-container-lowest rounded-2xl w-full max-w-sm p-6">
