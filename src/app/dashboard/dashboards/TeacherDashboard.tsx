@@ -171,6 +171,26 @@ export default function TeacherDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Bottom Nav - Only shows on mobile */}
+      <div className="mobile-bottom-nav">
+        <Link href="/dashboard" className="mobile-nav-item">
+          <MaterialIcon icon="home" style={{ fontSize: 22 }} />
+          <span>Home</span>
+        </Link>
+        <Link href="/dashboard/attendance" className="mobile-nav-item">
+          <MaterialIcon icon="school" style={{ fontSize: 22 }} />
+          <span>Classes</span>
+        </Link>
+        <Link href="/dashboard/grades" className="mobile-nav-item">
+          <MaterialIcon icon="menu_book" style={{ fontSize: 22 }} />
+          <span>Subjects</span>
+        </Link>
+        <Link href="/dashboard/profile" className="mobile-nav-item">
+          <MaterialIcon icon="person" style={{ fontSize: 22 }} />
+          <span>Profile</span>
+        </Link>
+      </div>
     </div>
   )
 }
