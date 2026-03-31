@@ -4,12 +4,13 @@ import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import MaterialIcon from '@/components/MaterialIcon'
+import { EVENT_TYPES } from '@/lib/constants'
 
 interface SchoolEvent {
   id: string
   title: string
   description: string | null
-  event_type: 'exam' | 'meeting' | 'holiday' | 'event' | 'academic'
+  event_type: typeof EVENT_TYPES[keyof typeof EVENT_TYPES]
   start_date: string
   end_date: string | null
 }
@@ -296,7 +297,7 @@ export default function CalendarPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-[#191c1d] mb-2 block">Event Type</label>
-                <select value={newEvent.event_type} onChange={(e) => setNewEvent({...newEvent, event_type: e.target.value as any})} className="input">
+                <select value={newEvent.event_type} onChange={(e) => setNewEvent({...newEvent, event_type: e.target.value as typeof EVENT_TYPES[keyof typeof EVENT_TYPES]})} className="input">
                   <option value="event">Event</option>
                   <option value="exam">Exam</option>
                   <option value="meeting">Meeting</option>
