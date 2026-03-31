@@ -782,6 +782,17 @@ CREATE TABLE IF NOT EXISTS notices (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- RLS for notices
+ALTER TABLE notices ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users notices all" ON notices;
+CREATE POLICY "School users notices all" ON notices FOR ALL TO authenticated USING (
+  EXISTS (
+    SELECT 1 FROM users
+    WHERE users.auth_id = auth.uid()
+      AND users.school_id = notices.school_id
+  )
+);
+
 -- Add image column to notices
 ALTER TABLE notices ADD COLUMN IF NOT EXISTS image_url TEXT;
 
@@ -896,6 +907,17 @@ CREATE TABLE IF NOT EXISTS staff_attendance (
     recorded_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(staff_id, date)
+);
+
+-- RLS for staff_attendance
+ALTER TABLE staff_attendance ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users staff_attendance all" ON staff_attendance;
+CREATE POLICY "School users staff_attendance all" ON staff_attendance FOR ALL TO authenticated USING (
+  EXISTS (
+    SELECT 1 FROM users
+    WHERE users.auth_id = auth.uid()
+      AND users.school_id IN (SELECT school_id FROM users WHERE users.id = staff_attendance.staff_id)
+  )
 );
 
 -- ============================================
