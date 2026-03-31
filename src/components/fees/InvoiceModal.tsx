@@ -7,6 +7,15 @@ interface StudentBalance {
   student_number: string
   class_name: string
   balance: number
+  expected?: number
+  paid?: number
+  payments?: Array<{
+    id: string
+    amount: number
+    method: string
+    reference: string
+    date: string
+  }>
 }
 
 interface InvoiceModalProps {
