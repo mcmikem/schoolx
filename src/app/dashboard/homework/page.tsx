@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
@@ -49,6 +49,15 @@ export default function HomeworkPage() {
     due_date: '',
     marks: 10,
   })
+
+  // Update draft when form changes
+  const handleNewHomeworkChange = (updates: Partial<typeof newHomework>) => {
+    setNewHomework(prev => {
+      const newState = { ...prev, ...updates }
+      homeworkDraft.updateData(newState)
+      return newState
+    })
+  }
 
   const fetchHomework = async () => {
     if (!school?.id) return
@@ -217,7 +226,7 @@ export default function HomeworkPage() {
                 <input
                   type="text"
                   value={newHomework.title}
-                  onChange={e => setNewHomework({...newHomework, title: e.target.value})}
+                  onChange={e => handleNewHomeworkChange({ title: e.target.value })}
                   className="input"
                   required
                 />
@@ -226,7 +235,7 @@ export default function HomeworkPage() {
                 <label className="text-sm font-medium text-gray-700 mb-2 block">Description</label>
                 <textarea
                   value={newHomework.description}
-                  onChange={e => setNewHomework({...newHomework, description: e.target.value})}
+                  onChange={e => handleNewHomeworkChange({ description: e.target.value })}
                   className="input"
                   rows={3}
                 />
@@ -239,7 +248,7 @@ export default function HomeworkPage() {
                   ) : (
                     <select
                       value={newHomework.class_id}
-                      onChange={e => setNewHomework({...newHomework, class_id: e.target.value})}
+                      onChange={e => handleNewHomeworkChange({ class_id: e.target.value })}
                       className="input"
                       required
                     >
@@ -257,7 +266,7 @@ export default function HomeworkPage() {
                   ) : (
                     <select
                       value={newHomework.subject_id}
-                      onChange={e => setNewHomework({...newHomework, subject_id: e.target.value})}
+                      onChange={e => handleNewHomeworkChange({ subject_id: e.target.value })}
                       className="input"
                       required
                     >
@@ -275,7 +284,7 @@ export default function HomeworkPage() {
                   <input
                     type="date"
                     value={newHomework.due_date}
-                    onChange={e => setNewHomework({...newHomework, due_date: e.target.value})}
+                    onChange={e => handleNewHomeworkChange({ due_date: e.target.value })}
                     className="input"
                     required
                   />
@@ -285,7 +294,7 @@ export default function HomeworkPage() {
                   <input
                     type="number"
                     value={newHomework.marks}
-                    onChange={e => setNewHomework({...newHomework, marks: parseInt(e.target.value) || 10})}
+                    onChange={e => handleNewHomeworkChange({ marks: parseInt(e.target.value) || 10 })}
                     className="input"
                     min={1}
                   />
@@ -300,6 +309,28 @@ export default function HomeworkPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Draft Restore Dialog */}
+      {homeworkDraft.showRestoreDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                <span className="material-symbols-outlined text-gray-600">restore</span>
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900">Restore Draft?</h3>
+                <p className="text-sm text-gray-500">You have an unsaved homework form</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 mb-6">Would you like to restore your previous draft?</p>
+            <div className="flex gap-3">
+              <button onClick={homeworkDraft.discardDraft} className="flex-1 py-3 bg-gray-100 font-semibold rounded-xl text-gray-600">Discard</button>
+              <button onClick={() => { setNewHomework(homeworkDraft.savedDraft as any); homeworkDraft.restoreDraft(); }} className="flex-1 py-3 bg-gray-900 text-white font-semibold rounded-xl">Restore</button>
+            </div>
           </div>
         </div>
       )}
