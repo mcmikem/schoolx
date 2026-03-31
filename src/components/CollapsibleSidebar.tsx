@@ -2,28 +2,11 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-
-interface NavItem {
-  href: string
-  label: string
-  icon: string
-  badge?: string
-}
-
-interface NavGroup {
-  label: string
-  icon?: string
-  items: NavItem[]
-  defaultOpen?: boolean
-}
+import MaterialIcon from '@/components/MaterialIcon'
 
 interface CollapsibleSidebarProps {
   groups: NavGroup[]
   onNavigate?: () => void
-}
-
-function MaterialIcon({ icon, style }: { icon: string; style?: React.CSSProperties }) {
-  return <span className="material-symbols-outlined" style={style}>{icon}</span>
 }
 
 export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSidebarProps) {

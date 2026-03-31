@@ -1,4 +1,5 @@
 'use client'
+import MaterialIcon from '@/components/MaterialIcon'
 
 interface EmptyStateProps {
   icon?: string
@@ -12,10 +13,6 @@ interface EmptyStateProps {
     label: string
     onClick: () => void
   }
-}
-
-function MaterialIcon({ icon }: { icon: string }) {
-  return <span className="material-symbols-outlined">{icon}</span>
 }
 
 export function EmptyState({ icon, title, description, action, secondaryAction }: EmptyStateProps) {
