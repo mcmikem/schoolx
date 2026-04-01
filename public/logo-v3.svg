@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Dark Navy Background -->
+  <rect width="512" height="512" rx="80" fill="#17325F"/>
+  
+  <!-- White X - Clean and bold -->
+  <g transform="translate(256, 240)">
+    <!-- Left diagonal -->
+    <path d="M-90 -90 L90 90" stroke="white" stroke-width="48" stroke-linecap="round"/>
+    <!-- Right diagonal -->
+    <path d="M90 -90 L-90 90" stroke="white" stroke-width="48" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Green checkmark accent - Trust/Organization -->
+  <g transform="translate(256, 240)">
+    <circle cx="0" cy="0" r="45" fill="#2E9448"/>
+    <path d="M-15 0 L-3 12 L18 -10" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+  
+  <!-- SchoolX Text -->
+  <text x="256" y="410" text-anchor="middle" fill="white" font-family="system-ui, -apple-system, sans-serif" font-size="32" font-weight="800" letter-spacing="8">SCHOOLX</text>
+  
+  <!-- Tagline -->
+  <text x="256" y="445" text-anchor="middle" fill="#7A8CA3" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" letter-spacing="2">Built from Xperience</text>
+</svg>
