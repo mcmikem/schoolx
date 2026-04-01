@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from './supabase'
 import { useAuth } from './auth-context'
 import type {
@@ -69,17 +69,29 @@ export function useSupabaseQuery<T>(
   const filters = options?.filters
   const orderBy = options?.orderBy
   const limit = options?.limit
-  const serializedFilters = JSON.stringify(filters ?? {})
+
+  const filtersRef = useRef(filters)
+  const prevFiltersRef = useRef<string>('')
+
+  useEffect(() => {
+    const currentFiltersStr = JSON.stringify(filters ?? {})
+    if (currentFiltersStr !== prevFiltersRef.current) {
+      filtersRef.current = filters
+      prevFiltersRef.current = currentFiltersStr
+    }
+  }, [filters])
 
   const fetchData = useCallback(async () => {
+    if (!supabase) return
+    
     try {
       setLoading(true)
       setError(null)
 
-      let query = supabase!.from(table).select(select)
+      let query = supabase.from(table).select(select)
 
-      if (filters) {
-        Object.entries(filters).forEach(([key, value]) => {
+      if (filtersRef.current) {
+        Object.entries(filtersRef.current).forEach(([key, value]) => {
           if (value !== undefined && value !== null && value !== '') {
             query = query.eq(key, value)
           }
@@ -106,7 +118,7 @@ export function useSupabaseQuery<T>(
     } finally {
       setLoading(false)
     }
-  }, [table, select, filters, orderBy, limit])
+  }, [table, select, orderBy, limit])
 
   useEffect(() => {
     fetchData()
