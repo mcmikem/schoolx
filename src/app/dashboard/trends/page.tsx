@@ -59,7 +59,7 @@ export default function TrendAnalyticsPage() {
       
       if (terms.data) {
         for (const term of terms.data) {
-          const termYear = (term as { academic_years?: { year: string } })?.academic_years?.year || academicYear
+          const termYear = (term as { academic_years?: { year: string }[] })?.academic_years?.[0]?.year || academicYear
           
           const termStudents = await supabase
             .from('students')

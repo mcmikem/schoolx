@@ -5,6 +5,7 @@ import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useFeePayments, useFeeStructure, useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { useFormDraft } from '@/lib/useAutoSave'
+import { PAYMENT_METHODS } from '@/lib/constants'
 import MaterialIcon from '@/components/MaterialIcon'
 import FeeStats from '@/components/fees/FeeStats'
 import FeeTable from '@/components/fees/FeeTable'
@@ -65,12 +66,21 @@ export default function FeesPage() {
       return newState
     })
   }
-  const [newPayment, setNewPayment] = useState({
+  const [newPayment, setNewPayment] = useState<{
+    student_id: string
+    amount_paid: string
+    payment_method: 'cash' | 'mobile_money' | 'bank' | 'installment'
+    payment_reference: string
+    momo_provider: 'mtn' | 'airtel'
+    momo_transaction_id: string
+    paid_by: string
+    notes: string
+  }>({
     student_id: '',
     amount_paid: '',
-    payment_method: 'cash' as 'cash' | 'mobile_money' | 'bank' | 'installment',
+    payment_method: PAYMENT_METHODS.CASH,
     payment_reference: '',
-    momo_provider: 'mtn' as 'mtn' | 'airtel',
+    momo_provider: 'mtn' as const,
     momo_transaction_id: '',
     paid_by: '',
     notes: '',
@@ -134,7 +144,7 @@ export default function FeesPage() {
     try {
       setSaving(true)
       let reference = newPayment.payment_reference
-      if (newPayment.payment_method === 'mobile_money' && newPayment.momo_transaction_id) {
+      if (newPayment.payment_method === PAYMENT_METHODS.MOBILE_MONEY && newPayment.momo_transaction_id) {
         reference = `${newPayment.momo_provider.toUpperCase()}-${newPayment.momo_transaction_id}`
       }
       await createPayment({
@@ -508,7 +518,7 @@ export default function FeesPage() {
       <InvoiceModal
         isOpen={showInvoiceModal}
         onClose={() => setShowInvoiceModal(false)}
-        students={studentBalances.map(s => ({ id: s.id, name: s.name, student_number: s.student_number, class_name: s.class_name, balance: s.balance, expected: s.expected, paid: s.paid, payments: s.payments }))}
+        students={studentBalances.map(s => ({ id: s.id, name: s.name, student_number: s.student_number, class_name: s.class_name, balance: s.balance, expected: s.expected ?? 0, paid: s.paid ?? 0, payments: s.payments || [] }))}
         selectedStudent={selectedStudent}
         onSelectStudent={handleGenerateInvoice}
         onPrintInvoice={handlePrintInvoice}
