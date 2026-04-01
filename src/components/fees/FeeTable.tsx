@@ -6,10 +6,10 @@ export interface StudentBalance {
   name: string
   student_number: string
   class_name: string
-  expected?: number
-  paid?: number
+  expected: number
+  paid: number
   balance: number
-  payments?: Array<{
+  payments: Array<{
     id: string
     amount: number
     method: string

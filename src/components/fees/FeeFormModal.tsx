@@ -6,19 +6,21 @@ interface ClassOption {
   name: string
 }
 
+interface FeeFormData {
+  name: string
+  class_id: string
+  amount: string
+  term: number | 1 | 2 | 3
+  due_date: string
+}
+
 interface FeeFormModalProps {
   isOpen: boolean
   onClose: () => void
   classes: ClassOption[]
   onSubmit: (e: React.FormEvent) => void
-  newFee: {
-    name: string
-    class_id: string
-    amount: string
-    term: number
-    due_date: string
-  }
-  onFeeChange: (updates: Partial<typeof newFee>) => void
+  newFee: FeeFormData
+  onFeeChange: (updates: Record<string, unknown>) => void
   saving: boolean
 }
 

@@ -1,23 +1,24 @@
 'use client'
 import MaterialIcon from '@/components/MaterialIcon'
-import { PAYMENT_METHODS } from '@/lib/constants'
+
+interface PaymentData {
+  student_id: string
+  amount_paid: string
+  payment_method: string
+  payment_reference: string
+  momo_provider: 'mtn' | 'airtel'
+  momo_transaction_id: string
+  paid_by: string
+  notes: string
+}
 
 interface PaymentModalProps {
   isOpen: boolean
   onClose: () => void
   students: Array<{ id: string; name: string; balance: number }>
   onSubmit: (e: React.FormEvent) => void
-  newPayment: {
-    student_id: string
-    amount_paid: string
-    payment_method: 'cash' | 'mobile_money' | 'bank' | 'installment'
-    payment_reference: string
-    momo_provider: 'mtn' | 'airtel'
-    momo_transaction_id: string
-    paid_by: string
-    notes: string
-  }
-  onPaymentChange: (updates: Partial<typeof newPayment>) => void
+  newPayment: PaymentData
+  onPaymentChange: (updates: Record<string, unknown>) => void
   saving: boolean
 }
 
@@ -59,7 +60,7 @@ export default function PaymentModal({
             </div>
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Method</label>
-              <select value={newPayment.payment_method} onChange={(e) => onPaymentChange({ payment_method: e.target.value as typeof PAYMENT_METHODS[keyof typeof PAYMENT_METHODS] })} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm">
+              <select value={newPayment.payment_method} onChange={(e) => onPaymentChange({ payment_method: e.target.value })} className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm">
                 <option value="cash">Cash</option>
                 <option value="mobile_money">Mobile Money</option>
                 <option value="bank">Bank Transfer</option>
