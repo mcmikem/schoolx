@@ -256,6 +256,25 @@ export async function POST() {
       }
     }
 
+    // Migration: Add unique constraints to existing tables
+    const migrations = [
+      `ALTER TABLE IF EXISTS classes ADD CONSTRAINT classes_school_id_name_academic_year_key UNIQUE (school_id, name, academic_year);`,
+      `ALTER TABLE IF EXISTS fee_structure ADD CONSTRAINT fee_structure_school_id_class_id_name_term_academic_year_key UNIQUE (school_id, class_id, name, term, academic_year);`
+    ]
+
+    for (const sql of migrations) {
+      await supabase.rpc('exec_sql', { sql }).catch(() => {}) // Ignore if already exists
+    }
+
+    // New: Seed demo data after tables are set up
+    const { seedDemoData } = await import('@/lib/seed-demo')
+    const seedResult = await seedDemoData()
+    if (seedResult.error) {
+      results['demo_seeding'] = `Error: ${seedResult.error}`
+    } else {
+      results['demo_seeding'] = 'Seeded'
+    }
+
     return apiSuccess(results, 'Setup complete')
   } catch (error) {
     return handleApiError(error)

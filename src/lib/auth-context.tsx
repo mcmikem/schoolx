@@ -158,13 +158,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchUserData])
 
   useEffect(() => {
+    // Only run on mount
     checkUser()
 
     if (supabase) {
       const { data: { subscription } } = supabase!.auth.onAuthStateChange(
         async (event, session) => {
-          // Only use demo data if explicitly in demo mode, not blocking real auth
-          if (isDemo) return
+          // If we are in demo mode, auth state changes should be ignored
+          // unless it's a sign out that clears the demo.
+          // Note: we don't depend on isDemo here to avoid re-running the effect
+          const isCurrentlyDemo = localStorage.getItem('demo_user') !== null
+          
+          if (isCurrentlyDemo && event !== 'SIGNED_OUT') return
           
           if (event === 'SIGNED_IN' && session) {
             await fetchUserData(session.user.id)
@@ -178,7 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return () => subscription.unsubscribe()
     }
-  }, [checkUser, fetchUserData, isDemo])
+  }, [checkUser, fetchUserData])
 
   async function signIn(phone: string, password: string) {
     try {

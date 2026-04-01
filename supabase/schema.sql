@@ -89,7 +89,8 @@ CREATE TABLE IF NOT EXISTS classes (
     class_teacher_id UUID REFERENCES users(id),
     max_students INTEGER DEFAULT 60,
     academic_year TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(school_id, name, academic_year)
 );
 
 -- ============================================
@@ -217,7 +218,8 @@ CREATE TABLE IF NOT EXISTS fee_structure (
     term INTEGER CHECK (term IN (1, 2, 3)) NOT NULL,
     academic_year TEXT NOT NULL,
     due_date DATE,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(school_id, class_id, name, term, academic_year)
 );
 
 -- ============================================
