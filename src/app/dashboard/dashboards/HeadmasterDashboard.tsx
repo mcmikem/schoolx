@@ -5,10 +5,8 @@ import { useAcademic } from '@/lib/academic-context'
 import { useDashboardStats, useStudents, useFeePayments, useFeeStructure, useClasses, useStaff } from '@/lib/hooks'
 import { supabase } from '@/lib/supabase'
 import { useState, useEffect, useMemo } from 'react'
-
-function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
-}
+import MaterialIcon from '@/components/MaterialIcon'
+import { DashboardSkeleton, StatsGridSkeleton, QuickActionsSkeleton } from '@/components/Skeletons'
 
 function ProgressRing({ progress, color = '#2E9448' }: { progress: number; color?: string }) {
   const radius = 22
@@ -522,7 +520,18 @@ export default function HeadmasterDashboard() {
                 const classRate = classAtt.total > 0 ? Math.round((classAtt.present / classAtt.total) * 100) : 0
                 const color = classRate >= 80 ? 'var(--green)' : classRate >= 60 ? 'var(--amber)' : 'var(--red)'
 
-                return (
+  // Combined loading state
+  const isLoading = statsLoading || loadingExtra
+
+  if (isLoading && !focusItems.length) {
+    return (
+      <div className="content">
+        <DashboardSkeleton />
+      </div>
+    )
+  }
+
+  return (
                   <div key={cls.id} className="att-row">
                     <div className="att-pill" style={{ background: `${color.replace('var(', 'rgba(').replace(')', ',.15)')}`, color }}>
                       {cls.name.substring(0, 3).toUpperCase()}
