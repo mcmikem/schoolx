@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { offlineDB } from '@/lib/offline'
+import MaterialIcon from '@/components/MaterialIcon'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>
@@ -138,7 +139,7 @@ export function OfflineIndicator() {
           background: 'var(--navy)',
           color: '#fff',
         }}>
-          <span style={{ fontSize: 18 }}>material_symbol:refresh</span>
+          <MaterialIcon icon="refresh" style={{ fontSize: 18 }} />
           New version available
           <button
             onClick={handleUpdate}
@@ -172,7 +173,7 @@ export function OfflineIndicator() {
           background: 'var(--navy)',
           color: '#fff',
         }}>
-          <span style={{ fontSize: 18 }}>material_symbol:install_desktop</span>
+          <MaterialIcon icon="install_desktop" style={{ fontSize: 18 }} />
           Install SchoolX app
           <button
             onClick={handleInstall}
@@ -223,18 +224,18 @@ export function OfflineIndicator() {
         }}>
           {syncing ? (
             <>
-              <span style={{ animation: 'spin 1s linear infinite', fontSize: 16 }}>material_symbol:sync</span>
+              <MaterialIcon icon="sync" style={{ animation: 'spin 1s linear infinite', fontSize: 16 }} />
               Syncing {pendingSync} items...
             </>
           ) : !isOnline ? (
             <>
-              <span style={{ fontSize: 16 }}>material_symbol:wifi_off</span>
+              <MaterialIcon icon="wifi_off" style={{ fontSize: 16 }} />
               Offline - Changes saved locally
               {pendingSync > 0 && <span style={{ opacity: 0.9, fontWeight: 400 }}>({pendingSync} pending)</span>}
             </>
           ) : pendingSync > 0 ? (
             <>
-              <span style={{ fontSize: 16 }}>material_symbol:cloud_upload</span>
+              <MaterialIcon icon="cloud_upload" style={{ fontSize: 16 }} />
               {pendingSync} changes syncing
             </>
           ) : null}
