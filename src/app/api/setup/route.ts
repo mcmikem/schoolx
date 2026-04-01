@@ -263,7 +263,7 @@ export async function POST() {
     ]
 
     for (const sql of migrations) {
-      await supabase.rpc('exec_sql', { sql }).catch(() => {}) // Ignore if already exists
+      await supabase.rpc('exec_sql', { sql }) // Errors are handled within the RPC or ignored visually
     }
 
     // New: Seed demo data after tables are set up
