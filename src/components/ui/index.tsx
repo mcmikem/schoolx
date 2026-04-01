@@ -20,10 +20,10 @@ export function Button({
   const baseClass = 'font-semibold rounded-xl transition-all duration-200 inline-flex items-center justify-center gap-2'
   
   const variants = {
-    primary: 'bg-primary text-white hover:bg-primary/90 shadow-sm',
-    secondary: 'bg-[#e8eaed] text-[#191c1d] hover:bg-[#d3d6db]',
-    ghost: 'bg-transparent text-[#191c1d] hover:bg-[#f0f4f8]',
-    danger: 'bg-error text-white hover:bg-error/90'
+    primary: 'bg-[var(--primary)] text-[var(--on-primary)] hover:opacity-90 shadow-sm',
+    secondary: 'bg-[var(--surface-container)] text-[var(--on-surface)] hover:opacity-80',
+    ghost: 'bg-transparent text-[var(--on-surface)] hover:bg-[var(--surface-container)]',
+    danger: 'bg-[var(--error)] text-white hover:opacity-90'
   }
   
   const sizes = {
@@ -57,16 +57,16 @@ export function Input({ label, error, className = '', ...props }: InputProps) {
   return (
     <div className="space-y-1">
       {label && (
-        <label className="block text-sm font-medium text-[#191c1d]">
+        <label className="block text-sm font-medium text-[var(--on-surface)]">
           {label}
         </label>
       )}
       <input 
-        className={`w-full px-4 py-3 rounded-xl border border-[#e8eaed] bg-white text-[#191c1d] placeholder-[#5c6670] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors ${error ? 'border-error' : ''} ${className}`}
+        className={`w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] placeholder-[var(--t4)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors ${error ? 'border-[var(--error)]' : ''} ${className}`}
         {...props}
       />
       {error && (
-        <p className="text-sm text-error">{error}</p>
+        <p className="text-sm text-[var(--error)]">{error}</p>
       )}
     </div>
   )
@@ -81,12 +81,12 @@ export function Select({ label, options, className = '', ...props }: SelectProps
   return (
     <div className="space-y-1">
       {label && (
-        <label className="block text-sm font-medium text-[#191c1d]">
+        <label className="block text-sm font-medium text-[var(--on-surface)]">
           {label}
         </label>
       )}
       <select 
-        className={`w-full px-4 py-3 rounded-xl border border-[#e8eaed] bg-white text-[#191c1d] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors ${className}`}
+        className={`w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors ${className}`}
         {...props}
       >
         {options.map(opt => (
@@ -104,11 +104,11 @@ interface BadgeProps {
 
 export function Badge({ children, variant = 'default' }: BadgeProps) {
   const variants = {
-    success: 'bg-green-100 text-green-800',
-    warning: 'bg-yellow-100 text-yellow-800',
-    error: 'bg-red-100 text-red-800',
-    info: 'bg-blue-100 text-blue-800',
-    default: 'bg-gray-100 text-gray-800'
+    success: 'bg-[var(--green-soft)] text-[var(--green)]',
+    warning: 'bg-[var(--amber-soft)] text-[var(--amber)]',
+    error: 'bg-[var(--red-soft)] text-[var(--red)]',
+    info: 'bg-[var(--navy-soft)] text-[var(--navy)]',
+    default: 'bg-[var(--surface-container)] text-[var(--on-surface-variant)]'
   }
   
   return (
@@ -145,7 +145,7 @@ export function Avatar({ src, name, size = 'md' }: AvatarProps) {
   }
   
   return (
-    <div className={`${sizes[size]} rounded-full bg-primary/10 text-primary font-semibold flex items-center justify-center`}>
+    <div className={`${sizes[size]} rounded-full bg-[var(--primary)]/10 text-[var(--primary)] font-semibold flex items-center justify-center`}>
       {initials}
     </div>
   )
