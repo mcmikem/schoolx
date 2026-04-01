@@ -8,9 +8,9 @@ interface CardProps {
 }
 
 export function Card({ children, className = '', style, onClick }: CardProps) {
-  return (
+  return ( 
     <div 
-      className={`bg-white rounded-xl border border-[#e8eaed] shadow-sm ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''} ${className}`}
+      className={`bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''} ${className}`}
       style={style}
       onClick={onClick}
     >
@@ -21,7 +21,7 @@ export function Card({ children, className = '', style, onClick }: CardProps) {
 
 export function CardHeader({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`p-4 border-b border-[#e8eaed] ${className}`}>
+    <div className={`p-4 border-b border-[var(--border)] ${className}`}>
       {children}
     </div>
   )
@@ -37,7 +37,7 @@ export function CardBody({ children, className = '' }: { children: React.ReactNo
 
 export function CardTitle({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`font-semibold text-[#191c1d] ${className}`}>
+    <div className={`font-semibold text-[var(--on-surface)] ${className}`}>
       {children}
     </div>
   )
@@ -45,7 +45,7 @@ export function CardTitle({ children, className = '' }: { children: React.ReactN
 
 export function CardSubtitle({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`text-sm text-[#5c6670] ${className}`}>
+    <div className={`text-sm text-[var(--t3)] ${className}`}>
       {children}
     </div>
   )
