@@ -520,18 +520,7 @@ export default function HeadmasterDashboard() {
                 const classRate = classAtt.total > 0 ? Math.round((classAtt.present / classAtt.total) * 100) : 0
                 const color = classRate >= 80 ? 'var(--green)' : classRate >= 60 ? 'var(--amber)' : 'var(--red)'
 
-  // Combined loading state
-  const isLoading = statsLoading || loadingExtra
-
-  if (isLoading && !focusItems.length) {
-    return (
-      <div className="content">
-        <DashboardSkeleton />
-      </div>
-    )
-  }
-
-  return (
+                return (
                   <div key={cls.id} className="att-row">
                     <div className="att-pill" style={{ background: `${color.replace('var(', 'rgba(').replace(')', ',.15)')}`, color }}>
                       {cls.name.substring(0, 3).toUpperCase()}
