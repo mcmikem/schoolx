@@ -230,6 +230,8 @@ export default function FeesPage() {
     const today = new Date().toLocaleDateString()
     const invoiceNo = `INV-${Date.now().toString().slice(-6)}`
 
+    const escapeHtml = (s: string) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;')
+
     if (printWindow) {
       printWindow.document.write(`<html><head><title>Invoice</title><style>
         body{font-family:Arial,sans-serif;padding:20px;max-width:600px;margin:0 auto}
@@ -245,15 +247,15 @@ export default function FeesPage() {
         .footer{text-align:center;margin-top:25px;font-size:11px;color:#999;border-top:1px solid #eee;padding-top:15px}
       </style></head><body>
         <div class="header">
-          ${logoUrl ? `<img src="${logoUrl}" class="logo" alt="${schoolName}">` : ''}
-          <div class="school-name">${schoolName}</div>
-          <div class="school-info">Tel: ${school?.phone || ''} | Email: ${school?.email || ''}</div>
+          ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" class="logo" alt="${escapeHtml(schoolName)}">` : ''}
+          <div class="school-name">${escapeHtml(schoolName)}</div>
+          <div class="school-info">Tel: ${escapeHtml(school?.phone || '')} | Email: ${escapeHtml(school?.email || '')}</div>
           <div class="invoice-title">FEE INVOICE</div>
-          <div class="school-info">Invoice No: ${invoiceNo} | Date: ${today}</div>
+          <div class="school-info">Invoice No: ${escapeHtml(invoiceNo)} | Date: ${escapeHtml(today)}</div>
         </div>
-        <div class="row"><span class="label">Student:</span><span class="value">${selectedStudent.name}</span></div>
-        <div class="row"><span class="label">Student No:</span><span class="value">${selectedStudent.student_number}</span></div>
-        <div class="row"><span class="label">Class:</span><span class="value">${selectedStudent.class_name}</span></div>
+        <div class="row"><span class="label">Student:</span><span class="value">${escapeHtml(selectedStudent.name)}</span></div>
+        <div class="row"><span class="label">Student No:</span><span class="value">${escapeHtml(selectedStudent.student_number)}</span></div>
+        <div class="row"><span class="label">Class:</span><span class="value">${escapeHtml(selectedStudent.class_name)}</span></div>
         <div class="row"><span class="label">Term:</span><span class="value">Term ${currentTerm}, ${academicYear}</span></div>
         <div class="row"><span class="label">Total Fees:</span><span class="value">${formatCurrency(selectedStudent.expected)}</span></div>
         <div class="row"><span class="label">Amount Paid:</span><span class="value">${formatCurrency(selectedStudent.paid)}</span></div>
