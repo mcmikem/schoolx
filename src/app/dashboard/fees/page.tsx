@@ -54,11 +54,6 @@ export default function FeesPage() {
   const feeDraft = useFormDraft('fee_add_form')
   const [newFee, setNewFee] = useState({ name: '', class_id: '', amount: '', term: currentTerm || 1, due_date: '' })
 
-  useEffect(() => {
-    if (feeDraft.showRestoreDialog && feeDraft.savedDraft) {
-    }
-  }, [feeDraft.showRestoreDialog, feeDraft.savedDraft])
-
   const handleNewFeeChange = (updates: Partial<typeof newFee>) => {
     setNewFee(prev => {
       const newState = { ...prev, ...updates }
