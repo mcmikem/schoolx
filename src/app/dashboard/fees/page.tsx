@@ -508,7 +508,7 @@ export default function FeesPage() {
       <InvoiceModal
         isOpen={showInvoiceModal}
         onClose={() => setShowInvoiceModal(false)}
-        students={studentBalances.map(s => ({ id: s.id, name: s.name, student_number: s.student_number, class_name: s.class_name, balance: s.balance }))}
+        students={studentBalances.map(s => ({ id: s.id, name: s.name, student_number: s.student_number, class_name: s.class_name, balance: s.balance, expected: s.expected, paid: s.paid, payments: s.payments }))}
         selectedStudent={selectedStudent}
         onSelectStudent={handleGenerateInvoice}
         onPrintInvoice={handlePrintInvoice}
