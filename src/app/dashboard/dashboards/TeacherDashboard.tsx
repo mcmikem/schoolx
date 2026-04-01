@@ -5,10 +5,7 @@ import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useClasses, useSubjects } from '@/lib/hooks'
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
-
-function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
-}
+import MaterialIcon from '@/components/MaterialIcon'
 
 export default function TeacherDashboard() {
   const { school, user } = useAuth()

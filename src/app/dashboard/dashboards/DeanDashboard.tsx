@@ -3,10 +3,7 @@ import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useClasses, useSubjects } from '@/lib/hooks'
-
-function MaterialIcon({ icon, className, style, children }: { icon?: string; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
-  return <span className={`material-symbols-outlined ${className || ''}`} style={style}>{icon || children}</span>
-}
+import MaterialIcon from '@/components/MaterialIcon'
 
 export default function DeanDashboard() {
   const { school, user } = useAuth()
