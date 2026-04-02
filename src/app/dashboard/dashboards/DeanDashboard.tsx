@@ -27,7 +27,7 @@ export default function DeanDashboard() {
     <div className="content" style={{ padding: '20px 24px', maxWidth: 1400, margin: '0 auto', width: '100%' }}>
       {/* PAGE HEADER */}
       <div style={{ 
-        background: 'var(--white)', 
+        background: 'var(--surface)', 
         padding: '20px 24px', 
         borderBottom: '1px solid var(--border)', 
         display: 'flex', 
@@ -40,7 +40,7 @@ export default function DeanDashboard() {
         flexWrap: 'wrap'
       }}>
         <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: '22px', fontWeight: 900, color: '#1A3A6B', lineHeight: 1.2 }}>
+          <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--navy)', lineHeight: 1.2 }}>
             {greeting}, {user?.full_name?.split(' ')[0]}
           </div>
           <div style={{ fontSize: '13px', color: 'var(--t3)', marginTop: '4px', fontWeight: 500 }}>
@@ -60,7 +60,7 @@ export default function DeanDashboard() {
           <button style={{ 
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', 
             padding: '10px 16px', borderRadius: 10, border: 'none', 
-            background: '#1A3A6B', fontSize: '13px', fontWeight: 600, color: 'white', 
+            background: 'var(--navy)', fontSize: '13px', fontWeight: 600, color: 'white', 
             cursor: 'pointer', boxShadow: 'var(--shadow)'
           }}>
             <MaterialIcon icon="add" style={{ fontSize: 16 }} />
@@ -97,12 +97,12 @@ export default function DeanDashboard() {
         </div>
         <div style={{ background: 'var(--white)', padding: '16px', borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#EDE9FE', color: '#7C3AED' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--navy-soft)', color: 'var(--navy)' }}>
               <MaterialIcon icon="school" style={{ fontSize: 18 }} />
             </div>
             <div>
               <div style={{ fontSize: 12, color: 'var(--t3)', fontWeight: 500 }}>Classes</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: '#7C3AED' }}>{classes.length}</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--navy)' }}>{classes.length}</div>
               <div style={{ fontSize: 11, color: 'var(--t3)' }}>{classes.filter((c: any) => c.is_active).length} Active</div>
             </div>
           </div>
@@ -117,8 +117,8 @@ export default function DeanDashboard() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
           <Link href="/dashboard/grades" style={{ padding: '14px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer', textDecoration: 'none', background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)', textAlign: 'center' }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#EDE9FE' }}>
-              <MaterialIcon icon="grade" style={{ fontSize: 18, color: '#7C3AED' }} />
+            <div style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--navy-soft)' }}>
+              <MaterialIcon icon="grade" style={{ fontSize: 18, color: 'var(--navy)' }} />
             </div>
             <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--t1)' }}>Grades</div>
           </Link>
@@ -169,7 +169,7 @@ export default function DeanDashboard() {
             const count = getStudentCountForClass(cls.id)
             return (
               <Link key={cls.id} href={`/dashboard/grades?class=${cls.id}`} style={{ padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer', textDecoration: 'none', background: 'var(--bg)', borderRadius: 10, border: '1px solid var(--border)', textAlign: 'center' }}>
-                <MaterialIcon icon="school" style={{ fontSize: 24, color: '#7C3AED' }} />
+                <MaterialIcon icon="school" style={{ fontSize: 24, color: 'var(--navy)' }} />
                 <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--t1)' }}>{cls.name}</div>
                 <div style={{ fontSize: 11, color: 'var(--t3)' }}>{count} students</div>
               </Link>
@@ -236,7 +236,7 @@ export default function DeanDashboard() {
         bottom: 0, 
         left: 0, 
         right: 0, 
-        background: 'var(--white)', 
+        background: 'var(--surface)', 
         borderTop: '1px solid var(--border)', 
         padding: '10px 8px 24px',
         justifyContent: 'space-around',

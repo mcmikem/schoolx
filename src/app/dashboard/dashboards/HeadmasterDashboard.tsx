@@ -320,18 +320,22 @@ export default function HeadmasterDashboard() {
           <Link
             key={item.id}
             href={item.link}
-            className={`rounded-[22px] border p-4 shadow-sm transition ${item.status === 'alert' ? 'border-[#f5b13d] bg-[#fff7eb]' : 'border-[#e8eaed] bg-white/95'} `}
+            className={`rounded-[22px] border p-5 shadow-sm transition hover:shadow-md active:scale-[0.98] ${
+              item.status === 'alert' 
+                ? 'border-amber/30 bg-amber-soft/50' 
+                : 'border-outline-variant bg-surface-lowest'
+            }`}
           >
             <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-[#10233b]">{item.label}</p>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">{item.label}</p>
               {item.status === 'alert' && (
-                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#b45309]">Urgent</span>
+                <span className="flex h-2 w-2 rounded-full bg-amber animate-pulse" title="Urgent" />
               )}
             </div>
-            <div className="mt-4 text-3xl font-semibold text-[#111827]">
+            <div className="mt-4 text-3xl font-bold text-on-surface tracking-tight">
               {item.value === null ? '…' : item.value}
             </div>
-            <p className="text-sm text-slate-500 mt-3">{item.description}</p>
+            <p className="text-xs text-on-surface-variant/80 mt-3 font-medium">{item.description}</p>
           </Link>
         ))}
       </div>

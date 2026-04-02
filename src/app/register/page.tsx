@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-import SchoolXLogo from '@/components/SchoolXLogo'
+import OmutoLogo from '@/components/OmutoLogo'
 
 function MaterialIcon({ icon, className, children }: { icon: string; className?: string; children?: React.ReactNode }) {
   return <span className={`material-symbols-outlined ${className || ''}`}>{icon || children}</span>
@@ -122,7 +122,7 @@ export default function RegisterPage() {
       router.push('/dashboard')
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') {
-        setError('Registration timed out. Please try again.')
+        setError('Registration timed out. Profile creation may still be in progress. Try logging in shortly.')
       } else {
         const errorMessage = err instanceof Error ? err.message : 'Registration failed. Please try again.'
         setError(errorMessage)
@@ -136,7 +136,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-[#f8fafb] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-lg">
         <div className="flex justify-center">
-          <SchoolXLogo size="lg" />
+          <OmutoLogo size="lg" />
         </div>
         
         <h2 className="mt-6 text-center text-2xl font-bold text-[#002045]">
