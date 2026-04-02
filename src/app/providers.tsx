@@ -1,10 +1,11 @@
 'use client'
-import { ReactNode, useEffect } from 'react'
-import { AuthProvider } from '@/lib/auth-context'
+import { ReactNode, useEffect, useState } from 'react'
+import { AuthProvider, useAuth } from '@/lib/auth-context'
 import { AcademicProvider } from '@/lib/academic-context'
 import { ThemeProvider } from '@/lib/theme-context'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { ToastProvider } from '@/components/Toast'
+import AppLoader from '@/components/Loader'
 
 function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -21,6 +22,24 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
+function LoadingChecker({ children }: { children: ReactNode }) {
+  const { loading } = useAuth()
+  const [showLoader, setShowLoader] = useState(true)
+
+  useEffect(() => {
+    if (!loading) {
+      const timer = setTimeout(() => setShowLoader(false), 300)
+      return () => clearTimeout(timer)
+    }
+  }, [loading])
+
+  if (showLoader && loading) {
+    return <AppLoader />
+  }
+
+  return <>{children}</>
+}
+
 export default function Providers({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary>
@@ -28,7 +47,9 @@ export default function Providers({ children }: { children: ReactNode }) {
         <ThemeProvider>
           <ServiceWorkerRegistration>
             <AuthProvider>
-              <AcademicProvider>{children}</AcademicProvider>
+              <LoadingChecker>
+                <AcademicProvider>{children}</AcademicProvider>
+              </LoadingChecker>
             </AuthProvider>
           </ServiceWorkerRegistration>
         </ThemeProvider>

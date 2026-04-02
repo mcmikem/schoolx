@@ -8,6 +8,7 @@ import { useToast } from '@/components/Toast'
 import { useFormDraft } from '@/lib/useAutoSave'
 import { SendSMSModal } from '@/components/SendSMSModal'
 import MaterialIcon from '@/components/MaterialIcon'
+import OnboardingTips from '@/components/OnboardingTips'
 
 const STUDENT_TEMPLATE_COLUMNS = [
   'student_number',
@@ -363,6 +364,10 @@ export default function StudentsPage() {
           </button>
         </div>
       </div>
+
+      {students.length === 0 && (
+        <OnboardingTips schoolId={school?.id} />
+      )}
 
       <div className="card" style={{ padding: '22px', borderRadius: '24px', marginBottom: '20px' }}>
         <div className="text-sm font-semibold uppercase tracking-[0.3em] text-[#17325F] mb-2">Quick import</div>
