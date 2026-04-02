@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import Link from 'next/link'
 import OmutoLogo from '@/components/OmutoLogo'
-import { seedDemoData } from '@/lib/seed-utility'
 
 function MaterialIcon({ icon, className, children }: { icon: string; className?: string; children?: React.ReactNode }) {
   return <span className={`material-symbols-outlined ${className || ''}`}>{icon || children}</span>
@@ -113,7 +112,7 @@ export default function LoginPage() {
             console.log('Demo school created:', demoSchool)
           }
           
-          // Seed demo classes
+          // Seed demo classes (upsert to handle re-login)
           const demoClasses = [
             { school_id: DEMO_SCHOOL_ID, name: 'P.1', level: 'primary', academic_year: '2026', max_students: 40 },
             { school_id: DEMO_SCHOOL_ID, name: 'P.2', level: 'primary', academic_year: '2026', max_students: 40 },
@@ -123,10 +122,9 @@ export default function LoginPage() {
             { school_id: DEMO_SCHOOL_ID, name: 'P.6', level: 'primary', academic_year: '2026', max_students: 40 },
             { school_id: DEMO_SCHOOL_ID, name: 'P.7', level: 'primary', academic_year: '2026', max_students: 40 },
           ]
-          const { error: classError } = await supabase.from('classes').insert(demoClasses)
-          if (classError) console.error('Classes error:', classError)
+          await supabase.from('classes').upsert(demoClasses, { onConflict: 'school_id,name,academic_year' })
           
-          // Seed demo subjects
+          // Seed demo subjects (upsert to handle re-login)
           const demoSubjects = [
             { school_id: DEMO_SCHOOL_ID, name: 'English Language', code: 'ENG', level: 'primary', is_compulsory: true },
             { school_id: DEMO_SCHOOL_ID, name: 'Mathematics', code: 'MATH', level: 'primary', is_compulsory: true },
@@ -134,11 +132,10 @@ export default function LoginPage() {
             { school_id: DEMO_SCHOOL_ID, name: 'Social Studies', code: 'SST', level: 'primary', is_compulsory: true },
             { school_id: DEMO_SCHOOL_ID, name: 'Religious Education', code: 'RE', level: 'primary', is_compulsory: false },
           ]
-          const { error: subjectError } = await supabase.from('subjects').insert(demoSubjects)
-          if (subjectError) console.error('Subjects error:', subjectError)
+          await supabase.from('subjects').upsert(demoSubjects, { onConflict: 'school_id,code,academic_year' })
           
-          // Seed demo students and core data
-          await seedDemoData();
+          // Classes and subjects are already seeded above
+          // Students and attendance can be added manually via dashboard
         }
         
         const demoUser = demoUsers[cleanPhone]
