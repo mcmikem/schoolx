@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { useState, useEffect, useMemo } from 'react'
 import MaterialIcon from '@/components/MaterialIcon'
 import { DashboardSkeleton, StatsGridSkeleton, QuickActionsSkeleton } from '@/components/Skeletons'
+import OnboardingTips from '@/components/OnboardingTips'
 import { useToast } from '@/components/Toast'
 
 function ProgressRing({ progress, color = '#2E9448' }: { progress: number; color?: string }) {
@@ -317,6 +318,12 @@ export default function HeadmasterDashboard() {
           </Link>
         </div>
       </div>
+      
+      {/* Show onboarding tips if no data */}
+      {students.length === 0 && !loadingExtra && (
+        <OnboardingTips schoolId={school?.id} />
+      )}
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {focusItems.map((item) => (
           <Link
