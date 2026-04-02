@@ -91,8 +91,8 @@ export default function TeacherDashboard() {
       </div>
 
       {/* STATS */}
-      <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-        <div className="stat-card">
+      <div className="stat-grid">
+        <Link href="/dashboard/attendance" className="stat-card">
           <div className="stat-accent" style={{ background: 'var(--amber)' }} />
           <div className="stat-inner">
             <div className="stat-meta">
@@ -102,11 +102,11 @@ export default function TeacherDashboard() {
               </div>
             </div>
             <div className="stat-val" style={{ color: 'var(--amber)' }}>{myClasses.length}</div>
-            <div style={{ fontSize: '11px', color: 'var(--t3)', marginTop: '4px' }}>Classes assigned</div>
+            <div className="text-[11px] text-[var(--t3)] font-medium mt-1">Classes assigned</div>
           </div>
-        </div>
+        </Link>
 
-        <div className="stat-card">
+        <Link href="/dashboard/grades" className="stat-card">
           <div className="stat-accent" style={{ background: 'var(--navy)' }} />
           <div className="stat-inner">
             <div className="stat-meta">
@@ -116,11 +116,11 @@ export default function TeacherDashboard() {
               </div>
             </div>
             <div className="stat-val" style={{ color: 'var(--navy)' }}>{mySubjects.length}</div>
-            <div style={{ fontSize: '11px', color: 'var(--t3)', marginTop: '4px' }}>Subjects teaching</div>
+            <div className="text-[11px] text-[var(--t3)] font-medium mt-1">Subjects teaching</div>
           </div>
-        </div>
+        </Link>
 
-        <div className="stat-card">
+        <Link href="/dashboard/students" className="stat-card">
           <div className="stat-accent" style={{ background: 'var(--navy)' }} />
           <div className="stat-inner">
             <div className="stat-meta">
@@ -130,14 +130,14 @@ export default function TeacherDashboard() {
               </div>
             </div>
             <div className="stat-val" style={{ color: 'var(--navy)' }}>{students.length}</div>
-            <div style={{ fontSize: '11px', color: 'var(--t3)', marginTop: '4px' }}>In my classes</div>
+            <div className="text-[11px] text-[var(--t3)] font-medium mt-1">In my classes</div>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* SETUP NEEDED PROMPT */}
       {needsSetup && (
-        <div className="card !bg-amber-soft/50 border-amber/30 p-5 mt-4">
+        <div className="card !bg-amber-soft/50 border-amber/30 p-5 mt-4 mb-6">
           <div className="flex items-center gap-3 mb-3">
             <MaterialIcon icon="warning" className="text-amber text-2xl" />
             <div>
@@ -159,86 +159,92 @@ export default function TeacherDashboard() {
       )}
 
       {/* QUICK ACTIONS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
-        <Link href="/dashboard/attendance" className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--navy-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
-            <MaterialIcon icon="how_to_reg" style={{ fontSize: 20, color: 'var(--navy)' }} />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 mt-6">
+        <Link href="/dashboard/attendance" className="qa-item !flex-row !justify-start !p-4">
+          <div className="qa-icon !mb-0 !mr-3" style={{ background: 'var(--navy-soft)', borderColor: 'rgba(23,50,95,0.1)', color: 'var(--navy)' }}>
+            <MaterialIcon icon="how_to_reg" style={{ fontSize: 20 }} />
           </div>
-          <div>
-            <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--t1)' }}>Take Attendance</div>
-            <div style={{ fontSize: 10, color: 'var(--t3)' }}>Daily register</div>
-          </div>
-        </Link>
-        <Link href="/dashboard/grades" className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--green-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
-            <MaterialIcon icon="edit_note" style={{ fontSize: 20, color: 'var(--green)' }} />
-          </div>
-          <div>
-            <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--t1)' }}>Enter Grades</div>
-            <div style={{ fontSize: 10, color: 'var(--t3)' }}>Marks entry</div>
+          <div className="min-w-0">
+            <div className="text-[13px] font-bold text-[var(--t1)] truncate">Attendance</div>
+            <div className="text-[10px] text-[var(--t3)] font-medium truncate">Daily register</div>
           </div>
         </Link>
-        <Link href="/dashboard/homework" className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--green-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
-            <MaterialIcon icon="assignment_add" style={{ fontSize: 20, color: 'var(--green)' }} />
+        <Link href="/dashboard/grades" className="qa-item !flex-row !justify-start !p-4">
+          <div className="qa-icon !mb-0 !mr-3" style={{ background: 'var(--green-soft)', borderColor: 'rgba(46,148,72,0.1)', color: 'var(--green)' }}>
+            <MaterialIcon icon="edit_note" style={{ fontSize: 20 }} />
           </div>
-          <div>
-            <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--t1)' }}>Assign Homework</div>
-            <div style={{ fontSize: 10, color: 'var(--t3)' }}>Create assignment</div>
+          <div className="min-w-0">
+            <div className="text-[13px] font-bold text-[var(--t1)] truncate">Enter Grades</div>
+            <div className="text-[10px] text-[var(--t3)] font-medium truncate">Marks entry</div>
           </div>
         </Link>
-        <Link href="/dashboard/planning" className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--amber-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
-            <MaterialIcon icon="event_note" style={{ fontSize: 20, color: 'var(--amber)' }} />
+        <Link href="/dashboard/homework" className="qa-item !flex-row !justify-start !p-4">
+          <div className="qa-icon !mb-0 !mr-3" style={{ background: 'var(--green-soft)', borderColor: 'rgba(46,148,72,0.1)', color: 'var(--green)' }}>
+            <MaterialIcon icon="assignment_add" style={{ fontSize: 20 }} />
           </div>
-          <div>
-            <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--t1)' }}>Lesson Plans</div>
-            <div style={{ fontSize: 10, color: 'var(--t3)' }}>Plan lessons</div>
+          <div className="min-w-0">
+            <div className="text-[13px] font-bold text-[var(--t1)] truncate">Homework</div>
+            <div className="text-[10px] text-[var(--t3)] font-medium truncate">Assign task</div>
+          </div>
+        </Link>
+        <Link href="/dashboard/planning" className="qa-item !flex-row !justify-start !p-4">
+          <div className="qa-icon !mb-0 !mr-3" style={{ background: 'var(--amber-soft)', borderColor: 'rgba(184,107,12,0.1)', color: 'var(--amber)' }}>
+            <MaterialIcon icon="event_note" style={{ fontSize: 20 }} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[13px] font-bold text-[var(--t1)] truncate">Lesson Plans</div>
+            <div className="text-[10px] text-[var(--t3)] font-medium truncate">Plan teaching</div>
           </div>
         </Link>
       </div>
 
       {/* CLASSES & SUBJECTS */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-        <div className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">My Classes</div>
-              <div className="card-sub">{myClasses.length} classes assigned</div>
+      <div className="main-grid">
+        <div className="main-col">
+          <div className="card">
+            <div className="card-header">
+              <div>
+                <div className="card-title">My Classes</div>
+                <div className="card-sub">{myClasses.length} assigned</div>
+              </div>
             </div>
-          </div>
-          <div style={{ padding: '8px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              {myClasses.map((cls: any) => {
-                const count = students.filter(s => s.class_id === cls.id).length
-                return (
-                  <Link key={cls.id} href={`/dashboard/grades?class=${cls.id}`} className="qa-item" style={{ padding: '12px' }}>
-                    <MaterialIcon icon="school" style={{ fontSize: '18px', color: 'var(--amber)' }} />
-                    <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--t1)' }}>{cls.name}</div>
-                    <div style={{ fontSize: '9px', color: 'var(--t3)' }}>{count} students</div>
-                  </Link>
-                )
-              })}
+            <div className="card-body">
+              <div className="grid grid-cols-2 gap-3">
+                {myClasses.map((cls: any) => {
+                  const count = students.filter(s => s.class_id === cls.id).length
+                  return (
+                    <Link key={cls.id} href={`/dashboard/grades?class=${cls.id}`} className="qa-item !py-3">
+                      <MaterialIcon icon="school" className="text-amber mb-1" />
+                      <div className="text-[12px] font-bold text-[var(--t1)] truncate w-full">{cls.name}</div>
+                      <div className="text-[10px] text-[var(--t3)] font-medium">{count} students</div>
+                    </Link>
+                  )
+                })}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">My Subjects</div>
-              <div className="card-sub">{mySubjects.length} subjects assigned</div>
+        <div className="main-col lg:col-span-4">
+          <div className="card">
+            <div className="card-header">
+              <div>
+                <div className="card-title">My Subjects</div>
+                <div className="card-sub">{mySubjects.length} subjects</div>
+              </div>
             </div>
-          </div>
-          <div style={{ padding: '8px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              {mySubjects.map((subject: any) => (
-                <Link key={subject.id} href={`/dashboard/grades?subject=${subject.id}`} className="qa-item" style={{ padding: '12px' }}>
-                  <MaterialIcon icon="menu_book" style={{ fontSize: '18px', color: 'var(--green)' }} />
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--t1)' }}>{subject.name}</div>
-                  <div style={{ fontSize: '9px', color: 'var(--t3)' }}>{subject.code}</div>
-                </Link>
-              ))}
+            <div className="card-body">
+              <div className="grid grid-cols-2 lg:grid-cols-1 gap-3">
+                {mySubjects.map((subject: any) => (
+                  <Link key={subject.id} href={`/dashboard/grades?subject=${subject.id}`} className="qa-item !flex-row !justify-start !p-3">
+                    <MaterialIcon icon="menu_book" className="text-green mr-3" />
+                    <div className="min-w-0">
+                      <div className="text-[12px] font-bold text-[var(--t1)] truncate">{subject.name}</div>
+                      <div className="text-[10px] text-[var(--t3)] font-medium uppercase tracking-wider">{subject.code}</div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         </div>

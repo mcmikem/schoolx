@@ -7,6 +7,8 @@ import { supabase } from '@/lib/supabase'
 import { useState, useEffect, useMemo } from 'react'
 import MaterialIcon from '@/components/MaterialIcon'
 import { DashboardSkeleton, StatsGridSkeleton, QuickActionsSkeleton } from '@/components/Skeletons'
+import { useToast } from '@/components/Toast'
+import { seedDemoData } from '@/lib/seed-utility'
 
 function ProgressRing({ progress, color = '#2E9448' }: { progress: number; color?: string }) {
   const radius = 22
@@ -23,6 +25,7 @@ function ProgressRing({ progress, color = '#2E9448' }: { progress: number; color
 }
 
 export default function HeadmasterDashboard() {
+  const toast = useToast()
   const { school, user, isDemo } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
   const { stats, loading: statsLoading } = useDashboardStats(school?.id)
@@ -31,6 +34,7 @@ export default function HeadmasterDashboard() {
   const { feeStructure = [] } = useFeeStructure(school?.id)
   const { classes = [] } = useClasses(school?.id)
   const { staff = [] } = useStaff(school?.id)
+  const [isSeeding, setIsSeeding] = useState(false)
 
   const [classAttendance, setClassAttendance] = useState<Record<string, { present: number; total: number }>>({})
   const [atRiskStudents, setAtRiskStudents] = useState<any[]>([])
@@ -305,6 +309,26 @@ export default function HeadmasterDashboard() {
           <div className="ph-sub">{school?.name} • {academicYear} Term {currentTerm}</div>
         </div>
         <div className="ph-actions">
+          {isDemo && students.length === 0 && (
+            <button 
+              onClick={async () => {
+                setIsSeeding(true)
+                const res = await seedDemoData()
+                if (res.success) {
+                  toast.success('Demo data seeded successfully! Refreshing...')
+                  window.location.reload()
+                } else {
+                  toast.error('Seeding failed: ' + res.error)
+                }
+                setIsSeeding(false)
+              }}
+              disabled={isSeeding}
+              className="btn btn-ghost border-amber text-amber hover:bg-amber/5"
+            >
+              <MaterialIcon icon="database" style={{ fontSize: '16px' }} />
+              {isSeeding ? 'Seeding...' : 'Seed Sample Data'}
+            </button>
+          )}
           <Link href="/dashboard/reports" className="btn btn-ghost">
             <MaterialIcon icon="download" style={{ fontSize: '16px' }} />
             Generate Report
@@ -391,24 +415,24 @@ export default function HeadmasterDashboard() {
               </div>
             </div>
             {/* Fees breakdown */}
-            <div style={{ display: 'flex', gap: '8px', marginTop: '8px', fontSize: '11px' }}>
-              <div style={{ flex: 1, background: 'var(--bg)', borderRadius: '6px', padding: '6px 8px' }}>
-                <div style={{ color: 'var(--t3)' }}>Today</div>
-                <div style={{ fontWeight: 700, color: 'var(--t1)' }}>{formatCurrency(feesToday)}</div>
+            <div className="flex gap-2 mt-2">
+              <div className="flex-1 bg-[var(--bg)] rounded-md p-1.5 min-w-0">
+                <div className="text-[10px] text-[var(--t3)] font-bold uppercase truncate">Today</div>
+                <div className="text-xs font-bold text-[var(--t1)] truncate">{formatCurrency(feesToday)}</div>
               </div>
-              <div style={{ flex: 1, background: 'var(--bg)', borderRadius: '6px', padding: '6px 8px' }}>
-                <div style={{ color: 'var(--t3)' }}>This Week</div>
-                <div style={{ fontWeight: 700, color: 'var(--t1)' }}>{formatCurrency(feesThisWeek)}</div>
+              <div className="flex-1 bg-[var(--bg)] rounded-md p-1.5 min-w-0">
+                <div className="text-[10px] text-[var(--t3)] font-bold uppercase truncate">Week</div>
+                <div className="text-xs font-bold text-[var(--t1)] truncate">{formatCurrency(feesThisWeek)}</div>
               </div>
-              <div style={{ flex: 1, background: 'var(--bg)', borderRadius: '6px', padding: '6px 8px' }}>
-                <div style={{ color: 'var(--t3)' }}>This Term</div>
-                <div style={{ fontWeight: 700, color: 'var(--t1)' }}>{formatCurrency(feesThisTerm)}</div>
+              <div className="flex-1 bg-[var(--bg)] rounded-md p-1.5 min-w-0">
+                <div className="text-[10px] text-[var(--t3)] font-bold uppercase truncate">Term</div>
+                <div className="text-xs font-bold text-[var(--t1)] truncate">{formatCurrency(feesThisTerm)}</div>
               </div>
             </div>
           </div>
           <div className="stat-footer">
-            <span className="stat-foot-label">Cash + MTN MoMo + Airtel</span>
-            <span className="stat-foot-val" style={{ color: collectionRate >= 80 ? 'var(--green)' : 'var(--amber)' }}>{collectionRate >= 80 ? 'On target' : 'Below target'}</span>
+            <span className="stat-foot-label truncate max-w-[120px]">Cash + MTN + Airtel</span>
+            <span className="stat-foot-val" style={{ color: collectionRate >= 80 ? 'var(--green)' : 'var(--amber)' }}>{collectionRate >= 80 ? 'On target' : 'Below'}</span>
           </div>
         </Link>
 
@@ -582,7 +606,7 @@ export default function HeadmasterDashboard() {
         {/* RIGHT COLUMN */}
         <div className="main-col">
           {/* ALERTS */}
-          <div className="card" style={{ padding: 16 }}>
+          <div className="card">
             <div className="card-header">
               <div>
                 <div className="card-title">Alerts</div>
@@ -590,7 +614,7 @@ export default function HeadmasterDashboard() {
               </div>
               <span className="badge badge-red">{loadingExtra ? '...' : alertCount} active</span>
             </div>
-            <div className="card-body" style={{ padding: '14px 16px' }}>
+            <div className="card-body">
               {atRiskStudents.length > 0 && (
                 <Link href="/dashboard/warnings" className="alert-box red">
                   <div className="ab-icon" style={{ background: 'rgba(192,57,43,.12)', color: 'var(--red)', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -731,18 +755,19 @@ export default function HeadmasterDashboard() {
           </div>
 
           {/* AT RISK STUDENTS */}
-          <div className="card" style={{ padding: 16 }}>
+          <div className="card">
             <div className="card-header">
               <div>
                 <div className="card-title">At-Risk Students</div>
-                <div className="card-sub">Below 50% in 2+ subjects</div>
+                <div className="card-sub">Academic warning</div>
               </div>
-              <span className="badge badge-red">{loadingExtra ? '...' : atRiskStudents.length} flagged</span>
+              <span className="badge badge-red font-mono">{loadingExtra ? '...' : atRiskStudents.length} FLAGS</span>
             </div>
-            <div>
+            <div className="no-scrollbar max-h-[300px] overflow-y-auto">
               {loadingExtra ? (
-                <div style={{ padding: 20 }}>
-                  <div className="skeleton" style={{ height: 60 }}></div>
+                <div className="p-5 flex flex-col gap-3">
+                  <div className="h-12 bg-[var(--bg)] rounded-xl animate-pulse" />
+                  <div className="h-12 bg-[var(--bg)] rounded-xl animate-pulse" />
                 </div>
               ) : atRiskStudents.length > 0 ? (
                 atRiskStudents.map((student: any, idx: number) => (
@@ -751,16 +776,16 @@ export default function HeadmasterDashboard() {
                       {student?.first_name?.charAt(0) || '?'}{student?.last_name?.charAt(0) || ''}
                     </div>
                     <div className="warn-info">
-                      <div className="warn-name">{student?.first_name} {student?.last_name} · {student?.classes?.name}</div>
-                      <div className="warn-detail">Multiple subjects below 50%</div>
+                      <div className="warn-name truncate">{student?.first_name} {student?.last_name}</div>
+                      <div className="warn-detail truncate">{student?.classes?.name} · Critical</div>
                     </div>
-                    <span className="badge badge-red">Critical</span>
+                    <MaterialIcon icon="chevron_right" className="text-[var(--t4)]" />
                   </Link>
                 ))
               ) : (
-                <div style={{ padding: 20, textAlign: 'center', color: 'var(--t3)' }}>
-                  <MaterialIcon icon="check_circle" style={{ fontSize: 24, color: 'var(--green)', marginBottom: 8 }} />
-                  <div style={{ fontSize: 13 }}>No at-risk students</div>
+                <div className="p-8 text-center text-[var(--t3)]">
+                  <MaterialIcon icon="check_circle" className="text-2xl text-[var(--green)] mb-2" />
+                  <div className="text-xs font-semibold">No at-risk students</div>
                 </div>
               )}
             </div>

@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import Link from 'next/link'
 import OmutoLogo from '@/components/OmutoLogo'
+import { seedDemoData } from '@/lib/seed-utility'
 
 function MaterialIcon({ icon, className, children }: { icon: string; className?: string; children?: React.ReactNode }) {
   return <span className={`material-symbols-outlined ${className || ''}`}>{icon || children}</span>
@@ -136,14 +137,8 @@ export default function LoginPage() {
           const { error: subjectError } = await supabase.from('subjects').insert(demoSubjects)
           if (subjectError) console.error('Subjects error:', subjectError)
           
-          // Seed demo students
-          const demoStudents = [
-            { school_id: DEMO_SCHOOL_ID, first_name: 'John', last_name: 'Omongoin', gender: 'M', date_of_birth: '2015-01-15', parent_name: 'James Omongoin', parent_phone: '0772123456', status: 'active', student_number: 'DEMO001', admission_date: '2024-01-15' },
-            { school_id: DEMO_SCHOOL_ID, first_name: 'Mary', last_name: 'Akello', gender: 'F', date_of_birth: '2015-03-20', parent_name: 'Peter Akello', parent_phone: '0772987654', status: 'active', student_number: 'DEMO002', admission_date: '2024-01-15' },
-            { school_id: DEMO_SCHOOL_ID, first_name: 'Sam', last_name: 'Wekesa', gender: 'M', date_of_birth: '2014-07-10', parent_name: 'Joseph Wekesa', parent_phone: '0772555432', status: 'active', student_number: 'DEMO003', admission_date: '2024-01-15' },
-          ]
-          const { error: studentError } = await supabase.from('students').insert(demoStudents)
-          if (studentError) console.error('Students error:', studentError)
+          // Seed demo students and core data
+          await seedDemoData();
         }
         
         const demoUser = demoUsers[cleanPhone]
