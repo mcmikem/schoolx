@@ -1,5 +1,6 @@
 
 import { supabase } from './supabase';
+import type { Attendance, FeePayment } from '@/types';
 
 const DEMO_SCHOOL_ID = '00000000-0000-0000-0000-000000000001';
 
@@ -76,7 +77,7 @@ export async function seedDemoData() {
 
     // 4. Seed Attendance (Last 30 days)
     console.log('Seeding attendance...');
-    const attendanceRecords = [];
+    const attendanceRecords: Attendance[] = [];
     const today = new Date();
     
     // Pick 3 students to be "at risk" (absent for last 15 days)
@@ -91,7 +92,7 @@ export async function seedDemoData() {
         if (date.getDay() === 0) continue;
 
         seededStudents.forEach((student, index) => {
-            let status = 'present';
+            let status: 'present' | 'absent' | 'late' | 'excused' = 'present';
             
             // At risk students - absent for many days
             if (atRiskIndices.includes(index) && day < 20) {
@@ -106,7 +107,7 @@ export async function seedDemoData() {
                 class_id: student.class_id,
                 date: dateStr,
                 status: status
-            });
+            } as any);
         });
     }
 
@@ -119,12 +120,12 @@ export async function seedDemoData() {
 
     // 5. Seed Payments
     console.log('Seeding payments...');
-    const payments = [];
+    const payments: FeePayment[] = [];
     seededStudents.forEach((student, index) => {
         // 80% of students have paid something
         if (Math.random() < 0.8 && feeId) {
             const amount = 50000 + Math.floor(Math.random() * 10) * 10000;
-            const ways = ['cash', 'mobile_money', 'bank'];
+            const ways = ['cash', 'mobile_money', 'bank'] as const;
             
             payments.push({
                 student_id: student.id,
@@ -134,7 +135,7 @@ export async function seedDemoData() {
                 payment_date: new Date().toISOString().split('T')[0],
                 payment_reference: `REF${Math.floor(Math.random() * 1000000)}`,
                 notes: 'Partial payment for Term 1'
-            });
+            } as any);
         }
     });
 
