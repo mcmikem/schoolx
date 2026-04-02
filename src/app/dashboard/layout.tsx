@@ -13,6 +13,8 @@ import { OfflineIndicator } from '@/components/OfflineIndicator'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { useToast } from '@/components/Toast'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar'
+import GlobalSearch from '@/components/GlobalSearch'
+import FavoritesBar from '@/components/FavoritesBar'
 import { getNavigationForRole } from '@/lib/navigation'
 import {
   FEATURE_STAGES,
@@ -708,10 +710,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>{currentDate.toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
             </div>
 
-            <div className="search-bar" onClick={() => setSearchOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 14px', fontSize: 13, color: 'var(--t3)', minWidth: 240, cursor: 'text' }}>
-              <MaterialIcon icon="search" style={{ fontSize: 15, color: 'var(--t4)' }} />
-              <span style={{ flex: 1 }}>Search students, fees, reports…</span>
-              <span style={{ marginLeft: 'auto', fontFamily: 'DM Mono', fontSize: 10, color: 'var(--t4)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 6px' }}>⌘K</span>
+            <div className="search-bar" style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 14px', fontSize: 13, color: 'var(--t3)', minWidth: 240, cursor: 'text' }}>
+              <GlobalSearch />
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
