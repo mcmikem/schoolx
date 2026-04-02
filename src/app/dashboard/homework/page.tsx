@@ -124,15 +124,15 @@ export default function HomeworkPage() {
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="font-bold text-2xl text-gray-900">Homework & Assignments</h2>
-          <p className="text-gray-500 mt-1">Manage class assignments and track submissions</p>
+          <h2 className="font-bold text-2xl text-gray-900">Class Tests & Assessments</h2>
+          <p className="text-gray-500 mt-1">Track continuous assessments, quizzes, and test scores</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 shadow-lg transition-all"
         >
           <MaterialIcon icon="add" className="text-lg" />
-          Assign Homework
+          Add Test
         </button>
       </div>
 
@@ -144,13 +144,13 @@ export default function HomeworkPage() {
           className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium"
         >
           <option value="">All Classes</option>
-          {classes.map(c => (
+          {classes.length > 0 ? classes.map(c => (
             <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
+          )) : <option disabled>No classes available</option>}
         </select>
       </div>
 
-      {/* Homework Grid */}
+      {/* Tests Grid */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1,2,3].map(i => (
