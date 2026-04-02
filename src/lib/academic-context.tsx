@@ -48,19 +48,33 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
       
       if (data && data.length > 0) {
         const settings = Object.fromEntries(data.map(s => [s.key, s.value]))
-        if (settings.academic_year && settings.academic_year !== academicYear) {
-          setAcademicYearState(settings.academic_year)
-          localStorage.setItem('academic_year', settings.academic_year)
+        
+        // Use functional updates to avoid dependency on state variables
+        if (settings.academic_year) {
+          setAcademicYearState(prev => {
+            if (prev !== settings.academic_year) {
+              localStorage.setItem('academic_year', settings.academic_year)
+              return settings.academic_year
+            }
+            return prev
+          })
         }
-        if (settings.current_term && Number(settings.current_term) !== currentTerm) {
-          setCurrentTermState(Number(settings.current_term) as 1 | 2 | 3)
-          localStorage.setItem('current_term', settings.current_term)
+        
+        if (settings.current_term) {
+          const newTerm = Number(settings.current_term) as 1 | 2 | 3
+          setCurrentTermState(prev => {
+            if (prev !== newTerm) {
+              localStorage.setItem('current_term', settings.current_term.toString())
+              return newTerm
+            }
+            return prev
+          })
         }
       }
     } catch (err) {
       console.error('Failed to load academic settings', err)
     }
-  }, [school?.id, academicYear, currentTerm])
+  }, [school?.id])
 
   useEffect(() => {
     loadAcademicSettings()

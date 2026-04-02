@@ -119,16 +119,19 @@ export default function RegisterPage() {
         }
       }
 
+      // Set loading to false BEFORE navigation to avoid hanging spinner on redirect
+      setLoading(false)
+      
+      // Navigate to dashboard
       router.push('/dashboard')
     } catch (err: unknown) {
+      setLoading(false) // Ensure loading is cleared on error
       if (err instanceof Error && err.name === 'AbortError') {
         setError('Registration timed out. Profile creation may still be in progress. Try logging in shortly.')
       } else {
         const errorMessage = err instanceof Error ? err.message : 'Registration failed. Please try again.'
         setError(errorMessage)
       }
-    } finally {
-      setLoading(false)
     }
   }
 
