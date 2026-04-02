@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useFeePayments, useFeeStructure, useClasses } from '@/lib/hooks'
@@ -13,6 +13,11 @@ import PaymentModal from '@/components/fees/PaymentModal'
 import FeeFormModal from '@/components/fees/FeeFormModal'
 import ReceiptModal from '@/components/fees/ReceiptModal'
 import InvoiceModal from '@/components/fees/InvoiceModal'
+import { PageHeader, PageSection } from '@/components/ui/PageHeader'
+import { Tabs, TabPanel } from '@/components/ui/Tabs'
+import { Button } from '@/components/ui/index'
+import { TableSkeleton, FullPageLoader } from '@/components/ui/Skeleton'
+import { EmptyState, NoData } from '@/components/EmptyState'
 
 interface StudentBalance {
   id: string
@@ -321,22 +326,22 @@ export default function FeesPage() {
 
   return (
     <div className="content">
-      <div className="page-header">
-        <div>
-          <div className="ph-title">Bursar Overview</div>
-          <div className="ph-sub">Term {currentTerm}, {academicYear} Financial Operations</div>
-        </div>
-        <div className="ph-actions">
-          <button onClick={() => setShowInvoiceModal(true)} className="btn btn-ghost">
-            <MaterialIcon icon="receipt_long" style={{ fontSize: '16px' }} />
-            Generate Invoice
-          </button>
-          <button onClick={() => setShowPaymentModal(true)} className="btn btn-primary">
-            <MaterialIcon icon="add" style={{ fontSize: '16px' }} />
-            Add Payment
-          </button>
-        </div>
-      </div>
+      <PageHeader 
+        title="Fee Management" 
+        subtitle={`${students.length} students • Term ${currentTerm}, ${academicYear}`}
+        actions={
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={() => setShowInvoiceModal(true)}>
+              <MaterialIcon icon="receipt_long" />
+              Generate Invoice
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => setShowPaymentModal(true)}>
+              <MaterialIcon icon="add" />
+              Add Payment
+            </Button>
+          </div>
+        }
+      />
 
       <FeeStats stats={stats} paymentsCount={payments.length} />
 
@@ -358,54 +363,26 @@ export default function FeesPage() {
         </div>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-        <button onClick={() => setTab('balances')} className={`px-6 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap ${tab === 'balances' ? 'bg-primary text-white' : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'}`}>Student Balances</button>
-        <button onClick={() => setTab('payments')} className={`px-6 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap ${tab === 'payments' ? 'bg-primary text-white' : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'}`}>All Payments</button>
-        <button onClick={() => setTab('momo')} className={`px-6 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap ${tab === 'momo' ? 'bg-primary text-white' : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'}`}>Mobile Money</button>
-        <button onClick={() => setTab('structure')} className={`px-6 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap ${tab === 'structure' ? 'bg-primary text-white' : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'}`}>Fee Structure</button>
-      </div>
+      <Tabs
+        tabs={[
+          { id: 'balances', label: 'Balances' },
+          { id: 'payments', label: 'Payments' },
+          { id: 'structure', label: 'Fee Structure' }
+        ]}
+        activeTab={tab}
+        onChange={(id) => setTab(id as typeof tab)}
+        className="mb-6"
+      />
 
-      {tab === 'balances' && (
-        <FeeTable balances={filteredBalances} onViewReceipt={handleViewReceipt} />
-      )}
+      <TabPanel activeTab={tab} tabId="balances">
+        {filteredBalances.length === 0 ? (
+          <NoData title="No student balances" description="Add students and fee structures to see balances" />
+        ) : (
+          <FeeTable balances={filteredBalances} onViewReceipt={handleViewReceipt} />
+        )}
+      </TabPanel>
 
-      {tab === 'momo' && (
-        <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
-          <div className="overflow-x-auto table-responsive">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-surface-container-low text-left">
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Date</th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Student</th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Amount</th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Provider</th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Reference</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/5">
-                {payments.filter(p => p.payment_method === 'mobile_money').map((payment) => {
-                  const student = students.find(s => s.id === payment.student_id)
-                  const ref = payment.payment_reference || ''
-                  const isMTN = ref.toUpperCase().includes('MTN')
-                  return (
-                    <tr key={payment.id} className="hover:bg-surface-bright">
-                      <td className="px-6 py-4 text-sm">{new Date(payment.payment_date).toLocaleDateString()}</td>
-                      <td className="px-6 py-4 font-medium">{student?.first_name} {student?.last_name}</td>
-                      <td className="px-6 py-4 font-bold text-secondary">{formatCurrency(Number(payment.amount_paid))}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2 py-1 rounded text-xs font-bold ${isMTN ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>{isMTN ? 'MTN' : 'Airtel'}</span>
-                      </td>
-                      <td className="px-6 py-4 text-sm font-mono text-on-surface-variant">{ref}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {tab === 'payments' && (
+      <TabPanel activeTab={tab} tabId="payments">
         <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
@@ -443,46 +420,50 @@ export default function FeesPage() {
             </table>
           </div>
         </div>
-      )}
+      </TabPanel>
 
-      {tab === 'structure' && (
+      <TabPanel activeTab={tab} tabId="structure">
         <div>
           <div className="flex justify-end mb-4">
-            <button onClick={() => setShowFeeModal(true)} className="btn btn-primary">
+            <Button variant="primary" size="sm" onClick={() => setShowFeeModal(true)}>
               <MaterialIcon icon="add" />
               Add Fee
-            </button>
+            </Button>
           </div>
-          <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
-            <div className="overflow-x-auto table-responsive">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-surface-container-low text-left">
-                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Fee Name</th>
-                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Class</th>
-                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Amount</th>
-                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Term</th>
-                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-outline-variant/5">
-                  {feeStructure.map((fee) => (
-                    <tr key={fee.id} className="hover:bg-surface-bright">
-                      <td className="px-6 py-4 font-medium">{fee.name}</td>
-                      <td className="px-6 py-4">{fee.classes?.name || 'All Classes'}</td>
-                      <td className="px-6 py-4 font-bold text-primary">{formatCurrency(Number(fee.amount))}</td>
-                      <td className="px-6 py-4 text-sm text-on-surface-variant">Term {fee.term}</td>
-                      <td className="px-6 py-4">
-                        <button onClick={() => handleDeleteFee(fee.id)} className="text-error hover:underline text-sm">Delete</button>
-                      </td>
+          {feeStructure.length === 0 ? (
+            <NoData title="No fee structure" description="Create fee items to start collecting payments" />
+          ) : (
+            <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
+              <div className="overflow-x-auto table-responsive">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-surface-container-low text-left">
+                      <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Fee Name</th>
+                      <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Class</th>
+                      <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Amount</th>
+                      <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Term</th>
+                      <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/5">
+                    {feeStructure.map((fee) => (
+                      <tr key={fee.id} className="hover:bg-surface-bright">
+                        <td className="px-6 py-4 font-medium">{fee.name}</td>
+                        <td className="px-6 py-4">{fee.classes?.name || 'All Classes'}</td>
+                        <td className="px-6 py-4 font-bold text-primary">{formatCurrency(Number(fee.amount))}</td>
+                        <td className="px-6 py-4 text-sm text-on-surface-variant">Term {fee.term}</td>
+                        <td className="px-6 py-4">
+                          <button onClick={() => handleDeleteFee(fee.id)} className="text-error hover:underline text-sm">Delete</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </TabPanel>
 
       <PaymentModal
         isOpen={showPaymentModal}

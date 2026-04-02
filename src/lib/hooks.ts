@@ -405,36 +405,33 @@ export function useClasses(schoolId?: string) {
   const [loading, setLoading] = useState(true)
   const { isDemo } = useAuth()
 
-  useEffect(() => {
-    let cancelled = false
-    
-    async function fetchClasses() {
-      if (!schoolId) {
-        setLoading(false)
-        return
-      }
-
-      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
-
-      try {
-        setLoading(true)
-        const data = await withTimeout(
-          supabase.from('classes').select('*').eq('school_id', querySchoolId).order('name').then(r => { if (r.error) throw r.error; return r.data }),
-          5000,
-          [] as Class[]
-        )
-        if (!cancelled) setClasses((data as Class[]) || [])
-      } catch (err) {
-        console.warn('Classes fetch error (using empty):', err)
-        if (!cancelled) setClasses([])
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
+  const fetchClasses = useCallback(async () => {
+    if (!schoolId) {
+      setLoading(false)
+      return
     }
 
-    fetchClasses()
-    return () => { cancelled = true }
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
+    try {
+      setLoading(true)
+      const data = await withTimeout(
+        supabase.from('classes').select('*').eq('school_id', querySchoolId).order('name').then(r => { if (r.error) throw r.error; return r.data }),
+        5000,
+        [] as Class[]
+      )
+      setClasses((data as Class[]) || [])
+    } catch (err) {
+      console.warn('Classes fetch error (using empty):', err)
+      setClasses([])
+    } finally {
+      setLoading(false)
+    }
   }, [schoolId, isDemo])
+
+  useEffect(() => {
+    fetchClasses()
+  }, [fetchClasses])
 
   return { classes, loading }
 }
@@ -795,49 +792,49 @@ export function useGrades(classId?: string, subjectId?: string, term?: number, a
     }
   }
 
-  useEffect(() => {
-    async function fetchGrades() {
-      if (!classId) {
-        setLoading(false)
-        return
-      }
-
-      try {
-        setLoading(true)
-        let query = supabase
-          .from('grades')
-          .select(`
-            *,
-            students (
-              id,
-              first_name,
-              last_name
-            ),
-            subjects (
-              id,
-              name,
-              code
-            )
-          `)
-          .eq('class_id', classId)
-
-        if (subjectId) query = query.eq('subject_id', subjectId)
-        if (term) query = query.eq('term', term)
-        if (academicYear) query = query.eq('academic_year', academicYear)
-
-        const { data, error } = await query
-
-        if (error) throw error
-        setGrades(data || [])
-      } catch (err) {
-        console.error('Error fetching grades:', err)
-      } finally {
-        setLoading(false)
-      }
+  const fetchGrades = useCallback(async () => {
+    if (!classId) {
+      setLoading(false)
+      return
     }
 
+    try {
+      setLoading(true)
+      let query = supabase
+        .from('grades')
+        .select(`
+          *,
+          students (
+            id,
+            first_name,
+            last_name
+          ),
+          subjects (
+            id,
+            name,
+            code
+          )
+        `)
+        .eq('class_id', classId)
+
+      if (subjectId) query = query.eq('subject_id', subjectId)
+      if (term) query = query.eq('term', term)
+      if (academicYear) query = query.eq('academic_year', academicYear)
+
+      const { data, error } = await query
+
+      if (error) throw error
+      setGrades(data || [])
+    } catch (err) {
+      console.error('Failed to fetch grades:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [classId, subjectId, term, academicYear])
+
+  useEffect(() => {
     fetchGrades()
-  }, [classId, subjectId, term, academicYear, isDemo])
+  }, [fetchGrades])
 
   return { grades, loading, saveGrade }
 }
@@ -848,59 +845,59 @@ export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
   const [loading, setLoading] = useState(true)
   const { isDemo } = useAuth()
 
-  useEffect(() => {
-    async function fetchSubjects() {
-      if (!schoolId) {
-        setLoading(false)
-        return
-      }
-
-      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
-
-      try {
-        setLoading(true)
-        const { data, error } = await supabase
-          .from('subjects')
-          .select('*')
-          .eq('school_id', querySchoolId)
-          .order('name')
-
-        if (error) throw error
-
-        let currentSubjects = data || []
-
-        if (currentSubjects.length === 0 && autoSeed) {
-          const { getDefaultSubjects } = await import('@/lib/curriculum')
-          const defaultSubjects = getDefaultSubjects('primary')
-          
-          const seeds = defaultSubjects.map(s => ({ 
-            name: s.name, 
-            code: s.code, 
-            level: s.level, 
-            is_compulsory: s.is_compulsory,
-            school_id: querySchoolId 
-          }))
-          
-          const { data: inserted, error: insertError } = await supabase
-            .from('subjects')
-            .insert(seeds)
-            .select()
-
-          if (!insertError && inserted) {
-            currentSubjects = inserted.sort((a, b) => a.name.localeCompare(b.name))
-          }
-        }
-
-        setSubjects(currentSubjects)
-      } catch (err) {
-        console.error('Error fetching subjects:', err)
-      } finally {
-        setLoading(false)
-      }
+  const fetchSubjects = useCallback(async () => {
+    if (!schoolId) {
+      setLoading(false)
+      return
     }
 
-    fetchSubjects()
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('subjects')
+        .select('*')
+        .eq('school_id', querySchoolId)
+        .order('name')
+
+      if (error) throw error
+
+      let currentSubjects = data || []
+
+      if (currentSubjects.length === 0 && autoSeed) {
+        const { getDefaultSubjects } = await import('@/lib/curriculum')
+        const defaultSubjects = getDefaultSubjects('primary')
+        
+        const seeds = defaultSubjects.map(s => ({ 
+          name: s.name, 
+          code: s.code, 
+          level: s.level, 
+          is_compulsory: s.is_compulsory,
+          school_id: querySchoolId 
+        }))
+        
+        const { data: inserted, error: insertError } = await supabase
+          .from('subjects')
+          .insert(seeds)
+          .select()
+
+        if (!insertError && inserted) {
+          currentSubjects = inserted.sort((a, b) => a.name.localeCompare(b.name))
+        }
+      }
+
+      setSubjects(currentSubjects)
+    } catch (err) {
+      console.error('Error fetching subjects:', err)
+    } finally {
+      setLoading(false)
+    }
   }, [schoolId, autoSeed, isDemo])
+
+  useEffect(() => {
+    fetchSubjects()
+  }, [fetchSubjects])
 
   return { subjects, loading }
 }
@@ -938,7 +935,7 @@ export function useAnalytics(schoolId?: string) {
           { data: attendance },
           { data: grades }
         ] = await Promise.all([
-          supabase.from('students').select('id, full_name, gender, class_id, classes(name)').eq('school_id', schoolId).eq('status', 'active'),
+          supabase.from('students').select('id, first_name, last_name, gender, class_id, classes(name)').eq('school_id', schoolId).eq('status', 'active'),
           supabase.from('fee_structure').select('id, amount').eq('school_id', schoolId),
           supabase.from('attendance').select('student_id, status').eq('school_id', schoolId).order('date', { ascending: false }).limit(2000), // Limit to recent records for perf
           supabase.from('grades').select('student_id, score').eq('school_id', schoolId)
@@ -995,7 +992,7 @@ export function useAnalytics(schoolId?: string) {
           if (attRate < 75 || avgScore < 50) {
             return {
               student_id: s.id,
-              full_name: s.full_name,
+              full_name: `${s.first_name} ${s.last_name}`,
               class_name: s.classes?.[0]?.name || 'N/A',
               risk_reason: attRate < 75 && avgScore < 50 ? 'both' : (attRate < 75 ? 'low_attendance' : 'low_grades'),
               attendance_rate: attRate,

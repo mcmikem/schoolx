@@ -4,11 +4,30 @@ import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Button, Badge } from '@/components/ui/index'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
+import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card'
+import { Tabs, TabPanel } from '@/components/ui/Tabs'
+
+const messageTypeTabs = [
+  { id: 'individual', label: 'One Parent' },
+  { id: 'class', label: 'By Class' },
+  { id: 'all', label: 'All Parents' },
+]
+
+const recentTabs = [
+  { id: 'all', label: 'All' },
+  { id: 'sent', label: 'Sent' },
+  { id: 'failed', label: 'Failed' },
+]
 
 export default function MessagesPage() {
   const { user } = useAuth()
   const toast = useToast()
   const [messageType, setMessageType] = useState<'individual' | 'class' | 'all'>('individual')
+  const [recentTab, setRecentTab] = useState('all')
   const [message, setMessage] = useState('')
   const [phone, setPhone] = useState('')
   const [selectedClass, setSelectedClass] = useState('')
@@ -118,79 +137,59 @@ export default function MessagesPage() {
   }
 
   const getRecipientBadge = (type: string) => {
-    const styles: Record<string, string> = {
-      individual: 'bg-[#e3f2fd] text-[#002045]',
-      class: 'bg-[#e8f5e9] text-[#006e1c]',
-      all: 'bg-[#fff3e0] text-[#b86e00]',
+    const variants: Record<string, 'info' | 'success' | 'warning'> = {
+      individual: 'info',
+      class: 'success',
+      all: 'warning',
     }
-    return styles[type] || styles.individual
+    return variants[type] || 'info'
   }
+
+  const getStatusBadge = (status: string) => {
+    return status === 'sent' ? 'success' : 'warning'
+  }
+
+  const filteredMessages = messages.filter(msg => {
+    if (recentTab === 'all') return true
+    return msg.status === recentTab
+  })
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Messages</h1>
-        <p className="text-[#5c6670] mt-1">Send SMS to parents</p>
-      </div>
+      <PageHeader title="Messages" subtitle="Send SMS to parents" />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-          <h2 className="text-lg font-semibold text-[#191c1d] mb-4">Send Message</h2>
-          
-          <div className="space-y-4">
-            <div className="flex gap-2 p-1 bg-[#f8fafb] rounded-xl">
-              <button 
-                onClick={() => setMessageType('individual')} 
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
-                  messageType === 'individual' 
-                    ? 'bg-white text-[#002045] shadow-sm' 
-                    : 'text-[#5c6670] hover:text-[#191c1d]'
-                }`}
-              >
-                One Parent
-              </button>
-              <button 
-                onClick={() => setMessageType('class')} 
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
-                  messageType === 'class' 
-                    ? 'bg-white text-[#002045] shadow-sm' 
-                    : 'text-[#5c6670] hover:text-[#191c1d]'
-                }`}
-              >
-                By Class
-              </button>
-              <button 
-                onClick={() => setMessageType('all')} 
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
-                  messageType === 'all' 
-                    ? 'bg-white text-[#002045] shadow-sm' 
-                    : 'text-[#5c6670] hover:text-[#191c1d]'
-                }`}
-              >
-                All Parents
-              </button>
-            </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Send Message</CardTitle>
+          </CardHeader>
+          <CardBody className="space-y-4">
+            <Tabs
+              tabs={messageTypeTabs}
+              activeTab={messageType}
+              onChange={(id) => setMessageType(id as 'individual' | 'class' | 'all')}
+            />
 
             {messageType === 'individual' && (
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Phone Number</label>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Phone Number</label>
                 <input
                   type="tel"
                   placeholder="0700000000"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="input"
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] placeholder-[var(--t4)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors"
                 />
               </div>
             )}
 
             {messageType === 'class' && (
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Select Class</label>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Select Class</label>
                 {classes.length === 0 ? (
                   <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No classes available</div>
                 ) : (
-                  <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input">
+                  <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors">
                     <option value="">Choose class</option>
                     {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
@@ -199,64 +198,66 @@ export default function MessagesPage() {
             )}
 
             <div>
-              <label className="text-sm font-medium text-[#191c1d] mb-2 block">Message</label>
+              <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Message</label>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Type your message here..."
-                className="input min-h-[120px] resize-none"
+                className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] placeholder-[var(--t4)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors min-h-[120px] resize-none"
                 maxLength={160}
               />
-              <p className="text-xs text-[#5c6670] mt-2">{message.length}/160 characters</p>
+              <p className="text-xs text-[var(--t3)] mt-2">{message.length}/160 characters</p>
             </div>
 
-            <button onClick={handleSend} disabled={sending || !message.trim()} className="btn btn-primary w-full">
+            <Button onClick={handleSend} disabled={sending || !message.trim()} loading={sending}>
               <MaterialIcon icon="send" className="text-lg" />
               {sending ? 'Sending...' : 'Send Message'}
-            </button>
-          </div>
-        </div>
+            </Button>
+          </CardBody>
+        </Card>
 
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-          <h2 className="text-lg font-semibold text-[#191c1d] mb-4">Recent Messages</h2>
-          
-          {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i}>
-                  <div className="w-full h-4 bg-[#e8eaed] rounded mb-2" />
-                  <div className="w-3/4 h-3 bg-[#e8eaed] rounded" />
-                </div>
-              ))}
-            </div>
-          ) : messages.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-[#f8fafb] rounded-full flex items-center justify-center mx-auto mb-4">
-                <MaterialIcon icon="sms" className="text-3xl text-[#c4c6cf]" />
-              </div>
-              <p className="text-[#5c6670]">No messages sent yet</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {messages.map((msg) => (
-                <div key={msg.id} className="p-4 bg-[#f8fafb] rounded-xl">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getRecipientBadge(msg.recipient_type)}`}>
-                      {msg.recipient_type === 'individual' ? 'Individual' : msg.recipient_type === 'class' ? 'By Class' : 'All Parents'}
-                    </span>
-                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${msg.status === 'sent' ? 'bg-[#e8f5e9] text-[#006e1c]' : 'bg-[#fff3e0] text-[#b86e00]'}`}>
-                      {msg.status}
-                    </span>
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Messages</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <Tabs
+              tabs={recentTabs}
+              activeTab={recentTab}
+              onChange={setRecentTab}
+              className="mb-4"
+            />
+
+            {loading ? (
+              <TableSkeleton rows={3} />
+            ) : filteredMessages.length === 0 ? (
+              <EmptyState
+                icon="sms"
+                title="No messages sent yet"
+                description={recentTab === 'all' ? "Send your first message to get started" : `No ${recentTab} messages found`}
+              />
+            ) : (
+              <div className="space-y-4">
+                {filteredMessages.map((msg) => (
+                  <div key={msg.id} className="p-4 bg-[var(--surface-container-low)] rounded-xl">
+                    <div className="flex items-center justify-between mb-2">
+                      <Badge variant={getRecipientBadge(msg.recipient_type)}>
+                        {msg.recipient_type === 'individual' ? 'Individual' : msg.recipient_type === 'class' ? 'By Class' : 'All Parents'}
+                      </Badge>
+                      <Badge variant={getStatusBadge(msg.status)}>
+                        {msg.status}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-[var(--on-surface)] mb-2">{msg.message}</p>
+                    <p className="text-xs text-[var(--t3)]">
+                      {new Date(msg.created_at).toLocaleDateString()}
+                    </p>
                   </div>
-                  <p className="text-sm text-[#191c1d] mb-2">{msg.message}</p>
-                  <p className="text-xs text-[#5c6670]">
-                    {new Date(msg.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </CardBody>
+        </Card>
       </div>
     </div>
   )

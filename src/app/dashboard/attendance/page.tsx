@@ -6,6 +6,11 @@ import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import { offlineDB, useOnlineStatus } from '@/lib/offline'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Tabs, TabPanel } from '@/components/ui/Tabs'
+import { Button } from '@/components/ui/index'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
 
 const STATUS_CYCLE = ['absent', 'present', 'late'] as const
 type AttendanceStatus = typeof STATUS_CYCLE[number]
@@ -38,6 +43,7 @@ export default function AttendancePage() {
   const [saving, setSaving] = useState(false)
   const [offlineCount, setOfflineCount] = useState(0)
   const [allMarked, setAllMarked] = useState(false)
+  const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop')
 
   const isClassTeacher = user?.role === 'teacher'
   const isAdmin = user?.role === 'headmaster' || user?.role === 'dean_of_studies' || user?.role === 'school_admin' || user?.role === 'super_admin'
@@ -190,24 +196,26 @@ export default function AttendancePage() {
 
   return (
     <div className="space-y-6 pb-24 md:pb-6">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h2 className="font-headline font-bold text-3xl text-primary tracking-tight mb-2">Attendance</h2>
-          <p className="text-on-surface-variant text-sm font-medium">Mark daily student attendance</p>
-        </div>
-        {offlineCount > 0 && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-tertiary-container text-on-tertiary-container text-xs font-semibold">
-            <MaterialIcon icon="cloud_off" className="text-sm" />
-            {offlineCount} record{offlineCount !== 1 ? 's' : ''} saved offline
+      <PageHeader 
+        title="Attendance" 
+        subtitle={`Mark daily student attendance`}
+        actions={
+          <div className="flex items-center gap-3">
+            {offlineCount > 0 && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-tertiary-container text-on-tertiary-container text-xs font-semibold">
+                <MaterialIcon icon="cloud_off" className="text-sm" />
+                {offlineCount} record{offlineCount !== 1 ? 's' : ''} saved offline
+              </div>
+            )}
+            {!isOnline && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-error-container text-on-error-container text-xs font-semibold">
+                <MaterialIcon icon="wifi_off" className="text-sm" />
+                Offline
+              </div>
+            )}
           </div>
-        )}
-        {!isOnline && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-error-container text-on-error-container text-xs font-semibold">
-            <MaterialIcon icon="wifi_off" className="text-sm" />
-            Offline
-          </div>
-        )}
-      </header>
+        }
+      />
 
       <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4">
         <div className="flex flex-col sm:flex-row gap-4">
@@ -249,38 +257,19 @@ export default function AttendancePage() {
       </div>
 
       {!selectedClass ? (
-        <div className="bg-surface-container-lowest p-12 rounded-xl text-center border border-outline-variant/10">
-          <div className="w-16 h-16 bg-surface-container-low rounded-full flex items-center justify-center mx-auto mb-4">
-            <MaterialIcon icon="fact_check" className="text-3xl text-on-surface-variant" />
-          </div>
-          <h3 className="font-headline font-bold text-lg text-primary mb-2">Select a class</h3>
-          <p className="text-on-surface-variant text-sm">Choose a class to mark attendance</p>
-          {isClassTeacher && !isAdmin && filteredClasses.length === 0 && (
-            <p className="text-error text-sm mt-2">You are not assigned as class teacher for any class</p>
-          )}
-        </div>
+        <EmptyState
+          icon="fact_check"
+          title="Select a class"
+          description={isClassTeacher && !isAdmin && filteredClasses.length === 0 ? "You are not assigned as class teacher for any class" : "Choose a class to mark attendance"}
+        />
       ) : loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-surface-container rounded-full" />
-                <div className="flex-1">
-                  <div className="w-32 h-4 bg-surface-container rounded mb-2" />
-                  <div className="w-20 h-3 bg-surface-container rounded" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <TableSkeleton rows={5} />
       ) : students.length === 0 ? (
-        <div className="bg-surface-container-lowest p-12 rounded-xl text-center border border-outline-variant/10">
-          <div className="w-16 h-16 bg-surface-container-low rounded-full flex items-center justify-center mx-auto mb-4">
-            <MaterialIcon icon="group" className="text-3xl text-on-surface-variant" />
-          </div>
-          <h3 className="font-headline font-bold text-lg text-primary mb-2">No students in this class</h3>
-          <p className="text-on-surface-variant text-sm">Add students to this class first</p>
-        </div>
+        <EmptyState
+          icon="group"
+          title="No students in this class"
+          description="Add students to this class first"
+        />
       ) : (
         <>
           <div className="grid grid-cols-3 gap-3">
@@ -299,23 +288,79 @@ export default function AttendancePage() {
           </div>
 
           <div className="flex gap-2">
-            <button
+            <Button
+              variant="secondary"
               onClick={handleMarkAllPresent}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-outline-variant/30 text-primary font-semibold text-sm hover:bg-surface-container-low transition-all"
+              icon={<MaterialIcon icon={allMarked ? 'undo' : 'check_circle'} />}
             >
-              <MaterialIcon icon={allMarked ? 'undo' : 'check_circle'} className="text-lg" />
               {allMarked ? 'Reset All' : 'Mark All Present'}
-            </button>
+            </Button>
+            <Tabs
+              tabs={[
+                { id: 'desktop', label: 'List' },
+                { id: 'mobile', label: 'Cards' }
+              ]}
+              activeTab={viewMode}
+              onChange={(id) => setViewMode(id as 'desktop' | 'mobile')}
+            />
           </div>
 
-          {/* Desktop table */}
-          <div className="hidden md:block space-y-3">
-            {students.map((student) => {
-              const status = attendance[student.id] as AttendanceStatus | undefined
-              const config = status ? STATUS_CONFIG[status] : null
-              return (
-                <div key={student.id} className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4">
-                  <div className="flex items-center justify-between">
+          <TabPanel activeTab={viewMode} tabId="desktop">
+            <div className="space-y-3">
+              {students.map((student) => {
+                const status = attendance[student.id] as AttendanceStatus | undefined
+                const config = status ? STATUS_CONFIG[status] : null
+                return (
+                  <div key={student.id} className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-primary-container rounded-full flex items-center justify-center">
+                          <span className="text-on-primary-container font-bold text-sm">
+                            {student.first_name?.charAt(0)}{student.last_name?.charAt(0)}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="font-bold text-primary">{student.first_name} {student.last_name}</div>
+                          <div className="text-xs text-on-surface-variant">{student.student_number}</div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {STATUS_CYCLE.map((s) => {
+                          const sConfig = STATUS_CONFIG[s]
+                          const isActive = status === s
+                          return (
+                            <button
+                              key={s}
+                              onClick={() => markAttendance(student.id, s)}
+                              className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                                isActive
+                                  ? `${sConfig.bg} border-${s === 'absent' ? 'error' : s === 'present' ? 'secondary' : 'tertiary'}`
+                                  : 'bg-surface-container-lowest text-on-surface-variant border-outline-variant/30 hover:border-outline-variant'
+                              }`}
+                            >
+                              {sConfig.label}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </TabPanel>
+
+          <TabPanel activeTab={viewMode} tabId="mobile">
+            <div className="space-y-2">
+              {students.map((student) => {
+                const status = attendance[student.id] as AttendanceStatus | undefined
+                const config = status ? STATUS_CONFIG[status] : null
+                return (
+                  <div
+                    key={student.id}
+                    onClick={() => handleTapStatus(student.id)}
+                    className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none"
+                  >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-primary-container rounded-full flex items-center justify-center">
                         <span className="text-on-primary-container font-bold text-sm">
@@ -323,93 +368,48 @@ export default function AttendancePage() {
                         </span>
                       </div>
                       <div>
-                        <div className="font-bold text-primary">{student.first_name} {student.last_name}</div>
+                        <div className="font-bold text-primary text-sm">{student.first_name} {student.last_name}</div>
                         <div className="text-xs text-on-surface-variant">{student.student_number}</div>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      {STATUS_CYCLE.map((s) => {
-                        const sConfig = STATUS_CONFIG[s]
-                        const isActive = status === s
-                        return (
-                          <button
-                            key={s}
-                            onClick={() => markAttendance(student.id, s)}
-                            className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
-                              isActive
-                                ? `${sConfig.bg} border-${s === 'absent' ? 'error' : s === 'present' ? 'secondary' : 'tertiary'}`
-                                : 'bg-surface-container-lowest text-on-surface-variant border-outline-variant/30 hover:border-outline-variant'
-                            }`}
-                          >
-                            {sConfig.label}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Mobile cards */}
-          <div className="md:hidden space-y-2">
-            {students.map((student) => {
-              const status = attendance[student.id] as AttendanceStatus | undefined
-              const config = status ? STATUS_CONFIG[status] : null
-              return (
-                <div
-                  key={student.id}
-                  onClick={() => handleTapStatus(student.id)}
-                  className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary-container rounded-full flex items-center justify-center">
-                      <span className="text-on-primary-container font-bold text-sm">
-                        {student.first_name?.charAt(0)}{student.last_name?.charAt(0)}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="font-bold text-primary text-sm">{student.first_name} {student.last_name}</div>
-                      <div className="text-xs text-on-surface-variant">{student.student_number}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {config && (
-                      <span className="text-xs font-medium text-on-surface-variant">{config.label}</span>
-                    )}
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                        status === 'present'
-                          ? 'bg-secondary'
-                          : status === 'late'
-                          ? 'bg-tertiary'
-                          : status === 'absent'
-                          ? 'bg-error'
-                          : 'bg-surface-container border-2 border-dashed border-outline-variant'
-                      }`}
-                    >
-                      {status && (
-                        <MaterialIcon icon={STATUS_CONFIG[status as AttendanceStatus].icon} className="text-white text-lg" />
+                    <div className="flex items-center gap-2">
+                      {config && (
+                        <span className="text-xs font-medium text-on-surface-variant">{config.label}</span>
                       )}
+                      <div
+                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                          status === 'present'
+                            ? 'bg-secondary'
+                            : status === 'late'
+                            ? 'bg-tertiary'
+                            : status === 'absent'
+                            ? 'bg-error'
+                            : 'bg-surface-container border-2 border-dashed border-outline-variant'
+                        }`}
+                      >
+                        {status && (
+                          <MaterialIcon icon={STATUS_CONFIG[status as AttendanceStatus].icon} className="text-white text-lg" />
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            })}
-            <p className="text-center text-xs text-on-surface-variant pt-2">Tap a student to cycle status</p>
-          </div>
+                )
+              })}
+              <p className="text-center text-xs text-on-surface-variant pt-2">Tap a student to cycle status</p>
+            </div>
+          </TabPanel>
 
           {/* Sticky save button for mobile */}
           <div className="fixed bottom-0 left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant/10 md:border-0 z-10">
-            <button
+            <Button
               onClick={saveAttendance}
               disabled={saving || Object.keys(attendance).length === 0}
-              className="w-full flex items-center justify-center gap-2 px-5 py-3.5 md:py-3 rounded-xl bg-primary text-white font-semibold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/10 disabled:opacity-50"
+              loading={saving}
+              icon={<MaterialIcon icon="save" />}
+              className="w-full"
             >
-              <MaterialIcon icon="save" className="text-lg" />
-              {saving ? 'Saving...' : isOnline ? 'Save Attendance' : 'Save Offline'}
-            </button>
+              {isOnline ? 'Save Attendance' : 'Save Offline'}
+            </Button>
           </div>
         </>
       )}

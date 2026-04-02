@@ -7,7 +7,11 @@ import { getUNEBGrade, getUNEBDivision } from '@/lib/grading'
 import ReportCard from '@/components/reports/ReportCard'
 import type { ReportCard as ReportCardType } from '@/types'
 import { supabase } from '@/lib/supabase'
-import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Button } from '@/components/ui/index'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
+import { Card } from '@/components/ui/Card'
 
 export default function ReportsPage() {
   const { school } = useAuth()
@@ -125,12 +129,12 @@ export default function ReportsPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Reports</h1>
-        <p className="text-[#5c6670] mt-1">Generate and view student report cards</p>
-      </div>
+      <PageHeader 
+        title="Reports" 
+        subtitle="Generate and view student report cards"
+      />
 
-      <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 mb-6">
+      <Card className="p-4 mb-6">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <input
@@ -146,25 +150,29 @@ export default function ReportsPage() {
             {classes.length > 0 ? classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>) : <option disabled>No classes</option>}
           </select>
         </div>
-      </div>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-          <h2 className="text-lg font-semibold text-[#191c1d] mb-4">Select Student</h2>
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">Select Student</h2>
           {studentsLoading ? (
             <div className="space-y-3">
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#f0f4f8] rounded-full" />
+                  <div className="w-10 h-10 bg-[var(--surface-container)] rounded-full" />
                   <div className="flex-1">
-                    <div className="w-32 h-4 bg-[#e8eaed] rounded mb-2" />
-                    <div className="w-20 h-3 bg-[#e8eaed] rounded" />
+                    <div className="w-32 h-4 bg-[var(--border)] rounded mb-2" />
+                    <div className="w-20 h-3 bg-[var(--border)] rounded" />
                   </div>
                 </div>
               ))}
             </div>
           ) : filteredStudents.length === 0 ? (
-            <p className="text-[#5c6670] text-sm">No students found</p>
+            <EmptyState
+              icon="group"
+              title="No students found"
+              description="Try adjusting your search or filter criteria"
+            />
           ) : (
             <div className="space-y-2 max-h-[400px] overflow-y-auto">
               {filteredStudents.map((student) => (
@@ -173,39 +181,40 @@ export default function ReportsPage() {
                   onClick={() => fetchStudentReport(student.id)}
                   className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all ${
                     selectedStudentId === student.id 
-                      ? 'bg-[#f0f4f8] border border-[#002045]' 
-                      : 'hover:bg-[#f8fafb] border border-transparent'
+                      ? 'bg-[var(--surface-container)] border border-[var(--primary)]' 
+                      : 'hover:bg-[var(--surface-container)] border border-transparent'
                   }`}
                 >
-                  <div className="w-10 h-10 bg-[#f0f4f8] rounded-full flex items-center justify-center">
-                    <span className="text-[#002045] font-semibold text-sm">
+                  <div className="w-10 h-10 bg-[var(--surface-container)] rounded-full flex items-center justify-center">
+                    <span className="text-[var(--primary)] font-semibold text-sm">
                       {student.first_name?.charAt(0)}{student.last_name?.charAt(0)}
                     </span>
                   </div>
                   <div className="flex-1">
-                    <div className="font-medium text-[#191c1d]">{student.first_name} {student.last_name}</div>
-                    <div className="text-xs text-[#5c6670]">{student.student_number || student.classes?.name}</div>
+                    <div className="font-medium text-[var(--t1)]">{student.first_name} {student.last_name}</div>
+                    <div className="text-xs text-[var(--t3)]">{student.student_number || student.classes?.name}</div>
                   </div>
                 </button>
               ))}
             </div>
           )}
-        </div>
+        </Card>
 
         <div>
           {loadingReport ? (
-            <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 flex items-center justify-center">
-              <div className="w-8 h-8 border-2 border-[#002045] border-t-transparent rounded-full animate-spin"></div>
-            </div>
+            <Card className="p-12 flex items-center justify-center">
+              <TableSkeleton rows={3} />
+            </Card>
           ) : reportData ? (
             <ReportCard report={reportData} />
           ) : (
-            <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 flex flex-col items-center justify-center text-center">
-              <div className="w-16 h-16 bg-[#f8fafb] rounded-full flex items-center justify-center mb-4">
-                <MaterialIcon icon="description" className="text-3xl text-[#c4c6cf]" />
-              </div>
-              <p className="text-[#5c6670]">Select a student to view their report card</p>
-            </div>
+            <Card className="p-12 flex flex-col items-center justify-center text-center">
+              <EmptyState
+                icon="description"
+                title="Select a student"
+                description="Choose a student from the list to view their report card"
+              />
+            </Card>
           )}
         </div>
       </div>
