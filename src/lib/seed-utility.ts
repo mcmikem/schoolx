@@ -25,14 +25,30 @@ export async function seedDemoData() {
   console.log('Starting comprehensive seeding for Demo School...');
 
   try {
-    // 1. Get classes
-    const { data: classes } = await supabase
+    // 1. Check if classes exist, create if needed
+    let { data: classes } = await supabase
       .from('classes')
       .select('id, name')
       .eq('school_id', DEMO_SCHOOL_ID);
 
     if (!classes || classes.length === 0) {
-      throw new Error('No classes found for demo school. Run basic setup first.');
+      console.log('No classes found, creating default classes...');
+      const classNames = ['Primary 1', 'Primary 2', 'Primary 3', 'Primary 4', 'Primary 5', 'Primary 6', 'Primary 7'];
+      const newClasses = classNames.map((name, i) => ({
+        school_id: DEMO_SCHOOL_ID,
+        name: name,
+        stream: 'A',
+        capacity: 40,
+        academic_year: new Date().getFullYear().toString()
+      }));
+      
+      const { data: createdClasses, error: classError } = await supabase
+        .from('classes')
+        .upsert(newClasses, { onConflict: 'school_id,name,stream' })
+        .select();
+      
+      if (classError) throw classError;
+      classes = createdClasses;
     }
 
     // 2. Generate Students
