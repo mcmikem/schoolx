@@ -313,20 +313,39 @@ export default function HeadmasterDashboard() {
             <button 
               onClick={async () => {
                 setIsSeeding(true)
-                const res = await seedDemoData()
-                if (res.success) {
-                  toast.success('Demo data seeded successfully! Refreshing...')
-                  window.location.reload()
+                const { data: classes } = await supabase.from('classes').select('id').eq('school_id', '00000000-0000-0000-0000-000000000001')
+                if (!classes || classes.length === 0) {
+                  toast.error('Classes not found. Please re-login.')
                 } else {
-                  toast.error('Seeding failed: ' + res.error)
+                  const firstNames = ['Sarah', 'Grace', 'John', 'Mary', 'Joseph', 'Esther', 'David', 'Ruth', 'Peter', 'Agnes']
+                  const lastNames = ['Nakato', 'Mugisha', 'Namuleme', 'Auma', 'Kato', 'Nalwoga', 'Ssentamu', 'Nansubuga', 'Wasswa', 'Nabirye']
+                  const studentsToAdd = firstNames.map((firstName, i) => ({
+                    school_id: '00000000-0000-0000-0000-000000000001',
+                    student_number: `DEMO${String(i+1).padStart(3,'0')}`,
+                    first_name: firstName,
+                    last_name: lastNames[i],
+                    gender: i % 2 === 0 ? 'M' : 'F',
+                    class_id: classes[i % classes.length].id,
+                    status: 'active',
+                    date_of_birth: '2015-01-01',
+                    parent_name: 'Demo Parent',
+                    parent_phone: '0770000000'
+                  }))
+                  const { error } = await supabase.from('students').upsert(studentsToAdd, { onConflict: 'school_id,student_number' })
+                  if (error) {
+                    toast.error('Failed to add demo students')
+                  } else {
+                    toast.success('Demo students added! Refreshing...')
+                    window.location.reload()
+                  }
                 }
                 setIsSeeding(false)
               }}
               disabled={isSeeding}
               className="btn btn-ghost border-amber text-amber hover:bg-amber/5"
             >
-              <MaterialIcon icon="database" style={{ fontSize: '16px' }} />
-              {isSeeding ? 'Seeding...' : 'Seed Sample Data'}
+              <MaterialIcon icon="person_add" style={{ fontSize: '16px' }} />
+              {isSeeding ? 'Adding...' : 'Add Demo Students'}
             </button>
           )}
           <Link href="/dashboard/reports" className="btn btn-ghost">
