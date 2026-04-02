@@ -425,7 +425,8 @@ export function useClasses(schoolId?: string) {
         )
         if (!cancelled) setClasses((data as Class[]) || [])
       } catch (err) {
-        console.error('Error fetching classes:', err)
+        console.warn('Classes fetch error (using empty):', err)
+        if (!cancelled) setClasses([])
       } finally {
         if (!cancelled) setLoading(false)
       }

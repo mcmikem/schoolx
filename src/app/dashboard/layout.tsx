@@ -757,6 +757,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation - shows on all dashboard pages */}
+      <div className="mobile-bottom-nav">
+        <Link href="/dashboard" className={`mobile-nav-item ${pathname === '/dashboard' ? 'active' : ''}`}>
+          <MaterialIcon icon="dashboard" style={{ fontSize: 20 }} />
+          <span>Home</span>
+        </Link>
+        <Link href="/dashboard/students" className={`mobile-nav-item ${pathname?.startsWith('/dashboard/students') ? 'active' : ''}`}>
+          <MaterialIcon icon="group" style={{ fontSize: 20 }} />
+          <span>Students</span>
+        </Link>
+        <Link href="/dashboard/attendance" className={`mobile-nav-item ${pathname?.startsWith('/dashboard/attendance') ? 'active' : ''}`}>
+          <MaterialIcon icon="how_to_reg" style={{ fontSize: 20 }} />
+          <span>Attendance</span>
+        </Link>
+        <Link href="/dashboard/fees" className={`mobile-nav-item ${pathname?.startsWith('/dashboard/fees') ? 'active' : ''}`}>
+          <MaterialIcon icon="payments" style={{ fontSize: 20 }} />
+          <span>Fees</span>
+        </Link>
+        <Link href="/dashboard/messages" className={`mobile-nav-item ${pathname?.startsWith('/dashboard/messages') ? 'active' : ''}`}>
+          <MaterialIcon icon="chat" style={{ fontSize: 20 }} />
+          <span>Messages</span>
+        </Link>
+      </div>
+
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} resultsSource={searchResults} />
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 99 }} className="sidebar-overlay visible" />
