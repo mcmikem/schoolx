@@ -65,7 +65,7 @@ export default function DormitoryPage() {
               <select 
                 value={selectedDormId}
                 onChange={(e) => setSelectedDormId(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:ring-2 focus:ring-purple-500/50"
+                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:ring-2 focus:ring-primary-500/50"
               >
                 {dorms.map(d => (
                   <option key={d.id} value={d.id} className="bg-slate-900">{d.name} ({d.type})</option>
@@ -92,7 +92,7 @@ export default function DormitoryPage() {
               </h2>
               <button 
                 onClick={() => setShowRoomModal(true)}
-                className="text-xs font-bold text-purple-400 hover:text-purple-300 uppercase tracking-widest"
+                className="text-xs font-bold text-primary-400 hover:text-purple-300 uppercase tracking-widest"
               >
                 + Add Room
               </button>
@@ -165,7 +165,7 @@ export default function DormitoryPage() {
             <form onSubmit={handleAddIncident} className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-white/60">Student ID</label>
-                <input name="student_id" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none" placeholder="Enter student ID..." />
+                <input name="student_id" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary-500/50 outline-none" placeholder="Enter student ID..." />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-white/60">Type</label>

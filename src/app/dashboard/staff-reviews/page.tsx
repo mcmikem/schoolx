@@ -43,7 +43,7 @@ export default function StaffReviewsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
       </div>
     )
   }
@@ -60,7 +60,7 @@ export default function StaffReviewsPage() {
         
         <button 
           onClick={() => setShowReviewModal(true)}
-          className="px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-purple-500/20 flex items-center gap-2"
+          className="px-6 py-3 bg-gradient-to-r from-primary-500 to-blue-500 hover:from-primary-600 hover:to-blue-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary-500/20 flex items-center gap-2"
         >
           <MaterialIcon icon="add_notes" />
           New Review
@@ -93,7 +93,7 @@ export default function StaffReviewsPage() {
 
             <div className="space-y-4 flex-grow">
               <div>
-                <p className="text-xs font-semibold text-purple-400 uppercase tracking-wider mb-1">Strengths</p>
+                <p className="text-xs font-semibold text-primary-400 uppercase tracking-wider mb-1">Strengths</p>
                 <p className="text-sm text-white/80 line-clamp-2">{review.strengths}</p>
               </div>
               <div>
@@ -133,7 +133,7 @@ export default function StaffReviewsPage() {
                     required
                     value={selectedStaffId}
                     onChange={(e) => setSelectedStaffId(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50"
                   >
                     <option value="" className="bg-slate-900">Choose staff...</option>
                     <option value="1" className="bg-slate-900">John Doe (Teacher)</option>
@@ -169,7 +169,7 @@ export default function StaffReviewsPage() {
                     name="strengths"
                     required
                     rows={2}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50"
                     placeholder="What is this staff member doing exceptionally well?"
                   ></textarea>
                 </div>
@@ -178,7 +178,7 @@ export default function StaffReviewsPage() {
                   <textarea 
                     name="areas_for_improvement"
                     rows={2}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50"
                     placeholder="Where can they grow?"
                   ></textarea>
                 </div>
@@ -187,7 +187,7 @@ export default function StaffReviewsPage() {
                   <textarea 
                     name="goals"
                     rows={2}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50"
                     placeholder="Objectives for the next period..."
                   ></textarea>
                 </div>
@@ -195,7 +195,7 @@ export default function StaffReviewsPage() {
               
               <button 
                 type="submit"
-                className="w-full py-4 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-purple-500/20 mt-4"
+                className="w-full py-4 bg-gradient-to-r from-primary-500 to-blue-500 hover:from-primary-600 hover:to-blue-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary-500/20 mt-4"
               >
                 Submit & Share Review
               </button>

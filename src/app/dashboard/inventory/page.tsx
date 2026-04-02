@@ -45,7 +45,7 @@ export default function InventoryPage() {
   if (loadingAssets || loadingTx) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
       </div>
     )
   }
@@ -78,7 +78,7 @@ export default function InventoryPage() {
           <GlassCard>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold flex items-center gap-2 text-white">
-                <MaterialIcon icon="inventory_2" className="text-purple-400" />
+                <MaterialIcon icon="inventory_2" className="text-primary-400" />
                 Current Stock
               </h2>
             </div>
@@ -191,7 +191,7 @@ export default function InventoryPage() {
                   type="number" 
                   required
                   min="1"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50"
                   placeholder="How many units?"
                 />
               </div>
@@ -200,7 +200,7 @@ export default function InventoryPage() {
                 <textarea 
                   name="notes"
                   rows={3}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50"
                   placeholder="Reason for this transaction..."
                 ></textarea>
               </div>
