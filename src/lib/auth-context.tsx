@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return school?.subscription_plan as PlanType | null;
   };
 
-  const fetchUserData = useCallback(async (authId: string) => {
+  const fetchUserData = useCallback(async (authId: string, retryCount = 0) => {
     if (!supabase) return
     try {
       const { data: userData, error: userError } = await supabase
@@ -82,18 +82,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (!userData) {
-        console.error('No user profile found for auth_id:', authId)
+        // If not found and we have retries left, wait and try again
+        // This handles the race condition during registration
+        if (retryCount < 3) {
+          console.log(`[Auth] User profile not found for auth_id: ${authId}. Retrying in ${1000 * (retryCount + 1)}ms... (Attempt ${retryCount + 1}/3)`)
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)))
+          return fetchUserData(authId, retryCount + 1)
+        }
+        console.error('No user profile found for auth_id after retries:', authId)
         return
       }
 
       setUser(userData)
 
       if (userData.school_id) {
-        const { data: schoolData } = await supabase
+        const { data: schoolData, error: schoolError } = await supabase
           .from('schools')
           .select('*')
           .eq('id', userData.school_id)
           .single()
+
+        if (schoolError) {
+          console.error('Error fetching school profile:', schoolError)
+        }
 
         if (schoolData) {
           setSchool({

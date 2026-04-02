@@ -43,7 +43,7 @@ export default function BursarDashboard() {
     <div className="content" style={{ padding: '20px 24px', maxWidth: 1400, margin: '0 auto', width: '100%' }}>
       {/* PAGE HEADER */}
       <div style={{ 
-        background: 'var(--white)', 
+        background: 'var(--surface)', 
         padding: '20px 24px', 
         borderBottom: '1px solid var(--border)', 
         display: 'flex', 
@@ -56,7 +56,7 @@ export default function BursarDashboard() {
         flexWrap: 'wrap'
       }}>
         <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: '22px', fontWeight: 900, color: '#1A3A6B', lineHeight: 1.2 }}>
+          <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--navy)', lineHeight: 1.2 }}>
             {greeting}, {user?.full_name?.split(' ')[0]}
           </div>
           <div style={{ fontSize: '13px', color: 'var(--t3)', marginTop: '4px', fontWeight: 500 }}>
@@ -64,11 +64,10 @@ export default function BursarDashboard() {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <button style={{ 
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', 
-            padding: '10px 16px', borderRadius: 10, border: '1px solid var(--border)', 
-            background: 'var(--white)', fontSize: '13px', fontWeight: 600, color: 'var(--t1)', 
-            cursor: 'pointer', boxShadow: 'var(--shadow-sm)'
+          <button style={{             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', 
+             padding: '10px 16px', borderRadius: 10, border: '1px solid var(--border)', 
+             background: 'var(--surface)', fontSize: '13px', fontWeight: 600, color: 'var(--t1)', 
+             cursor: 'pointer', boxShadow: 'var(--shadow-sm)'
           }}>
             <MaterialIcon icon="download" style={{ fontSize: 16, color: 'var(--t2)' }} />
             Export
@@ -149,9 +148,9 @@ export default function BursarDashboard() {
               <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>Manage fees</div>
             </div>
           </Link>
-          <Link href="/dashboard/invoicing" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', textDecoration: 'none', background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MaterialIcon icon="description" style={{ fontSize: 20, color: '#7C3AED' }} />
+          <Link href="/dashboard/invoicing" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', textDecoration: 'none', background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--navy-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <MaterialIcon icon="description" style={{ fontSize: 20, color: 'var(--navy)' }} />
             </div>
             <div>
               <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--t1)' }}>Invoicing</div>

@@ -107,15 +107,15 @@ export default function TeacherDashboard() {
         </div>
 
         <div className="stat-card">
-          <div className="stat-accent" style={{ background: '#7C3AED' }} />
+          <div className="stat-accent" style={{ background: 'var(--navy)' }} />
           <div className="stat-inner">
             <div className="stat-meta">
               <div className="stat-label">My Subjects</div>
-              <div className="stat-icon-box" style={{ background: '#EDE9FE', color: '#7C3AED' }}>
+              <div className="stat-icon-box" style={{ background: 'var(--navy-soft)', color: 'var(--navy)' }}>
                 <MaterialIcon icon="menu_book" style={{ fontSize: '17px' }} />
               </div>
             </div>
-            <div className="stat-val" style={{ color: '#7C3AED' }}>{mySubjects.length}</div>
+            <div className="stat-val" style={{ color: 'var(--navy)' }}>{mySubjects.length}</div>
             <div style={{ fontSize: '11px', color: 'var(--t3)', marginTop: '4px' }}>Subjects teaching</div>
           </div>
         </div>
@@ -137,22 +137,21 @@ export default function TeacherDashboard() {
 
       {/* SETUP NEEDED PROMPT */}
       {needsSetup && (
-        <div className="card" style={{ background: '#FEF3C7', border: '1px solid #FCD34D', padding: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-            <MaterialIcon icon="warning" style={{ fontSize: 24, color: '#D97706' }} />
+        <div className="card !bg-amber-soft/50 border-amber/30 p-5 mt-4">
+          <div className="flex items-center gap-3 mb-3">
+            <MaterialIcon icon="warning" className="text-amber text-2xl" />
             <div>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#92400E' }}>Setup Required</div>
-              <div style={{ fontSize: '12px', color: '#A16207' }}>Your school needs initial setup</div>
+              <div className="text-sm font-bold text-on-surface">Setup Required</div>
+              <div className="text-[11px] text-on-surface-variant font-medium">Your school needs initial setup</div>
             </div>
           </div>
-          <p style={{ fontSize: '12px', color: '#92400E', marginBottom: '12px' }}>
+          <p className="text-xs text-on-surface-variant leading-relaxed mb-4">
             It looks like your school doesn&apos;t have classes or subjects yet. Click below to set up automatically.
           </p>
           <button 
             onClick={runSetup} 
             disabled={settingUp}
-            className="btn btn-primary"
-            style={{ background: '#D97706' }}
+            className="btn btn-primary !bg-amber border-none shadow-lg shadow-amber/20"
           >
             {settingUp ? 'Setting up...' : 'Run Setup'}
           </button>
@@ -171,8 +170,8 @@ export default function TeacherDashboard() {
           </div>
         </Link>
         <Link href="/dashboard/grades" className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
-            <MaterialIcon icon="edit_note" style={{ fontSize: 20, color: '#7C3AED' }} />
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--green-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
+            <MaterialIcon icon="edit_note" style={{ fontSize: 20, color: 'var(--green)' }} />
           </div>
           <div>
             <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--t1)' }}>Enter Grades</div>
@@ -235,7 +234,7 @@ export default function TeacherDashboard() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               {mySubjects.map((subject: any) => (
                 <Link key={subject.id} href={`/dashboard/grades?subject=${subject.id}`} className="qa-item" style={{ padding: '12px' }}>
-                  <MaterialIcon icon="menu_book" style={{ fontSize: '18px', color: '#7C3AED' }} />
+                  <MaterialIcon icon="menu_book" style={{ fontSize: '18px', color: 'var(--green)' }} />
                   <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--t1)' }}>{subject.name}</div>
                   <div style={{ fontSize: '9px', color: 'var(--t3)' }}>{subject.code}</div>
                 </Link>

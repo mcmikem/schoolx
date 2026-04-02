@@ -905,7 +905,6 @@ export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
 }
 
 // Analytics hook
-// Analytics hook
 export function useAnalytics(schoolId?: string) {
   const [data, setData] = useState<any>({
     attendanceTrends: [],
@@ -931,44 +930,66 @@ export function useAnalytics(schoolId?: string) {
       try {
         setLoading(true)
 
-        // 1. Gender Distribution
-        const { data: students } = await supabase
-          .from('students')
-          .select('id, full_name, gender, class_id, classes(name)')
-          .eq('school_id', schoolId)
-          .eq('status', 'active')
+        // Parallelize all main fetches
+        const [
+          { data: students },
+          { data: feeStructure },
+          { data: attendance },
+          { data: grades }
+        ] = await Promise.all([
+          supabase.from('students').select('id, full_name, gender, class_id, classes(name)').eq('school_id', schoolId).eq('status', 'active'),
+          supabase.from('fee_structure').select('id, amount').eq('school_id', schoolId),
+          supabase.from('attendance').select('student_id, status').eq('school_id', schoolId).order('date', { ascending: false }).limit(2000), // Limit to recent records for perf
+          supabase.from('grades').select('student_id, score').eq('school_id', schoolId)
+        ])
 
-        const genderMap = students?.reduce((acc: any, s: any) => {
-          acc[s.gender] = (acc[s.gender] || 0) + 1
-          return acc
-        }, {})
+        // 1. Gender Distribution (Optimized)
+        const genderLevels = { M: 0, F: 0 }
+        students?.forEach((s: any) => {
+          if (s.gender === 'M') genderLevels.M++
+          else if (s.gender === 'F') genderLevels.F++
+        })
 
         const genderDistribution = [
-          { name: 'Boys', value: genderMap?.M || 0, color: '#3b82f6' },
-          { name: 'Girls', value: genderMap?.F || 0, color: '#ec4899' },
+          { name: 'Boys', value: genderLevels.M, color: '#3b82f6' },
+          { name: 'Girls', value: genderLevels.F, color: '#ec4899' },
         ]
 
         // 2. Revenue Projections
-        const { data: feeStructure } = await supabase.from('fee_structure').select('*').eq('school_id', schoolId)
-        const { data: feePayments } = await supabase.from('fee_payments').select('*').in('fee_id', feeStructure?.map(f => f.id) || [])
+        const feeIds = feeStructure?.map(f => f.id) || []
+        let totalCollected = 0
+        if (feeIds.length > 0) {
+          const { data: payments } = await supabase.from('fee_payments').select('amount_paid').in('fee_id', feeIds)
+          totalCollected = payments?.reduce((acc, p) => acc + (p.amount_paid || 0), 0) || 0
+        }
         
-        const totalExpected = feeStructure?.reduce((acc, f) => acc + f.amount, 0) || 0
-        const totalCollected = feePayments?.reduce((acc, p) => acc + p.amount_paid, 0) || 0
-
+        const totalExpected = feeStructure?.reduce((acc, f) => acc + (f.amount || 0), 0) || 0
         const revenueProjections = [
           { name: 'Collected', value: totalCollected },
-          { name: 'Outstanding', value: totalExpected - totalCollected }
+          { name: 'Outstanding', value: Math.max(0, totalExpected - totalCollected) }
         ]
 
-        // 3. At-Risk Student Detection
-        const { data: attendance } = await supabase.from('attendance').select('student_id, status').eq('school_id', schoolId)
-        const { data: grades } = await supabase.from('grades').select('student_id, score').eq('school_id', schoolId)
+        // 3. Optimized At-Risk Detection (Map-based for O(N))
+        const attendanceMap: Record<string, { present: number, total: number }> = {}
+        attendance?.forEach((a: any) => {
+          if (!attendanceMap[a.student_id]) attendanceMap[a.student_id] = { present: 0, total: 0 }
+          attendanceMap[a.student_id].total++
+          if (a.status === 'present') attendanceMap[a.student_id].present++
+        })
+
+        const gradesMap: Record<string, { sum: number, count: number }> = {}
+        grades?.forEach((g: any) => {
+          if (!gradesMap[g.student_id]) gradesMap[g.student_id] = { sum: 0, count: 0 }
+          gradesMap[g.student_id].sum += g.score
+          gradesMap[g.student_id].count++
+        })
 
         const atRiskStudents = students?.map(s => {
-          const sAtt = attendance?.filter(a => a.student_id === s.id) || []
-          const attRate = sAtt.length > 0 ? (sAtt.filter(a => a.status === 'present').length / sAtt.length) * 100 : 100
-          const sGrades = grades?.filter(g => g.student_id === s.id) || []
-          const avgScore = sGrades.length > 0 ? sGrades.reduce((acc, g) => acc + g.score, 0) / sGrades.length : 100
+          const att = attendanceMap[s.id]
+          const attRate = att ? (att.present / att.total) * 100 : 100
+          
+          const grd = gradesMap[s.id]
+          const avgScore = grd ? grd.sum / grd.count : 100
 
           if (attRate < 75 || avgScore < 50) {
             return {
@@ -983,22 +1004,18 @@ export function useAnalytics(schoolId?: string) {
           return null
         }).filter(s => s !== null)
 
-        // Class & Subject Performance (Preserving original logic style)
-        const { data: rawGrades } = await supabase.from('grades').select('score, subject_id, class_id').eq('school_id', schoolId)
-        const classPerformance = [] // Would be populated with real logic
-
         setData({
           genderDistribution,
           revenueProjections,
           atRiskStudents: atRiskStudents || [],
-          attendanceTrends: [], // Preserving structure
+          attendanceTrends: [],
           classPerformance: [],
           subjectPerformance: [],
           feeCollection: [],
           stats: {
             totalStudents: students?.length || 0,
-            avgAttendance: 92,
-            avgGrade: 74,
+            avgAttendance: 92, // Placeholder for future logic
+            avgGrade: 74,     // Placeholder for future logic
             feeCollectionRate: totalExpected > 0 ? (totalCollected / totalExpected) * 100 : 0,
             projectedRevenue: totalExpected
           }
