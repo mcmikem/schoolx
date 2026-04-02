@@ -37,8 +37,9 @@ export async function seedDemoData() {
       const newClasses = classNames.map((name, i) => ({
         school_id: DEMO_SCHOOL_ID,
         name: name,
+        level: name,
         stream: 'A',
-        capacity: 40,
+        max_students: 60,
         academic_year: new Date().getFullYear().toString()
       }));
       
