@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import SchoolXLogo from '@/components/SchoolXLogo'
+import OmutoLogo from '@/components/OmutoLogo'
 
 function MaterialIcon({ icon, className }: { icon: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className || ''}`}>{icon}</span>
@@ -271,7 +271,7 @@ export default function HomePage() {
 
         <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-5 sm:px-6 lg:px-8 lg:pb-24">
           <nav className="flex items-center justify-between rounded-full border border-white/70 bg-white/80 px-4 py-3 shadow-[0_8px_30px_rgba(15,23,42,0.06)] backdrop-blur sm:px-6">
-            <SchoolXLogo size="md" />
+            <OmutoLogo size="md" />
             <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
               <a href="#features" className="nav-link transition hover:text-slate-950">Features</a>
               <a href="#story" className="nav-link transition hover:text-slate-950">Story</a>
