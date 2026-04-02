@@ -415,7 +415,7 @@
 
   /* Mobile Navigation */
   .mobile-bottom-nav {
-    @apply fixed bottom-0 left-0 w-full h-18 bg-[var(--surface)] border-t border-[var(--border)] flex items-center justify-around px-2 z-50 sm:hidden shadow-[0_-4px_12px_rgba(0,0,0,0.05)];
+    @apply fixed bottom-0 left-0 w-full h-16 bg-[var(--surface)] border-t border-[var(--border)] flex items-center justify-around px-2 z-50 sm:hidden shadow-[0_-4px_12px_rgba(0,0,0,0.05)];
   }
   .mobile-nav-item {
     @apply flex flex-col items-center gap-1 text-[var(--t3)] transition-colors;
