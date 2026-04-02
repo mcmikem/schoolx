@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useClasses, useSubjects } from '@/lib/hooks'
 import { supabase } from '@/lib/supabase'
@@ -37,43 +37,47 @@ export default function SchemeOfWorkPage() {
   const [saving, setSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
 
+  const loadScheme = useCallback(async () => {
+    if (!school?.id) return
+    setLoading(true)
+    try {
+      const { data } = await supabase
+        .from('scheme_of_work')
+        .select('*')
+        .eq('school_id', school.id)
+        .eq('class_id', selectedClass)
+        .eq('subject_id', selectedSubject)
+        .eq('term', parseInt(term))
+        .eq('academic_year', academicYear)
+        .order('week')
+      
+      if (data && data.length > 0) {
+        const weekMap = new Map(data.map(d => [d.week, d]))
+        const updated = weeks.map((w) => {
+          const saved = weekMap.get(w.week)
+          return saved ? {
+            week: saved.week,
+            topic: saved.topic || '',
+            subtopics: saved.subtopics || '',
+            objectives: saved.objectives || '',
+            resources: saved.resources || ''
+          } : w
+        })
+        setWeeks(updated)
+      }
+    } catch (err) {
+      console.error('Failed to load scheme:', err)
+    } finally {
+      setLoading(false)
+    }
+    setHasChanges(false)
+  }, [school?.id, selectedClass, selectedSubject, term, academicYear, weeks])
+
   useEffect(() => {
     if (selectedClass && selectedSubject) {
       loadScheme()
     }
-  }, [selectedClass, selectedSubject, term])
-
-  const loadScheme = async () => {
-    if (!school?.id) return
-    setLoading(true)
-    
-    const { data } = await supabase
-      .from('scheme_of_work')
-      .select('*')
-      .eq('school_id', school.id)
-      .eq('class_id', selectedClass)
-      .eq('subject_id', selectedSubject)
-      .eq('term', parseInt(term))
-      .eq('academic_year', academicYear)
-      .order('week')
-    
-    if (data && data.length > 0) {
-      const weekMap = new Map(data.map(d => [d.week, d]))
-      const updated = weeks.map((w) => {
-        const saved = weekMap.get(w.week)
-        return saved ? {
-          week: saved.week,
-          topic: saved.topic || '',
-          subtopics: saved.subtopics || '',
-          objectives: saved.objectives || '',
-          resources: saved.resources || ''
-        } : w
-      })
-      setWeeks(updated)
-    }
-    setLoading(false)
-    setHasChanges(false)
-  }
+  }, [loadScheme])
 
   const updateWeek = (index: number, field: keyof SchemeWeek, value: string) => {
     const updated = [...weeks]

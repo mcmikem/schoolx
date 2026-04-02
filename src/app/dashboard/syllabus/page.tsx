@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useClasses, useSubjects } from '@/lib/hooks'
 import { supabase } from '@/lib/supabase'
@@ -39,36 +39,39 @@ export default function SyllabusPage() {
     resources: ''
   })
 
+  const fetchSyllabus = useCallback(async () => {
+    if (!school?.id) return
+    setLoading(true)
+    try {
+      const { data: syllabus } = await supabase
+        .from('syllabus')
+        .select('*, topic_coverage(status, completed_date, notes)')
+        .eq('school_id', school.id)
+        .eq('class_id', selectedClass)
+        .eq('subject_id', selectedSubject)
+        .order('weeks_covered')
+      
+      const processed = (syllabus || []).map(s => ({
+        ...s,
+        subtopics: s.subtopics ? JSON.parse(s.subtopics) : [],
+        status: s.topic_coverage?.[0]?.status || 'not_started',
+        completed_date: s.topic_coverage?.[0]?.completed_date,
+        notes: s.topic_coverage?.[0]?.notes
+      }))
+      
+      setTopics(processed)
+    } catch (err) {
+      console.error('Failed to fetch syllabus:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [school?.id, selectedClass, selectedSubject])
+
   useEffect(() => {
     if (selectedClass && selectedSubject) {
       fetchSyllabus()
     }
-  }, [selectedClass, selectedSubject, school?.id])
-
-  const fetchSyllabus = async () => {
-    if (!school?.id) return
-    setLoading(true)
-    
-    // Get syllabus topics
-    const { data: syllabus } = await supabase
-      .from('syllabus')
-      .select('*, topic_coverage(status, completed_date, notes)')
-      .eq('school_id', school.id)
-      .eq('class_id', selectedClass)
-      .eq('subject_id', selectedSubject)
-      .order('weeks_covered')
-    
-    const processed = (syllabus || []).map(s => ({
-      ...s,
-      subtopics: s.subtopics ? JSON.parse(s.subtopics) : [],
-      status: s.topic_coverage?.[0]?.status || 'not_started',
-      completed_date: s.topic_coverage?.[0]?.completed_date,
-      notes: s.topic_coverage?.[0]?.notes
-    }))
-    
-    setTopics(processed)
-    setLoading(false)
-  }
+  }, [fetchSyllabus])
 
   const handleAddTopic = async (e: React.FormEvent) => {
     e.preventDefault()
