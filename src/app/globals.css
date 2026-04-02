@@ -217,7 +217,7 @@
   }
   
   .glass-card {
-    @apply bg-surface/80 backdrop-blur-xl border border-white/20;
+    @apply bg-surface bg-opacity-80 backdrop-blur-xl border border-white/20;
   }
 }
 
