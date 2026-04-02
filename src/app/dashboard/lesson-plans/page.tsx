@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useClasses, useSubjects } from '@/lib/hooks'
 import { supabase } from '@/lib/supabase'
@@ -59,22 +59,27 @@ export default function LessonPlansPage() {
     notes: ''
   })
 
-  useEffect(() => {
-    fetchPlans()
-  }, [school?.id])
-
-  const fetchPlans = async () => {
+  const fetchPlans = useCallback(async () => {
     if (!school?.id) return
     setLoading(true)
-    const { data } = await supabase
-      .from('lesson_plans')
-      .select('*, subjects(name), classes(name), users(full_name)')
-      .eq('school_id', school.id)
-      .order('created_at', { ascending: false })
-      .limit(20)
-    setPlans(data || [])
-    setLoading(false)
-  }
+    try {
+      const { data } = await supabase
+        .from('lesson_plans')
+        .select('*, subjects(name), classes(name), users(full_name)')
+        .eq('school_id', school.id)
+        .order('created_at', { ascending: false })
+        .limit(20)
+      setPlans(data || [])
+    } catch (err) {
+      console.error('Failed to fetch lesson plans:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [school?.id])
+
+  useEffect(() => {
+    fetchPlans()
+  }, [fetchPlans])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
