@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import MaterialIcon from '@/components/MaterialIcon'
 import { NavGroup } from '@/lib/navigation'
+import { cn } from '@/lib/utils'
 
 interface CollapsibleSidebarProps {
   groups: NavGroup[]
@@ -29,92 +30,75 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
   }
 
   return (
-    <nav className="sidebar-nav" role="navigation" aria-label="Main navigation">
-      {groups.map((group) => {
-        const isOpen = openGroups[group.label]
-        const hasActive = group.items.some(item => pathname === item.href || pathname.startsWith(item.href + '/'))
+    <nav className="sidebar-nav overflow-y-auto flex-1 px-3 py-4" role="navigation" aria-label="Main navigation">
+      <div className="space-y-4">
+        {groups.map((group) => {
+          const isOpen = openGroups[group.label]
+          const hasActive = group.items.some(item => pathname === item.href || pathname.startsWith(item.href + '/'))
 
-        return (
-          <div key={group.label} className="sidebar-group" style={{ marginBottom: 8 }}>
-            <button
-              onClick={() => toggleGroup(group.label)}
-              className="sidebar-group-header"
-              aria-expanded={isOpen}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                width: '100%',
-                padding: '10px 12px',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: hasActive ? 'var(--navy)' : 'var(--t3)',
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                transition: 'color 0.15s',
-              }}
-            >
-              <span style={{ flex: 1, textAlign: 'left' }}>{group.label}</span>
-              <span className="material-symbols-outlined" style={{ 
-                fontSize: 16, 
-                transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.2s'
-              }}>
-                expand_more
-              </span>
-            </button>
-            
-            {isOpen && (
-              <div className="sidebar-group-items" style={{ marginTop: 4 }}>
-                {group.items.map((item) => {
-                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={onNavigate}
-                      className="sidebar-nav-item"
-                      aria-current={isActive ? 'page' : undefined}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        padding: '10px 12px',
-                        borderRadius: 9,
-                        color: isActive ? 'var(--navy)' : 'var(--t2)',
-                        fontSize: 14,
-                        fontWeight: isActive ? 600 : 500,
-                        background: isActive ? 'var(--navy-soft)' : 'transparent',
-                        textDecoration: 'none',
-                        transition: 'all 0.15s',
-                        minHeight: 44,
-                      }}
-                    >
-                      <MaterialIcon icon={item.icon} style={{ fontSize: 18 }} />
-                      <span style={{ flex: 1 }}>{item.label}</span>
-                      {item.badge && (
-                        <span style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          padding: '2px 8px',
-                          borderRadius: 20,
-                          background: item.badge === 'New' ? 'var(--green-soft)' : 'var(--amber-soft)',
-                          color: item.badge === 'New' ? 'var(--green)' : 'var(--amber)',
-                          fontFamily: 'DM Mono',
-                        }}>
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        )
-      })}
+          return (
+            <div key={group.label} className="sidebar-group">
+              <button
+                onClick={() => toggleGroup(group.label)}
+                className={cn(
+                  "flex items-center w-full px-3 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors duration-150 outline-none",
+                  hasActive ? "text-primary" : "text-outline hover:text-onSurface"
+                )}
+                aria-expanded={isOpen}
+              >
+                <span className="flex-1 text-left">{group.label}</span>
+                <span className={cn(
+                  "material-symbols-outlined text-[16px] transition-transform duration-200",
+                  isOpen && "rotate-180"
+                )}>
+                  expand_more
+                </span>
+              </button>
+              
+              {isOpen && (
+                <div className="mt-1 space-y-px">
+                  {group.items.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={onNavigate}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] transition-all min-h-[40px] group",
+                          isActive 
+                            ? "bg-primary-50 text-primary font-semibold shadow-sm" 
+                            : "text-onSurface-variant hover:bg-surface-container-low hover:text-onSurface"
+                        )}
+                        aria-current={isActive ? 'page' : undefined}
+                      >
+                        <MaterialIcon 
+                          icon={item.icon} 
+                          className={cn(
+                            "text-[18px]",
+                            isActive ? "text-primary" : "text-outline group-hover:text-onSurface"
+                          )} 
+                        />
+                        <span className="flex-1 truncate">{item.label}</span>
+                        {item.badge && (
+                          <span className={cn(
+                            "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider font-mono",
+                            item.badge === 'New' 
+                              ? "bg-green-soft text-green" 
+                              : "bg-amber-soft text-amber"
+                          )}>
+                            {item.badge}
+                          </span>
+                        )}
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
     </nav>
   )
 }

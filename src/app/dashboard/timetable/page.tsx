@@ -97,7 +97,7 @@ export default function TimetablePage() {
           <select 
             value={selectedClassId}
             onChange={(e) => setSelectedClassId(e.target.value)}
-            className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:ring-2 focus:ring-purple-500/50"
+            className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:ring-2 focus:ring-primary-500/50"
           >
             <option value="" className="bg-slate-900">Select a Class...</option>
             {classes.map(c => (
@@ -135,7 +135,7 @@ export default function TimetablePage() {
                       className={`p-2 border-b border-r border-white/10 min-h-[100px] relative group ${!slot.is_lesson ? 'bg-stripe-pattern opacity-50' : ''}`}
                     >
                       {entry ? (
-                        <div className="bg-purple-500/20 border border-purple-500/30 rounded-lg p-3 h-full animate-in fade-in duration-300">
+                        <div className="bg-primary-500/20 border border-primary-500/30 rounded-lg p-3 h-full animate-in fade-in duration-300">
                           <p className="text-xs font-bold text-purple-300 uppercase tracking-wider mb-1">{entry.subjects?.code || 'SUB'}</p>
                           <p className="text-sm font-semibold text-white leading-tight mb-2">{entry.subjects?.name}</p>
                           <div className="flex items-center gap-1.5 text-[10px] text-white/40">
@@ -147,9 +147,9 @@ export default function TimetablePage() {
                         slot.is_lesson && selectedClassId && (
                           <button 
                             onClick={() => { setSelectedSlot(slot); setSelectedDay(day.value); setShowEntryModal(true); }}
-                            className="w-full h-full min-h-[60px] flex items-center justify-center border-2 border-dashed border-white/5 hover:border-purple-500/30 hover:bg-purple-500/5 rounded-xl transition-all group-hover:scale-[0.98]"
+                            className="w-full h-full min-h-[60px] flex items-center justify-center border-2 border-dashed border-white/5 hover:border-primary-500/30 hover:bg-primary-500/5 rounded-xl transition-all group-hover:scale-[0.98]"
                           >
-                            <MaterialIcon icon="add" className="text-white/10 group-hover:text-purple-400" />
+                            <MaterialIcon icon="add" className="text-white/10 group-hover:text-primary-400" />
                           </button>
                         )
                       )}
@@ -178,8 +178,8 @@ export default function TimetablePage() {
             </div>
 
             <form onSubmit={handleAddEntry} className="space-y-4">
-              <div className="p-3 bg-purple-500/10 rounded-xl mb-4">
-                <p className="text-xs text-purple-400 font-bold uppercase mb-1">Schedule Slot</p>
+              <div className="p-3 bg-primary-500/10 rounded-xl mb-4">
+                <p className="text-xs text-primary-400 font-bold uppercase mb-1">Schedule Slot</p>
                 <p className="text-sm text-white font-medium">
                   {DAYS.find(d => d.value === selectedDay)?.full} · {selectedSlot.name} ({selectedSlot.start_time.slice(0,5)} - {selectedSlot.end_time.slice(0,5)})
                 </p>
@@ -204,7 +204,7 @@ export default function TimetablePage() {
                 </select>
               </div>
 
-              <button type="submit" className="w-full py-4 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-purple-500/20 mt-4">
+              <button type="submit" className="w-full py-4 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary-500/20 mt-4">
                 Add to Timetable
               </button>
             </form>

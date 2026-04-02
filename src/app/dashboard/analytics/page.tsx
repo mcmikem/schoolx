@@ -51,7 +51,7 @@ export default function AnalyticsPage() {
         <GlassCard className="space-y-2">
           <p className="text-xs text-white/40 font-bold uppercase">Projected Revenue</p>
           <p className="text-xl font-bold text-white">UGX {data.stats.projectedRevenue.toLocaleString()}</p>
-          <p className="text-xs text-purple-400 font-bold uppercase">Term Total</p>
+          <p className="text-xs text-primary-400 font-bold uppercase">Term Total</p>
         </GlassCard>
       </div>
 
@@ -134,7 +134,7 @@ export default function AnalyticsPage() {
                 <Tooltip 
                   contentStyle={{ background: '#1e293b', border: 'none', borderRadius: '12px' }}
                 />
-                <Bar dataKey="value" fill="#8884d8" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="value" fill="#17325F" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

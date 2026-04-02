@@ -1,5 +1,6 @@
 'use client'
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
+import { cn } from '@/lib/utils'
 
 interface Column<T> {
   key: string
@@ -21,6 +22,7 @@ interface DataTableProps<T> {
   showSearch?: boolean
   searchPlaceholder?: string
   idField?: string
+  className?: string
 }
 
 type SortDirection = 'asc' | 'desc' | null
@@ -35,6 +37,7 @@ export default function DataTable<T extends Record<string, any>>({
   showSearch = true,
   searchPlaceholder = 'Search...',
   idField = 'id',
+  className,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState('')
   const [sortColumn, setSortColumn] = useState<string | null>(null)
@@ -122,8 +125,8 @@ export default function DataTable<T extends Record<string, any>>({
     setCurrentPage(1)
   }, [])
 
-  // Reset to page 1 when data changes
-  useMemo(() => {
+  // Reset to page 1 when total pages changes and current page is invalid
+  useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
       setCurrentPage(1)
     }
@@ -131,11 +134,11 @@ export default function DataTable<T extends Record<string, any>>({
 
   if (loading) {
     return (
-      <div className="animate-pulse">
+      <div className="animate-pulse space-y-px">
         {[1, 2, 3, 4, 5].map(i => (
-          <div key={i} style={{ padding: 16, borderBottom: '1px solid var(--border)', display: 'flex', gap: 16 }}>
+          <div key={i} className="p-4 border-b border-outline flex gap-4">
             {columns.map((_, j) => (
-              <div key={j} style={{ height: 16, background: 'var(--bg)', borderRadius: 4, flex: 1 }} />
+              <div key={j} className="h-4 bg-surface-container rounded flex-1" />
             ))}
           </div>
         ))}
@@ -144,83 +147,61 @@ export default function DataTable<T extends Record<string, any>>({
   }
 
   return (
-    <div style={{ background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
+    <div className={cn('bg-surface rounded-xl border border-outline overflow-hidden flex flex-col', className)}>
       {/* Search and Controls */}
       {showSearch && (
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 8, 
-            background: 'var(--bg)', 
-            borderRadius: 8, 
-            padding: '8px 12px',
-            flex: 1,
-            minWidth: 200
-          }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--t4)' }}>search</span>
+        <div className="p-3 px-4 border-b border-outline flex gap-3 items-center flex-wrap">
+          <div className="flex items-center gap-2 bg-surface-container-low rounded-lg px-3 py-2 flex-1 min-w-[200px] border border-transparent focus-within:border-primary focus-within:bg-surface transition-all">
+            <span className="material-symbols-outlined text-[18px] text-outline">search</span>
             <input
               type="text"
               value={search}
               onChange={e => { setSearch(e.target.value); setCurrentPage(1) }}
               placeholder={searchPlaceholder}
-              style={{ 
-                border: 'none', 
-                background: 'transparent', 
-                fontSize: 14, 
-                color: 'var(--t1)',
-                outline: 'none',
-                width: '100%'
-              }}
+              className="border-none bg-transparent text-sm text-onSurface outline-none w-full placeholder:text-outline"
             />
             {search && (
               <button
                 onClick={() => { setSearch(''); setCurrentPage(1) }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                className="bg-transparent border-none cursor-pointer p-0 hover:text-error transition-colors"
+                aria-label="Clear search"
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--t4)' }}>close</span>
+                <span className="material-symbols-outlined text-[16px]">close</span>
               </button>
             )}
           </div>
-          <div style={{ fontSize: 13, color: 'var(--t3)' }}>
+          <div className="text-[13px] text-outline font-medium">
             {filteredData.length} {filteredData.length === 1 ? 'item' : 'items'}
           </div>
         </div>
       )}
 
-      {/* Table */}
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      {/* Table Container */}
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse table-auto" role="grid">
           <thead>
-            <tr style={{ background: 'var(--bg)' }}>
+            <tr className="bg-surface-container-lowest">
               {columns.map(col => (
                 <th 
                   key={col.key}
-                  style={{ 
-                    padding: '12px 16px', 
-                    textAlign: col.align || 'left',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: 'var(--t3)',
-                    borderBottom: '1px solid var(--border)',
-                    whiteSpace: 'nowrap',
-                    width: col.width,
-                    cursor: col.sortable ? 'pointer' : 'default',
-                    userSelect: 'none',
-                  }}
+                  className={cn(
+                    'p-3 px-4 text-xs font-bold text-outline border-b border-outline uppercase tracking-wider select-none truncate',
+                    col.sortable && 'cursor-pointer hover:text-onSurface transition-colors'
+                  )}
+                  style={{ width: col.width, textAlign: col.align || 'left' }}
                   onClick={() => col.sortable && handleSort(col.key)}
+                  aria-sort={sortColumn === col.key ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div className={cn('flex items-center gap-1.5', col.align === 'right' && 'justify-end', col.align === 'center' && 'justify-center')}>
                     {col.label}
                     {col.sortable && (
-                      <span style={{ 
-                        fontSize: 14,
-                        color: sortColumn === col.key ? 'var(--navy)' : 'var(--t4)',
-                        opacity: sortColumn === col.key ? 1 : 0.5
-                      }}>
+                      <span className={cn(
+                        'material-symbols-outlined text-[14px] transition-opacity',
+                        sortColumn === col.key ? 'text-primary opacity-100' : 'text-outline opacity-40'
+                      )}>
                         {sortColumn === col.key 
-                          ? (sortDirection === 'asc' ? '↑' : '↓')
-                          : '↕'
+                          ? (sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward')
+                          : 'import_export'
                         }
                       </span>
                     )}
@@ -230,32 +211,25 @@ export default function DataTable<T extends Record<string, any>>({
                       type="text"
                       value={filters[col.key] || ''}
                       onChange={e => handleFilter(col.key, e.target.value)}
-                      placeholder={`Filter ${col.label.toLowerCase()}...`}
+                      placeholder={`Filter...`}
                       onClick={e => e.stopPropagation()}
-                      style={{
-                        width: '100%',
-                        padding: '4px 8px',
-                        marginTop: 8,
-                        border: '1px solid var(--border)',
-                        borderRadius: 4,
-                        fontSize: 12,
-                        background: 'var(--surface)',
-                        color: 'var(--t1)',
-                      }}
+                      className="w-full px-2 py-1 mt-2 border border-outline rounded text-[11px] font-normal bg-surface text-onSurface focus:border-primary outline-none"
                     />
                   )}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-outline">
             {paginatedData.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} style={{ padding: 40, textAlign: 'center', color: 'var(--t3)' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 48, display: 'block', marginBottom: 12, opacity: 0.5 }}>
+                <td colSpan={columns.length} className="p-12 text-center text-outline">
+                  <span className="material-symbols-outlined text-[48px] block mb-3 opacity-30 mx-auto">
                     inbox
                   </span>
-                  {search ? `No results for "${search}"` : emptyMessage}
+                  <div className="text-sm font-medium">
+                    {search ? `No results for "${search}"` : emptyMessage}
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -263,29 +237,23 @@ export default function DataTable<T extends Record<string, any>>({
                 <tr 
                   key={row[idField] || index}
                   onClick={() => onRowClick?.(row)}
-                  style={{ 
-                    borderBottom: '1px solid var(--border)',
-                    cursor: onRowClick ? 'pointer' : 'default',
-                    transition: 'background 0.15s',
-                  }}
-                  onMouseEnter={e => {
-                    if (onRowClick) (e.currentTarget as HTMLTableRowElement).style.background = 'var(--bg)'
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'
-                  }}
+                  className={cn(
+                    'group transition-colors',
+                    onRowClick ? 'cursor-pointer hover:bg-surface-container-low' : 'hover:bg-surface-container-lowest'
+                  )}
                 >
                   {columns.map(col => (
                     <td 
                       key={col.key}
-                      style={{ 
-                        padding: '12px 16px',
-                        fontSize: 14,
-                        color: 'var(--t2)',
-                        textAlign: col.align || 'left',
-                      }}
+                      className={cn(
+                        'p-3 px-4 text-sm text-onSurface-variant',
+                        col.align === 'right' && 'text-right',
+                        col.align === 'center' && 'text-center'
+                      )}
                     >
-                      {col.render ? col.render(row) : row[col.key]}
+                      <div className="truncate">
+                        {col.render ? col.render(row) : row[col.key]}
+                      </div>
                     </td>
                   ))}
                 </tr>
@@ -295,92 +263,49 @@ export default function DataTable<T extends Record<string, any>>({
         </table>
       </div>
 
-      {/* Pagination */}
+      {/* Pagination Container */}
       {totalPages > 1 && (
-        <div style={{ 
-          padding: '12px 16px', 
-          borderTop: '1px solid var(--border)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 12
-        }}>
-          <div style={{ fontSize: 13, color: 'var(--t3)' }}>
-            Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, filteredData.length)} of {filteredData.length}
+        <div className="p-3 px-4 border-top border-outline flex justify-between items-center flex-wrap gap-3 bg-surface-container-lowest mt-auto">
+          <div className="text-[13px] text-outline font-medium">
+            Showing <span className="text-onSurface font-bold">{((currentPage - 1) * pageSize) + 1}</span> to <span className="text-onSurface font-bold">{Math.min(currentPage * pageSize, filteredData.length)}</span> of <span className="text-onSurface font-bold">{filteredData.length}</span>
           </div>
-          <div style={{ display: 'flex', gap: 4 }}>
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
-              style={{
-                padding: '8px 12px',
-                border: '1px solid var(--border)',
-                borderRadius: 6,
-                background: 'var(--surface)',
-                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                opacity: currentPage === 1 ? 0.5 : 1,
-                fontSize: 13,
-                minHeight: 36,
-              }}
+              className="p-2 border border-outline rounded-lg bg-surface disabled:opacity-40 disabled:cursor-not-allowed hover:bg-surface-container-low transition-colors"
+              title="First page"
             >
-              ‹‹
+              <span className="material-symbols-outlined text-[18px]">first_page</span>
             </button>
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              style={{
-                padding: '8px 12px',
-                border: '1px solid var(--border)',
-                borderRadius: 6,
-                background: 'var(--surface)',
-                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                opacity: currentPage === 1 ? 0.5 : 1,
-                fontSize: 13,
-                minHeight: 36,
-              }}
+              className="p-2 border border-outline rounded-lg bg-surface disabled:opacity-40 disabled:cursor-not-allowed hover:bg-surface-container-low transition-colors"
+              title="Previous page"
             >
-              ‹
+              <span className="material-symbols-outlined text-[18px]">chevron_left</span>
             </button>
-            <span style={{ 
-              padding: '8px 12px',
-              fontSize: 13,
-              fontWeight: 600,
-              color: 'var(--t1)',
-            }}>
-              {currentPage} / {totalPages}
-            </span>
+            
+            <div className="px-3 text-[13px] font-bold text-onSurface">
+              {currentPage} <span className="text-outline font-normal">/</span> {totalPages}
+            </div>
+
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              style={{
-                padding: '8px 12px',
-                border: '1px solid var(--border)',
-                borderRadius: 6,
-                background: 'var(--surface)',
-                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                opacity: currentPage === totalPages ? 0.5 : 1,
-                fontSize: 13,
-                minHeight: 36,
-              }}
+              className="p-2 border border-outline rounded-lg bg-surface disabled:opacity-40 disabled:cursor-not-allowed hover:bg-surface-container-low transition-colors"
+              title="Next page"
             >
-              ›
+              <span className="material-symbols-outlined text-[18px]">chevron_right</span>
             </button>
             <button
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage === totalPages}
-              style={{
-                padding: '8px 12px',
-                border: '1px solid var(--border)',
-                borderRadius: 6,
-                background: 'var(--surface)',
-                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                opacity: currentPage === totalPages ? 0.5 : 1,
-                fontSize: 13,
-                minHeight: 36,
-              }}
+              className="p-2 border border-outline rounded-lg bg-surface disabled:opacity-40 disabled:cursor-not-allowed hover:bg-surface-container-low transition-colors"
+              title="Last page"
             >
-              ››
+              <span className="material-symbols-outlined text-[18px]">last_page</span>
             </button>
           </div>
         </div>

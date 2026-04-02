@@ -1,5 +1,6 @@
 'use client'
-import { forwardRef, ButtonHTMLAttributes, InputHTMLAttributes } from 'react'
+import { forwardRef, ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes } from 'react'
+import { cn } from '@/lib/utils'
 
 // Accessible Button with proper ARIA
 interface AccessibleButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -10,32 +11,18 @@ interface AccessibleButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> 
 }
 
 export const AccessibleButton = forwardRef<HTMLButtonElement, AccessibleButtonProps>(
-  ({ variant = 'primary', size = 'md', loading, icon, children, disabled, style, ...props }, ref) => {
-    const getBackground = () => {
-      switch (variant) {
-        case 'primary': return 'var(--navy)'
-        case 'secondary': return 'var(--bg)'
-        case 'danger': return 'var(--red)'
-        case 'ghost': return 'transparent'
-        default: return 'var(--navy)'
-      }
+  ({ variant = 'primary', size = 'md', loading, icon, children, disabled, className, ...props }, ref) => {
+    const variants = {
+      primary: 'bg-primary text-white border-none hover:bg-primary-600 shadow-sm',
+      secondary: 'bg-surface text-onSurface border border-outline hover:bg-surface-bright',
+      danger: 'bg-error text-white border-none hover:opacity-90',
+      ghost: 'bg-transparent text-onSurface border border-outline hover:bg-surface-container-low',
     }
 
-    const getTextColor = () => {
-      switch (variant) {
-        case 'primary': return 'white'
-        case 'danger': return 'white'
-        default: return 'var(--t1)'
-      }
-    }
-
-    const getMinHeight = () => {
-      switch (size) {
-        case 'sm': return 36
-        case 'md': return 44
-        case 'lg': return 48
-        default: return 44
-      }
+    const sizes = {
+      sm: 'px-3 py-2 text-xs min-h-[36px]',
+      md: 'px-4 py-3 text-sm min-h-[44px]',
+      lg: 'px-4 py-3 text-sm min-h-[48px]',
     }
 
     return (
@@ -44,42 +31,33 @@ export const AccessibleButton = forwardRef<HTMLButtonElement, AccessibleButtonPr
         disabled={disabled || loading}
         aria-busy={loading}
         aria-disabled={disabled}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-          padding: size === 'sm' ? '8px 12px' : '12px 16px',
-          background: getBackground(),
-          color: getTextColor(),
-          border: variant === 'secondary' || variant === 'ghost' ? '1px solid var(--border)' : 'none',
-          borderRadius: 8,
-          fontSize: size === 'sm' ? 13 : 14,
-          fontWeight: 600,
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          opacity: disabled ? 0.5 : 1,
-          transition: 'all 0.15s',
-          minHeight: getMinHeight(),
-          minWidth: 44,
-          ...style,
-        }}
+        className={cn(
+          'inline-flex items-center justify-center gap-2 font-semibold transition-all duration-150 min-w-[44px] rounded-lg',
+          variants[variant],
+          sizes[size],
+          (disabled || loading) && 'opacity-50 cursor-not-allowed',
+          !disabled && !loading && 'active:scale-[0.98]',
+          className
+        )}
         {...props}
       >
         {loading && (
-          <span style={{ 
-            width: 16, 
-            height: 16, 
-            border: '2px solid currentColor', 
-            borderTopColor: 'transparent',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite' 
-          }} />
+          <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
         )}
         {icon && !loading && (
-          <span className="material-symbols-outlined" style={{ fontSize: size === 'sm' ? 16 : 18 }}>{icon}</span>
+          <span className={cn('material-symbols-outlined', size === 'sm' ? 'text-[16px]' : 'text-[18px]')}>
+            {icon}
+          </span>
         )}
         {children}
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <style>{`
+          @keyframes spin { 
+            to { transform: rotate(360deg); } 
+          }
+          .animate-spin { 
+            animation: spin 1s linear infinite; 
+          }
+        `}</style>
       </button>
     )
   }
@@ -97,43 +75,31 @@ interface AccessibleInputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const AccessibleInput = forwardRef<HTMLInputElement, AccessibleInputProps>(
-  ({ label, error, hint, required, icon, id, style, ...props }, ref) => {
+  ({ label, error, hint, required, icon, id, className, ...props }, ref) => {
     const inputId = id || `input-${label.toLowerCase().replace(/\s+/g, '-')}`
     const errorId = `${inputId}-error`
     const hintId = `${inputId}-hint`
 
     return (
-      <div style={{ marginBottom: 16 }}>
+      <div className="mb-4">
         <label 
           htmlFor={inputId}
-          style={{ 
-            display: 'block', 
-            fontSize: 14, 
-            fontWeight: 500, 
-            color: error ? 'var(--red)' : 'var(--t2)', 
-            marginBottom: 6 
-          }}
+          className={cn(
+            'block text-sm font-medium mb-1.5 transition-colors',
+            error ? 'text-error' : 'text-onSurface-variant'
+          )}
         >
           {label}
           {required && (
-            <span aria-hidden="true" style={{ color: 'var(--red)', marginLeft: 4 }}>*</span>
+            <span aria-hidden="true" className="text-error ml-1">*</span>
           )}
           {required && <span className="sr-only">(required)</span>}
         </label>
         
-        <div style={{ position: 'relative' }}>
+        <div className="relative">
           {icon && (
             <span 
-              className="material-symbols-outlined" 
-              style={{ 
-                position: 'absolute', 
-                left: 12, 
-                top: '50%', 
-                transform: 'translateY(-50%)',
-                fontSize: 20, 
-                color: 'var(--t4)',
-                pointerEvents: 'none'
-              }}
+              className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-outline pointer-events-none"
             >
               {icon}
             </span>
@@ -144,25 +110,18 @@ export const AccessibleInput = forwardRef<HTMLInputElement, AccessibleInputProps
             aria-invalid={!!error}
             aria-describedby={error ? errorId : hint ? hintId : undefined}
             aria-required={required}
-            style={{
-              width: '100%',
-              padding: icon ? '12px 14px 12px 44px' : '12px 14px',
-              border: `1px solid ${error ? 'var(--red)' : 'var(--border)'}`,
-              borderRadius: 8,
-              fontSize: 16, // Prevents iOS zoom
-              color: 'var(--t1)',
-              background: 'var(--surface)',
-              outline: 'none',
-              transition: 'border-color 0.15s',
-              minHeight: 44,
-              ...style,
-            }}
+            className={cn(
+              'w-full px-3.5 py-3 border rounded-lg text-base text-onSurface bg-surface outline-none transition-all min-h-[44px]',
+              icon && 'pl-11',
+              error ? 'border-error ring-1 ring-error' : 'border-outline hover:border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary',
+              className
+            )}
             {...props}
           />
         </div>
 
         {hint && !error && (
-          <p id={hintId} style={{ marginTop: 4, fontSize: 12, color: 'var(--t4)' }}>
+          <p id={hintId} className="mt-1 text-xs text-outline">
             {hint}
           </p>
         )}
@@ -171,16 +130,9 @@ export const AccessibleInput = forwardRef<HTMLInputElement, AccessibleInputProps
           <p 
             id={errorId} 
             role="alert"
-            style={{ 
-              marginTop: 4, 
-              fontSize: 12, 
-              color: 'var(--red)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4
-            }}
+            className="mt-1 text-xs text-error flex items-center gap-1"
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>error</span>
+            <span className="material-symbols-outlined text-[14px]">error</span>
             {error}
           </p>
         )}
@@ -192,7 +144,7 @@ export const AccessibleInput = forwardRef<HTMLInputElement, AccessibleInputProps
 AccessibleInput.displayName = 'AccessibleInput'
 
 // Accessible Select
-interface AccessibleSelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+interface AccessibleSelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label: string
   error?: string
   hint?: string
@@ -201,25 +153,22 @@ interface AccessibleSelectProps extends React.SelectHTMLAttributes<HTMLSelectEle
 }
 
 export const AccessibleSelect = forwardRef<HTMLSelectElement, AccessibleSelectProps>(
-  ({ label, error, hint, options, placeholder, required, id, ...props }, ref) => {
+  ({ label, error, hint, options, placeholder, required, id, className, ...props }, ref) => {
     const selectId = id || `select-${label.toLowerCase().replace(/\s+/g, '-')}`
     const errorId = `${selectId}-error`
     const hintId = `${selectId}-hint`
 
     return (
-      <div style={{ marginBottom: 16 }}>
+      <div className="mb-4">
         <label 
           htmlFor={selectId}
-          style={{ 
-            display: 'block', 
-            fontSize: 14, 
-            fontWeight: 500, 
-            color: error ? 'var(--red)' : 'var(--t2)', 
-            marginBottom: 6 
-          }}
+          className={cn(
+            'block text-sm font-medium mb-1.5',
+            error ? 'text-error' : 'text-onSurface-variant'
+          )}
         >
           {label}
-          {required && <span aria-hidden="true" style={{ color: 'var(--red)', marginLeft: 4 }}>*</span>}
+          {required && <span aria-hidden="true" className="text-error ml-1">*</span>}
         </label>
         
         <select
@@ -228,18 +177,11 @@ export const AccessibleSelect = forwardRef<HTMLSelectElement, AccessibleSelectPr
           aria-invalid={!!error}
           aria-describedby={error ? errorId : hint ? hintId : undefined}
           aria-required={required}
-          style={{
-            width: '100%',
-            padding: '12px 14px',
-            border: `1px solid ${error ? 'var(--red)' : 'var(--border)'}`,
-            borderRadius: 8,
-            fontSize: 16,
-            color: 'var(--t1)',
-            background: 'var(--surface)',
-            outline: 'none',
-            cursor: 'pointer',
-            minHeight: 44,
-          }}
+          className={cn(
+            'w-full px-3.5 py-3 border rounded-lg text-base text-onSurface bg-surface outline-none cursor-pointer min-h-[44px] transition-all',
+            error ? 'border-error ring-1 ring-error' : 'border-outline hover:border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary',
+            className
+          )}
           {...props}
         >
           {placeholder && (
@@ -255,14 +197,14 @@ export const AccessibleSelect = forwardRef<HTMLSelectElement, AccessibleSelectPr
         </select>
 
         {hint && !error && (
-          <p id={hintId} style={{ marginTop: 4, fontSize: 12, color: 'var(--t4)' }}>
+          <p id={hintId} className="mt-1 text-xs text-outline">
             {hint}
           </p>
         )}
 
         {error && (
-          <p id={errorId} role="alert" style={{ marginTop: 4, fontSize: 12, color: 'var(--red)' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: 'middle', marginRight: 4 }}>error</span>
+          <p id={errorId} role="alert" className="mt-1 text-xs text-error flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px]">error</span>
             {error}
           </p>
         )}
@@ -278,18 +220,7 @@ export function SkipToContent() {
   return (
     <a
       href="#main-content"
-      style={{
-        position: 'absolute',
-        top: -40,
-        left: 0,
-        background: 'var(--navy)',
-        color: 'white',
-        padding: '8px 16px',
-        zIndex: 1000,
-        transition: 'top 0.3s',
-      }}
-      onFocus={e => { e.currentTarget.style.top = '0' }}
-      onBlur={e => { e.currentTarget.style.top = '-40px' }}
+      className="absolute -top-10 left-0 bg-primary text-white px-4 py-2 z-[1000] focus:top-0 transition-[top] duration-300"
     >
       Skip to main content
     </a>
@@ -299,17 +230,7 @@ export function SkipToContent() {
 // Screen reader only text
 export function SrOnly({ children }: { children: React.ReactNode }) {
   return (
-    <span style={{
-      position: 'absolute',
-      width: 1,
-      height: 1,
-      padding: 0,
-      margin: -1,
-      overflow: 'hidden',
-      clip: 'rect(0, 0, 0, 0)',
-      whiteSpace: 'nowrap',
-      borderWidth: 0,
-    }}>
+    <span className="absolute w-[1px] h-[1px] p-0 -m-[1px] overflow-hidden clip-[rect(0,0,0,0)] whitespace-nowrap border-0">
       {children}
     </span>
   )

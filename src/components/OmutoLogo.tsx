@@ -1,12 +1,14 @@
 'use client'
+import { cn } from '@/lib/utils'
 
 interface OmutoLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl'
   variant?: 'default' | 'white' | 'dark'
   showText?: boolean
+  className?: string
 }
 
-export default function OmutoLogo({ size = 'md', variant = 'default', showText = true }: OmutoLogoProps) {
+export default function OmutoLogo({ size = 'md', variant = 'default', showText = true, className }: OmutoLogoProps) {
   const sizes = {
     sm: { icon: 32, text: 'text-lg' },
     md: { icon: 40, text: 'text-xl' },
@@ -15,17 +17,16 @@ export default function OmutoLogo({ size = 'md', variant = 'default', showText =
   }
 
   const colors = {
-    default: { primary: '#5D2FFB', accent: '#F9B72F', text: '#5D2FFB' },
-    white: { primary: '#ffffff', accent: '#F9B72F', text: '#ffffff' },
-    dark: { primary: '#5D2FFB', accent: '#F9B72F', text: '#5D2FFB' },
+    default: { primary: '#17325F', accent: '#2E9448', text: '#17325F' },
+    white: { primary: '#ffffff', accent: '#2E9448', text: '#ffffff' },
+    dark: { primary: '#17325F', accent: '#2E9448', text: '#17325F' },
   }
-
 
   const s = sizes[size]
   const c = colors[variant]
 
   return (
-    <div className="flex items-center gap-2.5">
+    <div className={cn("flex items-center gap-2.5", className)}>
       <svg
         width={s.icon}
         height={s.icon}
@@ -33,8 +34,14 @@ export default function OmutoLogo({ size = 'md', variant = 'default', showText =
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Background rounded square */}
-        <rect width="80" height="80" rx="18" fill={c.primary} />
+        {/* Background rounded square with Gradient */}
+        <defs>
+          <linearGradient id={`omuto-grad-${variant}`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={c.primary} />
+            <stop offset="100%" stopColor={c.accent} />
+          </linearGradient>
+        </defs>
+        <rect width="80" height="80" rx="18" fill={`url(#omuto-grad-${variant})`} />
         
         {/* Book shape */}
         <path
@@ -51,42 +58,29 @@ export default function OmutoLogo({ size = 'md', variant = 'default', showText =
         {/* Book spine */}
         <rect x="38" y="20" width="4" height="40" fill={c.primary} fillOpacity="0.3" />
         
-        {/* Lines on left page */}
-        <rect x="24" y="28" width="12" height="2" rx="1" fill={c.primary} fillOpacity="0.3" />
-        <rect x="24" y="34" width="10" height="2" rx="1" fill={c.primary} fillOpacity="0.2" />
-        <rect x="24" y="40" width="12" height="2" rx="1" fill={c.primary} fillOpacity="0.2" />
-        <rect x="24" y="46" width="8" height="2" rx="1" fill={c.primary} fillOpacity="0.2" />
+        {/* Lines on pages */}
+        <rect x="24" y="28" width="12" height="2" rx="1" fill={c.primary} fillOpacity="0.2" />
+        <rect x="24" y="34" width="10" height="2" rx="1" fill={c.primary} fillOpacity="0.15" />
+        <rect x="44" y="28" width="12" height="2" rx="1" fill={c.primary} fillOpacity="0.15" />
+        <rect x="44" y="34" width="10" height="2" rx="1" fill={c.primary} fillOpacity="0.1" />
         
-        {/* Lines on right page */}
-        <rect x="44" y="28" width="12" height="2" rx="1" fill={c.primary} fillOpacity="0.2" />
-        <rect x="44" y="34" width="10" height="2" rx="1" fill={c.primary} fillOpacity="0.15" />
-        <rect x="44" y="40" width="12" height="2" rx="1" fill={c.primary} fillOpacity="0.15" />
-        
-        {/* Star/accent on book */}
+        {/* Star accent */}
         <path
           d="M30 52L32 48L34 52L38 53L35 56L36 60L32 58L28 60L29 56L26 53L30 52Z"
           fill={c.accent}
         />
-        
-        {/* Graduation cap accent */}
-        <path
-          d="M50 48L44 52L50 56L56 52L50 48Z"
-          fill={c.accent}
-          fillOpacity="0.8"
-        />
-        <rect x="49" y="52" width="2" height="8" fill={c.accent} fillOpacity="0.6" />
       </svg>
       
       {showText && (
         <div className="flex flex-col">
           <span
-            className={`${s.text} font-bold leading-tight`}
+            className={cn(s.text, "font-bold leading-tight")}
             style={{ color: c.text }}
           >
             Omuto
           </span>
           {size !== 'sm' && (
-            <span className="text-xs text-gray-400 leading-tight">
+            <span className="text-[10px] text-outline font-medium tracking-wider uppercase leading-tight">
               School Management
             </span>
           )}

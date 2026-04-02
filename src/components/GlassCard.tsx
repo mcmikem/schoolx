@@ -12,7 +12,7 @@ export default function GlassCard({ children, className = '', hoverable = true }
     <div 
       className={`
         glass-card rounded-2xl p-6
-        ${hoverable ? 'hover:shadow-2xl hover:shadow-purple-500/10 hover:-translate-y-1 transition-smooth cursor-default' : ''}
+        ${hoverable ? 'hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1 transition-smooth cursor-default' : ''}
         ${className}
       `}
     >

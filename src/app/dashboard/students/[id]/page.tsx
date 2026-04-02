@@ -131,7 +131,7 @@ export default function StudentProfilePage({ params }: { params: { id: string } 
               {[
                 { label: 'Status', value: student.status || 'Active', color: 'text-green-600' },
                 { label: 'Class', value: student.classes?.name || 'N/A', color: 'text-blue-600' },
-                { label: 'Student #', value: student.student_number || 'N/A', color: 'text-purple-600' },
+                { label: 'Student #', value: student.student_number || 'N/A', color: 'text-primary-600' },
               ].map((stat) => (
                 <div key={stat.label} className="text-center px-4 py-2 bg-gray-50 rounded-lg">
                   <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
@@ -146,7 +146,7 @@ export default function StudentProfilePage({ params }: { params: { id: string } 
             {[
               { icon: Calendar, label: 'Schedule', color: 'bg-blue-50 text-blue-600' },
               { icon: ClipboardCheck, label: 'Attendance', color: 'bg-green-50 text-green-600' },
-              { icon: FileText, label: 'Evaluations', color: 'bg-purple-50 text-purple-600' },
+              { icon: FileText, label: 'Evaluations', color: 'bg-purple-50 text-primary-600' },
               { icon: CreditCard, label: 'Fees', color: 'bg-yellow-50 text-yellow-600' },
               { icon: MoreHorizontal, label: 'More', color: 'bg-gray-50 text-gray-600' },
             ].map((action) => (
@@ -212,7 +212,7 @@ export default function StudentProfilePage({ params }: { params: { id: string } 
               )}
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
-                  <Calendar className="w-4 h-4 text-purple-600" />
+                  <Calendar className="w-4 h-4 text-primary-600" />
                 </div>
                 <div>
                   <div className="text-xs text-gray-500">Date of Birth</div>
@@ -300,7 +300,7 @@ export default function StudentProfilePage({ params }: { params: { id: string } 
         {[
           { label: 'Student Number', value: student.student_number || 'N/A', icon: IdCard, color: 'bg-blue-500' },
           { label: 'Gender', value: student.gender === 'M' ? 'Male' : 'Female', icon: User, color: 'bg-green-500' },
-          { label: 'Class', value: student.classes?.name || 'N/A', icon: GraduationCap, color: 'bg-purple-500' },
+          { label: 'Class', value: student.classes?.name || 'N/A', icon: GraduationCap, color: 'bg-primary-500' },
           { label: 'Status', value: student.status || 'Active', icon: TrendingUp, color: 'bg-yellow-500' },
         ].map((stat) => (
           <div key={stat.label} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
