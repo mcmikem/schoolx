@@ -219,15 +219,6 @@ export default function LoginPage() {
             const { error: staffError } = await supabase.from('staff').upsert(staff, { onConflict: 'school_id,phone' })
             console.log('Staff seeded, error:', staffError)
             
-            // Seed some expenses
-            const expenses = [
-              { school_id: DEMO_SCHOOL_ID, description: 'Cleaning Services', amount: 150000, category: 'services', status: 'pending', requested_by: 'Admin', date: '2026-03-01' },
-              { school_id: DEMO_SCHOOL_ID, description: 'Office Supplies', amount: 85000, category: 'supplies', status: 'approved', approved_by: 'Headmaster', date: '2026-02-28' },
-              { school_id: DEMO_SCHOOL_ID, description: 'Maintenance - Roof', amount: 450000, category: 'maintenance', status: 'pending', requested_by: 'Admin', date: '2026-03-02' },
-            ]
-            const { error: expenseError } = await supabase.from('expenses').upsert(expenses, { onConflict: 'school_id,description,date' })
-            console.log('Expenses seeded, error:', expenseError)
-            
             console.log('=== DEMO DATA SEEDING COMPLETE ===')
           }
         }
