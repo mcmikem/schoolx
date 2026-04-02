@@ -1,5 +1,6 @@
 'use client'
 import MaterialIcon from '@/components/MaterialIcon'
+import { Button } from './ui/index'
 
 interface EmptyStateProps {
   icon?: string
@@ -13,47 +14,41 @@ interface EmptyStateProps {
     label: string
     onClick: () => void
   }
+  className?: string
 }
 
-export function EmptyState({ icon, title, description, action, secondaryAction }: EmptyStateProps) {
+export function EmptyState({ icon, title, description, action, secondaryAction, className = '' }: EmptyStateProps) {
   return (
     <div 
-      className="flex flex-col items-center justify-center py-12 px-4 text-center"
+      className={`flex flex-col items-center justify-center py-10 px-4 text-center ${className}`}
       role="status"
       aria-label={title}
     >
       {icon && (
-        <div className="mb-4 p-3 bg-gray-100 rounded-full">
-          <MaterialIcon icon={icon} />
+        <div className="mb-4 p-4 bg-[var(--surface-container)] rounded-2xl">
+          <MaterialIcon icon={icon} className="text-3xl text-[var(--t3)]" />
         </div>
       )}
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+      <h3 className="text-base font-semibold text-[var(--t1)] mb-2">{title}</h3>
       {description && (
-        <p className="text-gray-500 max-w-md mb-6">{description}</p>
+        <p className="text-sm text-[var(--t3)] max-w-sm mb-6">{description}</p>
       )}
       <div className="flex gap-3">
         {action && (
-          <button
-            onClick={action.onClick}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
+          <Button variant="primary" size="sm" onClick={action.onClick}>
             {action.label}
-          </button>
+          </Button>
         )}
         {secondaryAction && (
-          <button
-            onClick={secondaryAction.onClick}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-          >
+          <Button variant="secondary" size="sm" onClick={secondaryAction.onClick}>
             {secondaryAction.label}
-          </button>
+          </Button>
         )}
       </div>
     </div>
   )
 }
 
-// Pre-built empty states
 export function NoStudents({ onAdd }: { onAdd: () => void }) {
   return (
     <EmptyState

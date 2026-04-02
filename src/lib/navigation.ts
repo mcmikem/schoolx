@@ -106,8 +106,9 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       label: 'Planning',
       defaultOpen: false,
       items: [
-        { href: '/dashboard/lesson-plans', label: 'Lesson Plans', icon: 'menu_book' },
+        { href: '/dashboard/syllabus', label: 'Syllabus Tracking', icon: 'track_changes' },
         { href: '/dashboard/scheme-of-work', label: 'Scheme of Work', icon: 'list_alt' },
+        { href: '/dashboard/lesson-plans', label: 'Lesson Plans', icon: 'menu_book' },
         { href: '/dashboard/promotion', label: 'Promotion', icon: 'trending_up' },
       ]
     },
@@ -172,8 +173,9 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       label: 'Planning',
       defaultOpen: false,
       items: [
-        { href: '/dashboard/lesson-plans', label: 'Lesson Plans', icon: 'menu_book' },
+        { href: '/dashboard/syllabus', label: 'Syllabus Tracking', icon: 'track_changes' },
         { href: '/dashboard/scheme-of-work', label: 'Scheme of Work', icon: 'list_alt' },
+        { href: '/dashboard/lesson-plans', label: 'Lesson Plans', icon: 'menu_book' },
         { href: '/dashboard/timetable', label: 'Timetable', icon: 'calendar_month' },
       ]
     },

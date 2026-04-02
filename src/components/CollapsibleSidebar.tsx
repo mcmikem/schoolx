@@ -15,7 +15,6 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
   const pathname = usePathname()
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
 
-  // Initialize open state based on defaultOpen and if any item is active
   useEffect(() => {
     const initial: Record<string, boolean> = {}
     groups.forEach((group) => {
@@ -30,8 +29,8 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
   }
 
   return (
-    <nav className="sidebar-nav overflow-y-auto flex-1 px-3 py-4" role="navigation" aria-label="Main navigation">
-      <div className="space-y-4">
+    <nav className="sidebar-nav overflow-y-auto flex-1 px-2 py-3" role="navigation" aria-label="Main navigation">
+      <div className="space-y-1">
         {groups.map((group) => {
           const isOpen = openGroups[group.label]
           const hasActive = group.items.some(item => pathname === item.href || pathname.startsWith(item.href + '/'))
@@ -41,11 +40,14 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
               <button
                 onClick={() => toggleGroup(group.label)}
                 className={cn(
-                  "flex items-center w-full px-3 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors duration-150 outline-none",
-                  hasActive ? "text-primary" : "text-outline hover:text-onSurface"
+                  "flex items-center w-full px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors duration-150 outline-none rounded-lg",
+                  hasActive || isOpen ? "text-[var(--primary)]" : "text-[var(--t4)] hover:text-[var(--t2)] hover:bg-[var(--surface-container-low)]"
                 )}
                 aria-expanded={isOpen}
               >
+                {group.icon && (
+                  <MaterialIcon icon={group.icon} className="text-[16px] mr-2" />
+                )}
                 <span className="flex-1 text-left">{group.label}</span>
                 <span className={cn(
                   "material-symbols-outlined text-[16px] transition-transform duration-200",
@@ -56,7 +58,7 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
               </button>
               
               {isOpen && (
-                <div className="mt-1 space-y-px">
+                <div className="mt-1 ml-2 space-y-0.5 border-l border-[var(--border)] pl-2">
                   {group.items.map((item) => {
                     const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                     return (
@@ -65,27 +67,27 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
                         href={item.href}
                         onClick={onNavigate}
                         className={cn(
-                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] transition-all min-h-[40px] group",
+                          "flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-all min-h-[36px] group",
                           isActive 
-                            ? "bg-primary-50 text-primary font-semibold shadow-sm" 
-                            : "text-onSurface-variant hover:bg-surface-container-low hover:text-onSurface"
+                            ? "bg-[var(--primary-50)] text-[var(--primary)] font-semibold" 
+                            : "text-[var(--t2)] hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)]"
                         )}
                         aria-current={isActive ? 'page' : undefined}
                       >
                         <MaterialIcon 
                           icon={item.icon} 
                           className={cn(
-                            "text-[18px]",
-                            isActive ? "text-primary" : "text-outline group-hover:text-onSurface"
+                            "text-[17px]",
+                            isActive ? "text-[var(--primary)]" : "text-[var(--t3)] group-hover:text-[var(--t2)]"
                           )} 
                         />
                         <span className="flex-1 truncate">{item.label}</span>
                         {item.badge && (
                           <span className={cn(
-                            "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider font-mono",
+                            "text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider",
                             item.badge === 'New' 
-                              ? "bg-green-soft text-green" 
-                              : "bg-amber-soft text-amber"
+                              ? "bg-[var(--green-soft)] text-[var(--green)]" 
+                              : "bg-[var(--amber-soft)] text-[var(--amber)]"
                           )}>
                             {item.badge}
                           </span>

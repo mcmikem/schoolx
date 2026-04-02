@@ -9,6 +9,14 @@ import { useFormDraft } from '@/lib/useAutoSave'
 import { SendSMSModal } from '@/components/SendSMSModal'
 import MaterialIcon from '@/components/MaterialIcon'
 import OnboardingTips from '@/components/OnboardingTips'
+import { PageHeader, PageSection } from '@/components/ui/PageHeader'
+import { Tabs, TabPanel } from '@/components/ui/Tabs'
+import { Modal, ModalFooter } from '@/components/ui/Modal'
+import { Card, CardHeader, CardBody } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { EmptyState, NoData, SearchEmpty } from '@/components/EmptyState'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { TableSkeleton } from '@/components/ui/Skeleton'
 
 const STUDENT_TEMPLATE_COLUMNS = [
   'student_number',
@@ -77,6 +85,7 @@ export default function StudentsPage() {
   const [templateErrors, setTemplateErrors] = useState<string | null>(null)
   const [importingTemplate, setImportingTemplate] = useState(false)
   const [importSummary, setImportSummary] = useState<{ success: number; failed: number; total: number } | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; studentId: string | null }>({ open: false, studentId: null })
 
   const resolveClassId = (row: Record<string, string>) => {
     if (row.class_id) return row.class_id
@@ -237,15 +246,21 @@ export default function StudentsPage() {
     }
   }
 
-  const handleDeleteStudent = async (id: string) => {
-    if (!confirm('Are you sure you want to remove this student?')) return
+  const handleDeleteStudent = async () => {
+    if (!deleteConfirm.studentId) return
     try {
-      await deleteStudent(id)
+      await deleteStudent(deleteConfirm.studentId)
       toast.success('Student removed')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to remove student'
       toast.error(errorMessage)
+    } finally {
+      setDeleteConfirm({ open: false, studentId: null })
     }
+  }
+
+  const confirmDelete = (id: string) => {
+    setDeleteConfirm({ open: true, studentId: id })
   }
 
   const openEditModal = (student: any) => {
@@ -311,6 +326,8 @@ export default function StudentsPage() {
 
   const boysCount = students.filter(s => s.gender === 'M').length
   const girlsCount = students.filter(s => s.gender === 'F').length
+
+  const [activeTab, setActiveTab] = useState('students')
 
   const generatePLEIndexNumbers = async () => {
     const p7Students = students.filter(s => s.classes?.name?.startsWith('P.7') && !s.ple_index_number)
@@ -567,7 +584,7 @@ export default function StudentsPage() {
                         <button onClick={() => openEditModal(student)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 6 }}>
                           <MaterialIcon style={{ fontSize: 16, color: 'var(--t3)' }}>edit</MaterialIcon>
                         </button>
-                        <button onClick={() => handleDeleteStudent(student.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 6 }}>
+                        <button onClick={() => confirmDelete(student.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 6 }}>
                           <MaterialIcon style={{ fontSize: 16, color: 'var(--t3)' }}>delete</MaterialIcon>
                         </button>
                       </div>
