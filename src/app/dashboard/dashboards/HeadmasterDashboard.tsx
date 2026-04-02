@@ -305,8 +305,8 @@ export default function HeadmasterDashboard() {
       {/* PAGE HEADER */}
       <div className="page-header">
         <div>
-          <div className="ph-title">{greeting}, {user?.full_name?.split(' ')[0]}</div>
-          <div className="ph-sub">{school?.name} • {academicYear} Term {currentTerm}</div>
+          <div className="ph-title truncate">{greeting}, {user?.full_name?.split(' ')[0]}</div>
+          <div className="ph-sub truncate">{school?.name} • {academicYear} Term {currentTerm}</div>
         </div>
         <div className="ph-actions">
           {isDemo && students.length === 0 && (

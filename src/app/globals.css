@@ -161,16 +161,16 @@
   }
 
   .page-header {
-    @apply flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2;
+    @apply flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-2;
   }
 
   .ph-title {
-    @apply text-2xl font-extrabold text-[var(--t1)] tracking-tight leading-none;
+    @apply text-lg sm:text-xl md:text-2xl font-extrabold text-[var(--t1)] tracking-tight leading-none truncate;
     font-family: 'Sora', sans-serif;
   }
 
   .ph-sub {
-    @apply text-sm text-[var(--t3)] mt-1.5 font-medium;
+    @apply text-xs sm:text-sm text-[var(--t3)] mt-1.5 font-medium truncate max-w-full;
   }
 
   .ph-actions {
