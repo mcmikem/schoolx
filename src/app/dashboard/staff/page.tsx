@@ -4,6 +4,12 @@ import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Tabs, TabPanel } from '@/components/ui/Tabs'
+import { Button } from '@/components/ui/index'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
+import { Card } from '@/components/ui/Card'
 
 interface StaffMember {
   id: string
@@ -33,6 +39,7 @@ export default function StaffPage() {
     role: 'teacher',
     password: '',
   })
+  const [activeTab, setActiveTab] = useState('all')
 
   const fetchStaff = useCallback(async () => {
     if (!school?.id) return
@@ -163,10 +170,10 @@ export default function StaffPage() {
 
   const getRoleBadge = (role: string) => {
     const roles: Record<string, { bg: string, text: string }> = {
-      teacher: { bg: 'bg-[#e8f5e9]', text: 'text-[#006e1c]' },
-      school_admin: { bg: 'bg-[#e3f2fd]', text: 'text-[#002045]' },
-      dos: { bg: 'bg-[#fff3e0]', text: 'text-[#b86e00]' },
-      bursar: { bg: 'bg-[#fce4ec]', text: 'text-[#c62828]' },
+      teacher: { bg: 'bg-green-100', text: 'text-green-700' },
+      school_admin: { bg: 'bg-blue-100', text: 'text-blue-700' },
+      dos: { bg: 'bg-orange-100', text: 'text-orange-700' },
+      bursar: { bg: 'bg-red-100', text: 'text-red-700' },
     }
     const style = roles[role] || roles.teacher
     return (
@@ -176,92 +183,102 @@ export default function StaffPage() {
     )
   }
 
-  return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#002045]">Staff</h1>
-          <p className="text-[#5c6670] mt-1">{staff.length} staff members</p>
-        </div>
-        <button onClick={() => setShowAddModal(true)} className="btn btn-primary">
-          <MaterialIcon icon="person_add" className="text-lg" />
-          Add Staff
-        </button>
-      </div>
+  const filteredStaff = activeTab === 'all' 
+    ? staff 
+    : activeTab === 'active' 
+      ? staff.filter(s => s.is_active)
+      : staff.filter(s => !s.is_active)
 
-      {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-2xl border border-[#e8eaed] p-4">
+  const tabs = [
+    { id: 'all', label: 'All Staff', count: staff.length },
+    { id: 'active', label: 'Active', count: staff.filter(s => s.is_active).length },
+    { id: 'inactive', label: 'Inactive', count: staff.filter(s => !s.is_active).length },
+  ]
+
+  function renderContent() {
+    if (loading) {
+      return <TableSkeleton rows={5} />
+    }
+
+    if (filteredStaff.length === 0) {
+      return (
+        <EmptyState
+          icon="groups"
+          title="No staff members"
+          description="Add teachers and other staff to your school"
+          action={{ label: 'Add Staff', onClick: () => setShowAddModal(true) }}
+        />
+      )
+    }
+
+    return (
+      <div className="space-y-3">
+        {filteredStaff.map((member) => (
+          <Card key={member.id} className="p-4">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#f0f4f8] rounded-full" />
-                <div className="flex-1">
-                  <div className="w-32 h-4 bg-[#e8eaed] rounded mb-2" />
-                  <div className="w-24 h-3 bg-[#e8eaed] rounded" />
+                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                  <span className="text-gray-700 font-semibold">
+                    {member.full_name?.charAt(0) || 'U'}
+                  </span>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : staff.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 text-center">
-          <div className="w-16 h-16 bg-[#f8fafb] rounded-full flex items-center justify-center mx-auto mb-4">
-            <MaterialIcon icon="groups" className="text-3xl text-[#5c6670]" />
-          </div>
-          <h3 className="text-lg font-semibold text-[#191c1d] mb-2">No staff members</h3>
-          <p className="text-[#5c6670] mb-4">Add teachers and other staff</p>
-          <button onClick={() => setShowAddModal(true)} className="btn btn-primary">
-            <MaterialIcon icon="person_add" className="text-lg" />
-            Add Staff
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {staff.map((member) => (
-            <div key={member.id} className="bg-white rounded-2xl border border-[#e8eaed] p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-[#f0f4f8] rounded-full flex items-center justify-center">
-                    <span className="text-[#002045] font-semibold">
-                      {member.full_name?.charAt(0) || 'U'}
+                <div>
+                  <div className="font-medium text-gray-900">{member.full_name}</div>
+                  <div className="flex items-center gap-2 mt-2">
+                    {getRoleBadge(member.role)}
+                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${member.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      {member.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </div>
-                  <div>
-                    <div className="font-medium text-[#191c1d]">{member.full_name}</div>
-                    <div className="flex items-center gap-2 mt-2">
-                      {getRoleBadge(member.role)}
-                      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${member.is_active ? 'bg-[#e8f5e9] text-[#006e1c]' : 'bg-[#fef2f2] text-[#ba1a1a]'}`}>
-                        {member.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => openEditModal(member)}
-                    className="btn btn-sm btn-ghost"
-                  >
-                    <MaterialIcon icon="edit" className="text-sm" />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => toggleStatus(member.id, member.is_active)}
-                    className={`btn btn-sm ${member.is_active ? 'btn-secondary' : 'btn-primary'}`}
-                  >
-                    {member.is_active ? 'Deactivate' : 'Activate'}
-                  </button>
-                  <button
-                    onClick={() => handleDeleteStaff(member.id)}
-                    className="btn btn-sm btn-ghost text-red-600"
-                  >
-                    <MaterialIcon icon="delete" className="text-sm" />
-                  </button>
                 </div>
               </div>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={() => openEditModal(member)}>
+                  <MaterialIcon icon="edit" className="text-sm" />
+                  Edit
+                </Button>
+                <Button 
+                  variant={member.is_active ? 'secondary' : 'primary'} 
+                  size="sm"
+                  onClick={() => toggleStatus(member.id, member.is_active)}
+                >
+                  {member.is_active ? 'Deactivate' : 'Activate'}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => handleDeleteStaff(member.id)}>
+                  <MaterialIcon icon="delete" className="text-sm" />
+                </Button>
+              </div>
             </div>
-          ))}
-        </div>
-      )}
+          </Card>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-4 sm:p-6 lg:p-8">
+      <PageHeader 
+        title="Staff Directory"
+        subtitle={`${staff.length} staff members`}
+        actions={
+          <Button onClick={() => setShowAddModal(true)}>
+            <MaterialIcon icon="person_add" className="text-lg" />
+            Add Staff
+          </Button>
+        }
+      />
+
+      <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} className="mb-6" />
+
+      <TabPanel activeTab={activeTab} tabId="all">
+        {renderContent()}
+      </TabPanel>
+      <TabPanel activeTab={activeTab} tabId="active">
+        {renderContent()}
+      </TabPanel>
+      <TabPanel activeTab={activeTab} tabId="inactive">
+        {renderContent()}
+      </TabPanel>
 
       {showAddModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowAddModal(false)}>

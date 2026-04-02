@@ -7,6 +7,14 @@ import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
 
+import { PageHeader, PageSection } from '@/components/ui/PageHeader'
+import { Tabs, TabPanel } from '@/components/ui/Tabs'
+import { Modal, ModalFooter } from '@/components/ui/Modal'
+import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Button, Input, Select, Badge } from '@/components/ui/index'
+import { TableSkeleton, FullPageLoader } from '@/components/ui/Skeleton'
+import { EmptyState, NoData } from '@/components/EmptyState'
+
 interface TopicCoverage {
   id: string
   subject_id: string
@@ -372,40 +380,52 @@ export default function GradesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h2 className="font-headline font-bold text-3xl text-primary tracking-tight mb-2">Academic Records</h2>
-          <p className="text-on-surface-variant text-sm font-medium">
-            {selectedClassName && selectedSubjectName
-              ? `${selectedClassName} \u2022 ${selectedSubjectName}`
-              : 'Select a class and subject to begin'}
-          </p>
-        </div>
-        <div className="flex gap-3">
-          {selectedClass && selectedSubject && (
-            caLocked ? (
-              <button onClick={handleUnlockCA} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-tertiary text-tertiary font-semibold text-sm hover:bg-tertiary/10 transition-all">
-                <MaterialIcon icon="lock_open" className="text-lg" />
-                Unlock CA ({lockedByName})
-              </button>
-            ) : (
-              <button onClick={handleLockCA} disabled={saving || !selectedClass || !selectedSubject} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-red-600 text-red-600 font-semibold text-sm hover:bg-red-50 transition-all">
-                <MaterialIcon icon="lock" className="text-lg" />
-                Lock CA
-              </button>
-            )
-          )}
-          <button onClick={handleExportGrades} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-outline-variant/30 text-primary font-semibold text-sm hover:bg-surface-container-low transition-all">
-            <MaterialIcon icon="cloud_download" className="text-lg" />
-            Export
-          </button>
-          <button onClick={() => handleSaveGrades()} disabled={saving || !selectedClass || !selectedSubject || isSubmitted} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/10 disabled:opacity-50">
-            <MaterialIcon icon="save" className="text-lg" style={{ fontVariationSettings: 'FILL 1' }} />
-            {saving ? 'Saving...' : 'Save Grades'}
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        title="Grades & Marks"
+        subtitle={selectedClassName && selectedSubjectName
+          ? `${selectedClassName} \u2022 ${selectedSubjectName}`
+          : 'Select a class and subject to begin'}
+        actions={
+          <div className="flex gap-3">
+            {selectedClass && selectedSubject && (
+              caLocked ? (
+                <Button
+                  variant="secondary"
+                  onClick={handleUnlockCA}
+                  disabled={saving}
+                  icon={<MaterialIcon icon="lock_open" className="text-lg" />}
+                >
+                  Unlock CA ({lockedByName})
+                </Button>
+              ) : (
+                <Button
+                  variant="danger"
+                  onClick={handleLockCA}
+                  disabled={saving || !selectedClass || !selectedSubject}
+                  icon={<MaterialIcon icon="lock" className="text-lg" />}
+                >
+                  Lock CA
+                </Button>
+              )
+            )}
+            <Button
+              variant="secondary"
+              onClick={handleExportGrades}
+              icon={<MaterialIcon icon="cloud_download" className="text-lg" />}
+            >
+              Export
+            </Button>
+            <Button
+              onClick={() => handleSaveGrades()}
+              disabled={saving || !selectedClass || !selectedSubject || isSubmitted}
+              loading={saving}
+              icon={<MaterialIcon icon="save" className="text-lg" style={{ fontVariationSettings: 'FILL 1' }} />}
+            >
+              Save Grades
+            </Button>
+          </div>
+        }
+      />
 
       {/* Marks Entry Info */}
       {selectedClass && selectedSubject && Object.keys(marksBy).length > 0 && (
@@ -538,11 +558,14 @@ export default function GradesPage() {
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-        <button onClick={() => setTab('marks')} className={`px-6 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap ${tab === 'marks' ? 'bg-primary text-white' : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'}`}>Marks Entry</button>
-        <button onClick={() => setTab('coverage')} className={`px-6 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap ${tab === 'coverage' ? 'bg-primary text-white' : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'}`}>Topic Coverage</button>
-      </div>
+      <Tabs
+        tabs={[
+          { id: 'marks', label: 'Marks Entry' },
+          { id: 'coverage', label: 'Topic Coverage' },
+        ]}
+        activeTab={tab}
+        onChange={(id) => setTab(id as 'marks' | 'coverage')}
+      />
 
 {/* Marks Entry Table */}
        {tab === 'marks' && selectedClass && (
@@ -562,9 +585,9 @@ export default function GradesPage() {
               </thead>
               <tbody className="divide-y divide-surface-container">
                 {studentsLoading ? (
-                  <tr><td colSpan={7} className="px-8 py-12 text-center text-on-surface-variant">Loading students...</td></tr>
+                  <tr><td colSpan={7} className="px-8 py-12"><TableSkeleton rows={5} /></td></tr>
                 ) : filteredStudents.length === 0 ? (
-                  <tr><td colSpan={7} className="px-8 py-12 text-center text-on-surface-variant">No students in this class</td></tr>
+                  <tr><td colSpan={7} className="px-8 py-12"><NoData title="No students in this class" /></td></tr>
                 ) : filteredStudents.map((student) => {
                   const ca1 = getMark(student.id, 'ca1')
                   const ca2 = getMark(student.id, 'ca2')
@@ -662,11 +685,11 @@ export default function GradesPage() {
       )}
 
       {!selectedClass && (
-        <div className="bg-surface-container-lowest p-12 rounded-xl text-center">
-          <MaterialIcon className="text-4xl text-on-surface-variant mx-auto mb-4">menu_book</MaterialIcon>
-          <h3 className="font-headline font-bold text-lg text-primary mb-2">Select a class</h3>
-          <p className="text-on-surface-variant text-sm">Choose a class to view curriculum data</p>
-        </div>
+        <EmptyState
+          icon="menu_book"
+          title="Select a class"
+          description="Choose a class to view curriculum data"
+        />
       )}
 
       {/* Sticky Action Bar */}
