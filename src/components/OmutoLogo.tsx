@@ -77,11 +77,11 @@ export default function OmutoLogo({ size = 'md', variant = 'default', showText =
             className={cn(s.text, "font-bold leading-tight")}
             style={{ color: c.text }}
           >
-            Omuto
+            School<span style={{ color: c.accent }}>X</span>
           </span>
           {size !== 'sm' && (
             <span className="text-[10px] text-outline font-medium tracking-wider uppercase leading-tight">
-              School Management
+              Academic Management
             </span>
           )}
         </div>

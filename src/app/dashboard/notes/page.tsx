@@ -22,10 +22,10 @@ const expandNote = (note: Note): ExpandedNote => {
 const defaultNotes: Note[] = [
   {
     id: '1',
-    title: 'Getting Started with Omuto',
+    title: 'Getting Started with SchoolX',
     category: 'app',
     icon: 'school',
-    content: `Welcome to Omuto School Management System! Here's how to get started:
+    content: `Welcome to SchoolX School Management System! Here's how to get started:
 
 1. **Set Up Your School** - Go to Setup to configure your school details, academic year, and terms.
 
