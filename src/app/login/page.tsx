@@ -136,6 +136,7 @@ export default function LoginPage() {
           
           // Get class IDs for seeding
           const { data: classIds } = await supabase.from('classes').select('id').eq('school_id', DEMO_SCHOOL_ID)
+          console.log('Classes found:', classIds?.length || 0)
           
           if (classIds && classIds.length > 0) {
             // Seed 200 students across classes
@@ -156,7 +157,8 @@ export default function LoginPage() {
                 parent_phone: `07${Math.floor(Math.random() * 90000000 + 10000000)}`
               })
             }
-            await supabase.from('students').upsert(students, { onConflict: 'school_id,student_number' })
+            const { error: studentError } = await supabase.from('students').upsert(students, { onConflict: 'school_id,student_number' })
+            console.log('Students seeded, error:', studentError)
             
             // Seed fee structure
             const feeStructures = [
@@ -165,14 +167,16 @@ export default function LoginPage() {
               { school_id: DEMO_SCHOOL_ID, name: 'Lunch Program', amount: 120000, term: 1, academic_year: '2026' },
               { school_id: DEMO_SCHOOL_ID, name: 'Transport', amount: 80000, term: 1, academic_year: '2026' },
             ]
-            await supabase.from('fee_structure').upsert(feeStructures, { onConflict: 'school_id,name,term,academic_year' })
+            const { error: feeError } = await supabase.from('fee_structure').upsert(feeStructures, { onConflict: 'school_id,name,term,academic_year' })
+            console.log('Fee structure seeded, error:', feeError)
             
             // Get fee ID and student IDs for payments
             const { data: feeData } = await supabase.from('fee_structure').select('id').eq('school_id', DEMO_SCHOOL_ID).limit(1).single()
             const { data: studentData } = await supabase.from('students').select('id, class_id').eq('school_id', DEMO_SCHOOL_ID)
+            console.log('Students in DB:', studentData?.length || 0, 'Fee:', feeData?.id)
             
-            if (feeData && studentData) {
-              // Seed some payments (70% paid, 30% partial/overdue)
+            if (feeData && studentData && studentData.length > 0) {
+              // Seed some payments (50% full, 20% partial)
               const payments = []
               for (let i = 0; i < studentData.length; i++) {
                 const rand = Math.random()
@@ -182,7 +186,10 @@ export default function LoginPage() {
                   payments.push({ student_id: studentData[i].id, fee_id: feeData.id, amount_paid: 200000, payment_method: 'cash', payment_date: '2026-02-20', payment_reference: `PAY${i+1}` })
                 }
               }
-              if (payments.length > 0) await supabase.from('fee_payments').upsert(payments, { onConflict: 'student_id,fee_id,payment_reference' })
+              if (payments.length > 0) {
+                const { error: paymentError } = await supabase.from('fee_payments').upsert(payments, { onConflict: 'student_id,fee_id,payment_reference' })
+                console.log('Payments seeded:', payments.length, 'error:', paymentError)
+              }
             
               // Seed attendance for last 7 days
               const today = new Date()
@@ -196,7 +203,8 @@ export default function LoginPage() {
                   attendance.push({ student_id: student.id, class_id: student.class_id, date: date.toISOString().split('T')[0], status })
                 }
               }
-              await supabase.from('attendance').upsert(attendance, { onConflict: 'student_id,date' })
+              const { error: attendError } = await supabase.from('attendance').upsert(attendance, { onConflict: 'student_id,date' })
+              console.log('Attendance records:', attendance.length, 'error:', attendError)
             }
             
             // Seed staff
@@ -208,7 +216,8 @@ export default function LoginPage() {
               { school_id: DEMO_SCHOOL_ID, full_name: 'Mr. Wasswa David', role: 'dean_of_studies', phone: '0772000005', email: 'dwasswa@demo.school', status: 'active' },
               { school_id: DEMO_SCHOOL_ID, full_name: 'Mrs. Nalwoga Ruth', role: 'teacher', phone: '0772000006', email: 'rnalwoga@demo.school', status: 'active' },
             ]
-            await supabase.from('staff').upsert(staff, { onConflict: 'school_id,phone' })
+            const { error: staffError } = await supabase.from('staff').upsert(staff, { onConflict: 'school_id,phone' })
+            console.log('Staff seeded, error:', staffError)
             
             // Seed some expenses
             const expenses = [
@@ -216,14 +225,10 @@ export default function LoginPage() {
               { school_id: DEMO_SCHOOL_ID, description: 'Office Supplies', amount: 85000, category: 'supplies', status: 'approved', approved_by: 'Headmaster', date: '2026-02-28' },
               { school_id: DEMO_SCHOOL_ID, description: 'Maintenance - Roof', amount: 450000, category: 'maintenance', status: 'pending', requested_by: 'Admin', date: '2026-03-02' },
             ]
-            await supabase.from('expenses').upsert(expenses, { onConflict: 'school_id,description,date' })
+            const { error: expenseError } = await supabase.from('expenses').upsert(expenses, { onConflict: 'school_id,description,date' })
+            console.log('Expenses seeded, error:', expenseError)
             
-            // Seed leave requests
-            const leaveRequests = [
-              { school_id: DEMO_SCHOOL_ID, staff_id: 'demo-staff-1', leave_type: 'sick', start_date: '2026-03-05', end_date: '2026-03-07', status: 'pending', reason: 'Medical appointment' },
-              { school_id: DEMO_SCHOOL_ID, staff_id: 'demo-staff-2', leave_type: 'annual', start_date: '2026-03-15', end_date: '2026-03-20', status: 'pending', reason: 'Family vacation' },
-            ]
-            await supabase.from('leave_requests').upsert(leaveRequests, { onConflict: 'school_id,staff_id,start_date' })
+            console.log('=== DEMO DATA SEEDING COMPLETE ===')
           }
         }
         
