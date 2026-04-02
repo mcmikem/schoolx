@@ -40,229 +40,161 @@ export default function BursarDashboard() {
   const todayCollected = todayPayments.reduce((sum: number, p: any) => sum + Number(p.amount_paid || 0), 0)
 
   return (
-    <div className="content" style={{ padding: '20px 24px', maxWidth: 1400, margin: '0 auto', width: '100%' }}>
+    <div className="content">
       {/* PAGE HEADER */}
-      <div style={{ 
-        background: 'var(--surface)', 
-        padding: '20px 24px', 
-        borderBottom: '1px solid var(--border)', 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        gap: '16px',
-        marginBottom: '20px',
-        borderRadius: 'var(--r)',
-        boxShadow: 'var(--shadow-sm)',
-        flexWrap: 'wrap'
-      }}>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--navy)', lineHeight: 1.2 }}>
-            {greeting}, {user?.full_name?.split(' ')[0]}
-          </div>
-          <div style={{ fontSize: '13px', color: 'var(--t3)', marginTop: '4px', fontWeight: 500 }}>
-            {school?.name} • {formatDate(currentDate)}
-          </div>
+      <div className="page-header">
+        <div className="min-w-0">
+          <div className="ph-title truncate">{greeting}, {user?.full_name?.split(' ')[0]}</div>
+          <div className="ph-sub truncate">{school?.name} • {formatDate(currentDate)}</div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <button style={{             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', 
-             padding: '10px 16px', borderRadius: 10, border: '1px solid var(--border)', 
-             background: 'var(--surface)', fontSize: '13px', fontWeight: 600, color: 'var(--t1)', 
-             cursor: 'pointer', boxShadow: 'var(--shadow-sm)'
-          }}>
-            <MaterialIcon icon="download" style={{ fontSize: 16, color: 'var(--t2)' }} />
+        <div className="ph-actions">
+          <button className="btn btn-ghost">
+            <MaterialIcon icon="download" style={{ fontSize: 16 }} />
             Export
           </button>
-          <button style={{ 
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', 
-            padding: '10px 16px', borderRadius: 10, border: 'none', 
-            background: 'var(--green)', fontSize: '13px', fontWeight: 600, color: 'white', 
-            cursor: 'pointer', boxShadow: 'var(--shadow)'
-          }}>
+          <Link href="/dashboard/fees" className="btn btn-primary !bg-green border-none">
             <MaterialIcon icon="add_card" style={{ fontSize: 16 }} />
             Record Payment
-          </button>
+          </Link>
         </div>
       </div>
 
       {/* STATS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
-        <div style={{ background: 'var(--white)', padding: '16px', borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--green-soft)', color: 'var(--green)' }}>
-              <MaterialIcon icon="account_balance" style={{ fontSize: 18 }} />
+      <div className="stat-grid sm:grid-cols-3 lg:grid-cols-3">
+        <div className="stat-card">
+          <div className="stat-accent" style={{ background: 'var(--green)' }} />
+          <div className="stat-inner">
+            <div className="stat-meta">
+              <div className="stat-label">Total Collected</div>
+              <div className="stat-icon-box" style={{ background: 'var(--green-soft)', color: 'var(--green)' }}>
+                <MaterialIcon icon="account_balance" style={{ fontSize: 18 }} />
+              </div>
             </div>
-            <div>
-              <div style={{ fontSize: 12, color: 'var(--t3)', fontWeight: 500 }}>Total Collected</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--green)' }}>UGX {formatCurrency(totalFeesCollected)}</div>
-              <div style={{ fontSize: 11, color: 'var(--t3)' }}>{collectionRate}% of expected</div>
-            </div>
+            <div className="stat-val" style={{ color: 'var(--green)' }}>UGX {formatCurrency(totalFeesCollected)}</div>
+            <div className="text-[11px] text-[var(--t3)] font-medium mt-1">{collectionRate}% of expected</div>
           </div>
         </div>
-        <div style={{ background: 'var(--white)', padding: '16px', borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--red-soft)', color: 'var(--red)' }}>
-              <MaterialIcon icon="warning" style={{ fontSize: 18 }} />
+
+        <div className="stat-card">
+          <div className="stat-accent" style={{ background: 'var(--red)' }} />
+          <div className="stat-inner">
+            <div className="stat-meta">
+              <div className="stat-label">Total Arrears</div>
+              <div className="stat-icon-box" style={{ background: 'var(--red-soft)', color: 'var(--red)' }}>
+                <MaterialIcon icon="warning" style={{ fontSize: 18 }} />
+              </div>
             </div>
-            <div>
-              <div style={{ fontSize: 12, color: 'var(--t3)', fontWeight: 500 }}>Total Arrears</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--red)' }}>UGX {formatCurrency(totalArrears)}</div>
-              <div style={{ fontSize: 11, color: 'var(--t3)' }}>{students.length} students</div>
-            </div>
+            <div className="stat-val" style={{ color: 'var(--red)' }}>UGX {formatCurrency(totalArrears)}</div>
+            <div className="text-[11px] text-[var(--t3)] font-medium mt-1">{students.length} students</div>
           </div>
         </div>
-        <div style={{ background: 'var(--white)', padding: '16px', borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--navy-soft)', color: 'var(--navy)' }}>
-              <MaterialIcon icon="calculate" style={{ fontSize: 18 }} />
+
+        <div className="stat-card">
+          <div className="stat-accent" style={{ background: 'var(--navy)' }} />
+          <div className="stat-inner">
+            <div className="stat-meta">
+              <div className="stat-label">Expected Total</div>
+              <div className="stat-icon-box" style={{ background: 'var(--navy-soft)', color: 'var(--navy)' }}>
+                <MaterialIcon icon="calculate" style={{ fontSize: 18 }} />
+              </div>
             </div>
-            <div>
-              <div style={{ fontSize: 12, color: 'var(--t3)', fontWeight: 500 }}>Expected Total</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--navy)' }}>UGX {formatCurrency(totalFeesExpected)}</div>
-              <div style={{ fontSize: 11, color: 'var(--t3)' }}>For {students.length} students</div>
-            </div>
+            <div className="stat-val" style={{ color: 'var(--navy)' }}>UGX {formatCurrency(totalFeesExpected)}</div>
+            <div className="text-[11px] text-[var(--t3)] font-medium mt-1">Term {currentTerm}</div>
           </div>
         </div>
       </div>
 
       {/* QUICK ACTIONS */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ marginBottom: '12px' }}>
-          <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text)' }}>Finance Actions</h3>
+      <div className="mb-6">
+        <div className="mb-3">
+          <h3 className="text-sm font-bold text-[var(--t1)]">Finance Actions</h3>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-          <Link href="/dashboard/fees" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', textDecoration: 'none', background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--green-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MaterialIcon icon="add_card" style={{ fontSize: 20, color: 'var(--green)' }} />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Link href="/dashboard/fees" className="qa-item !flex-row !justify-start !p-4">
+            <div className="qa-icon" style={{ background: 'var(--green-soft)', color: 'var(--green)' }}>
+              <MaterialIcon icon="add_card" style={{ fontSize: 20 }} />
             </div>
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--t1)' }}>Record Payment</div>
-              <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>Add new payment</div>
-            </div>
-          </Link>
-          <Link href="/dashboard/fees" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', textDecoration: 'none', background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--navy-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MaterialIcon icon="receipt_long" style={{ fontSize: 20, color: 'var(--navy)' }} />
-            </div>
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--t1)' }}>Fee Structure</div>
-              <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>Manage fees</div>
+            <div className="min-w-0">
+              <div className="text-[13px] font-bold text-[var(--t1)] truncate">Record Payment</div>
+              <div className="text-[10px] text-[var(--t3)] font-medium truncate">Add new entry</div>
             </div>
           </Link>
-          <Link href="/dashboard/invoicing" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', textDecoration: 'none', background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--navy-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MaterialIcon icon="description" style={{ fontSize: 20, color: 'var(--navy)' }} />
+          <Link href="/dashboard/fees" className="qa-item !flex-row !justify-start !p-4">
+            <div className="qa-icon" style={{ background: 'var(--navy-soft)', color: 'var(--navy)' }}>
+              <MaterialIcon icon="receipt_long" style={{ fontSize: 20 }} />
             </div>
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--t1)' }}>Invoicing</div>
-              <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>Generate invoices</div>
+            <div className="min-w-0">
+              <div className="text-[13px] font-bold text-[var(--t1)] truncate">Fee Structure</div>
+              <div className="text-[10px] text-[var(--t3)] font-medium truncate">Manage fees</div>
             </div>
           </Link>
-          <Link href="/dashboard/cashbook" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', textDecoration: 'none', background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--amber-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MaterialIcon icon="book" style={{ fontSize: 20, color: 'var(--amber)' }} />
+          <Link href="/dashboard/invoicing" className="qa-item !flex-row !justify-start !p-4">
+            <div className="qa-icon" style={{ background: 'var(--navy-soft)', color: 'var(--navy)' }}>
+              <MaterialIcon icon="description" style={{ fontSize: 20 }} />
             </div>
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--t1)' }}>Cashbook</div>
-              <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>View transactions</div>
+            <div className="min-w-0">
+              <div className="text-[13px] font-bold text-[var(--t1)] truncate">Invoicing</div>
+              <div className="text-[10px] text-[var(--t3)] font-medium truncate">Generate docs</div>
+            </div>
+          </Link>
+          <Link href="/dashboard/cashbook" className="qa-item !flex-row !justify-start !p-4">
+            <div className="qa-icon" style={{ background: 'var(--amber-soft)', color: 'var(--amber)' }}>
+              <MaterialIcon icon="book" style={{ fontSize: 20 }} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[13px] font-bold text-[var(--t1)] truncate">Cashbook</div>
+              <div className="text-[10px] text-[var(--t3)] font-medium truncate">Audit logs</div>
             </div>
           </Link>
         </div>
       </div>
 
       {/* COLLECTION PROGRESS */}
-      <div style={{ background: 'var(--white)', padding: '20px', borderRadius: 14, border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+      <div className="card">
+        <div className="card-header">
           <div>
-            <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text)' }}>Collection Progress - Term {currentTerm}</div>
-            <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>Fee collection overview</div>
+            <div className="card-title">Collection Progress · Term {currentTerm}</div>
+            <div className="card-sub">{academicYear} academic cycle</div>
           </div>
-          <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, background: 'var(--green-soft)', color: 'var(--green)' }}>{collectionRate}%</span>
+          <span className="badge badge-green font-mono">{collectionRate}%</span>
         </div>
-        <div style={{ height: 10, background: 'var(--border)', borderRadius: 99, overflow: 'hidden' }}>
-          <div style={{ width: `${Math.min(collectionRate, 100)}%`, height: '100%', background: 'var(--green)', borderRadius: 99, transition: 'width 0.3s ease' }} />
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '14px', fontSize: 12, color: 'var(--t3)' }}>
-          <span>{formatCurrency(totalFeesCollected)} collected</span>
-          <span>{formatCurrency(totalFeesExpected)} expected</span>
+        <div className="card-body">
+          <div className="h-2.5 bg-[var(--bg)] rounded-full overflow-hidden mb-4">
+            <div 
+              className="h-full bg-[var(--green)] rounded-full transition-all duration-500" 
+              style={{ width: `${Math.min(collectionRate, 100)}%` }} 
+            />
+          </div>
+          <div className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-[var(--t3)]">
+            <div className="flex flex-col">
+              <span>Collected</span>
+              <span className="text-[var(--t1)] text-xs mt-0.5">UGX {formatCurrency(totalFeesCollected)}</span>
+            </div>
+            <div className="flex flex-col text-right">
+              <span>Expected</span>
+              <span className="text-[var(--navy)] text-xs mt-0.5">UGX {formatCurrency(totalFeesExpected)}</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <style jsx global>{`
-        @media (max-width: 1024px) {
-          .content > div:nth-child(4) > div:last-child {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
-        }
-        @media (max-width: 768px) {
-          .content {
-            padding: 70px 12px 20px !important;
-          }
-          .content > div:first-child {
-            flex-direction: column !important;
-            align-items: stretch !important;
-            padding: 16px !important;
-          }
-          .content > div:first-child > div:last-child {
-            justify-content: flex-start !important;
-            margin-top: 12px;
-          }
-          .content > div:nth-child(2) {
-            grid-template-columns: 1fr !important;
-          }
-          .content > div:nth-child(3) > div:last-child {
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 8px !important;
-          }
-        }
-        @media (max-width: 480px) {
-          .content > div:nth-child(3) > div:last-child {
-            grid-template-columns: 1fr !important;
-          }
-        }
-
-        /* Mobile Bottom Nav */
-        .mobile-bottom-nav {
-          display: none;
-        }
-        @media (max-width: 768px) {
-          .mobile-bottom-nav {
-            display: flex !important;
-          }
-          .content {
-            padding-bottom: 80px !important;
-          }
-        }
-      `}</style>
-
       {/* Mobile Bottom Nav */}
-      <div className="mobile-bottom-nav" style={{ 
-        position: 'fixed', 
-        bottom: 0, 
-        left: 0, 
-        right: 0, 
-        background: 'var(--white)', 
-        borderTop: '1px solid var(--border)', 
-        padding: '10px 8px 24px',
-        display: 'flex',
-        justifyContent: 'space-around',
-        zIndex: 100,
-        boxShadow: '0 -2px 10px rgba(0,0,0,0.08)'
-      }}>
-        <Link href="/dashboard" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
-          <MaterialIcon icon="home" style={{ fontSize: 22, color: 'var(--navy)' }} />
-          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--navy)' }}>Home</span>
+      <div className="mobile-bottom-nav">
+        <Link href="/dashboard" className="mobile-nav-item active">
+          <MaterialIcon icon="home" />
+          <span>Home</span>
         </Link>
-        <Link href="/dashboard/fees" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
-          <MaterialIcon icon="payments" style={{ fontSize: 22, color: 'var(--t3)' }} />
-          <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--t3)' }}>Finance</span>
+        <Link href="/dashboard/fees" className="mobile-nav-item">
+          <MaterialIcon icon="payments" />
+          <span>Finance</span>
         </Link>
-        <Link href="/dashboard/invoicing" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
-          <MaterialIcon icon="description" style={{ fontSize: 22, color: 'var(--t3)' }} />
-          <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--t3)' }}>Invoicing</span>
+        <Link href="/dashboard/invoicing" className="mobile-nav-item">
+          <MaterialIcon icon="description" />
+          <span>Invoices</span>
         </Link>
-        <Link href="/dashboard/settings" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
-          <MaterialIcon icon="settings" style={{ fontSize: 22, color: 'var(--t3)' }} />
-          <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--t3)' }}>Settings</span>
+        <Link href="/dashboard/settings" className="mobile-nav-item">
+          <MaterialIcon icon="settings" />
+          <span>Settings</span>
         </Link>
       </div>
     </div>
