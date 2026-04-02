@@ -45,7 +45,7 @@ export async function seedDemoData() {
       
       const { data: createdClasses, error: classError } = await supabase
         .from('classes')
-        .upsert(newClasses, { onConflict: 'school_id,name,stream' })
+        .upsert(newClasses, { onConflict: 'school_id,name,academic_year' })
         .select();
       
       if (classError) throw classError;
