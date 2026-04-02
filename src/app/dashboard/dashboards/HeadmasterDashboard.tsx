@@ -8,7 +8,6 @@ import { useState, useEffect, useMemo } from 'react'
 import MaterialIcon from '@/components/MaterialIcon'
 import { DashboardSkeleton, StatsGridSkeleton, QuickActionsSkeleton } from '@/components/Skeletons'
 import { useToast } from '@/components/Toast'
-import { seedDemoData } from '@/lib/seed-utility'
 
 function ProgressRing({ progress, color = '#2E9448' }: { progress: number; color?: string }) {
   const radius = 22
@@ -34,7 +33,6 @@ export default function HeadmasterDashboard() {
   const { feeStructure = [] } = useFeeStructure(school?.id)
   const { classes = [] } = useClasses(school?.id)
   const { staff = [] } = useStaff(school?.id)
-  const [isSeeding, setIsSeeding] = useState(false)
 
   const [classAttendance, setClassAttendance] = useState<Record<string, { present: number; total: number }>>({})
   const [atRiskStudents, setAtRiskStudents] = useState<any[]>([])
@@ -309,45 +307,6 @@ export default function HeadmasterDashboard() {
           <div className="ph-sub truncate">{school?.name} • {academicYear} Term {currentTerm}</div>
         </div>
         <div className="ph-actions">
-          {isDemo && students.length === 0 && (
-            <button 
-              onClick={async () => {
-                setIsSeeding(true)
-                const { data: classes } = await supabase.from('classes').select('id').eq('school_id', '00000000-0000-0000-0000-000000000001')
-                if (!classes || classes.length === 0) {
-                  toast.error('Classes not found. Please re-login.')
-                } else {
-                  const firstNames = ['Sarah', 'Grace', 'John', 'Mary', 'Joseph', 'Esther', 'David', 'Ruth', 'Peter', 'Agnes']
-                  const lastNames = ['Nakato', 'Mugisha', 'Namuleme', 'Auma', 'Kato', 'Nalwoga', 'Ssentamu', 'Nansubuga', 'Wasswa', 'Nabirye']
-                  const studentsToAdd = firstNames.map((firstName, i) => ({
-                    school_id: '00000000-0000-0000-0000-000000000001',
-                    student_number: `DEMO${String(i+1).padStart(3,'0')}`,
-                    first_name: firstName,
-                    last_name: lastNames[i],
-                    gender: i % 2 === 0 ? 'M' : 'F',
-                    class_id: classes[i % classes.length].id,
-                    status: 'active',
-                    date_of_birth: '2015-01-01',
-                    parent_name: 'Demo Parent',
-                    parent_phone: '0770000000'
-                  }))
-                  const { error } = await supabase.from('students').upsert(studentsToAdd, { onConflict: 'school_id,student_number' })
-                  if (error) {
-                    toast.error('Failed to add demo students')
-                  } else {
-                    toast.success('Demo students added! Refreshing...')
-                    window.location.reload()
-                  }
-                }
-                setIsSeeding(false)
-              }}
-              disabled={isSeeding}
-              className="btn btn-ghost border-amber text-amber hover:bg-amber/5"
-            >
-              <MaterialIcon icon="person_add" style={{ fontSize: '16px' }} />
-              {isSeeding ? 'Adding...' : 'Add Demo Students'}
-            </button>
-          )}
           <Link href="/dashboard/reports" className="btn btn-ghost">
             <MaterialIcon icon="download" style={{ fontSize: '16px' }} />
             Generate Report
