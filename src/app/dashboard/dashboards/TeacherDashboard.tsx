@@ -83,11 +83,11 @@ function TeacherDashboardContent() {
         </div>
         <div className="ph-actions">
           <Link href="/dashboard/timetable" className="btn btn-ghost">
-            <MaterialIcon icon="calendar_month" size={16} />
+            <MaterialIcon icon="calendar_month" />
             My Schedule
           </Link>
           <Link href="/dashboard/grades" className="btn btn-primary">
-            <MaterialIcon icon="add" size={16} />
+            <MaterialIcon icon="add" />
             Quick Entry
           </Link>
         </div>

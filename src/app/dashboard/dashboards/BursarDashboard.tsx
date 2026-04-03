@@ -44,11 +44,11 @@ function BursarDashboardContent() {
         </div>
         <div className="ph-actions">
           <Link href="/dashboard/reports" className="btn btn-ghost">
-            <MaterialIcon icon="download" size={16} />
+            <MaterialIcon icon="download"  />
             Export
           </Link>
           <Link href="/dashboard/fees" className="btn btn-primary">
-            <MaterialIcon icon="add_card" size={16} />
+            <MaterialIcon icon="add_card"  />
             Record Payment
           </Link>
         </div>

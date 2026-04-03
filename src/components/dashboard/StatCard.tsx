@@ -18,7 +18,7 @@ export default function StatCard({ label, value, subValue, icon, accentColor, lo
         <div className="stat-meta">
           <div className="stat-label">{label}</div>
           <div className={`stat-icon-box bg-${accentColor}-soft text-${accentColor}`}>
-            <MaterialIcon icon={icon} size={18} />
+            <MaterialIcon icon={icon} />
           </div>
         </div>
         <div className={`stat-val text-${accentColor}`}>{loading ? '...' : value}</div>
