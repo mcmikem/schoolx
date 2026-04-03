@@ -155,6 +155,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const checkUser = useCallback(async () => {
+    console.log('[Auth] checkUser called, supabase:', !!supabase, 'auth:', !!supabase?.auth)
+    
     // Safety timeout - always set loading to false after 5 seconds
     const timeoutId = setTimeout(() => {
       if (loading) {
@@ -165,6 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     try {
       const demoUserStr = localStorage.getItem(DEMO_KEY)
+      console.log('[Auth] demoUserStr:', !!demoUserStr)
       
       if (demoUserStr) {
         try {
