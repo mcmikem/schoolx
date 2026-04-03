@@ -72,9 +72,11 @@ module.exports = {
         primary: 'var(--primary)',
       },
       fontFamily: {
-        headline: ['Manrope', 'sans-serif'],
-        body: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        label: ['Inter', 'sans-serif'],
+        headline: ['Sora', 'sans-serif'],
+        heading: ['Sora', 'sans-serif'],
+        body: ['Lato', 'system-ui', '-apple-system', 'sans-serif'],
+        label: ['Lato', 'sans-serif'],
+        sans: ['Lato', 'system-ui', '-apple-system', 'sans-serif'],
       },
       borderRadius: {
         DEFAULT: '0.125rem',
