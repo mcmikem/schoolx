@@ -27,10 +27,10 @@
   --border2:#D9D9D9; /* Motif Gray */
 
   /* Text Colors (Depth Slate) */
-  --t1: #2C3E50;
-  --t2: #475B6E;
-  --t3: #7D8E9E;
-  --t4: #AAB7C4;
+  --t1: #1B2530; /* Primary Text */
+  --t2: #3E4C59; /* Secondary */
+  --t3: #586979; /* Tertiary (Increased contrast for accessibility) */
+  --t4: #6B7785; /* Quaternary (Increased contrast for accessibility) */
 
   /* Tailwind-compatible theme tokens */
   --primary: #0056D2;

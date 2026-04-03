@@ -41,10 +41,10 @@ function BursarDashboardContent() {
           <div className="ph-sub truncate">{school?.name} • {currentDate.toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
         </div>
         <div className="ph-actions">
-          <button className="btn btn-ghost">
+          <Link href="/dashboard/reports" className="btn btn-ghost">
             <MaterialIcon icon="download" style={{ fontSize: 16 }} />
             Export
-          </button>
+          </Link>
           <Link href="/dashboard/fees" className="btn btn-primary">
             <MaterialIcon icon="add_card" style={{ fontSize: 16 }} />
             Record Payment

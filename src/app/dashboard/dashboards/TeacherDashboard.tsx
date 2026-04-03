@@ -80,14 +80,14 @@ function TeacherDashboardContent() {
           <div className="ph-sub truncate">{school?.name} • {academicYear} Term {currentTerm}</div>
         </div>
         <div className="ph-actions">
-          <button className="btn btn-ghost">
+          <Link href="/dashboard/timetable" className="btn btn-ghost">
             <MaterialIcon icon="calendar_month" style={{ fontSize: '16px' }} />
             My Schedule
-          </button>
-          <button className="btn btn-primary">
+          </Link>
+          <Link href="/dashboard/grades" className="btn btn-primary">
             <MaterialIcon icon="add" style={{ fontSize: '16px' }} />
             Quick Entry
-          </button>
+          </Link>
         </div>
       </div>
 
