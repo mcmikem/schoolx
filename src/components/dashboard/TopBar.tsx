@@ -19,6 +19,15 @@ type DashboardNotification = {
   href: string
 }
 
+function getNextStep(pathname: string): { label: string; href: string; icon: string } {
+  if (pathname === '/dashboard') return { label: 'Add students', href: '/dashboard/students', icon: 'person_add' }
+  if (pathname.startsWith('/dashboard/students')) return { label: 'Take attendance', href: '/dashboard/attendance', icon: 'how_to_reg' }
+  if (pathname.startsWith('/dashboard/attendance')) return { label: 'Record fees', href: '/dashboard/fees', icon: 'payments' }
+  if (pathname.startsWith('/dashboard/fees')) return { label: 'Send reminders', href: '/dashboard/messages', icon: 'sms' }
+  if (pathname.startsWith('/dashboard/messages')) return { label: 'View notices', href: '/dashboard/notices', icon: 'campaign' }
+  return { label: 'Back to dashboard', href: '/dashboard', icon: 'dashboard' }
+}
+
 function NotificationsPanel({
   open,
   onClose,
@@ -135,13 +144,18 @@ export default function TopBar({
 
   const schoolName = school?.name || 'My School'
   const currentDate = new Date()
+  const crumbs = pathname?.split('/').filter(Boolean) || []
+  const crumbTrail = crumbs.length > 1 ? crumbs.slice(1).map(c => c.replace(/-/g, ' ')).join(' / ') : 'overview'
+  const nextStep = getNextStep(pathname || '/dashboard')
 
   return (
     <header className="topbar bg-[var(--surface)] border-b border-[var(--border)] h-[60px] flex items-center px-8 gap-[18px] sticky top-0 z-50 shadow-[var(--sh1)] flex-shrink-0">
       <button
         onClick={() => {
           const sidebar = document.querySelector('.sidebar')
+          const overlay = document.querySelector('.sidebar-overlay')
           sidebar?.classList.toggle('open')
+          overlay?.classList.toggle('visible')
         }}
         className="mobile-menu-btn bg-transparent border-none cursor-pointer p-2 mr-2 w-11 h-11 flex items-center justify-center rounded-lg"
         aria-label="Toggle sidebar"
@@ -151,8 +165,10 @@ export default function TopBar({
 
       <div className="flex-1 min-w-0">
         <div className="font-[Outfit] text-[18px] font-bold text-[var(--t1)] tracking-[-.2px] truncate">{pageTitle}</div>
-        <div className="text-[12px] text-[var(--t3)] mt-0.5">
-          {currentDate.toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+        <div className="text-[12px] text-[var(--t3)] mt-0.5 flex items-center gap-2 truncate">
+          <span className="truncate">{currentDate.toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
+          <span aria-hidden>•</span>
+          <span className="uppercase tracking-wide text-[10px] truncate">{crumbTrail}</span>
         </div>
       </div>
 
@@ -161,6 +177,14 @@ export default function TopBar({
       </div>
 
       <div className="flex items-center gap-[10px]">
+        <Link
+          href={nextStep.href}
+          className="hidden md:flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-[var(--navy)] text-white text-[12px] font-semibold no-underline shadow-[var(--sh1)]"
+        >
+          <MaterialIcon icon={nextStep.icon} style={{ fontSize: 15 }} />
+          {nextStep.label}
+        </Link>
+
         <div className="notif-panel relative">
           <button
             onClick={() => setNotifOpen(!notifOpen)}

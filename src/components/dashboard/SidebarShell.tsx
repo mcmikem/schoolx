@@ -45,7 +45,10 @@ export default function SidebarShell({
             <div className="text-[10px] text-[var(--t4)] tracking-[.3px] mt-0.5">School Management</div>
           </div>
           <button
-            onClick={() => document.querySelector('.sidebar')?.classList.remove('open')}
+            onClick={() => {
+              document.querySelector('.sidebar')?.classList.remove('open')
+              document.querySelector('.sidebar-overlay')?.classList.remove('visible')
+            }}
             className="sidebar-close-btn hidden w-8 h-8 rounded-lg border-none bg-[var(--bg)] cursor-pointer items-center justify-center"
             aria-label="Close sidebar"
           >
