@@ -85,11 +85,54 @@ export default function LoginPage() {
       return
     }
 
-    // Normal login - Supabase auth (not available in demo)
+    // Normal login - Supabase auth
     try {
-      toast.error('Supabase not configured. Please use demo account.')
+      if (!supabase) {
+        toast.error('Supabase not configured. Please use demo account.')
+        setLoading(false)
+        return
+      }
+
+      const email = `${cleanPhone}@omuto.sms`
+
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (authError) {
+        if (authError.message.includes('Invalid login credentials')) {
+          toast.error('Wrong phone number or password. Please try again.')
+        } else {
+          toast.error(authError.message)
+        }
+        return
+      }
+
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('role, school_id, full_name')
+        .eq('auth_id', data.user.id)
+        .single()
+
+      if (userError) {
+        toast.error('Account exists but profile not found. Contact support.')
+        return
+      }
+
+      toast.success(`Welcome back, ${userData.full_name?.split(' ')[0] || 'User'}`)
+
+      if (userData.role === 'super_admin') {
+        router.push('/dashboard/schools')
+      } else if (userData.role === 'parent') {
+        router.push('/dashboard/parent')
+      } else {
+        router.push('/dashboard')
+      }
+
+      router.refresh()
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Something went wrong'
+      const errorMessage = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
       toast.error(errorMessage)
     } finally {
       setLoading(false)

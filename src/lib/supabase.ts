@@ -3,26 +3,40 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+// Debug logging
+console.log('[Supabase Debug] URL:', supabaseUrl)
+console.log('[Supabase Debug] Anon Key:', supabaseAnonKey ? supabaseAnonKey.substring(0, 20) + '...' : 'null')
+
 const isValidHttpUrl = (value?: string | null) => {
   if (!value || value.includes('your-supabase-url')) return false
   try {
     const parsed = new URL(value)
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+    const result = parsed.protocol === 'http:' || parsed.protocol === 'https:'
+    console.log('[Supabase Debug] isValidHttpUrl:', result, 'for', value)
+    return result
   } catch {
+    console.log('[Supabase Debug] isValidHttpUrl: false (exception)')
     return false
   }
 }
 
 const isValidAnonKey = (key?: string) => {
-  if (!key) return false
-  // Supabase anon keys start with "sb_publishable_" or are JWT tokens starting with "eyJ"
-  return (key.startsWith('sb_publishable_') && key.length > 20) || 
-         (key.startsWith('eyJ') && key.length > 50)
+  if (!key) {
+    console.log('[Supabase Debug] isValidAnonKey: false (null/empty)')
+    return false
+  }
+  const sbPublishable = key.startsWith('sb_publishable_') && key.length > 20
+  const eyJ = key.startsWith('eyJ') && key.length > 50
+  const result = sbPublishable || eyJ
+  console.log('[Supabase Debug] isValidAnonKey:', result, '| sb_publishable_:', sbPublishable, '| eyJ:', eyJ, '| key:', key.substring(0, 30) + '...')
+  return result
 }
 
 const hasUsableSupabaseConfig =
   isValidHttpUrl(supabaseUrl) &&
   isValidAnonKey(supabaseAnonKey)
+
+console.log('[Supabase Debug] hasUsableSupabaseConfig:', hasUsableSupabaseConfig)
 
 const createMockQueryBuilder = () => {
   const listResult = { data: [], error: null, count: 0 }
