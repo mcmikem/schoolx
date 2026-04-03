@@ -155,14 +155,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const checkUser = useCallback(async () => {
-    console.log('[Auth] checkUser called, supabase:', !!supabase, 'auth:', !!supabase?.auth)
+    console.log('[Auth] checkUser called')
     
     // Safety timeout - always set loading to false after 5 seconds
     const timeoutId = setTimeout(() => {
-      if (loading) {
-        console.warn('[Auth] Safety timeout - forcing loading=false')
-        setLoading(false)
-      }
+      console.log('[Auth] Safety timeout reached')
+      setLoading(false)
     }, 5000)
     
     try {
@@ -174,6 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const decrypted = decryptDemoData(demoUserStr)
           if (decrypted) {
             const { demoUser, demoSchool } = JSON.parse(decrypted)
+            console.log('[Auth] Demo user loaded:', demoUser.name)
             
             setUser({
               id: 'demo-user',
@@ -202,32 +201,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setIsDemo(true)
             setIsTrialExpired(false)
             clearTimeout(timeoutId)
+            console.log('[Auth] Demo mode set, setting loading=false')
             setLoading(false)
             return
           }
         } catch (e) {
+          console.error('[Auth] Error parsing demo data:', e)
           localStorage.removeItem(DEMO_KEY)
         }
       }
 
       // Check for real auth session
+      console.log('[Auth] No demo data, checking supabase auth')
       if (supabase?.auth) {
         const { data: { session } } = await supabase!.auth.getSession()
+        console.log('[Auth] Session:', !!session)
         if (session) {
           await fetchUserData(session.user.id)
           setIsDemo(false)
         } else {
           setIsDemo(false)
           clearTimeout(timeoutId)
+          console.log('[Auth] No session, setting loading=false')
           setLoading(false)
         }
       } else {
+        console.log('[Auth] No supabase, setting loading=false')
         setIsDemo(false)
         clearTimeout(timeoutId)
         setLoading(false)
       }
     } catch (error) {
-      console.error('Error checking user:', error)
+      console.error('[Auth] Error:', error)
       setIsDemo(false)
       clearTimeout(timeoutId)
       setLoading(false)
