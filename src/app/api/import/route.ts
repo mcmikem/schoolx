@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { apiSuccess, apiError, handleApiError, validateRequiredFields, withSecurity } from '@/lib/api-utils'
+import { apiSuccess, apiError, handleApiError, requireAuthenticatedUser, withSecurity } from '@/lib/api-utils'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -21,6 +21,8 @@ interface StudentRow {
 async function handlePost(request: NextRequest) {
   try {
     const { students, schoolId } = await request.json()
+    const authCheck = await requireAuthenticatedUser(request)
+    if (!authCheck.ok) return authCheck.response
 
     if (!students || !students.length || !schoolId) {
       return apiError('Students data and schoolId are required', 400)
@@ -29,6 +31,24 @@ async function handlePost(request: NextRequest) {
     const supabase = supabaseServiceKey
       ? createClient(supabaseUrl, supabaseServiceKey)
       : createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+
+    const { data: currentUser } = await supabase
+      .from('users')
+      .select('id, school_id, role')
+      .eq('auth_id', authCheck.context.authUserId)
+      .single()
+
+    if (!currentUser) {
+      return apiError('User profile not found', 403)
+    }
+
+    if (currentUser.school_id !== schoolId) {
+      return apiError('Forbidden: school access denied', 403)
+    }
+
+    if (!['super_admin', 'school_admin'].includes(currentUser.role)) {
+      return apiError('Forbidden: insufficient permissions', 403)
+    }
 
     const results = {
       success: 0,
