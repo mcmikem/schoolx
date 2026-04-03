@@ -101,6 +101,11 @@ const realClient = hasUsableSupabaseConfig
       return null;
     })();
 
+// Debug output
+console.log('[Supabase] hasUsableSupabaseConfig:', hasUsableSupabaseConfig);
+console.log('[Supabase] realClient:', realClient ? 'created' : 'null');
+console.log('[Supabase] final supabase:', !!(realClient || createMockClient()) ? 'real/mock' : 'null');
+
 export const supabase = realClient || createMockClient()
 
 

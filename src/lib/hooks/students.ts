@@ -7,11 +7,11 @@ import { getQuerySchoolId, withTimeout } from './utils'
 
 // Demo data for offline/demo mode
 const DEMO_STUDENTS: any[] = [
-  { id: '1', school_id: 'demo-school', student_number: 'P001', first_name: 'John', last_name: 'Akena', gender: 'M', class_id: '1', status: 'active', classes: { id: '1', name: 'P.1', level: 'primary' } },
-  { id: '2', school_id: 'demo-school', student_number: 'P002', first_name: 'Mary', last_name: 'Adoch', gender: 'F', class_id: '1', status: 'active', classes: { id: '1', name: 'P.1', level: 'primary' } },
-  { id: '3', school_id: 'demo-school', student_number: 'P003', first_name: 'Peter', last_name: 'Okello', gender: 'M', class_id: '2', status: 'active', classes: { id: '2', name: 'P.2', level: 'primary' } },
-  { id: '4', school_id: 'demo-school', student_number: 'P004', first_name: 'Sarah', last_name: 'Namatovu', gender: 'F', class_id: '2', status: 'active', classes: { id: '2', name: 'P.2', level: 'primary' } },
-  { id: '5', school_id: 'demo-school', student_number: 'P005', first_name: 'James', last_name: 'Ochieng', gender: 'M', class_id: '3', status: 'active', classes: { id: '3', name: 'P.3', level: 'primary' } },
+  { id: '1', school_id: 'demo-school', student_number: 'P001', first_name: 'John', last_name: 'Akena', gender: 'M', class_id: '1', status: 'active', opening_balance: 0, classes: { id: '1', name: 'P.1', level: 'primary' } },
+  { id: '2', school_id: 'demo-school', student_number: 'P002', first_name: 'Mary', last_name: 'Adoch', gender: 'F', class_id: '1', status: 'active', opening_balance: 0, classes: { id: '1', name: 'P.1', level: 'primary' } },
+  { id: '3', school_id: 'demo-school', student_number: 'P003', first_name: 'Peter', last_name: 'Okello', gender: 'M', class_id: '2', status: 'active', opening_balance: 0, classes: { id: '2', name: 'P.2', level: 'primary' } },
+  { id: '4', school_id: 'demo-school', student_number: 'P004', first_name: 'Sarah', last_name: 'Namatovu', gender: 'F', class_id: '2', status: 'active', opening_balance: 0, classes: { id: '2', name: 'P.2', level: 'primary' } },
+  { id: '5', school_id: 'demo-school', student_number: 'P005', first_name: 'James', last_name: 'Ochieng', gender: 'M', class_id: '3', status: 'active', opening_balance: 0, classes: { id: '3', name: 'P.3', level: 'primary' } },
 ]
 
 const DEMO_CLASSES: any[] = [
