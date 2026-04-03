@@ -8,19 +8,18 @@ export function getQuerySchoolId(schoolId: string | undefined, isDemo: boolean):
 }
 
 export async function withTimeout<T>(promise: PromiseLike<T>, ms: number, fallback: T): Promise<T> {
-  try {
-    return await Promise.race([
-      Promise.resolve(promise),
-      new Promise<T>((_, reject) =>
-        setTimeout(() => reject(new Error(`Query timed out after ${ms}ms`)), ms)
-      )
-    ])
-  } catch (e) {
+  // If promise already resolves, return immediately
+  const result = await Promise.race([
+    Promise.resolve(promise),
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`Query timed out after ${ms}ms`)), ms)
+    )
+  ]).catch((e) => {
     if (e instanceof Error && e.message.startsWith('Query timed out')) {
-      console.warn('[hooks] Timeout — returning fallback:', e.message)
+      console.warn('[hooks] Timeout — returning fallback')
       return fallback
     }
-    // Re-throw real errors so hooks can surface them to the user
     throw e
-  }
+  })
+  return result as T
 }
