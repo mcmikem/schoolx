@@ -24,7 +24,7 @@ const ALL_VALID_ROLES: string[] = [
 ]
 
 const DEMO_ALLOWED_ROLES: string[] = [
-  'headmaster', 'dean_of_studies', 'bursar', 'teacher', 'secretary', 'dorm_master',
+  'headmaster', 'dean_of_studies', 'bursar', 'teacher', 'secretary', 'dorm_master', 'admin', 'school_admin'
 ]
 
 function sanitizeDemoRole(raw: unknown): User['role'] {

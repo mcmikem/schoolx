@@ -22,7 +22,7 @@ export interface School {
 }
 
 // User types
-export type UserRole = 'super_admin' | 'school_admin' | 'headmaster' | 'dean_of_studies' | 'bursar' | 'teacher' | 'secretary' | 'dorm_master' | 'student' | 'parent'
+export type UserRole = 'super_admin' | 'school_admin' | 'admin' | 'board' | 'headmaster' | 'dean_of_studies' | 'bursar' | 'teacher' | 'secretary' | 'dorm_master' | 'student' | 'parent'
 
 export interface User {
   id: string
