@@ -2,33 +2,37 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const isDev = process.env.NODE_ENV === 'development'
+const debugLog = (...args: unknown[]) => {
+  if (isDev) console.log(...args)
+}
 
 // Debug logging
-console.log('[Supabase Debug] URL:', supabaseUrl)
-console.log('[Supabase Debug] Anon Key:', supabaseAnonKey ? supabaseAnonKey.substring(0, 20) + '...' : 'null')
+debugLog('[Supabase Debug] URL:', supabaseUrl)
+debugLog('[Supabase Debug] Anon Key:', supabaseAnonKey ? supabaseAnonKey.substring(0, 20) + '...' : 'null')
 
 const isValidHttpUrl = (value?: string | null) => {
   if (!value || value.includes('your-supabase-url')) return false
   try {
     const parsed = new URL(value)
     const result = parsed.protocol === 'http:' || parsed.protocol === 'https:'
-    console.log('[Supabase Debug] isValidHttpUrl:', result, 'for', value)
+    debugLog('[Supabase Debug] isValidHttpUrl:', result, 'for', value)
     return result
   } catch {
-    console.log('[Supabase Debug] isValidHttpUrl: false (exception)')
+    debugLog('[Supabase Debug] isValidHttpUrl: false (exception)')
     return false
   }
 }
 
 const isValidAnonKey = (key?: string) => {
   if (!key) {
-    console.log('[Supabase Debug] isValidAnonKey: false (null/empty)')
+    debugLog('[Supabase Debug] isValidAnonKey: false (null/empty)')
     return false
   }
   const sbPublishable = key.startsWith('sb_publishable_') && key.length > 20
   const eyJ = key.startsWith('eyJ') && key.length > 50
   const result = sbPublishable || eyJ
-  console.log('[Supabase Debug] isValidAnonKey:', result, '| sb_publishable_:', sbPublishable, '| eyJ:', eyJ, '| key:', key.substring(0, 30) + '...')
+  debugLog('[Supabase Debug] isValidAnonKey:', result, '| sb_publishable_:', sbPublishable, '| eyJ:', eyJ, '| key:', key.substring(0, 30) + '...')
   return result
 }
 
@@ -36,7 +40,7 @@ const hasUsableSupabaseConfig =
   isValidHttpUrl(supabaseUrl) &&
   isValidAnonKey(supabaseAnonKey)
 
-console.log('[Supabase Debug] hasUsableSupabaseConfig:', hasUsableSupabaseConfig)
+debugLog('[Supabase Debug] hasUsableSupabaseConfig:', hasUsableSupabaseConfig)
 
 const createMockQueryBuilder = () => {
   const listResult = { data: [], error: null, count: 0 }
@@ -102,9 +106,9 @@ const realClient = hasUsableSupabaseConfig
     })();
 
 // Debug output
-console.log('[Supabase] hasUsableSupabaseConfig:', hasUsableSupabaseConfig);
-console.log('[Supabase] realClient:', realClient ? 'created' : 'null');
-console.log('[Supabase] final supabase:', !!(realClient || createMockClient()) ? 'real/mock' : 'null');
+debugLog('[Supabase] hasUsableSupabaseConfig:', hasUsableSupabaseConfig);
+debugLog('[Supabase] realClient:', realClient ? 'created' : 'null');
+debugLog('[Supabase] final supabase:', !!(realClient || createMockClient()) ? 'real/mock' : 'null');
 
 export const supabase = realClient || createMockClient()
 

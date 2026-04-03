@@ -1,7 +1,13 @@
 import { createPayPalOrder } from '@/lib/payments/paypal'
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 })
+  }
+
   console.log('Testing PayPal integration...')
   console.log('PAYPAL_MODE:', process.env.PAYPAL_MODE)
   console.log('PAYPAL_CLIENT_ID exists:', !!process.env.PAYPAL_CLIENT_ID)
