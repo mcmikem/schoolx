@@ -5,8 +5,13 @@ import { useAcademic } from '@/lib/academic-context'
 import { useClasses, useSubjects, useStaff } from '@/lib/hooks'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
-
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardHeader, CardBody, CardTitle } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
+import { Tabs, TabPanel } from '@/components/ui/Tabs'
 
 interface ClassCompletion {
   class_id: string
@@ -39,24 +44,22 @@ export default function MarksCompletionPage() {
   const [teacherStatuses, setTeacherStatuses] = useState<TeacherStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [chasing, setChasing] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState('classes')
 
   const fetchCompletionData = useCallback(async () => {
     if (!school?.id || classes.length === 0) return
     setLoading(true)
     try {
-      // Fetch all grades for this term
       const { data: gradesData } = await supabase
         .from('grades')
         .select('class_id, subject_id, recorded_by')
         .eq('term', currentTerm || 1)
         .eq('academic_year', academicYear || '2026')
 
-      // Fetch allocations (which teacher teaches which subject in which class)
       const { data: allocationsData } = await supabase
         .from('allocations')
         .select('teacher_id, subject_id, class_id')
 
-      // Build grades set: class_id + subject_id combos that have marks
       const gradesSet = new Set<string>()
       const gradesByClass: Record<string, Set<string>> = {}
 
@@ -67,14 +70,12 @@ export default function MarksCompletionPage() {
         gradesByClass[g.class_id].add(g.subject_id)
       })
 
-      // Build allocation records per class
       const allocByClass: Record<string, { subject_id: string; teacher_id: string }[]> = {}
       allocationsData?.forEach(a => {
         if (!allocByClass[a.class_id]) allocByClass[a.class_id] = []
         allocByClass[a.class_id].push({ subject_id: a.subject_id, teacher_id: a.teacher_id })
       })
 
-      // Class completions
       const completions: ClassCompletion[] = classes.map((cls: any) => {
         const classAllocs = allocByClass[cls.id] || []
         const totalSubjects = Math.max(classAllocs.length, 1)
@@ -91,7 +92,6 @@ export default function MarksCompletionPage() {
           if (!teacherIds.includes(a.teacher_id)) teacherIds.push(a.teacher_id)
         })
 
-        // If no allocations, use subjects list
         const effectiveTotal = classAllocs.length > 0 ? classAllocs.length : subjects.length
         const effectiveWithMarks = classAllocs.length > 0 ? subjectsWithMarks : graded.size
 
@@ -109,7 +109,6 @@ export default function MarksCompletionPage() {
       completions.sort((a, b) => b.completion_pct - a.completion_pct)
       setClassCompletions(completions)
 
-      // Teacher statuses
       const teacherMap: Record<string, TeacherStatus> = {}
 
       staff.filter((s: any) => s.role === 'teacher').forEach((t: any) => {
@@ -169,7 +168,6 @@ export default function MarksCompletionPage() {
 
       const pendingList = teacher.pending_classes.join(', ')
 
-      // Send SMS reminder
       await supabase.from('messages').insert({
         school_id: school!.id,
         recipient_type: 'staff',
@@ -194,175 +192,187 @@ export default function MarksCompletionPage() {
   const fullyComplete = classCompletions.filter(c => c.completion_pct === 100).length
   const incomplete = classCompletions.filter(c => c.completion_pct < 100).length
 
+  const tabs = [
+    { id: 'classes', label: 'By Class', count: classCompletions.length },
+    { id: 'teachers', label: 'By Teacher', count: teacherStatuses.length },
+  ]
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Marks Completion Tracker</h1>
-        <p className="text-[#5c6670] mt-1">{academicYear} Term {currentTerm} — Track marks submission progress</p>
-      </div>
+      <PageHeader 
+        title="Marks Completion Tracker" 
+        subtitle={`${academicYear} Term ${currentTerm} — Track marks submission progress`}
+      />
 
-      {/* Overall Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-        <div className="card">
-          <div className="card-body text-center">
-            <div className="text-3xl font-bold text-[#002045]">{overallCompletion}%</div>
-            <div className="text-sm text-[#5c6670]">Overall Completion</div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-body text-center">
+        <Card>
+          <CardBody className="text-center">
+            <div className="text-3xl font-bold text-[var(--primary)]">{overallCompletion}%</div>
+            <div className="text-sm text-[var(--t3)]">Overall Completion</div>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody className="text-center">
             <div className="text-3xl font-bold text-green-600">{fullyComplete}</div>
-            <div className="text-sm text-[#5c6670]">Classes Complete</div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-body text-center">
+            <div className="text-sm text-[var(--t3)]">Classes Complete</div>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody className="text-center">
             <div className="text-3xl font-bold text-amber-600">{incomplete}</div>
-            <div className="text-sm text-[#5c6670]">Classes Incomplete</div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-body text-center">
-            <div className="text-3xl font-bold text-blue-600">{teacherStatuses.filter(t => t.all_done).length}/{teacherStatuses.length}</div>
-            <div className="text-sm text-[#5c6670]">Teachers Done</div>
-          </div>
-        </div>
+            <div className="text-sm text-[var(--t3)]">Classes Incomplete</div>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody className="text-center">
+            <div className="text-3xl font-bold text-[var(--primary)]">{teacherStatuses.filter(t => t.all_done).length}/{teacherStatuses.length}</div>
+            <div className="text-sm text-[var(--t3)]">Teachers Done</div>
+          </CardBody>
+        </Card>
       </div>
 
-      {/* Class Completion */}
-      <div className="card mb-6">
-        <div className="card-header">
-          <div className="card-title">Completion by Class</div>
-        </div>
-        <div className="table-wrapper">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Class</th>
-                <th>Subjects with Marks</th>
-                <th>Progress</th>
-                <th>Missing Subjects</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading || classesLoading ? (
-                <tr><td colSpan={5} className="text-center py-8 text-[#5c6670]">Loading...</td></tr>
-              ) : classCompletions.length === 0 ? (
-                <tr><td colSpan={5} className="text-center py-8 text-[#5c6670]">No classes found</td></tr>
-              ) : (
-                classCompletions.map(cls => {
-                  const color = cls.completion_pct === 100 ? 'bg-green-500' : cls.completion_pct >= 50 ? 'bg-amber-500' : 'bg-red-500'
-                  return (
-                    <tr key={cls.class_id}>
-                      <td className="font-medium">{cls.class_name}</td>
-                      <td>{cls.subjects_with_marks} / {cls.total_subjects}</td>
-                      <td style={{ minWidth: 160 }}>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full ${color}`} style={{ width: `${cls.completion_pct}%` }} />
-                          </div>
-                          <span className="text-xs font-bold w-10 text-right">{cls.completion_pct}%</span>
-                        </div>
-                      </td>
-                      <td>
-                        {cls.missing_subjects.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {cls.missing_subjects.map((s, i) => (
-                              <span key={i} className="text-xs px-2 py-0.5 bg-red-50 text-red-700 rounded-full">{s}</span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-green-600 font-medium">All submitted</span>
-                        )}
-                      </td>
-                      <td>
-                        {cls.completion_pct === 100 ? (
-                          <span className="badge bg-green-100 text-green-800">Complete</span>
-                        ) : (
-                          <span className="badge bg-amber-100 text-amber-800">Pending</span>
-                        )}
-                      </td>
+      <Card className="mb-6">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <CardTitle>Completion Details</CardTitle>
+          <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+        </CardHeader>
+        <CardBody>
+          <TabPanel activeTab={activeTab} tabId="classes">
+            {loading || classesLoading ? (
+              <TableSkeleton rows={5} />
+            ) : classCompletions.length === 0 ? (
+              <EmptyState 
+                icon="school" 
+                title="No classes found"
+                description="Create classes to track marks completion"
+              />
+            ) : (
+              <div className="table-wrapper">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Class</th>
+                      <th>Subjects with Marks</th>
+                      <th>Progress</th>
+                      <th>Missing Subjects</th>
+                      <th>Status</th>
                     </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                  </thead>
+                  <tbody>
+                    {classCompletions.map(cls => {
+                      const color = cls.completion_pct === 100 ? 'bg-green-500' : cls.completion_pct >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                      return (
+                        <tr key={cls.class_id}>
+                          <td className="font-medium">{cls.class_name}</td>
+                          <td>{cls.subjects_with_marks} / {cls.total_subjects}</td>
+                          <td style={{ minWidth: 160 }}>
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div className={`h-full rounded-full ${color}`} style={{ width: `${cls.completion_pct}%` }} />
+                              </div>
+                              <span className="text-xs font-bold w-10 text-right">{cls.completion_pct}%</span>
+                            </div>
+                          </td>
+                          <td>
+                            {cls.missing_subjects.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {cls.missing_subjects.map((s, i) => (
+                                  <span key={i} className="text-xs px-2 py-0.5 bg-red-50 text-red-700 rounded-full">{s}</span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-green-600 font-medium">All submitted</span>
+                            )}
+                          </td>
+                          <td>
+                            {cls.completion_pct === 100 ? (
+                              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">Complete</span>
+                            ) : (
+                              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Pending</span>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </TabPanel>
 
-      {/* Teacher Submission Status */}
-      <div className="card">
-        <div className="card-header">
-          <div className="card-title">Teacher Marks Submission</div>
-          <div className="card-sub">Chase teachers who haven&apos;t submitted marks</div>
-        </div>
-        <div className="table-wrapper">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Teacher</th>
-                <th>Submitted</th>
-                <th>Pending Classes</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {teacherStatuses.length === 0 && !loading ? (
-                <tr><td colSpan={5} className="text-center py-8 text-[#5c6670]">No teachers with allocations</td></tr>
-              ) : (
-                teacherStatuses.map(teacher => (
-                  <tr key={teacher.teacher_id}>
-                    <td className="font-medium">{teacher.teacher_name}</td>
-                    <td>{teacher.subjects_submitted} / {teacher.subjects_assigned}</td>
-                    <td>
-                      {teacher.pending_classes.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {teacher.pending_classes.slice(0, 3).map((p, i) => (
-                            <span key={i} className="text-xs px-2 py-0.5 bg-red-50 text-red-700 rounded-full">{p}</span>
-                          ))}
-                          {teacher.pending_classes.length > 3 && (
-                            <span className="text-xs text-[#5c6670]">+{teacher.pending_classes.length - 3} more</span>
+          <TabPanel activeTab={activeTab} tabId="teachers">
+            {teacherStatuses.length === 0 && !loading ? (
+              <EmptyState 
+                icon="person" 
+                title="No teachers with allocations"
+                description="Assign teachers to subjects to track their submission"
+              />
+            ) : (
+              <div className="table-wrapper">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Teacher</th>
+                      <th>Submitted</th>
+                      <th>Pending Classes</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teacherStatuses.map(teacher => (
+                      <tr key={teacher.teacher_id}>
+                        <td className="font-medium">{teacher.teacher_name}</td>
+                        <td>{teacher.subjects_submitted} / {teacher.subjects_assigned}</td>
+                        <td>
+                          {teacher.pending_classes.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {teacher.pending_classes.slice(0, 3).map((p, i) => (
+                                <span key={i} className="text-xs px-2 py-0.5 bg-red-50 text-red-700 rounded-full">{p}</span>
+                              ))}
+                              {teacher.pending_classes.length > 3 && (
+                                <span className="text-xs text-[var(--t3)]">+{teacher.pending_classes.length - 3} more</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-green-600">—</span>
                           )}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-green-600">—</span>
-                      )}
-                    </td>
-                    <td>
-                      {teacher.all_done ? (
-                        <span className="flex items-center gap-1 text-xs font-medium text-green-600">
-                          <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
-                          Complete
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-xs font-medium text-amber-600">
-                          <span className="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
-                          Incomplete
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      {!teacher.all_done && (
-                        <button
-                          onClick={() => handleChase(teacher.teacher_id, teacher.teacher_name)}
-                          disabled={chasing === teacher.teacher_id}
-                          className="btn-sm bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 flex items-center gap-1"
-                        >
-                          <MaterialIcon icon="sms" style={{ fontSize: '14px' }} />
-                          {chasing === teacher.teacher_id ? 'Sending...' : 'Chase'}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                        </td>
+                        <td>
+                          {teacher.all_done ? (
+                            <span className="flex items-center gap-1 text-xs font-medium text-green-600">
+                              <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
+                              Complete
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-xs font-medium text-amber-600">
+                              <span className="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
+                              Incomplete
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          {!teacher.all_done && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleChase(teacher.teacher_id, teacher.teacher_name)}
+                              disabled={chasing === teacher.teacher_id}
+                              loading={chasing === teacher.teacher_id}
+                            >
+                              <MaterialIcon icon="sms" style={{ fontSize: '14px' }} />
+                              Chase
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </TabPanel>
+        </CardBody>
+      </Card>
     </div>
   )
 }

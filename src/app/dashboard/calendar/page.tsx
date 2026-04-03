@@ -5,6 +5,10 @@ import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import MaterialIcon from '@/components/MaterialIcon'
 import { EVENT_TYPES } from '@/lib/constants'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Button } from '@/components/ui/index'
+import { Card, CardHeader, CardBody } from '@/components/ui/Card'
+import { EmptyState } from '@/components/EmptyState'
 
 interface SchoolEvent {
   id: string
@@ -141,33 +145,33 @@ export default function CalendarPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#002045]">Calendar</h1>
-          <p className="text-[#5c6670] mt-1">Manage school events and schedules</p>
-        </div>
-        <button onClick={() => setShowModal(true)} className="btn btn-primary">
-          <MaterialIcon icon="add" />
-          Add Event
-        </button>
-      </div>
+      <PageHeader 
+        title="Calendar"
+        subtitle="Manage school events and schedules"
+        actions={
+          <Button onClick={() => setShowModal(true)}>
+            <MaterialIcon icon="add" />
+            Add Event
+          </Button>
+        }
+      />
 
       <div className="flex items-center justify-between mb-6">
         <div className="flex gap-2">
-          <button onClick={goPrevMonth} className="btn btn-secondary btn-sm">
+          <Button variant="secondary" size="sm" onClick={goPrevMonth}>
             <MaterialIcon icon="chevron_left" />
-          </button>
-          <button onClick={goToday} className="btn btn-secondary btn-sm">Today</button>
-          <button onClick={goNextMonth} className="btn btn-secondary btn-sm">
+          </Button>
+          <Button variant="secondary" size="sm" onClick={goToday}>Today</Button>
+          <Button variant="secondary" size="sm" onClick={goNextMonth}>
             <MaterialIcon icon="chevron_right" />
-          </button>
+          </Button>
         </div>
         <h2 className="text-xl font-bold text-[#191c1d]">{months[currentMonth]} {currentYear}</h2>
         <div className="w-32" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-[#e8eaed] p-4">
+        <Card className="lg:col-span-2 p-4">
           <div className="grid grid-cols-7 gap-1 mb-2">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
               <div key={d} className="text-center text-xs font-semibold text-[#5c6670] py-2">{d}</div>
@@ -215,10 +219,10 @@ export default function CalendarPage() {
               )
             })}
           </div>
-        </div>
+        </Card>
 
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+          <Card className="p-6">
             <h3 className="font-semibold text-[#191c1d] mb-4">
               Events this month ({monthEvents.length})
             </h3>
@@ -232,7 +236,12 @@ export default function CalendarPage() {
                 ))}
               </div>
             ) : monthEvents.length === 0 ? (
-              <p className="text-[#5c6670] text-sm">No events this month</p>
+              <EmptyState
+                icon="event"
+                title="No events this month"
+                description="Add events to see them here"
+                action={{ label: 'Add Event', onClick: () => setShowModal(true) }}
+              />
             ) : (
               <div className="space-y-3 max-h-[300px] overflow-y-auto">
                 {monthEvents.map((event) => (
@@ -250,16 +259,16 @@ export default function CalendarPage() {
                       </div>
                       {event.description && <div className="text-xs text-[#5c6670] mt-1">{event.description}</div>}
                     </div>
-                    <button onClick={() => deleteEvent(event.id)} className="text-[#5c6670] hover:text-[#ba1a1a] flex-shrink-0">
+                    <Button variant="ghost" size="sm" onClick={() => deleteEvent(event.id)}>
                       <MaterialIcon icon="close" style={{ fontSize: 16 }} />
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
             )}
-          </div>
+          </Card>
 
-          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+          <Card className="p-6">
             <h3 className="font-semibold text-[#191c1d] mb-3">Event Types</h3>
             <div className="space-y-2">
               {Object.entries(typeColors).map(([type, colors]) => (
@@ -269,7 +278,7 @@ export default function CalendarPage() {
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 
@@ -279,9 +288,9 @@ export default function CalendarPage() {
             <div className="p-6 border-b border-[#e8eaed]">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-[#191c1d]">Add Event</h2>
-                <button onClick={() => setShowModal(false)} className="p-2 text-[#5c6670] hover:text-[#191c1d]">
+                <Button variant="ghost" size="sm" onClick={() => setShowModal(false)}>
                   <MaterialIcon icon="close" />
-                </button>
+                </Button>
               </div>
             </div>
             <form onSubmit={handleAddEvent} className="p-6 space-y-4">
@@ -320,8 +329,8 @@ export default function CalendarPage() {
                 <textarea value={newEvent.description} onChange={(e) => setNewEvent({...newEvent, description: e.target.value})} className="input min-h-[80px]" />
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary flex-1">Cancel</button>
-                <button type="submit" className="btn btn-primary flex-1">Add Event</button>
+                <Button variant="secondary" className="flex-1" onClick={() => setShowModal(false)}>Cancel</Button>
+                <Button variant="primary" className="flex-1" type="submit">Add Event</Button>
               </div>
             </form>
           </div>

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { updateSchoolSubscription, sendPaymentReceipt, handleSubscriptionChange } from '@/lib/subscription'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { PlanType } from '@/lib/payments/subscription-client'
 
 export async function POST(request: Request) {
   const body = await request.text()
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
             session.metadata?.school_id || '',
             {
               status: mapStripeSubscriptionStatus(subscription.status),
-              plan: 'premium', // TODO: Determine from price
+              plan: determinePlanFromPrice(subscription.items.data.price),
               provider: 'stripe',
               subscriptionId: subscription.id
             }
@@ -91,7 +92,7 @@ export async function POST(request: Request) {
           (subscription.customer as any)?.metadata?.school_id || '',
           {
             status: 'active',
-            plan: 'premium', // TODO: Determine from price
+            plan: determinePlanFromPrice(subscription.items.data.price),
             provider: 'stripe',
             subscriptionId: subscription.id
           }
@@ -105,7 +106,7 @@ export async function POST(request: Request) {
             amount: invoice.amount_paid / 100, // Convert from cents
             currency: invoice.currency,
             date: new Date(invoice.created * 1000).toISOString(),
-            plan: 'premium', // TODO: Determine from price
+            plan: determinePlanFromPrice(subscription.items.data.price),
             provider: 'stripe',
             transactionId: (invoice as any).payment_intent as string
           }
@@ -153,7 +154,7 @@ export async function POST(request: Request) {
           subscription.metadata?.school_id || '',
           {
             status: mapStripeSubscriptionStatus(subscription.status),
-            plan: 'premium', // TODO: Determine from price
+            plan: determinePlanFromPrice(subscription.items.data.price),
             provider: 'stripe',
             subscriptionId: subscription.id
           }
@@ -176,7 +177,7 @@ export async function POST(request: Request) {
           subscription.metadata?.school_id || '',
           {
             status: mapStripeSubscriptionStatus(subscription.status),
-            plan: 'premium', // TODO: Determine from price
+            plan: determinePlanFromPrice(subscription.items.data.price),
             provider: 'stripe',
             subscriptionId: subscription.id
           }
@@ -217,7 +218,34 @@ export async function POST(request: Request) {
   return new NextResponse(JSON.stringify({ received: true }), { status: 200 });
 }
 
-// Helper function to map Stripe subscription status to our accepted status values
+// Map Stripe price IDs to our plan types
+const PRICE_TO_PLAN_MAP: Record<string, PlanType> = {
+  'price_basic': 'basic',
+  'price_premium': 'premium',
+  'price_max': 'max',
+}
+
+// Helper function to determine plan from Stripe price
+function determinePlanFromPrice(price: any): PlanType {
+  // If we have a price ID, try to map it
+  if (price?.id) {
+    const plan = PRICE_TO_PLAN_MAP[price.id]
+    if (plan) return plan
+  }
+  
+  // Fallback: try to determine from amount (in cents)
+  const amount = price?.unit_amount
+  if (amount) {
+    // These are approximate USD amounts in cents
+    if (amount <= 500) return 'free_trial'    // Free trial
+    if (amount <= 2500) return 'basic'        // ~$25/month
+    if (amount <= 5000) return 'premium'      // ~$50/month
+    return 'max'                               // ~$75+/month
+  }
+  
+  // Default to premium if we can't determine
+  return 'premium'
+}
 function mapStripeSubscriptionStatus(status: any): 
   | 'active' 
   | 'canceled' 

@@ -4,6 +4,12 @@ import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardBody } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { Tabs } from '@/components/ui/Tabs'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
 
 interface Student {
   id: string
@@ -45,6 +51,7 @@ export default function BehaviorPage() {
   })
   const [submitting, setSubmitting] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [filterSeverity, setFilterSeverity] = useState('all')
 
   const fetchLogs = useCallback(async () => {
     if (!school?.id) return
@@ -191,128 +198,118 @@ export default function BehaviorPage() {
     return 'bg-gray-100 text-gray-800'
   }
 
+  const filteredLogs = logs.filter(log => {
+    if (filterSeverity === 'all') return true
+    return log.severity === filterSeverity
+  })
+
+  const tabs = [
+    { id: 'all', label: 'All', count: logs.length },
+    { id: 'Positive', label: 'Positive', count: logs.filter(l => l.severity === 'Positive').length },
+    { id: 'Minor', label: 'Minor', count: logs.filter(l => l.severity === 'Minor').length },
+    { id: 'Moderate', label: 'Moderate', count: logs.filter(l => l.severity === 'Moderate').length },
+    { id: 'Serious', label: 'Serious', count: logs.filter(l => l.severity === 'Serious').length },
+    { id: 'Critical', label: 'Critical', count: logs.filter(l => l.severity === 'Critical').length },
+  ]
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#002045]">Behavior Log</h1>
-          <p className="text-[#5c6670] mt-1">Track student behavior and incidents</p>
-        </div>
-        <button onClick={() => openModal()} className="btn btn-primary">
-          <MaterialIcon icon="add" className="text-lg" />
-          Add Log
-        </button>
-      </div>
+      <PageHeader 
+        title="Behavior Log" 
+        subtitle="Track student behavior and incidents"
+        actions={
+          <Button onClick={() => openModal()} icon={<MaterialIcon icon="add" className="text-lg" />}>
+            Add Log
+          </Button>
+        }
+      />
+
+      <Tabs 
+        tabs={tabs}
+        activeTab={filterSeverity}
+        onChange={setFilterSeverity}
+        className="mb-6"
+      />
 
       {loading ? (
-        <div className="tbl-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Student</th>
-                <th>Incident</th>
-                <th>Type</th>
-                <th>Severity</th>
-                <th>Date</th>
-                <th>Action</th>
-                <th>Recorded By</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {[1, 2, 3, 4, 5].map((i) => (
-                <tr key={i}>
-                  <td><div className="skeleton h-4 w-32" /></td>
-                  <td><div className="skeleton h-4 w-40" /></td>
-                  <td><div className="skeleton h-4 w-24" /></td>
-                  <td><div className="skeleton h-4 w-20" /></td>
-                  <td><div className="skeleton h-4 w-24" /></td>
-                  <td><div className="skeleton h-4 w-32" /></td>
-                  <td><div className="skeleton h-4 w-24" /></td>
-                  <td><div className="skeleton h-8 w-20" /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Card>
+          <CardBody className="p-0">
+            <TableSkeleton rows={5} />
+          </CardBody>
+        </Card>
       ) : logs.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 text-center">
-          <div className="w-16 h-16 bg-[#f8fafb] rounded-full flex items-center justify-center mx-auto mb-4">
-            <MaterialIcon icon="policy" className="text-3xl text-[#5c6670]" />
-          </div>
-          <h3 className="text-lg font-semibold text-[#191c1d] mb-2">No behavior logs</h3>
-          <p className="text-[#5c6670]">Add your first behavior log to get started</p>
-          <button onClick={() => openModal()} className="btn btn-primary mt-4">
-            <MaterialIcon icon="add" className="text-lg" />
-            Add Log
-          </button>
-        </div>
+        <EmptyState
+          icon="policy"
+          title="No behavior logs"
+          description="Add your first behavior log to get started"
+          action={{ label: 'Add Log', onClick: () => openModal() }}
+        />
       ) : (
-        <div className="tbl-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Student</th>
-                <th>Incident</th>
-                <th>Type</th>
-                <th>Severity</th>
-                <th>Date</th>
-                <th>Action Taken</th>
-                <th>Recorded By</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map(log => (
-                <tr key={log.id}>
-                  <td className="font-medium">{log.students?.first_name} {log.students?.last_name}</td>
-                  <td className="max-w-xs truncate">{log.description}</td>
-                  <td>
-                    <span className={`badge ${log.severity === 'positive' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {log.type}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`badge ${getSeverityClass(log.severity)}`}>
-                      {log.severity}
-                    </span>
-                  </td>
-                  <td>{log.incident_date ? new Date(log.incident_date).toLocaleDateString() : '-'}</td>
-                  <td className="max-w-xs truncate">{log.action_taken || '-'}</td>
-                  <td>{log.users?.full_name || '-'}</td>
-                  <td>
-                    <div className="flex gap-2">
-                      <button onClick={() => openModal(log)} className="btn btn-sm btn-ghost">
-                        <MaterialIcon icon="edit" className="text-lg" />
-                      </button>
-                      <button onClick={() => setDeleteId(log.id)} className="btn btn-sm btn-ghost text-red-500">
-                        <MaterialIcon icon="delete" className="text-lg" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Card>
+          <CardBody className="p-0">
+            <div className="overflow-x-auto">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Incident</th>
+                    <th>Type</th>
+                    <th>Severity</th>
+                    <th>Date</th>
+                    <th>Action Taken</th>
+                    <th>Recorded By</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLogs.map(log => (
+                    <tr key={log.id}>
+                      <td className="font-medium">{log.students?.first_name} {log.students?.last_name}</td>
+                      <td className="max-w-xs truncate">{log.description}</td>
+                      <td>
+                        <span className={`badge ${log.severity === 'Positive' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {log.type}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`badge ${getSeverityClass(log.severity)}`}>
+                          {log.severity}
+                        </span>
+                      </td>
+                      <td>{log.incident_date ? new Date(log.incident_date).toLocaleDateString() : '-'}</td>
+                      <td className="max-w-xs truncate">{log.action_taken || '-'}</td>
+                      <td>{log.users?.full_name || '-'}</td>
+                      <td>
+                        <div className="flex gap-2">
+                          <Button onClick={() => openModal(log)} size="sm" variant="ghost" icon={<MaterialIcon icon="edit" className="text-lg" />} />
+                          <Button onClick={() => setDeleteId(log.id)} size="sm" variant="ghost" icon={<MaterialIcon icon="delete" className="text-lg" />} />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardBody>
+        </Card>
       )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={closeModal}>
-          <div className="bg-white rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-[#e8eaed]">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-[var(--border)]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[#191c1d]">
+                <h2 className="text-lg font-semibold text-[var(--t1)]">
                   {editingLog ? 'Edit Log' : 'Add Log'}
                 </h2>
-                <button onClick={closeModal} className="p-2 text-[#5c6670] hover:text-[#191c1d]">
+                <button onClick={closeModal} className="p-2 text-[var(--t3)] hover:text-[var(--t1)]">
                   <MaterialIcon icon="close" className="text-xl" />
                 </button>
               </div>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Student</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Student</label>
                 {students.length === 0 ? (
                   <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No students available</div>
                 ) : (
@@ -333,7 +330,7 @@ export default function BehaviorPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Incident Type</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Incident Type</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({...formData, type: e.target.value})}
@@ -348,7 +345,7 @@ export default function BehaviorPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Severity</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Severity</label>
                 <select
                   value={formData.severity}
                   onChange={(e) => setFormData({...formData, severity: e.target.value})}
@@ -363,7 +360,7 @@ export default function BehaviorPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Incident Date</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Incident Date</label>
                 <input
                   type="date"
                   value={formData.incident_date}
@@ -374,7 +371,7 @@ export default function BehaviorPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Description</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Description</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
@@ -386,7 +383,7 @@ export default function BehaviorPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Action Taken</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Action Taken</label>
                 <textarea
                   value={formData.action_taken}
                   onChange={(e) => setFormData({...formData, action_taken: e.target.value})}
@@ -397,10 +394,10 @@ export default function BehaviorPage() {
               </div>
 
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={closeModal} className="btn btn-secondary flex-1">Cancel</button>
-                <button type="submit" disabled={submitting} className="btn btn-primary flex-1">
+                <Button type="button" onClick={closeModal} variant="secondary" className="flex-1">Cancel</Button>
+                <Button type="submit" disabled={submitting} className="flex-1">
                   {submitting ? 'Saving...' : editingLog ? 'Update' : 'Add Log'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -409,17 +406,17 @@ export default function BehaviorPage() {
 
       {deleteId && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setDeleteId(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
             <div className="text-center">
               <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <MaterialIcon icon="delete" className="text-2xl text-red-500" />
               </div>
-              <h3 className="text-lg font-semibold text-[#191c1d] mb-2">Delete Log?</h3>
-              <p className="text-[#5c6670]">This action cannot be undone.</p>
+              <h3 className="text-lg font-semibold text-[var(--t1)] mb-2">Delete Log?</h3>
+              <p className="text-[var(--t3)]">This action cannot be undone.</p>
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setDeleteId(null)} className="btn btn-secondary flex-1">Cancel</button>
-              <button onClick={() => handleDelete(deleteId)} className="btn btn-danger flex-1">Delete</button>
+              <Button onClick={() => setDeleteId(null)} variant="secondary" className="flex-1">Cancel</Button>
+              <Button onClick={() => handleDelete(deleteId)} variant="danger" className="flex-1">Delete</Button>
             </div>
           </div>
         </div>

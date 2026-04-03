@@ -1,8 +1,9 @@
 'use client'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
-import { useStudents, useClasses, useSubjects } from '@/lib/hooks'
+import { useStudents, useClasses, useSubjects, useDashboardStats } from '@/lib/hooks'
 import MaterialIcon from '@/components/MaterialIcon'
 
 export default function DeanDashboard() {
@@ -11,6 +12,8 @@ export default function DeanDashboard() {
   const { students } = useStudents(school?.id)
   const { classes } = useClasses(school?.id)
   const { subjects } = useSubjects(school?.id)
+  const { stats, loading: statsLoading } = useDashboardStats(school?.id)
+  const router = useRouter()
 
   const currentDate = new Date()
   const greeting = currentDate.getHours() < 12 ? 'Good Morning' : currentDate.getHours() < 17 ? 'Good Afternoon' : 'Good Evening'
@@ -23,6 +26,10 @@ export default function DeanDashboard() {
     return students.filter(s => s.class_id === classId).length
   }
 
+  const attendanceRate = stats.totalStudents > 0 
+    ? Math.round((stats.presentToday / stats.totalStudents) * 100) 
+    : 0
+
   return (
     <div className="content">
       {/* PAGE HEADER */}
@@ -32,11 +39,11 @@ export default function DeanDashboard() {
           <div className="ph-sub truncate">{school?.name} • {formatDate(currentDate)}</div>
         </div>
         <div className="ph-actions">
-          <button className="btn btn-ghost">
+          <button className="btn btn-ghost" onClick={() => router.push('/dashboard/grades')}>
             <MaterialIcon icon="filter_list" style={{ fontSize: 16 }} />
             Filter
           </button>
-          <button className="btn btn-primary">
+          <button className="btn btn-primary" onClick={() => router.push('/dashboard/grades')}>
             <MaterialIcon icon="add" style={{ fontSize: 16 }} />
             Quick Entry
           </button>
@@ -68,7 +75,7 @@ export default function DeanDashboard() {
                 <MaterialIcon icon="how_to_reg" style={{ fontSize: 18 }} />
               </div>
             </div>
-            <div className="stat-val" style={{ color: 'var(--green)' }}>85%</div>
+            <div className="stat-val" style={{ color: 'var(--green)' }}>{statsLoading ? '...' : `${attendanceRate}%`}</div>
             <div className="text-[11px] text-[var(--t3)] font-medium mt-1 uppercase tracking-wider">Average rate today</div>
           </div>
         </div>
@@ -83,7 +90,7 @@ export default function DeanDashboard() {
               </div>
             </div>
             <div className="stat-val" style={{ color: 'var(--amber)' }}>{subjects.length}</div>
-            <div className="text-[11px] text-[var(--t3)] font-medium mt-1 uppercase tracking-wider">{subjects.length} active</div>
+            <div className="text-[11px] text-[var(--t3)] font-medium mt-1 uppercase tracking-wider">Across {classes.length} classes</div>
           </div>
         </div>
       </div>
@@ -158,25 +165,7 @@ export default function DeanDashboard() {
         </div>
       </div>
 
-      {/* Mobile Bottom Nav */}
-      <div className="mobile-bottom-nav">
-        <Link href="/dashboard" className="mobile-nav-item active">
-          <MaterialIcon icon="home" />
-          <span>Home</span>
-        </Link>
-        <Link href="/dashboard/grades" className="mobile-nav-item">
-          <MaterialIcon icon="menu_book" />
-          <span>Grades</span>
-        </Link>
-        <Link href="/dashboard/attendance" className="mobile-nav-item">
-          <MaterialIcon icon="how_to_reg" />
-          <span>Attendance</span>
-        </Link>
-        <Link href="/dashboard/timetable" className="mobile-nav-item">
-          <MaterialIcon icon="calendar_today" />
-          <span>Table</span>
-        </Link>
-      </div>
+      {/* Mobile bottom nav is rendered by DashboardLayout — do not duplicate here */}
     </div>
   )
 }

@@ -6,6 +6,16 @@ import { useToast } from '@/components/Toast'
 import Link from 'next/link'
 import OmutoLogo from '@/components/OmutoLogo'
 
+const DEMO_KEY = 'omuto_demo_v1'
+
+function encryptDemoData(data: object): string {
+  try {
+    return btoa(JSON.stringify(data))
+  } catch {
+    return ''
+  }
+}
+
 function MaterialIcon({ icon, className, children }: { icon: string; className?: string; children?: React.ReactNode }) {
   return <span className={`material-symbols-outlined ${className || ''}`}>{icon || children}</span>
 }
@@ -50,16 +60,15 @@ export default function LoginPage() {
     const cleanPhone = phone.replace(/[^0-9]/g, '')
     
     // Clear any previous demo data before login
-    localStorage.removeItem('demo_user')
-    localStorage.removeItem('demo_school')
+    localStorage.removeItem(DEMO_KEY)
     
     if (password === 'demo1234' && demoUsers[cleanPhone]) {
       // Check if demo school exists, if not create it
       if (!supabase) {
         // No supabase - use local demo mode
         const demoUser = demoUsers[cleanPhone]
-        localStorage.setItem('demo_user', JSON.stringify(demoUser))
-        localStorage.setItem('demo_school', JSON.stringify({ id: 'demo-school', name: "St. Mary's Primary School" }))
+        const demoData = encryptDemoData({ demoUser, demoSchool: { id: 'demo-school', name: "St. Mary's Primary School" } })
+        localStorage.setItem(DEMO_KEY, demoData)
         toast.success(`Welcome, ${demoUser.name} (Demo Mode - Offline)`)
         router.push('/dashboard')
         router.refresh()
@@ -80,7 +89,6 @@ export default function LoginPage() {
         let demoSchool = existingDemoSchool
         
         if (!demoSchool) {
-          console.log('Creating demo school...')
           // Create demo school with all required fields
           const { data: newSchool, error: schoolError } = await supabase
             .from('schools')
@@ -136,7 +144,6 @@ export default function LoginPage() {
           
           // Get class IDs for seeding
           const { data: classIds } = await supabase.from('classes').select('id').eq('school_id', DEMO_SCHOOL_ID)
-          console.log('Classes found:', classIds?.length || 0)
           
           if (classIds && classIds.length > 0) {
             // Seed 200 students across classes
@@ -158,7 +165,6 @@ export default function LoginPage() {
               })
             }
             const { error: studentError } = await supabase.from('students').upsert(students, { onConflict: 'school_id,student_number' })
-            console.log('Students seeded, error:', studentError)
             
             // Seed fee structure
             const feeStructures = [
@@ -168,12 +174,10 @@ export default function LoginPage() {
               { school_id: DEMO_SCHOOL_ID, name: 'Transport', amount: 80000, term: 1, academic_year: '2026' },
             ]
             const { error: feeError } = await supabase.from('fee_structure').upsert(feeStructures, { onConflict: 'school_id,name,term,academic_year' })
-            console.log('Fee structure seeded, error:', feeError)
             
             // Get fee ID and student IDs for payments
             const { data: feeData } = await supabase.from('fee_structure').select('id').eq('school_id', DEMO_SCHOOL_ID).limit(1).single()
             const { data: studentData } = await supabase.from('students').select('id, class_id').eq('school_id', DEMO_SCHOOL_ID)
-            console.log('Students in DB:', studentData?.length || 0, 'Fee:', feeData?.id)
             
             if (feeData && studentData && studentData.length > 0) {
               // Seed some payments (50% full, 20% partial)
@@ -188,7 +192,6 @@ export default function LoginPage() {
               }
               if (payments.length > 0) {
                 const { error: paymentError } = await supabase.from('fee_payments').upsert(payments, { onConflict: 'student_id,fee_id,payment_reference' })
-                console.log('Payments seeded:', payments.length, 'error:', paymentError)
               }
             
               // Seed attendance for last 7 days
@@ -204,7 +207,6 @@ export default function LoginPage() {
                 }
               }
               const { error: attendError } = await supabase.from('attendance').upsert(attendance, { onConflict: 'student_id,date' })
-              console.log('Attendance records:', attendance.length, 'error:', attendError)
             }
             
             // Seed staff
@@ -217,15 +219,12 @@ export default function LoginPage() {
               { school_id: DEMO_SCHOOL_ID, full_name: 'Mrs. Nalwoga Ruth', role: 'teacher', phone: '0772000006', email: 'rnalwoga@demo.school', status: 'active' },
             ]
             const { error: staffError } = await supabase.from('staff').upsert(staff, { onConflict: 'school_id,phone' })
-            console.log('Staff seeded, error:', staffError)
-            
-            console.log('=== DEMO DATA SEEDING COMPLETE ===')
           }
         }
         
         const demoUser = demoUsers[cleanPhone]
-        localStorage.setItem('demo_user', JSON.stringify(demoUser))
-        localStorage.setItem('demo_school', JSON.stringify({ id: DEMO_SCHOOL_ID, name: demoSchool?.name || "St. Mary's Primary School (Demo)" }))
+        const demoData = encryptDemoData({ demoUser, demoSchool: { id: DEMO_SCHOOL_ID, name: demoSchool?.name || "St. Mary's Primary School (Demo)" } })
+        localStorage.setItem(DEMO_KEY, demoData)
         toast.success(`Welcome, ${demoUser.name} (Demo Mode)`)
         router.push('/dashboard')
         router.refresh()

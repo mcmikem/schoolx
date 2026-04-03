@@ -5,32 +5,34 @@ import { useAcademic } from '@/lib/academic-context'
 import { supabase } from '@/lib/supabase'
 import * as XLSX from 'xlsx'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { Tabs, TabPanel } from '@/components/ui/Tabs'
+import { TableSkeleton } from '@/components/ui/Skeleton'
 
 export default function MOESReportsPage() {
   const { school } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
   
   const [loading, setLoading] = useState(false)
-  const [reportType, setReportType] = useState('headcount')
+  const [activeTab, setActiveTab] = useState('headcount')
   const [exporting, setExporting] = useState(false)
   const [reportData, setReportData] = useState<any>(null)
 
   const generateReport = async () => {
     setLoading(true)
     try {
-      // Get all students
       const { data: students } = await supabase
         .from('students')
         .select('*, classes(level, name)')
         .eq('school_id', school?.id)
 
-      // Get all staff
       const { data: staff } = await supabase
         .from('users')
         .select('*')
         .eq('school_id', school?.id)
 
-      // Get classes
       const { data: classes } = await supabase
         .from('classes')
         .select('*')
@@ -44,7 +46,6 @@ export default function MOESReportsPage() {
       const femaleStaff = staff?.filter(s => s.gender === 'F').length || 0
       const totalStaff = maleStaff + femaleStaff
 
-      // Build report data
       const data: any = {
         school: {
           name: school?.name || '',
@@ -92,7 +93,6 @@ export default function MOESReportsPage() {
     try {
       const wb = XLSX.utils.book_new()
 
-      // Summary Sheet
       const summaryData = [
         ['MOES EMIS REPORT - HEADCOUNT'],
         [''],
@@ -116,7 +116,6 @@ export default function MOESReportsPage() {
       const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
       XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary')
 
-      // By Class Sheet
       const classData = [['Class', 'Level', 'Male', 'Female', 'Total']]
       reportData.byClass.forEach((c: any) => {
         classData.push([c.class, c.level, c.male, c.female, c.total])
@@ -124,7 +123,6 @@ export default function MOESReportsPage() {
       const classSheet = XLSX.utils.aoa_to_sheet(classData)
       XLSX.utils.book_append_sheet(wb, classSheet, 'By Class')
 
-      // Save
       XLSX.writeFile(wb, `MOES_EMIS_${school?.school_code}_${academicYear}_T${currentTerm}.xlsx`)
     } catch (err) {
       console.error(err)
@@ -145,117 +143,110 @@ export default function MOESReportsPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">MOES EMIS Reports</h1>
-        <p className="text-[#5c6670] mt-1">Generate reports for Ministry of Education & Sports</p>
-      </div>
+      <PageHeader title="MOES EMIS Reports" subtitle="Generate reports for Ministry of Education & Sports" />
 
-      {/* Controls */}
-      <div className="card mb-6">
-        <div className="card-body">
+      <Card className="mb-6">
+        <CardBody>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Report Type</label>
-              <select value={reportType} onChange={(e) => setReportType(e.target.value)} className="input">
+              <label className="block text-sm font-medium text-[var(--on-surface)] mb-1">Report Type</label>
+              <select value={activeTab} onChange={(e) => setActiveTab(e.target.value)} className="input">
                 <option value="headcount">Student Headcount</option>
                 <option value="staff">Staff Returns</option>
                 <option value="facility">Facility Inventory</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Academic Year</label>
+              <label className="block text-sm font-medium text-[var(--on-surface)] mb-1">Academic Year</label>
               <input value={academicYear} disabled className="input" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">&nbsp;</label>
-              <button onClick={generateReport} disabled={loading} className="btn btn-primary w-full">
+              <Button onClick={generateReport} disabled={loading} className="w-full">
                 {loading ? 'Generating...' : 'Generate Report'}
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
-      </div>
+        </CardBody>
+      </Card>
 
-      {/* Report Preview */}
       {reportData && (
         <>
-          <div className="card mb-4">
-            <div className="card-header">
-              <div className="card-title">Report Preview</div>
+          <Card className="mb-4">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Report Preview</CardTitle>
               <div className="flex gap-2">
-                <button onClick={exportToExcel} disabled={exporting} className="btn btn-sm bg-green-600 text-white">
-                  <MaterialIcon icon="download" style={{ fontSize: 16 }} />
+                <Button onClick={exportToExcel} disabled={exporting} size="sm" variant="secondary" icon={<MaterialIcon icon="download" style={{ fontSize: 16 }} />}>
                   Export Excel
-                </button>
-                <button onClick={exportToJSON} className="btn btn-sm bg-blue-600 text-white">
-                  <MaterialIcon icon="code" style={{ fontSize: 16 }} />
+                </Button>
+                <Button onClick={exportToJSON} size="sm" variant="secondary" icon={<MaterialIcon icon="code" style={{ fontSize: 16 }} />}>
                   Export JSON
-                </button>
+                </Button>
               </div>
-            </div>
-            <div className="card-body">
-              {/* Summary */}
+            </CardHeader>
+            <CardBody>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-[#002045]">{reportData.summary.totalStudents}</div>
-                  <div className="text-sm text-[#5c6670]">Total Students</div>
+                <div className="text-center p-4 bg-[var(--surface-container-low)] rounded-lg">
+                  <div className="text-2xl font-bold text-[var(--t1)]">{reportData.summary.totalStudents}</div>
+                  <div className="text-sm text-[var(--t3)]">Total Students</div>
                 </div>
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <div className="text-center p-4 bg-[var(--surface-container-low)] rounded-lg">
                   <div className="text-2xl font-bold text-blue-600">{reportData.summary.maleStudents}</div>
-                  <div className="text-sm text-[#5c6670]">Male</div>
+                  <div className="text-sm text-[var(--t3)]">Male</div>
                 </div>
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <div className="text-center p-4 bg-[var(--surface-container-low)] rounded-lg">
                   <div className="text-2xl font-bold text-pink-600">{reportData.summary.femaleStudents}</div>
-                  <div className="text-sm text-[#5c6670]">Female</div>
+                  <div className="text-sm text-[var(--t3)]">Female</div>
                 </div>
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <div className="text-center p-4 bg-[var(--surface-container-low)] rounded-lg">
                   <div className="text-2xl font-bold text-green-600">{reportData.summary.totalClasses}</div>
-                  <div className="text-sm text-[#5c6670]">Classes</div>
+                  <div className="text-sm text-[var(--t3)]">Classes</div>
                 </div>
               </div>
 
-              {/* By Class Table */}
               <h3 className="font-bold mb-3">Students by Class</h3>
-              <div className="table-wrapper">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Class</th>
-                      <th>Level</th>
-                      <th>Male</th>
-                      <th>Female</th>
-                      <th>Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reportData.byClass.map((c: any, idx: number) => (
-                      <tr key={idx}>
-                        <td>{c.class}</td>
-                        <td>{c.level}</td>
-                        <td>{c.male}</td>
-                        <td>{c.female}</td>
-                        <td className="font-bold">{c.total}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+              <Card className="overflow-hidden">
+                <CardBody className="p-0">
+                  <div className="table-wrapper">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Class</th>
+                          <th>Level</th>
+                          <th>Male</th>
+                          <th>Female</th>
+                          <th>Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {reportData.byClass.map((c: any, idx: number) => (
+                          <tr key={idx}>
+                            <td>{c.class}</td>
+                            <td>{c.level}</td>
+                            <td>{c.male}</td>
+                            <td>{c.female}</td>
+                            <td className="font-bold">{c.total}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardBody>
+              </Card>
+            </CardBody>
+          </Card>
 
-          {/* Submit to DEO */}
-          <div className="card">
-            <div className="card-body">
+          <Card>
+            <CardBody>
               <h3 className="font-bold mb-3">Submit to District Education Officer</h3>
-              <p className="text-sm text-[#5c6670] mb-4">
+              <p className="text-sm text-[var(--t3)] mb-4">
                 This report can be submitted to your District Education Officer (DEO) for official records.
               </p>
-              <button className="btn btn-primary">
-                <MaterialIcon icon="send" style={{ fontSize: 18 }} />
+              <Button icon={<MaterialIcon icon="send" style={{ fontSize: 18 }} />}>
                 Submit Report to DEO
-              </button>
-            </div>
-          </div>
+              </Button>
+            </CardBody>
+          </Card>
         </>
       )}
     </div>

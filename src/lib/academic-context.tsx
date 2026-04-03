@@ -14,65 +14,53 @@ const AcademicContext = createContext<AcademicContextType | undefined>(undefined
 
 export function AcademicProvider({ children }: { children: ReactNode }) {
   const { school } = useAuth()
-  const [academicYear, setAcademicYearState] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('academic_year')
-      if (saved) return saved
-    }
-    return new Date().getFullYear().toString()
-  })
-
-  const [currentTerm, setCurrentTermState] = useState<1 | 2 | 3>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('current_term')
-      if (saved) return Number(saved) as 1 | 2 | 3
-    }
-    return 1
-  })
+  const [academicYear, setAcademicYearState] = useState<string>(new Date().getFullYear().toString())
+  const [currentTerm, setCurrentTermState] = useState<1 | 2 | 3>(1)
+  const [loading, setLoading] = useState(true)
 
   // Load from school settings on mount or when school changes
   const loadAcademicSettings = useCallback(async () => {
-    if (!school?.id) return
+    if (!school?.id) {
+      setLoading(false)
+      return
+    }
 
     try {
+      setLoading(true)
       const { data, error } = await supabase
         .from('school_settings')
         .select('key, value')
         .eq('school_id', school.id)
         .in('key', ['current_term', 'academic_year'])
       
-      if (error) {
-        console.log('school_settings table not available, using defaults')
-        return
-      }
+      if (error) throw error
       
       if (data && data.length > 0) {
         const settings = Object.fromEntries(data.map(s => [s.key, s.value]))
         
-        // Use functional updates to avoid dependency on state variables
         if (settings.academic_year) {
-          setAcademicYearState(prev => {
-            if (prev !== settings.academic_year) {
-              localStorage.setItem('academic_year', settings.academic_year)
-              return settings.academic_year
-            }
-            return prev
-          })
+          setAcademicYearState(settings.academic_year)
+          localStorage.setItem('academic_year', settings.academic_year)
         }
         
         if (settings.current_term) {
           const newTerm = Number(settings.current_term) as 1 | 2 | 3
-          setCurrentTermState(prev => {
-            if (prev !== newTerm) {
-              localStorage.setItem('current_term', settings.current_term.toString())
-              return newTerm
-            }
-            return prev
-          })
+          setCurrentTermState(newTerm)
+          localStorage.setItem('current_term', settings.current_term.toString())
         }
+      } else {
+        // Initialize if empty
+        const initialYear = new Date().getFullYear().toString()
+        const initialTerm = '1'
+        await supabase.from('school_settings').insert([
+          { school_id: school.id, key: 'academic_year', value: initialYear },
+          { school_id: school.id, key: 'current_term', value: initialTerm }
+        ])
       }
     } catch (err) {
       console.error('Failed to load academic settings', err)
+    } finally {
+      setLoading(false)
     }
   }, [school?.id])
 
@@ -85,7 +73,10 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
     setAcademicYearState(year)
     localStorage.setItem('academic_year', year)
     if (school?.id) {
-      await supabase.from('school_settings').upsert({ school_id: school.id, key: 'academic_year', value: year }, { onConflict: 'school_id,key' })
+      const { error } = await supabase
+        .from('school_settings')
+        .upsert({ school_id: school.id, key: 'academic_year', value: year }, { onConflict: 'school_id,key' })
+      if (error) console.error('Error saving academic year:', error)
     }
   }
 
@@ -93,7 +84,10 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
     setCurrentTermState(term)
     localStorage.setItem('current_term', term.toString())
     if (school?.id) {
-      await supabase.from('school_settings').upsert({ school_id: school.id, key: 'current_term', value: term.toString() }, { onConflict: 'school_id,key' })
+      const { error } = await supabase
+        .from('school_settings')
+        .upsert({ school_id: school.id, key: 'current_term', value: term.toString() }, { onConflict: 'school_id,key' })
+      if (error) console.error('Error saving current term:', error)
     }
   }
 

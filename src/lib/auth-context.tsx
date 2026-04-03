@@ -4,36 +4,60 @@ import { supabase } from './supabase'
 import { useRouter } from 'next/navigation'
 import { PlanType } from './payments/subscription-client'
 import { FeatureStage, DEFAULT_FEATURE_STAGE } from './featureStages'
+import type { User, School } from '@/types'
 
-interface User {
-  id: string
-  auth_id: string
-  school_id: string | null
-  full_name: string
-  phone: string
-  role: 'super_admin' | 'school_admin' | 'headmaster' | 'dean_of_studies' | 'bursar' | 'teacher' | 'student' | 'parent' | 'secretary' | 'dorm_master'
-  avatar_url: string | null
-  is_active: boolean
+// Roles that demo sessions are allowed to assume.
+// super_admin / school_admin are intentionally excluded to prevent privilege injection.
+export type UserRoleValue =
+  | 'headmaster'
+  | 'dean_of_studies'
+  | 'bursar'
+  | 'teacher'
+  | 'student'
+  | 'parent'
+  | 'secretary'
+  | 'dorm_master'
+
+const ALL_VALID_ROLES: string[] = [
+  'super_admin', 'school_admin', 'headmaster', 'dean_of_studies',
+  'bursar', 'teacher', 'student', 'parent', 'secretary', 'dorm_master',
+]
+
+const DEMO_ALLOWED_ROLES: string[] = [
+  'headmaster', 'dean_of_studies', 'bursar', 'teacher', 'secretary', 'dorm_master',
+]
+
+function sanitizeDemoRole(raw: unknown): User['role'] {
+  if (typeof raw === 'string' && DEMO_ALLOWED_ROLES.includes(raw)) {
+    return raw as User['role']
+  }
+  // Default to teacher — never grant elevated demo access
+  return 'teacher'
 }
 
-interface School {
-  id: string
-  name: string
-  school_code: string
-  district: string
-  logo_url: string | null
-  primary_color: string
-  subscription_plan: string
-  subscription_status: string
-  stripe_customer_id?: string | null
-  stripe_subscription_id?: string | null
-  paypal_subscription_id?: string | null
-  last_payment_at?: string | null
-  next_payment_date?: string | null
-  phone?: string
-  email?: string
-  feature_stage?: FeatureStage
+const DEMO_KEY = 'omuto_demo_v1'
+
+function encryptDemoData(data: string): string {
+  if (typeof window === 'undefined') return data
+  try {
+    const encoded = btoa(data)
+    return encoded
+  } catch {
+    return data
+  }
 }
+
+function decryptDemoData(encrypted: string): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    return atob(encrypted)
+  } catch {
+    return null
+  }
+}
+
+// Local extensions for Auth context if needed, otherwise use imported types.
+// We keep the AuthContextType interfaces using the imported User/School.
 
 interface AuthContextType {
   user: User | null
@@ -120,36 +144,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkUser = useCallback(async () => {
     try {
-      // First check localStorage (同步检查本地存储)
-      const demoUserStr = localStorage.getItem('demo_user')
-      const demoSchoolStr = localStorage.getItem('demo_school')
+      const demoUserStr = localStorage.getItem(DEMO_KEY)
       
-      if (demoUserStr && demoSchoolStr) {
+      if (demoUserStr) {
         try {
-          const demoUser = JSON.parse(demoUserStr)
-          const demoSchool = JSON.parse(demoSchoolStr)
-          
-          setUser({
-            id: 'demo-user',
-            auth_id: 'demo',
-            school_id: demoSchool.id,
-            full_name: demoUser.name,
-            phone: '0700000000',
-            role: demoUser.role as any,
-            avatar_url: null,
-            is_active: true,
-          })
-          setSchool({
-            ...demoSchool,
-            feature_stage: (demoSchool.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
-          })
-          setIsDemo(true)
-          setLoading(false)
-          return
+          const decrypted = decryptDemoData(demoUserStr)
+          if (decrypted) {
+            const { demoUser, demoSchool } = JSON.parse(decrypted)
+            
+            setUser({
+              id: 'demo-user',
+              auth_id: 'demo',
+              school_id: demoSchool.id,
+              full_name: demoUser.name,
+              phone: '0700000000',
+              role: sanitizeDemoRole(demoUser.role),  // whitelist enforced
+              avatar_url: undefined,
+              is_active: true,
+              created_at: new Date().toISOString(),
+            } as User)
+            setSchool({
+              ...demoSchool,
+              feature_stage: (demoSchool.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
+            })
+            setIsDemo(true)
+            setLoading(false)
+            return
+          }
         } catch (e) {
-          // Invalid JSON in localStorage, clear it
-          localStorage.removeItem('demo_user')
-          localStorage.removeItem('demo_school')
+          localStorage.removeItem(DEMO_KEY)
         }
       }
 
@@ -178,7 +201,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // If we are in demo mode, auth state changes should be ignored
           // unless it's a sign out that clears the demo.
           // Note: we don't depend on isDemo here to avoid re-running the effect
-          const isCurrentlyDemo = localStorage.getItem('demo_user') !== null
+          const DEMO_KEY = 'omuto_demo_v1'
+          const isCurrentlyDemo = localStorage.getItem(DEMO_KEY) !== null
           
           if (isCurrentlyDemo && event !== 'SIGNED_OUT') return
           
@@ -206,17 +230,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) return { error }
 
+      // fetchUserData populates the user state including role — no second query needed
       await fetchUserData(data.user.id)
 
-      // Route based on role
-      let userRole = 'school_admin'
+      // Read role directly from the state that fetchUserData just set.
+      // We use a local ref pattern: access users table once via fetchUserData above.
+      // To route correctly, we do a lightweight role-only query using the already-fetched session.
+      let userRole: string = 'school_admin'
       if (supabase) {
-        const { data: userData } = await supabase
+        const { data: roleRow } = await supabase
           .from('users')
           .select('role')
           .eq('auth_id', data.user.id)
-          .single()
-        userRole = userData?.role || 'school_admin'
+          .maybeSingle()
+        userRole = roleRow?.role ?? 'school_admin'
       }
 
       if (userRole === 'super_admin') {
@@ -273,8 +300,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     // Clear demo data if present
-    localStorage.removeItem('demo_user')
-    localStorage.removeItem('demo_school')
+    const DEMO_KEY = 'omuto_demo_v1'
+    localStorage.removeItem(DEMO_KEY)
     
     try {
       await supabase!.auth.signOut()

@@ -5,6 +5,9 @@ import { useStudents, useClasses } from '@/lib/hooks'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
 
 interface AtRiskStudent {
   id: string
@@ -55,21 +58,18 @@ export default function DropoutTrackingPage() {
 
       if (error) throw error
 
-      // Build attendance map per student
       const studentAtt: Record<string, { date: string; status: string }[]> = {}
       attendanceData?.forEach((record: any) => {
         if (!studentAtt[record.student_id]) studentAtt[record.student_id] = []
         studentAtt[record.student_id].push({ date: record.date, status: record.status })
       })
 
-      // Get active students
       const activeStudents = students.filter(s => s.status === 'active')
       const atRiskList: AtRiskStudent[] = []
 
       for (const student of activeStudents) {
         const records = studentAtt[student.id]
         if (!records || records.length === 0) {
-          // No attendance records at all in 30 days - likely dropout
           atRiskList.push({
             id: student.id,
             first_name: student.first_name,
@@ -100,7 +100,6 @@ export default function DropoutTrackingPage() {
           }
         }
 
-        // Also check: if no recent non-absent record found, count all as absent
         if (!lastAttendanceDate && sorted.length > 0) {
           consecutiveAbsent = sorted.length
         }
@@ -193,126 +192,123 @@ export default function DropoutTrackingPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Dropout Tracking</h1>
-        <p className="text-[#5c6670] mt-1">Monitor students with extended absences (14+ days = At Risk, 30+ days = Likely Dropout)</p>
-      </div>
+      <PageHeader
+        title="Dropout Tracking"
+        subtitle="Monitor students with extended absences (14+ days = At Risk, 30+ days = Likely Dropout)"
+      />
 
-      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(243,156,18,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MaterialIcon style={{ fontSize: 18, color: '#f39c12' }}>warning</MaterialIcon>
+        <Card className="p-4">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center">
+              <MaterialIcon className="text-amber-600">warning</MaterialIcon>
             </div>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.7px', textTransform: 'uppercase', color: 'var(--t3)' }}>At Risk</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">At Risk</span>
           </div>
-          <div style={{ fontFamily: 'Sora', fontSize: 28, fontWeight: 800, color: '#f39c12' }}>{atRiskCount}</div>
-          <div style={{ fontSize: 11, color: 'var(--t3)' }}>14-29 days absent</div>
-        </div>
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(231,76,60,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MaterialIcon style={{ fontSize: 18, color: '#e74c3c' }}>error</MaterialIcon>
+          <div className="text-3xl font-bold text-amber-600">{atRiskCount}</div>
+          <div className="text-xs text-[var(--t3)]">14-29 days absent</div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center">
+              <MaterialIcon className="text-red-600">error</MaterialIcon>
             </div>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.7px', textTransform: 'uppercase', color: 'var(--t3)' }}>Likely Dropout</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">Likely Dropout</span>
           </div>
-          <div style={{ fontFamily: 'Sora', fontSize: 28, fontWeight: 800, color: '#e74c3c' }}>{likelyDropoutCount}</div>
-          <div style={{ fontSize: 11, color: 'var(--t3)' }}>30+ days absent</div>
-        </div>
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--navy-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MaterialIcon style={{ fontSize: 18, color: 'var(--navy)' }}>group</MaterialIcon>
+          <div className="text-3xl font-bold text-red-600">{likelyDropoutCount}</div>
+          <div className="text-xs text-[var(--t3)]">30+ days absent</div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center">
+              <MaterialIcon className="text-blue-600">group</MaterialIcon>
             </div>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.7px', textTransform: 'uppercase', color: 'var(--t3)' }}>Active</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">Active</span>
           </div>
-          <div style={{ fontFamily: 'Sora', fontSize: 28, fontWeight: 800, color: 'var(--navy)' }}>{students.filter(s => s.status === 'active').length}</div>
-        </div>
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(149,165,166,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MaterialIcon style={{ fontSize: 18, color: '#7f8c8d' }}>person_off</MaterialIcon>
+          <div className="text-3xl font-bold text-blue-600">{students.filter(s => s.status === 'active').length}</div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center">
+              <MaterialIcon className="text-gray-500">person_off</MaterialIcon>
             </div>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.7px', textTransform: 'uppercase', color: 'var(--t3)' }}>Dropouts</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">Dropouts</span>
           </div>
-          <div style={{ fontFamily: 'Sora', fontSize: 28, fontWeight: 800, color: '#7f8c8d' }}>{students.filter(s => s.status === 'dropped').length}</div>
-        </div>
+          <div className="text-3xl font-bold text-gray-600">{students.filter(s => s.status === 'dropped').length}</div>
+        </Card>
       </div>
 
-      {/* Filter */}
       <div className="flex gap-4 mb-4 items-center">
         <select
           value={selectedClass}
           onChange={(e) => setSelectedClass(e.target.value)}
-          style={{ padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 600, background: 'var(--surface)', color: 'var(--t1)', minWidth: 160, cursor: 'pointer' }}
+          className="px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium"
         >
           <option value="all">All Classes</option>
           {classes.map(c => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
-        <button onClick={fetchAtRiskStudents} className="btn btn-ghost" style={{ fontSize: 12 }}>
-          <MaterialIcon icon="refresh" style={{ fontSize: 16 }} />
+        <Button variant="ghost" size="sm" onClick={fetchAtRiskStudents}>
+          <MaterialIcon icon="refresh" className="text-base" />
           Refresh
-        </button>
+        </Button>
       </div>
 
-      {/* At-Risk Students Table */}
-      <div className="card">
-        <div className="card-header">
-          <div className="card-title">
+      <Card>
+        <div className="p-4 border-b border-[var(--border)]">
+          <h3 className="font-semibold text-[var(--on-surface)]">
             {atRiskCount + likelyDropoutCount > 0
               ? `${filtered.length} student${filtered.length !== 1 ? 's' : ''} at risk of dropout`
               : 'No at-risk students found'}
-          </div>
+          </h3>
         </div>
-        <div className="table-wrapper">
-          <table className="table">
+        <div className="overflow-x-auto">
+          <table className="w-full">
             <thead>
-              <tr>
-                <th>Student</th>
-                <th>Class</th>
-                <th>Days Absent</th>
-                <th>Last Attendance</th>
-                <th>Risk Level</th>
-                <th>Parent Phone</th>
-                <th>Actions</th>
+              <tr className="bg-[var(--surface-container)]">
+                <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Student</th>
+                <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Class</th>
+                <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Days Absent</th>
+                <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Last Attendance</th>
+                <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Risk Level</th>
+                <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Parent Phone</th>
+                <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className="text-center py-8 text-[#5c6670]">Loading...</td></tr>
+                <tr><td colSpan={7} className="text-center py-8 text-[var(--t3)]">Loading...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={7} className="text-center py-8 text-[#5c6670]">No at-risk students found</td></tr>
+                <tr><td colSpan={7} className="text-center py-8 text-[var(--t3)]">No at-risk students found</td></tr>
               ) : (
                 filtered.map((student) => (
-                  <tr key={student.id}>
-                    <td>
+                  <tr key={student.id} className="border-b border-[var(--border)]">
+                    <td className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: student.gender === 'M' ? 'var(--navy)' : 'var(--red)' }}>
                           {student.first_name?.charAt(0)}{student.last_name?.charAt(0)}
                         </div>
                         <div>
                           <div className="font-semibold text-sm">{student.first_name} {student.last_name}</div>
-                          <div className="text-xs text-[#5c6670]">{student.student_number || '-'}</div>
+                          <div className="text-xs text-[var(--t3)]">{student.student_number || '-'}</div>
                         </div>
                       </div>
                     </td>
-                    <td>
+                    <td className="p-4">
                       <span className="px-2.5 py-1 bg-gray-100 rounded-full text-xs font-semibold">{student.class_name}</span>
                     </td>
-                    <td>
+                    <td className="p-4">
                       <span className="font-bold" style={{ color: student.consecutive_absent >= 30 ? '#e74c3c' : '#f39c12' }}>
                         {student.consecutive_absent} days
                       </span>
                     </td>
-                    <td className="text-sm">
+                    <td className="p-4 text-sm">
                       {student.last_attendance_date
                         ? new Date(student.last_attendance_date).toLocaleDateString()
                         : 'No record'}
                     </td>
-                    <td>
+                    <td className="p-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                         student.risk_level === 'likely_dropout'
                           ? 'bg-red-100 text-red-800'
@@ -321,8 +317,8 @@ export default function DropoutTrackingPage() {
                         {student.risk_level === 'likely_dropout' ? 'Likely Dropout' : 'At Risk'}
                       </span>
                     </td>
-                    <td className="text-sm font-mono">{student.parent_phone || '-'}</td>
-                    <td>
+                    <td className="p-4 text-sm font-mono">{student.parent_phone || '-'}</td>
+                    <td className="p-4">
                       <div className="flex gap-1">
                         <button
                           onClick={() => handleContactParent(student)}
@@ -330,7 +326,7 @@ export default function DropoutTrackingPage() {
                           className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-40"
                           title="Send SMS to parent"
                         >
-                          <MaterialIcon icon="sms" style={{ fontSize: 14, verticalAlign: 'middle', marginRight: 2 }} />
+                          <MaterialIcon icon="sms" className="text-sm mr-0.5" />
                           {sendingSms === student.id ? 'Sending...' : 'Contact'}
                         </button>
                         <button
@@ -338,7 +334,7 @@ export default function DropoutTrackingPage() {
                           className="px-2 py-1 rounded-lg text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
                           title="Mark as dropout"
                         >
-                          <MaterialIcon icon="person_remove" style={{ fontSize: 14, verticalAlign: 'middle', marginRight: 2 }} />
+                          <MaterialIcon icon="person_remove" className="text-sm mr-0.5" />
                           Dropout
                         </button>
                       </div>
@@ -349,23 +345,22 @@ export default function DropoutTrackingPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
 
-      {/* Mark Dropout Modal */}
       {showDropoutModal && (
-        <div className="modal-overlay" onClick={() => setShowDropoutModal(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
-            <div className="modal-header">
-              <div style={{ fontFamily: 'Sora', fontSize: 16, fontWeight: 700 }}>Mark as Dropout</div>
-              <button onClick={() => setShowDropoutModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                <MaterialIcon style={{ fontSize: 18, color: 'var(--t3)' }}>close</MaterialIcon>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowDropoutModal(null)}>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[var(--on-surface)]">Mark as Dropout</h2>
+              <button onClick={() => setShowDropoutModal(null)} className="p-1 hover:bg-[var(--surface-container)] rounded-lg">
+                <MaterialIcon className="text-xl text-[var(--t3)]">close</MaterialIcon>
               </button>
             </div>
-            <div style={{ padding: 20 }}>
-              <p className="text-sm text-[#5c6670] mb-4">This will set the student status to &quot;dropped&quot;. Please provide a reason.</p>
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Reason for Dropout</label>
-                <select value={dropoutReason} onChange={(e) => setDropoutReason(e.target.value)} className="input" required>
+            <div className="p-5">
+              <p className="text-sm text-[var(--t3)] mb-4">This will set the student status to &quot;dropped&quot;. Please provide a reason.</p>
+              <div className="mb-5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Reason for Dropout</label>
+                <select value={dropoutReason} onChange={(e) => setDropoutReason(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required>
                   <option value="">Select reason...</option>
                   <option value="Financial difficulties">Financial difficulties</option>
                   <option value="Family relocation">Family relocation</option>
@@ -378,9 +373,9 @@ export default function DropoutTrackingPage() {
                   <option value="Unknown">Unknown</option>
                 </select>
               </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={() => setShowDropoutModal(null)} className="btn btn-ghost" style={{ flex: 1 }}>Cancel</button>
-                <button onClick={handleMarkDropout} disabled={!dropoutReason} className="btn btn-primary" style={{ flex: 1, background: '#e74c3c' }}>Mark as Dropout</button>
+              <div className="flex gap-3">
+                <Button variant="ghost" className="flex-1" onClick={() => setShowDropoutModal(null)}>Cancel</Button>
+                <Button variant="danger" className="flex-1" onClick={handleMarkDropout} disabled={!dropoutReason}>Mark as Dropout</Button>
               </div>
             </div>
           </div>

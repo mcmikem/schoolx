@@ -1,94 +1,44 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-utils'
+import { PRIMARY_TEMPLATE, SECONDARY_TEMPLATE } from '@/lib/curriculum-templates'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 // Get default subjects based on school type
 function getDefaultSubjects(schoolType: string) {
-  if (schoolType === 'primary') {
-    return [
-      { name: 'English', code: 'ENG', level: 'primary', is_compulsory: true },
-      { name: 'Mathematics', code: 'MTC', level: 'primary', is_compulsory: true },
-      { name: 'Integrated Science', code: 'SCI', level: 'primary', is_compulsory: true },
-      { name: 'Social Studies', code: 'SST', level: 'primary', is_compulsory: true },
-      { name: 'Religious Education', code: 'CRE', level: 'primary', is_compulsory: true },
-      { name: 'Physical Education', code: 'PE', level: 'primary', is_compulsory: true },
-      { name: 'Local Language', code: 'LNG', level: 'primary', is_compulsory: false },
-    ]
-  } else if (schoolType === 'secondary') {
-    return [
-      { name: 'English', code: 'ENG', level: 'secondary', is_compulsory: true },
-      { name: 'Mathematics', code: 'MTC', level: 'secondary', is_compulsory: true },
-      { name: 'Biology', code: 'BIO', level: 'secondary', is_compulsory: true },
-      { name: 'Chemistry', code: 'CHEM', level: 'secondary', is_compulsory: true },
-      { name: 'Physics', code: 'PHY', level: 'secondary', is_compulsory: true },
-      { name: 'Geography', code: 'GEO', level: 'secondary', is_compulsory: true },
-      { name: 'History', code: 'HIS', level: 'secondary', is_compulsory: true },
-      { name: 'Christian Religious Education', code: 'CRE', level: 'secondary', is_compulsory: true },
-    ]
-  } else {
-    // Combined - primary + secondary subjects
-    return [
-      { name: 'English', code: 'ENG', level: 'primary', is_compulsory: true },
-      { name: 'Mathematics', code: 'MTC', level: 'primary', is_compulsory: true },
-      { name: 'Science', code: 'SCI', level: 'primary', is_compulsory: true },
-      { name: 'Social Studies', code: 'SST', level: 'primary', is_compulsory: true },
-      { name: 'Religious Education', code: 'CRE', level: 'primary', is_compulsory: true },
-      // Secondary
-      { name: 'English', code: 'ENG', level: 'secondary', is_compulsory: true },
-      { name: 'Mathematics', code: 'MTC', level: 'secondary', is_compulsory: true },
-      { name: 'Biology', code: 'BIO', level: 'secondary', is_compulsory: true },
-      { name: 'Chemistry', code: 'CHEM', level: 'secondary', is_compulsory: true },
-    ]
-  }
+  if (schoolType === 'primary') return PRIMARY_TEMPLATE.subjects
+  if (schoolType === 'secondary') return SECONDARY_TEMPLATE.subjects
+  
+  // Combined - merge both, avoiding duplicates by code
+  const combined = [...PRIMARY_TEMPLATE.subjects]
+  SECONDARY_TEMPLATE.subjects.forEach(s => {
+    if (!combined.find(c => c.code === s.code && c.level === s.level)) {
+      combined.push(s)
+    }
+  })
+  return combined
 }
 
 // Get default classes based on school type
 function getDefaultClasses(schoolType: string, schoolId: string) {
-  const currentYear = new Date().getFullYear()
+  const currentYear = new Date().getFullYear().toString()
+  const mapClasses = (template: any[], level: string) => 
+    template.map(c => ({
+      school_id: schoolId,
+      name: c.name,
+      level: level,
+      academic_year: currentYear
+    }))
+
+  if (schoolType === 'primary') return mapClasses(PRIMARY_TEMPLATE.classes, 'primary')
+  if (schoolType === 'secondary') return mapClasses(SECONDARY_TEMPLATE.classes, 'secondary')
   
-  if (schoolType === 'primary') {
-    return [
-      { school_id: schoolId, name: 'Baby', level: 'primary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'Middle', level: 'primary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'Top', level: 'primary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'P1', level: 'primary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'P2', level: 'primary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'P3', level: 'primary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'P4', level: 'primary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'P5', level: 'primary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'P6', level: 'primary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'P7', level: 'primary', stream: null, academic_year: currentYear.toString() },
-    ]
-  } else if (schoolType === 'secondary') {
-    return [
-      { school_id: schoolId, name: 'S1', level: 'secondary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S2', level: 'secondary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S3', level: 'secondary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S4', level: 'secondary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S5', level: 'secondary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S6', level: 'secondary', stream: null, academic_year: currentYear.toString() },
-    ]
-  } else {
-    // Combined - include both primary and secondary
-    return [
-      { school_id: schoolId, name: 'P1', level: 'primary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'P2', level: 'primary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'P3', level: 'primary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'P4', level: 'primary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'P5', level: 'primary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'P6', level: 'primary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'P7', level: 'primary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S1', level: 'secondary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S2', level: 'secondary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S3', level: 'secondary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S4', level: 'secondary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S5', level: 'secondary', stream: null, academic_year: currentYear.toString() },
-      { school_id: schoolId, name: 'S6', level: 'secondary', stream: null, academic_year: currentYear.toString() },
-    ]
-  }
+  return [
+    ...mapClasses(PRIMARY_TEMPLATE.classes, 'primary'),
+    ...mapClasses(SECONDARY_TEMPLATE.classes, 'secondary')
+  ]
 }
 
 interface RegisterRequest {

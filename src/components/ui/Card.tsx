@@ -4,7 +4,7 @@ interface CardProps {
   children: React.ReactNode
   className?: string
   style?: React.CSSProperties
-  onClick?: () => void
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void
 }
 
 export function Card({ children, className = '', style, onClick }: CardProps) {

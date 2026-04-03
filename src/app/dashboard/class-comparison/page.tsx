@@ -3,17 +3,16 @@ import { useMemo } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useClasses } from '@/lib/hooks'
-import { useToast } from '@/components/Toast'
-import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardBody } from '@/components/ui/Card'
+import { EmptyState } from '@/components/EmptyState'
 
 export default function ClassComparisonPage() {
   const { school } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
-  const toast = useToast()
   const { students } = useStudents(school?.id)
   const { classes } = useClasses(school?.id)
 
-  // Calculate class statistics
   const classStats = useMemo(() => {
     return classes.map(cls => {
       const classStudents = students.filter(s => s.class_id === cls.id)
@@ -39,81 +38,100 @@ export default function ClassComparisonPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Class Comparison</h1>
-        <p className="text-[#5c6670] mt-1">Compare performance across classes</p>
-      </div>
+      <PageHeader 
+        title="Class Comparison" 
+        subtitle="Compare performance across classes"
+      />
 
-      {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-          <div className="stat-value">{totals.students}</div>
-          <div className="stat-label">Total Students</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-          <div className="stat-value text-blue-600">{totals.boys}</div>
-          <div className="stat-label">Boys</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-          <div className="stat-value text-pink-600">{totals.girls}</div>
-          <div className="stat-label">Girls</div>
-        </div>
+        <Card>
+          <CardBody className="text-center">
+            <div className="text-3xl font-bold text-[var(--primary)]">{totals.students}</div>
+            <div className="text-sm text-[var(--t3)]">Total Students</div>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody className="text-center">
+            <div className="text-3xl font-bold text-blue-600">{totals.boys}</div>
+            <div className="text-sm text-[var(--t3)]">Boys</div>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody className="text-center">
+            <div className="text-3xl font-bold text-pink-600">{totals.girls}</div>
+            <div className="text-sm text-[var(--t3)]">Girls</div>
+          </CardBody>
+        </Card>
       </div>
 
-      {/* Class Comparison Table */}
-      <div className="table-wrapper">
-        <table className="table">
-          <thead className="bg-[#f8fafb]">
-            <tr>
-              <th>Class</th>
-              <th>Total</th>
-              <th>Boys</th>
-              <th>Girls</th>
-              <th>Gender Ratio</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {classStats.map((cls) => (
-              <tr key={cls.id}>
-                <td className="font-medium text-[#002045]">{cls.name}</td>
-                <td>{cls.total}</td>
-                <td className="text-blue-600">{cls.boys}</td>
-                <td className="text-pink-600">{cls.girls}</td>
-                <td>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-pink-500 rounded-full" 
-                        style={{ width: `${cls.genderRatio}%` }}
-                      />
-                    </div>
-                    <span className="text-sm text-[#5c6670]">{cls.genderRatio}%</span>
-                  </div>
-                </td>
-                <td>
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                    cls.total > 50 ? 'bg-[#fff3e0] text-[#e65100]' : cls.total > 30 ? 'bg-[#e3f2fd] text-[#1565c0]' : 'bg-[#e8f5e9] text-[#006e1c]'
-                  }`}>
-                    {cls.total > 50 ? 'Large' : cls.total > 30 ? 'Medium' : 'Small'}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {classStats.length === 0 ? (
+        <EmptyState 
+          icon="school" 
+          title="No classes available"
+          description="Create classes to see comparison data"
+        />
+      ) : (
+        <>
+          <Card>
+            <CardBody>
+              <div className="table-wrapper">
+                <table className="table">
+                  <thead className="bg-[var(--surface-container)]">
+                    <tr>
+                      <th>Class</th>
+                      <th>Total</th>
+                      <th>Boys</th>
+                      <th>Girls</th>
+                      <th>Gender Ratio</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {classStats.map((cls) => (
+                      <tr key={cls.id}>
+                        <td className="font-medium text-[var(--primary)]">{cls.name}</td>
+                        <td>{cls.total}</td>
+                        <td className="text-blue-600">{cls.boys}</td>
+                        <td className="text-pink-600">{cls.girls}</td>
+                        <td>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-pink-500 rounded-full" 
+                                style={{ width: `${cls.genderRatio}%` }}
+                              />
+                            </div>
+                            <span className="text-sm text-[var(--t3)]">{cls.genderRatio}%</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                            cls.total > 50 ? 'bg-amber-100 text-amber-700' : cls.total > 30 ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                          }`}>
+                            {cls.total > 50 ? 'Large' : cls.total > 30 ? 'Medium' : 'Small'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardBody>
+          </Card>
 
-      {/* Info */}
-      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 mt-6 max-w-2xl">
-        <h2 className="font-semibold text-[#002045] mb-4">About Class Comparison</h2>
-        <ul className="space-y-2 text-sm text-[#5c6670]">
-          <li>Compare student enrollment across classes</li>
-          <li>Identify overcrowded or underpopulated classes</li>
-          <li>Track gender balance by class</li>
-          <li>Help with resource allocation decisions</li>
-        </ul>
-      </div>
+          <Card className="mt-6 max-w-2xl">
+            <CardBody>
+              <h2 className="font-semibold text-[var(--primary)] mb-4">About Class Comparison</h2>
+              <ul className="space-y-2 text-sm text-[var(--t3)]">
+                <li>Compare student enrollment across classes</li>
+                <li>Identify overcrowded or underpopulated classes</li>
+                <li>Track gender balance by class</li>
+                <li>Help with resource allocation decisions</li>
+              </ul>
+            </CardBody>
+          </Card>
+        </>
+      )}
     </div>
   )
 }

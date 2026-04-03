@@ -3,8 +3,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useStaff } from '@/lib/hooks'
-
-import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card } from '@/components/ui/Card'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
 
 interface ActivityEntry {
   staff_id: string
@@ -23,12 +25,12 @@ export default function StaffActivityPage() {
   const [activities, setActivities] = useState<ActivityEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [date] = useState(() => new Date().toISOString().split('T')[0])
+  const [filter, setFilter] = useState<'all' | 'active' | 'idle'>('all')
 
   const fetchActivity = useCallback(async () => {
     if (!schoolId || staff.length === 0) return
     setLoading(true)
     try {
-      // Fetch staff attendance for today
       const { data: staffAttData } = await supabase
         .from('staff_attendance')
         .select('user_id, status, time_in')
@@ -40,7 +42,6 @@ export default function StaffActivityPage() {
         attendanceMap[a.user_id] = { status: a.status, time_in: a.time_in }
       })
 
-      // Fetch who marked student attendance today
       const { data: attData } = await supabase
         .from('attendance')
         .select('recorded_by')
@@ -49,7 +50,6 @@ export default function StaffActivityPage() {
 
       const attendanceMarkers = new Set(attData?.map(a => a.recorded_by) || [])
 
-      // Fetch who entered grades today
       const { data: gradesData } = await supabase
         .from('grades')
         .select('recorded_by')
@@ -58,7 +58,6 @@ export default function StaffActivityPage() {
 
       const gradeEntriers = new Set(gradesData?.map(g => g.recorded_by) || [])
 
-      // Fetch who sent messages today
       const { data: msgData } = await supabase
         .from('messages')
         .select('created_by')
@@ -67,7 +66,6 @@ export default function StaffActivityPage() {
 
       const messengers = new Set(msgData?.map(m => m.created_by) || [])
 
-      // Build activity entries
       const entries: ActivityEntry[] = staff.map((s: any) => {
         const actions: string[] = []
         if (attendanceMarkers.has(s.id)) actions.push('Marked attendance')
@@ -85,7 +83,6 @@ export default function StaffActivityPage() {
         }
       })
 
-      // Sort: active first
       entries.sort((a, b) => {
         const aActive = a.other_actions.length > 0
         const bActive = b.other_actions.length > 0
@@ -107,49 +104,79 @@ export default function StaffActivityPage() {
     fetchActivity()
   }, [schoolId, staff.length, date, fetchActivity])
 
+  const filteredActivities = activities.filter(entry => {
+    if (filter === 'active') return entry.other_actions.length > 0
+    if (filter === 'idle') return entry.other_actions.length === 0
+    return true
+  })
+
   const activeToday = activities.filter(a => a.other_actions.length > 0).length
   const markedAtt = activities.filter(a => a.marked_attendance).length
   const enteredGrades = activities.filter(a => a.entered_grades).length
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Staff Activity Log</h1>
-        <p className="text-[#5c6670] mt-1">Today&apos;s activity — {new Date(date).toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+      <PageHeader
+        title="Staff Activity Log"
+        subtitle={`Today's activity — ${new Date(date).toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`}
+      />
+
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <Card className="text-center">
+          <div className="text-2xl font-bold text-[#002045]">{staff.length}</div>
+          <div className="text-sm text-[#5c6670]">Total Staff</div>
+        </Card>
+        <Card className="text-center">
+          <div className="text-2xl font-bold text-green-600">{activeToday}</div>
+          <div className="text-sm text-[#5c6670]">Active Today</div>
+        </Card>
+        <Card className="text-center">
+          <div className="text-2xl font-bold text-blue-600">{markedAtt}</div>
+          <div className="text-sm text-[#5c6670]">Marked Attendance</div>
+        </Card>
+        <Card className="text-center">
+          <div className="text-2xl font-bold text-amber-600">{enteredGrades}</div>
+          <div className="text-sm text-[#5c6670]">Entered Grades</div>
+        </Card>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-        <div className="card">
-          <div className="card-body text-center">
-            <div className="text-2xl font-bold text-[#002045]">{staff.length}</div>
-            <div className="text-sm text-[#5c6670]">Total Staff</div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-body text-center">
-            <div className="text-2xl font-bold text-green-600">{activeToday}</div>
-            <div className="text-sm text-[#5c6670]">Active Today</div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-body text-center">
-            <div className="text-2xl font-bold text-blue-600">{markedAtt}</div>
-            <div className="text-sm text-[#5c6670]">Marked Attendance</div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-body text-center">
-            <div className="text-2xl font-bold text-amber-600">{enteredGrades}</div>
-            <div className="text-sm text-[#5c6670]">Entered Grades</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Activity Table */}
-      <div className="card">
+      <Card>
         <div className="card-header">
-          <div className="card-title">Staff Activity</div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
+            <div className="card-title">Staff Activity</div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setFilter('all')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  filter === 'all'
+                    ? 'bg-[#002045] text-white'
+                    : 'bg-white text-[#5c6670] border border-[#e8eaed] hover:border-[#c4c6cf]'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setFilter('active')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  filter === 'active'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-white text-[#5c6670] border border-[#e8eaed] hover:border-[#c4c6cf]'
+                }`}
+              >
+                Active
+              </button>
+              <button
+                onClick={() => setFilter('idle')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  filter === 'idle'
+                    ? 'bg-gray-500 text-white'
+                    : 'bg-white text-[#5c6670] border border-[#e8eaed] hover:border-[#c4c6cf]'
+                }`}
+              >
+                Idle
+              </button>
+            </div>
+          </div>
         </div>
         <div className="table-wrapper">
           <table className="table">
@@ -169,10 +196,10 @@ export default function StaffActivityPage() {
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400 mx-auto"></div>
                   </td>
                 </tr>
-              ) : activities.length === 0 ? (
+              ) : filteredActivities.length === 0 ? (
                 <tr><td colSpan={5} className="text-center py-8 text-[#5c6670]">No staff members found</td></tr>
               ) : (
-                activities.map(entry => {
+                filteredActivities.map(entry => {
                   const isActive = entry.other_actions.length > 0
                   return (
                     <tr key={entry.staff_id}>
@@ -233,7 +260,7 @@ export default function StaffActivityPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

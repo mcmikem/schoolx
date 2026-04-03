@@ -4,6 +4,11 @@ import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 import { useStudents, useClasses } from '@/lib/hooks'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardBody } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { Select } from '@/components/ui/index'
+import { EmptyState } from '@/components/EmptyState'
 
 export default function IDCardsPage() {
   const { school } = useAuth()
@@ -185,93 +190,84 @@ export default function IDCardsPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="font-bold text-2xl text-gray-900">Student ID Cards</h2>
-          <p className="text-gray-500 mt-1">Generate and print student identification cards</p>
-        </div>
-        <div className="flex gap-3">
-          <button 
+      <PageHeader 
+        title="Student ID Cards"
+        subtitle="Generate and print student identification cards"
+        actions={
+          <Button 
             onClick={printAllCards}
             disabled={selectedStudents.length === 0}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all"
+            icon={<MaterialIcon icon="print" />}
           >
-            <MaterialIcon icon="print" className="text-lg" />
             Print Selected ({selectedStudents.length})
-          </button>
-        </div>
-      </div>
+          </Button>
+        }
+      />
 
-      {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
-        <select
+        <Select
           value={selectedClass}
           onChange={(e) => { setSelectedClass(e.target.value); setSelectedStudents([]) }}
-          className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium"
-        >
-          <option value="">All Classes</option>
-          {classes.map(c => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-        <button onClick={selectAll} className="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-xl">
-          Select All
-        </button>
-        <button onClick={deselectAll} className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl">
-          Deselect All
-        </button>
+          options={[
+            { value: '', label: 'All Classes' },
+            ...classes.map(c => ({ value: c.id, label: c.name }))
+          ]}
+        />
+        <Button variant="secondary" size="sm" onClick={selectAll}>Select All</Button>
+        <Button variant="ghost" size="sm" onClick={deselectAll}>Deselect All</Button>
       </div>
 
-      {/* Student Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredStudents.map(student => (
-          <div 
-            key={student.id} 
-            className={`bg-white rounded-2xl border-2 overflow-hidden hover:shadow-md transition-all cursor-pointer ${
-              selectedStudents.includes(student.id) 
-                ? 'border-blue-500 shadow-md' 
-                : 'border-gray-100'
-            }`}
-            onClick={() => toggleStudent(student.id)}
-          >
-            <div className="flex items-center p-4 gap-4">
-              <div className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg shadow-sm ${
-                student.gender === 'M' 
-                  ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white' 
-                  : 'bg-gradient-to-br from-pink-500 to-pink-600 text-white'
-              }`}>
-                {student.first_name?.[0]}{student.last_name?.[0]}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-gray-900 truncate">{student.first_name} {student.last_name}</h3>
-                <p className="text-sm text-gray-500">{student.classes?.name}</p>
-                <p className="text-xs text-gray-400">{student.student_number}</p>
-              </div>
-              {selectedStudents.includes(student.id) && (
-                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                  <MaterialIcon className="text-white text-sm" style={{ fontVariationSettings: 'FILL 1' }}>check</MaterialIcon>
+      {filteredStudents.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredStudents.map(student => (
+            <Card 
+              key={student.id}
+              className={`overflow-hidden transition-all ${
+                selectedStudents.includes(student.id) 
+                  ? 'ring-2 ring-[var(--primary)] shadow-md' 
+                  : ''
+              }`}
+              onClick={() => toggleStudent(student.id)}
+            >
+              <CardBody>
+                <div className="flex items-center gap-4">
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg shadow-sm ${
+                    student.gender === 'M' 
+                      ? 'bg-[var(--primary)] text-[var(--on-primary)]' 
+                      : 'bg-[var(--pink-500)] text-white'
+                  }`}>
+                    {student.first_name?.[0]}{student.last_name?.[0]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-[var(--t1)] truncate">{student.first_name} {student.last_name}</h3>
+                    <p className="text-sm text-[var(--t3)]">{student.classes?.name}</p>
+                    <p className="text-xs text-[var(--t4)]">{student.student_number}</p>
+                  </div>
+                  {selectedStudents.includes(student.id) && (
+                    <div className="w-6 h-6 bg-[var(--primary)] rounded-full flex items-center justify-center">
+                      <MaterialIcon className="text-white text-sm" style={{ fontVariationSettings: 'FILL 1' }}>check</MaterialIcon>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className="px-4 pb-4">
-              <button 
-                onClick={(e) => { e.stopPropagation(); generateIDCard(student) }}
-                className="w-full py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-center gap-2"
-              >
-                <MaterialIcon className="text-lg">badge</MaterialIcon>
-                Generate Card
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {filteredStudents.length === 0 && (
-        <div className="bg-white rounded-2xl p-12 text-center border border-gray-100">
-          <MaterialIcon className="text-5xl text-gray-300 mx-auto mb-4">badge</MaterialIcon>
-          <h3 className="font-bold text-gray-900 mb-2">No Students Found</h3>
-          <p className="text-gray-500">Add students to generate ID cards</p>
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  className="w-full mt-4"
+                  onClick={(e) => { e.stopPropagation(); generateIDCard(student) }}
+                  icon={<MaterialIcon icon="badge" />}
+                >
+                  Generate Card
+                </Button>
+              </CardBody>
+            </Card>
+          ))}
         </div>
+      ) : (
+        <EmptyState 
+          icon="badge"
+          title="No Students Found"
+          description="Add students to generate ID cards"
+        />
       )}
     </div>
   )

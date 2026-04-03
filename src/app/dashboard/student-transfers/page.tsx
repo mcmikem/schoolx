@@ -6,6 +6,10 @@ import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { Tabs } from '@/components/ui/Tabs'
 
 const TRANSFER_REASONS = [
   'Family relocation',
@@ -240,173 +244,154 @@ export default function StudentTransfersPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Student Transfers</h1>
-        <p className="text-[#5c6670] mt-1">Manage students transferring in and out of the school</p>
-      </div>
+      <PageHeader
+        title="Student Transfers"
+        subtitle="Manage students transferring in and out of the school"
+      />
 
-      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--navy-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MaterialIcon style={{ fontSize: 18, color: 'var(--navy)' }}>group</MaterialIcon>
+        <Card className="p-4">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center">
+              <MaterialIcon className="text-blue-600">group</MaterialIcon>
             </div>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.7px', textTransform: 'uppercase', color: 'var(--t3)' }}>Active</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">Active</span>
           </div>
-          <div style={{ fontFamily: 'Sora', fontSize: 28, fontWeight: 800, color: 'var(--navy)' }}>{activeStudents.length}</div>
-        </div>
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--green-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MaterialIcon style={{ fontSize: 18, color: 'var(--green)' }}>login</MaterialIcon>
+          <div className="text-3xl font-bold text-blue-600">{activeStudents.length}</div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-9 h-9 rounded-lg bg-green-100 flex items-center justify-center">
+              <MaterialIcon className="text-green-600">login</MaterialIcon>
             </div>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.7px', textTransform: 'uppercase', color: 'var(--t3)' }}>Transferred In</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">Transferred In</span>
           </div>
-          <div style={{ fontFamily: 'Sora', fontSize: 28, fontWeight: 800, color: 'var(--green)' }}>{transferredInCount}</div>
-        </div>
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(231,76,60,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MaterialIcon style={{ fontSize: 18, color: '#e74c3c' }}>logout</MaterialIcon>
+          <div className="text-3xl font-bold text-green-600">{transferredInCount}</div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center">
+              <MaterialIcon className="text-red-600">logout</MaterialIcon>
             </div>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.7px', textTransform: 'uppercase', color: 'var(--t3)' }}>Transferred Out</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">Transferred Out</span>
           </div>
-          <div style={{ fontFamily: 'Sora', fontSize: 28, fontWeight: 800, color: '#e74c3c' }}>{transferredOutCount}</div>
-        </div>
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(192,57,43,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MaterialIcon style={{ fontSize: 18, color: 'var(--t3)' }}>swap_horiz</MaterialIcon>
+          <div className="text-3xl font-bold text-red-600">{transferredOutCount}</div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center">
+              <MaterialIcon className="text-gray-500">swap_horiz</MaterialIcon>
             </div>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.7px', textTransform: 'uppercase', color: 'var(--t3)' }}>Total Moves</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">Total Moves</span>
           </div>
-          <div style={{ fontFamily: 'Sora', fontSize: 28, fontWeight: 800, color: 'var(--t1)' }}>{transferredInCount + transferredOutCount}</div>
-        </div>
+          <div className="text-3xl font-bold text-[var(--on-surface)]">{transferredInCount + transferredOutCount}</div>
+        </Card>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
-        <button
-          onClick={() => setActiveTab('in')}
-          className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-            activeTab === 'in' ? 'bg-white shadow text-[#002045]' : 'text-[#5c6670] hover:text-[#002045]'
-          }`}
-        >
-          <MaterialIcon icon="login" style={{ fontSize: 16, marginRight: 6, verticalAlign: 'middle' }} />
-          Transfer In
-        </button>
-        <button
-          onClick={() => setActiveTab('out')}
-          className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-            activeTab === 'out' ? 'bg-white shadow text-[#002045]' : 'text-[#5c6670] hover:text-[#002045]'
-          }`}
-        >
-          <MaterialIcon icon="logout" style={{ fontSize: 16, marginRight: 6, verticalAlign: 'middle' }} />
-          Transfer Out
-        </button>
-      </div>
+      <Tabs tabs={[
+        { id: 'in', label: 'Transfer In' },
+        { id: 'out', label: 'Transfer Out' },
+      ]} activeTab={activeTab} onChange={(v) => setActiveTab(v as Tab)} className="mb-6" />
 
-      {/* Tab Content */}
       {activeTab === 'in' && (
-        <div className="card">
-          <div className="card-header flex items-center justify-between">
-            <div className="card-title">Students Transferred In</div>
-            <button onClick={() => setShowTransferInModal(true)} className="btn btn-primary">
-              <MaterialIcon icon="person_add" style={{ fontSize: 16 }} />
+        <Card>
+          <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
+            <h3 className="font-semibold text-[var(--on-surface)]">Students Transferred In</h3>
+            <Button onClick={() => setShowTransferInModal(true)}>
+              <MaterialIcon icon="person_add" className="text-base" />
               New Transfer
-            </button>
+            </Button>
           </div>
-          <div className="table-wrapper">
-            <table className="table">
+          <div className="overflow-x-auto">
+            <table className="w-full">
               <thead>
-                <tr>
-                  <th>Student</th>
-                  <th>Student No.</th>
-                  <th>Class</th>
-                  <th>Previous School</th>
-                  <th>Reason</th>
-                  <th>Parent Phone</th>
+                <tr className="bg-[var(--surface-container)]">
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Student</th>
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Student No.</th>
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Class</th>
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Previous School</th>
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Reason</th>
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Parent Phone</th>
                 </tr>
               </thead>
               <tbody>
                 {transferredIn.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-8 text-[#5c6670]">
+                    <td colSpan={6} className="text-center py-8 text-[var(--t3)]">
                       No transfer-in students recorded yet
                     </td>
                   </tr>
                 ) : (
                   transferredIn.map((student) => (
-                    <tr key={student.id}>
-                      <td>
+                    <tr key={student.id} className="border-b border-[var(--border)]">
+                      <td className="p-4">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: student.gender === 'M' ? 'var(--navy)' : 'var(--red)' }}>
                             {student.first_name?.charAt(0)}{student.last_name?.charAt(0)}
                           </div>
                           <div>
                             <div className="font-semibold text-sm">{student.first_name} {student.last_name}</div>
-                            <div className="text-xs text-[#5c6670]">{student.gender === 'M' ? 'Male' : 'Female'}</div>
+                            <div className="text-xs text-[var(--t3)]">{student.gender === 'M' ? 'Male' : 'Female'}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="text-sm font-mono">{student.student_number || '-'}</td>
-                      <td>
+                      <td className="p-4 text-sm font-mono">{student.student_number || '-'}</td>
+                      <td className="p-4">
                         <span className="px-2.5 py-1 bg-gray-100 rounded-full text-xs font-semibold">{student.classes?.name || '-'}</span>
                       </td>
-                      <td className="text-sm">{student.transfer_from || '-'}</td>
-                      <td className="text-sm">{student.transfer_reason || '-'}</td>
-                      <td className="text-sm font-mono">{student.parent_phone || '-'}</td>
+                      <td className="p-4 text-sm">{student.transfer_from || '-'}</td>
+                      <td className="p-4 text-sm">{student.transfer_reason || '-'}</td>
+                      <td className="p-4 text-sm font-mono">{student.parent_phone || '-'}</td>
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       )}
 
       {activeTab === 'out' && (
-        <div className="card">
-          <div className="card-header flex items-center justify-between">
-            <div className="card-title">Students Transferred Out</div>
-            <button onClick={() => setShowTransferOutModal(true)} className="btn btn-primary">
-              <MaterialIcon icon="swap_horiz" style={{ fontSize: 16 }} />
+        <Card>
+          <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
+            <h3 className="font-semibold text-[var(--on-surface)]">Students Transferred Out</h3>
+            <Button onClick={() => setShowTransferOutModal(true)}>
+              <MaterialIcon icon="swap_horiz" className="text-base" />
               Transfer Out
-            </button>
+            </Button>
           </div>
-          <div className="table-wrapper">
-            <table className="table">
+          <div className="overflow-x-auto">
+            <table className="w-full">
               <thead>
-                <tr>
-                  <th>Student</th>
-                  <th>Student No.</th>
-                  <th>Former Class</th>
-                  <th>Transferred To</th>
-                  <th>Reason</th>
-                  <th>Date</th>
-                  <th>Actions</th>
+                <tr className="bg-[var(--surface-container)]">
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Student</th>
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Student No.</th>
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Former Class</th>
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Transferred To</th>
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Reason</th>
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Date</th>
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {transferHistory.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-8 text-[#5c6670]">
+                    <td colSpan={7} className="text-center py-8 text-[var(--t3)]">
                       No transfer-out records yet
                     </td>
                   </tr>
                 ) : (
                   transferHistory.map((record) => (
-                    <tr key={record.id}>
-                      <td className="font-semibold text-sm">{record.student_name}</td>
-                      <td className="text-sm font-mono">{record.student_number || '-'}</td>
-                      <td>
+                    <tr key={record.id} className="border-b border-[var(--border)]">
+                      <td className="p-4 font-semibold text-sm">{record.student_name}</td>
+                      <td className="p-4 text-sm font-mono">{record.student_number || '-'}</td>
+                      <td className="p-4">
                         <span className="px-2.5 py-1 bg-gray-100 rounded-full text-xs font-semibold">{record.class_name}</span>
                       </td>
-                      <td className="text-sm">{record.transfer_to}</td>
-                      <td className="text-sm">{record.reason || '-'}</td>
-                      <td className="text-sm">{record.transfer_date ? new Date(record.transfer_date).toLocaleDateString() : '-'}</td>
-                      <td>
+                      <td className="p-4 text-sm">{record.transfer_to}</td>
+                      <td className="p-4 text-sm">{record.reason || '-'}</td>
+                      <td className="p-4 text-sm">{record.transfer_date ? new Date(record.transfer_date).toLocaleDateString() : '-'}</td>
+                      <td className="p-4">
                         <button
                           onClick={() => {
                             setPrintData(record)
@@ -414,7 +399,7 @@ export default function StudentTransfersPage() {
                           }}
                           className="text-sm text-blue-600 hover:underline flex items-center gap-1"
                         >
-                          <MaterialIcon icon="print" style={{ fontSize: 14 }} />
+                          <MaterialIcon icon="print" className="text-sm" />
                           Letter
                         </button>
                       </td>
@@ -424,53 +409,52 @@ export default function StudentTransfersPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       )}
 
-      {/* Transfer In Modal */}
       {showTransferInModal && (
-        <div className="modal-overlay" onClick={() => setShowTransferInModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 560 }}>
-            <div className="modal-header">
-              <div style={{ fontFamily: 'Sora', fontSize: 16, fontWeight: 700 }}>New Transfer In</div>
-              <button onClick={() => setShowTransferInModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                <MaterialIcon style={{ fontSize: 18, color: 'var(--t3)' }}>close</MaterialIcon>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowTransferInModal(false)}>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[var(--on-surface)]">New Transfer In</h2>
+              <button onClick={() => setShowTransferInModal(false)} className="p-1 hover:bg-[var(--surface-container)] rounded-lg">
+                <MaterialIcon className="text-xl text-[var(--t3)]">close</MaterialIcon>
               </button>
             </div>
-            <form onSubmit={handleTransferIn} style={{ padding: 20 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            <form onSubmit={handleTransferIn} className="p-5">
+              <div className="grid grid-cols-2 gap-3 mb-4">
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>First Name</label>
-                  <input type="text" value={transferInForm.first_name} onChange={(e) => setTransferInForm({ ...transferInForm, first_name: e.target.value })} className="input" required />
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">First Name</label>
+                  <input type="text" value={transferInForm.first_name} onChange={(e) => setTransferInForm({ ...transferInForm, first_name: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required />
                 </div>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Last Name</label>
-                  <input type="text" value={transferInForm.last_name} onChange={(e) => setTransferInForm({ ...transferInForm, last_name: e.target.value })} className="input" required />
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Last Name</label>
+                  <input type="text" value={transferInForm.last_name} onChange={(e) => setTransferInForm({ ...transferInForm, last_name: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required />
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+              <div className="grid grid-cols-2 gap-3 mb-4">
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Gender</label>
-                  <select value={transferInForm.gender} onChange={(e) => setTransferInForm({ ...transferInForm, gender: e.target.value as 'M' | 'F' })} className="input">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Gender</label>
+                  <select value={transferInForm.gender} onChange={(e) => setTransferInForm({ ...transferInForm, gender: e.target.value as 'M' | 'F' })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]">
                     <option value="M">Male</option>
                     <option value="F">Female</option>
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Date of Birth</label>
-                  <input type="date" value={transferInForm.date_of_birth} onChange={(e) => setTransferInForm({ ...transferInForm, date_of_birth: e.target.value })} className="input" />
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Date of Birth</label>
+                  <input type="date" value={transferInForm.date_of_birth} onChange={(e) => setTransferInForm({ ...transferInForm, date_of_birth: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" />
                 </div>
               </div>
 
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Previous School</label>
-                <input type="text" value={transferInForm.previous_school} onChange={(e) => setTransferInForm({ ...transferInForm, previous_school: e.target.value })} className="input" required placeholder="Name of previous school" />
+              <div className="mb-4">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Previous School</label>
+                <input type="text" value={transferInForm.previous_school} onChange={(e) => setTransferInForm({ ...transferInForm, previous_school: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required placeholder="Name of previous school" />
               </div>
 
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Transfer Reason</label>
-                <select value={transferInForm.reason} onChange={(e) => setTransferInForm({ ...transferInForm, reason: e.target.value })} className="input" required>
+              <div className="mb-4">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Transfer Reason</label>
+                <select value={transferInForm.reason} onChange={(e) => setTransferInForm({ ...transferInForm, reason: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required>
                   <option value="">Select reason</option>
                   {TRANSFER_REASONS.map(r => (
                     <option key={r} value={r}>{r}</option>
@@ -478,9 +462,9 @@ export default function StudentTransfersPage() {
                 </select>
               </div>
 
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Assign to Class</label>
-                <select value={transferInForm.class_id} onChange={(e) => setTransferInForm({ ...transferInForm, class_id: e.target.value })} className="input" required>
+              <div className="mb-4">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Assign to Class</label>
+                <select value={transferInForm.class_id} onChange={(e) => setTransferInForm({ ...transferInForm, class_id: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required>
                   <option value="">Select class</option>
                   {classes.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
@@ -488,48 +472,47 @@ export default function StudentTransfersPage() {
                 </select>
               </div>
 
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Parent/Guardian Name</label>
-                <input type="text" value={transferInForm.parent_name} onChange={(e) => setTransferInForm({ ...transferInForm, parent_name: e.target.value })} className="input" required />
+              <div className="mb-4">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Parent/Guardian Name</label>
+                <input type="text" value={transferInForm.parent_name} onChange={(e) => setTransferInForm({ ...transferInForm, parent_name: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+              <div className="grid grid-cols-2 gap-3 mb-5">
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Parent Phone</label>
-                  <input type="tel" placeholder="0700000000" value={transferInForm.parent_phone} onChange={(e) => setTransferInForm({ ...transferInForm, parent_phone: e.target.value })} className="input" required />
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Parent Phone</label>
+                  <input type="tel" placeholder="0700000000" value={transferInForm.parent_phone} onChange={(e) => setTransferInForm({ ...transferInForm, parent_phone: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required />
                 </div>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Alt. Phone</label>
-                  <input type="tel" placeholder="0700000000" value={transferInForm.parent_phone2} onChange={(e) => setTransferInForm({ ...transferInForm, parent_phone2: e.target.value })} className="input" />
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Alt. Phone</label>
+                  <input type="tel" placeholder="0700000000" value={transferInForm.parent_phone2} onChange={(e) => setTransferInForm({ ...transferInForm, parent_phone2: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" />
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button type="button" onClick={() => setShowTransferInModal(false)} className="btn btn-ghost" style={{ flex: 1 }}>Cancel</button>
-                <button type="submit" disabled={saving} className="btn btn-primary" style={{ flex: 1 }}>{saving ? 'Adding...' : 'Add Transfer Student'}</button>
+              <div className="flex gap-3">
+                <Button variant="ghost" className="flex-1" onClick={() => setShowTransferInModal(false)}>Cancel</Button>
+                <Button className="flex-1" disabled={saving}>{saving ? 'Adding...' : 'Add Transfer Student'}</Button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Transfer Out Modal */}
       {showTransferOutModal && (
-        <div className="modal-overlay" onClick={() => setShowTransferOutModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
-            <div className="modal-header">
-              <div style={{ fontFamily: 'Sora', fontSize: 16, fontWeight: 700 }}>Transfer Student Out</div>
-              <button onClick={() => setShowTransferOutModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                <MaterialIcon style={{ fontSize: 18, color: 'var(--t3)' }}>close</MaterialIcon>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowTransferOutModal(false)}>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[var(--on-surface)]">Transfer Student Out</h2>
+              <button onClick={() => setShowTransferOutModal(false)} className="p-1 hover:bg-[var(--surface-container)] rounded-lg">
+                <MaterialIcon className="text-xl text-[var(--t3)]">close</MaterialIcon>
               </button>
             </div>
-            <form onSubmit={handleTransferOut} style={{ padding: 20 }}>
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Select Student</label>
+            <form onSubmit={handleTransferOut} className="p-5">
+              <div className="mb-4">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Select Student</label>
                 {activeStudents.length === 0 ? (
-                  <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#92400E' }}>No active students</div>
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No active students</div>
                 ) : (
-                  <select value={transferOutForm.student_id} onChange={(e) => setTransferOutForm({ ...transferOutForm, student_id: e.target.value })} className="input" required>
+                  <select value={transferOutForm.student_id} onChange={(e) => setTransferOutForm({ ...transferOutForm, student_id: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required>
                     <option value="">Select student...</option>
                     {activeStudents.map(s => (
                       <option key={s.id} value={s.id}>{s.first_name} {s.last_name} - {s.classes?.name || 'No class'}</option>
@@ -538,14 +521,14 @@ export default function StudentTransfersPage() {
                 )}
               </div>
 
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Transferring To (School Name)</label>
-                <input type="text" value={transferOutForm.transfer_to} onChange={(e) => setTransferOutForm({ ...transferOutForm, transfer_to: e.target.value })} className="input" required placeholder="Name of new school" />
+              <div className="mb-4">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Transferring To (School Name)</label>
+                <input type="text" value={transferOutForm.transfer_to} onChange={(e) => setTransferOutForm({ ...transferOutForm, transfer_to: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required placeholder="Name of new school" />
               </div>
 
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Reason</label>
-                <select value={transferOutForm.reason} onChange={(e) => setTransferOutForm({ ...transferOutForm, reason: e.target.value })} className="input" required>
+              <div className="mb-4">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Reason</label>
+                <select value={transferOutForm.reason} onChange={(e) => setTransferOutForm({ ...transferOutForm, reason: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required>
                   <option value="">Select reason</option>
                   {TRANSFER_REASONS.map(r => (
                     <option key={r} value={r}>{r}</option>
@@ -553,23 +536,22 @@ export default function StudentTransfersPage() {
                 </select>
               </div>
 
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Transfer Date</label>
-                <input type="date" value={transferOutForm.transfer_date} onChange={(e) => setTransferOutForm({ ...transferOutForm, transfer_date: e.target.value })} className="input" required />
+              <div className="mb-5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Transfer Date</label>
+                <input type="date" value={transferOutForm.transfer_date} onChange={(e) => setTransferOutForm({ ...transferOutForm, transfer_date: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required />
               </div>
 
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button type="button" onClick={() => setShowTransferOutModal(false)} className="btn btn-ghost" style={{ flex: 1 }}>Cancel</button>
-                <button type="submit" disabled={saving} className="btn btn-primary" style={{ flex: 1 }}>{saving ? 'Processing...' : 'Transfer Out'}</button>
+              <div className="flex gap-3">
+                <Button variant="ghost" className="flex-1" onClick={() => setShowTransferOutModal(false)}>Cancel</Button>
+                <Button className="flex-1" disabled={saving}>{saving ? 'Processing...' : 'Transfer Out'}</Button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Hidden Transfer Letter for Printing */}
       {printData && (
-        <div style={{ display: 'none' }}>
+        <div className="hidden">
           <div ref={printRef}>
             <div className="letterhead">
               <h1>{school?.name || 'School Name'}</h1>

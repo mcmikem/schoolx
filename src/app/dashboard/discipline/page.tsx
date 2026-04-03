@@ -6,6 +6,12 @@ import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import { SendSMSModal } from '@/components/SendSMSModal'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Tabs, TabPanel } from '@/components/ui/Tabs'
+import { Card, CardBody } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
 
 interface DisciplineRecord {
   id: string
@@ -158,6 +164,12 @@ export default function DisciplinePage() {
     }
   }
 
+  const tabs = [
+    { id: 'all', label: 'All', count: records.length },
+    { id: 'pending', label: 'Pending', count: records.filter(r => !r.resolved).length },
+    { id: 'resolved', label: 'Resolved', count: records.filter(r => r.resolved).length },
+  ]
+
   const filteredRecords = records.filter(r => {
     if (filterResolved === 'all') return true
     if (filterResolved === 'resolved') return r.resolved
@@ -167,125 +179,71 @@ export default function DisciplinePage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#002045]">Discipline</h1>
-          <p className="text-[#5c6670] mt-1">Track student incidents and actions</p>
-        </div>
-        <button onClick={() => setShowModal(true)} className="btn btn-primary">
-          <MaterialIcon icon="add" className="text-lg" />
-          Record Incident
-        </button>
-      </div>
+      <PageHeader 
+        title="Discipline"
+        subtitle="Track student incidents and actions"
+        actions={
+          <Button onClick={() => setShowModal(true)}>
+            <MaterialIcon icon="add" className="text-lg" />
+            Record Incident
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-          <div className="text-2xl font-bold text-[#002045]">{records.length}</div>
-          <div className="text-sm text-[#5c6670] mt-1">Total Incidents</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-          <div className="text-2xl font-bold text-[#b86e00]">{records.filter(r => !r.resolved).length}</div>
-          <div className="text-sm text-[#5c6670] mt-1">Pending</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-          <div className="text-2xl font-bold text-[#006e1c]">{records.filter(r => r.resolved).length}</div>
-          <div className="text-sm text-[#5c6670] mt-1">Resolved</div>
-        </div>
+        <Card className="text-center py-4">
+          <CardBody>
+            <div className="text-2xl font-bold text-[var(--t1)]">{records.length}</div>
+            <div className="text-sm text-[var(--t3)] mt-1">Total Incidents</div>
+          </CardBody>
+        </Card>
+        <Card className="text-center py-4">
+          <CardBody>
+            <div className="text-2xl font-bold text-[var(--amber)]">{records.filter(r => !r.resolved).length}</div>
+            <div className="text-sm text-[var(--t3)] mt-1">Pending</div>
+          </CardBody>
+        </Card>
+        <Card className="text-center py-4">
+          <CardBody>
+            <div className="text-2xl font-bold text-[var(--green)]">{records.filter(r => r.resolved).length}</div>
+            <div className="text-sm text-[var(--t3)] mt-1">Resolved</div>
+          </CardBody>
+        </Card>
       </div>
 
-      <div className="mb-6">
-        <select value={filterResolved} onChange={(e) => setFilterResolved(e.target.value)} className="input sm:w-48">
-          <option value="all">All Incidents</option>
-          <option value="pending">Pending</option>
-          <option value="resolved">Resolved</option>
-        </select>
-      </div>
+      <Tabs 
+        tabs={tabs} 
+        activeTab={filterResolved} 
+        onChange={setFilterResolved}
+        className="mb-6"
+      />
 
-      {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-2xl border border-[#e8eaed] p-4">
-              <div className="w-full h-4 bg-[#e8eaed] rounded mb-2" />
-              <div className="w-3/4 h-3 bg-[#e8eaed] rounded" />
-            </div>
-          ))}
-        </div>
-      ) : filteredRecords.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 text-center">
-          <div className="w-16 h-16 bg-[#f8fafb] rounded-full flex items-center justify-center mx-auto mb-4">
-            <MaterialIcon icon="verified" className="text-3xl text-[#006e1c]" />
-          </div>
-          <h3 className="text-lg font-semibold text-[#191c1d] mb-2">No incidents recorded</h3>
-          <p className="text-[#5c6670]">This is good news!</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {filteredRecords.map((record) => (
-            <div key={record.id} className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className={`px-3 py-1 rounded-lg text-xs font-medium ${record.resolved ? 'bg-[#e8f5e9] text-[#006e1c]' : 'bg-[#fff3e0] text-[#b86e00]'}`}>
-                      {record.resolved ? 'Resolved' : 'Pending'}
-                    </span>
-                    <span className="px-3 py-1 rounded-lg text-xs font-medium bg-[#e3f2fd] text-[#002045]">
-                      {record.incident_type}
-                    </span>
-                  </div>
-                  <div className="font-medium text-[#191c1d]">
-                    {record.students?.first_name} {record.students?.last_name}
-                    <span className="text-[#5c6670] ml-2">({record.students?.student_number})</span>
-                  </div>
-                  <p className="text-sm text-[#5c6670] mt-2">{record.description}</p>
-                  <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-[#5c6670]">
-                    <span>Action: {record.action_taken}</span>
-                    {record.follow_up_date && (
-                      <span>Follow-up: {new Date(record.follow_up_date).toLocaleDateString()}</span>
-                    )}
-                    <span>Recorded: {new Date(record.created_at).toLocaleDateString()}</span>
-                  </div>
-                </div>
-                <div className="flex gap-2 ml-4">
-                  <button
-                    onClick={() => setSmsTarget({
-                      id: record.student_id,
-                      first_name: record.students?.first_name || '',
-                      last_name: record.students?.last_name || '',
-                    })}
-                    className="btn btn-sm btn-secondary"
-                    title="SMS Parent"
-                  >
-                    <MaterialIcon icon="sms" className="text-sm" />
-                  </button>
-                  <button
-                    onClick={() => toggleResolved(record.id, record.resolved)}
-                    className={`btn btn-sm ${record.resolved ? 'btn-secondary' : 'btn-primary'}`}
-                  >
-                    {record.resolved ? 'Reopen' : 'Resolve'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <TabPanel activeTab={filterResolved} tabId="all">
+        {renderContent()}
+      </TabPanel>
+      <TabPanel activeTab={filterResolved} tabId="pending">
+        {renderContent()}
+      </TabPanel>
+      <TabPanel activeTab={filterResolved} tabId="resolved">
+        {renderContent()}
+      </TabPanel>
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-[#e8eaed]">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-[var(--border)]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[#191c1d]">Record Incident</h2>
-                <button onClick={() => setShowModal(false)} className="p-2 text-[#5c6670] hover:text-[#191c1d]">
+                <h2 className="text-lg font-semibold text-[var(--t1)]">Record Incident</h2>
+                <button onClick={() => setShowModal(false)} className="p-2 text-[var(--t3)] hover:text-[var(--t1)]">
                   <MaterialIcon icon="close" className="text-xl" />
                 </button>
               </div>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Student</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Student</label>
                 {students.length === 0 ? (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No students available</div>
+                  <div className="bg-[var(--amber-soft)] border border-[var(--amber)] rounded-xl px-3 py-2 text-sm text-[var(--amber)]">No students available</div>
                 ) : (
                   <select 
                     value={newRecord.student_id}
@@ -302,7 +260,7 @@ export default function DisciplinePage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Incident Type</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Incident Type</label>
                 <select 
                   value={newRecord.incident_type}
                   onChange={(e) => setNewRecord({...newRecord, incident_type: e.target.value, exam_id: e.target.value !== 'Exam Malpractice' ? '' : newRecord.exam_id})}
@@ -318,7 +276,7 @@ export default function DisciplinePage() {
 
               {newRecord.incident_type === 'Exam Malpractice' && (
                 <div>
-                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Link to Exam (Optional)</label>
+                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Link to Exam (Optional)</label>
                   <select 
                     value={newRecord.exam_id}
                     onChange={(e) => setNewRecord({...newRecord, exam_id: e.target.value})}
@@ -333,7 +291,7 @@ export default function DisciplinePage() {
               )}
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Description</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Description</label>
                 <textarea
                   value={newRecord.description}
                   onChange={(e) => setNewRecord({...newRecord, description: e.target.value})}
@@ -344,7 +302,7 @@ export default function DisciplinePage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Action Taken</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Action Taken</label>
                 <select 
                   value={newRecord.action_taken}
                   onChange={(e) => setNewRecord({...newRecord, action_taken: e.target.value})}
@@ -359,7 +317,7 @@ export default function DisciplinePage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Follow-up Date (Optional)</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Follow-up Date (Optional)</label>
                 <input
                   type="date"
                   value={newRecord.follow_up_date}
@@ -369,8 +327,8 @@ export default function DisciplinePage() {
               </div>
 
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary flex-1">Cancel</button>
-                <button type="submit" className="btn btn-primary flex-1">Record Incident</button>
+                <Button type="button" variant="secondary" onClick={() => setShowModal(false)} className="flex-1">Cancel</Button>
+                <Button type="submit" className="flex-1">Record Incident</Button>
               </div>
             </form>
           </div>
@@ -386,4 +344,80 @@ export default function DisciplinePage() {
       )}
     </div>
   )
+
+  function renderContent() {
+    if (loading) {
+      return (
+        <div className="space-y-3">
+          <TableSkeleton rows={3} />
+        </div>
+      )
+    }
+
+    if (filteredRecords.length === 0) {
+      return (
+        <EmptyState
+          icon="verified"
+          title="No incidents recorded"
+          description="This is good news!"
+        />
+      )
+    }
+
+    return (
+      <div className="space-y-4">
+        {filteredRecords.map((record) => (
+          <Card key={record.id} className="p-6">
+            <CardBody>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className={`px-3 py-1 rounded-lg text-xs font-medium ${record.resolved ? 'bg-[var(--green-soft)] text-[var(--green)]' : 'bg-[var(--amber-soft)] text-[var(--amber)]'}`}>
+                      {record.resolved ? 'Resolved' : 'Pending'}
+                    </span>
+                    <span className="px-3 py-1 rounded-lg text-xs font-medium bg-[var(--navy-soft)] text-[var(--navy)]">
+                      {record.incident_type}
+                    </span>
+                  </div>
+                  <div className="font-medium text-[var(--t1)]">
+                    {record.students?.first_name} {record.students?.last_name}
+                    <span className="text-[var(--t3)] ml-2">({record.students?.student_number})</span>
+                  </div>
+                  <p className="text-sm text-[var(--t3)] mt-2">{record.description}</p>
+                  <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-[var(--t3)]">
+                    <span>Action: {record.action_taken}</span>
+                    {record.follow_up_date && (
+                      <span>Follow-up: {new Date(record.follow_up_date).toLocaleDateString()}</span>
+                    )}
+                    <span>Recorded: {new Date(record.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2 ml-4">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setSmsTarget({
+                      id: record.student_id,
+                      first_name: record.students?.first_name || '',
+                      last_name: record.students?.last_name || '',
+                    })}
+                    title="SMS Parent"
+                  >
+                    <MaterialIcon icon="sms" className="text-sm" />
+                  </Button>
+                  <Button
+                    variant={record.resolved ? 'secondary' : 'primary'}
+                    size="sm"
+                    onClick={() => toggleResolved(record.id, record.resolved)}
+                  >
+                    {record.resolved ? 'Reopen' : 'Resolve'}
+                  </Button>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+        ))}
+      </div>
+    )
+  }
 }

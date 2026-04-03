@@ -6,6 +6,12 @@ import { useStudents, useClasses } from '@/lib/hooks'
 import { getUCEGrade, getUCEDivision, getUACEGrade, getUACEPoints, getGradeForLevel } from '@/lib/grading'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardBody } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+import { Tabs, TabPanel } from '@/components/ui/Tabs'
+import { EmptyState } from '@/components/EmptyState'
 
 interface StudentResult {
   id: string
@@ -148,30 +154,32 @@ export default function UNEBAnalysisPage() {
   }, [results])
 
   const getDivisionColor = (division: string) => {
-    if (division === 'Division I') return 'bg-[#e8f5e9] text-[#006e1c]'
-    if (division === 'Division II') return 'bg-[#e3f2fd] text-[#002045]'
-    if (division === 'Division III') return 'bg-[#fff3e0] text-[#b86e00]'
-    if (division === 'Division IV') return 'bg-[#fef3c7] text-[#d97706]'
-    return 'bg-[#fef2f2] text-[#ba1a1a]'
+    if (division === 'Division I') return 'bg-[var(--green-soft)] text-[var(--green)]'
+    if (division === 'Division II') return 'bg-[var(--navy-soft)] text-[var(--navy)]'
+    if (division === 'Division III') return 'bg-[var(--amber-soft)] text-[var(--amber)]'
+    if (division === 'Division IV') return 'bg-yellow-100 text-amber-600'
+    return 'bg-[var(--red-soft)] text-[var(--red)]'
   }
 
-  return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">UNEB Analysis</h1>
-        <p className="text-[#5c6670] mt-1">
-          {examType === 'uce' ? 'UCE (O-Level) Division Analysis' : 
-           examType === 'uace' ? 'UACE (A-Level) Points Analysis' : 
-           'PLE (Primary) Performance Analysis'}
-        </p>
-      </div>
+  const tabs = [
+    { id: 'uce', label: 'O-Level (UCE)' },
+    { id: 'uace', label: 'A-Level (UACE)' },
+    { id: 'ple', label: 'Primary (PLE)' },
+  ]
 
-      <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 mb-6">
-        <div className="flex flex-col sm:flex-row gap-4">
+  return (
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+      <PageHeader 
+        title="UNEB Analysis"
+        subtitle={examType === 'uce' ? 'UCE (O-Level) Division Analysis' : 
+                  examType === 'uace' ? 'UACE (A-Level) Points Analysis' : 
+                  'PLE (Primary) Performance Analysis'}
+      >
+        <div className="flex flex-col sm:flex-row gap-3">
           <select 
             value={examType} 
             onChange={(e) => setExamType(e.target.value as 'ple' | 'uce' | 'uace')}
-            className="input"
+            className="px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm"
           >
             <option value="uce">O-Level (UCE)</option>
             <option value="uace">A-Level (UACE)</option>
@@ -180,91 +188,98 @@ export default function UNEBAnalysisPage() {
           <select 
             value={selectedClass} 
             onChange={(e) => setSelectedClass(e.target.value)}
-            className="input"
+            className="px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm"
           >
             <option value="">All Classes</option>
             {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
-      </div>
+      </PageHeader>
+
+      <Tabs tabs={tabs} activeTab={examType} onChange={(id) => setExamType(id as 'ple' | 'uce' | 'uace')} />
 
       {loading ? (
         <div className="space-y-4">
-          {[1,2,3].map((i) => (
-            <div key={i} className="h-16 bg-[#e8eaed] rounded-2xl"></div>
-          ))}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1,2,3,4].map((i) => (
+              <div key={i} className="h-24 bg-[var(--surface-container)] rounded-xl"></div>
+            ))}
+          </div>
+          <TableSkeleton rows={5} />
         </div>
       ) : stats ? (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-              <div className="text-2xl font-bold text-[#002045]">{stats.total}</div>
-              <div className="text-sm text-[#5c6670] mt-1">Candidates</div>
-            </div>
-            <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-              <div className="text-2xl font-bold text-[#002045]">{stats.avgScore}%</div>
-              <div className="text-sm text-[#5c6670] mt-1">School Average</div>
-            </div>
-            <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-              <div className="text-2xl font-bold text-[#006e1c]">{stats.passRate}%</div>
-              <div className="text-sm text-[#5c6670] mt-1">Pass Rate</div>
-            </div>
-            <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-              <div className="text-2xl font-bold text-[#002045]">{stats.topScore}%</div>
-              <div className="text-sm text-[#5c6670] mt-1">Highest Score</div>
-            </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="p-4 text-center">
+              <div className="text-2xl font-bold text-[var(--t1)]">{stats.total}</div>
+              <div className="text-sm text-[var(--t3)] mt-1">Candidates</div>
+            </Card>
+            <Card className="p-4 text-center">
+              <div className="text-2xl font-bold text-[var(--t1)]">{stats.avgScore}%</div>
+              <div className="text-sm text-[var(--t3)] mt-1">School Average</div>
+            </Card>
+            <Card className="p-4 text-center">
+              <div className="text-2xl font-bold text-[var(--green)]">{stats.passRate}%</div>
+              <div className="text-sm text-[var(--t3)] mt-1">Pass Rate</div>
+            </Card>
+            <Card className="p-4 text-center">
+              <div className="text-2xl font-bold text-[var(--t1)]">{stats.topScore}%</div>
+              <div className="text-sm text-[var(--t3)] mt-1">Highest Score</div>
+            </Card>
           </div>
 
-          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 mb-6">
-            <h2 className="font-semibold text-[#191c1d] mb-4">Division Breakdown</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-              {Object.entries(stats.divisions).sort().map(([div, count]) => (
-                <div key={div} className={`p-4 rounded-xl ${getDivisionColor(div)}`}>
-                  <div className="text-2xl font-bold">{count}</div>
-                  <div className="text-sm font-medium">{div}</div>
-                  <div className="text-xs">{Math.round((count / stats.total) * 100)}%</div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <Card>
+            <CardBody>
+              <h2 className="font-semibold text-[var(--t1)] mb-4">Division Breakdown</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                {Object.entries(stats.divisions).sort().map(([div, count]) => (
+                  <div key={div} className={`p-4 rounded-xl ${getDivisionColor(div)}`}>
+                    <div className="text-2xl font-bold">{count}</div>
+                    <div className="text-sm font-medium">{div}</div>
+                    <div className="text-xs">{Math.round((count / stats.total) * 100)}%</div>
+                  </div>
+                ))}
+              </div>
+            </CardBody>
+          </Card>
 
-          <div className="bg-white rounded-2xl border border-[#e8eaed] overflow-hidden">
-            <div className="p-6">
-              <h2 className="font-semibold text-[#191c1d] mb-4">Student Results</h2>
+          <Card>
+            <CardBody>
+              <h2 className="font-semibold text-[var(--t1)] mb-4">Student Results</h2>
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-[#f8fafb]">
+                  <thead className="bg-[var(--surface-container-low)]">
                     <tr>
-                      <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">#</th>
-                      <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Name</th>
-                      <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Student No.</th>
-                      <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Subjects</th>
-                      <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Average</th>
-                      <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">Grade</th>
-                      <th className="text-left p-3 text-sm font-semibold text-[#191c1d]">{examType === 'uace' ? 'Points' : 'Division'}</th>
+                      <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">#</th>
+                      <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">Name</th>
+                      <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">Student No.</th>
+                      <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">Subjects</th>
+                      <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">Average</th>
+                      <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">Grade</th>
+                      <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">{examType === 'uace' ? 'Points' : 'Division'}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {results.map((student, i) => (
-                      <tr key={student.id} className="border-t border-[#e8eaed]">
-                        <td className="p-3 text-[#5c6670]">{i + 1}</td>
-                        <td className="p-3 font-medium text-[#191c1d]">{student.name}</td>
-                        <td className="p-3 text-[#5c6670]">{student.student_number}</td>
-                        <td className="p-3 text-[#191c1d]">{student.subjects.length}</td>
-                        <td className="p-3 font-semibold text-[#191c1d]">{student.average}%</td>
+                      <tr key={student.id} className="border-t border-[var(--border)]">
+                        <td className="p-3 text-[var(--t3)]">{i + 1}</td>
+                        <td className="p-3 font-medium text-[var(--t1)]">{student.name}</td>
+                        <td className="p-3 text-[var(--t3)]">{student.student_number}</td>
+                        <td className="p-3 text-[var(--t1)]">{student.subjects.length}</td>
+                        <td className="p-3 font-semibold text-[var(--t1)]">{student.average}%</td>
                         <td className="p-3">
                           <span className={`font-bold ${
-                            student.grade.startsWith('D') || student.grade === 'A' ? 'text-[#006e1c]' :
-                            student.grade.startsWith('C') || student.grade === 'B' ? 'text-[#002045]' :
-                            student.grade.startsWith('P') || student.grade === 'C' ? 'text-[#b86e00]' :
-                            'text-[#ba1a1a]'
+                            student.grade.startsWith('D') || student.grade === 'A' ? 'text-[var(--green)]' :
+                            student.grade.startsWith('C') || student.grade === 'B' ? 'text-[var(--navy)]' :
+                            student.grade.startsWith('P') || student.grade === 'C' ? 'text-[var(--amber)]' :
+                            'text-[var(--red)]'
                           }`}>
                             {student.grade}
                           </span>
                         </td>
                         <td className="p-3">
                           {examType === 'uace' ? (
-                            <span className="font-bold text-[#006e1c]">{student.points} pts</span>
+                            <span className="font-bold text-[var(--green)]">{student.points} pts</span>
                           ) : (
                             <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getDivisionColor(student.division)}`}>
                               {student.division}
@@ -276,14 +291,15 @@ export default function UNEBAnalysisPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
-          </div>
+            </CardBody>
+          </Card>
         </>
       ) : (
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 text-center">
-          <MaterialIcon icon="school" className="text-4xl text-[#c4c6cf] mb-4" />
-          <div className="text-[#5c6670]">No exam results found. Enter exam scores first.</div>
-        </div>
+        <EmptyState 
+          icon="school"
+          title="No exam results found"
+          description="Enter exam scores first."
+        />
       )}
     </div>
   )

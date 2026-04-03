@@ -65,10 +65,14 @@ export default function SchoolsPage() {
     return matchSearch && matchStatus
   })
 
+  // Per-term pricing matching landing page: Basic=100K, Premium=200K, Max=370K
+  const PLAN_PRICES: Record<string, number> = {
+    basic: 100_000,
+    premium: 200_000,
+    max: 370_000,
+  }
   const totalRevenue = schools.reduce((sum, s) => {
-    if (s.subscription_plan === 'premium') return sum + 150000
-    if (s.subscription_plan === 'basic') return sum + 50000
-    return sum
+    return sum + (PLAN_PRICES[s.subscription_plan] ?? 0)
   }, 0)
   const activeSchools = schools.filter((s) => s.subscription_status === 'active').length
 
@@ -149,7 +153,7 @@ export default function SchoolsPage() {
             </div>
             <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
               <div className="stat-value">UGX {(totalRevenue / 1000).toFixed(0)}K</div>
-              <div className="stat-label">Monthly Revenue</div>
+              <div className="stat-label">Term Revenue (active)</div>
             </div>
           </div>
 

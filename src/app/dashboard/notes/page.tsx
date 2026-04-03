@@ -2,6 +2,8 @@
 import { useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card } from '@/components/ui/Card'
 
 interface Note {
   id: string
@@ -374,82 +376,83 @@ export default function NotesPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Teacher Notes</h1>
-        <p className="text-[#5c6670] mt-1">Guides, curriculum info, and teaching resources</p>
-      </div>
+      <PageHeader
+        title="Teacher Notes"
+        subtitle="Guides, curriculum info, and teaching resources"
+      />
 
-      {/* Search & Filter */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
-          <MaterialIcon icon="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#74777f]" />
+          <MaterialIcon icon="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--t3)]" />
           <input
             type="text"
             placeholder="Search notes..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="input pl-10"
+            className="w-full pl-10 px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
           />
         </div>
-        <div className="tabs">
+        <div className="flex gap-1 p-1 bg-[var(--surface-container-low)] rounded-xl">
           {categories.map(cat => (
             <button
               key={cat.value}
               onClick={() => setFilter(cat.value)}
-              className={`tab flex items-center gap-1.5 ${filter === cat.value ? 'active' : ''}`}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                filter === cat.value
+                  ? 'bg-[var(--surface)] text-[var(--t1)] shadow-sm'
+                  : 'text-[var(--t3)] hover:text-[var(--t2)]'
+              }`}
             >
-              <MaterialIcon className="text-sm">{cat.icon}</MaterialIcon>
+              <MaterialIcon className="text-sm mr-1.5">{cat.icon}</MaterialIcon>
               <span className="hidden sm:inline">{cat.label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Notes Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredNotes.map(note => (
-          <div 
+          <Card 
             key={note.id} 
+            className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
             onClick={() => setSelectedNote(expandNote(note))}
-            className="card hover:shadow-lg transition-shadow cursor-pointer"
           >
             <div className="flex items-start gap-3 mb-3">
-              <div className="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center flex-shrink-0">
-                <MaterialIcon className="text-primary" style={{ fontVariationSettings: 'FILL 1' }}>{note.icon}</MaterialIcon>
+              <div className="w-10 h-10 bg-[var(--primary)]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <MaterialIcon className="text-[var(--primary)]">{note.icon}</MaterialIcon>
               </div>
               <div>
-                <h3 className="font-semibold text-[#002045]">{note.title}</h3>
-                <span className="text-xs text-[#74777f] uppercase">{note.category}</span>
+                <h3 className="font-semibold text-[var(--t1)]">{note.title}</h3>
+                <span className="text-xs text-[var(--t3)] uppercase">{note.category}</span>
               </div>
             </div>
-            <div className="text-sm text-[#5c6670] whitespace-pre-line line-clamp-6">
+            <div className="text-sm text-[var(--t3)] whitespace-pre-line line-clamp-6">
               {note.content}
             </div>
-            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-[#74777f]">
+            <div className="mt-3 pt-3 border-t border-[var(--border)] flex items-center justify-between text-xs text-[var(--t3)]">
               <span>Click to read more</span>
               <MaterialIcon className="text-lg">arrow_forward</MaterialIcon>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
 
-      {/* Modal for full note */}
       {selectedNote && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedNote(null)}>
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-start gap-4">
-              <div className="w-12 h-12 bg-primary-container rounded-xl flex items-center justify-center flex-shrink-0">
-                <MaterialIcon className="text-primary text-2xl" style={{ fontVariationSettings: 'FILL 1' }}>{selectedNote.icon}</MaterialIcon>
+          <div className="bg-[var(--surface)] rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-[var(--surface)] border-b border-[var(--border)] p-4 flex items-start gap-4">
+              <div className="w-12 h-12 bg-[var(--primary)]/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                <MaterialIcon className="text-[var(--primary)] text-2xl">{selectedNote.icon}</MaterialIcon>
               </div>
               <div className="flex-1">
-                <h2 className="font-bold text-xl text-[#002045]">{selectedNote.title}</h2>
-                <span className="text-xs text-[#74777f] uppercase bg-gray-100 px-2 py-0.5 rounded">{selectedNote.category}</span>
+                <h2 className="font-bold text-xl text-[var(--t1)]">{selectedNote.title}</h2>
+                <span className="text-xs text-[var(--t3)] uppercase bg-[var(--surface-container)] px-2 py-0.5 rounded">{selectedNote.category}</span>
               </div>
-              <button onClick={() => setSelectedNote(null)} className="p-2 hover:bg-gray-100 rounded-lg">
+              <button onClick={() => setSelectedNote(null)} className="p-2 hover:bg-[var(--surface-container)] rounded-lg">
                 <MaterialIcon className="text-xl">close</MaterialIcon>
               </button>
             </div>
-            <div className="p-6 text-sm text-[#5c6670] whitespace-pre-line">
+            <div className="p-6 text-sm text-[var(--t3)] whitespace-pre-line">
               {selectedNote.fullContent}
             </div>
           </div>
@@ -457,17 +460,16 @@ export default function NotesPage() {
       )}
 
       {filteredNotes.length === 0 && (
-        <div className="empty-state">
-          <MaterialIcon className="text-4xl text-[#74777f]">search_off</MaterialIcon>
-          <h3 className="text-lg font-semibold text-[#002045] mt-4">No notes found</h3>
-          <p className="text-[#5c6670]">Try adjusting your search or filter</p>
+        <div className="text-center py-12">
+          <MaterialIcon className="text-4xl text-[var(--t3)] mx-auto">search_off</MaterialIcon>
+          <h3 className="text-lg font-semibold text-[var(--t1)] mt-4">No notes found</h3>
+          <p className="text-[var(--t3)]">Try adjusting your search or filter</p>
         </div>
       )}
 
-      {/* Help Card */}
-      <div className="mt-8 bg-gradient-to-r from-primary to-primary/80 rounded-2xl p-6 text-white">
+      <div className="mt-8 bg-gradient-to-r from-[var(--primary)] to-[var(--primary)]/80 rounded-2xl p-6 text-white">
         <div className="flex items-center gap-4">
-          <MaterialIcon className="text-4xl" style={{ fontVariationSettings: 'FILL 1' }}>lightbulb</MaterialIcon>
+          <MaterialIcon className="text-4xl">lightbulb</MaterialIcon>
           <div>
             <h3 className="font-bold text-lg">Need More Help?</h3>
             <p className="text-white/80 text-sm">Contact your school administrator or email support@omuto.sms for assistance.</p>

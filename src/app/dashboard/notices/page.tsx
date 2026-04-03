@@ -4,9 +4,13 @@ import Image from 'next/image'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { useStaff } from '@/lib/hooks'
-import { useFormDraft } from '@/lib/useAutoSave'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
 
 interface Notice {
   id: string
@@ -219,19 +223,16 @@ export default function NoticeBoardPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="font-bold text-2xl text-gray-900">Notice Board</h2>
-          <p className="text-gray-500 mt-1">Stay updated with school announcements</p>
-        </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 shadow-lg transition-all"
-        >
-          <MaterialIcon icon="add" className="text-lg" />
-          Post Notice
-        </button>
-      </div>
+      <PageHeader 
+        title="Notices"
+        subtitle="Stay updated with school announcements"
+        actions={
+          <Button onClick={() => setShowModal(true)}>
+            <MaterialIcon icon="add" />
+            Post Notice
+          </Button>
+        }
+      />
 
       {/* Category Filter */}
       <div className="flex gap-2 flex-wrap">
@@ -253,27 +254,20 @@ export default function NoticeBoardPage() {
 
       {loading ? (
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-2xl border border-[#e8eaed] p-4">
-              <div className="w-full h-4 bg-[#e8eaed] rounded mb-2" />
-              <div className="w-3/4 h-3 bg-[#e8eaed] rounded" />
-            </div>
-          ))}
+          <TableSkeleton rows={3} />
         </div>
       ) : notices.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 text-center">
-          <div className="w-16 h-16 bg-[#f8fafb] rounded-full flex items-center justify-center mx-auto mb-4">
-            <MaterialIcon icon="campaign" className="text-3xl text-[#5c6670]" />
-          </div>
-          <h3 className="text-lg font-semibold text-[#191c1d] mb-2">No notices</h3>
-          <p className="text-[#5c6670]">Post your first notice</p>
-        </div>
+        <EmptyState
+          icon="campaign"
+          title="No notices"
+          description="Post your first notice"
+        />
       ) : (
         <div className="space-y-4">
           {notices
             .filter(n => !categoryFilter || n.category === categoryFilter)
             .map((notice) => (
-            <div key={notice.id} className={`bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-shadow ${
+            <Card key={notice.id} className={`overflow-hidden ${
               notice.priority === 'high' ? 'border-l-4 border-l-red-500' :
               notice.category === 'Emergency' ? 'border-l-4 border-l-red-600 bg-red-50/30' :
               'border-l-4 border-l-gray-900'
@@ -331,7 +325,7 @@ export default function NoticeBoardPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}

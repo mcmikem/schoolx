@@ -5,6 +5,10 @@ import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import { ROLE_LABELS, type UserRole } from '@/lib/roles'
 import { FEATURE_STAGES, FeatureStage, DEFAULT_FEATURE_STAGE, canUseModule, ModuleKey } from '@/lib/featureStages'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardBody } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { Tabs, TabPanel } from '@/components/ui/Tabs'
 
 const ROLE_OPTIONS: { value: UserRole; description: string; modules: ModuleKey[] }[] = [
   {
@@ -293,39 +297,19 @@ export default function SettingsPage() {
   }
 
   const tabs = [
-    { key: 'general', label: 'School Details', icon: 'business' },
-    { key: 'users', label: 'Staff & Users', icon: 'group' },
-    { key: 'notifications', label: 'Notifications', icon: 'notifications' },
-    { key: 'backup', label: 'Backup & Export', icon: 'backup' },
+    { id: 'general', label: 'School Details' },
+    { id: 'users', label: 'Staff & Users' },
+    { id: 'notifications', label: 'Notifications' },
+    { id: 'backup', label: 'Backup & Export' },
   ]
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Settings</h1>
-        <p className="text-[#5c6670] mt-1">Manage your school settings</p>
-      </div>
+      <PageHeader title="Settings" subtitle="Manage your school settings" />
 
-      <div className="bg-white rounded-2xl border border-[#e8eaed] p-2 mb-6 overflow-x-auto">
-        <div className="flex gap-2 min-w-max">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                activeTab === tab.key 
-                  ? 'bg-[#002045] text-white' 
-                  : 'text-[#5c6670] hover:bg-[#f8fafb]'
-              }`}
-            >
-              <MaterialIcon icon={tab.icon} className="text-lg" />
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} className="mb-6" />
 
-      {activeTab === 'general' && (
+      <TabPanel activeTab={activeTab} tabId="general">
         <div className="space-y-6">
           <GeneralSettings
             schoolData={schoolData}
@@ -344,257 +328,270 @@ export default function SettingsPage() {
           />
           <AcademicSettings />
         </div>
-      )}
+      </TabPanel>
 
-      {activeTab === 'users' && (
+      <TabPanel activeTab={activeTab} tabId="users">
         <div className="space-y-6">
           <div className="flex justify-end">
-            <button onClick={() => setShowAddUser(true)} className="btn btn-primary">
+            <Button onClick={() => setShowAddUser(true)}>
               <MaterialIcon icon="person_add" className="text-lg" />
               Add User
-            </button>
+            </Button>
           </div>
 
           {loadingUsers ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-2xl border border-[#e8eaed] p-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-[#f0f4f8] rounded-full" />
-                    <div className="flex-1">
-                      <div className="w-32 h-4 bg-[#e8eaed] rounded mb-2" />
-                      <div className="w-24 h-3 bg-[#e8eaed] rounded" />
+                <Card key={i}>
+                  <CardBody>
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-[var(--surface-container)] rounded-full" />
+                      <div className="flex-1">
+                        <div className="w-32 h-4 bg-[var(--border)] rounded mb-2" />
+                        <div className="w-24 h-3 bg-[var(--border)] rounded" />
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  </CardBody>
+                </Card>
               ))}
             </div>
           ) : (
             <div className="space-y-3">
               {users.map((u) => (
-                <div key={u.id} className="bg-white rounded-2xl border border-[#e8eaed] p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-[#f0f4f8] rounded-full flex items-center justify-center">
-                        <span className="text-[#002045] font-semibold">
-                          {u.full_name?.charAt(0) || 'U'}
-                        </span>
-                      </div>
-                      <div>
-                        <div className="font-medium text-[#191c1d]">{u.full_name}</div>
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="px-2 py-1 rounded-lg text-xs font-medium bg-[#e8f5e9] text-[#006e1c]">
-                            {u.role === 'dos' ? 'Director of Studies' : u.role === 'school_admin' ? 'Administrator' : u.role === 'bursar' ? 'Bursar' : u.role.charAt(0).toUpperCase() + u.role.slice(1)}
-                          </span>
-                          <span className={`px-2 py-1 rounded-lg text-xs font-medium ${u.is_active ? 'bg-[#e8f5e9] text-[#006e1c]' : 'bg-[#fef2f2] text-[#ba1a1a]'}`}>
-                            {u.is_active ? 'Active' : 'Inactive'}
+                <Card key={u.id}>
+                  <CardBody>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-[var(--surface-container)] rounded-full flex items-center justify-center">
+                          <span className="text-[var(--primary)] font-semibold">
+                            {u.full_name?.charAt(0) || 'U'}
                           </span>
                         </div>
+                        <div>
+                          <div className="font-medium text-[var(--on-surface)]">{u.full_name}</div>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="px-2 py-1 rounded-lg text-xs font-medium bg-[var(--green-soft)] text-[var(--green)]">
+                              {u.role === 'dos' ? 'Director of Studies' : u.role === 'school_admin' ? 'Administrator' : u.role === 'bursar' ? 'Bursar' : u.role.charAt(0).toUpperCase() + u.role.slice(1)}
+                            </span>
+                            <span className={`px-2 py-1 rounded-lg text-xs font-medium ${u.is_active ? 'bg-[var(--green-soft)] text-[var(--green)]' : 'bg-[var(--red-soft)] text-[var(--red)]'}`}>
+                              {u.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </div>
+                        </div>
                       </div>
+                      <Button
+                        size="sm"
+                        variant={u.is_active ? 'secondary' : 'primary'}
+                        onClick={() => toggleUserStatus(u.id, u.is_active)}
+                      >
+                        {u.is_active ? 'Deactivate' : 'Activate'}
+                      </Button>
                     </div>
-                    <button
-                      onClick={() => toggleUserStatus(u.id, u.is_active)}
-                      className={`btn btn-sm ${u.is_active ? 'btn-secondary' : 'btn-primary'}`}
-                    >
-                      {u.is_active ? 'Deactivate' : 'Activate'}
-                    </button>
-                  </div>
-                </div>
+                  </CardBody>
+                </Card>
               ))}
             </div>
           )}
         </div>
-      )}
+      </TabPanel>
 
-      {activeTab === 'notifications' && (
+      <TabPanel activeTab={activeTab} tabId="notifications">
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 max-w-2xl">
-            <h2 className="text-lg font-semibold text-[#191c1d] mb-6">Notification Settings</h2>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between py-3 border-b border-[#e8eaed]">
-                <div>
-                  <div className="font-medium text-[#191c1d]">SMS Notifications</div>
-                  <div className="text-sm text-[#5c6670]">Send SMS to parents for fee reminders</div>
+          <Card>
+            <CardBody>
+              <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-6">Notification Settings</h2>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between py-3 border-b border-[var(--border)]">
+                  <div>
+                    <div className="font-medium text-[var(--on-surface)]">SMS Notifications</div>
+                    <div className="text-sm text-[var(--t3)]">Send SMS to parents for fee reminders</div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only peer" 
+                      checked={settings.sms_notifications}
+                      onChange={(e) => handleSettingChange('sms_notifications', e.target.checked)}
+                    />
+                    <div className="w-11 h-6 bg-[var(--border)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--primary)]"></div>
+                  </label>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    className="sr-only peer" 
-                    checked={settings.sms_notifications}
-                    onChange={(e) => handleSettingChange('sms_notifications', e.target.checked)}
-                  />
-                  <div className="w-11 h-6 bg-[#e8eaed] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#002045]"></div>
-                </label>
-              </div>
-              <div className="flex items-center justify-between py-3 border-b border-[#e8eaed]">
-                <div>
-                  <div className="font-medium text-[#191c1d]">Attendance Alerts</div>
-                  <div className="text-sm text-[#5c6670]">Notify when student is absent</div>
+                <div className="flex items-center justify-between py-3 border-b border-[var(--border)]">
+                  <div>
+                    <div className="font-medium text-[var(--on-surface)]">Attendance Alerts</div>
+                    <div className="text-sm text-[var(--t3)]">Notify when student is absent</div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only peer" 
+                      checked={settings.attendance_alerts}
+                      onChange={(e) => handleSettingChange('attendance_alerts', e.target.checked)}
+                    />
+                    <div className="w-11 h-6 bg-[var(--border)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--primary)]"></div>
+                  </label>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    className="sr-only peer" 
-                    checked={settings.attendance_alerts}
-                    onChange={(e) => handleSettingChange('attendance_alerts', e.target.checked)}
-                  />
-                  <div className="w-11 h-6 bg-[#e8eaed] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#002045]"></div>
-                </label>
-              </div>
-              <div className="flex items-center justify-between py-3">
-                <div>
-                  <div className="font-medium text-[#191c1d]">Fee Reminders</div>
-                  <div className="text-sm text-[#5c6670]">Send automatic fee balance reminders</div>
+                <div className="flex items-center justify-between py-3">
+                  <div>
+                    <div className="font-medium text-[var(--on-surface)]">Fee Reminders</div>
+                    <div className="text-sm text-[var(--t3)]">Send automatic fee balance reminders</div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only peer" 
+                      checked={settings.fee_reminders}
+                      onChange={(e) => handleSettingChange('fee_reminders', e.target.checked)}
+                    />
+                    <div className="w-11 h-6 bg-[var(--border)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--primary)]"></div>
+                  </label>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    className="sr-only peer" 
-                    checked={settings.fee_reminders}
-                    onChange={(e) => handleSettingChange('fee_reminders', e.target.checked)}
-                  />
-                  <div className="w-11 h-6 bg-[#e8eaed] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#002045]"></div>
-                </label>
               </div>
-            </div>
-          </div>
+            </CardBody>
+          </Card>
 
-          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 max-w-2xl">
-            <h2 className="text-lg font-semibold text-[#191c1d] mb-6">Warning Thresholds</h2>
-            <div className="space-y-6">
-              <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Attendance Rate Threshold (%)</label>
-                <p className="text-sm text-[#5c6670] mb-2">Students below this attendance rate will be flagged</p>
-                <input 
-                  type="number" 
-                  value={settings.attendance_threshold}
-                  onChange={(e) => handleSettingChange('attendance_threshold', parseInt(e.target.value) || 80)}
-                  className="input w-32"
-                  min={0}
-                  max={100}
-                />
+          <Card>
+            <CardBody>
+              <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-6">Warning Thresholds</h2>
+              <div className="space-y-6">
+                <div>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Attendance Rate Threshold (%)</label>
+                  <p className="text-sm text-[var(--t3)] mb-2">Students below this attendance rate will be flagged</p>
+                  <input 
+                    type="number" 
+                    value={settings.attendance_threshold}
+                    onChange={(e) => handleSettingChange('attendance_threshold', parseInt(e.target.value) || 80)}
+                    className="w-32 px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
+                    min={0}
+                    max={100}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Grade Threshold (%)</label>
+                  <p className="text-sm text-[var(--t3)] mb-2">Students scoring below this in 2+ subjects will be flagged</p>
+                  <input 
+                    type="number" 
+                    value={settings.grade_threshold}
+                    onChange={(e) => handleSettingChange('grade_threshold', parseInt(e.target.value) || 50)}
+                    className="w-32 px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
+                    min={0}
+                    max={100}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Fee Threshold (UGX)</label>
+                  <p className="text-sm text-[var(--t3)] mb-2">Students with payments below this amount will be flagged</p>
+                  <input 
+                    type="number" 
+                    value={settings.fee_threshold}
+                    onChange={(e) => handleSettingChange('fee_threshold', parseInt(e.target.value) || 50000)}
+                    className="w-32 px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
+                    min={0}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Grade Threshold (%)</label>
-                <p className="text-sm text-[#5c6670] mb-2">Students scoring below this in 2+ subjects will be flagged</p>
-                <input 
-                  type="number" 
-                  value={settings.grade_threshold}
-                  onChange={(e) => handleSettingChange('grade_threshold', parseInt(e.target.value) || 50)}
-                  className="input w-32"
-                  min={0}
-                  max={100}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Fee Threshold (UGX)</label>
-                <p className="text-sm text-[#5c6670] mb-2">Students with payments below this amount will be flagged</p>
-                <input 
-                  type="number" 
-                  value={settings.fee_threshold}
-                  onChange={(e) => handleSettingChange('fee_threshold', parseInt(e.target.value) || 50000)}
-                  className="input w-32"
-                  min={0}
-                />
-              </div>
-            </div>
-          </div>
+            </CardBody>
+          </Card>
         </div>
-      )}
+      </TabPanel>
 
-      {activeTab === 'backup' && (
+      <TabPanel activeTab={activeTab} tabId="backup">
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 max-w-2xl">
-            <h2 className="text-lg font-semibold text-[#191c1d] mb-6">Data Backup</h2>
-            <div className="space-y-4">
-              <div className="p-4 bg-[#f8fafb] rounded-xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-[#191c1d]">Export All Data</div>
-                    <div className="text-sm text-[#5c6670]">Download all school data as JSON</div>
-                  </div>
-                  <button onClick={exportAllData} className="btn btn-primary">
-                    <MaterialIcon icon="download" className="text-lg" />
-                    Export
-                  </button>
-                </div>
-              </div>
-              <div className="p-4 bg-[#f8fafb] rounded-xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-[#191c1d]">Student Photos Backup</div>
-                    <div className="text-sm text-[#5c6670]">Export student photos and documents</div>
-                  </div>
-                  <button className="btn btn-secondary">Export Photos</button>
-                </div>
-              </div>
-              <div className="p-4 bg-[#fff8e6] rounded-xl border border-[#b86e00]/20">
-                <div className="flex items-center gap-3">
-                  <MaterialIcon icon="info" className="text-[#b86e00]" />
-                  <div>
-                    <div className="font-medium text-[#321b00]">Important</div>
-                    <div className="text-sm text-[#5c6670]">Regular backups are recommended. Cloud backup is available on Premium plans.</div>
+          <Card>
+            <CardBody>
+              <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-6">Data Backup</h2>
+              <div className="space-y-4">
+                <div className="p-4 bg-[var(--surface-container-low)] rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-[var(--on-surface)]">Export All Data</div>
+                      <div className="text-sm text-[var(--t3)]">Download all school data as JSON</div>
+                    </div>
+                    <Button onClick={exportAllData}>
+                      <MaterialIcon icon="download" className="text-lg" />
+                      Export
+                    </Button>
                   </div>
                 </div>
+                <div className="p-4 bg-[var(--surface-container-low)] rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-[var(--on-surface)]">Student Photos Backup</div>
+                      <div className="text-sm text-[var(--t3)]">Export student photos and documents</div>
+                    </div>
+                    <Button variant="secondary">Export Photos</Button>
+                  </div>
+                </div>
+                <div className="p-4 bg-[var(--amber-soft)] rounded-xl border border-[var(--amber)]/20">
+                  <div className="flex items-center gap-3">
+                    <MaterialIcon icon="info" className="text-[var(--amber)]" />
+                    <div>
+                      <div className="font-medium text-[var(--on-surface)]">Important</div>
+                      <div className="text-sm text-[var(--t3)]">Regular backups are recommended. Cloud backup is available on Premium plans.</div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </CardBody>
+          </Card>
         </div>
-      )}
+      </TabPanel>
 
       {showAddUser && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowAddUser(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-[#e8eaed]">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-[var(--border)]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[#191c1d]">Add Staff Member</h2>
-                <button onClick={() => setShowAddUser(false)} className="p-2 text-[#5c6670] hover:text-[#191c1d]">
+                <h2 className="text-lg font-semibold text-[var(--on-surface)]">Add Staff Member</h2>
+                <button onClick={() => setShowAddUser(false)} className="p-2 text-[var(--t3)] hover:text-[var(--on-surface)]">
                   <MaterialIcon icon="close" className="text-xl" />
                 </button>
               </div>
             </div>
-            <form onSubmit={handleAddUser} className="p-6 space-y-4">
-              <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Full Name</label>
-                <input type="text" value={newUser.full_name} onChange={(e) => setNewUser({...newUser, full_name: e.target.value})} className="input" required />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Phone Number</label>
-                <input type="tel" placeholder="0700000000" value={newUser.phone} onChange={(e) => setNewUser({...newUser, phone: e.target.value})} className="input" required />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Role</label>
-                <select value={newUser.role} onChange={(e) => setNewUser({...newUser, role: e.target.value as UserRole})} className="input">
-                  {ROLE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {ROLE_LABELS[option.value] || option.value}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="rounded-2xl border border-[#e8eaed] bg-[#f8fafb] p-4 text-sm space-y-1">
-                <div className="text-xs font-semibold uppercase tracking-[0.4em] text-[#7f8ea3]">Access summary</div>
-                <div className="text-sm text-[#191c1d]">
-                  {selectedRoleOption?.description || 'This role inherits the default access for the selected profile.'}
+            <div className="p-6 space-y-4">
+              <form onSubmit={handleAddUser} className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Full Name</label>
+                  <input type="text" value={newUser.full_name} onChange={(e) => setNewUser({...newUser, full_name: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]" required />
                 </div>
-                <div className="text-xs text-[#5c6670]">
-                  Current stage: {FEATURE_STAGES[selectedStage].label}
+                <div>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Phone Number</label>
+                  <input type="tel" placeholder="0700000000" value={newUser.phone} onChange={(e) => setNewUser({...newUser, phone: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]" required />
                 </div>
-                {missingModuleLabels.length > 0 && (
-                  <div className="text-xs text-[#b45309]">
-                    Stage {FEATURE_STAGES[selectedStage].label} does not include {missingModuleLabels.join(', ')}. Upgrade or choose a broader stage before assigning this role.
+                <div>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Role</label>
+                  <select value={newUser.role} onChange={(e) => setNewUser({...newUser, role: e.target.value as UserRole})} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]">
+                    {ROLE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {ROLE_LABELS[option.value] || option.value}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4 text-sm space-y-1">
+                  <div className="text-xs font-semibold uppercase tracking-[0.4em] text-[var(--t3)]">Access summary</div>
+                  <div className="text-sm text-[var(--on-surface)]">
+                    {selectedRoleOption?.description || 'This role inherits the default access for the selected profile.'}
                   </div>
-                )}
-              </div>
-              <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Password</label>
-                <input type="password" placeholder="Min 6 characters" value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} className="input" required minLength={6} />
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowAddUser(false)} className="btn btn-secondary flex-1">Cancel</button>
-                <button type="submit" className="btn btn-primary flex-1">Add User</button>
-              </div>
-            </form>
+                  <div className="text-xs text-[var(--t3)]">
+                    Current stage: {FEATURE_STAGES[selectedStage].label}
+                  </div>
+                  {missingModuleLabels.length > 0 && (
+                    <div className="text-xs text-[var(--amber)]">
+                      Stage {FEATURE_STAGES[selectedStage].label} does not include {missingModuleLabels.join(', ')}. Upgrade or choose a broader stage before assigning this role.
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Password</label>
+                  <input type="password" placeholder="Min 6 characters" value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]" required minLength={6} />
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowAddUser(false)}>Cancel</Button>
+                  <Button type="submit" className="flex-1">Add User</Button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

@@ -5,6 +5,10 @@ import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { Tabs } from '@/components/ui/Tabs'
 
 type ExpenseCategory = 'Supplies' | 'Transport' | 'Food' | 'Repairs' | 'Other'
 const CATEGORIES: ExpenseCategory[] = ['Supplies', 'Transport', 'Food', 'Repairs', 'Other']
@@ -140,60 +144,71 @@ export default function PettyCashPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#002045]">Petty Cash</h1>
-          <p className="text-[#5c6670] mt-1">Track small day-to-day expenses</p>
-        </div>
-        <div className="flex gap-3">
-          {balance < 100000 && (
-            <button onClick={requestReplenishment} className="btn bg-amber-500 text-white">
-              <MaterialIcon icon="add_card" style={{ fontSize: 18 }} />
-              Request Replenishment
-            </button>
-          )}
-          <button onClick={() => setShowModal(true)} className="btn btn-primary">
-            <MaterialIcon icon="add" style={{ fontSize: 18 }} />
-            Record Expense
-          </button>
-        </div>
-      </div>
+      <PageHeader 
+        title="Petty Cash" 
+        subtitle="Track small day-to-day expenses"
+        actions={
+          <div className="flex gap-3">
+            {balance < 100000 && (
+              <Button variant="secondary" onClick={requestReplenishment}>
+                <MaterialIcon icon="add_card" style={{ fontSize: 18 }} />
+                Request Replenishment
+              </Button>
+            )}
+            <Button onClick={() => setShowModal(true)}>
+              <MaterialIcon icon="add" style={{ fontSize: 18 }} />
+              Record Expense
+            </Button>
+          </div>
+        }
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="card"><div className="card-body text-center">
-          <div className="text-sm text-[#5c6670]">Running Balance</div>
-          <div className={`text-2xl font-bold ${balance >= 100000 ? 'text-green-600' : 'text-red-600'}`}>UGX {balance.toLocaleString()}</div>
-          {balance < 100000 && <div className="badge bg-red-100 text-red-800 mt-1">Low Balance</div>}
-        </div></div>
-        <div className="card"><div className="card-body text-center">
-          <div className="text-sm text-[#5c6670]">{viewMode === 'daily' ? 'Today' : viewMode === 'weekly' ? 'This Week' : 'This Month'}</div>
-          <div className="text-2xl font-bold text-red-600">UGX {totalSpent.toLocaleString()}</div>
-        </div></div>
-        <div className="card"><div className="card-body text-center">
-          <div className="text-sm text-[#5c6670]">Transactions</div>
-          <div className="text-2xl font-bold text-[#002045]">{filtered.length}</div>
-        </div></div>
+        <Card>
+          <CardBody className="text-center">
+            <div className="text-sm text-[#5c6670]">Running Balance</div>
+            <div className={`text-2xl font-bold mt-1 ${balance >= 100000 ? 'text-green-600' : 'text-red-600'}`}>UGX {balance.toLocaleString()}</div>
+            {balance < 100000 && <div className="badge bg-red-100 text-red-800 mt-2">Low Balance</div>}
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody className="text-center">
+            <div className="text-sm text-[#5c6670]">{viewMode === 'daily' ? 'Today' : viewMode === 'weekly' ? 'This Week' : 'This Month'}</div>
+            <div className="text-2xl font-bold text-red-600 mt-1">UGX {totalSpent.toLocaleString()}</div>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody className="text-center">
+            <div className="text-sm text-[#5c6670]">Transactions</div>
+            <div className="text-2xl font-bold text-[#002045] mt-1">{filtered.length}</div>
+          </CardBody>
+        </Card>
       </div>
 
-      <div className="flex gap-2 mb-6">
-        {(['daily', 'weekly', 'monthly'] as const).map(mode => (
-          <button key={mode} onClick={() => setViewMode(mode)} className={`btn btn-sm ${viewMode === mode ? 'btn-primary' : 'btn-secondary'}`}>
-            {mode.charAt(0).toUpperCase() + mode.slice(1)}
-          </button>
-        ))}
-      </div>
+      <Tabs 
+        tabs={[
+          { id: 'daily', label: 'Daily' },
+          { id: 'weekly', label: 'Weekly' },
+          { id: 'monthly', label: 'Monthly' },
+        ]}
+        activeTab={viewMode}
+        onChange={(val) => setViewMode(val as 'daily' | 'weekly' | 'monthly')}
+        className="mb-6"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3">
-          <div className="card">
-            <div className="card-header"><div className="card-title">Expenses</div></div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Expenses</CardTitle>
+            </CardHeader>
             {loading ? (
-              <div className="card-body text-center py-8"><div className="skeleton h-4 w-32 mx-auto" /></div>
+              <CardBody className="text-center py-8"><div className="skeleton h-4 w-32 mx-auto" /></CardBody>
             ) : filtered.length === 0 ? (
-              <div className="card-body text-center py-12 text-[#5c6670]">
+              <CardBody className="text-center py-12 text-[#5c6670]">
                 <MaterialIcon icon="receipt_long" style={{ fontSize: 48, opacity: 0.5 }} />
                 <p className="mt-2">No expenses recorded</p>
-              </div>
+              </CardBody>
             ) : (
               <div className="table-wrapper">
                 <table className="table">
@@ -213,23 +228,27 @@ export default function PettyCashPage() {
                 </table>
               </div>
             )}
-          </div>
+          </Card>
         </div>
         <div>
-          <div className="card">
-            <div className="card-header"><div className="card-title">Summary</div></div>
-            <div className="p-4 space-y-3">
-              {categoryTotals.filter(c => c.total > 0).map(({ category, total }) => (
-                <div key={category} className="flex items-center justify-between">
-                  <span className="text-sm text-[#5c6670]">{category}</span>
-                  <span className="text-sm font-medium text-[#191c1d]">UGX {total.toLocaleString()}</span>
-                </div>
-              ))}
-              {categoryTotals.every(c => c.total === 0) && (
-                <div className="text-sm text-[#5c6670] text-center">No expenses</div>
-              )}
-            </div>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Summary</CardTitle>
+            </CardHeader>
+            <CardBody>
+              <div className="space-y-3">
+                {categoryTotals.filter(c => c.total > 0).map(({ category, total }) => (
+                  <div key={category} className="flex items-center justify-between">
+                    <span className="text-sm text-[#5c6670]">{category}</span>
+                    <span className="text-sm font-medium text-[#191c1d]">UGX {total.toLocaleString()}</span>
+                  </div>
+                ))}
+                {categoryTotals.every(c => c.total === 0) && (
+                  <div className="text-sm text-[#5c6670] text-center">No expenses</div>
+                )}
+              </div>
+            </CardBody>
+          </Card>
         </div>
       </div>
 

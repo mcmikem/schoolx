@@ -71,7 +71,8 @@ export default function SyllabusPage() {
     if (selectedClass && selectedSubject) {
       fetchSyllabus()
     }
-  }, [fetchSyllabus])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClass, selectedSubject])
 
   const handleAddTopic = async (e: React.FormEvent) => {
     e.preventDefault()

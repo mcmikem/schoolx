@@ -5,29 +5,13 @@ import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import { useClasses } from '@/lib/hooks'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
 
 interface Teacher {
   id: string
   full_name: string
-}
-
-interface Substitution {
-  id: string
-  title: string
-  description: string
-  start_date: string
-  created_at: string
-}
-
-interface SubstitutionData {
-  absent_teacher_id: string
-  substitute_teacher_id: string
-  class_id: string
-  period: number
-  reason: string
-  absent_teacher_name?: string
-  substitute_teacher_name?: string
-  class_name?: string
 }
 
 export default function SubstitutionsPage() {
@@ -36,11 +20,12 @@ export default function SubstitutionsPage() {
   const { classes } = useClasses(school?.id)
 
   const [teachers, setTeachers] = useState<Teacher[]>([])
-  const [substitutions, setSubstitutions] = useState<Substitution[]>([])
+  const [substitutions, setSubstitutions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7))
+  const [availability, setAvailability] = useState<{ status: 'loading' | 'free' | 'busy' | 'idle', message?: string }>({ status: 'idle' })
   const [form, setForm] = useState({
     absent_teacher_id: '',
     substitute_teacher_id: '',
@@ -71,15 +56,18 @@ export default function SubstitutionsPage() {
       const endDate = `${selectedMonth}-${new Date(year, month, 0).getDate()}`
 
       const { data, error } = await supabase
-        .from('events')
-        .select('*')
+        .from('teacher_substitutions')
+        .select('*, absent_teacher:absent_teacher_id(full_name), substitute_teacher:substitute_teacher_id(full_name), class:class_id(name)')
         .eq('school_id', school.id)
-        .eq('event_type', 'substitution')
-        .gte('start_date', startDate)
-        .lte('start_date', endDate)
-        .order('start_date', { ascending: false })
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .order('date', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.error('Error fetching substitutions:', error)
+        setSubstitutions([])
+        return
+      }
       setSubstitutions(data || [])
     } catch {
       setSubstitutions([])
@@ -88,16 +76,66 @@ export default function SubstitutionsPage() {
     }
   }, [school?.id, selectedMonth])
 
+  const checkAvailability = useCallback(async () => {
+    if (!form.substitute_teacher_id || !form.date || !form.period || !school?.id) return
+    
+    setAvailability({ status: 'loading' })
+    try {
+      const dateObj = new Date(form.date)
+      const dayOfWeek = dateObj.getDay() === 0 ? 7 : dateObj.getDay() // 1-7 (Mon-Sun)
+      
+      // 1. Check Regular Timetable
+      const { data: timetableEntries } = await supabase
+        .from('teacher_timetable')
+        .select('id, subjects(name), classes(name)')
+        .eq('teacher_id', form.substitute_teacher_id)
+        .eq('day_of_week', dayOfWeek)
+        .eq('period_number', form.period)
+        .maybeSingle()
+
+      if (timetableEntries) {
+        const entry = timetableEntries as any
+        setAvailability({ 
+          status: 'busy', 
+          message: `Already teaching ${entry.subjects?.name || 'Subject'} in ${entry.classes?.name || 'Class'}` 
+        })
+        return
+      }
+
+      // 2. Check other substitutions for this day/period
+      const { data: existingSub } = await supabase
+        .from('teacher_substitutions')
+        .select('id, class:class_id(name)')
+        .eq('substitute_teacher_id', form.substitute_teacher_id)
+        .eq('date', form.date)
+        .eq('period', form.period)
+        .maybeSingle()
+
+      if (existingSub) {
+        setAvailability({ 
+          status: 'busy', 
+          message: `Already substituting in ${(existingSub.class as any)?.name || 'Class'}` 
+        })
+        return
+      }
+
+      setAvailability({ status: 'free', message: 'Teacher is available' })
+    } catch (err) {
+      console.error('Availability check failed', err)
+      setAvailability({ status: 'idle' })
+    }
+  }, [form.substitute_teacher_id, form.date, form.period, school?.id])
+
+  useEffect(() => {
+    if (form.substitute_teacher_id) checkAvailability()
+  }, [form.substitute_teacher_id, form.date, form.period, checkAvailability])
+
   useEffect(() => {
     if (school?.id) {
       fetchTeachers()
       fetchSubstitutions()
     }
   }, [school?.id, fetchTeachers, fetchSubstitutions])
-
-  useEffect(() => {
-    if (school?.id) fetchSubstitutions()
-  }, [selectedMonth, school?.id, fetchSubstitutions])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -107,32 +145,24 @@ export default function SubstitutionsPage() {
       return
     }
 
+    if (availability.status === 'busy') {
+      const proceed = confirm(`Warning: ${availability.message}. Do you still want to log this substitution?`)
+      if (!proceed) return
+    }
+
     setSaving(true)
     try {
-      const absentName = teachers.find(t => t.id === form.absent_teacher_id)?.full_name || 'Unknown'
-      const substituteName = teachers.find(t => t.id === form.substitute_teacher_id)?.full_name || 'Unknown'
-      const className = classes.find(c => c.id === form.class_id)?.name || 'Unknown'
-
-      const description = JSON.stringify({
-        absent_teacher_id: form.absent_teacher_id,
-        substitute_teacher_id: form.substitute_teacher_id,
-        class_id: form.class_id,
-        period: form.period,
-        reason: form.reason,
-        absent_teacher_name: absentName,
-        substitute_teacher_name: substituteName,
-        class_name: className,
-      })
-
       const { error } = await supabase
-        .from('events')
+        .from('teacher_substitutions')
         .insert({
           school_id: school.id,
-          title: `Substitution: ${absentName} → ${substituteName}`,
-          description,
-          event_type: 'substitution',
-          start_date: form.date,
-          end_date: form.date,
+          absent_teacher_id: form.absent_teacher_id,
+          substitute_teacher_id: form.substitute_teacher_id,
+          class_id: form.class_id,
+          date: form.date,
+          period: form.period,
+          reason: form.reason,
+          status: 'completed'
         })
 
       if (error) throw error
@@ -148,29 +178,22 @@ export default function SubstitutionsPage() {
         reason: 'Sick',
       })
       fetchSubstitutions()
-    } catch {
+    } catch (err) {
+      console.error('Failed to log substitution', err)
       toast.error('Failed to log substitution')
     } finally {
       setSaving(false)
     }
   }
 
-  const parseSubstitution = (sub: Substitution): SubstitutionData | null => {
-    try {
-      return JSON.parse(sub.description || '{}')
-    } catch {
-      return null
-    }
-  }
-
   const today = new Date().toISOString().split('T')[0]
-  const todaySubs = substitutions.filter(s => s.start_date === today)
+  const todaySubs = substitutions.filter(s => s.date === today)
 
   const teacherSubCounts = new Map<string, number>()
   substitutions.forEach(sub => {
-    const data = parseSubstitution(sub)
-    if (data?.substitute_teacher_name) {
-      teacherSubCounts.set(data.substitute_teacher_name, (teacherSubCounts.get(data.substitute_teacher_name) || 0) + 1)
+    const name = sub.substitute_teacher?.full_name
+    if (name) {
+      teacherSubCounts.set(name, (teacherSubCounts.get(name) || 0) + 1)
     }
   })
 
@@ -190,114 +213,108 @@ export default function SubstitutionsPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#002045]">Substitutions</h1>
-          <p className="text-[#5c6670] mt-1">Track teacher substitutions and coverage</p>
-        </div>
-        <div className="flex gap-3">
-          <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="input" />
-          <button onClick={() => setShowModal(true)} className="btn btn-primary">
-            <MaterialIcon icon="swap_horiz" className="text-lg" />
-            Log Substitution
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Substitutions"
+        subtitle="Track teacher substitutions and coverage"
+        actions={
+          <div className="flex gap-3">
+            <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium" />
+            <Button onClick={() => setShowModal(true)}>
+              <MaterialIcon icon="swap_horiz" className="text-lg" />
+              Log Substitution
+            </Button>
+          </div>
+        }
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="card"><div className="card-body text-center">
-          <div className="text-2xl font-bold text-[#002045]">{substitutions.length}</div>
-          <div className="text-sm text-[#5c6670]">Substitutions This Month</div>
-        </div></div>
-        <div className="card"><div className="card-body text-center">
+        <Card className="p-4 text-center">
+          <div className="text-2xl font-bold text-[var(--primary)]">{substitutions.length}</div>
+          <div className="text-sm text-[var(--t3)]">Substitutions This Month</div>
+        </Card>
+        <Card className="p-4 text-center">
           <div className="text-2xl font-bold text-blue-600">{todaySubs.length}</div>
-          <div className="text-sm text-[#5c6670]">Today&apos;s Substitutions</div>
-        </div></div>
-        <div className="card">
-          <div className="card-body">
-            <div className="text-sm font-medium text-[#191c1d] mb-2">Top Substitutes</div>
-            {Array.from(teacherSubCounts.entries()).slice(0, 3).map(([name, count]) => (
-              <div key={name} className="flex items-center justify-between text-sm">
-                <span className="text-[#5c6670] truncate">{name}</span>
-                <span className="font-medium text-[#191c1d]">{count}</span>
-              </div>
-            ))}
-            {teacherSubCounts.size === 0 && <div className="text-sm text-[#5c6670]">No data</div>}
-          </div>
-        </div>
+          <div className="text-sm text-[var(--t3)]">Today&apos;s Substitutions</div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-sm font-medium text-[var(--t1)] mb-2">Top Substitutes</div>
+          {Array.from(teacherSubCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, count]) => (
+            <div key={name} className="flex items-center justify-between text-sm">
+              <span className="text-[var(--t3)] truncate">{name}</span>
+              <span className="font-medium text-[var(--t1)]">{count}</span>
+            </div>
+          ))}
+          {teacherSubCounts.size === 0 && <div className="text-sm text-[var(--t3)]">No data</div>}
+        </Card>
       </div>
 
       {todaySubs.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-[#191c1d] mb-3">Today&apos;s Substitutions</h2>
+          <h2 className="text-lg font-semibold text-[var(--t1)] mb-3">Today&apos;s Substitutions</h2>
           <div className="space-y-3">
             {todaySubs.map((sub) => {
-              const data = parseSubstitution(sub)
-              if (!data) return null
               return (
-                <div key={sub.id} className="bg-white rounded-2xl border-2 border-[#e3f2fd] p-4">
+                <Card key={sub.id} className="p-4 border-2 border-blue-100">
                   <div className="flex items-start justify-between">
                     <div>
-                      <div className="font-medium text-[#191c1d]">
-                        {data.absent_teacher_name || 'Unknown'} → {data.substitute_teacher_name || 'Unknown'}
+                      <div className="font-medium text-[var(--t1)]">
+                        {sub.absent_teacher?.full_name || 'Unknown'} → {sub.substitute_teacher?.full_name || 'Unknown'}
                       </div>
-                      <div className="text-sm text-[#5c6670] mt-1">
-                        Period {data.period} · {data.class_name || 'Unknown class'}
+                      <div className="text-sm text-[var(--t3)] mt-1">
+                        Period {sub.period} · {sub.class?.name || 'Unknown class'}
                       </div>
-                      <div className="mt-2">{getReasonBadge(data.reason)}</div>
+                      <div className="mt-2">{getReasonBadge(sub.reason)}</div>
                     </div>
-                    <span className="text-xs text-[#5c6670]">
+                    <span className="text-xs text-[var(--t3)]">
                       {new Date(sub.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                </div>
+                </Card>
               )
             })}
           </div>
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-[#e8eaed] overflow-hidden">
-        <div className="p-4 border-b border-[#e8eaed]">
-          <h2 className="font-semibold text-[#191c1d]">History</h2>
+      <Card>
+        <div className="p-4 border-b border-[var(--border)]">
+          <h2 className="font-semibold text-[var(--t1)]">History</h2>
         </div>
         {loading ? (
-          <div className="p-8 text-center text-[#5c6670]">Loading...</div>
+          <div className="p-8 text-center text-[var(--t3)]">Loading...</div>
         ) : substitutions.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="w-16 h-16 bg-[#f8fafb] rounded-full flex items-center justify-center mx-auto mb-4">
-              <MaterialIcon icon="swap_horiz" className="text-3xl text-[#5c6670]" />
+            <div className="w-16 h-16 bg-[var(--surface-container)] rounded-full flex items-center justify-center mx-auto mb-4">
+              <MaterialIcon className="text-3xl text-[var(--t3)]">swap_horiz</MaterialIcon>
             </div>
-            <h3 className="text-lg font-semibold text-[#191c1d] mb-2">No substitutions yet</h3>
-            <p className="text-[#5c6670]">Log a substitution when a teacher is absent</p>
+            <h3 className="text-lg font-semibold text-[var(--t1)] mb-2">No substitutions yet</h3>
+            <p className="text-[var(--t3)]">Log a substitution when a teacher is absent</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-[#f8fafb]">
-                  <th className="p-4 text-left text-sm font-semibold text-[#191c1d]">Date</th>
-                  <th className="p-4 text-left text-sm font-semibold text-[#191c1d]">Absent Teacher</th>
-                  <th className="p-4 text-left text-sm font-semibold text-[#191c1d]">Substitute</th>
-                  <th className="p-4 text-left text-sm font-semibold text-[#191c1d]">Period</th>
-                  <th className="p-4 text-left text-sm font-semibold text-[#191c1d]">Class</th>
-                  <th className="p-4 text-left text-sm font-semibold text-[#191c1d]">Reason</th>
+                <tr className="bg-[var(--surface-container)]">
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Date</th>
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Absent Teacher</th>
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Substitute</th>
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Period</th>
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Class</th>
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Reason</th>
                 </tr>
               </thead>
               <tbody>
                 {substitutions.map((sub) => {
-                  const data = parseSubstitution(sub)
-                  if (!data) return null
                   return (
-                    <tr key={sub.id} className="border-t border-[#e8eaed]">
-                      <td className="p-4 text-sm text-[#191c1d]">
-                        {new Date(sub.start_date).toLocaleDateString()}
+                    <tr key={sub.id} className="border-t border-[var(--border)]">
+                      <td className="p-4 text-sm text-[var(--t1)]">
+                        {new Date(sub.date).toLocaleDateString()}
                       </td>
-                      <td className="p-4 text-sm text-[#191c1d]">{data.absent_teacher_name || 'Unknown'}</td>
-                      <td className="p-4 text-sm text-[#191c1d]">{data.substitute_teacher_name || 'Unknown'}</td>
-                      <td className="p-4 text-sm text-[#191c1d]">{data.period}</td>
-                      <td className="p-4 text-sm text-[#191c1d]">{data.class_name || 'Unknown'}</td>
-                      <td className="p-4">{getReasonBadge(data.reason)}</td>
+                      <td className="p-4 text-sm text-[var(--t1)]">{sub.absent_teacher?.full_name || 'Unknown'}</td>
+                      <td className="p-4 text-sm text-[var(--t1)]">{sub.substitute_teacher?.full_name || 'Unknown'}</td>
+                      <td className="p-4 text-sm text-[var(--t1)]">{sub.period}</td>
+                      <td className="p-4 text-sm text-[var(--t1)]">{sub.class?.name || 'Unknown'}</td>
+                      <td className="p-4">{getReasonBadge(sub.reason)}</td>
                     </tr>
                   )
                 })}
@@ -305,56 +322,52 @@ export default function SubstitutionsPage() {
             </table>
           </div>
         )}
-      </div>
+      </Card>
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-[#e8eaed]">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-[var(--border)] sticky top-0 bg-[var(--surface)] z-10">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[#191c1d]">Log Substitution</h2>
-                <button onClick={() => setShowModal(false)} className="p-2 text-[#5c6670] hover:text-[#191c1d]">
-                  <MaterialIcon icon="close" className="text-xl" />
+                <h2 className="text-lg font-semibold text-[var(--t1)]">Log Substitution</h2>
+                <button onClick={() => setShowModal(false)} className="p-2 text-[var(--t3)] hover:text-[var(--t1)]">
+                  <MaterialIcon className="text-xl" icon="close" />
                 </button>
               </div>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Absent Teacher</label>
-                {teachers.length === 0 ? (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">No teachers available</div>
-                ) : (
-                  <select
-                    value={form.absent_teacher_id}
-                    onChange={(e) => setForm({ ...form, absent_teacher_id: e.target.value })}
-                    className="input"
-                    required
-                  >
-                    <option value="">Select teacher</option>
-                    {teachers.map((t) => (
-                      <option key={t.id} value={t.id}>{t.full_name}</option>
-                    ))}
-                  </select>
-                )}
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Absent Teacher</label>
+                <select
+                  value={form.absent_teacher_id}
+                  onChange={(e) => setForm({ ...form, absent_teacher_id: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
+                  required
+                >
+                  <option value="">Select teacher</option>
+                  {teachers.map((t) => (
+                    <option key={t.id} value={t.id}>{t.full_name}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Date</label>
+                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Date</label>
                   <input
                     type="date"
                     value={form.date}
                     onChange={(e) => setForm({ ...form, date: e.target.value })}
-                    className="input"
+                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Period</label>
+                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Period</label>
                   <select
                     value={form.period}
                     onChange={(e) => setForm({ ...form, period: Number(e.target.value) })}
-                    className="input"
+                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
                   >
                     {[1, 2, 3, 4, 5, 6, 7, 8].map((p) => (
                       <option key={p} value={p}>Period {p}</option>
@@ -364,11 +377,11 @@ export default function SubstitutionsPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Class Affected</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Class Affected</label>
                 <select
                   value={form.class_id}
                   onChange={(e) => setForm({ ...form, class_id: e.target.value })}
-                  className="input"
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
                   required
                 >
                   <option value="">Select class</option>
@@ -379,11 +392,15 @@ export default function SubstitutionsPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Substitute Teacher</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Substitute Teacher</label>
                 <select
                   value={form.substitute_teacher_id}
                   onChange={(e) => setForm({ ...form, substitute_teacher_id: e.target.value })}
-                  className="input"
+                  className={`w-full px-4 py-3 rounded-xl border bg-[var(--surface)] text-[var(--on-surface)] ${
+                    availability.status === 'busy' ? 'border-red-500 bg-red-50' : 
+                    availability.status === 'free' ? 'border-green-500 bg-green-50' : 
+                    'border-[var(--border)]'
+                  }`}
                   required
                 >
                   <option value="">Select substitute</option>
@@ -393,14 +410,33 @@ export default function SubstitutionsPage() {
                       <option key={t.id} value={t.id}>{t.full_name}</option>
                     ))}
                 </select>
+                {availability.status !== 'idle' && (
+                  <div className={`mt-2 text-xs font-medium flex items-center gap-1 ${
+                    availability.status === 'busy' ? 'text-red-600' : 
+                    availability.status === 'free' ? 'text-green-600' : 
+                    'text-[var(--t3)]'
+                  }`}>
+                    {availability.status === 'loading' ? (
+                      <span className="flex items-center gap-2">
+                        <div className="w-3 h-3 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" /> 
+                        Checking availability...
+                      </span>
+                    ) : (
+                      <>
+                        <MaterialIcon icon={availability.status === 'busy' ? 'warning' : 'check_circle'} className="text-base" />
+                        {availability.message}
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Reason</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Reason</label>
                 <select
                   value={form.reason}
                   onChange={(e) => setForm({ ...form, reason: e.target.value })}
-                  className="input"
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
                 >
                   <option value="Sick">Sick</option>
                   <option value="Personal">Personal</option>
@@ -410,12 +446,12 @@ export default function SubstitutionsPage() {
               </div>
 
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary flex-1">
+                <Button variant="secondary" className="flex-1" onClick={() => setShowModal(false)}>
                   Cancel
-                </button>
-                <button type="submit" disabled={saving} className="btn btn-primary flex-1">
+                </Button>
+                <Button className="flex-1" disabled={saving}>
                   {saving ? 'Saving...' : 'Log Substitution'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

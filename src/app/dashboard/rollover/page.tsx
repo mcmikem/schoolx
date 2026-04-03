@@ -9,10 +9,10 @@ import MaterialIcon from '@/components/MaterialIcon'
 
 export default function RolloverPage() {
   const { school } = useAuth()
-  const { academicYear, currentTerm } = useAcademic()
+  const { academicYear, currentTerm, setAcademicYear, setCurrentTerm } = useAcademic()
   const toast = useToast()
   const { students } = useStudents(school?.id)
-  const { classes } = useClasses(school?.id)
+  const { classes: allSchoolClasses } = useClasses(school?.id)
   
   const [newAcademicYear, setNewAcademicYear] = useState(String(Number(academicYear) + 1))
   const [promoting, setPromoting] = useState(false)
@@ -25,13 +25,15 @@ export default function RolloverPage() {
     try {
       setPromoting(true)
       
-      // Update academic context (in real app, this would be in database)
-      localStorage.setItem('current_term', String(currentTerm < 3 ? currentTerm + 1 : 1))
-      if (currentTerm === 3) {
-        localStorage.setItem('academic_year', newAcademicYear)
+      if (currentTerm < 3) {
+        await setCurrentTerm((currentTerm + 1) as 1 | 2 | 3)
+        toast.success(`Term ${currentTerm + 1} started`)
+      } else {
+        await setAcademicYear(newAcademicYear)
+        await setCurrentTerm(1)
+        toast.success(`New academic year ${newAcademicYear} started`)
       }
 
-      toast.success(currentTerm < 3 ? `Term ${currentTerm + 1} started` : `New academic year ${newAcademicYear} started`)
       window.location.reload()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to rollover')
@@ -40,20 +42,25 @@ export default function RolloverPage() {
     }
   }
 
+  const getNextClassName = (name: string) => {
+    // Basic logic: P.1 -> P.2, S.1 -> S.2
+    const match = name.match(/([A-Z]\.)(\d+)(.*)/)
+    if (match) {
+      const prefix = match[1]
+      const num = parseInt(match[2])
+      const suffix = match[3] || ''
+      return `${prefix}${num + 1}${suffix}`
+    }
+    return name
+  }
+
   const handleYearRollover = async () => {
     if (!school?.id) return
 
     try {
       setPromoting(true)
 
-      // Archive current year data (mark completed students)
-      const { data: currentClasses } = await supabase
-        .from('classes')
-        .select('id, name, level')
-        .eq('school_id', school.id)
-        .eq('academic_year', academicYear)
-
-      // Mark P.7 and S.6 students as completed
+      // 1. Mark P.7 and S.6 students as completed
       const graduatingStudents = students.filter(s => {
         const className = s.classes?.name || ''
         return className.includes('P.7') || className.includes('S.6')
@@ -66,46 +73,65 @@ export default function RolloverPage() {
           .eq('id', student.id)
       }
 
-      // Create new classes for next year
-      if (currentClasses) {
-        for (const cls of currentClasses) {
-          // Skip graduating classes
-          if (cls.name.includes('P.7') || cls.name.includes('S.6')) continue
+      // 2. Get current year classes to clone/promote
+      const currentYearClasses = allSchoolClasses.filter(c => c.academic_year === academicYear)
+      const newClassesMap = new Map<string, string>()
 
-          // Promote class name (e.g., P.5 -> P.6)
-          const level = cls.level
-          const nameParts = cls.name.match(/([A-Z]\.)(\d+)/)
-          if (nameParts) {
-            const prefix = nameParts[1]
-            const num = parseInt(nameParts[2])
-            const newName = `${prefix}${num + 1}`
+      for (const cls of currentYearClasses) {
+        // Skip graduating classes
+        if (cls.name.includes('P.7') || cls.name.includes('S.6')) continue
 
-            await supabase.from('classes').insert({
-              school_id: school.id,
-              name: newName,
-              level,
-              academic_year: newAcademicYear,
-              max_students: 60,
-            })
-          }
-        }
-
-        // Create P.1 and S.1 for new students
-        await supabase.from('classes').insert({
+        const nextName = getNextClassName(cls.name)
+        
+        const { data: newClass, error: classError } = await supabase.from('classes').insert({
           school_id: school.id,
-          name: 'P.1',
-          level: 'primary',
+          name: nextName,
+          level: cls.level,
           academic_year: newAcademicYear,
-          max_students: 60,
-        })
+          max_students: cls.max_students || 60,
+          stream: cls.stream
+        }).select().single()
+
+        if (classError) throw classError
+        if (newClass) newClassesMap.set(nextName, newClass.id)
       }
 
-      // Update academic year
-      localStorage.setItem('academic_year', newAcademicYear)
-      localStorage.setItem('current_term', '1')
+      // 3. Create entry-level classes if they don't exist (P.1, S.1)
+      const entryClasses = school.school_type === 'secondary' ? ['S.1'] : (school.school_type === 'primary' ? ['P.1'] : ['P.1', 'S.1'])
+      for (const name of entryClasses) {
+        if (!newClassesMap.has(name)) {
+          const { data: entryClass } = await supabase.from('classes').insert({
+            school_id: school.id,
+            name,
+            level: name.includes('P') ? 'primary' : 'secondary',
+            academic_year: newAcademicYear,
+            max_students: 60
+          }).select().single()
+          if (entryClass) newClassesMap.set(name, entryClass.id)
+        }
+      }
+
+      // 4. Promote Students (Batch update class_id)
+      const activeStudents = students.filter(s => s.status === 'active' && s.class_id)
+      for (const student of activeStudents) {
+        const currentClassName = student.classes?.name || ''
+        if (currentClassName.includes('P.7') || currentClassName.includes('S.6')) continue
+
+        const nextClassName = getNextClassName(currentClassName)
+        const nextClassId = newClassesMap.get(nextClassName)
+
+        if (nextClassId) {
+          await supabase.from('students').update({ class_id: nextClassId }).eq('id', student.id)
+        }
+      }
+
+      // 5. Update global academic state
+      await setAcademicYear(newAcademicYear)
+      await setCurrentTerm(1)
 
       toast.success(`Academic year ${newAcademicYear} setup complete`)
       setStep(4)
+      window.location.reload()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to rollover')
     } finally {
@@ -138,7 +164,7 @@ export default function RolloverPage() {
           </div>
           <div>
             <div className="text-sm text-[#5c6670]">Classes</div>
-            <div className="text-xl font-bold text-[#002045]">{classes.length}</div>
+            <div className="text-xl font-bold text-[#002045]">{allSchoolClasses.length}</div>
           </div>
         </div>
       </div>

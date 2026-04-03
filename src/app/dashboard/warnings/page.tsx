@@ -5,8 +5,13 @@ import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
-
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardBody } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { Tabs } from '@/components/ui/Tabs'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
 
 interface Warning {
   student_id: string
@@ -55,26 +60,50 @@ export default function EarlyWarningsPage() {
       }
     } catch (err) {
       console.error('Error:', err)
+      setWarnings([])
+    } finally {
+      setLoading(false)
     }
   }, [school?.id])
 
   const fetchWarnings = useCallback(async () => {
-    if (!school?.id) return
+    if (!school?.id || students.length === 0) {
+      setWarnings([])
+      setLoading(false)
+      return
+    }
     
     setLoading(true)
+    const studentIds = students.map(s => s.id)
     const allWarnings: Warning[] = []
 
-    for (const student of students) {
-      const { data: grades } = await supabase
-        .from('grades')
-        .select('*, subjects(name)')
-        .eq('student_id', student.id)
-        .eq('term', currentTerm)
-        .eq('academic_year', academicYear)
+    // Batch fetch all grades for all students
+    const { data: allGrades } = await supabase
+      .from('grades')
+      .select('*, subjects(name)')
+      .in('student_id', studentIds)
+      .eq('term', currentTerm)
+      .eq('academic_year', academicYear)
 
-      if (grades && grades.length > 0) {
+    // Batch fetch all attendance
+    const { data: allAttendance } = await supabase
+      .from('attendance')
+      .select('student_id, status')
+      .in('student_id', studentIds)
+
+    // Batch fetch all payments
+    const { data: allPayments } = await supabase
+      .from('fee_payments')
+      .select('student_id, amount_paid')
+      .in('student_id', studentIds)
+
+    // Process data in memory (fast)
+    for (const student of students) {
+      // Grades analysis
+      const studentGrades = allGrades?.filter(g => g.student_id === student.id) || []
+      if (studentGrades.length > 0) {
         const subjectScores: Record<string, number[]> = {}
-        grades.forEach(g => {
+        studentGrades.forEach(g => {
           const subject = g.subjects?.name || 'Unknown'
           if (!subjectScores[subject]) subjectScores[subject] = []
           subjectScores[subject].push(Number(g.score))
@@ -101,14 +130,11 @@ export default function EarlyWarningsPage() {
         }
       }
 
-      const { data: attendance } = await supabase
-        .from('attendance')
-        .select('status')
-        .eq('student_id', student.id)
-
-      if (attendance && attendance.length > 0) {
-        const present = attendance.filter(a => a.status === 'present').length
-        const rate = (present / attendance.length) * 100
+      // Attendance analysis
+      const studentAttendance = allAttendance?.filter(a => a.student_id === student.id) || []
+      if (studentAttendance.length > 0) {
+        const present = studentAttendance.filter(a => a.status === 'present').length
+        const rate = (present / studentAttendance.length) * 100
 
         if (rate < thresholds.attendance) {
           allWarnings.push({
@@ -123,20 +149,17 @@ export default function EarlyWarningsPage() {
         }
       }
 
-      const { data: payments } = await supabase
-        .from('fee_payments')
-        .select('amount_paid')
-        .eq('student_id', student.id)
-
-      if (payments) {
-        const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount_paid), 0)
+      // Fee analysis
+      const studentPayments = allPayments?.filter(p => p.student_id === student.id) || []
+      if (studentPayments.length > 0) {
+        const totalPaid = studentPayments.reduce((sum, p) => sum + Number(p.amount_paid), 0)
         if (totalPaid < thresholds.fee) {
           allWarnings.push({
             student_id: student.id,
             student_name: `${student.first_name} ${student.last_name}`,
             student_number: student.student_number || '',
             class_name: student.classes?.name || '',
-            warning_type: 'Fees',
+            warning_type: 'Fee Payment',
             details: `Low fee payments: UGX ${totalPaid.toLocaleString()}`,
             severity: totalPaid === 0 ? 'high' : 'medium'
           })
@@ -145,7 +168,6 @@ export default function EarlyWarningsPage() {
     }
 
     setWarnings(allWarnings)
-    setLoading(false)
   }, [school?.id, students, currentTerm, academicYear, thresholds])
 
   useEffect(() => {
@@ -207,108 +229,114 @@ export default function EarlyWarningsPage() {
 
   const getSeverityBadge = (severity: string) => {
     switch (severity) {
-      case 'high': return 'bg-[#fef2f2] text-[#ba1a1a]'
-      case 'medium': return 'bg-[#fff3e0] text-[#b86e00]'
-      default: return 'bg-[#e3f2fd] text-[#002045]'
+      case 'high': return 'bg-[var(--red-soft)] text-[var(--red)]'
+      case 'medium': return 'bg-[var(--amber-soft)] text-[var(--amber)]'
+      default: return 'bg-[var(--navy-soft)] text-[var(--navy)]'
     }
   }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Early Warnings</h1>
-        <p className="text-[#5c6670] mt-1">Students who need attention</p>
-      </div>
+      <PageHeader title="Early Warnings" subtitle="Students who need attention" />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-          <div className="text-2xl font-bold text-[#002045]">{stats.total}</div>
-          <div className="text-sm text-[#5c6670] mt-1">Total Warnings</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-          <div className="text-2xl font-bold text-[#ba1a1a]">{stats.high}</div>
-          <div className="text-sm text-[#5c6670] mt-1">High Priority</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-          <div className="text-2xl font-bold text-[#b86e00]">{stats.medium}</div>
-          <div className="text-sm text-[#5c6670] mt-1">Medium</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-          <div className="text-2xl font-bold text-[#002045]">{stats.low}</div>
-          <div className="text-sm text-[#5c6670] mt-1">Low</div>
-        </div>
+        <Card className="text-center">
+          <CardBody>
+            <div className="text-2xl font-bold text-[var(--t1)]">{stats.total}</div>
+            <div className="text-sm text-[var(--t3)] mt-1">Total Warnings</div>
+          </CardBody>
+        </Card>
+        <Card className="text-center">
+          <CardBody>
+            <div className="text-2xl font-bold text-[var(--red)]">{stats.high}</div>
+            <div className="text-sm text-[var(--t3)] mt-1">High Priority</div>
+          </CardBody>
+        </Card>
+        <Card className="text-center">
+          <CardBody>
+            <div className="text-2xl font-bold text-[var(--amber)]">{stats.medium}</div>
+            <div className="text-sm text-[var(--t3)] mt-1">Medium</div>
+          </CardBody>
+        </Card>
+        <Card className="text-center">
+          <CardBody>
+            <div className="text-2xl font-bold text-[var(--t1)]">{stats.low}</div>
+            <div className="text-sm text-[var(--t3)] mt-1">Low</div>
+          </CardBody>
+        </Card>
       </div>
 
+      <Tabs 
+        tabs={[
+          { id: 'all', label: 'All', count: warnings.length },
+          { id: 'high', label: 'High', count: stats.high },
+          { id: 'medium', label: 'Medium', count: stats.medium },
+          { id: 'low', label: 'Low', count: stats.low },
+        ]}
+        activeTab={filterSeverity}
+        onChange={setFilterSeverity}
+        className="mb-6"
+      />
+
       <div className="flex flex-wrap gap-3 mb-6">
-        <select value={filterSeverity} onChange={(e) => setFilterSeverity(e.target.value)} className="input sm:w-48">
-          <option value="all">All Severities</option>
-          <option value="high">High Priority</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-        </select>
-        <button onClick={fetchWarnings} className="btn btn-secondary">
-          <MaterialIcon icon="refresh" className="text-lg" />
+        <Button onClick={fetchWarnings} variant="secondary" icon={<MaterialIcon icon="refresh" className="text-lg" />}>
           Refresh
-        </button>
+        </Button>
         {filteredWarnings.length > 0 && (
-          <button onClick={() => sendBulkSMS()} className="btn btn-primary">
-            <MaterialIcon icon="sms" className="text-lg" />
+          <Button onClick={() => sendBulkSMS()} icon={<MaterialIcon icon="sms" className="text-lg" />}>
             SMS Guardians ({filteredWarnings.length})
-          </button>
+          </Button>
         )}
       </div>
 
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-2xl border border-[#e8eaed] p-4">
-              <div className="w-full h-4 bg-[#e8eaed] rounded mb-2" />
-              <div className="w-3/4 h-3 bg-[#e8eaed] rounded" />
-            </div>
-          ))}
-        </div>
+        <Card>
+          <CardBody className="p-0">
+            <TableSkeleton rows={3} />
+          </CardBody>
+        </Card>
       ) : filteredWarnings.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 text-center">
-          <div className="w-16 h-16 bg-[#e8f5e9] rounded-full flex items-center justify-center mx-auto mb-4">
-            <MaterialIcon icon="check_circle" className="text-3xl text-[#006e1c]" />
-          </div>
-          <h3 className="text-lg font-semibold text-[#191c1d] mb-2">No warnings</h3>
-          <p className="text-[#5c6670]">All students are performing well</p>
-        </div>
+        <EmptyState
+          icon="check_circle"
+          title="No warnings"
+          description="All students are performing well"
+        />
       ) : (
-        <div className="bg-white rounded-2xl border border-[#e8eaed] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-[#f8fafb]">
-                <tr>
-                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Student</th>
-                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Class</th>
-                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Warning Type</th>
-                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Details</th>
-                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Severity</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredWarnings.map((warning, i) => (
-                  <tr key={i} className="border-t border-[#e8eaed]">
-                    <td className="p-4">
-                      <div className="font-medium text-[#191c1d]">{warning.student_name}</div>
-                      <div className="text-xs text-[#5c6670]">{warning.student_number}</div>
-                    </td>
-                    <td className="p-4 text-[#191c1d]">{warning.class_name}</td>
-                    <td className="p-4 text-[#191c1d]">{warning.warning_type}</td>
-                    <td className="p-4 text-[#5c6670]">{warning.details}</td>
-                    <td className="p-4">
-                      <span className={`px-3 py-1 rounded-lg text-xs font-medium ${getSeverityBadge(warning.severity)}`}>
-                        {warning.severity}
-                      </span>
-                    </td>
+        <Card>
+          <CardBody className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-[var(--surface-container-low)]">
+                  <tr>
+                    <th className="text-left p-4 text-sm font-semibold text-[var(--t1)]">Student</th>
+                    <th className="text-left p-4 text-sm font-semibold text-[var(--t1)]">Class</th>
+                    <th className="text-left p-4 text-sm font-semibold text-[var(--t1)]">Warning Type</th>
+                    <th className="text-left p-4 text-sm font-semibold text-[var(--t1)]">Details</th>
+                    <th className="text-left p-4 text-sm font-semibold text-[var(--t1)]">Severity</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                </thead>
+                <tbody>
+                  {filteredWarnings.map((warning, i) => (
+                    <tr key={i} className="border-t border-[var(--border)]">
+                      <td className="p-4">
+                        <div className="font-medium text-[var(--t1)]">{warning.student_name}</div>
+                        <div className="text-xs text-[var(--t3)]">{warning.student_number}</div>
+                      </td>
+                      <td className="p-4 text-[var(--t1)]">{warning.class_name}</td>
+                      <td className="p-4 text-[var(--t1)]">{warning.warning_type}</td>
+                      <td className="p-4 text-[var(--t3)]">{warning.details}</td>
+                      <td className="p-4">
+                        <span className={`px-3 py-1 rounded-lg text-xs font-medium ${getSeverityBadge(warning.severity)}`}>
+                          {warning.severity}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardBody>
+        </Card>
       )}
     </div>
   )

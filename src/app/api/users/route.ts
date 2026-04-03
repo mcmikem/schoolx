@@ -1,9 +1,15 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { apiSuccess, apiError, handleApiError } from '@/lib/api-utils'
+import { apiSuccess, apiError, handleApiError, validateRequiredFields } from '@/lib/api-utils'
+import { sanitizeString, sanitizePhone } from '@/lib/validation'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+const VALID_ROLES = [
+  'school_admin', 'headmaster', 'dean_of_studies', 'bursar',
+  'teacher', 'secretary', 'dorm_master', 'parent'
+]
 
 interface AddUserRequest {
   schoolId: string
@@ -21,17 +27,31 @@ export async function POST(request: NextRequest) {
 
     const body: AddUserRequest = await request.json()
     const { schoolId, fullName, phone, password, role } = body
-
-    if (!schoolId || !fullName || !phone || !password) {
-      return apiError('All fields are required', 400)
+    
+    const validationError = validateRequiredFields(body as unknown as Record<string, unknown>, ['schoolId', 'fullName', 'phone', 'password', 'role'])
+    if (validationError) {
+      return apiError(validationError, 400)
     }
 
     if (password.length < 6) {
       return apiError('Password must be at least 6 characters', 400)
     }
 
-    // Normalize phone
-    const normalizedPhone = phone.replace(/[^0-9]/g, '')
+    if (!VALID_ROLES.includes(role)) {
+      return apiError('Invalid role', 400)
+    }
+
+    // Sanitize inputs
+    const sanitizedName = sanitizeString(fullName)
+    const sanitizedPhone = sanitizePhone(phone)
+    
+    if (sanitizedName.length < 2) {
+      return apiError('Name must be at least 2 characters', 400)
+    }
+
+    if (sanitizedPhone.length < 10 || sanitizedPhone.length > 15) {
+      return apiError('Invalid phone number', 400)
+    }
 
     // Create admin client
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
@@ -42,7 +62,7 @@ export async function POST(request: NextRequest) {
     const { data: existingUser } = await supabaseAdmin
       .from('users')
       .select('id')
-      .eq('phone', normalizedPhone)
+      .eq('phone', sanitizedPhone)
       .single()
 
     if (existingUser) {
@@ -50,12 +70,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Create auth user
-    const email = `${normalizedPhone}@omuto.sms`
+    const email = `${sanitizedPhone}@omuto.sms`
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
-      user_metadata: { full_name: fullName, phone: normalizedPhone }
+      user_metadata: { full_name: sanitizedName, phone: sanitizedPhone }
     })
 
     if (authError) throw authError
@@ -64,8 +84,8 @@ export async function POST(request: NextRequest) {
     const { error: userError } = await supabaseAdmin.from('users').insert({
       auth_id: authData.user.id,
       school_id: schoolId,
-      full_name: fullName,
-      phone: normalizedPhone,
+      full_name: sanitizedName,
+      phone: sanitizedPhone,
       role,
       is_active: true
     })
