@@ -33,6 +33,14 @@ function LoadingChecker({ children }: { children: ReactNode }) {
     }
   }, [loading])
 
+  // Force show content after 8 seconds regardless of loading state
+  useEffect(() => {
+    const forceTimeout = setTimeout(() => {
+      setShowLoader(false)
+    }, 8000)
+    return () => clearTimeout(forceTimeout)
+  }, [])
+
   if (showLoader && loading) {
     return <AppLoader />
   }

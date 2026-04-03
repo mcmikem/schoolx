@@ -13,11 +13,15 @@ const isValidHttpUrl = (value?: string | null) => {
   }
 }
 
+const isValidAnonKey = (key?: string) => {
+  if (!key) return false
+  // Real Supabase anon keys are JWT tokens starting with "eyJ"
+  return key.startsWith('eyJ') && key.length > 50
+}
+
 const hasUsableSupabaseConfig =
   isValidHttpUrl(supabaseUrl) &&
-  !!supabaseAnonKey &&
-  !supabaseAnonKey.startsWith('your-') &&
-  !supabaseAnonKey.includes('xxxxxxxx')
+  isValidAnonKey(supabaseAnonKey)
 
 const createMockQueryBuilder = () => {
   const listResult = { data: [], error: null, count: 0 }
