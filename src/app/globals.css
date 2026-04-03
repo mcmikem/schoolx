@@ -4,41 +4,44 @@
 
 /* ── TOKENS ─────────────────────────────────────────────── */
 :root {
-  /* Brand Colors */
-  --navy:       #17325F;
-  --navy-mid:   #1E3F76;
-  --navy-soft:  #EEF2F9;
-  --green:      #2E9448;
-  --green-soft: #EAF4ED;
-  --amber:      #B86B0C;
-  --amber-soft: #FDF3E7;
-  --red:        #C0392B;
-  --red-soft:   #FDECEA;
+  /* SchoolX Brand Colors */
+  --navy:       #0056D2; /* Core Blue */
+  --navy-mid:   #1A6BE0;
+  --navy-soft:  #E6F0FF;
+  
+  --green:      #40E0D0; /* Highlight Aqua */
+  --green-soft: #E0F8F6;
+  
+  --amber:      #F39C12;
+  --amber-soft: #FEF5E7;
+  
+  --red:        #E74C3C;
+  --red-soft:   #FDEDEC;
 
   /* Light Theme - Surface & Background */
-  --bg:     #F3F5F8;
+  --bg:     #F4F7F9; /* Clean subtle gray */
   --surface:#FFFFFF;
-  --border: #E2E7EF;
-  --border2:#C8D0DC;
+  --border: #E8ECEF; /* Motif Gray relative */
+  --border2:#D9D9D9; /* Motif Gray */
 
-  /* Text Colors */
-  --t1: #0E1C2F;
-  --t2: #3B4C63;
-  --t3: #7A8CA3;
-  --t4: #B0BDCC;
+  /* Text Colors (Depth Slate) */
+  --t1: #2C3E50;
+  --t2: #475B6E;
+  --t3: #7D8E9E;
+  --t4: #AAB7C4;
 
   /* Tailwind-compatible theme tokens */
-  --primary: #17325F;
-  --primary-50: #d6e3ff;
-  --primary-100: #adc7f7;
-  --primary-200: #86a0cd;
-  --primary-300: #5f7aa3;
-  --primary-400: #455f88;
-  --primary-500: #2d476f;
-  --primary-600: #1a365d;
-  --primary-700: #17325F;
-  --primary-800: #001b3c;
-  --primary-900: #001333;
+  --primary: #0056D2;
+  --primary-50: #e5effa;
+  --primary-100: #b3d4f0;
+  --primary-200: #80b9e6;
+  --primary-300: #4d9ddc;
+  --primary-400: #2688d4;
+  --primary-500: #0056D2;
+  --primary-600: #004dc2;
+  --primary-700: #0043af;
+  --primary-800: #00399d;
+  --primary-900: #00267a;
   --on-primary: #ffffff;
   
   --surface-brightest: #ffffff;
@@ -51,24 +54,31 @@
   --surface-container-lowest: #ffffff;
   --surface-lowest: #ffffff;
   
-  --on-surface: #0E1C2F;
-  --on-surface-variant: #3B4C63;
-  --outline: #74777f;
-  --outline-variant: #c4c6cf;
-  --background: #F3F5F8;
-  --on-background: #0E1C2F;
-  --error: #ba1a1a;
+  --on-surface: #2C3E50;
+  --on-surface-variant: #475B6E;
+  --outline: #7D8E9E;
+  --outline-variant: #D9D9D9;
+  --background: #F4F7F9;
+  --on-background: #2C3E50;
+  --error: #E74C3C;
 
-  /* Spacing & Effects */
-  --r:  10px;
-  --r2: 14px;
+  /* Spacing & Effects (Soft UI) */
+  --r:  16px;
+  --r2: 24px;
 
-  --sh1: 0 1px 3px rgba(14,28,47,.06), 0 1px 2px rgba(14,28,47,.04);
-  --sh2: 0 4px 12px rgba(14,28,47,.08), 0 1px 4px rgba(14,28,47,.05);
-  --sh3: 0 8px 24px rgba(14,28,47,.10), 0 2px 6px rgba(14,28,47,.06);
+  --sh1: 0 4px 12px rgba(44, 62, 80, 0.05), 0 1px 2px rgba(44, 62, 80, 0.03);
+  --sh2: 0 8px 24px rgba(44, 62, 80, 0.08), 0 2px 8px rgba(0, 86, 210, 0.04);
+  --sh3: 0 16px 32px rgba(44, 62, 80, 0.12), 0 4px 12px rgba(0, 86, 210, 0.08);
 
   --ease: cubic-bezier(.25,.46,.45,.94);
-  --dur: 180ms;
+  --dur: 200ms;
+}
+
+/* Base X Motif Pattern */
+.bg-motif {
+  background-image: radial-gradient(var(--border) 1px, transparent 0);
+  background-size: 24px 24px;
+  background-position: -12px -12px;
 }
 
 /* Dark Theme */
