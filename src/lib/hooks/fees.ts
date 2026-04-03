@@ -24,8 +24,8 @@ export function useFeePayments(schoolId?: string) {
   const { isDemo } = useAuth()
 
   const fetchPayments = useCallback(async () => {
-    // Demo mode
-    if (isDemo || schoolId === 'demo-school') {
+    // Demo mode - check for demo school UUID
+    if (isDemo || schoolId === '00000000-0000-0000-0000-000000000001') {
       setPayments(DEMO_PAYMENTS)
       setLoading(false)
       return
@@ -88,8 +88,8 @@ export function useFeeStructure(schoolId?: string) {
   const { isDemo } = useAuth()
 
   const fetchFeeStructure = useCallback(async () => {
-    // Demo mode
-    if (isDemo || schoolId === 'demo-school') {
+    // Demo mode - check for demo school UUID
+    if (isDemo || schoolId === '00000000-0000-0000-0000-000000000001') {
       setFeeStructure(DEMO_FEE_STRUCTURE)
       setLoading(false)
       return
