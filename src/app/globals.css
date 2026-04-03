@@ -535,3 +535,10 @@
   .main-content { padding: 0 8px !important; }
 }
 
+/* ── TYPOGRAPHY — Sora for headings, Lato for body ──────── */
+h1, h2, h3, h4, h5, h6,
+.font-headline,
+.font-heading {
+  font-family: 'Sora', sans-serif;
+}
+
