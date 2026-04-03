@@ -64,6 +64,7 @@ interface AuthContextType {
   school: School | null
   loading: boolean
   isDemo: boolean
+  isTrialExpired: boolean
   signIn: (phone: string, password: string) => Promise<{ error: any }>
   signUp: (phone: string, password: string, name: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
@@ -80,11 +81,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [school, setSchool] = useState<School | null>(null)
   const [loading, setLoading] = useState(true)
   const [isDemo, setIsDemo] = useState(false)
+  const [isTrialExpired, setIsTrialExpired] = useState(false)
   const router = useRouter()
   
   // Subscription status checking methods
   const isSubscriptionActive = () => {
-    return school?.subscription_status === 'active' || school?.subscription_status === 'trial';
+    if (school?.subscription_status === 'trial' && school?.trial_ends_at) {
+      return new Date(school.trial_ends_at) > new Date();
+    }
+    return school?.subscription_status === 'active';
   };
   
   const getSubscriptionPlan = () => {
@@ -135,6 +140,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ...schoolData,
             feature_stage: (schoolData.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
           })
+          if (schoolData.subscription_status === 'trial' && schoolData.trial_ends_at) {
+            setIsTrialExpired(new Date(schoolData.trial_ends_at) < new Date());
+          } else if (schoolData.subscription_status === 'expired') {
+            setIsTrialExpired(true);
+          } else {
+            setIsTrialExpired(false);
+          }
         }
       }
     } catch (error) {
@@ -168,6 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               feature_stage: (demoSchool.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
             })
             setIsDemo(true)
+            setIsTrialExpired(false)
             setLoading(false)
             return
           }
@@ -212,6 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(null)
             setSchool(null)
             setIsDemo(false)
+            setIsTrialExpired(false)
           }
         }
       )
@@ -292,6 +306,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...schoolData,
           feature_stage: (schoolData.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
         })
+        if (schoolData.subscription_status === 'trial' && schoolData.trial_ends_at) {
+          setIsTrialExpired(new Date(schoolData.trial_ends_at) < new Date());
+        } else if (schoolData.subscription_status === 'expired') {
+          setIsTrialExpired(true);
+        } else {
+          setIsTrialExpired(false);
+        }
       }
     } catch (error) {
       console.error('Error refreshing school:', error)
@@ -311,11 +332,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
     setSchool(null)
     setIsDemo(false)
+    setIsTrialExpired(false)
     router.push('/login')
   }
 
   return (
-    <AuthContext.Provider value={{ user, school, loading, isDemo, signIn, signUp, signOut, refreshSchool, isSubscriptionActive, getSubscriptionPlan }}>
+    <AuthContext.Provider value={{ user, school, loading, isDemo, isTrialExpired, signIn, signUp, signOut, refreshSchool, isSubscriptionActive, getSubscriptionPlan }}>
       {children}
     </AuthContext.Provider>
   )

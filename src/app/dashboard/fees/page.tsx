@@ -2,13 +2,13 @@
 import { useState, useMemo, useRef } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
-import { useStudents, useFeePayments, useFeeStructure, useClasses } from '@/lib/hooks'
+import { useStudents, useFeePayments, useFeeStructure, useClasses, useFeeAdjustments } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { useFormDraft } from '@/lib/useAutoSave'
 import { PAYMENT_METHODS } from '@/lib/constants'
 import MaterialIcon from '@/components/MaterialIcon'
 import FeeStats from '@/components/fees/FeeStats'
-import FeeTable from '@/components/fees/FeeTable'
+import FeeTable, { StudentBalance } from '@/components/fees/FeeTable'
 import PaymentModal from '@/components/fees/PaymentModal'
 import FeeFormModal from '@/components/fees/FeeFormModal'
 import ReceiptModal from '@/components/fees/ReceiptModal'
@@ -19,23 +19,6 @@ import { Button } from '@/components/ui/index'
 import { TableSkeleton, FullPageLoader } from '@/components/ui/Skeleton'
 import { EmptyState, NoData } from '@/components/EmptyState'
 
-interface StudentBalance {
-  id: string
-  name: string
-  student_number: string
-  class_name: string
-  expected: number
-  paid: number
-  balance: number
-  payments: Array<{
-    id: string
-    amount: number
-    method: string
-    reference: string
-    date: string
-  }>
-}
-
 export default function FeesPage() {
   const { school } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
@@ -44,6 +27,7 @@ export default function FeesPage() {
   const { classes } = useClasses(school?.id)
   const { payments, createPayment, deletePayment } = useFeePayments(school?.id)
   const { feeStructure, createFeeStructure, deleteFeeStructure } = useFeeStructure(school?.id)
+  const { adjustments, createAdjustment, deleteAdjustment } = useFeeAdjustments(school?.id)
   const receiptRef = useRef<HTMLDivElement>(null)
   
   const [tab, setTab] = useState<'balances' | 'payments' | 'momo' | 'structure'>('balances')
@@ -98,7 +82,16 @@ export default function FeesPage() {
       const applicableFees = feeStructure.filter(f => 
         f.class_id === null || f.class_id === studentClassId
       )
-      const totalExpected = applicableFees.reduce((sum, f) => sum + Number(f.amount || 0), 0)
+      
+      let totalExpected = applicableFees.reduce((sum, f) => sum + Number(f.amount || 0), 0)
+      const studentAdjustments = adjustments.filter(a => a.student_id === student.id)
+      
+      const discounts = studentAdjustments.filter(a => a.adjustment_type === 'discount' || a.adjustment_type === 'scholarship').reduce((sum, a) => sum + Number(a.amount || 0), 0)
+      const penalties = studentAdjustments.filter(a => a.adjustment_type === 'penalty').reduce((sum, a) => sum + Number(a.amount || 0), 0)
+      
+      totalExpected += penalties
+      totalExpected -= discounts
+      totalExpected += Number(student.opening_balance || 0)
       
       return {
         id: student.id,
@@ -114,10 +107,16 @@ export default function FeesPage() {
           method: p.payment_method,
           reference: p.payment_reference || '',
           date: p.payment_date,
+        })),
+        adjustments: studentAdjustments.map(a => ({
+          id: a.id,
+          adjustment_type: a.adjustment_type,
+          amount: Number(a.amount),
+          description: a.description || ''
         }))
       }
     })
-  }, [students, payments, feeStructure])
+  }, [students, payments, feeStructure, adjustments])
 
   const filteredBalances = useMemo(() => {
     return studentBalances.filter(s => {
@@ -503,7 +502,7 @@ export default function FeesPage() {
       <InvoiceModal
         isOpen={showInvoiceModal}
         onClose={() => setShowInvoiceModal(false)}
-        students={studentBalances.map(s => ({ id: s.id, name: s.name, student_number: s.student_number, class_name: s.class_name, balance: s.balance, expected: s.expected ?? 0, paid: s.paid ?? 0, payments: s.payments || [] }))}
+        students={studentBalances.map(s => ({ id: s.id, name: s.name, student_number: s.student_number, class_name: s.class_name, balance: s.balance, expected: s.expected ?? 0, paid: s.paid ?? 0, payments: s.payments || [], adjustments: s.adjustments || [] }))}
         selectedStudent={selectedStudent}
         onSelectStudent={handleGenerateInvoice}
         onPrintInvoice={handlePrintInvoice}

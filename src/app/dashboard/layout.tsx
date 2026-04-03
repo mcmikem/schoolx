@@ -16,6 +16,7 @@ import CollapsibleSidebar from '@/components/CollapsibleSidebar'
 import GlobalSearch from '@/components/GlobalSearch'
 import FavoritesBar from '@/components/FavoritesBar'
 import { getNavigationForRole } from '@/lib/navigation'
+import ExpiredNotice from '@/components/dashboard/ExpiredNotice'
 import {
   FEATURE_STAGES,
   FeatureStage,
@@ -451,7 +452,7 @@ function NotificationsPanel({
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, school, signOut } = useAuth()
+  const { user, school, isTrialExpired, signOut } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
   const toast = useToast()
@@ -710,6 +711,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <ErrorBoundary>
       <OfflineIndicator />
+      {isTrialExpired && <ExpiredNotice />}
       <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
         <aside className={`sidebar${sidebarOpen ? ' open' : ''}`} style={{ width: 240, minWidth: 240, background: 'var(--surface)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100, boxShadow: 'var(--sh1)' }}>
           <div style={{ padding: '22px 18px 16px', borderBottom: '1px solid var(--border)' }}>

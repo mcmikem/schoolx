@@ -108,6 +108,54 @@ export function useFeeStructure(schoolId?: string) {
   return { feeStructure, loading, createFeeStructure, deleteFeeStructure, refetch: fetchFeeStructure }
 }
 
+export function useFeeAdjustments(schoolId?: string) {
+  const [adjustments, setAdjustments] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const { isDemo, user } = useAuth()
+
+  const fetchAdjustments = useCallback(async () => {
+    if (!schoolId) { setLoading(false); return }
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+    try {
+      setLoading(true)
+      const data = await withTimeout(
+        supabase.from('fee_adjustments')
+          .select('*')
+          .eq('school_id', querySchoolId)
+          .order('created_at', { ascending: false })
+          .then(r => { if (r.error) throw r.error; return r.data }),
+        5000, [] as any[]
+      )
+      setAdjustments(data || [])
+    } catch (err) { console.error('Error fetching adjustments:', err) }
+    finally { setLoading(false) }
+  }, [schoolId, isDemo])
+
+  const createAdjustment = async (adj: { student_id: string; adjustment_type: 'scholarship' | 'discount' | 'penalty'; amount: number; description?: string }) => {
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+    try {
+      const { data, error } = await supabase.from('fee_adjustments')
+        .insert({ ...adj, school_id: querySchoolId, created_by: user?.id })
+        .select()
+        .single()
+      if (error) throw error
+      setAdjustments(prev => [data, ...prev])
+      return data
+    } catch (err: any) { throw new Error(err.message) }
+  }
+
+  const deleteAdjustment = async (id: string) => {
+    try {
+      const { error: deleteError } = await supabase.from('fee_adjustments').delete().eq('id', id)
+      if (deleteError) throw deleteError
+      setAdjustments(prev => prev.filter(a => a.id !== id))
+    } catch (err: any) { throw new Error(err.message) }
+  }
+
+  useEffect(() => { fetchAdjustments() }, [fetchAdjustments])
+  return { adjustments, loading, createAdjustment, deleteAdjustment, refetch: fetchAdjustments }
+}
+
 export function useBudget(schoolId?: string) {
   const [budgets, setBudgets] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
