@@ -157,42 +157,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkUser = useCallback(async () => {
     console.log('[Auth] checkUser called')
     
-    // Safety timeout - always set loading to false after 5 seconds
-    const timeoutId = setTimeout(() => {
-      console.log('[Auth] Safety timeout reached')
-      // Check if we should use fallback demo user
-      if (!user) {
-        console.log('[Auth] Using fallback demo user')
-        setUser({
-          id: 'demo-user',
-          auth_id: 'demo',
-          school_id: '00000000-0000-0000-0000-000000000001',
-          full_name: 'John Headmaster',
-          phone: '0700000000',
-          role: 'headmaster',
-          avatar_url: undefined,
-          is_active: true,
-          created_at: new Date().toISOString(),
-        } as User)
-        setSchool({
-          id: '00000000-0000-0000-0000-000000000001',
-          name: "St. Mary's Primary School (Demo)",
-          school_code: 'DEMO001',
-          district: 'Kampala',
-          school_type: 'primary',
-          ownership: 'private',
-          primary_color: '#17325F',
-          subscription_plan: 'premium',
-          subscription_status: 'active',
-          feature_stage: 'full',
-          created_at: new Date().toISOString(),
-        })
-        setIsDemo(true)
-        setIsTrialExpired(false)
-        setLoading(false)
-      }
-    }, 3000)
-    
     try {
       const demoUserStr = localStorage.getItem(DEMO_KEY)
       console.log('[Auth] demoUserStr:', !!demoUserStr)
@@ -230,8 +194,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             })
             setIsDemo(true)
             setIsTrialExpired(false)
-            clearTimeout(timeoutId)
-            console.log('[Auth] Demo mode set, setting loading=false')
             setLoading(false)
             return
           }
@@ -249,24 +211,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session && session.user) {
           await fetchUserData(session.user.id)
           setIsDemo(false)
-          clearTimeout(timeoutId)
           setLoading(false)
         } else {
           setIsDemo(false)
-          clearTimeout(timeoutId)
           console.log('[Auth] No session, setting loading=false')
           setLoading(false)
         }
       } else {
         console.log('[Auth] No supabase, setting loading=false')
         setIsDemo(false)
-        clearTimeout(timeoutId)
         setLoading(false)
       }
     } catch (error) {
       console.error('[Auth] Error:', error)
       setIsDemo(false)
-      clearTimeout(timeoutId)
       setLoading(false)
     }
   }, [fetchUserData])
