@@ -1,4 +1,5 @@
 'use client'
+
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -13,6 +14,15 @@ function encryptDemoData(data: object): string {
     return btoa(JSON.stringify(data))
   } catch {
     return ''
+  }
+}
+
+function decryptDemoData(encrypted: string): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    return atob(encrypted)
+  } catch {
+    return null
   }
 }
 

@@ -10,21 +10,18 @@ ALTER TABLE schools ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Anyone can create school" ON schools;
 DROP POLICY IF EXISTS "School data access" ON schools;
 DROP POLICY IF EXISTS "Allow demo school access" ON schools;
+DROP POLICY IF EXISTS "Public read demo school" ON schools;
+DROP POLICY IF EXISTS "Authenticated users can create school" ON schools;
 
 -- Read: Users can read their own school
 CREATE POLICY "Users can read own school" ON schools
   FOR SELECT TO authenticated
   USING (id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
 
--- Read: Demo school is publicly readable for demo purposes (READ ONLY)
-CREATE POLICY "Public read demo school" ON schools
-  FOR SELECT TO anon, authenticated
-  USING (id = '00000000-0000-0000-0000-000000000001');
-
--- Insert: Only authenticated users can create a school (can be restricted further to a setup role)
-CREATE POLICY "Authenticated users can create school" ON schools
+-- Insert: Only super_admin can create a school
+CREATE POLICY "Only admins can create schools" ON schools
   FOR INSERT TO authenticated
-  WITH CHECK (true);
+  WITH CHECK (EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'super_admin'));
 
 -- 2. USERS
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -72,9 +69,5 @@ BEGIN
             USING (school_id = get_user_school())
             WITH CHECK (school_id = get_user_school())', t);
             
-        -- Policy for PUBLIC demo access (READ ONLY)
-        EXECUTE format('CREATE POLICY "Public demo read access" ON %I
-            FOR SELECT TO anon
-            USING (school_id = ''00000000-0000-0000-0000-000000000001'')', t);
     END LOOP;
 END $$;

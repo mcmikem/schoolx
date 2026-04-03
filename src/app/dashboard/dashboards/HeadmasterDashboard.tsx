@@ -3,8 +3,8 @@ import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useDashboardStats, useStudents, useFeePayments, useFeeStructure, useClasses, useStaff } from '@/lib/hooks'
-import { supabase } from '@/lib/supabase'
-import { useState, useEffect, useMemo } from 'react'
+import { useDashboardExtraData } from '@/lib/hooks/useDashboardExtraData'
+import { useMemo } from 'react'
 import MaterialIcon from '@/components/MaterialIcon'
 import { DashboardSkeleton, StatsGridSkeleton, QuickActionsSkeleton } from '@/components/Skeletons'
 import OnboardingTips from '@/components/OnboardingTips'
@@ -30,13 +30,6 @@ function HeadmasterDashboardContent() {
   const { school, user, isDemo } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
 
-import { useHeadmasterDashboardData } from '@/hooks/useHeadmasterDashboardData'
-
-function HeadmasterDashboardContent() {
-  const toast = useToast()
-  const { school, user, isDemo } = useAuth()
-  const { academicYear, currentTerm } = useAcademic()
-
   const { stats, loading: statsLoading } = useDashboardStats(school?.id)
   const { students = [] } = useStudents(school?.id)
   const { payments = [] } = useFeePayments(school?.id)
@@ -44,12 +37,11 @@ function HeadmasterDashboardContent() {
   const { classes = [] } = useClasses(school?.id)
   const { staff = [] } = useStaff(school?.id)
 
-  const dashboardData = useHeadmasterDashboardData(school?.id, currentTerm, academicYear, students)
-  const { 
-    classAttendance, atRiskStudents, smsStats, pendingExpenses, pendingLeave, 
-    feesToday, feesThisWeek, feesThisTerm, staffOnDuty, overdueFeeCount, 
-    lowAttendanceClasses, dropoutRiskCount, loading: loadingExtra 
-  } = dashboardData
+  const {
+    classAttendance, atRiskStudents, smsStats, pendingExpenses, pendingLeave,
+    feesToday, feesThisWeek, feesThisTerm, staffOnDuty, overdueFeeCount,
+    lowAttendanceClasses, dropoutRiskCount, loading: loadingExtra
+  } = useDashboardExtraData(school?.id, students, feeStructure, currentTerm, academicYear)
 
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`
@@ -72,7 +64,6 @@ function HeadmasterDashboardContent() {
   const totalFeesCollected = payments.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0)
   const collectionRate = totalFeesExpected > 0 ? Math.round((totalFeesCollected / totalFeesExpected) * 100) : 0
 
-  // Calculate real attendance from classAttendance
   const totalPresent = Object.values(classAttendance).reduce((sum, c) => sum + c.present, 0)
   const totalInClass = Object.values(classAttendance).reduce((sum, c) => sum + c.total, 0)
   const attendanceRate = totalInClass > 0 ? Math.round((totalPresent / totalInClass) * 100) : 0
@@ -82,7 +73,6 @@ function HeadmasterDashboardContent() {
 
   const totalPendingApprovals = pendingExpenses + pendingLeave
 
-  // Alert count
   const alertCount = (loadingExtra ? 0 : classesNotMarked + atRiskStudents.length + dropoutRiskCount + lowAttendanceClasses + (overdueFeeCount > 0 ? 1 : 0) + (totalPendingApprovals > 0 ? 1 : 0))
 
   const focusItems = useMemo(() => [
@@ -114,7 +104,6 @@ function HeadmasterDashboardContent() {
 
   return (
     <div className="content">
-      {/* PAGE HEADER */}
       <div className="page-header">
         <div>
           <div className="ph-title truncate">{greeting}, {user?.full_name?.split(' ')[0]}</div>
@@ -131,20 +120,19 @@ function HeadmasterDashboardContent() {
           </Link>
         </div>
       </div>
-      
-      {/* Show onboarding tips if no data */}
+
       {students.length === 0 && !loadingExtra && (
         <OnboardingTips schoolId={school?.id} />
       )}
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {focusItems.map((item) => (
           <Link
             key={item.id}
             href={item.link}
             className={`rounded-[22px] border p-5 shadow-sm transition hover:shadow-md active:scale-[0.98] ${
-              item.status === 'alert' 
-                ? 'border-amber/30 bg-amber-soft/50' 
+              item.status === 'alert'
+                ? 'border-amber/30 bg-amber-soft/50'
                 : 'border-outline-variant bg-surface-lowest'
             }`}
           >
@@ -162,9 +150,7 @@ function HeadmasterDashboardContent() {
         ))}
       </div>
 
-      {/* STAT CARDS - Row 1: Core Metrics */}
       <div className="stat-grid">
-        {/* Attendance */}
         <Link href="/dashboard/attendance" className="stat-card">
           <div className="stat-accent" style={{ background: 'var(--green)' }} />
           <div className="stat-inner">
@@ -192,7 +178,6 @@ function HeadmasterDashboardContent() {
           </div>
         </Link>
 
-        {/* Fees Collected Today/Week/Term */}
         <Link href="/dashboard/fees" className="stat-card">
           <div className="stat-accent" style={{ background: 'var(--amber)' }} />
           <div className="stat-inner">
@@ -212,7 +197,6 @@ function HeadmasterDashboardContent() {
                 <span><b style={{ color: 'var(--green)' }}>{collectionRate}%</b></span>
               </div>
             </div>
-            {/* Fees breakdown */}
             <div className="flex gap-2 mt-2">
               <div className="flex-1 bg-[var(--bg)] rounded-md p-1.5 min-w-0">
                 <div className="text-[10px] text-[var(--t3)] font-bold uppercase truncate">Today</div>
@@ -234,7 +218,6 @@ function HeadmasterDashboardContent() {
           </div>
         </Link>
 
-        {/* Pending Approvals */}
         <Link href="/dashboard/expense-approvals" className="stat-card">
           <div className="stat-accent" style={{ background: totalPendingApprovals > 0 ? 'var(--red)' : 'var(--navy)' }} />
           <div className="stat-inner">
@@ -262,7 +245,6 @@ function HeadmasterDashboardContent() {
           </div>
         </Link>
 
-        {/* Staff on Duty */}
         <Link href="/dashboard/staff-attendance" className="stat-card">
           <div className="stat-accent" style={{ background: 'var(--navy)' }} />
           <div className="stat-inner">
@@ -289,10 +271,8 @@ function HeadmasterDashboardContent() {
         </Link>
       </div>
 
-      {/* MAIN GRID */}
       <div className="main-grid">
         <div className="main-col">
-          {/* QUICK ACTIONS */}
           <div className="card" style={{ padding: 16 }}>
             <div className="card-header">
               <div>
@@ -330,7 +310,6 @@ function HeadmasterDashboardContent() {
             </div>
           </div>
 
-          {/* CLASS ATTENDANCE */}
           <div className="card" style={{ padding: 16 }}>
             <div className="card-header">
               <div>
@@ -365,7 +344,6 @@ function HeadmasterDashboardContent() {
             </div>
           </div>
 
-          {/* RECENT ACTIVITY */}
           <div className="card" style={{ padding: 16 }}>
             <div className="card-header">
               <div>
@@ -401,9 +379,7 @@ function HeadmasterDashboardContent() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN */}
         <div className="main-col">
-          {/* ALERTS */}
           <div className="card">
             <div className="card-header">
               <div>
@@ -506,7 +482,6 @@ function HeadmasterDashboardContent() {
             </div>
           </div>
 
-          {/* ACADEMIC TERM */}
           <div className="card" style={{ padding: 16 }}>
             <div className="card-header">
               <div>
@@ -552,7 +527,6 @@ function HeadmasterDashboardContent() {
             </div>
           </div>
 
-          {/* AT RISK STUDENTS */}
           <div className="card">
             <div className="card-header">
               <div>

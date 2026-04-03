@@ -4,8 +4,10 @@ import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useFeePayments, useFeeStructure } from '@/lib/hooks'
 import MaterialIcon from '@/components/MaterialIcon'
+import ErrorBoundary from '@/components/ErrorBoundary'
+import { StatsGridSkeleton } from '@/components/Skeletons'
 
-export default function BursarDashboard() {
+function BursarDashboardContent() {
   const { school, user } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
   const { students } = useStudents(school?.id)
@@ -21,10 +23,6 @@ export default function BursarDashboard() {
   const currentDate = new Date()
   const greeting = currentDate.getHours() < 12 ? 'Good Morning' : currentDate.getHours() < 17 ? 'Good Afternoon' : 'Good Evening'
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-  }
-
   const totalFeesExpected = students.reduce((total, student) => {
     const classFees = feeStructure.filter(f => !f.class_id || f.class_id === student.class_id)
     const studentExpected = classFees.reduce((sum, f) => sum + Number(f.amount || 0), 0)
@@ -35,31 +33,25 @@ export default function BursarDashboard() {
   const totalArrears = Math.max(0, totalFeesExpected - totalFeesCollected)
   const collectionRate = totalFeesExpected > 0 ? Math.round((totalFeesCollected / totalFeesExpected) * 100) : 0
 
-  const todayStr = new Date().toISOString().split('T')[0]
-  const todayPayments = payments.filter((p: any) => p.payment_date === todayStr)
-  const todayCollected = todayPayments.reduce((sum: number, p: any) => sum + Number(p.amount_paid || 0), 0)
-
   return (
     <div className="content">
-      {/* PAGE HEADER */}
       <div className="page-header">
         <div className="min-w-0">
           <div className="ph-title truncate">{greeting}, {user?.full_name?.split(' ')[0]}</div>
-          <div className="ph-sub truncate">{school?.name} • {formatDate(currentDate)}</div>
+          <div className="ph-sub truncate">{school?.name} • {currentDate.toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
         </div>
         <div className="ph-actions">
           <button className="btn btn-ghost">
             <MaterialIcon icon="download" style={{ fontSize: 16 }} />
             Export
           </button>
-          <Link href="/dashboard/fees" className="btn btn-primary !bg-green border-none">
+          <Link href="/dashboard/fees" className="btn btn-primary">
             <MaterialIcon icon="add_card" style={{ fontSize: 16 }} />
             Record Payment
           </Link>
         </div>
       </div>
 
-      {/* STATS */}
       <div className="stat-grid sm:grid-cols-3 lg:grid-cols-3">
         <div className="stat-card">
           <div className="stat-accent" style={{ background: 'var(--green)' }} />
@@ -104,7 +96,6 @@ export default function BursarDashboard() {
         </div>
       </div>
 
-      {/* QUICK ACTIONS */}
       <div className="mb-6">
         <div className="mb-3">
           <h3 className="text-sm font-bold text-[var(--t1)]">Finance Actions</h3>
@@ -149,7 +140,6 @@ export default function BursarDashboard() {
         </div>
       </div>
 
-      {/* COLLECTION PROGRESS */}
       <div className="card">
         <div className="card-header">
           <div>
@@ -160,9 +150,9 @@ export default function BursarDashboard() {
         </div>
         <div className="card-body">
           <div className="h-2.5 bg-[var(--bg)] rounded-full overflow-hidden mb-4">
-            <div 
-              className="h-full bg-[var(--green)] rounded-full transition-all duration-500" 
-              style={{ width: `${Math.min(collectionRate, 100)}%` }} 
+            <div
+              className="h-full bg-[var(--green)] rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(collectionRate, 100)}%` }}
             />
           </div>
           <div className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-[var(--t3)]">
@@ -177,26 +167,14 @@ export default function BursarDashboard() {
           </div>
         </div>
       </div>
-
-      {/* Mobile Bottom Nav */}
-      <div className="mobile-bottom-nav">
-        <Link href="/dashboard" className="mobile-nav-item active">
-          <MaterialIcon icon="home" />
-          <span>Home</span>
-        </Link>
-        <Link href="/dashboard/fees" className="mobile-nav-item">
-          <MaterialIcon icon="payments" />
-          <span>Finance</span>
-        </Link>
-        <Link href="/dashboard/invoicing" className="mobile-nav-item">
-          <MaterialIcon icon="description" />
-          <span>Invoices</span>
-        </Link>
-        <Link href="/dashboard/settings" className="mobile-nav-item">
-          <MaterialIcon icon="settings" />
-          <span>Settings</span>
-        </Link>
-      </div>
     </div>
+  )
+}
+
+export default function BursarDashboard() {
+  return (
+    <ErrorBoundary>
+      <BursarDashboardContent />
+    </ErrorBoundary>
   )
 }
