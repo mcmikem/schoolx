@@ -46,7 +46,7 @@ export default function AttendancePage() {
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop')
 
   const isClassTeacher = user?.role === 'teacher'
-  const isAdmin = user?.role === 'headmaster' || user?.role === 'dean_of_studies' || user?.role === 'school_admin' || user?.role === 'super_admin'
+  const isAdmin = user?.role === 'headmaster' || user?.role === 'dean_of_studies' || user?.role === 'school_admin' || user?.role === 'super_admin' || user?.role === 'bursar'
 
   const filteredClasses = isClassTeacher && !isAdmin
     ? classes.filter(c => c.class_teacher_id === user?.id)

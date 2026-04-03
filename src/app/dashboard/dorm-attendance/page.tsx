@@ -4,6 +4,9 @@ import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
 
 type CheckType = 'morning' | 'night'
 type AttendanceStatus = 'present' | 'absent' | 'sick'
@@ -175,102 +178,92 @@ export default function DormAttendancePage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Dorm Attendance</h1>
-        <p className="text-[#5c6670] mt-1">Morning (5:30 AM) and Night (9:00 PM) roll calls</p>
-      </div>
+      <PageHeader
+        title="Dorm Attendance"
+        subtitle="Morning (5:30 AM) and Night (9:00 PM) roll calls"
+      />
 
-      <div className="card mb-6">
-        <div className="card-body">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Dorm</label>
-              {dorms.length === 0 ? (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No dorms</div>
-              ) : (
-                <select
-                  value={selectedDorm?.id || ''}
-                  onChange={(e) => setSelectedDorm(dorms.find(d => d.id === e.target.value))}
-                  className="input"
-                >
-                  <option value="">Select dorm...</option>
-                  {dorms.map(d => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Date</label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Check Type</label>
-              <select value={checkType} onChange={(e) => setCheckType(e.target.value as CheckType)} className="input">
-                {CHECK_TYPES.map(ct => (
-                  <option key={ct.value} value={ct.value}>{ct.label} ({ct.time})</option>
+      <Card className="p-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Dorm</label>
+            {dorms.length === 0 ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No dorms</div>
+            ) : (
+              <select
+                value={selectedDorm?.id || ''}
+                onChange={(e) => setSelectedDorm(dorms.find(d => d.id === e.target.value))}
+                className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm"
+              >
+                <option value="">Select dorm...</option>
+                {dorms.map(d => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">&nbsp;</label>
-              <button onClick={markAllPresent} disabled={!selectedDorm} className="btn bg-green-600 text-white w-full">
-                <MaterialIcon icon="check_circle" style={{ fontSize: 18 }} />
-                Mark All Present
-              </button>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">&nbsp;</label>
-              <button onClick={saveAttendance} disabled={saving || !selectedDorm} className="btn btn-primary w-full">
-                {saving ? 'Saving...' : 'Save Attendance'}
-              </button>
-            </div>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Date</label>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Check Type</label>
+            <select value={checkType} onChange={(e) => setCheckType(e.target.value as CheckType)} className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm">
+              {CHECK_TYPES.map(ct => (
+                <option key={ct.value} value={ct.value}>{ct.label} ({ct.time})</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">&nbsp;</label>
+            <Button variant="secondary" onClick={markAllPresent} disabled={!selectedDorm} className="w-full">
+              <MaterialIcon icon="check_circle" className="text-base" />
+              Mark All Present
+            </Button>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">&nbsp;</label>
+            <Button onClick={saveAttendance} disabled={saving || !selectedDorm} className="w-full">
+              {saving ? 'Saving...' : 'Save Attendance'}
+            </Button>
           </div>
         </div>
-      </div>
+      </Card>
 
       {selectedDorm && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="card">
-            <div className="card-body text-center">
-              <div className="text-2xl font-bold text-green-600">{presentCount}</div>
-              <div className="text-sm text-[#5c6670]">Present</div>
-            </div>
-          </div>
-          <div className="card">
-            <div className="card-body text-center">
-              <div className="text-2xl font-bold text-red-600">{absentCount}</div>
-              <div className="text-sm text-[#5c6670]">Absent</div>
-            </div>
-          </div>
-          <div className="card">
-            <div className="card-body text-center">
-              <div className="text-2xl font-bold text-amber-600">{sickCount}</div>
-              <div className="text-sm text-[#5c6670]">Sick</div>
-            </div>
-          </div>
-          <div className="card">
-            <div className="card-body text-center">
-              <div className="text-2xl font-bold text-[#002045]">{totalMarked}/{students.length}</div>
-              <div className="text-sm text-[#5c6670]">Marked</div>
-            </div>
-          </div>
+          <Card className="p-4 text-center">
+            <div className="text-2xl font-bold text-green-600">{presentCount}</div>
+            <div className="text-sm text-[var(--t3)]">Present</div>
+          </Card>
+          <Card className="p-4 text-center">
+            <div className="text-2xl font-bold text-red-600">{absentCount}</div>
+            <div className="text-sm text-[var(--t3)]">Absent</div>
+          </Card>
+          <Card className="p-4 text-center">
+            <div className="text-2xl font-bold text-amber-600">{sickCount}</div>
+            <div className="text-sm text-[var(--t3)]">Sick</div>
+          </Card>
+          <Card className="p-4 text-center">
+            <div className="text-2xl font-bold text-[var(--primary)]">{totalMarked}/{students.length}</div>
+            <div className="text-sm text-[var(--t3)]">Marked</div>
+          </Card>
         </div>
       )}
 
       {selectedDorm && (
-        <div className="card">
-          <div className="card-header">
-            <div className="card-title">{selectedDorm.name} — Students ({students.length})</div>
+        <Card>
+          <div className="p-4 border-b border-[var(--border)]">
+            <h3 className="font-semibold text-[var(--t1)]">{selectedDorm.name} — Students ({students.length})</h3>
           </div>
-          <div className="table-wrapper">
-            <table className="table">
+          <div className="overflow-x-auto">
+            <table className="w-full">
               <thead>
-                <tr>
-                  <th>Student</th>
-                  <th>Status</th>
-                  <th>Absence Reason</th>
-                  <th>Actions</th>
+                <tr className="bg-[var(--surface-container)]">
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Student</th>
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Status</th>
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Absence Reason</th>
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -279,10 +272,10 @@ export default function DormAttendancePage() {
                   const status = record?.status || 'pending'
 
                   return (
-                    <tr key={student.id}>
-                      <td className="font-medium">{student.first_name} {student.last_name}</td>
-                      <td>
-                        <span className={`badge ${
+                    <tr key={student.id} className="border-b border-[var(--border)]">
+                      <td className="p-4 font-medium text-[var(--t1)]">{student.first_name} {student.last_name}</td>
+                      <td className="p-4">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                           status === 'present' ? 'bg-green-100 text-green-800' :
                           status === 'absent' ? 'bg-red-100 text-red-800' :
                           status === 'sick' ? 'bg-amber-100 text-amber-800' :
@@ -291,13 +284,13 @@ export default function DormAttendancePage() {
                           {status}
                         </span>
                       </td>
-                      <td>
+                      <td className="p-4">
                         {status === 'absent' && editingReason === student.id ? (
                           <div className="flex flex-col gap-1">
                             <select
                               value={record?.absence_reason || ''}
                               onChange={(e) => updateReason(student.id, e.target.value as AbsenceReason)}
-                              className="input text-xs py-1"
+                              className="px-3 py-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs"
                             >
                               <option value="">Select reason...</option>
                               {ABSENCE_REASONS.map(r => (
@@ -309,7 +302,7 @@ export default function DormAttendancePage() {
                               placeholder="Notes (optional)"
                               value={record?.absence_notes || ''}
                               onChange={(e) => updateReason(student.id, record?.absence_reason || 'other', e.target.value)}
-                              className="input text-xs py-1"
+                              className="px-3 py-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs"
                             />
                             <button onClick={() => setEditingReason(null)} className="text-xs text-blue-600">Done</button>
                           </div>
@@ -319,10 +312,10 @@ export default function DormAttendancePage() {
                             {record.absence_notes ? ` — ${record.absence_notes}` : ''}
                           </span>
                         ) : (
-                          <span className="text-sm text-[#5c6670]">—</span>
+                          <span className="text-sm text-[var(--t3)]">—</span>
                         )}
                       </td>
-                      <td>
+                      <td className="p-4">
                         <div className="flex gap-1">
                           <button
                             onClick={() => updateStatus(student.id, 'present')}
@@ -342,21 +335,19 @@ export default function DormAttendancePage() {
                   )
                 })}
                 {students.length === 0 && !loading && (
-                  <tr><td colSpan={4} className="text-center py-8 text-[#5c6670]">No students assigned to this dorm</td></tr>
+                  <tr><td colSpan={4} className="text-center py-8 text-[var(--t3)]">No students assigned to this dorm</td></tr>
                 )}
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       )}
 
       {!selectedDorm && (
-        <div className="card">
-          <div className="card-body text-center py-12 text-[#5c6670]">
-            <MaterialIcon icon="bed" style={{ fontSize: 48, opacity: 0.5 }} />
-            <p className="mt-2">Select a dorm to take attendance</p>
-          </div>
-        </div>
+        <Card className="p-12 text-center">
+          <MaterialIcon className="text-5xl text-[var(--t3)] opacity-50 mx-auto">bed</MaterialIcon>
+          <p className="mt-2 text-[var(--t3)]">Select a dorm to take attendance</p>
+        </Card>
       )}
     </div>
   )

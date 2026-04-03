@@ -5,6 +5,10 @@ import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { Tabs } from '@/components/ui/Tabs'
 
 type ExpenseStatus = 'pending' | 'dos_approved' | 'approved' | 'rejected'
 type FilterType = 'all' | 'pending' | 'approved' | 'rejected'
@@ -188,51 +192,65 @@ export default function ExpenseApprovalsPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Expense Approvals</h1>
-        <p className="text-[#5c6670] mt-1">Multi-level approval workflow</p>
-        <div className="mt-2 flex flex-wrap gap-2 text-xs">
-          <span className="px-2 py-1 bg-green-50 text-green-700 rounded-full">{'<'} 100K: Bursar approves</span>
-          <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full">100K-500K: DOS → HM</span>
-          <span className="px-2 py-1 bg-red-50 text-red-700 rounded-full">{'>'} 500K: HM only</span>
-        </div>
+      <PageHeader 
+        title="Expense Approvals" 
+        subtitle="Multi-level approval workflow"
+      />
+
+      {/* Approval Tier Legend */}
+      <div className="mt-2 flex flex-wrap gap-2 text-xs mb-6">
+        <span className="px-2 py-1 bg-green-50 text-green-700 rounded-full">{'<'} 100K: Bursar approves</span>
+        <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full">100K-500K: DOS → HM</span>
+        <span className="px-2 py-1 bg-red-50 text-red-700 rounded-full">{'>'} 500K: HM only</span>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-        <button onClick={() => setFilter('all')} className={`card ${filter === 'all' ? 'border-2 border-blue-500' : ''}`}>
-          <div className="card-body text-center">
+        <Button 
+          onClick={() => setFilter('all')} 
+          className={`p-4 text-left ${filter === 'all' ? 'ring-2 ring-blue-500' : ''}`}
+        >
+          <CardBody className="text-center">
             <div className="text-2xl font-bold text-[#002045]">{expenses.length}</div>
             <div className="text-sm text-[#5c6670]">All</div>
-          </div>
-        </button>
-        <button onClick={() => setFilter('pending')} className={`card ${filter === 'pending' ? 'border-2 border-amber-500' : ''}`}>
-          <div className="card-body text-center">
+          </CardBody>
+        </Button>
+        <Button 
+          onClick={() => setFilter('pending')} 
+          className={`p-4 text-left ${filter === 'pending' ? 'ring-2 ring-amber-500' : ''}`}
+        >
+          <CardBody className="text-center">
             <div className="text-2xl font-bold text-amber-600">{pendingExpenses.length}</div>
             <div className="text-sm text-[#5c6670]">Pending</div>
             <div className="text-xs text-amber-600">UGX {pendingTotal.toLocaleString()}</div>
-          </div>
-        </button>
-        <button onClick={() => setFilter('approved')} className={`card ${filter === 'approved' ? 'border-2 border-green-500' : ''}`}>
-          <div className="card-body text-center">
+          </CardBody>
+        </Button>
+        <Button 
+          onClick={() => setFilter('approved')} 
+          className={`p-4 text-left ${filter === 'approved' ? 'ring-2 ring-green-500' : ''}`}
+        >
+          <CardBody className="text-center">
             <div className="text-2xl font-bold text-green-600">{approvedExpenses.length}</div>
             <div className="text-sm text-[#5c6670]">Approved</div>
-          </div>
-        </button>
-        <button onClick={() => setFilter('rejected')} className={`card ${filter === 'rejected' ? 'border-2 border-red-500' : ''}`}>
-          <div className="card-body text-center">
+          </CardBody>
+        </Button>
+        <Button 
+          onClick={() => setFilter('rejected')} 
+          className={`p-4 text-left ${filter === 'rejected' ? 'ring-2 ring-red-500' : ''}`}
+        >
+          <CardBody className="text-center">
             <div className="text-2xl font-bold text-red-600">{rejectedExpenses.length}</div>
             <div className="text-sm text-[#5c6670]">Rejected</div>
-          </div>
-        </button>
+          </CardBody>
+        </Button>
       </div>
 
       {/* Expenses List */}
-      <div className="card">
-        <div className="card-header">
-          <div className="card-title">Expense Requests</div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Expense Requests</CardTitle>
           <div className="text-xs text-[#5c6670]">Pending items sorted lowest to highest amount</div>
-        </div>
+        </CardHeader>
         <div className="table-wrapper">
           <table className="table">
             <thead>
@@ -294,20 +312,22 @@ export default function ExpenseApprovalsPage() {
                     <td>
                       {canApprove(expense) ? (
                         <div className="flex gap-2">
-                          <button
+                          <Button
+                            size="sm"
+                            variant="primary"
                             onClick={() => handleApprove(expense.id)}
                             disabled={processing === expense.id}
-                            className="btn-sm bg-green-600 text-white px-2 py-1 rounded disabled:opacity-50"
                           >
                             {processing === expense.id ? '...' : 'Approve'}
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
                             onClick={() => setRejectModal({ open: true, expenseId: expense.id })}
                             disabled={processing === expense.id}
-                            className="btn-sm bg-red-600 text-white px-2 py-1 rounded disabled:opacity-50"
                           >
                             Reject
-                          </button>
+                          </Button>
                         </div>
                       ) : (
                         <span className="text-xs text-[#5c6670]">
@@ -324,16 +344,16 @@ export default function ExpenseApprovalsPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
 
       {/* Reject Modal */}
       {rejectModal.open && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="card" style={{ width: '100%', maxWidth: 420, margin: 16 }}>
-            <div className="card-header">
-              <div className="card-title">Reject Expense</div>
-            </div>
-            <div className="card-body" style={{ padding: 16 }}>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <Card style={{ width: '100%', maxWidth: 420 }}>
+            <CardHeader>
+              <CardTitle>Reject Expense</CardTitle>
+            </CardHeader>
+            <CardBody>
               <label className="block text-sm font-medium mb-2">Reason for rejection</label>
               <textarea
                 value={rejectComments}
@@ -342,22 +362,22 @@ export default function ExpenseApprovalsPage() {
                 className="w-full border border-[#e8eaed] rounded-lg p-3 text-sm min-h-[100px]"
               />
               <div className="flex gap-2 mt-4">
-                <button
+                <Button 
+                  variant="ghost" 
                   onClick={() => { setRejectModal({ open: false, expenseId: null }); setRejectComments('') }}
-                  className="btn btn-ghost flex-1"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button 
+                  variant="danger" 
                   onClick={handleReject}
                   disabled={!rejectComments.trim() || processing !== null}
-                  className="btn bg-red-600 text-white flex-1 disabled:opacity-50"
                 >
                   Reject Expense
-                </button>
+                </Button>
               </div>
-            </div>
-          </div>
+            </CardBody>
+          </Card>
         </div>
       )}
     </div>

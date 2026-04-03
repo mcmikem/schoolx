@@ -404,10 +404,12 @@ function NotificationsPanel({
   open,
   onClose,
   notifications,
+  onMarkAllRead,
 }: {
   open: boolean
   onClose: () => void
   notifications: DashboardNotification[]
+  onMarkAllRead: () => void
 }) {
   if (!open) return null
 
@@ -415,7 +417,12 @@ function NotificationsPanel({
     <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', boxShadow: 'var(--sh3)', minWidth: 280, zIndex: 100, overflow: 'hidden' }}>
       <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>Notifications</span>
-        <button style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--navy)', cursor: 'pointer' }}>Mark all read</button>
+        <button
+          onClick={onMarkAllRead}
+          style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--navy)', cursor: 'pointer' }}
+        >
+          Mark all read
+        </button>
       </div>
       <div style={{ maxHeight: 320, overflowY: 'auto' }}>
         {notifications.length === 0 && (
@@ -453,6 +460,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
+  const [dismissedNotifs, setDismissedNotifs] = useState<Set<string>>(new Set())
 
   const { students } = useStudents(school?.id)
   const { classes } = useClasses(school?.id)
@@ -653,8 +661,48 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const currentDate = new Date()
-  const pageTitle = pathname === '/dashboard' ? 'Dashboard Overview' : 
-    pathname.replace('/dashboard/', '').replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase())
+
+  // Human-readable page title with known acronym corrections
+  const PAGE_TITLE_OVERRIDES: Record<string, string> = {
+    '/dashboard': 'Dashboard Overview',
+    '/dashboard/moes': 'MoES Module',
+    '/dashboard/moes-reports': 'MoES Reports',
+    '/dashboard/uneb': 'UNEB Analysis',
+    '/dashboard/uneb-registration': 'UNEB Registration',
+    '/dashboard/idcards': 'ID Cards',
+    '/dashboard/auto-sms': 'Auto SMS',
+    '/dashboard/bulk-sms': 'Bulk SMS',
+    '/dashboard/sms-templates': 'SMS Templates',
+    '/dashboard/board-report': 'Board Report',
+    '/dashboard/dorm-attendance': 'Dorm Attendance',
+    '/dashboard/dorm-supplies': 'Dorm Supplies',
+    '/dashboard/staff-reviews': 'Staff Performance',
+    '/dashboard/dropout-tracking': 'Dropout Tracking',
+    '/dashboard/marks-completion': 'Marks Completion',
+    '/dashboard/period-attendance': 'Period Attendance',
+    '/dashboard/payment-plans': 'Payment Plans',
+    '/dashboard/expense-approvals': 'Expense Approvals',
+    '/dashboard/leave-approvals': 'Leave Approvals',
+    '/dashboard/lesson-plans': 'Lesson Plans',
+    '/dashboard/staff-attendance': 'Staff Attendance',
+    '/dashboard/staff-activity': 'Staff Activity',
+    '/dashboard/health-log': 'Health Log',
+    '/dashboard/fees-lookup': 'Fee Lookup',
+    '/dashboard/student-lookup': 'Student Lookup',
+    '/dashboard/student-transfers': 'Student Transfers',
+    '/dashboard/class-comparison': 'Class Comparison',
+    '/dashboard/scheme-of-work': 'Scheme of Work',
+    '/dashboard/homework-submissions': 'Homework Submissions',
+    '/dashboard/exam-timetable': 'Exam Timetable',
+  }
+  const basePathname = `/${pathname.split('/').slice(0, 3).join('/').replace(/^\//, '')}`
+  const pageTitle = PAGE_TITLE_OVERRIDES[basePathname] ??
+    // Strip dynamic segments (UUIDs / numeric IDs) then title-case
+    pathname
+      .replace('/dashboard/', '')
+      .replace(/\/[0-9a-f-]{8,}(\/.+)?$/, '')
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase())
 
   const schoolName = school?.name || 'My School'
   const schoolInitial = schoolName.charAt(0).toUpperCase()
@@ -722,7 +770,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <div style={{ position: 'absolute', top: 6, right: 6, width: 7, height: 7, borderRadius: '50%', background: 'var(--red)', border: '1.5px solid var(--surface)' }} />
                   )}
                 </div>
-                <NotificationsPanel open={notifOpen} onClose={() => setNotifOpen(false)} notifications={notifications} />
+                <NotificationsPanel
+                  open={notifOpen}
+                  onClose={() => setNotifOpen(false)}
+                  notifications={notifications.filter(n => !dismissedNotifs.has(n.id))}
+                  onMarkAllRead={() => {
+                    setDismissedNotifs(new Set(notifications.map(n => n.id)))
+                    setNotifOpen(false)
+                  }}
+                />
               </div>
               <div onClick={toggleTheme} style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: 'var(--sh1)' }}>
                 <MaterialIcon icon={theme === 'dark' ? 'light_mode' : 'dark_mode'} style={{ fontSize: 16, color: 'var(--t2)' }} />
@@ -786,50 +842,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 99 }} className="sidebar-overlay visible" />
       )}
-      <style>{`
-        @keyframes blink { 0%,100%{ opacity:1 } 50%{ opacity:.3 } }
-        .nav-item:hover { background: var(--bg); color: var(--t1); }
-        .nav-item { min-height: 44px; }
-        
-        /* Desktop: sidebar always visible */
-        @media (min-width: 1025px) {
-          .sidebar { display: flex !important; left: 0 !important; }
-          .mobile-menu-btn { display: none !important; }
-          .sidebar-overlay { display: none !important; }
-        }
-        
-        /* Mobile: sidebar hidden by default */
-        @media (max-width: 768px), (max-width: 1024px) {
-          .sidebar { 
-            display: none !important;
-          }
-          .sidebar.open { 
-            display: flex !important;
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            bottom: 0 !important;
-            width: 280px !important;
-            z-index: 9999 !important;
-          }
-          .mobile-menu-btn { display: flex !important; }
-          .sidebar-close-btn { display: flex !important; }
-          .sidebar-overlay { display: none !important; }
-          .sidebar-overlay.visible { display: block !important; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9998; }
-          .nav-item { padding: 12px 14px !important; min-height: 48px; }
-          .main-content { 
-            margin-left: 0 !important; 
-            padding: 0 12px !important; 
-            width: 100% !important;
-          }
-          .topbar { padding: 0 12px !important; gap: 8px !important; }
-          .search-bar { display: none !important; }
-        }
-        @media (max-width: 480px) {
-          .topbar { padding: 0 8px !important; gap: 4px !important; }
-          .main-content { padding: 0 8px !important; }
-        }
-      `}</style>
+      {/* Layout animations & nav styles are in globals.css */}
     </ErrorBoundary>
   )
 }

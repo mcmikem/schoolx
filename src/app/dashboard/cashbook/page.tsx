@@ -4,6 +4,10 @@ import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useFeePayments } from '@/lib/hooks'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardBody } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { EmptyState } from '@/components/EmptyState'
 
 export default function CashbookPage() {
   const { school } = useAuth()
@@ -70,81 +74,99 @@ export default function CashbookPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Cashbook</h1>
-        <p className="text-[#5c6670] mt-1">Daily payment summary for bursars</p>
-      </div>
+      <PageHeader
+        title="Cashbook"
+        subtitle="Daily payment summary for bursars"
+        actions={
+          <>
+            <select 
+              value={dateFilter} 
+              onChange={(e) => setDateFilter(e.target.value)} 
+              className="px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 sm:w-40"
+            >
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+            </select>
+            <Button variant="secondary" onClick={exportCSV}>
+              <MaterialIcon icon="download" />
+              Export CSV
+            </Button>
+          </>
+        }
+      />
 
-      {/* Date Filter */}
-      <div className="flex gap-3 mb-6">
-        <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="input sm:w-40">
-          <option value="today">Today</option>
-          <option value="week">This Week</option>
-          <option value="month">This Month</option>
-        </select>
-        <button onClick={exportCSV} className="btn btn-secondary">
-          <MaterialIcon icon="download" />
-          Export CSV
-        </button>
-      </div>
-
-      {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-          <div className="stat-value">{formatCurrency(summary.total)}</div>
-          <div className="stat-label">Total Collected</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-          <div className="stat-value text-green-600">{formatCurrency(summary.cash)}</div>
-          <div className="stat-label">Cash</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-          <div className="stat-value text-yellow-600">{formatCurrency(summary.momo)}</div>
-          <div className="stat-label">Mobile Money</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-          <div className="stat-value text-blue-600">{formatCurrency(summary.bank)}</div>
-          <div className="stat-label">Bank</div>
-        </div>
+        <Card>
+          <CardBody>
+            <div className="text-xl font-bold text-[var(--t1)]">{formatCurrency(summary.total)}</div>
+            <div className="text-sm text-[var(--t3)]">Total Collected</div>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody>
+            <div className="text-xl font-bold text-[var(--green)]">{formatCurrency(summary.cash)}</div>
+            <div className="text-sm text-[var(--t3)]">Cash</div>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody>
+            <div className="text-xl font-bold text-[var(--amber)]">{formatCurrency(summary.momo)}</div>
+            <div className="text-sm text-[var(--t3)]">Mobile Money</div>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody>
+            <div className="text-xl font-bold text-[var(--navy)]">{formatCurrency(summary.bank)}</div>
+            <div className="text-sm text-[var(--t3)]">Bank</div>
+          </CardBody>
+        </Card>
       </div>
 
-      {/* Transactions */}
-      <div className="table-wrapper">
-        <table className="table">
-          <thead className="bg-[#f8fafb]">
-            <tr>
-              <th>Date</th>
-              <th>Student</th>
-              <th>Amount</th>
-              <th>Method</th>
-              <th>Reference</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredPayments.length === 0 ? (
+      <Card>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-[var(--surface-container)]">
               <tr>
-                <td colSpan={5} className="text-center py-8 text-gray-500">No transactions found</td>
+                <th className="px-4 py-3 text-left text-sm font-medium text-[var(--t2)]">Date</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-[var(--t2)]">Student</th>
+                <th className="px-4 py-3 text-right text-sm font-medium text-[var(--t2)]">Amount</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-[var(--t2)]">Method</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-[var(--t2)]">Reference</th>
               </tr>
-            ) : (
-              filteredPayments.map((payment) => (
-                <tr key={payment.id}>
-                  <td>{new Date(payment.payment_date).toLocaleDateString()}</td>
-                  <td className="font-medium">{(payment as { students?: { first_name?: string; last_name?: string } }).students?.first_name} {(payment as { students?: { first_name?: string; last_name?: string } }).students?.last_name}</td>
-                  <td className="text-green-600 font-medium">{formatCurrency(Number(payment.amount_paid))}</td>
-                  <td>
-                    <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-[#e3f2fd] text-[#1565c0]">
-                      {payment.payment_method === 'mobile_money' ? 'MoMo' :
-                       payment.payment_method === 'cash' ? 'Cash' :
-                       payment.payment_method === 'bank' ? 'Bank' : 'Other'}
-                    </span>
+            </thead>
+            <tbody>
+              {filteredPayments.length === 0 ? (
+                <tr>
+                  <td colSpan={5}>
+                    <EmptyState
+                      icon="receipt_long"
+                      title="No transactions found"
+                      description="There are no payments recorded for the selected period"
+                    />
                   </td>
-                  <td className="text-gray-500">{payment.payment_reference || '-'}</td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                filteredPayments.map((payment) => (
+                  <tr key={payment.id} className="border-b border-[var(--border)]">
+                    <td className="px-4 py-3 text-[var(--t1)]">{new Date(payment.payment_date).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 font-medium text-[var(--t1)]">{(payment as { students?: { first_name?: string; last_name?: string } }).students?.first_name} {(payment as { students?: { first_name?: string; last_name?: string } }).students?.last_name}</td>
+                    <td className="px-4 py-3 text-right text-[var(--green)] font-medium">{formatCurrency(Number(payment.amount_paid))}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--navy-soft)] text-[var(--navy)]">
+                        {payment.payment_method === 'mobile_money' ? 'MoMo' :
+                         payment.payment_method === 'cash' ? 'Cash' :
+                         payment.payment_method === 'bank' ? 'Bank' : 'Other'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-[var(--t3)]">{payment.payment_reference || '-'}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   )
 }

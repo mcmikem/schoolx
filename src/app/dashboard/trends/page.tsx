@@ -7,6 +7,10 @@ import { supabase } from '@/lib/supabase'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardBody } from '@/components/ui/Card'
+import { Select } from '@/components/ui/index'
+import { TableSkeleton } from '@/components/ui/Skeleton'
 
 interface TrendData {
   term: string
@@ -150,113 +154,111 @@ export default function TrendAnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="space-y-6">
-          <div className="h-8 bg-[#e8eaed] rounded w-48"></div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {[1,2,3,4].map((i) => <div key={i} className="h-24 bg-[#e8eaed] rounded-2xl"></div>)}
-          </div>
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <PageHeader title="Trend Analytics" subtitle="Multi-term performance trends" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[1,2,3,4].map((i) => <div key={i} className="h-24 bg-[var(--surface-container)] rounded-xl"></div>)}
         </div>
       </div>
     )
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Trend Analytics</h1>
-        <p className="text-[#5c6670] mt-1">Multi-term performance trends</p>
-      </div>
-
-      {academicYears.length > 1 && (
-        <div className="mb-6">
-          <select 
-            value={selectedYear} 
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+      <PageHeader title="Trend Analytics" subtitle="Multi-term performance trends">
+        {academicYears.length > 1 && (
+          <Select
+            value={selectedYear}
             onChange={(e) => setSelectedYear(e.target.value)}
-            className="input w-48"
-          >
-            {academicYears.map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
-        </div>
-      )}
+            options={academicYears.map(y => ({ value: y, label: y }))}
+            className="w-40"
+          />
+        )}
+      </PageHeader>
 
       {stats && (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-              <div className="text-2xl font-bold text-[#002045]">{Math.round(stats.totalStudents)}</div>
-              <div className="text-sm text-[#5c6670] mt-1">Avg Students</div>
-              <div className={`text-xs mt-1 ${Number(stats.studentTrend) >= 0 ? 'text-[#006e1c]' : 'text-[#ba1a1a]'}`}>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="p-4 text-center">
+              <div className="text-2xl font-bold text-[var(--t1)]">{Math.round(stats.totalStudents)}</div>
+              <div className="text-sm text-[var(--t3)] mt-1">Avg Students</div>
+              <div className={`text-xs mt-1 ${Number(stats.studentTrend) >= 0 ? 'text-[var(--green)]' : 'text-[var(--red)]'}`}>
                 {Number(stats.studentTrend) >= 0 ? '↑' : '↓'} {stats.studentTrend}%
               </div>
-            </div>
-            <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-              <div className="text-2xl font-bold text-[#002045]">{stats.avgAttendance.toFixed(1)}%</div>
-              <div className="text-sm text-[#5c6670] mt-1">Avg Attendance</div>
-              <div className={`text-xs mt-1 ${Number(stats.attendanceTrend) >= 0 ? 'text-[#006e1c]' : 'text-[#ba1a1a]'}`}>
+            </Card>
+            <Card className="p-4 text-center">
+              <div className="text-2xl font-bold text-[var(--t1)]">{stats.avgAttendance.toFixed(1)}%</div>
+              <div className="text-sm text-[var(--t3)] mt-1">Avg Attendance</div>
+              <div className={`text-xs mt-1 ${Number(stats.attendanceTrend) >= 0 ? 'text-[var(--green)]' : 'text-[var(--red)]'}`}>
                 {Number(stats.attendanceTrend) >= 0 ? '↑' : '↓'} {stats.attendanceTrend}%
               </div>
-            </div>
-            <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-              <div className="text-2xl font-bold text-[#002045]">{stats.collectionRate}%</div>
-              <div className="text-sm text-[#5c6670] mt-1">Collection Rate</div>
-              <div className={`text-xs mt-1 ${Number(stats.collectionTrend) >= 0 ? 'text-[#006e1c]' : 'text-[#ba1a1a]'}`}>
+            </Card>
+            <Card className="p-4 text-center">
+              <div className="text-2xl font-bold text-[var(--t1)]">{stats.collectionRate}%</div>
+              <div className="text-sm text-[var(--t3)] mt-1">Collection Rate</div>
+              <div className={`text-xs mt-1 ${Number(stats.collectionTrend) >= 0 ? 'text-[var(--green)]' : 'text-[var(--red)]'}`}>
                 {Number(stats.collectionTrend) >= 0 ? '↑' : '↓'} {stats.collectionTrend}%
               </div>
-            </div>
-            <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-              <div className="text-2xl font-bold text-[#006e1c]">{formatCurrency(historicalData[historicalData.length - 1]?.collected || 0)}</div>
-              <div className="text-sm text-[#5c6670] mt-1">Latest Collected</div>
-            </div>
+            </Card>
+            <Card className="p-4 text-center">
+              <div className="text-2xl font-bold text-[var(--green)]">{formatCurrency(historicalData[historicalData.length - 1]?.collected || 0)}</div>
+              <div className="text-sm text-[var(--t3)] mt-1">Latest Collected</div>
+            </Card>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-              <h2 className="font-semibold text-[#191c1d] mb-4">Enrollment Trend</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardBody>
+                <h2 className="font-semibold text-[var(--t1)] mb-4">Enrollment Trend</h2>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={historicalData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis dataKey="term" stroke="var(--t3)" />
+                      <YAxis stroke="var(--t3)" />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="students" stroke="var(--navy)" strokeWidth={2} name="Students" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardBody>
+            </Card>
+
+            <Card>
+              <CardBody>
+                <h2 className="font-semibold text-[var(--t1)] mb-4">Fee Collection Trend</h2>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={historicalData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis dataKey="term" stroke="var(--t3)" />
+                      <YAxis stroke="var(--t3)" />
+                      <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                      <Bar dataKey="collected" fill="var(--green)" name="Collected" />
+                      <Bar dataKey="expected" fill="var(--surface-container)" name="Expected" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardBody>
+            </Card>
+          </div>
+
+          <Card>
+            <CardBody>
+              <h2 className="font-semibold text-[var(--t1)] mb-4">Attendance Trend</h2>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={historicalData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e8eaed" />
-                    <XAxis dataKey="term" stroke="#5c6670" />
-                    <YAxis stroke="#5c6670" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="term" stroke="var(--t3)" />
+                    <YAxis domain={[60, 100]} stroke="var(--t3)" />
                     <Tooltip />
-                    <Line type="monotone" dataKey="students" stroke="#002045" strokeWidth={2} name="Students" />
+                    <Line type="monotone" dataKey="attendance" stroke="var(--amber)" strokeWidth={2} name="Attendance %" />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-            </div>
-
-            <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-              <h2 className="font-semibold text-[#191c1d] mb-4">Fee Collection Trend</h2>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={historicalData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e8eaed" />
-                    <XAxis dataKey="term" stroke="#5c6670" />
-                    <YAxis stroke="#5c6670" />
-                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                    <Bar dataKey="collected" fill="#006e1c" name="Collected" />
-                    <Bar dataKey="expected" fill="#e8eaed" name="Expected" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-            <h2 className="font-semibold text-[#191c1d] mb-4">Attendance Trend</h2>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={historicalData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e8eaed" />
-                  <XAxis dataKey="term" stroke="#5c6670" />
-                  <YAxis domain={[60, 100]} stroke="#5c6670" />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="attendance" stroke="#b86e00" strokeWidth={2} name="Attendance %" />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+            </CardBody>
+          </Card>
         </>
       )}
     </div>

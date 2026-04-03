@@ -6,6 +6,8 @@ import { useStaffReviews } from '@/lib/hooks'
 import GlassCard from '@/components/GlassCard'
 import MaterialIcon from '@/components/MaterialIcon'
 import { StaffReview } from '@/types'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Button } from '@/components/ui/index'
 
 export default function StaffReviewsPage() {
   const { school, user } = useAuth()
@@ -49,23 +51,16 @@ export default function StaffReviewsPage() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
-            Staff Performance
-          </h1>
-          <p className="text-white/60">Conduct and manage staff performance reviews</p>
-        </div>
-        
-        <button 
-          onClick={() => setShowReviewModal(true)}
-          className="px-6 py-3 bg-gradient-to-r from-primary-500 to-blue-500 hover:from-primary-600 hover:to-blue-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary-500/20 flex items-center gap-2"
-        >
-          <MaterialIcon icon="add_notes" />
-          New Review
-        </button>
-      </div>
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
+      <PageHeader 
+        title="Staff Performance" 
+        subtitle="Conduct and manage staff performance reviews"
+        actions={
+          <Button onClick={() => setShowReviewModal(true)} icon={<MaterialIcon icon="add_notes" />}>
+            New Review
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {reviews.map((review) => (
@@ -150,7 +145,6 @@ export default function StaffReviewsPage() {
                         onClick={() => {
                           const input = document.getElementById('rating-input') as HTMLInputElement;
                           if (input) input.value = num.toString();
-                          // Force re-render of stars (hacky for demo)
                         }}
                         className="p-1 hover:scale-110 transition-transform"
                       >

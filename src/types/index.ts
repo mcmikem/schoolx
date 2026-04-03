@@ -17,10 +17,13 @@ export interface School {
   subscription_plan: 'free' | 'basic' | 'premium'
   subscription_status: 'active' | 'expired' | 'trial'
   trial_ends_at?: string
+  feature_stage?: 'core' | 'academic' | 'finance' | 'full'
   created_at: string
 }
 
 // User types
+export type UserRole = 'super_admin' | 'school_admin' | 'headmaster' | 'dean_of_studies' | 'bursar' | 'teacher' | 'secretary' | 'dorm_master' | 'student' | 'parent'
+
 export interface User {
   id: string
   auth_id: string
@@ -28,7 +31,7 @@ export interface User {
   full_name: string
   phone: string
   email?: string
-  role: 'super_admin' | 'school_admin' | 'teacher' | 'student' | 'parent'
+  role: UserRole
   avatar_url?: string
   is_active: boolean
   created_at: string

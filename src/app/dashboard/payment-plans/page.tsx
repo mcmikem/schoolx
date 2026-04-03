@@ -5,6 +5,9 @@ import { useAcademic } from '@/lib/academic-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
 
 interface PaymentPlan {
   id: string
@@ -172,50 +175,50 @@ export default function PaymentPlansPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#002045]">Fee Payment Plans (EMI)</h1>
-          <p className="text-[#5c6670] mt-1">Manage installment plans for parents</p>
-        </div>
-        <button onClick={() => setShowCreate(true)} className="btn btn-primary">
-          <MaterialIcon icon="add" style={{ fontSize: 18 }} />
-          Create Plan
-        </button>
-      </div>
+      <PageHeader 
+        title="Fee Payment Plans (EMI)" 
+        subtitle="Manage installment plans for parents"
+        actions={
+          <Button onClick={() => setShowCreate(true)}>
+            <MaterialIcon icon="add" style={{ fontSize: 18 }} />
+            Create Plan
+          </Button>
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-        <div className="card">
-          <div className="card-body text-center">
+        <Card>
+          <CardBody className="text-center">
             <div className="text-2xl font-bold text-[#002045]">{plans.length}</div>
-            <div className="text-sm text-[#5c6670]">Total Plans</div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-body text-center">
+            <div className="text-sm text-[#5c6670] mt-1">Total Plans</div>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody className="text-center">
             <div className="text-2xl font-bold text-blue-600">{activeCount}</div>
-            <div className="text-sm text-[#5c6670]">Active</div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-body text-center">
+            <div className="text-sm text-[#5c6670] mt-1">Active</div>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody className="text-center">
             <div className="text-2xl font-bold text-green-600">{completedCount}</div>
-            <div className="text-sm text-[#5c6670]">Completed</div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-body text-center">
+            <div className="text-sm text-[#5c6670] mt-1">Completed</div>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody className="text-center">
             <div className="text-2xl font-bold text-amber-600">UGX {totalOutstanding.toLocaleString()}</div>
-            <div className="text-sm text-[#5c6670]">Outstanding</div>
-          </div>
-        </div>
+            <div className="text-sm text-[#5c6670] mt-1">Outstanding</div>
+          </CardBody>
+        </Card>
       </div>
 
       {/* Plans List */}
-      <div className="card">
-        <div className="card-header">
-          <div className="card-title">Payment Plans</div>
-        </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment Plans</CardTitle>
+        </CardHeader>
         <div className="table-wrapper">
           <table className="table">
             <thead>
@@ -247,9 +250,9 @@ export default function PaymentPlansPage() {
                     </span>
                   </td>
                   <td>
-                    <button onClick={() => setSelectedPlan(plan)} className="btn-sm btn-primary">
+                    <Button size="sm" onClick={() => setSelectedPlan(plan)}>
                       View
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -259,7 +262,7 @@ export default function PaymentPlansPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
 
       {/* Create Modal */}
       {showCreate && (

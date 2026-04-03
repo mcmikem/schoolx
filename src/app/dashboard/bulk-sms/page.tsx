@@ -4,6 +4,9 @@ import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
 
 interface SMSTemplate {
   id: string
@@ -64,8 +67,6 @@ export default function BulkSMSPage() {
     if (audience === 'class' && selectedClass) {
       filtered = filtered.filter(s => s.class_id === selectedClass)
     } else if (audience === 'outstanding_fees') {
-      // For outstanding fees, we'll show all and filter later via query
-      // In a real app this would query fee_payments
       filtered = filtered.slice(0, Math.ceil(filtered.length * 0.3))
     } else if (audience === 'custom') {
       filtered = filtered.filter(s => selectedStudents.includes(s.id))
@@ -79,7 +80,6 @@ export default function BulkSMSPage() {
   }, [message])
 
   const costEstimate = useMemo(() => {
-    // ~UGX 30 per SMS segment in Uganda
     return recipients.phoneCount * smsCount * 30
   }, [recipients.phoneCount, smsCount])
 
@@ -144,37 +144,37 @@ export default function BulkSMSPage() {
     }
   }
 
+  const audienceOptions = [
+    { value: 'all' as AudienceType, label: 'All Parents', icon: 'groups' },
+    { value: 'class' as AudienceType, label: 'By Class', icon: 'school' },
+    { value: 'outstanding_fees' as AudienceType, label: 'Outstanding Fees', icon: 'payments' },
+    { value: 'custom' as AudienceType, label: 'Custom Selection', icon: 'checklist' },
+  ]
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Bulk SMS</h1>
-        <p className="text-[#5c6670] mt-1">Send SMS to multiple parents at once</p>
-      </div>
+      <PageHeader
+        title="Bulk SMS"
+        subtitle="Send SMS to multiple parents at once"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Audience & Message */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Target Audience */}
-          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-            <h2 className="text-lg font-semibold text-[#191c1d] mb-4">Target Audience</h2>
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">Target Audience</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {([
-                { value: 'all' as AudienceType, label: 'All Parents', icon: 'groups' },
-                { value: 'class' as AudienceType, label: 'By Class', icon: 'school' },
-                { value: 'outstanding_fees' as AudienceType, label: 'Outstanding Fees', icon: 'payments' },
-                { value: 'custom' as AudienceType, label: 'Custom Selection', icon: 'checklist' },
-              ]).map(opt => (
+              {audienceOptions.map(opt => (
                 <button
                   key={opt.value}
                   onClick={() => setAudience(opt.value)}
                   className={`p-4 rounded-xl border-2 text-center transition-all ${
                     audience === opt.value
-                      ? 'border-[#002045] bg-[#002045]/5'
-                      : 'border-[#e8eaed] hover:border-[#c4c6cf]'
+                      ? 'border-[var(--primary)] bg-[var(--primary)]/5'
+                      : 'border-[var(--border)] hover:border-[var(--t3)]'
                   }`}
                 >
-                  <MaterialIcon icon={opt.icon} className={`text-2xl mb-1 ${audience === opt.value ? 'text-[#002045]' : 'text-[#5c6670]'}`} />
-                  <div className={`text-sm font-medium ${audience === opt.value ? 'text-[#002045]' : 'text-[#5c6670]'}`}>
+                  <MaterialIcon className={`text-2xl mb-1 ${audience === opt.value ? 'text-[var(--primary)]' : 'text-[var(--t3)]'}`}>{opt.icon}</MaterialIcon>
+                  <div className={`text-sm font-medium ${audience === opt.value ? 'text-[var(--primary)]' : 'text-[var(--t3)]'}`}>
                     {opt.label}
                   </div>
                 </button>
@@ -183,11 +183,11 @@ export default function BulkSMSPage() {
 
             {audience === 'class' && (
               <div className="mt-4">
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Select Class</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Select Class</label>
                 {classes.length === 0 ? (
                   <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No classes available</div>
                 ) : (
-                  <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input">
+                  <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm">
                     <option value="">Choose class</option>
                     {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
@@ -197,14 +197,14 @@ export default function BulkSMSPage() {
 
             {audience === 'custom' && (
               <div className="mt-4">
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">
                   Select Students ({selectedStudents.length} selected)
                 </label>
-                <div className="max-h-48 overflow-y-auto border border-[#e8eaed] rounded-xl">
+                <div className="max-h-48 overflow-y-auto border border-[var(--border)] rounded-xl">
                   {allStudents.map(s => (
                     <label
                       key={s.id}
-                      className="flex items-center gap-3 p-3 border-b border-[#e8eaed] last:border-0 hover:bg-[#f8fafb] cursor-pointer"
+                      className="flex items-center gap-3 p-3 border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-container)] cursor-pointer"
                     >
                       <input
                         type="checkbox"
@@ -212,28 +212,27 @@ export default function BulkSMSPage() {
                         onChange={() => toggleStudent(s.id)}
                         className="w-4 h-4"
                       />
-                      <span className="text-sm text-[#191c1d]">
+                      <span className="text-sm text-[var(--t1)]">
                         {s.first_name} {s.last_name}
-                        <span className="text-[#5c6670] ml-1">({s.classes?.name || 'No class'})</span>
+                        <span className="text-[var(--t3)] ml-1">({s.classes?.name || 'No class'})</span>
                       </span>
                     </label>
                   ))}
                 </div>
               </div>
             )}
-          </div>
+          </Card>
 
-          {/* Message Editor */}
-          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-            <h2 className="text-lg font-semibold text-[#191c1d] mb-4">Message</h2>
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">Message</h2>
 
             {templates.length > 0 && (
               <div className="mb-4">
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Use Template</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Use Template</label>
                 <select
                   value={selectedTemplateId}
                   onChange={(e) => handleTemplateSelect(e.target.value)}
-                  className="input"
+                  className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm"
                 >
                   <option value="">Write custom message</option>
                   {templates.map(t => (
@@ -251,95 +250,88 @@ export default function BulkSMSPage() {
                   setSelectedTemplateId('')
                 }}
                 placeholder="Type your message here..."
-                className="input min-h-[120px] resize-none"
+                className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] min-h-[120px] resize-none"
               />
               <div className="flex items-center justify-between mt-2">
-                <p className={`text-xs ${message.length > 160 ? 'text-[#c62828] font-medium' : 'text-[#5c6670]'}`}>
+                <p className={`text-xs ${message.length > 160 ? 'text-red-600 font-medium' : 'text-[var(--t3)]'}`}>
                   {message.length} characters ({smsCount} SMS{smsCount > 1 ? 'es' : ''} per recipient)
                 </p>
                 {message.length > 160 && (
-                  <p className="text-xs text-[#c62828]">
+                  <p className="text-xs text-red-600">
                     Message will be split into {smsCount} SMS segments
                   </p>
                 )}
               </div>
             </div>
-          </div>
+          </Card>
         </div>
 
-        {/* Right: Summary & Send */}
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-            <h2 className="text-lg font-semibold text-[#191c1d] mb-4">Summary</h2>
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">Summary</h2>
             <div className="space-y-4">
-              <div className="flex justify-between items-center py-2 border-b border-[#e8eaed]">
-                <span className="text-sm text-[#5c6670]">Recipients</span>
-                <span className="font-bold text-[#002045]">{recipients.phoneCount} parents</span>
+              <div className="flex justify-between items-center py-2 border-b border-[var(--border)]">
+                <span className="text-sm text-[var(--t3)]">Recipients</span>
+                <span className="font-bold text-[var(--t1)]">{recipients.phoneCount} parents</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-[#e8eaed]">
-                <span className="text-sm text-[#5c6670]">SMS per parent</span>
-                <span className="font-bold text-[#002045]">{smsCount}</span>
+              <div className="flex justify-between items-center py-2 border-b border-[var(--border)]">
+                <span className="text-sm text-[var(--t3)]">SMS per parent</span>
+                <span className="font-bold text-[var(--t1)]">{smsCount}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-[#e8eaed]">
-                <span className="text-sm text-[#5c6670]">Total SMS</span>
-                <span className="font-bold text-[#002045]">{recipients.phoneCount * smsCount}</span>
+              <div className="flex justify-between items-center py-2 border-b border-[var(--border)]">
+                <span className="text-sm text-[var(--t3)]">Total SMS</span>
+                <span className="font-bold text-[var(--t1)]">{recipients.phoneCount * smsCount}</span>
               </div>
               <div className="flex justify-between items-center py-2">
-                <span className="text-sm text-[#5c6670]">Est. Cost</span>
-                <span className="font-bold text-[#002045]">UGX {costEstimate.toLocaleString()}</span>
+                <span className="text-sm text-[var(--t3)]">Est. Cost</span>
+                <span className="font-bold text-[var(--t1)]">UGX {costEstimate.toLocaleString()}</span>
               </div>
             </div>
-          </div>
+          </Card>
 
-          {/* Preview */}
-          <div className="bg-[#f8fafb] rounded-2xl border border-[#e8eaed] p-4">
-            <p className="text-sm text-[#5c6670]">
-              <MaterialIcon icon="info" className="text-sm align-text-bottom mr-1" />
-              This SMS will be sent to <strong className="text-[#191c1d]">{recipients.phoneCount} parent{recipients.phoneCount !== 1 ? 's' : ''}</strong>
+          <Card className="p-4 bg-[var(--surface-container)]">
+            <p className="text-sm text-[var(--t3)]">
+              <MaterialIcon className="text-sm align-text-bottom mr-1">info</MaterialIcon>
+              This SMS will be sent to <strong className="text-[var(--t1)]">{recipients.phoneCount} parent{recipients.phoneCount !== 1 ? 's' : ''}</strong>
               {smsCount > 0 && (
                 <span> ({recipients.phoneCount * smsCount} total SMS segment{recipients.phoneCount * smsCount > 1 ? 's' : ''})</span>
               )}
             </p>
-          </div>
+          </Card>
 
-          <button
-            onClick={() => setShowConfirm(true)}
-            disabled={!message.trim() || recipients.phoneCount === 0}
-            className="btn btn-primary w-full"
-          >
+          <Button onClick={() => setShowConfirm(true)} disabled={!message.trim() || recipients.phoneCount === 0} className="w-full">
             <MaterialIcon icon="send" className="text-lg" />
             Send Bulk SMS
-          </button>
+          </Button>
         </div>
       </div>
 
-      {/* Confirmation Modal */}
       {showConfirm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowConfirm(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b border-[#e8eaed]">
-              <h2 className="text-lg font-semibold text-[#191c1d]">Confirm Bulk SMS</h2>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-[var(--border)]">
+              <h2 className="text-lg font-semibold text-[var(--t1)]">Confirm Bulk SMS</h2>
             </div>
             <div className="p-6 space-y-4">
-              <div className="bg-[#f8fafb] rounded-xl p-4">
-                <div className="text-sm text-[#5c6670] mb-1">Message</div>
-                <p className="text-sm text-[#191c1d]">{message}</p>
+              <div className="bg-[var(--surface-container)] rounded-xl p-4">
+                <div className="text-sm text-[var(--t3)] mb-1">Message</div>
+                <p className="text-sm text-[var(--t1)]">{message}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-[#f8fafb] rounded-xl p-4 text-center">
-                  <div className="text-2xl font-bold text-[#002045]">{recipients.phoneCount}</div>
-                  <div className="text-xs text-[#5c6670]">Recipients</div>
+                <div className="bg-[var(--surface-container)] rounded-xl p-4 text-center">
+                  <div className="text-2xl font-bold text-[var(--t1)]">{recipients.phoneCount}</div>
+                  <div className="text-xs text-[var(--t3)]">Recipients</div>
                 </div>
-                <div className="bg-[#f8fafb] rounded-xl p-4 text-center">
-                  <div className="text-2xl font-bold text-[#002045]">UGX {costEstimate.toLocaleString()}</div>
-                  <div className="text-xs text-[#5c6670]">Est. Cost</div>
+                <div className="bg-[var(--surface-container)] rounded-xl p-4 text-center">
+                  <div className="text-2xl font-bold text-[var(--t1)]">UGX {costEstimate.toLocaleString()}</div>
+                  <div className="text-xs text-[var(--t3)]">Est. Cost</div>
                 </div>
               </div>
               <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowConfirm(false)} className="btn btn-secondary flex-1">Cancel</button>
-                <button onClick={handleSend} disabled={sending} className="btn btn-primary flex-1">
+                <Button variant="secondary" className="flex-1" onClick={() => setShowConfirm(false)}>Cancel</Button>
+                <Button className="flex-1" disabled={sending}>
                   {sending ? 'Sending...' : 'Confirm & Send'}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

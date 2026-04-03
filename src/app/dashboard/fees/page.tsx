@@ -89,10 +89,17 @@ export default function FeesPage() {
   const formatCurrency = (amount: number) => `UGX ${amount.toLocaleString()}`
 
   const studentBalances: StudentBalance[] = useMemo(() => {
-    const totalExpected = feeStructure.reduce((sum, f) => sum + Number(f.amount || 0), 0)
     return students.map(student => {
+      const studentClassId = student.class_id
       const studentPayments = payments.filter(p => p.student_id === student.id)
       const paid = studentPayments.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0)
+      
+      // Filter fees by class_id (null = applies to all) or no class filter exists
+      const applicableFees = feeStructure.filter(f => 
+        f.class_id === null || f.class_id === studentClassId
+      )
+      const totalExpected = applicableFees.reduce((sum, f) => sum + Number(f.amount || 0), 0)
+      
       return {
         id: student.id,
         name: `${student.first_name} ${student.last_name}`,

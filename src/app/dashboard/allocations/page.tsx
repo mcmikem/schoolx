@@ -2,11 +2,22 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
-import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardBody } from '@/components/ui/Card'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
+
+interface Allocation {
+  id: string
+  academic_year: string
+  users?: { full_name: string }
+  subjects?: { name: string }
+  classes?: { name: string }
+}
 
 export default function AllocationsPage() {
   const { school } = useAuth()
-  const [allocations, setAllocations] = useState<any[]>([])
+  const [allocations, setAllocations] = useState<Allocation[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -26,36 +37,47 @@ export default function AllocationsPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Subject Allocations</h1>
-        <p className="text-[#5c6670] mt-1">Assign teachers to subjects and classes</p>
-      </div>
+      <PageHeader 
+        title="Subject Allocations" 
+        subtitle="Assign teachers to subjects and classes"
+      />
 
-      <div className="table-wrapper">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Teacher</th>
-              <th>Subject</th>
-              <th>Class</th>
-              <th>Academic Year</th>
-            </tr>
-          </thead>
-          <tbody>
-            {allocations.map(alloc => (
-              <tr key={alloc.id}>
-                <td>{alloc.users?.full_name}</td>
-                <td>{alloc.subjects?.name}</td>
-                <td>{alloc.classes?.name}</td>
-                <td>{alloc.academic_year}</td>
-              </tr>
-            ))}
-            {allocations.length === 0 && !loading && (
-              <tr><td colSpan={4} className="text-center py-8 text-[#5c6670]">No allocations yet</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Card>
+        <CardBody>
+          {loading ? (
+            <TableSkeleton rows={5} />
+          ) : allocations.length === 0 ? (
+            <EmptyState 
+              icon="assignment" 
+              title="No allocations yet"
+              description="Assign teachers to subjects and classes to get started"
+            />
+          ) : (
+            <div className="table-wrapper">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Teacher</th>
+                    <th>Subject</th>
+                    <th>Class</th>
+                    <th>Academic Year</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allocations.map(alloc => (
+                    <tr key={alloc.id}>
+                      <td>{alloc.users?.full_name}</td>
+                      <td>{alloc.subjects?.name}</td>
+                      <td>{alloc.classes?.name}</td>
+                      <td>{alloc.academic_year}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardBody>
+      </Card>
     </div>
   )
 }

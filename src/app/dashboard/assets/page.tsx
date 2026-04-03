@@ -4,6 +4,12 @@ import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardHeader, CardBody } from '@/components/ui/Card'
+import { Button, Input, Select } from '@/components/ui/index'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
+import { Tabs, TabPanel } from '@/components/ui/Tabs'
 
 interface Asset {
   id: string
@@ -42,7 +48,7 @@ export default function AssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
-  const [filterCategory, setFilterCategory] = useState('all')
+  const [activeTab, setActiveTab] = useState('all')
   const [newAsset, setNewAsset] = useState({
     name: '',
     category: '',
@@ -115,206 +121,172 @@ export default function AssetsPage() {
   }
 
   const filteredAssets = assets.filter(a => {
-    if (filterCategory === 'all') return true
-    return a.category === filterCategory
+    if (activeTab === 'all') return true
+    return a.category === activeTab
   })
 
   const totalValue = assets.reduce((sum, a) => sum + Number(a.value || 0), 0)
 
+  const tabs = [
+    { id: 'all', label: 'All Assets', count: assets.length },
+    ...categories.map(c => ({ id: c, label: c, count: assets.filter(a => a.category === c).length }))
+  ]
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#002045]">Asset Register</h1>
-          <p className="text-[#5c6670] mt-1">Track school property and equipment</p>
-        </div>
-        <button onClick={() => setShowModal(true)} className="btn btn-primary">
-          <MaterialIcon icon="add" />
-          Add Asset
-        </button>
-      </div>
+      <PageHeader 
+        title="Asset Register" 
+        subtitle="Track school property and equipment"
+        actions={
+          <Button onClick={() => setShowModal(true)} icon={<MaterialIcon icon="add" />}>
+            Add Asset
+          </Button>
+        }
+      />
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-          <div className="stat-value">{assets.length}</div>
-          <div className="stat-label">Total Assets</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-          <div className="stat-value">UGX {(totalValue / 1000000).toFixed(1)}M</div>
-          <div className="stat-label">Total Value</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-          <div className="stat-value text-yellow-600">{assets.filter(a => a.condition === 'Needs Repair').length}</div>
-          <div className="stat-label">Need Repair</div>
-        </div>
+        <Card>
+          <div className="text-2xl font-bold text-[var(--on-surface)]">{assets.length}</div>
+          <div className="text-sm text-[var(--t3)]">Total Assets</div>
+        </Card>
+        <Card>
+          <div className="text-2xl font-bold text-[var(--on-surface)]">UGX {(totalValue / 1000000).toFixed(1)}M</div>
+          <div className="text-sm text-[var(--t3)]">Total Value</div>
+        </Card>
+        <Card>
+          <div className="text-2xl font-bold text-[var(--amber)]">{assets.filter(a => a.condition === 'Needs Repair').length}</div>
+          <div className="text-sm text-[var(--t3)]">Need Repair</div>
+        </Card>
       </div>
 
-      {/* Filter */}
-      <div className="mb-6">
-        <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="input sm:w-48">
-          <option value="all">All Categories</option>
-          {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-      </div>
+      <Tabs tabs={tabs.filter(t => t.count > 0)} activeTab={activeTab} onChange={setActiveTab} />
 
-      {/* Assets List */}
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="card">
-              <div className="skeleton w-full h-4 mb-2" />
-              <div className="skeleton w-3/4 h-3" />
-            </div>
-          ))}
-        </div>
+        <TableSkeleton rows={5} />
       ) : filteredAssets.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-semibold text-[#002045] mb-2">No assets recorded</h3>
-          <p className="text-[#5c6670]">Add your first asset</p>
-        </div>
+        <Card>
+          <EmptyState
+            icon="category"
+            title="No assets recorded"
+            description="Add your first asset to start tracking"
+            action={{ label: 'Add Asset', onClick: () => setShowModal(true) }}
+          />
+        </Card>
       ) : (
-        <div className="table-wrapper">
-          <table className="table">
-            <thead className="bg-[#f8fafb]">
-              <tr>
-                <th>Asset Name</th>
-                <th>Category</th>
-                <th>Location</th>
-                <th>Condition</th>
-                <th>Value</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAssets.map((asset) => (
-                <tr key={asset.id}>
-                  <td className="font-medium text-[#002045]">{asset.name}</td>
-                  <td className="text-[#5c6670]">{asset.category}</td>
-                  <td className="text-[#5c6670]">{asset.location}</td>
-                  <td>
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                      asset.condition === 'New' || asset.condition === 'Good' ? 'bg-[#e8f5e9] text-[#006e1c]' :
-                      asset.condition === 'Fair' ? 'bg-[#fff3e0] text-[#e65100]' :
-                      'bg-[#ffebee] text-[#c62828]'
-                    }`}>
-                      {asset.condition}
-                    </span>
-                  </td>
-                  <td className="font-medium">UGX {Number(asset.value || 0).toLocaleString()}</td>
-                  <td>
-                    <button
-                      onClick={() => deleteAsset(asset.id)}
-                      className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50"
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </td>
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-[var(--surface-container)]">
+                <tr>
+                  <th className="p-4 text-sm font-semibold text-[var(--t2)]">Asset Name</th>
+                  <th className="p-4 text-sm font-semibold text-[var(--t2)]">Category</th>
+                  <th className="p-4 text-sm font-semibold text-[var(--t2)]">Location</th>
+                  <th className="p-4 text-sm font-semibold text-[var(--t2)]">Condition</th>
+                  <th className="p-4 text-sm font-semibold text-[var(--t2)]">Value</th>
+                  <th className="p-4 text-sm font-semibold text-[var(--t2)]"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-[var(--border)]">
+                {filteredAssets.map((asset) => (
+                  <tr key={asset.id} className="hover:bg-[var(--surface-container)] transition-colors">
+                    <td className="p-4 font-medium text-[var(--on-surface)]">{asset.name}</td>
+                    <td className="p-4 text-[var(--t3)]">{asset.category}</td>
+                    <td className="p-4 text-[var(--t3)]">{asset.location}</td>
+                    <td className="p-4">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                        asset.condition === 'New' || asset.condition === 'Good' ? 'bg-[var(--green-soft)] text-[var(--green)]' :
+                        asset.condition === 'Fair' ? 'bg-[var(--amber-soft)] text-[var(--amber)]' :
+                        'bg-[var(--red-soft)] text-[var(--red)]'
+                      }`}>
+                        {asset.condition}
+                      </span>
+                    </td>
+                    <td className="p-4 font-medium text-[var(--on-surface)]">UGX {Number(asset.value || 0).toLocaleString()}</td>
+                    <td className="p-4">
+                      <button
+                        onClick={() => deleteAsset(asset.id)}
+                        className="p-2 text-[var(--t3)] hover:text-[var(--error)] rounded-lg hover:bg-[var(--red-soft)]"
+                      >
+                        <MaterialIcon icon="delete" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
 
-      {/* Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowModal(false)}>
+          <div onClick={(e) => e.stopPropagation()}>
+            <Card className="w-full max-w-lg">
+            <CardHeader>
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[#002045]">Add Asset</h2>
-                <button onClick={() => setShowModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                <h2 className="text-lg font-semibold text-[var(--on-surface)]">Add Asset</h2>
+                <button onClick={() => setShowModal(false)} className="p-2 text-[var(--t3)] hover:text-[var(--on-surface)]">
+                  <MaterialIcon icon="close" />
                 </button>
               </div>
-            </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="label">Asset Name</label>
-                <input
-                  type="text"
+            </CardHeader>
+            <CardBody>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <Input
+                  label="Asset Name"
                   value={newAsset.name}
                   onChange={(e) => setNewAsset({...newAsset, name: e.target.value})}
-                  className="input"
                   placeholder="e.g. Dell Laptop, Office Desk"
                   required
                 />
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Category</label>
-                  <select 
+                <div className="grid grid-cols-2 gap-4">
+                  <Select
+                    label="Category"
                     value={newAsset.category}
                     onChange={(e) => setNewAsset({...newAsset, category: e.target.value})}
-                    className="input"
+                    options={[{ value: '', label: 'Select category' }, ...categories.map(c => ({ value: c, label: c }))]}
                     required
-                  >
-                    <option value="">Select category</option>
-                    {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="label">Condition</label>
-                  <select 
+                  />
+                  <Select
+                    label="Condition"
                     value={newAsset.condition}
                     onChange={(e) => setNewAsset({...newAsset, condition: e.target.value})}
-                    className="input"
-                  >
-                    {conditions.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                    options={conditions.map(c => ({ value: c, label: c }))}
+                  />
                 </div>
-              </div>
 
-              <div>
-                <label className="label">Location</label>
-                <input
-                  type="text"
+                <Input
+                  label="Location"
                   value={newAsset.location}
                   onChange={(e) => setNewAsset({...newAsset, location: e.target.value})}
-                  className="input"
                   placeholder="e.g. Staff Room, Lab"
                   required
                 />
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Purchase Date</label>
-                  <input
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label="Purchase Date"
                     type="date"
                     value={newAsset.purchase_date}
                     onChange={(e) => setNewAsset({...newAsset, purchase_date: e.target.value})}
-                    className="input"
                   />
-                </div>
-                <div>
-                  <label className="label">Value (UGX)</label>
-                  <input
+                  <Input
+                    label="Value (UGX)"
                     type="number"
                     value={newAsset.value}
                     onChange={(e) => setNewAsset({...newAsset, value: e.target.value})}
-                    className="input"
                     placeholder="0"
                   />
                 </div>
-              </div>
 
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary flex-1">Cancel</button>
-                <button type="submit" className="btn btn-primary flex-1">Add Asset</button>
-              </div>
-            </form>
+                <div className="flex gap-3 pt-4">
+                  <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowModal(false)}>Cancel</Button>
+                  <Button type="submit" variant="primary" className="flex-1">Add Asset</Button>
+                </div>
+              </form>
+            </CardBody>
+            </Card>
           </div>
         </div>
       )}

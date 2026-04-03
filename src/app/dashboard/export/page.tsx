@@ -5,6 +5,9 @@ import { useStudents, useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card as UICard } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
 
 export default function ExportPage() {
   const { school, isDemo } = useAuth()
@@ -28,7 +31,6 @@ export default function ExportPage() {
       let data: any[] = []
       let filename = ''
 
-      // Demo mode - use demo data
       if (isDemo) {
         const { getDemoStudents, getDemoPayments, getDemoGrades, getDemoAttendance, getDemoClasses } = await import('@/lib/demo-data')
         
@@ -101,7 +103,6 @@ export default function ExportPage() {
             break
         }
       } else {
-        // Real mode
         switch (exportType) {
           case 'students':
             data = filteredStudents.map(s => ({
@@ -200,20 +201,19 @@ export default function ExportPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Export Data</h1>
-        <p className="text-[#5c6670] mt-1">Export school data to Excel</p>
-      </div>
+      <PageHeader 
+        title="Export Data" 
+        subtitle="Export school data to Excel"
+      />
 
-      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 max-w-2xl">
+      <UICard className="max-w-2xl p-6">
         <div className="space-y-6">
-          {/* Export Type */}
           <div>
-            <label className="label">What do you want to export?</label>
+            <label className="block text-sm font-medium text-[var(--on-surface)] mb-2">What do you want to export?</label>
             <select 
               value={exportType} 
               onChange={(e) => setExportType(e.target.value as 'students' | 'uneb' | 'grades' | 'attendance' | 'fees')}
-              className="input"
+              className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors"
             >
               <option value="students">Student List</option>
               <option value="uneb">UNEB Candidate List</option>
@@ -223,22 +223,20 @@ export default function ExportPage() {
             </select>
           </div>
 
-          {/* Class Filter */}
           <div>
-            <label className="label">Class</label>
+            <label className="block text-sm font-medium text-[var(--on-surface)] mb-2">Class</label>
             <select 
               value={selectedClass} 
               onChange={(e) => setSelectedClass(e.target.value)}
-              className="input"
+              className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors"
             >
               <option value="all">All Classes</option>
               {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
 
-          {/* Preview */}
-          <div className="p-4 bg-[#f8fafb] rounded-lg">
-            <div className="text-sm text-[#5c6670]">
+          <div className="p-4 bg-[var(--surface-container)] rounded-lg">
+            <div className="text-sm text-[var(--t3)]">
               {exportType === 'students' && `${filteredStudents.length} students will be exported`}
               {exportType === 'uneb' && `${filteredStudents.filter(s => s.ple_index_number).length} students with PLE index numbers`}
               {exportType === 'grades' && 'All grade records for selected class'}
@@ -247,11 +245,11 @@ export default function ExportPage() {
             </div>
           </div>
 
-          {/* Export Button */}
-          <button 
+          <Button 
             onClick={exportToExcel} 
             disabled={exporting}
-            className="btn btn-primary w-full"
+            className="w-full"
+            size="lg"
           >
             {exporting ? (
               <span className="flex items-center gap-2">
@@ -267,32 +265,31 @@ export default function ExportPage() {
                 Download Excel File
               </span>
             )}
-          </button>
+          </Button>
         </div>
-      </div>
+      </UICard>
 
-      {/* Export Tips */}
-      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 mt-6 max-w-2xl">
-        <h2 className="font-semibold text-[#002045] mb-4">Export Tips</h2>
-        <ul className="space-y-2 text-sm text-[#5c6670]">
+      <UICard className="max-w-2xl p-6 mt-6">
+        <h2 className="font-semibold text-[var(--on-surface)] mb-4">Export Tips</h2>
+        <ul className="space-y-2 text-sm text-[var(--t3)]">
           <li className="flex items-start gap-2">
-            <MaterialIcon icon="check_circle" className="text-green-600 mt-0.5" />
+            <MaterialIcon icon="check_circle" className="text-[var(--green)] mt-0.5" />
             <span><strong>UNEB Export:</strong> Use this to fill UNEB registration forms. Make sure students have PLE index numbers.</span>
           </li>
           <li className="flex items-start gap-2">
-            <MaterialIcon icon="check_circle" className="text-green-600 mt-0.5" />
+            <MaterialIcon icon="check_circle" className="text-[var(--green)] mt-0.5" />
             <span><strong>Student List:</strong> Export all student records including parent contacts.</span>
           </li>
           <li className="flex items-start gap-2">
-            <MaterialIcon icon="check_circle" className="text-green-600 mt-0.5" />
+            <MaterialIcon icon="check_circle" className="text-[var(--green)] mt-0.5" />
             <span><strong>Grades:</strong> Export all grade records for analysis or backup.</span>
           </li>
           <li className="flex items-start gap-2">
-            <MaterialIcon icon="check_circle" className="text-green-600 mt-0.5" />
+            <MaterialIcon icon="check_circle" className="text-[var(--green)] mt-0.5" />
             <span><strong>Fees:</strong> Export payment records for accounting or audits.</span>
           </li>
         </ul>
-      </div>
+      </UICard>
     </div>
   )
 }

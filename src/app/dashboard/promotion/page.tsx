@@ -5,6 +5,11 @@ import { useAcademic } from '@/lib/academic-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardHeader, CardBody, CardTitle } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
 
 interface Student {
   id: string
@@ -68,7 +73,6 @@ export default function StudentPromotionPage() {
       .order('first_name')
     setStudents(data || [])
     setSelectedStudents(new Set(data?.map(s => s.id) || []))
-    // Default all to promote
     const defaultActions: StudentActionMap = {}
     data?.forEach(s => {
       defaultActions[s.id] = { action: 'promote' }
@@ -163,7 +167,6 @@ export default function StudentPromotionPage() {
       return
     }
 
-    // Check that promote students have a target class
     const promoteStudents = selectedArray.filter(id => studentActions[id]?.action === 'promote')
     if (promoteStudents.length > 0 && !toClass) {
       toast.error('Please select a target class for promoted students')
@@ -285,12 +288,11 @@ export default function StudentPromotionPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Student Promotion</h1>
-        <p className="text-[#5c6670] mt-1">Promote, repeat, or demote students per class</p>
-      </div>
+      <PageHeader 
+        title="Student Promotion" 
+        subtitle="Promote, repeat, or demote students per class"
+      />
 
-      {/* Summary badges */}
       {selectedStudents.size > 0 && (
         <div className="flex gap-2 mb-4 flex-wrap">
           {actionCounts.promote > 0 && (
@@ -311,19 +313,22 @@ export default function StudentPromotionPage() {
         </div>
       )}
 
-      {/* Promotion Controls */}
-      <div className="card mb-6">
-        <div className="card-header">
-          <div className="card-title">Select Students</div>
-        </div>
-        <div className="card-body">
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Select Students</CardTitle>
+        </CardHeader>
+        <CardBody>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium mb-1">From Class</label>
+              <label className="block text-sm font-medium mb-1 text-[var(--on-surface)]">From Class</label>
               {classes.length === 0 ? (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No classes available</div>
               ) : (
-                <select value={fromClass} onChange={(e) => setFromClass(e.target.value)} className="input">
+                <select 
+                  value={fromClass} 
+                  onChange={(e) => setFromClass(e.target.value)} 
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
+                >
                   <option value="">Select class...</option>
                   {classes.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
@@ -332,11 +337,15 @@ export default function StudentPromotionPage() {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Promote To Class</label>
+              <label className="block text-sm font-medium mb-1 text-[var(--on-surface)]">Promote To Class</label>
               {classes.length === 0 ? (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No classes available</div>
               ) : (
-                <select value={toClass} onChange={(e) => setToClass(e.target.value)} className="input">
+                <select 
+                  value={toClass} 
+                  onChange={(e) => setToClass(e.target.value)} 
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
+                >
                   <option value="">Select target class...</option>
                   {getNextClassOptions().map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
@@ -345,19 +354,19 @@ export default function StudentPromotionPage() {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">&nbsp;</label>
-              <button 
+              <label className="block text-sm font-medium mb-1 text-[var(--on-surface)]">&nbsp;</label>
+              <Button 
                 onClick={processPromotions}
                 disabled={promoting || selectedStudents.size === 0}
-                className="btn btn-primary w-full"
+                loading={promoting}
+                className="w-full"
               >
                 <MaterialIcon icon="upgrade" style={{ fontSize: 18 }} />
                 {promoting ? 'Processing...' : `Process ${selectedStudents.size} Students`}
-              </button>
+              </Button>
             </div>
           </div>
 
-          {/* Student List */}
           {fromClass && (
             <div className="mt-4">
               <div className="flex items-center justify-between mb-3">
@@ -370,159 +379,187 @@ export default function StudentPromotionPage() {
                   />
                   <span className="text-sm font-medium">Select All ({students.length} students)</span>
                 </label>
-                <span className="text-sm text-[#5c6670]">{selectedStudents.size} selected</span>
+                <span className="text-sm text-[var(--t3)]">{selectedStudents.size} selected</span>
               </div>
 
-              <div className="table-wrapper">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: 40 }}>#</th>
-                      <th>Name</th>
-                      <th>Gender</th>
-                      <th>Current Status</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {students.map((student) => {
-                      const action = studentActions[student.id]?.action || 'promote'
-                      return (
-                        <tr key={student.id}>
-                          <td>
-                            <input 
-                              type="checkbox" 
-                              checked={selectedStudents.has(student.id)}
-                              onChange={() => toggleStudent(student.id)}
-                              className="w-4 h-4"
+              {loading ? (
+                <TableSkeleton rows={5} />
+              ) : (
+                <div className="table-wrapper">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: 40 }}>#</th>
+                        <th>Name</th>
+                        <th>Gender</th>
+                        <th>Current Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {students.map((student) => {
+                        const action = studentActions[student.id]?.action || 'promote'
+                        return (
+                          <tr key={student.id}>
+                            <td>
+                              <input 
+                                type="checkbox" 
+                                checked={selectedStudents.has(student.id)}
+                                onChange={() => toggleStudent(student.id)}
+                                className="w-4 h-4"
+                              />
+                            </td>
+                            <td className="font-medium text-sm">{student.first_name} {student.last_name}</td>
+                            <td className="text-sm">{student.gender}</td>
+                            <td>
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${student.repeating ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
+                                {student.repeating ? 'Repeating' : 'Active'}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => setAction(student.id, 'promote')}
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                                    action === 'promote'
+                                      ? 'bg-green-100 border-green-300 text-green-800'
+                                      : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                                  }`}
+                                >
+                                  Promote
+                                </button>
+                                <button
+                                  onClick={() => setAction(student.id, 'repeat')}
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                                    action === 'repeat'
+                                      ? 'bg-yellow-100 border-yellow-300 text-yellow-800'
+                                      : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                                  }`}
+                                >
+                                  Repeat
+                                </button>
+                                <button
+                                  onClick={() => setAction(student.id, 'demote')}
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                                    action === 'demote'
+                                      ? 'bg-red-100 border-red-300 text-red-800'
+                                      : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                                  }`}
+                                >
+                                  Demote
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                      {students.length === 0 && (
+                        <tr>
+                          <td colSpan={5}>
+                            <EmptyState 
+                              icon="group" 
+                              title="No active students in this class"
+                              description="Select a class with active students to proceed"
                             />
                           </td>
-                          <td className="font-medium text-sm">{student.first_name} {student.last_name}</td>
-                          <td className="text-sm">{student.gender}</td>
-                          <td>
-                            <span className={`badge ${student.repeating ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
-                              {student.repeating ? 'Repeating' : 'Active'}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="flex gap-1">
-                              <button
-                                onClick={() => setAction(student.id, 'promote')}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
-                                  action === 'promote'
-                                    ? 'bg-green-100 border-green-300 text-green-800'
-                                    : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
-                                }`}
-                              >
-                                Promote
-                              </button>
-                              <button
-                                onClick={() => setAction(student.id, 'repeat')}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
-                                  action === 'repeat'
-                                    ? 'bg-yellow-100 border-yellow-300 text-yellow-800'
-                                    : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
-                                }`}
-                              >
-                                Repeat
-                              </button>
-                              <button
-                                onClick={() => setAction(student.id, 'demote')}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
-                                  action === 'demote'
-                                    ? 'bg-red-100 border-red-300 text-red-800'
-                                    : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
-                                }`}
-                              >
-                                Demote
-                              </button>
-                            </div>
-                          </td>
                         </tr>
-                      )
-                    })}
-                    {students.length === 0 && !loading && (
-                      <tr><td colSpan={5} className="text-center py-8 text-[#5c6670]">No active students in this class</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
-        </div>
-      </div>
+        </CardBody>
+      </Card>
 
-      {/* Promotion History */}
-      <div className="card">
-        <div className="card-header">
-          <div className="card-title">Promotion History</div>
-        </div>
-        <div className="table-wrapper">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Student</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Type</th>
-                <th>By</th>
-              </tr>
-            </thead>
-            <tbody>
-              {promotionHistory.map((p, idx) => (
-                <tr key={idx}>
-                  <td className="text-sm">{new Date(p.promoted_at).toLocaleDateString()}</td>
-                  <td className="text-sm">{p.student_id?.substring(0, 8)}...</td>
-                  <td className="text-sm">{p.from_classes?.name}</td>
-                  <td className="text-sm">{p.to_classes?.name}</td>
-                  <td>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                      p.promotion_type === 'repeating' ? 'bg-yellow-100 text-yellow-800'
-                      : p.promotion_type === 'demoted' ? 'bg-red-100 text-red-800'
-                      : 'bg-green-100 text-green-800'
-                    }`}>
-                      {p.promotion_type || 'promoted'}
-                    </span>
-                  </td>
-                  <td className="text-sm">{p.users?.full_name || 'System'}</td>
-                </tr>
-              ))}
-              {promotionHistory.length === 0 && (
-                <tr><td colSpan={6} className="text-center py-8 text-[#5c6670]">No promotion history</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Promotion History</CardTitle>
+        </CardHeader>
+        <CardBody>
+          {promotionHistory.length === 0 ? (
+            <EmptyState 
+              icon="history" 
+              title="No promotion history"
+              description="Promotions will appear here once processed"
+            />
+          ) : (
+            <div className="table-wrapper">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Student</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Type</th>
+                    <th>By</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {promotionHistory.map((p, idx) => (
+                    <tr key={idx}>
+                      <td className="text-sm">{new Date(p.promoted_at).toLocaleDateString()}</td>
+                      <td className="text-sm">{p.student_id?.substring(0, 8)}...</td>
+                      <td className="text-sm">{p.from_classes?.name}</td>
+                      <td className="text-sm">{p.to_classes?.name}</td>
+                      <td>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          p.promotion_type === 'repeating' ? 'bg-yellow-100 text-yellow-800'
+                          : p.promotion_type === 'demoted' ? 'bg-red-100 text-red-800'
+                          : 'bg-green-100 text-green-800'
+                        }`}>
+                          {p.promotion_type || 'promoted'}
+                        </span>
+                      </td>
+                      <td className="text-sm">{p.users?.full_name || 'System'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardBody>
+      </Card>
 
-      {/* Demote Modal */}
       {showDemoteModal && (
-        <div className="modal-overlay" onClick={() => setShowDemoteModal(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
-            <div className="modal-header">
-              <div style={{ fontFamily: 'Sora', fontSize: 16, fontWeight: 700 }}>Demote Student</div>
-              <button onClick={() => setShowDemoteModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                <MaterialIcon style={{ fontSize: 18, color: 'var(--t3)' }}>close</MaterialIcon>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowDemoteModal(null)}>
+          <div className="bg-[var(--surface)] rounded-2xl shadow-xl max-w-md w-full" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
+              <div className="font-semibold text-[var(--t1)]">Demote Student</div>
+              <button onClick={() => setShowDemoteModal(null)} className="p-1 hover:bg-[var(--surface-container)] rounded-lg">
+                <MaterialIcon className="text-xl text-[var(--t3)]">close</MaterialIcon>
               </button>
             </div>
-            <div style={{ padding: 20 }}>
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Demote to Class</label>
-                <select value={demoteClass} onChange={(e) => setDemoteClass(e.target.value)} className="input" required>
+            <div className="p-6">
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2 text-[var(--on-surface)]">Demote to Class</label>
+                <select 
+                  value={demoteClass} 
+                  onChange={(e) => setDemoteClass(e.target.value)} 
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
+                  required
+                >
                   <option value="">Select class...</option>
                   {getPrevClassOptions().map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
               </div>
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Reason</label>
-                <textarea value={demoteReason} onChange={(e) => setDemoteReason(e.target.value)} className="input" rows={3} placeholder="Reason for demotion..." style={{ resize: 'vertical' }} />
+              <div className="mb-5">
+                <label className="block text-sm font-medium mb-2 text-[var(--on-surface)]">Reason</label>
+                <textarea 
+                  value={demoteReason} 
+                  onChange={(e) => setDemoteReason(e.target.value)} 
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] resize-none"
+                  rows={3} 
+                  placeholder="Reason for demotion..."
+                />
               </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={() => setShowDemoteModal(null)} className="btn btn-ghost" style={{ flex: 1 }}>Cancel</button>
-                <button onClick={confirmDemote} disabled={!demoteClass} className="btn btn-primary" style={{ flex: 1 }}>Confirm Demote</button>
+              <div className="flex gap-3">
+                <Button variant="ghost" onClick={() => setShowDemoteModal(null)} className="flex-1">Cancel</Button>
+                <Button onClick={confirmDemote} disabled={!demoteClass} className="flex-1">Confirm Demote</Button>
               </div>
             </div>
           </div>

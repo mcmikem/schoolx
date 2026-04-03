@@ -51,9 +51,15 @@ export default function ParentPortal() {
         return
       }
 
-      // For demo/testing, accept any password. In production, verify against auth
-      if (password.length < 4) {
-        setError('Invalid password')
+      // Verify password using Supabase auth
+      const email = `${formattedPhone}@omuto.sms`
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (authError) {
+        setError('Invalid phone number or password')
         setLoading(false)
         return
       }

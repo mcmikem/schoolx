@@ -3,8 +3,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
-
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardHeader, CardBody, CardTitle } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { Tabs, TabPanel } from '@/components/ui/Tabs'
 
 interface BudgetItem {
   id?: string
@@ -164,202 +167,235 @@ export default function BudgetPage() {
   }
 
   const getUsageColor = (budgeted: number, actual: number) => {
-    if (budgeted === 0) return 'text-[#5c6670]'
+    if (budgeted === 0) return 'text-[var(--t3)]'
     const pct = (actual / budgeted) * 100
-    if (pct > 90) return 'text-red-600'
-    if (pct > 75) return 'text-amber-600'
-    return 'text-green-600'
+    if (pct > 90) return 'text-[var(--error)]'
+    if (pct > 75) return 'text-[var(--amber)]'
+    return 'text-[var(--green)]'
   }
 
   const getUsageBarColor = (budgeted: number, actual: number) => {
-    if (budgeted === 0) return 'bg-gray-300'
+    if (budgeted === 0) return 'bg-[var(--border)]'
     const pct = (actual / budgeted) * 100
-    if (pct > 90) return 'bg-red-500'
-    if (pct > 75) return 'bg-amber-500'
-    return 'bg-green-500'
+    if (pct > 90) return 'bg-[var(--error)]'
+    if (pct > 75) return 'bg-[var(--amber)]'
+    return 'bg-[var(--green)]'
   }
+
+  const tabs = [
+    { id: 'planner', label: 'Budget Planner' },
+    { id: 'actual', label: 'Budget vs Actual' },
+  ]
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#002045]">Budget & Finance</h1>
-          <p className="text-[#5c6670] mt-1">Plan, track and manage school finances</p>
-        </div>
-        <div className="flex gap-3">
-          <button onClick={saveBudget} disabled={saving} className="btn btn-primary">
-            <MaterialIcon icon="save" style={{ fontSize: 18 }} />
-            {saving ? 'Saving...' : 'Save Budget'}
-          </button>
-          <button onClick={() => window.print()} className="btn btn-secondary">
-            <MaterialIcon icon="print" style={{ fontSize: 18 }} />
-            Print
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Budget & Finance"
+        subtitle="Plan, track and manage school finances"
+        actions={
+          <>
+            <Button onClick={saveBudget} loading={saving}>
+              <MaterialIcon icon="save" />
+              {saving ? 'Saving...' : 'Save Budget'}
+            </Button>
+            <Button variant="secondary" onClick={() => window.print()}>
+              <MaterialIcon icon="print" />
+              Print
+            </Button>
+          </>
+        }
+      />
 
-      <div className="flex gap-2 mb-6">
-        <button onClick={() => setActiveTab('planner')} className={`btn ${activeTab === 'planner' ? 'btn-primary' : 'btn-secondary'}`}>
-          Budget Planner
-        </button>
-        <button onClick={() => setActiveTab('actual')} className={`btn ${activeTab === 'actual' ? 'btn-primary' : 'btn-secondary'}`}>
-          Budget vs Actual
-        </button>
-      </div>
+      <Tabs
+        tabs={tabs}
+        activeTab={activeTab}
+        onChange={(id) => setActiveTab(id as 'planner' | 'actual')}
+        className="mb-6"
+      />
 
-      {activeTab === 'planner' && (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <div className="card"><div className="card-body text-center">
-              <div className="text-sm text-[#5c6670]">Total Income</div>
-              <div className="text-2xl font-bold text-green-600">UGX {totalIncome.toLocaleString()}</div>
-            </div></div>
-            <div className="card"><div className="card-body text-center">
-              <div className="text-sm text-[#5c6670]">Total Expenses</div>
-              <div className="text-2xl font-bold text-red-600">UGX {totalExpense.toLocaleString()}</div>
-            </div></div>
-            <div className="card"><div className="card-body text-center">
-              <div className="text-sm text-[#5c6670]">Surplus / Deficit</div>
-              <div className={`text-2xl font-bold ${surplus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+      <TabPanel activeTab={activeTab} tabId="planner">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <Card className="text-center">
+            <CardBody>
+              <div className="text-sm text-[var(--t3)]">Total Income</div>
+              <div className="text-2xl font-bold text-[var(--green)]">UGX {totalIncome.toLocaleString()}</div>
+            </CardBody>
+          </Card>
+          <Card className="text-center">
+            <CardBody>
+              <div className="text-sm text-[var(--t3)]">Total Expenses</div>
+              <div className="text-2xl font-bold text-[var(--error)]">UGX {totalExpense.toLocaleString()}</div>
+            </CardBody>
+          </Card>
+          <Card className="text-center">
+            <CardBody>
+              <div className="text-sm text-[var(--t3)]">Surplus / Deficit</div>
+              <div className={`text-2xl font-bold ${surplus >= 0 ? 'text-[var(--green)]' : 'text-[var(--error)]'}`}>
                 UGX {surplus.toLocaleString()}
               </div>
-              {surplus < 0 && <div className="badge bg-red-100 text-red-800 mt-1">DEFICIT</div>}
-            </div></div>
-          </div>
+              {surplus < 0 && <span className="inline-block mt-1 px-2 py-0.5 text-xs rounded-full bg-[var(--red-soft)] text-[var(--red)]">DEFICIT</span>}
+            </CardBody>
+          </Card>
+        </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="card">
-              <div className="card-header"><div className="card-title">Income</div></div>
-              <div className="p-4 space-y-3">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Income</CardTitle>
+            </CardHeader>
+            <CardBody>
+              <div className="space-y-3">
                 {INCOME_CATEGORIES.map(cat => {
                   const item = budgetItems[cat.key]
                   return (
                     <div key={cat.key} className="flex items-center gap-3">
                       <div className="flex-1">
-                        <div className="text-sm font-medium text-[#191c1d]">{cat.label}</div>
-                        {cat.auto && <div className="text-xs text-[#5c6670]">{studentCount} students × UGX {feePerTerm.toLocaleString()}</div>}
+                        <div className="text-sm font-medium text-[var(--t1)]">{cat.label}</div>
+                        {cat.auto && <div className="text-xs text-[var(--t3)]">{studentCount} students × UGX {feePerTerm.toLocaleString()}</div>}
                       </div>
                       <input
                         type="number"
                         value={item?.budgeted || 0}
                         onChange={e => updateBudgeted(cat.key, Number(e.target.value))}
-                        className="input w-36 text-right"
+                        className="w-36 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] text-right focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
                         disabled={!!cat.auto}
                       />
                     </div>
                   )
                 })}
-                <div className="border-t border-[#e8eaed] pt-3 flex items-center justify-between">
-                  <span className="font-semibold text-[#191c1d]">Total Income</span>
-                  <span className="font-bold text-green-600">UGX {totalIncome.toLocaleString()}</span>
+                <div className="border-t border-[var(--border)] pt-3 flex items-center justify-between">
+                  <span className="font-semibold text-[var(--t1)]">Total Income</span>
+                  <span className="font-bold text-[var(--green)]">UGX {totalIncome.toLocaleString()}</span>
                 </div>
               </div>
-            </div>
+            </CardBody>
+          </Card>
 
-            <div className="card">
-              <div className="card-header"><div className="card-title">Expenses</div></div>
-              <div className="p-4 space-y-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Expenses</CardTitle>
+            </CardHeader>
+            <CardBody>
+              <div className="space-y-3">
                 {EXPENSE_CATEGORIES.map(cat => {
                   const item = budgetItems[cat.key]
                   return (
                     <div key={cat.key} className="flex items-center gap-3">
-                      <div className="flex-1 text-sm font-medium text-[#191c1d]">{cat.label}</div>
+                      <div className="flex-1 text-sm font-medium text-[var(--t1)]">{cat.label}</div>
                       <input
                         type="number"
                         value={item?.budgeted || 0}
                         onChange={e => updateBudgeted(cat.key, Number(e.target.value))}
-                        className="input w-36 text-right"
+                        className="w-36 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] text-right focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
                       />
                     </div>
                   )
                 })}
-                <div className="border-t border-[#e8eaed] pt-3 flex items-center justify-between">
-                  <span className="font-semibold text-[#191c1d]">Total Expenses</span>
-                  <span className="font-bold text-red-600">UGX {totalExpense.toLocaleString()}</span>
+                <div className="border-t border-[var(--border)] pt-3 flex items-center justify-between">
+                  <span className="font-semibold text-[var(--t1)]">Total Expenses</span>
+                  <span className="font-bold text-[var(--error)]">UGX {totalExpense.toLocaleString()}</span>
                 </div>
               </div>
-            </div>
-          </div>
-        </>
-      )}
+            </CardBody>
+          </Card>
+        </div>
+      </TabPanel>
 
-      {activeTab === 'actual' && (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-            <div className="card"><div className="card-body text-center">
-              <div className="text-sm text-[#5c6670]">Budget Income</div>
-              <div className="text-xl font-bold text-[#002045]">UGX {totalIncome.toLocaleString()}</div>
-            </div></div>
-            <div className="card"><div className="card-body text-center">
-              <div className="text-sm text-[#5c6670]">Actual Income</div>
-              <div className="text-xl font-bold text-green-600">UGX {actualIncome.toLocaleString()}</div>
-            </div></div>
-            <div className="card"><div className="card-body text-center">
-              <div className="text-sm text-[#5c6670]">Budget Expenses</div>
-              <div className="text-xl font-bold text-[#002045]">UGX {totalExpense.toLocaleString()}</div>
-            </div></div>
-            <div className="card"><div className="card-body text-center">
-              <div className="text-sm text-[#5c6670]">Actual Expenses</div>
-              <div className="text-xl font-bold text-red-600">UGX {actualExpense.toLocaleString()}</div>
-            </div></div>
-          </div>
+      <TabPanel activeTab={activeTab} tabId="actual">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+          <Card className="text-center">
+            <CardBody>
+              <div className="text-sm text-[var(--t3)]">Budget Income</div>
+              <div className="text-xl font-bold text-[var(--t1)]">UGX {totalIncome.toLocaleString()}</div>
+            </CardBody>
+          </Card>
+          <Card className="text-center">
+            <CardBody>
+              <div className="text-sm text-[var(--t3)]">Actual Income</div>
+              <div className="text-xl font-bold text-[var(--green)]">UGX {actualIncome.toLocaleString()}</div>
+            </CardBody>
+          </Card>
+          <Card className="text-center">
+            <CardBody>
+              <div className="text-sm text-[var(--t3)]">Budget Expenses</div>
+              <div className="text-xl font-bold text-[var(--t1)]">UGX {totalExpense.toLocaleString()}</div>
+            </CardBody>
+          </Card>
+          <Card className="text-center">
+            <CardBody>
+              <div className="text-sm text-[var(--t3)]">Actual Expenses</div>
+              <div className="text-xl font-bold text-[var(--error)]">UGX {actualExpense.toLocaleString()}</div>
+            </CardBody>
+          </Card>
+        </div>
 
-          <div className="card">
-            <div className="card-header"><div className="card-title">Budget vs Actual by Category</div></div>
-            <div className="table-wrapper">
-              <table className="table">
-                <thead>
-                  <tr><th>Category</th><th>Budget</th><th>Spent</th><th>Remaining</th><th>% Used</th></tr>
-                </thead>
-                <tbody>
-                  {[...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES].map(cat => {
-                    const item = budgetItems[cat.key]
-                    if (!item) return null
-                    const remaining = item.budgeted - item.actual
-                    const pct = item.budgeted > 0 ? Math.round((item.actual / item.budgeted) * 100) : 0
-                    return (
-                      <tr key={cat.key}>
-                        <td className="font-medium">{cat.label}</td>
-                        <td>UGX {item.budgeted.toLocaleString()}</td>
-                        <td>UGX {item.actual.toLocaleString()}</td>
-                        <td className={remaining >= 0 ? 'text-green-600' : 'text-red-600'}>UGX {remaining.toLocaleString()}</td>
-                        <td>
-                          <div className="flex items-center gap-2">
-                            <div className="w-20 h-2 bg-gray-100 rounded-full overflow-hidden">
-                              <div className={`h-full rounded-full ${getUsageBarColor(item.budgeted, item.actual)}`} style={{ width: `${Math.min(pct, 100)}%` }} />
-                            </div>
-                            <span className={`text-sm font-medium ${getUsageColor(item.budgeted, item.actual)}`}>{pct}%</span>
+        <Card>
+          <CardHeader>
+            <CardTitle>Budget vs Actual by Category</CardTitle>
+          </CardHeader>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-[var(--surface-container)]">
+                <tr>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-[var(--t2)]">Category</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-[var(--t2)]">Budget</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-[var(--t2)]">Spent</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-[var(--t2)]">Remaining</th>
+                  <th className="px-4 py-3 text-center text-sm font-medium text-[var(--t2)]">% Used</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES].map(cat => {
+                  const item = budgetItems[cat.key]
+                  if (!item) return null
+                  const remaining = item.budgeted - item.actual
+                  const pct = item.budgeted > 0 ? Math.round((item.actual / item.budgeted) * 100) : 0
+                  return (
+                    <tr key={cat.key} className="border-b border-[var(--border)]">
+                      <td className="px-4 py-3 font-medium text-[var(--t1)]">{cat.label}</td>
+                      <td className="px-4 py-3 text-right text-[var(--t1)]">UGX {item.budgeted.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right text-[var(--t1)]">UGX {item.actual.toLocaleString()}</td>
+                      <td className={`px-4 py-3 text-right ${remaining >= 0 ? 'text-[var(--green)]' : 'text-[var(--error)]'}`}>UGX {remaining.toLocaleString()}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-20 h-2 bg-[var(--surface-container)] rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${getUsageBarColor(item.budgeted, item.actual)}`} style={{ width: `${Math.min(pct, 100)}%` }} />
                           </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                          <span className={`text-sm font-medium ${getUsageColor(item.budgeted, item.actual)}`}>{pct}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
+        </Card>
 
-          {Object.values(budgetItems).some(b => b.budgeted > 0 && (b.actual / b.budgeted) > 0.9) && (
-            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mt-6 flex items-center gap-3">
-              <MaterialIcon icon="warning" className="text-red-600 text-2xl" />
-              <div>
-                <div className="font-semibold text-red-800">Budget Alert</div>
-                <div className="text-sm text-red-700">
-                  {Object.values(budgetItems)
-                    .filter(b => b.budgeted > 0 && (b.actual / b.budgeted) > 0.9)
-                    .map(b => {
-                      const cat = [...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES].find(c => c.key === b.category)
-                      return `${cat?.label || b.category} budget ${Math.round((b.actual / b.budgeted) * 100)}% used`
-                    }).join(', ')}
-                </div>
+        {Object.values(budgetItems).some(b => b.budgeted > 0 && (b.actual / b.budgeted) > 0.9) && (
+          <div className="bg-[var(--red-soft)] border border-[var(--red)]/20 rounded-xl p-4 mt-6 flex items-center gap-3">
+            <MaterialIcon icon="warning" className="text-[var(--red)] text-2xl" />
+            <div>
+              <div className="font-semibold text-[var(--red)]">Budget Alert</div>
+              <div className="text-sm text-[var(--red)]">
+                {Object.values(budgetItems)
+                  .filter(b => b.budgeted > 0 && (b.actual / b.budgeted) > 0.9)
+                  .map(b => {
+                    const cat = [...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES].find(c => c.key === b.category)
+                    return `${cat?.label || b.category} budget ${Math.round((b.actual / b.budgeted) * 100)}% used`
+                  }).join(', ')}
               </div>
             </div>
-          )}
-        </>
-      )}
+          </div>
+        )}
+      </TabPanel>
 
       {loading && (
-        <div className="card"><div className="card-body text-center py-8"><div className="skeleton h-4 w-32 mx-auto" /></div></div>
+        <Card>
+          <CardBody className="text-center py-8">
+            <div className="h-4 w-32 mx-auto bg-[var(--surface-container)] rounded animate-pulse" />
+          </CardBody>
+        </Card>
       )}
     </div>
   )

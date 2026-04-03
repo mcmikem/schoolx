@@ -3,6 +3,9 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
 
 interface Comment {
   id: string
@@ -12,25 +15,18 @@ interface Comment {
 }
 
 const defaultComments: Comment[] = [
-  // Excellent
   { id: '1', category: 'Academic', text: 'Excellent performance. Keep up the good work!', performance: 'excellent' },
   { id: '2', category: 'Academic', text: 'Outstanding achievement. A role model to others.', performance: 'excellent' },
   { id: '3', category: 'Academic', text: 'Exceptional understanding of all subjects.', performance: 'excellent' },
   { id: '4', category: 'Behavior', text: 'Excellent conduct and leadership qualities.', performance: 'excellent' },
-  
-  // Good
   { id: '5', category: 'Academic', text: 'Good progress. Continue working hard.', performance: 'good' },
   { id: '6', category: 'Academic', text: 'Satisfactory performance. Aim higher next term.', performance: 'good' },
   { id: '7', category: 'Behavior', text: 'Good behavior and participation in class.', performance: 'good' },
   { id: '8', category: 'Effort', text: 'Shows consistent effort and improvement.', performance: 'good' },
-  
-  // Average
   { id: '9', category: 'Academic', text: 'Average performance. More effort needed.', performance: 'average' },
   { id: '10', category: 'Academic', text: 'Can do better with more dedication.', performance: 'average' },
   { id: '11', category: 'Effort', text: 'Needs to improve concentration in class.', performance: 'average' },
   { id: '12', category: 'Behavior', text: 'Should participate more actively.', performance: 'average' },
-  
-  // Weak
   { id: '13', category: 'Academic', text: 'Needs significant improvement. Extra support recommended.', performance: 'weak' },
   { id: '14', category: 'Academic', text: 'Requires remedial work in most subjects.', performance: 'weak' },
   { id: '15', category: 'Effort', text: 'Must work harder and seek help when needed.', performance: 'weak' },
@@ -90,20 +86,19 @@ export default function CommentsPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#002045]">Comment Bank</h1>
-          <p className="text-[#5c6670] mt-1">Pre-written comments for report cards</p>
-        </div>
-        <button onClick={() => setShowAddModal(true)} className="btn btn-primary">
-          <MaterialIcon icon="add" />
-          Add Comment
-        </button>
-      </div>
+      <PageHeader
+        title="Comment Bank"
+        subtitle="Pre-written comments for report cards"
+        actions={
+          <Button onClick={() => setShowAddModal(true)}>
+            <MaterialIcon icon="add" />
+            Add Comment
+          </Button>
+        }
+      />
 
-      {/* Filter */}
       <div className="mb-6">
-        <select value={filterPerformance} onChange={(e) => setFilterPerformance(e.target.value)} className="input sm:w-48">
+        <select value={filterPerformance} onChange={(e) => setFilterPerformance(e.target.value)} className="px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium sm:w-48">
           <option value="all">All Comments</option>
           <option value="excellent">Excellent</option>
           <option value="good">Good</option>
@@ -112,24 +107,23 @@ export default function CommentsPage() {
         </select>
       </div>
 
-      {/* Comments List */}
       <div className="space-y-3">
         {filteredComments.map((comment) => (
-          <div key={comment.id} className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+          <Card key={comment.id} className="p-6">
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-[#e3f2fd] text-[#1565c0]">{comment.category}</span>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">{comment.category}</span>
                   <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                    comment.performance === 'excellent' ? 'bg-[#e8f5e9] text-[#006e1c]' :
-                    comment.performance === 'good' ? 'bg-[#e3f2fd] text-[#1565c0]' :
-                    comment.performance === 'average' ? 'bg-[#fff3e0] text-[#e65100]' :
-                    'bg-[#ffebee] text-[#c62828]'
+                    comment.performance === 'excellent' ? 'bg-green-100 text-green-700' :
+                    comment.performance === 'good' ? 'bg-blue-100 text-blue-700' :
+                    comment.performance === 'average' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-red-100 text-red-700'
                   }`}>
                     {comment.performance}
                   </span>
                 </div>
-                <p className="text-[#002045]">{comment.text}</p>
+                <p className="text-[var(--t1)]">{comment.text}</p>
               </div>
               <div className="flex gap-2 ml-4">
                 <button
@@ -152,24 +146,23 @@ export default function CommentsPage() {
                 </button>
               </div>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
 
-      {/* Add Modal */}
       {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-gray-100">
-              <h2 className="text-lg font-semibold text-[#002045]">Add Comment</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowAddModal(false)}>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-[var(--border)]">
+              <h2 className="text-lg font-semibold text-[var(--t1)]">Add Comment</h2>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="label">Category</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Category</label>
                 <select 
                   value={newComment.category}
                   onChange={(e) => setNewComment({...newComment, category: e.target.value})}
-                  className="input"
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
                 >
                   <option value="Academic">Academic</option>
                   <option value="Behavior">Behavior</option>
@@ -177,11 +170,11 @@ export default function CommentsPage() {
                 </select>
               </div>
               <div>
-                <label className="label">Performance Level</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Performance Level</label>
                 <select 
                   value={newComment.performance}
                   onChange={(e) => setNewComment({...newComment, performance: e.target.value as 'excellent' | 'good' | 'average' | 'weak'})}
-                  className="input"
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
                 >
                   <option value="excellent">Excellent</option>
                   <option value="good">Good</option>
@@ -190,18 +183,18 @@ export default function CommentsPage() {
                 </select>
               </div>
               <div>
-                <label className="label">Comment Text</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Comment Text</label>
                 <textarea
                   value={newComment.text}
                   onChange={(e) => setNewComment({...newComment, text: e.target.value})}
-                  className="input min-h-[80px]"
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] min-h-[80px]"
                   placeholder="Enter comment..."
                   required
                 />
               </div>
               <div className="flex gap-3 pt-4">
-                <button onClick={() => setShowAddModal(false)} className="btn btn-secondary flex-1">Cancel</button>
-                <button onClick={addComment} className="btn btn-primary flex-1">Add Comment</button>
+                <Button variant="secondary" className="flex-1" onClick={() => setShowAddModal(false)}>Cancel</Button>
+                <Button className="flex-1" onClick={addComment}>Add Comment</Button>
               </div>
             </div>
           </div>

@@ -4,16 +4,12 @@ import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
 
 const SUPPLIES = ['Mattress', 'Blanket', 'Mosquito net', 'Bed sheet', 'Pillow'] as const
 type Supply = typeof SUPPLIES[number]
-
-interface StudentSupply {
-  student_id: string
-  supply: Supply
-  issued: boolean
-  issued_date?: string
-}
 
 export default function DormSuppliesPage() {
   const { school, user } = useAuth()
@@ -140,57 +136,55 @@ export default function DormSuppliesPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#002045]">Dorm Supplies</h1>
-          <p className="text-[#5c6670] mt-1">Track supplies issued to boarding students</p>
-        </div>
-        <div className="flex gap-3">
-          {dorms.length === 0 ? (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2 text-sm text-amber-800">No dorms available</div>
-          ) : (
-            <select value={selectedDorm?.id || ''} onChange={e => setSelectedDorm(dorms.find(d => d.id === e.target.value))} className="input sm:w-48">
-              <option value="">Select dorm...</option>
-              {dorms.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
-          )}
-          {selectedDorm && (
-            <button onClick={() => setShowBulk(true)} className="btn btn-primary">
-              <MaterialIcon icon="inventory_2" style={{ fontSize: 18 }} />
-              Bulk Action
-            </button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Dorm Supplies"
+        subtitle="Track supplies issued to boarding students"
+        actions={
+          <div className="flex gap-3">
+            {dorms.length === 0 ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2 text-sm text-amber-800">No dorms available</div>
+            ) : (
+              <select value={selectedDorm?.id || ''} onChange={e => setSelectedDorm(dorms.find(d => d.id === e.target.value))} className="px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium sm:w-48">
+                <option value="">Select dorm...</option>
+                {dorms.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            )}
+            {selectedDorm && (
+              <Button onClick={() => setShowBulk(true)}>
+                <MaterialIcon icon="inventory_2" className="text-lg" />
+                Bulk Action
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       {!selectedDorm ? (
-        <div className="card">
-          <div className="card-body text-center py-12 text-[#5c6670]">
-            <MaterialIcon icon="inventory_2" style={{ fontSize: 48, opacity: 0.5 }} />
-            <p className="mt-2">Select a dorm to manage supplies</p>
-          </div>
-        </div>
+        <Card className="p-12 text-center">
+          <MaterialIcon className="text-5xl text-[var(--t3)] opacity-50 mx-auto">inventory_2</MaterialIcon>
+          <p className="mt-2 text-[var(--t3)]">Select a dorm to manage supplies</p>
+        </Card>
       ) : (
-        <div className="card">
-          <div className="card-header">
-            <div className="card-title">{selectedDorm.name} — Supplies</div>
+        <Card>
+          <div className="p-4 border-b border-[var(--border)]">
+            <h3 className="font-semibold text-[var(--t1)]">{selectedDorm.name} — Supplies</h3>
           </div>
-          <div className="table-wrapper">
-            <table className="table">
+          <div className="overflow-x-auto">
+            <table className="w-full">
               <thead>
                 <tr>
-                  <th>Student</th>
-                  {SUPPLIES.map(s => <th key={s} className="text-center">{s}</th>)}
+                  <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Student</th>
+                  {SUPPLIES.map(s => <th key={s} className="p-4 text-center text-sm font-semibold text-[var(--t1)]">{s}</th>)}
                 </tr>
               </thead>
               <tbody>
                 {students.map(student => {
                   const studentSupplies = supplies.get(student.id) || new Set()
                   return (
-                    <tr key={student.id}>
-                      <td className="font-medium">{student.first_name} {student.last_name}</td>
+                    <tr key={student.id} className="border-b border-[var(--border)]">
+                      <td className="p-4 font-medium text-[var(--t1)]">{student.first_name} {student.last_name}</td>
                       {SUPPLIES.map(supply => (
-                        <td key={supply} className="text-center">
+                        <td key={supply} className="p-4 text-center">
                           <button
                             onClick={() => toggleSupply(student.id, supply)}
                             className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
@@ -200,7 +194,7 @@ export default function DormSuppliesPage() {
                             }`}
                             title={studentSupplies.has(supply) ? `Return ${supply}` : `Issue ${supply}`}
                           >
-                            <MaterialIcon icon={studentSupplies.has(supply) ? 'check' : 'add'} style={{ fontSize: 16 }} />
+                            <MaterialIcon icon={studentSupplies.has(supply) ? 'check' : 'add'} className="text-base" />
                           </button>
                         </td>
                       ))}
@@ -208,45 +202,45 @@ export default function DormSuppliesPage() {
                   )
                 })}
                 {students.length === 0 && !loading && (
-                  <tr><td colSpan={SUPPLIES.length + 1} className="text-center py-8 text-[#5c6670]">No students in this dorm</td></tr>
+                  <tr><td colSpan={SUPPLIES.length + 1} className="text-center py-8 text-[var(--t3)]">No students in this dorm</td></tr>
                 )}
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       )}
 
       {showBulk && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowBulk(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b border-[#e8eaed]">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-[var(--border)]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[#191c1d]">Bulk Supply Action</h2>
-                <button onClick={() => setShowBulk(false)} className="p-2 text-[#5c6670] hover:text-[#191c1d]">
-                  <MaterialIcon icon="close" className="text-xl" />
+                <h2 className="text-lg font-semibold text-[var(--t1)]">Bulk Supply Action</h2>
+                <button onClick={() => setShowBulk(false)} className="p-2 text-[var(--t3)] hover:text-[var(--t1)]">
+                  <MaterialIcon className="text-xl" />
                 </button>
               </div>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Action</label>
-                <select value={bulkAction} onChange={e => setBulkAction(e.target.value as 'issue' | 'return')} className="input">
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Action</label>
+                <select value={bulkAction} onChange={e => setBulkAction(e.target.value as 'issue' | 'return')} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]">
                   <option value="issue">Issue Supplies</option>
                   <option value="return">Return Supplies</option>
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Supply</label>
-                <select value={bulkSupply} onChange={e => setBulkSupply(e.target.value as Supply)} className="input">
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Supply</label>
+                <select value={bulkSupply} onChange={e => setBulkSupply(e.target.value as Supply)} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]">
                   <option value="">Select supply...</option>
                   {SUPPLIES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div className="flex gap-3 pt-4">
-                <button onClick={() => setShowBulk(false)} className="btn btn-secondary flex-1">Cancel</button>
-                <button onClick={handleBulkAction} disabled={saving || !bulkSupply} className="btn btn-primary flex-1">
+                <Button variant="secondary" className="flex-1" onClick={() => setShowBulk(false)}>Cancel</Button>
+                <Button className="flex-1" disabled={saving || !bulkSupply}>
                   {saving ? 'Processing...' : bulkAction === 'issue' ? 'Issue to All' : 'Return from All'}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

@@ -4,8 +4,13 @@ import { useAuth } from '@/lib/auth-context'
 import { useClasses, useSubjects, useTimetableManager } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
-import GlassCard from '@/components/GlassCard'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Tabs, TabPanel } from '@/components/ui/Tabs'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
 
 const DAYS = [
   { value: 1, label: 'Mon', full: 'Monday' },
@@ -63,7 +68,7 @@ export default function TimetablePage() {
       slot_id: selectedSlot.id,
       start_time: selectedSlot.start_time,
       end_time: selectedSlot.end_time,
-      academic_year: '2026' // Simplified
+      academic_year: '2026'
     }
 
     try {
@@ -81,134 +86,161 @@ export default function TimetablePage() {
     return timetable.find(t => t.day_of_week === day && t.slot_id === slotId)
   }
 
-  if (loadingSlots) return <div className="p-8 text-white">Loading configuration...</div>
+  const dayTabs = DAYS.map(day => ({
+    id: day.value.toString(),
+    label: day.full
+  }))
+
+  if (loadingSlots) {
+    return (
+      <div className="p-8 max-w-7xl mx-auto">
+        <PageHeader title="Timetable" subtitle="Loading configuration..." />
+        <Card>
+          <TableSkeleton rows={6} />
+        </Card>
+      </div>
+    )
+  }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Interactive Timetable</h1>
-          <p className="text-white/60">Schedule lessons and resolve conflicts</p>
-        </div>
-
-        {classes.length === 0 ? (
-          <div className="bg-amber-500/20 border border-amber-500/30 rounded-xl px-4 py-2 text-amber-200 text-sm">No classes available</div>
-        ) : (
-          <select 
-            value={selectedClassId}
-            onChange={(e) => setSelectedClassId(e.target.value)}
-            className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:ring-2 focus:ring-primary-500/50"
-          >
-            <option value="" className="bg-slate-900">Select a Class...</option>
-            {classes.map(c => (
-              <option key={c.id} value={c.id} className="bg-slate-900">{c.name}</option>
-            ))}
-          </select>
-        )}
-      </div>
-
-      <GlassCard className="overflow-x-auto p-0">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th className="p-4 bg-white/5 border-b border-r border-white/10 text-white/40 text-xs uppercase font-bold w-32">Time / Day</th>
-              {DAYS.map(day => (
-                <th key={day.value} className="p-4 bg-white/5 border-b border-r border-white/10 text-white font-bold">
-                  {day.full}
-                </th>
+    <div className="p-8 max-w-7xl mx-auto space-y-6">
+      <PageHeader 
+        title="Timetable" 
+        subtitle="Schedule lessons and resolve conflicts"
+        actions={
+          classes.length === 0 ? (
+            <div className="px-4 py-2 bg-[var(--amber-soft)] text-[var(--amber)] text-sm rounded-xl border border-[var(--amber)]/20">
+              No classes available
+            </div>
+          ) : (
+            <select 
+              value={selectedClassId}
+              onChange={(e) => setSelectedClassId(e.target.value)}
+              className="px-4 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-[var(--on-surface)] outline-none focus:ring-2 focus:ring-[var(--primary)]/50"
+            >
+              <option value="">Select a Class...</option>
+              {classes.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {slots.map(slot => (
-              <tr key={slot.id} className={slot.is_lesson ? '' : 'bg-white/[0.02]'}>
-                <td className="p-4 border-b border-r border-white/10">
-                  <p className="text-sm font-bold text-white">{slot.name}</p>
-                  <p className="text-[10px] text-white/40">{slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}</p>
-                </td>
-                
-                {DAYS.map(day => {
-                  const entry = getEntry(day.value, slot.id)
-                  return (
-                    <td 
-                      key={`${day.value}-${slot.id}`}
-                      className={`p-2 border-b border-r border-white/10 min-h-[100px] relative group ${!slot.is_lesson ? 'bg-stripe-pattern opacity-50' : ''}`}
-                    >
-                      {entry ? (
-                        <div className="bg-primary-500/20 border border-primary-500/30 rounded-lg p-3 h-full animate-in fade-in duration-300">
-                          <p className="text-xs font-bold text-purple-300 uppercase tracking-wider mb-1">{entry.subjects?.code || 'SUB'}</p>
-                          <p className="text-sm font-semibold text-white leading-tight mb-2">{entry.subjects?.name}</p>
-                          <div className="flex items-center gap-1.5 text-[10px] text-white/40">
-                            <MaterialIcon icon="person" className="text-[12px]" />
-                            {entry.users?.full_name || 'Teacher'}
+            </select>
+          )
+        }
+      />
+
+      <Card className="overflow-hidden">
+        <div className="border-b border-[var(--border)]">
+          <Tabs 
+            tabs={dayTabs} 
+            activeTab={selectedDay.toString()} 
+            onChange={(id) => setSelectedDay(parseInt(id))}
+          />
+        </div>
+        
+        {DAYS.map(day => (
+          <TabPanel key={day.value} activeTab={selectedDay.toString()} tabId={day.value.toString()}>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="p-4 bg-[var(--surface-container-low)] border-b border-r border-[var(--border)] text-[var(--t4)] text-xs uppercase font-bold w-32 text-left">
+                      Time / Day
+                    </th>
+                    <th className="p-4 bg-[var(--surface-container-low)] border-b border-r border-[var(--border)] text-[var(--t1)] font-semibold text-left">
+                      {day.full}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {slots.map(slot => (
+                    <tr key={slot.id} className={!slot.is_lesson ? 'bg-[var(--surface-container-low)]/50' : ''}>
+                      <td className="p-4 border-b border-r border-[var(--border)]">
+                        <p className="text-sm font-semibold text-[var(--t1)]">{slot.name}</p>
+                        <p className="text-xs text-[var(--t4)]">{slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}</p>
+                      </td>
+                      
+                      <td 
+                        className={`p-2 border-b border-[var(--border)] min-h-[100px] relative ${!slot.is_lesson ? 'opacity-50' : ''}`}
+                      >
+                        {getEntry(day.value, slot.id) ? (
+                          <div className="bg-[var(--primary)]/10 border border-[var(--primary)]/20 rounded-lg p-3 h-full">
+                            <p className="text-xs font-bold text-[var(--primary)] uppercase tracking-wider mb-1">
+                              {getEntry(day.value, slot.id).subjects?.code || 'SUB'}
+                            </p>
+                            <p className="text-sm font-semibold text-[var(--t1)] leading-tight mb-2">
+                              {getEntry(day.value, slot.id).subjects?.name}
+                            </p>
+                            <div className="flex items-center gap-1.5 text-xs text-[var(--t4)]">
+                              <MaterialIcon icon="person" className="text-sm" />
+                              {getEntry(day.value, slot.id).users?.full_name || 'Teacher'}
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        slot.is_lesson && selectedClassId && (
-                          <button 
-                            onClick={() => { setSelectedSlot(slot); setSelectedDay(day.value); setShowEntryModal(true); }}
-                            className="w-full h-full min-h-[60px] flex items-center justify-center border-2 border-dashed border-white/5 hover:border-primary-500/30 hover:bg-primary-500/5 rounded-xl transition-all group-hover:scale-[0.98]"
-                          >
-                            <MaterialIcon icon="add" className="text-white/10 group-hover:text-primary-400" />
-                          </button>
-                        )
-                      )}
-                      {!slot.is_lesson && (
-                        <div className="flex items-center justify-center text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] rotate-[-45deg]">
-                          {slot.name}
-                        </div>
-                      )}
-                    </td>
-                  )
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </GlassCard>
+                        ) : (
+                          slot.is_lesson && selectedClassId && (
+                            <button 
+                              onClick={() => { setSelectedSlot(slot); setSelectedDay(day.value); setShowEntryModal(true); }}
+                              className="w-full h-full min-h-[60px] flex items-center justify-center border-2 border-dashed border-[var(--border)] hover:border-[var(--primary)]/30 hover:bg-[var(--primary)]/5 rounded-xl transition-all"
+                            >
+                              <MaterialIcon icon="add" className="text-[var(--t4)] hover:text-[var(--primary)]" />
+                            </button>
+                          )
+                        )}
+                        {!slot.is_lesson && (
+                          <div className="flex items-center justify-center text-xs font-bold text-[var(--t4)] uppercase tracking-[0.2em] rotate-[-45deg]">
+                            {slot.name}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </TabPanel>
+        ))}
+      </Card>
 
       {showEntryModal && selectedSlot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <GlassCard className="w-full max-w-md">
+          <Card className="w-full max-w-md">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-white">Assign Lesson</h2>
-              <button onClick={() => setShowEntryModal(false)} className="text-white/40 hover:text-white">
+              <h2 className="text-lg font-semibold text-[var(--t1)]">Assign Lesson</h2>
+              <button onClick={() => setShowEntryModal(false)} className="text-[var(--t4)] hover:text-[var(--t1)]">
                 <MaterialIcon icon="close" />
               </button>
             </div>
 
             <form onSubmit={handleAddEntry} className="space-y-4">
-              <div className="p-3 bg-primary-500/10 rounded-xl mb-4">
-                <p className="text-xs text-primary-400 font-bold uppercase mb-1">Schedule Slot</p>
-                <p className="text-sm text-white font-medium">
+              <div className="p-3 bg-[var(--primary)]/10 rounded-xl mb-4">
+                <p className="text-xs text-[var(--primary)] font-semibold uppercase mb-1">Schedule Slot</p>
+                <p className="text-sm text-[var(--t1)] font-medium">
                   {DAYS.find(d => d.value === selectedDay)?.full} · {selectedSlot.name} ({selectedSlot.start_time.slice(0,5)} - {selectedSlot.end_time.slice(0,5)})
                 </p>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-white/60">Subject</label>
-                <select name="subject_id" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white">
-                  <option value="" className="bg-slate-900">Choose subject...</option>
+                <label className="text-sm font-medium text-[var(--t2)]">Subject</label>
+                <select name="subject_id" required className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-xl text-[var(--on-surface)]">
+                  <option value="">Choose subject...</option>
                   {subjects.map(s => (
-                    <option key={s.id} value={s.id} className="bg-slate-900">{s.name}</option>
+                    <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-white/60">Teacher</label>
-                <select name="teacher_id" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white">
-                  <option value="" className="bg-slate-900">Select teacher...</option>
-                  <option value="1" className="bg-slate-900">Demo Teacher 1</option>
-                  <option value="2" className="bg-slate-900">Demo Teacher 2</option>
+                <label className="text-sm font-medium text-[var(--t2)]">Teacher</label>
+                <select name="teacher_id" required className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-xl text-[var(--on-surface)]">
+                  <option value="">Select teacher...</option>
+                  <option value="1">Demo Teacher 1</option>
+                  <option value="2">Demo Teacher 2</option>
                 </select>
               </div>
 
-              <button type="submit" className="w-full py-4 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary-500/20 mt-4">
+              <Button type="submit" className="w-full mt-4">
                 Add to Timetable
-              </button>
+              </Button>
             </form>
-          </GlassCard>
+          </Card>
         </div>
       )}
     </div>

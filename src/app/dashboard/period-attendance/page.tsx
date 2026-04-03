@@ -5,6 +5,10 @@ import { useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { EmptyState } from '@/components/EmptyState'
 
 const PERIODS = ['Period 1', 'Period 2', 'Period 3', 'Period 4', 'Period 5', 'Period 6', 'Period 7', 'Period 8']
 
@@ -36,7 +40,6 @@ export default function PeriodAttendancePage() {
         .order('first_name')
       setStudents(data || [])
 
-      // Fetch period attendance
       const { data: attData } = await supabase
         .from('period_attendance')
         .select('*')
@@ -93,58 +96,51 @@ export default function PeriodAttendancePage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Period Attendance</h1>
-        <p className="text-[#5c6670] mt-1">Mark attendance for each period</p>
-      </div>
+      <PageHeader
+        title="Period Attendance"
+        subtitle="Mark attendance for each period"
+      />
 
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         {classes.length === 0 ? (
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2 text-sm text-amber-800">No classes available</div>
         ) : (
-          <select value={selectedClass || ''} onChange={(e) => setSelectedClass(e.target.value || null)} className="input sm:w-48">
+          <select value={selectedClass || ''} onChange={(e) => setSelectedClass(e.target.value || null)} className="px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium sm:w-48">
             <option value="">Select class</option>
             {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         )}
-        <select value={selectedPeriod} onChange={(e) => setSelectedPeriod(e.target.value)} className="input sm:w-40">
+        <select value={selectedPeriod} onChange={(e) => setSelectedPeriod(e.target.value)} className="px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium sm:w-40">
           {PERIODS.map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input sm:w-48" />
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium sm:w-48" />
       </div>
 
       {!selectedClass ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-semibold text-[#002045] mb-2">Select a class</h3>
-          <p className="text-[#5c6670]">Choose a class to mark period attendance</p>
-        </div>
+        <Card className="p-12 text-center">
+          <MaterialIcon className="text-5xl text-[var(--t3)] opacity-50 mx-auto">fact_check</MaterialIcon>
+          <h3 className="text-lg font-semibold text-[var(--t1)] mt-4 mb-2">Select a class</h3>
+          <p className="text-[var(--t3)]">Choose a class to mark period attendance</p>
+        </Card>
       ) : loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="card"><div className="skeleton w-full h-12" /></div>
+            <Card key={i} className="p-6">
+              <div className="animate-pulse bg-[var(--surface-container)] h-12 rounded" />
+            </Card>
           ))}
         </div>
       ) : students.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-semibold text-[#002045] mb-2">No students</h3>
-          <p className="text-[#5c6670]">Add students to this class first</p>
-        </div>
+        <Card className="p-12 text-center">
+          <MaterialIcon className="text-5xl text-[var(--t3)] opacity-50 mx-auto">group</MaterialIcon>
+          <h3 className="text-lg font-semibold text-[var(--t1)] mt-4 mb-2">No students</h3>
+          <p className="text-[var(--t3)]">Add students to this class first</p>
+        </Card>
       ) : (
         <>
           <div className="space-y-3 mb-6">
             {students.map((student) => (
-              <div key={student.id} className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+              <Card key={student.id} className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -153,8 +149,8 @@ export default function PeriodAttendancePage() {
                       </span>
                     </div>
                     <div>
-                      <div className="font-medium text-[#002045]">{student.first_name} {student.last_name}</div>
-                      <div className="text-xs text-[#5c6670]">{student.student_number}</div>
+                      <div className="font-medium text-[var(--t1)]">{student.first_name} {student.last_name}</div>
+                      <div className="text-xs text-[var(--t3)]">{student.student_number}</div>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -177,13 +173,13 @@ export default function PeriodAttendancePage() {
                     ))}
                   </div>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
 
-          <button onClick={saveAttendance} disabled={saving || Object.keys(attendance).length === 0} className="btn btn-primary w-full">
+          <Button onClick={saveAttendance} disabled={saving || Object.keys(attendance).length === 0} className="w-full">
             {saving ? 'Saving...' : 'Save Period Attendance'}
-          </button>
+          </Button>
         </>
       )}
     </div>

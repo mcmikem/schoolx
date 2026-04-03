@@ -5,6 +5,12 @@ import { useStudents } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardBody } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
+import { Tabs, TabPanel } from '@/components/ui/Tabs'
 
 interface Book {
   id: string
@@ -223,65 +229,50 @@ export default function LibraryPage() {
 
   const today = new Date().toISOString().split('T')[0]
 
+  const tabs = [
+    { id: 'books', label: 'Books' },
+    { id: 'checkouts', label: 'Checkouts', count: checkouts.length },
+    { id: 'history', label: 'History', count: history.length },
+  ]
+
   return (
-    <div style={{ padding: '32px', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#002045]">Library</h1>
-          <p className="text-[#5c6670] mt-1">Manage books and checkouts</p>
-        </div>
-        <div className="flex gap-3">
-          <button onClick={() => setShowCheckout(true)} className="btn btn-secondary">
-            <MaterialIcon icon="menu_book" className="text-lg" />
-            Checkout Book
-          </button>
-          <button onClick={() => setShowAddBook(true)} className="btn btn-primary">
-            <MaterialIcon icon="add" className="text-lg" />
-            Add Book
-          </button>
-        </div>
-      </div>
+    <div className="p-8 max-w-7xl mx-auto">
+      <PageHeader 
+        title="Library" 
+        subtitle="Manage books and checkouts"
+        actions={
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => setShowCheckout(true)}>
+              <MaterialIcon icon="menu_book" className="text-lg" />
+              Checkout Book
+            </Button>
+            <Button variant="primary" onClick={() => setShowAddBook(true)}>
+              <MaterialIcon icon="add" className="text-lg" />
+              Add Book
+            </Button>
+          </div>
+        }
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-          <div className="text-2xl font-bold text-[#002045]">{books.length}</div>
-          <div className="text-sm text-[#5c6670] mt-1">Total Books</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-          <div className="text-2xl font-bold text-[#006e1c]">{books.reduce((sum, b) => sum + b.available, 0)}</div>
-          <div className="text-sm text-[#5c6670] mt-1">Available</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4 text-center">
-          <div className="text-2xl font-bold text-[#b86e00]">{checkouts.length}</div>
-          <div className="text-sm text-[#5c6670] mt-1">Checked Out</div>
-        </div>
+        <Card className="p-4 text-center">
+          <div className="text-2xl font-bold text-[var(--t1)]">{books.length}</div>
+          <div className="text-sm text-[var(--t3)] mt-1">Total Books</div>
+        </Card>
+        <Card className="p-4 text-center">
+          <div className="text-2xl font-bold text-green-600">{books.reduce((sum, b) => sum + b.available, 0)}</div>
+          <div className="text-sm text-[var(--t3)] mt-1">Available</div>
+        </Card>
+        <Card className="p-4 text-center">
+          <div className="text-2xl font-bold text-amber-600">{checkouts.length}</div>
+          <div className="text-sm text-[var(--t3)] mt-1">Checked Out</div>
+        </Card>
       </div>
 
-      <div className="bg-white rounded-2xl border border-[#e8eaed] p-2 mb-6">
-        <div className="flex gap-2">
-          <button
-            onClick={() => setTab('books')}
-            className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${tab === 'books' ? 'bg-[#002045] text-white' : 'text-[#5c6670] hover:bg-[#f8fafb]'}`}
-          >
-            Books
-          </button>
-          <button
-            onClick={() => setTab('checkouts')}
-            className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${tab === 'checkouts' ? 'bg-[#002045] text-white' : 'text-[#5c6670] hover:bg-[#f8fafb]'}`}
-          >
-            Checkouts ({checkouts.length})
-          </button>
-          <button
-            onClick={() => setTab('history')}
-            className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${tab === 'history' ? 'bg-[#002045] text-white' : 'text-[#5c6670] hover:bg-[#f8fafb]'}`}
-          >
-            History ({history.length})
-          </button>
-        </div>
-      </div>
+      <Tabs tabs={tabs} activeTab={tab} onChange={(id) => setTab(id as typeof tab)} className="mb-6" />
 
       {tab === 'books' && (
-        <>
+        <TabPanel activeTab={tab} tabId="books">
           <div className="mb-6">
             <input
               type="text"
@@ -295,222 +286,225 @@ export default function LibraryPage() {
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-2xl border border-[#e8eaed] p-4">
-                  <div className="w-full h-4 bg-[#e8eaed] rounded" />
-                </div>
+                <Card key={i} className="p-4">
+                  <div className="w-full h-4 bg-[var(--surface-container)] rounded animate-pulse" />
+                </Card>
               ))}
             </div>
           ) : filteredBooks.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MaterialIcon className="text-3xl text-gray-400">menu_book</MaterialIcon>
-              </div>
-              <h3 className="font-bold text-gray-900 mb-2">No books</h3>
-              <p className="text-gray-500">Add your first book</p>
-            </div>
+            <EmptyState
+              icon="menu_book"
+              title="No books"
+              description="Add your first book"
+              action={{ label: 'Add Book', onClick: () => setShowAddBook(true) }}
+            />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {filteredBooks.map((book) => (
-                <div key={book.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                <Card key={book.id} className="overflow-hidden hover:shadow-md transition-shadow">
                   <div className="h-32 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
                     <MaterialIcon className="text-5xl text-blue-300">menu_book</MaterialIcon>
                   </div>
-                  <div className="p-4">
-                    <h3 className="font-bold text-gray-900 mb-1 line-clamp-2">{book.title}</h3>
-                    <p className="text-sm text-gray-500 mb-2">{book.author}</p>
+                  <CardBody>
+                    <h3 className="font-bold text-[var(--t1)] mb-1 line-clamp-2">{book.title}</h3>
+                    <p className="text-sm text-[var(--t3)] mb-2">{book.author}</p>
                     <div className="flex items-center justify-between">
                       <span className={`px-2 py-1 rounded-lg text-xs font-medium ${book.available > 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
                         {book.available}/{book.copies} available
                       </span>
                       <div className="flex gap-1">
-                        <button onClick={() => openEditBook(book)} className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg">
+                        <button onClick={() => openEditBook(book)} className="p-1.5 text-[var(--t3)] hover:text-blue-500 hover:bg-blue-50 rounded-lg">
                           <MaterialIcon className="text-lg">edit</MaterialIcon>
                         </button>
-                        <button onClick={() => deleteBook(book.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                        <button onClick={() => deleteBook(book.id)} className="p-1.5 text-[var(--t3)] hover:text-red-500 hover:bg-red-50 rounded-lg">
                           <MaterialIcon className="text-lg">delete</MaterialIcon>
                         </button>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </CardBody>
+                </Card>
               ))}
             </div>
           )}
-        </>
+        </TabPanel>
       )}
 
       {tab === 'checkouts' && (
-        <div className="bg-white rounded-2xl border border-[#e8eaed] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-[#f8fafb]">
-                <tr>
-                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Book</th>
-                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Student</th>
-                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Checkout Date</th>
-                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Due Date</th>
-                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Status</th>
-                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {checkouts.map((checkout) => {
-                  const isOverdue = new Date(checkout.due_date) < new Date()
-                  return (
-                    <tr key={checkout.id} className="border-t border-[#e8eaed]">
-                      <td className="p-4 font-medium text-[#191c1d]">{checkout.books?.title}</td>
-                      <td className="p-4 text-[#191c1d]">{checkout.students?.first_name} {checkout.students?.last_name}</td>
-                      <td className="p-4 text-[#191c1d]">{new Date(checkout.checkout_date).toLocaleDateString()}</td>
-                      <td className="p-4 text-[#191c1d]">{new Date(checkout.due_date).toLocaleDateString()}</td>
-                      <td className="p-4">
-                        <span className={`px-3 py-1 rounded-lg text-xs font-medium ${isOverdue ? 'bg-[#fef2f2] text-[#ba1a1a]' : 'bg-[#fff3e0] text-[#b86e00]'}`}>
-                          {isOverdue ? 'Overdue' : 'On Loan'}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <button onClick={() => returnBook(checkout.id, checkout.book_id)} className="btn btn-sm btn-secondary">
-                          Return
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <TabPanel activeTab={tab} tabId="checkouts">
+          <Card>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-[var(--surface-container-low)]">
+                  <tr>
+                    <th className="text-left p-4 text-sm font-semibold text-[var(--on-surface)]">Book</th>
+                    <th className="text-left p-4 text-sm font-semibold text-[var(--on-surface)]">Student</th>
+                    <th className="text-left p-4 text-sm font-semibold text-[var(--on-surface)]">Checkout Date</th>
+                    <th className="text-left p-4 text-sm font-semibold text-[var(--on-surface)]">Due Date</th>
+                    <th className="text-left p-4 text-sm font-semibold text-[var(--on-surface)]">Status</th>
+                    <th className="text-left p-4 text-sm font-semibold text-[var(--on-surface)]"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {checkouts.map((checkout) => {
+                    const isOverdue = new Date(checkout.due_date) < new Date()
+                    return (
+                      <tr key={checkout.id} className="border-t border-[var(--border)]">
+                        <td className="p-4 font-medium text-[var(--on-surface)]">{checkout.books?.title}</td>
+                        <td className="p-4 text-[var(--on-surface)]">{checkout.students?.first_name} {checkout.students?.last_name}</td>
+                        <td className="p-4 text-[var(--on-surface)]">{new Date(checkout.checkout_date).toLocaleDateString()}</td>
+                        <td className="p-4 text-[var(--on-surface)]">{new Date(checkout.due_date).toLocaleDateString()}</td>
+                        <td className="p-4">
+                          <span className={`px-3 py-1 rounded-lg text-xs font-medium ${isOverdue ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'}`}>
+                            {isOverdue ? 'Overdue' : 'On Loan'}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <Button variant="secondary" size="sm" onClick={() => returnBook(checkout.id, checkout.book_id)}>
+                            Return
+                          </Button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </TabPanel>
       )}
 
       {tab === 'history' && (
-        <div className="bg-white rounded-2xl border border-[#e8eaed] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-[#f8fafb]">
-                <tr>
-                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Book</th>
-                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Student</th>
-                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Checkout Date</th>
-                  <th className="text-left p-4 text-sm font-semibold text-[#191c1d]">Return Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.length === 0 ? (
+        <TabPanel activeTab={tab} tabId="history">
+          <Card>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-[var(--surface-container-low)]">
                   <tr>
-                    <td colSpan={4} className="p-12 text-center text-gray-500">No returned books yet</td>
+                    <th className="text-left p-4 text-sm font-semibold text-[var(--on-surface)]">Book</th>
+                    <th className="text-left p-4 text-sm font-semibold text-[var(--on-surface)]">Student</th>
+                    <th className="text-left p-4 text-sm font-semibold text-[var(--on-surface)]">Checkout Date</th>
+                    <th className="text-left p-4 text-sm font-semibold text-[var(--on-surface)]">Return Date</th>
                   </tr>
-                ) : (
-                  history.map((checkout) => (
-                    <tr key={checkout.id} className="border-t border-[#e8eaed]">
-                      <td className="p-4 font-medium text-[#191c1d]">{checkout.books?.title}</td>
-                      <td className="p-4 text-[#191c1d]">{checkout.students?.first_name} {checkout.students?.last_name}</td>
-                      <td className="p-4 text-[#191c1d]">{new Date(checkout.checkout_date).toLocaleDateString()}</td>
-                      <td className="p-4 text-[#191c1d]">{checkout.return_date ? new Date(checkout.return_date).toLocaleDateString() : '—'}</td>
+                </thead>
+                <tbody>
+                  {history.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="p-12 text-center text-[var(--t3)]">No returned books yet</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                  ) : (
+                    history.map((checkout) => (
+                      <tr key={checkout.id} className="border-t border-[var(--border)]">
+                        <td className="p-4 font-medium text-[var(--on-surface)]">{checkout.books?.title}</td>
+                        <td className="p-4 text-[var(--on-surface)]">{checkout.students?.first_name} {checkout.students?.last_name}</td>
+                        <td className="p-4 text-[var(--on-surface)]">{new Date(checkout.checkout_date).toLocaleDateString()}</td>
+                        <td className="p-4 text-[var(--on-surface)]">{checkout.return_date ? new Date(checkout.return_date).toLocaleDateString() : '—'}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </TabPanel>
       )}
 
       {showAddBook && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowAddBook(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-[#e8eaed]">
-              <h2 className="text-lg font-semibold text-[#191c1d]">Add Book</h2>
+          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-[var(--border)]">
+              <h2 className="text-lg font-semibold text-[var(--on-surface)]">Add Book</h2>
             </div>
             <form onSubmit={handleAddBook} className="p-6 space-y-4">
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Title</label>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Title</label>
                 <input type="text" value={newBook.title} onChange={(e) => setNewBook({...newBook, title: e.target.value})} className="input" required />
               </div>
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Author</label>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Author</label>
                 <input type="text" value={newBook.author} onChange={(e) => setNewBook({...newBook, author: e.target.value})} className="input" required />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">ISBN</label>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">ISBN</label>
                   <input type="text" value={newBook.isbn} onChange={(e) => setNewBook({...newBook, isbn: e.target.value})} className="input" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Category</label>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Category</label>
                   <input type="text" value={newBook.category} onChange={(e) => setNewBook({...newBook, category: e.target.value})} className="input" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Copies</label>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Copies</label>
                   <input type="number" value={newBook.copies} onChange={(e) => setNewBook({...newBook, copies: e.target.value})} className="input" min="1" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Location</label>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Location</label>
                   <input type="text" value={newBook.location} onChange={(e) => setNewBook({...newBook, location: e.target.value})} className="input" />
                 </div>
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowAddBook(false)} className="btn btn-secondary flex-1">Cancel</button>
-                <button type="submit" className="btn btn-primary flex-1">Add Book</button>
+                <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowAddBook(false)}>Cancel</Button>
+                <Button type="submit" variant="primary" className="flex-1">Add Book</Button>
               </div>
             </form>
-          </div>
+          </Card>
         </div>
       )}
 
       {showEditBook && editBookId && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => { setShowEditBook(false); setEditBookId(null) }}>
-          <div className="bg-white rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-[#e8eaed]">
-              <h2 className="text-lg font-semibold text-[#191c1d]">Edit Book</h2>
+          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-[var(--border)]">
+              <h2 className="text-lg font-semibold text-[var(--on-surface)]">Edit Book</h2>
             </div>
             <form onSubmit={handleEditBook} className="p-6 space-y-4">
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Title</label>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Title</label>
                 <input type="text" value={editBook.title} onChange={(e) => setEditBook({...editBook, title: e.target.value})} className="input" required />
               </div>
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Author</label>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Author</label>
                 <input type="text" value={editBook.author} onChange={(e) => setEditBook({...editBook, author: e.target.value})} className="input" required />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">ISBN</label>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">ISBN</label>
                   <input type="text" value={editBook.isbn} onChange={(e) => setEditBook({...editBook, isbn: e.target.value})} className="input" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Category</label>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Category</label>
                   <input type="text" value={editBook.category} onChange={(e) => setEditBook({...editBook, category: e.target.value})} className="input" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Copies</label>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Copies</label>
                   <input type="number" value={editBook.copies} onChange={(e) => setEditBook({...editBook, copies: e.target.value})} className="input" min="1" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Location</label>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Location</label>
                   <input type="text" value={editBook.location} onChange={(e) => setEditBook({...editBook, location: e.target.value})} className="input" />
                 </div>
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => { setShowEditBook(false); setEditBookId(null) }} className="btn btn-secondary flex-1">Cancel</button>
-                <button type="submit" className="btn btn-primary flex-1">Save Changes</button>
+                <Button type="button" variant="secondary" className="flex-1" onClick={() => { setShowEditBook(false); setEditBookId(null) }}>Cancel</Button>
+                <Button type="submit" variant="primary" className="flex-1">Save Changes</Button>
               </div>
             </form>
-          </div>
+          </Card>
         </div>
       )}
 
       {showCheckout && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowCheckout(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-[#e8eaed]">
-              <h2 className="text-lg font-semibold text-[#191c1d]">Checkout Book</h2>
+          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-[var(--border)]">
+              <h2 className="text-lg font-semibold text-[var(--on-surface)]">Checkout Book</h2>
             </div>
             <form onSubmit={handleCheckout} className="p-6 space-y-4">
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Select Book</label>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Select Book</label>
                 {books.filter(b => b.available > 0).length === 0 ? (
                   <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No books available</div>
                 ) : (
@@ -523,7 +517,7 @@ export default function LibraryPage() {
                 )}
               </div>
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Student</label>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Student</label>
                 {students.length === 0 ? (
                   <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No students available</div>
                 ) : (
@@ -536,15 +530,15 @@ export default function LibraryPage() {
                 )}
               </div>
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Due Date</label>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Due Date</label>
                 <input type="date" value={newCheckout.due_date} onChange={(e) => setNewCheckout({...newCheckout, due_date: e.target.value})} className="input" required min={today} />
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowCheckout(false)} className="btn btn-secondary flex-1">Cancel</button>
-                <button type="submit" className="btn btn-primary flex-1">Checkout</button>
+                <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowCheckout(false)}>Cancel</Button>
+                <Button type="submit" variant="primary" className="flex-1">Checkout</Button>
               </div>
             </form>
-          </div>
+          </Card>
         </div>
       )}
     </div>

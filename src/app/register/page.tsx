@@ -22,10 +22,11 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const DEMO_KEY = 'omuto_demo_v1'
+
   // Clear any demo data on register page load
   useEffect(() => {
-    localStorage.removeItem('demo_user')
-    localStorage.removeItem('demo_school')
+    localStorage.removeItem(DEMO_KEY)
   }, [])
 
   const [form, setForm] = useState({

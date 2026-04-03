@@ -5,6 +5,9 @@ import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
 
 interface SMSTemplate {
   id: string
@@ -146,63 +149,59 @@ export default function SMSTemplatesPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#002045]">SMS Templates</h1>
-          <p className="text-[#5c6670] mt-1">Create and manage message templates</p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={createDefaultTemplates} className="btn bg-amber-600 text-white">
-            <MaterialIcon icon="auto_awesome" style={{ fontSize: 18 }} />
-            Add Defaults
-          </button>
-          <button onClick={() => setShowCreate(true)} className="btn btn-primary">
-            <MaterialIcon icon="add" style={{ fontSize: 18 }} />
-            Create Template
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="SMS Templates"
+        subtitle="Create and manage message templates"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={createDefaultTemplates}>
+              <MaterialIcon icon="auto_awesome" className="text-lg" />
+              Add Defaults
+            </Button>
+            <Button onClick={() => setShowCreate(true)}>
+              <MaterialIcon icon="add" className="text-lg" />
+              Create Template
+            </Button>
+          </div>
+        }
+      />
 
-      {/* Templates Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {templates.map(template => (
-          <div key={template.id} className="card">
-            <div className="card-header">
-              <div className="flex items-center justify-between w-full">
-                <div className="card-title">{template.name}</div>
-                <span className={`badge ${template.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                  {template.is_active ? 'Active' : 'Inactive'}
-                </span>
-              </div>
+          <Card key={template.id} className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-[var(--t1)]">{template.name}</h3>
+              <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                template.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+              }`}>
+                {template.is_active ? 'Active' : 'Inactive'}
+              </span>
             </div>
-            <div className="card-body">
-              <div className="text-xs text-[#5c6670] mb-2 uppercase">{template.category.replace('_', ' ')}</div>
-              <p className="text-sm text-[#5c6670] mb-4 line-clamp-3">{template.message}</p>
-              
-              <div className="flex gap-2">
-                <button onClick={() => setEditingTemplate(template)} className="btn-sm btn-primary flex-1">
-                  Edit
-                </button>
-                <button onClick={() => deleteTemplate(template.id)} className="btn-sm bg-red-100 text-red-800 px-3 rounded">
-                  Delete
-                </button>
-              </div>
+            <div className="text-xs text-[var(--t3)] mb-2 uppercase">{template.category.replace('_', ' ')}</div>
+            <p className="text-sm text-[var(--t3)] mb-4 line-clamp-3">{template.message}</p>
+            
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => setEditingTemplate(template)} className="flex-1">
+                Edit
+              </Button>
+              <Button size="sm" variant="danger" onClick={() => deleteTemplate(template.id)}>
+                Delete
+              </Button>
             </div>
-          </div>
+          </Card>
         ))}
         {templates.length === 0 && !loading && (
-          <div className="col-span-full text-center py-12 text-[#5c6670]">
-            <MaterialIcon icon="sms" style={{ fontSize: 48, opacity: 0.5 }} />
+          <div className="col-span-full text-center py-12 text-[var(--t3)]">
+            <MaterialIcon className="text-5xl opacity-50 mx-auto">sms</MaterialIcon>
             <p className="mt-2">No templates yet. Create one or add defaults.</p>
           </div>
         )}
       </div>
 
-      {/* Create Modal */}
       {showCreate && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg">
-            <h2 className="text-xl font-bold mb-4">Create SMS Template</h2>
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-lg">
+            <h2 className="text-xl font-bold text-[var(--t1)] mb-4">Create SMS Template</h2>
             
             <div className="space-y-4">
               <div>
@@ -210,7 +209,7 @@ export default function SMSTemplatesPage() {
                 <input 
                   value={newTemplate.name}
                   onChange={(e) => setNewTemplate({...newTemplate, name: e.target.value})}
-                  className="input"
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
                   placeholder="e.g., Fee Reminder"
                 />
               </div>
@@ -220,7 +219,7 @@ export default function SMSTemplatesPage() {
                 <select 
                   value={newTemplate.category}
                   onChange={(e) => setNewTemplate({...newTemplate, category: e.target.value})}
-                  className="input"
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
                 >
                   {categories.map(c => (
                     <option key={c.value} value={c.value}>{c.label}</option>
@@ -233,29 +232,28 @@ export default function SMSTemplatesPage() {
                 <textarea 
                   value={newTemplate.message}
                   onChange={(e) => setNewTemplate({...newTemplate, message: e.target.value})}
-                  className="input"
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
                   rows={4}
                   placeholder="Enter message template..."
                 />
-                <p className="text-xs text-[#5c6670] mt-1">
+                <p className="text-xs text-[var(--t3)] mt-1">
                   Use {'{{variable}}'} for dynamic content (e.g., {'{{student_name}}'}, {'{{amount}}'})
                 </p>
               </div>
             </div>
 
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowCreate(false)} className="btn flex-1 bg-gray-100">Cancel</button>
-              <button onClick={createTemplate} className="btn btn-primary flex-1">Create Template</button>
+              <Button variant="secondary" className="flex-1" onClick={() => setShowCreate(false)}>Cancel</Button>
+              <Button className="flex-1" onClick={createTemplate}>Create Template</Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Edit Modal */}
       {editingTemplate && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg">
-            <h2 className="text-xl font-bold mb-4">Edit SMS Template</h2>
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-lg">
+            <h2 className="text-xl font-bold text-[var(--t1)] mb-4">Edit SMS Template</h2>
             
             <div className="space-y-4">
               <div>
@@ -263,7 +261,7 @@ export default function SMSTemplatesPage() {
                 <input 
                   value={editingTemplate.name}
                   onChange={(e) => setEditingTemplate({...editingTemplate, name: e.target.value})}
-                  className="input"
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
                 />
               </div>
 
@@ -272,7 +270,7 @@ export default function SMSTemplatesPage() {
                 <select 
                   value={editingTemplate.category}
                   onChange={(e) => setEditingTemplate({...editingTemplate, category: e.target.value})}
-                  className="input"
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
                 >
                   {categories.map(c => (
                     <option key={c.value} value={c.value}>{c.label}</option>
@@ -285,7 +283,7 @@ export default function SMSTemplatesPage() {
                 <textarea 
                   value={editingTemplate.message}
                   onChange={(e) => setEditingTemplate({...editingTemplate, message: e.target.value})}
-                  className="input"
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
                   rows={4}
                 />
               </div>
@@ -304,8 +302,8 @@ export default function SMSTemplatesPage() {
             </div>
 
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setEditingTemplate(null)} className="btn flex-1 bg-gray-100">Cancel</button>
-              <button onClick={updateTemplate} className="btn btn-primary flex-1">Save Changes</button>
+              <Button variant="secondary" className="flex-1" onClick={() => setEditingTemplate(null)}>Cancel</Button>
+              <Button className="flex-1" onClick={updateTemplate}>Save Changes</Button>
             </div>
           </div>
         </div>

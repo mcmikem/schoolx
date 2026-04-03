@@ -2,8 +2,11 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
-
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardBody } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { EmptyState } from '@/components/EmptyState'
 
 interface TimetableEntry {
   id: string
@@ -105,23 +108,22 @@ export default function WorkloadPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Teacher Workload</h1>
-        <p className="text-[#5c6670] mt-1">Period distribution based on timetable</p>
-      </div>
+      <PageHeader title="Teacher Workload" subtitle="Period distribution based on timetable" />
 
       {overloaded.length > 0 && (
-        <div className="bg-[#fef2f2] border border-red-200 rounded-2xl p-4 mb-6">
-          <div className="flex items-start gap-3">
-            <MaterialIcon icon="warning" className="text-xl text-red-600 mt-0.5" />
-            <div>
-              <div className="font-medium text-red-800">Overloaded Teachers</div>
-              <div className="text-sm text-red-700 mt-1">
-                {overloaded.map(t => `${t.teacher_name} (${t.total_periods} periods)`).join(', ')}
+        <Card className="mb-6 border-red-200 bg-red-50">
+          <CardBody>
+            <div className="flex items-start gap-3">
+              <MaterialIcon icon="warning" className="text-xl text-red-600 mt-0.5" />
+              <div>
+                <div className="font-medium text-red-800">Overloaded Teachers</div>
+                <div className="text-sm text-red-700 mt-1">
+                  {overloaded.map(t => `${t.teacher_name} (${t.total_periods} periods)`).join(', ')}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          </CardBody>
+        </Card>
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
@@ -129,81 +131,85 @@ export default function WorkloadPage() {
           const count = workloads.filter(w => w.rating === rating).length
           const style = getRatingStyle(rating)
           return (
-            <div key={rating} className={`rounded-2xl border border-[#e8eaed] p-4 text-center`}>
-              <div className={`text-2xl font-bold ${style.text}`}>{count}</div>
-              <div className="text-sm text-[#5c6670]">{rating}</div>
-            </div>
+            <Card key={rating} className="text-center">
+              <CardBody>
+                <div className={`text-2xl font-bold ${style.text}`}>{count}</div>
+                <div className="text-sm text-[var(--t3)]">{rating}</div>
+              </CardBody>
+            </Card>
           )
         })}
       </div>
 
       {loading ? (
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-8 text-center text-[#5c6670]">Loading...</div>
+        <Card>
+          <CardBody className="text-center text-[var(--t3)]">Loading...</CardBody>
+        </Card>
       ) : workloads.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-12 text-center">
-          <div className="w-16 h-16 bg-[#f8fafb] rounded-full flex items-center justify-center mx-auto mb-4">
-            <MaterialIcon icon="monitoring" className="text-3xl text-[#5c6670]" />
-          </div>
-          <h3 className="text-lg font-semibold text-[#191c1d] mb-2">No timetable data</h3>
-          <p className="text-[#5c6670]">Add timetable entries to see teacher workload</p>
-        </div>
+        <EmptyState
+          icon="monitoring"
+          title="No timetable data"
+          description="Add timetable entries to see teacher workload"
+        />
       ) : (
-        <div className="bg-white rounded-2xl border border-[#e8eaed] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-[#f8fafb]">
-                  <th className="p-4 text-left text-sm font-semibold text-[#191c1d]">Teacher</th>
-                  <th className="p-4 text-left text-sm font-semibold text-[#191c1d]">Periods/Week</th>
-                  <th className="p-4 text-left text-sm font-semibold text-[#191c1d]">Workload</th>
-                  <th className="p-4 text-left text-sm font-semibold text-[#191c1d] hidden md:table-cell">Classes</th>
-                  <th className="p-4 text-left text-sm font-semibold text-[#191c1d] hidden lg:table-cell">Subjects</th>
-                  <th className="p-4 text-left text-sm font-semibold text-[#191c1d]">Rating</th>
-                </tr>
-              </thead>
-              <tbody>
-                {workloads.map((w) => {
-                  const style = getRatingStyle(w.rating)
-                  const barWidth = Math.min((w.total_periods / 40) * 100, 100)
-                  return (
-                    <tr key={w.teacher_id} className="border-t border-[#e8eaed]">
-                      <td className="p-4">
-                        <div className="font-medium text-[#191c1d]">{w.teacher_name}</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="text-sm font-medium text-[#191c1d]">{w.total_periods}</div>
-                        <div className="w-24 h-2 bg-[#e8eaed] rounded-full mt-1">
-                          <div className={`h-full rounded-full ${style.bar}`} style={{ width: `${barWidth}%` }} />
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="w-24 h-2 bg-[#e8eaed] rounded-full">
-                          <div className={`h-full rounded-full ${style.bar}`} style={{ width: `${barWidth}%` }} />
-                        </div>
-                        <div className="text-xs text-[#5c6670] mt-1">{barWidth.toFixed(0)}%</div>
-                      </td>
-                      <td className="p-4 hidden md:table-cell">
-                        <div className="text-sm text-[#5c6670]">
-                          {w.classes.length > 0 ? w.classes.join(', ') : '-'}
-                        </div>
-                      </td>
-                      <td className="p-4 hidden lg:table-cell">
-                        <div className="text-sm text-[#5c6670]">
-                          {w.subjects.length > 0 ? w.subjects.join(', ') : '-'}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <span className={`px-2 py-1 rounded-lg text-xs font-medium ${style.bg} ${style.text}`}>
-                          {w.rating}
-                        </span>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <Card>
+          <CardBody className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-[var(--surface-container-low)]">
+                    <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Teacher</th>
+                    <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Periods/Week</th>
+                    <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Workload</th>
+                    <th className="p-4 text-left text-sm font-semibold text-[var(--t1)] hidden md:table-cell">Classes</th>
+                    <th className="p-4 text-left text-sm font-semibold text-[var(--t1)] hidden lg:table-cell">Subjects</th>
+                    <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Rating</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {workloads.map((w) => {
+                    const style = getRatingStyle(w.rating)
+                    const barWidth = Math.min((w.total_periods / 40) * 100, 100)
+                    return (
+                      <tr key={w.teacher_id} className="border-t border-[var(--border)]">
+                        <td className="p-4">
+                          <div className="font-medium text-[var(--t1)]">{w.teacher_name}</div>
+                        </td>
+                        <td className="p-4">
+                          <div className="text-sm font-medium text-[var(--t1)]">{w.total_periods}</div>
+                          <div className="w-24 h-2 bg-[var(--surface-container-low)] rounded-full mt-1">
+                            <div className={`h-full rounded-full ${style.bar}`} style={{ width: `${barWidth}%` }} />
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="w-24 h-2 bg-[var(--surface-container-low)] rounded-full">
+                            <div className={`h-full rounded-full ${style.bar}`} style={{ width: `${barWidth}%` }} />
+                          </div>
+                          <div className="text-xs text-[var(--t3)] mt-1">{barWidth.toFixed(0)}%</div>
+                        </td>
+                        <td className="p-4 hidden md:table-cell">
+                          <div className="text-sm text-[var(--t3)]">
+                            {w.classes.length > 0 ? w.classes.join(', ') : '-'}
+                          </div>
+                        </td>
+                        <td className="p-4 hidden lg:table-cell">
+                          <div className="text-sm text-[var(--t3)]">
+                            {w.subjects.length > 0 ? w.subjects.join(', ') : '-'}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <span className={`px-2 py-1 rounded-lg text-xs font-medium ${style.bg} ${style.text}`}>
+                            {w.rating}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardBody>
+        </Card>
       )}
     </div>
   )

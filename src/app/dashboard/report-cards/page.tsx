@@ -2,9 +2,14 @@
 import { useState, useMemo } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
-import { useClasses, useStudents, useSubjects, useGrades, useFeePayments, useFeeStructure } from '@/lib/hooks'
+import { useClasses, useStudents, useSubjects, useFeePayments, useFeeStructure } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardBody } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
 
 interface StudentReport {
   studentId: string
@@ -65,7 +70,6 @@ export default function ReportCardsPage() {
   const [hideWithFees, setHideWithFees] = useState(false)
   const [reports, setReports] = useState<StudentReport[]>([])
   const [comments, setComments] = useState<Record<string, { classTeacher: string; hm: string }>>({})
-  const [viewingReport, setViewingReport] = useState<StudentReport | null>(null)
   const [sendingSms, setSendingSms] = useState(false)
 
   const filteredStudents = useMemo(() => {
@@ -107,7 +111,6 @@ export default function ReportCardsPage() {
 
       if (error) throw error
 
-      // Group grades by student and subject, summing all assessment types
       const studentSubjectScores: Record<string, Record<string, { total: number; name: string }>> = {}
 
       for (const g of (gradesData || [])) {
@@ -133,7 +136,6 @@ export default function ReportCardsPage() {
           return { name: data.name, score: data.total, grade: gradeInfo.grade, gradeColor: gradeInfo.color }
         })
 
-        // Fill in subjects with 0 if missing
         const allSubjectDetails = subjects.map((sub: any) => {
           const existing = subjectDetails.find(sd => sd.name === sub.name)
           return existing || { name: sub.name, score: 0, grade: 'F9', gradeColor: 'text-red-500' }
@@ -161,7 +163,6 @@ export default function ReportCardsPage() {
         }
       })
 
-      // Sort by total marks descending and assign positions
       reportList.sort((a, b) => b.totalMarks - a.totalMarks)
       reportList.forEach((r, i) => {
         r.position = i + 1
@@ -170,7 +171,6 @@ export default function ReportCardsPage() {
         r.hmComment = getAutoComment(r.position)
       })
 
-      // Initialize comments state
       const initialComments: Record<string, { classTeacher: string; hm: string }> = {}
       for (const r of reportList) {
         initialComments[r.studentId] = {
@@ -200,7 +200,7 @@ export default function ReportCardsPage() {
     const auto = getAutoComment(position)
     setComments(prev => ({
       ...prev,
-      [studentId]: { ...prev[studentId], classTeacher: auto, hm: auto },
+      [studentId]: { classTeacher: auto, hm: auto },
     }))
   }
 
@@ -306,7 +306,6 @@ export default function ReportCardsPage() {
         return
       }
 
-      // Log SMS to messages table
       await sb.from('messages').insert({
         school_id: school?.id,
         recipient_phone: phone,
@@ -336,76 +335,88 @@ export default function ReportCardsPage() {
     return { withFees, avgTotal, div1 }
   }, [reports])
 
+  const actions = (
+    <>
+      {generated && (
+        <Button variant="ghost" onClick={() => window.print()}>
+          <MaterialIcon icon="print" style={{ fontSize: '16px' }} />
+          Print All
+        </Button>
+      )}
+      <Button onClick={handleGenerate}>
+        <MaterialIcon icon="description" style={{ fontSize: '16px' }} />
+        Generate Report Cards
+      </Button>
+    </>
+  )
+
   return (
-    <div className="content">
-      {/* Header */}
-      <div className="page-header">
-        <div>
-          <div className="ph-title">Report Cards</div>
-          <div className="ph-sub">Generate and manage student report cards</div>
-        </div>
-        <div className="ph-actions">
-          {generated && (
-            <button onClick={() => window.print()} className="btn btn-ghost">
-              <MaterialIcon icon="print" style={{ fontSize: '16px' }} />
-              Print All
-            </button>
-          )}
-          <button onClick={handleGenerate} className="btn btn-primary">
-            <MaterialIcon icon="description" style={{ fontSize: '16px' }} />
-            Generate Report Cards
-          </button>
-        </div>
-      </div>
+    <div className="p-4 sm:p-6 lg:p-8">
+      <PageHeader 
+        title="Report Cards" 
+        subtitle="Generate and manage student report cards"
+        actions={actions}
+      />
 
-      {/* Configuration */}
-      <div className="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/5 mb-5">
-        <div className="flex flex-col md:flex-row gap-4 items-end">
-          <div className="flex-1">
-            <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Select Class</label>
-            {classes.length === 0 ? (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">No classes available</div>
-            ) : (
-              <select value={selectedClass} onChange={(e) => { setSelectedClass(e.target.value); setGenerated(false); setReports([]) }} className="w-full bg-surface-container-low border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20">
-                <option value="">Select Class</option>
-                {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            )}
+      <Card className="mb-5">
+        <CardBody>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-[var(--on-surface)]">Select Class</label>
+              {classes.length === 0 ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No classes available</div>
+              ) : (
+                <select 
+                  value={selectedClass} 
+                  onChange={(e) => { setSelectedClass(e.target.value); setGenerated(false); setReports([]) }} 
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
+                >
+                  <option value="">Select Class</option>
+                  {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2 text-[var(--on-surface)]">Term</label>
+              <div className="px-4 py-3 rounded-xl bg-[var(--surface-container)] text-[var(--primary)] font-semibold">Term {currentTerm}, {academicYear}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2 text-[var(--on-surface)]">Students</label>
+              <div className="px-4 py-3 rounded-xl bg-[var(--surface-container)] text-[var(--primary)] font-semibold">{filteredStudents.length} students</div>
+            </div>
           </div>
-          <div className="flex-1">
-            <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Term</label>
-            <div className="bg-surface-container-low rounded-xl py-3 px-4 text-sm font-bold text-primary">Term {currentTerm}, {academicYear}</div>
-          </div>
-          <div className="flex-1">
-            <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Students</label>
-            <div className="bg-surface-container-low rounded-xl py-3 px-4 text-sm font-bold text-primary">{filteredStudents.length} students</div>
-          </div>
-        </div>
-      </div>
+        </CardBody>
+      </Card>
 
-      {/* Stats after generation */}
       {generated && reports.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5">
-          <div className="bg-surface-container-lowest p-5 rounded-xl border-t-4 border-primary">
-            <div className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Class Average</div>
-            <div className="font-headline font-extrabold text-2xl text-primary">{stats.avgTotal}%</div>
-          </div>
-          <div className="bg-surface-container-lowest p-5 rounded-xl border-t-4 border-green-500">
-            <div className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Division 1</div>
-            <div className="font-headline font-extrabold text-2xl text-green-600">{stats.div1} students</div>
-          </div>
-          <div className="bg-surface-container-lowest p-5 rounded-xl border-t-4 border-red-500">
-            <div className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Fee Defaulters</div>
-            <div className="font-headline font-extrabold text-2xl text-red-600">{stats.withFees} students</div>
-          </div>
-          <div className="bg-surface-container-lowest p-5 rounded-xl border-t-4 border-tertiary">
-            <div className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Total Students</div>
-            <div className="font-headline font-extrabold text-2xl text-on-surface">{reports.length}</div>
-          </div>
+          <Card>
+            <CardBody className="text-center">
+              <div className="text-xs font-semibold text-[var(--t3)] mb-1">Class Average</div>
+              <div className="text-2xl font-bold text-[var(--primary)]">{stats.avgTotal}%</div>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody className="text-center">
+              <div className="text-xs font-semibold text-[var(--t3)] mb-1">Division 1</div>
+              <div className="text-2xl font-bold text-green-600">{stats.div1} students</div>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody className="text-center">
+              <div className="text-xs font-semibold text-[var(--t3)] mb-1">Fee Defaulters</div>
+              <div className="text-2xl font-bold text-red-600">{stats.withFees} students</div>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody className="text-center">
+              <div className="text-xs font-semibold text-[var(--t3)] mb-1">Total Students</div>
+              <div className="text-2xl font-bold text-[var(--on-surface)]">{reports.length}</div>
+            </CardBody>
+          </Card>
         </div>
       )}
 
-      {/* Fee filter checkbox */}
       {generated && (
         <div className="flex items-center gap-3 mb-5">
           <label className="flex items-center gap-2 cursor-pointer">
@@ -413,130 +424,137 @@ export default function ReportCardsPage() {
               type="checkbox"
               checked={hideWithFees}
               onChange={(e) => setHideWithFees(e.target.checked)}
-              className="w-4 h-4 rounded border-outline-variant accent-primary"
+              className="w-4 h-4"
             />
-            <span className="text-sm font-semibold text-on-surface-variant">Hide students with outstanding fees</span>
+            <span className="text-sm font-semibold text-[var(--on-surface)]">Hide students with outstanding fees</span>
           </label>
         </div>
       )}
 
-      {/* Report Cards Table */}
       {generated && displayedReports.length > 0 && (
-        <div className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-outline-variant/5">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-surface-container-low text-left">
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Student</th>
-                  <th className="px-4 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">Total</th>
-                  <th className="px-4 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">Average</th>
-                  <th className="px-4 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">Position</th>
-                  <th className="px-4 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">Division</th>
-                  <th className="px-4 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Fees</th>
-                  <th className="px-4 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Comments</th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/5">
-                {displayedReports.map((report) => {
-                  const studentComment = comments[report.studentId] || { classTeacher: '', hm: '' }
-                  return (
-                    <tr key={report.studentId} className="hover:bg-surface-bright transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white" style={{ background: report.gender === 'M' ? 'var(--navy, #002045)' : 'var(--red, #c0392b)' }}>
-                            {report.name.split(' ').map(n => n.charAt(0)).join('').slice(0, 2)}
+        <Card>
+          <CardBody>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-[var(--surface-container)] text-left">
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)]">Student</th>
+                    <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">Total</th>
+                    <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">Average</th>
+                    <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">Position</th>
+                    <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">Division</th>
+                    <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)]">Fees</th>
+                    <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)]">Comments</th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {displayedReports.map((report) => {
+                    const studentComment = comments[report.studentId] || { classTeacher: '', hm: '' }
+                    return (
+                      <tr key={report.studentId} className="hover:bg-[var(--surface-container)] transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white" style={{ background: report.gender === 'M' ? 'var(--navy, #002045)' : '#c0392b' }}>
+                              {report.name.split(' ').map(n => n.charAt(0)).join('').slice(0, 2)}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-sm text-[var(--primary)]">{report.name}</div>
+                              <div className="text-xs text-[var(--t3)] font-mono">{report.studentNumber}</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="font-bold text-sm text-primary">{report.name}</div>
-                            <div className="text-xs text-on-surface-variant font-mono">{report.studentNumber}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 text-center">
-                        <span className="font-black text-lg text-primary">{report.totalMarks}</span>
-                        <span className="text-xs text-on-surface-variant">/{report.maxMarks}</span>
-                      </td>
-                      <td className="px-4 py-4 text-center font-bold">{report.average}%</td>
-                      <td className="px-4 py-4 text-center">
-                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white font-black text-sm">{report.position}</span>
-                      </td>
-                      <td className="px-4 py-4 text-center">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${report.division === 'Division 1' ? 'bg-green-100 text-green-700' : report.division === 'Division 2' ? 'bg-blue-100 text-blue-700' : report.division === 'Division 3' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
-                          {report.division}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4">
-                        {report.feeBalance > 0 ? (
-                          <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full">
-                            {report.feeBalance.toLocaleString()} UGX
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          <span className="font-bold text-lg text-[var(--primary)]">{report.totalMarks}</span>
+                          <span className="text-xs text-[var(--t3)]">/{report.maxMarks}</span>
+                        </td>
+                        <td className="px-4 py-4 text-center font-semibold">{report.average}%</td>
+                        <td className="px-4 py-4 text-center">
+                          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--primary)] text-white font-bold text-sm">{report.position}</span>
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${report.division === 'Division 1' ? 'bg-green-100 text-green-700' : report.division === 'Division 2' ? 'bg-blue-100 text-blue-700' : report.division === 'Division 3' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                            {report.division}
                           </span>
-                        ) : (
-                          <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">Clear</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="space-y-1.5 max-w-[260px]">
-                          <div>
-                            <label className="text-[10px] font-bold uppercase text-on-surface-variant">Class Teacher</label>
-                            <input
-                              type="text"
-                              value={studentComment.classTeacher}
-                              onChange={(e) => handleCommentChange(report.studentId, 'classTeacher', e.target.value)}
-                              className="w-full bg-surface-container-low rounded-lg py-1.5 px-2.5 text-xs border-none focus:ring-2 focus:ring-primary/20"
-                              placeholder="Class teacher comment..."
-                            />
+                        </td>
+                        <td className="px-4 py-4">
+                          {report.feeBalance > 0 ? (
+                            <span className="text-xs font-semibold text-red-600 bg-red-50 px-2 py-1 rounded-full">
+                              {report.feeBalance.toLocaleString()} UGX
+                            </span>
+                          ) : (
+                            <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">Clear</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="space-y-1.5 max-w-[260px]">
+                            <div>
+                              <label className="text-[10px] font-semibold uppercase text-[var(--t3)]">Class Teacher</label>
+                              <input
+                                type="text"
+                                value={studentComment.classTeacher}
+                                onChange={(e) => handleCommentChange(report.studentId, 'classTeacher', e.target.value)}
+                                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-container)] text-sm border-none"
+                                placeholder="Class teacher comment..."
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-semibold uppercase text-[var(--t3)]">Headteacher</label>
+                              <input
+                                type="text"
+                                value={studentComment.hm}
+                                onChange={(e) => handleCommentChange(report.studentId, 'hm', e.target.value)}
+                                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-container)] text-sm border-none"
+                                placeholder="HM comment..."
+                              />
+                            </div>
+                            <button onClick={() => handleSuggestComment(report.studentId, report.position)} className="text-[10px] font-semibold text-[var(--primary)] hover:underline">
+                              Auto-suggest
+                            </button>
                           </div>
-                          <div>
-                            <label className="text-[10px] font-bold uppercase text-on-surface-variant">Headteacher</label>
-                            <input
-                              type="text"
-                              value={studentComment.hm}
-                              onChange={(e) => handleCommentChange(report.studentId, 'hm', e.target.value)}
-                              className="w-full bg-surface-container-low rounded-lg py-1.5 px-2.5 text-xs border-none focus:ring-2 focus:ring-primary/20"
-                              placeholder="HM comment..."
-                            />
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex gap-1.5 justify-end">
+                            <button onClick={() => handlePrintReport(report)} title="Print Report Card" className="p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)]">
+                              <MaterialIcon className="text-xl">print</MaterialIcon>
+                            </button>
+                            <button onClick={() => handleSendSms(report)} disabled={sendingSms} title="Send SMS" className="p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)] disabled:opacity-40">
+                              <MaterialIcon className="text-xl">sms</MaterialIcon>
+                            </button>
                           </div>
-                          <button onClick={() => handleSuggestComment(report.studentId, report.position)} className="text-[10px] font-bold text-primary hover:underline">
-                            Auto-suggest
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-1.5 justify-end">
-                          <button onClick={() => handlePrintReport(report)} title="Print Report Card" className="p-2 rounded-lg hover:bg-surface-container text-on-surface-variant">
-                            <MaterialIcon icon="print" className="text-lg" />
-                          </button>
-                          <button onClick={() => handleSendSms(report)} disabled={sendingSms} title="Send SMS" className="p-2 rounded-lg hover:bg-surface-container text-on-surface-variant disabled:opacity-40">
-                            <MaterialIcon icon="sms" className="text-lg" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardBody>
+        </Card>
       )}
 
-      {/* Empty state before generation */}
       {!generated && (
-        <div className="bg-surface-container-lowest p-12 rounded-xl text-center">
-          <MaterialIcon className="text-4xl text-on-surface-variant mx-auto mb-4" style={{ display: 'block' }}>summarize</MaterialIcon>
-          <h3 className="font-headline font-bold text-lg text-primary mb-2">Generate Report Cards</h3>
-          <p className="text-on-surface-variant text-sm">Select a class and click Generate to create report cards with positions, divisions, and comments.</p>
-        </div>
+        <Card>
+          <CardBody>
+            <EmptyState 
+              icon="summarize" 
+              title="Generate Report Cards"
+              description="Select a class and click Generate to create report cards with positions, divisions, and comments."
+            />
+          </CardBody>
+        </Card>
       )}
 
-      {/* No students after filter */}
       {generated && displayedReports.length === 0 && reports.length > 0 && (
-        <div className="bg-surface-container-lowest p-12 rounded-xl text-center">
-          <MaterialIcon className="text-4xl text-on-surface-variant mx-auto mb-4" style={{ display: 'block' }}>filter_alt_off</MaterialIcon>
-          <h3 className="font-headline font-bold text-lg text-primary mb-2">All Hidden</h3>
-          <p className="text-on-surface-variant text-sm">All students have outstanding fees. Uncheck the filter to view.</p>
-        </div>
+        <Card>
+          <CardBody>
+            <EmptyState 
+              icon="filter_alt_off" 
+              title="All Hidden"
+              description="All students have outstanding fees. Uncheck the filter to view."
+            />
+          </CardBody>
+        </Card>
       )}
     </div>
   )

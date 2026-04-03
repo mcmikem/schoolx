@@ -7,6 +7,12 @@ import { useToast } from '@/components/Toast'
 import { EXAM_TYPES, SECONDARY_EXAM_TYPES, PRIMARY_EXAM_TYPES, calculateWeightedGrade, getExamTypeLabel, getExamColor, ExamConfig } from '@/lib/exams'
 import { getUNEBGrade, getUNEBDivision } from '@/lib/grading'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
+import { Tabs } from '@/components/ui/Tabs'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+import { NoData } from '@/components/EmptyState'
 
 export default function ExamsPage() {
   const { school } = useAuth()
@@ -25,6 +31,7 @@ export default function ExamsPage() {
   const [selectedSubject, setSelectedSubject] = useState('')
   const [selectedExamType, setSelectedExamType] = useState('eot')
   const [showAddExam, setShowAddExam] = useState(false)
+  const [examTypeTab, setExamTypeTab] = useState('secondary')
   const [saving, setSaving] = useState(false)
   const [newExam, setNewExam] = useState({
     name: '',
@@ -36,7 +43,7 @@ export default function ExamsPage() {
     weight: 50,
   })
 
-  const isSecondary = true // Default to secondary exam types, can be configured per school
+  const isSecondary = examTypeTab === 'secondary'
 
   const filteredStudents = useMemo(() => {
     return students.filter(s => !selectedClass || s.class_id === selectedClass)
@@ -108,44 +115,49 @@ export default function ExamsPage() {
 
   return (
     <div className="content">
-      <div className="page-header">
-        <div>
-          <div className="ph-title">{isSecondary ? 'Exam Management' : 'Exams & Grades'}</div>
-          <div className="ph-sub">
-            {academicYear} Term {currentTerm} • {isSecondary ? 'BOT, Mid Term, EOT, Saturday Tests' : 'CA, Mid Term, EOT'}
-          </div>
-        </div>
-        <div className="ph-actions">
-          <button onClick={() => setShowAddExam(true)} className="btn btn-primary">
-            <MaterialIcon icon="add" style={{ fontSize: '16px' }} />
+      <PageHeader 
+        title={isSecondary ? 'Exam Management' : 'Exams & Grades'}
+        subtitle={`${academicYear} Term ${currentTerm} • ${isSecondary ? 'BOT, Mid Term, EOT, Saturday Tests' : 'CA, Mid Term, EOT'}`}
+        actions={
+          <Button onClick={() => setShowAddExam(true)}>
+            <MaterialIcon icon="add" className="text-lg" />
             Create Exam
-          </button>
-        </div>
+          </Button>
+        }
+      />
+
+      <div className="mb-6">
+        <Tabs
+          tabs={[
+            { id: 'secondary', label: 'Secondary', count: 4 },
+            { id: 'primary', label: 'Primary', count: 3 },
+          ]}
+          activeTab={examTypeTab}
+          onChange={setExamTypeTab}
+        />
       </div>
 
-      {/* Exam Type Legend */}
-      <div className="card" style={{ padding: 16, marginBottom: 20 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--t2)', marginBottom: 12 }}>Grade Weighting</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+      <Card className="mb-5 p-4">
+        <div className="text-xs font-semibold text-[var(--t2)] mb-3">Grade Weighting</div>
+        <div className="flex flex-wrap gap-3">
           {examConfigs.map((config: ExamConfig) => (
-            <div key={config.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: 'var(--bg)', borderRadius: 8 }}>
-              <div style={{ width: 10, height: 10, borderRadius: 3, background: getExamColor(config.type) }} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--t1)' }}>{config.shortName}</span>
-              <span style={{ fontSize: 10, color: 'var(--t3)' }}>{config.name} ({config.weight}%)</span>
+            <div key={config.id} className="flex items-center gap-2 px-3 py-2 bg-[var(--surface-container)] rounded-lg">
+              <div className="w-2.5 h-2.5 rounded-sm" style={{ background: getExamColor(config.type) }} />
+              <span className="text-xs font-semibold text-[var(--t1)]">{config.shortName}</span>
+              <span className="text-xs text-[var(--t3)]">{config.name} ({config.weight}%)</span>
             </div>
           ))}
         </div>
-      </div>
+      </Card>
 
-      {/* Filters */}
-      <div className="card" style={{ padding: 0, marginBottom: 20 }}>
-        <div style={{ padding: 14, borderBottom: '1px solid var(--border)', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ minWidth: 150 }}>
-            <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 4, display: 'block' }}>Class</label>
+      <Card className="mb-5 overflow-hidden">
+        <div className="p-3.5 border-b border-[var(--border)] flex gap-3 flex-wrap items-center">
+          <div className="min-w-[150px]">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)] mb-1 block">Class</label>
             {classes.length === 0 ? (
-              <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#92400E' }}>No classes</div>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">No classes</div>
             ) : (
-              <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="input" style={{ height: 36 }}>
+              <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="input h-9 text-sm">
                 <option value="">Select class</option>
                 {classes.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
@@ -153,12 +165,12 @@ export default function ExamsPage() {
               </select>
             )}
           </div>
-          <div style={{ minWidth: 150 }}>
-            <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 4, display: 'block' }}>Subject</label>
+          <div className="min-w-[150px]">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)] mb-1 block">Subject</label>
             {subjects.length === 0 ? (
-              <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#92400E' }}>No subjects</div>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">No subjects</div>
             ) : (
-              <select value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)} className="input" style={{ height: 36 }}>
+              <select value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)} className="input h-9 text-sm">
                 <option value="">Select subject</option>
                 {subjects.map(s => (
                   <option key={s.id} value={s.id}>{s.name}</option>
@@ -166,9 +178,9 @@ export default function ExamsPage() {
               </select>
             )}
           </div>
-          <div style={{ minWidth: 150 }}>
-            <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 4, display: 'block' }}>Exam Type</label>
-            <select value={selectedExamType} onChange={e => setSelectedExamType(e.target.value)} className="input" style={{ height: 36 }}>
+          <div className="min-w-[150px]">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)] mb-1 block">Exam Type</label>
+            <select value={selectedExamType} onChange={e => setSelectedExamType(e.target.value)} className="input h-9 text-sm">
               {examConfigs.map((config: ExamConfig) => (
                 <option key={config.id} value={config.type}>{config.name}</option>
               ))}
@@ -176,11 +188,10 @@ export default function ExamsPage() {
           </div>
         </div>
 
-        {/* Scores Table */}
         {selectedClass && selectedSubject ? (
           scoresLoading ? (
-            <div style={{ padding: 40, textAlign: 'center' }}>
-              <div className="skeleton" style={{ height: 200 }}></div>
+            <div className="p-10 text-center">
+              <TableSkeleton rows={8} />
             </div>
           ) : (
             <div className="tbl-wrap">
@@ -190,10 +201,10 @@ export default function ExamsPage() {
                     <th>Student</th>
                     <th>Class</th>
                     {examConfigs.map(config => (
-                      <th key={config.id} style={{ textAlign: 'center' }}>{config.shortName}</th>
+                      <th key={config.id} className="text-center">{config.shortName}</th>
                     ))}
-                    <th style={{ textAlign: 'center' }}>Total</th>
-                    <th style={{ textAlign: 'center' }}>Grade</th>
+                    <th className="text-center">Total</th>
+                    <th className="text-center">Grade</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -205,21 +216,21 @@ export default function ExamsPage() {
                     return (
                       <tr key={student.id}>
                         <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--navy)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff' }}>
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-[var(--navy)] flex items-center justify-center text-xs font-bold text-white">
                               {student.first_name?.charAt(0)}{student.last_name?.charAt(0)}
                             </div>
                             <div>
-                              <div style={{ fontWeight: 600, color: 'var(--t1)', fontSize: 13 }}>{student.first_name} {student.last_name}</div>
-                              <div style={{ fontSize: 11, color: 'var(--t3)' }}>{student.student_number || '-'}</div>
+                              <div className="font-semibold text-[var(--t1)] text-sm">{student.first_name} {student.last_name}</div>
+                              <div className="text-xs text-[var(--t3)]">{student.student_number || '-'}</div>
                             </div>
                           </div>
                         </td>
-                        <td style={{ fontSize: 12 }}>{student.classes?.name || '-'}</td>
+                        <td className="text-sm">{student.classes?.name || '-'}</td>
                         {examConfigs.map((config: ExamConfig) => {
                           const score = scores[config.type] ?? -1
                           return (
-                            <td key={config.id} style={{ textAlign: 'center' }}>
+                            <td key={config.id} className="text-center">
                               <input
                                 type="number"
                                 min={0}
@@ -227,30 +238,20 @@ export default function ExamsPage() {
                                 value={score >= 0 ? score : ''}
                                 onChange={e => handleSaveScore(student.id, Number(e.target.value))}
                                 placeholder="-"
+                                className="w-12 text-center px-1.5 py-1 border border-[var(--border)] rounded-md text-xs font-mono"
                                 style={{ 
-                                  width: 50, 
-                                  textAlign: 'center', 
-                                  padding: '4px 6px',
-                                  border: '1px solid var(--border)', 
-                                  borderRadius: 6,
-                                  fontSize: 12,
-                                  fontFamily: 'DM Mono',
-                                  background: score >= 0 ? (score >= 50 ? 'var(--green-soft)' : 'var(--red-soft)') : 'var(--bg)'
+                                  background: score >= 0 ? (score >= 50 ? 'var(--green-soft)' : 'var(--red-soft)') : 'var(--surface-container)'
                                 }}
                               />
                             </td>
                           )
                         })}
-                        <td style={{ textAlign: 'center', fontFamily: 'DM Mono', fontWeight: 700, fontSize: 14 }}>
+                        <td className="text-center font-mono font-bold text-sm">
                           {total > 0 ? total.toFixed(1) : '-'}
                         </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <span style={{ 
-                            padding: '3px 8px', 
-                            borderRadius: 4, 
-                            fontSize: 12, 
-                            fontWeight: 700,
-                            background: total >= 80 ? 'var(--green-soft)' : total >= 50 ? 'var(--amber-soft)' : total > 0 ? 'var(--red-soft)' : 'var(--bg)',
+                        <td className="text-center">
+                          <span className="px-2 py-1 rounded text-xs font-bold" style={{ 
+                            background: total >= 80 ? 'var(--green-soft)' : total >= 50 ? 'var(--amber-soft)' : total > 0 ? 'var(--red-soft)' : 'var(--surface-container)',
                             color: total >= 80 ? 'var(--green)' : total >= 50 ? 'var(--amber)' : total > 0 ? 'var(--red)' : 'var(--t3)'
                           }}>
                             {grade}
@@ -264,64 +265,60 @@ export default function ExamsPage() {
             </div>
           )
         ) : (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--t3)' }}>
-            <MaterialIcon style={{ fontSize: 32, marginBottom: 8 }}>school</MaterialIcon>
+          <div className="p-10 text-center text-[var(--t3)]">
+            <MaterialIcon className="text-3xl mb-2">school</MaterialIcon>
             <div>Select class and subject to enter scores</div>
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* Past Exams */}
-      <div className="card" style={{ padding: 16 }}>
-        <div className="card-header" style={{ padding: '0 0 16px 0', border: 'none' }}>
+      <Card className="p-4">
+        <div className="flex items-center justify-between pb-4 border-none">
           <div>
-            <div className="card-title">Exam Schedule</div>
-            <div className="card-sub">Created exams</div>
+            <div className="font-semibold text-[var(--on-surface)]">Exam Schedule</div>
+            <div className="text-sm text-[var(--t3)]">Created exams</div>
           </div>
         </div>
         {examsLoading ? (
-          <div className="skeleton" style={{ height: 100 }}></div>
+          <TableSkeleton rows={3} />
         ) : exams.length === 0 ? (
-          <div style={{ padding: 20, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>
-            No exams created yet
-          </div>
+          <NoData title="No exams created yet" />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="flex flex-col gap-2">
             {exams.map(exam => (
-              <div key={exam.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, background: 'var(--bg)', borderRadius: 8 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: getExamColor(exam.exam_type) }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13 }}>{exam.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--t3)' }}>{exam.classes?.name} • {exam.subjects?.name}</div>
+              <div key={exam.id} className="flex items-center gap-3 p-3 bg-[var(--surface-container)] rounded-lg">
+                <div className="w-2 h-2 rounded-full" style={{ background: getExamColor(exam.exam_type) }} />
+                <div className="flex-1">
+                  <div className="font-semibold text-sm">{exam.name}</div>
+                  <div className="text-xs text-[var(--t3)]">{exam.classes?.name} • {exam.subjects?.name}</div>
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--t3)' }}>{exam.exam_date}</div>
-                <button onClick={() => deleteExam(exam.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                  <MaterialIcon style={{ fontSize: 16, color: 'var(--t3)' }}>delete</MaterialIcon>
+                <div className="text-xs text-[var(--t3)]">{exam.exam_date}</div>
+                <button onClick={() => deleteExam(exam.id)} className="bg-transparent border-none p-1 cursor-pointer">
+                  <MaterialIcon className="text-base text-[var(--t3)]">delete</MaterialIcon>
                 </button>
               </div>
             ))}
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* Create Exam Modal */}
       {showAddExam && (
         <div className="modal-overlay" onClick={() => setShowAddExam(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <div style={{ fontFamily: 'Sora', fontSize: 16, fontWeight: 700 }}>Create Exam</div>
-              <button onClick={() => setShowAddExam(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                <MaterialIcon style={{ fontSize: 18, color: 'var(--t3)' }}>close</MaterialIcon>
+              <div className="font-['Sora'] text-base font-bold">Create Exam</div>
+              <button onClick={() => setShowAddExam(false)} className="bg-transparent border-none p-1 cursor-pointer">
+                <MaterialIcon className="text-lg text-[var(--t3)]">close</MaterialIcon>
               </button>
             </div>
-            <div className="modal-body" style={{ padding: 20 }}>
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Exam Name</label>
+            <div className="modal-body p-5">
+              <div className="mb-4">
+                <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block">Exam Name</label>
                 <input type="text" value={newExam.name} onChange={e => setNewExam({...newExam, name: e.target.value})} placeholder="e.g., End of Term 1 2026" className="input" />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+              <div className="grid grid-cols-2 gap-3 mb-4">
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Exam Type</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block">Exam Type</label>
                   <select value={newExam.exam_type} onChange={e => setNewExam({...newExam, exam_type: e.target.value})} className="input">
                     {examConfigs.map((config: ExamConfig) => (
                       <option key={config.id} value={config.type}>{config.name}</option>
@@ -329,13 +326,13 @@ export default function ExamsPage() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Exam Date</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block">Exam Date</label>
                   <input type="date" value={newExam.exam_date} onChange={e => setNewExam({...newExam, exam_date: e.target.value})} className="input" />
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+              <div className="grid grid-cols-2 gap-3 mb-4">
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Class</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block">Class</label>
                   <select value={newExam.class_id} onChange={e => setNewExam({...newExam, class_id: e.target.value})} className="input">
                     <option value="">Select class</option>
                     {classes.map(c => (
@@ -344,7 +341,7 @@ export default function ExamsPage() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Subject</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block">Subject</label>
                   <select value={newExam.subject_id} onChange={e => setNewExam({...newExam, subject_id: e.target.value})} className="input">
                     <option value="">Select subject</option>
                     {subjects.map(s => (
@@ -353,20 +350,20 @@ export default function ExamsPage() {
                   </select>
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Max Score</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block">Max Score</label>
                   <input type="number" value={newExam.max_score} onChange={e => setNewExam({...newExam, max_score: Number(e.target.value)})} className="input" />
                 </div>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Weight (%)</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block">Weight (%)</label>
                   <input type="number" value={newExam.weight} onChange={e => setNewExam({...newExam, weight: Number(e.target.value)})} className="input" />
                 </div>
               </div>
             </div>
             <div className="modal-footer">
-              <button onClick={() => setShowAddExam(false)} className="btn btn-ghost">Cancel</button>
-              <button onClick={handleAddExam} className="btn btn-primary">Create Exam</button>
+              <Button variant="ghost" onClick={() => setShowAddExam(false)}>Cancel</Button>
+              <Button onClick={handleAddExam}>Create Exam</Button>
             </div>
           </div>
         </div>

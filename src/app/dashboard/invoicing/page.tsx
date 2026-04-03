@@ -6,6 +6,9 @@ import { useStudents, useFeePayments, useFeeStructure, useClasses } from '@/lib/
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, CardBody } from '@/components/ui/Card'
+import { Button } from '@/components/ui/index'
 
 interface Invoice {
   student_id: string
@@ -202,33 +205,40 @@ export default function InvoicingPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Fee Invoicing</h1>
-        <p className="text-[#5c6670] mt-1">Generate and manage student invoices</p>
-      </div>
+      <PageHeader title="Fee Invoicing" subtitle="Generate and manage student invoices" />
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-          <div className="stat-value">{formatCurrency(stats.totalInvoiced)}</div>
-          <div className="stat-label">Total Invoiced</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-          <div className="stat-value text-green-600">{formatCurrency(stats.totalCollected)}</div>
-          <div className="stat-label">Collected</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-          <div className="stat-value text-red-600">{formatCurrency(stats.totalBalance)}</div>
-          <div className="stat-label">Outstanding</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-          <div className="stat-value text-green-600">{stats.fullyPaid}</div>
-          <div className="stat-label">Fully Paid</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-          <div className="stat-value text-yellow-600">{stats.hasBalance}</div>
-          <div className="stat-label">Has Balance</div>
-        </div>
+        <Card className="p-6">
+          <CardBody>
+            <div className="text-2xl font-bold text-[#002045]">{formatCurrency(stats.totalInvoiced)}</div>
+            <div className="text-sm text-[#5c6670] mt-1">Total Invoiced</div>
+          </CardBody>
+        </Card>
+        <Card className="p-6">
+          <CardBody>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(stats.totalCollected)}</div>
+            <div className="text-sm text-[#5c6670] mt-1">Collected</div>
+          </CardBody>
+        </Card>
+        <Card className="p-6">
+          <CardBody>
+            <div className="text-2xl font-bold text-red-600">{formatCurrency(stats.totalBalance)}</div>
+            <div className="text-sm text-[#5c6670] mt-1">Outstanding</div>
+          </CardBody>
+        </Card>
+        <Card className="p-6">
+          <CardBody>
+            <div className="text-2xl font-bold text-green-600">{stats.fullyPaid}</div>
+            <div className="text-sm text-[#5c6670] mt-1">Fully Paid</div>
+          </CardBody>
+        </Card>
+        <Card className="p-6">
+          <CardBody>
+            <div className="text-2xl font-bold text-yellow-600">{stats.hasBalance}</div>
+            <div className="text-sm text-[#5c6670] mt-1">Has Balance</div>
+          </CardBody>
+        </Card>
       </div>
 
       {/* Filter */}
@@ -244,66 +254,68 @@ export default function InvoicingPage() {
       </div>
 
       {/* Invoices Table */}
-      <div className="table-wrapper">
-        <table className="table">
-          <thead className="bg-[#f8fafb]">
-            <tr>
-              <th>Student</th>
-              <th>Class</th>
-              <th>Total</th>
-              <th>Paid</th>
-              <th>Balance</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredInvoices.map((invoice) => (
-              <tr key={invoice.student_id}>
-                <td>
-                  <div className="font-medium text-[#002045]">{invoice.student_name}</div>
-                  <div className="text-xs text-[#5c6670]">{invoice.student_number}</div>
-                </td>
-                <td>{invoice.class_name}</td>
-                <td>{formatCurrency(invoice.total_amount)}</td>
-                <td className="text-green-600">{formatCurrency(invoice.amount_paid)}</td>
-                <td className={invoice.balance > 0 ? 'text-red-600 font-medium' : 'text-green-600'}>
-                  {formatCurrency(invoice.balance)}
-                </td>
-                <td>
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${invoice.balance === 0 ? 'bg-[#e8f5e9] text-[#006e1c]' : 'bg-[#fff3e0] text-[#e65100]'}`}>
-                    {invoice.balance === 0 ? 'Paid' : 'Pending'}
-                  </span>
-                </td>
-                <td>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => printInvoice(invoice)}
-                      className="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50"
-                      title="Print Invoice"
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                      </svg>
-                    </button>
-                    {invoice.balance > 0 && (
+      <Card>
+        <div className="table-wrapper">
+          <table className="table">
+            <thead className="bg-[#f8fafb]">
+              <tr>
+                <th>Student</th>
+                <th>Class</th>
+                <th>Total</th>
+                <th>Paid</th>
+                <th>Balance</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredInvoices.map((invoice) => (
+                <tr key={invoice.student_id}>
+                  <td>
+                    <div className="font-medium text-[#002045]">{invoice.student_name}</div>
+                    <div className="text-xs text-[#5c6670]">{invoice.student_number}</div>
+                  </td>
+                  <td>{invoice.class_name}</td>
+                  <td>{formatCurrency(invoice.total_amount)}</td>
+                  <td className="text-green-600">{formatCurrency(invoice.amount_paid)}</td>
+                  <td className={invoice.balance > 0 ? 'text-red-600 font-medium' : 'text-green-600'}>
+                    {formatCurrency(invoice.balance)}
+                  </td>
+                  <td>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${invoice.balance === 0 ? 'bg-[#e8f5e9] text-[#006e1c]' : 'bg-[#fff3e0] text-[#e65100]'}`}>
+                      {invoice.balance === 0 ? 'Paid' : 'Pending'}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="flex gap-2">
                       <button
-                        onClick={() => sendInvoiceSMS(invoice)}
-                        className="p-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50"
-                        title="Send via SMS"
+                        onClick={() => printInvoice(invoice)}
+                        className="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50"
+                        title="Print Invoice"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                         </svg>
                       </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                      {invoice.balance > 0 && (
+                        <button
+                          onClick={() => sendInvoiceSMS(invoice)}
+                          className="p-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50"
+                          title="Send via SMS"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   )
 }
