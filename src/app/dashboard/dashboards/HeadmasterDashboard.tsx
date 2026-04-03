@@ -9,6 +9,7 @@ import MaterialIcon from '@/components/MaterialIcon'
 import { DashboardSkeleton, StatsGridSkeleton, QuickActionsSkeleton } from '@/components/Skeletons'
 import OnboardingTips from '@/components/OnboardingTips'
 import { useToast } from '@/components/Toast'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 function ProgressRing({ progress, color = '#2E9448' }: { progress: number; color?: string }) {
   const radius = 22
@@ -24,14 +25,18 @@ function ProgressRing({ progress, color = '#2E9448' }: { progress: number; color
   )
 }
 
-export default function HeadmasterDashboard() {
+function HeadmasterDashboardContent() {
   const toast = useToast()
   const { school, user, isDemo } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
-  
-  console.log('[Dashboard] school:', school?.id, school?.name)
-  console.log('[Dashboard] user:', user?.full_name, user?.role)
-  
+
+import { useHeadmasterDashboardData } from '@/hooks/useHeadmasterDashboardData'
+
+function HeadmasterDashboardContent() {
+  const toast = useToast()
+  const { school, user, isDemo } = useAuth()
+  const { academicYear, currentTerm } = useAcademic()
+
   const { stats, loading: statsLoading } = useDashboardStats(school?.id)
   const { students = [] } = useStudents(school?.id)
   const { payments = [] } = useFeePayments(school?.id)
@@ -39,208 +44,12 @@ export default function HeadmasterDashboard() {
   const { classes = [] } = useClasses(school?.id)
   const { staff = [] } = useStaff(school?.id)
 
-  const [classAttendance, setClassAttendance] = useState<Record<string, { present: number; total: number }>>({})
-  const [atRiskStudents, setAtRiskStudents] = useState<any[]>([])
-  const [smsStats, setSmsStats] = useState({ sentToday: 0, deliveryRate: 0 })
-  const [loadingExtra, setLoadingExtra] = useState(true)
-
-  // New: pending approvals, fees by period, staff on duty, overdue fees
-  const [pendingExpenses, setPendingExpenses] = useState(0)
-  const [pendingLeave, setPendingLeave] = useState(0)
-  const [feesToday, setFeesToday] = useState(0)
-  const [feesThisWeek, setFeesThisWeek] = useState(0)
-  const [feesThisTerm, setFeesThisTerm] = useState(0)
-  const [staffOnDuty, setStaffOnDuty] = useState(0)
-  const [overdueFeeCount, setOverdueFeeCount] = useState(0)
-  const [lowAttendanceClasses, setLowAttendanceClasses] = useState(0)
-  const [dropoutRiskCount, setDropoutRiskCount] = useState(0)
-
-  useEffect(() => {
-    async function fetchExtraData() {
-      if (!school?.id) return
-      setLoadingExtra(true)
-      try {
-        const today = new Date().toISOString().split('T')[0]
-
-        // Week start
-        const now = new Date()
-        const dayOfWeek = now.getDay()
-        const monday = new Date(now)
-        monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1))
-        const weekStart = monday.toISOString().split('T')[0]
-
-        // Term start approximation (3 months ago)
-        const termStart = new Date(now)
-        termStart.setMonth(termStart.getMonth() - 3)
-        const termStartStr = termStart.toISOString().split('T')[0]
-
-        // Fetch attendance by class for today
-        const { data: attendanceData } = await supabase
-          .from('attendance')
-          .select('student_id, class_id, status')
-          .eq('date', today)
-
-        const attendanceByClass: Record<string, { present: number; total: number }> = {}
-        const studentClassMap: Record<string, string> = {}
-
-        students.forEach(s => { studentClassMap[s.id] = s.class_id })
-
-        attendanceData?.forEach(a => {
-          const classId = studentClassMap[a.student_id]
-          if (!classId) return
-          if (!attendanceByClass[classId]) attendanceByClass[classId] = { present: 0, total: 0 }
-          attendanceByClass[classId].total++
-          if (a.status === 'present') attendanceByClass[classId].present++
-        })
-
-        setClassAttendance(attendanceByClass)
-
-        // Count classes with low attendance (< 70%)
-        let lowAtt = 0
-        Object.values(attendanceByClass).forEach(c => {
-          if (c.total > 0 && (c.present / c.total) < 0.7) lowAtt++
-        })
-        setLowAttendanceClasses(lowAtt)
-
-        // Fetch at-risk students (below 50% in 2+ subjects this term)
-        const { data: gradesData } = await supabase
-          .from('grades')
-          .select('student_id, score, term, academic_year')
-          .eq('term', currentTerm || 1)
-          .eq('academic_year', academicYear || '2026')
-
-        const studentScores: Record<string, number[]> = {}
-        gradesData?.forEach(g => {
-          if (!studentScores[g.student_id]) studentScores[g.student_id] = []
-          studentScores[g.student_id].push(Number(g.score))
-        })
-
-        const atRisk = Object.entries(studentScores)
-          .filter(([_, scores]) => scores.filter(s => s < 50).length >= 2)
-          .map(([studentId]) => students.find(s => s.id === studentId))
-          .filter(Boolean)
-          .slice(0, 5)
-
-        setAtRiskStudents(atRisk)
-
-        // Dropout risk: students absent 14+ consecutive days
-        try {
-          const fourteenDaysAgo = new Date(now)
-          fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
-          const { data: dropoutAttData } = await supabase
-            .from('attendance')
-            .select('student_id, status, date')
-            .gte('date', fourteenDaysAgo.toISOString().split('T')[0])
-            .lte('date', today)
-            .order('date', { ascending: false })
-
-          const studentAbsenceMap: Record<string, { allAbsent: boolean; count: number }> = {}
-          const activeStudentIds = new Set(students.filter(s => s.status === 'active').map(s => s.id))
-
-          dropoutAttData?.forEach((r: any) => {
-            if (!activeStudentIds.has(r.student_id)) return
-            if (!studentAbsenceMap[r.student_id]) {
-              studentAbsenceMap[r.student_id] = { allAbsent: r.status === 'absent', count: r.status === 'absent' ? 1 : 0 }
-            } else if (studentAbsenceMap[r.student_id].allAbsent && r.status === 'absent') {
-              studentAbsenceMap[r.student_id].count++
-            } else {
-              studentAbsenceMap[r.student_id].allAbsent = false
-            }
-          })
-
-          // Students with attendance records but all absent for 14+ days
-          let dropoutCount = Object.values(studentAbsenceMap).filter(v => v.allAbsent && v.count >= 14).length
-          // Also count active students with NO attendance records at all in the period
-          activeStudentIds.forEach(id => {
-            if (!studentAbsenceMap[id]) dropoutCount++
-          })
-          setDropoutRiskCount(dropoutCount)
-        } catch {
-          setDropoutRiskCount(0)
-        }
-
-        // Fetch SMS stats
-        const { data: messagesData } = await supabase
-          .from('messages')
-          .select('status, created_at')
-          .eq('school_id', school.id)
-          .gte('created_at', today)
-
-        const sentToday = messagesData?.length || 0
-        const delivered = messagesData?.filter((m: any) => m.status === 'delivered').length || 0
-        const rate = sentToday > 0 ? Math.round((delivered / sentToday) * 100) : 0
-
-        setSmsStats({ sentToday, deliveryRate: rate })
-
-        // Fetch pending approvals
-        const { count: expCount } = await supabase
-          .from('expenses')
-          .select('*', { count: 'exact', head: true })
-          .eq('school_id', school.id)
-          .eq('status', 'pending')
-        setPendingExpenses(expCount || 0)
-
-        const { count: leaveCount } = await supabase
-          .from('leave_requests')
-          .select('*', { count: 'exact', head: true })
-          .eq('school_id', school.id)
-          .eq('status', 'pending')
-        setPendingLeave(leaveCount || 0)
-
-        // Fees collected by period
-        const { data: allPayments } = await supabase
-          .from('fee_payments')
-          .select('amount_paid, payment_date, students!inner(school_id)')
-          .eq('students.school_id', school.id)
-
-        let todayTotal = 0
-        let weekTotal = 0
-        let termTotal = 0
-
-        allPayments?.forEach((p: any) => {
-          const pDate = p.payment_date || ''
-          const amt = Number(p.amount_paid) || 0
-          termTotal += amt
-          if (pDate >= weekStart) weekTotal += amt
-          if (pDate >= today) todayTotal += amt
-        })
-
-        setFeesToday(todayTotal)
-        setFeesThisWeek(weekTotal)
-        setFeesThisTerm(termTotal)
-
-        // Staff on duty today
-        const { data: staffAttData } = await supabase
-          .from('staff_attendance')
-          .select('status')
-          .eq('school_id', school.id)
-          .eq('date', today)
-          .in('status', ['present', 'late'])
-
-        setStaffOnDuty(staffAttData?.length || 0)
-
-        // Overdue fees count (students with balance > 0)
-        const totalExpectedPerStudent = feeStructure.reduce((sum, f) => sum + Number(f.amount || 0), 0)
-        if (totalExpectedPerStudent > 0) {
-          const paidByStudent: Record<string, number> = {}
-          allPayments?.forEach((p: any) => {
-            const sid = p.students?.id || ''
-            if (sid) paidByStudent[sid] = (paidByStudent[sid] || 0) + Number(p.amount_paid)
-          })
-          const overdue = students.filter(s => (paidByStudent[s.id] || 0) < totalExpectedPerStudent * 0.5).length
-          setOverdueFeeCount(overdue)
-        }
-      } catch (err) {
-        console.error('Error fetching extra data:', err)
-      } finally {
-        setLoadingExtra(false)
-      }
-    }
-
-    if (school?.id) {
-      fetchExtraData()
-    }
-  }, [school?.id, currentTerm, academicYear, students, feeStructure])
+  const dashboardData = useHeadmasterDashboardData(school?.id, currentTerm, academicYear, students)
+  const { 
+    classAttendance, atRiskStudents, smsStats, pendingExpenses, pendingLeave, 
+    feesToday, feesThisWeek, feesThisTerm, staffOnDuty, overdueFeeCount, 
+    lowAttendanceClasses, dropoutRiskCount, loading: loadingExtra 
+  } = dashboardData
 
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`
@@ -790,5 +599,13 @@ export default function HeadmasterDashboard() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function HeadmasterDashboard() {
+  return (
+    <ErrorBoundary>
+      <HeadmasterDashboardContent />
+    </ErrorBoundary>
   )
 }
