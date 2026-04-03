@@ -5,6 +5,18 @@ import { useAuth } from '@/lib/auth-context'
 import type { FeePayment, FeeStructure, CreatePaymentInput } from '@/types'
 import { getQuerySchoolId, withTimeout } from './utils'
 
+// Demo data for fees
+const DEMO_PAYMENTS: any[] = [
+  { id: '1', student_id: '1', fee_id: '1', amount_paid: 50000, payment_method: 'cash', payment_reference: 'PAY001', payment_date: '2024-01-15', students: { first_name: 'John', last_name: 'Akena', classes: { name: 'P.1' } } },
+  { id: '2', student_id: '2', fee_id: '1', amount_paid: 50000, payment_method: 'mobile_money', payment_reference: 'PAY002', payment_date: '2024-01-14', students: { first_name: 'Mary', last_name: 'Adoch', classes: { name: 'P.1' } } },
+  { id: '3', student_id: '3', fee_id: '1', amount_paid: 25000, payment_method: 'bank_transfer', payment_reference: 'PAY003', payment_date: '2024-01-13', students: { first_name: 'Peter', last_name: 'Okello', classes: { name: 'P.2' } } },
+]
+
+const DEMO_FEE_STRUCTURE: any[] = [
+  { id: '1', name: 'Tuition', amount: 100000, term: 1, academic_year: '2024' },
+  { id: '2', name: 'Development Fund', amount: 50000, term: 1, academic_year: '2024' },
+]
+
 export function useFeePayments(schoolId?: string) {
   const [payments, setPayments] = useState<FeePayment[]>([])
   const [loading, setLoading] = useState(true)
@@ -12,6 +24,13 @@ export function useFeePayments(schoolId?: string) {
   const { isDemo } = useAuth()
 
   const fetchPayments = useCallback(async () => {
+    // Demo mode
+    if (isDemo || schoolId === 'demo-school') {
+      setPayments(DEMO_PAYMENTS)
+      setLoading(false)
+      return
+    }
+    
     if (!schoolId) { setLoading(false); return }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
@@ -69,6 +88,13 @@ export function useFeeStructure(schoolId?: string) {
   const { isDemo } = useAuth()
 
   const fetchFeeStructure = useCallback(async () => {
+    // Demo mode
+    if (isDemo || schoolId === 'demo-school') {
+      setFeeStructure(DEMO_FEE_STRUCTURE)
+      setLoading(false)
+      return
+    }
+    
     if (!schoolId) { setLoading(false); return }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
