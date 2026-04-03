@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import Link from 'next/link'
-import OmutoLogo from '@/components/OmutoLogo'
+import AuthShell from '@/components/layout/AuthShell'
+import MaterialIcon from '@/components/MaterialIcon'
 
 const DEMO_KEY = 'omuto_demo_v1'
 
@@ -16,33 +17,6 @@ function encryptDemoData(data: object): string {
     return ''
   }
 }
-
-function decryptDemoData(encrypted: string): string | null {
-  if (typeof window === 'undefined') return null
-  try {
-    return atob(encrypted)
-  } catch {
-    return null
-  }
-}
-
-function MaterialIcon({ icon, className, children }: { icon: string; className?: string; children?: React.ReactNode }) {
-  return <span className={`material-symbols-outlined ${className || ''}`}>{icon || children}</span>
-}
-
-'use client'
-
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-import { useToast } from '@/components/Toast'
-import Link from 'next/link'
-import AuthShell from '@/components/layout/AuthShell'
-import MaterialIcon from '@/components/MaterialIcon'
-
-const DEMO_KEY = 'omuto_demo_v1'
-
-// ... (retain demo helpers as is)
 
 export default function LoginPage() {
   const router = useRouter()
