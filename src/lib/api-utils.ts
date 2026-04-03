@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export interface ApiResponse<T = unknown> {
   success: boolean
@@ -180,4 +181,32 @@ export function withSecurity(
   }
   
   return securedHandler
+}
+
+export interface AuthenticatedUserContext {
+  authUserId: string
+}
+
+export async function requireAuthenticatedUser(
+  request: NextRequest
+): Promise<{ ok: true; context: AuthenticatedUserContext } | { ok: false; response: NextResponse }> {
+  const supabase = createSupabaseServerClient()
+  const { data, error } = await supabase.auth.getUser()
+
+  if (error || !data.user) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
+      ),
+    }
+  }
+
+  return {
+    ok: true,
+    context: {
+      authUserId: data.user.id,
+    },
+  }
 }
