@@ -18,12 +18,67 @@ export default function ParentPortal() {
   const [parentName, setParentName] = useState('')
 
   useEffect(() => {
-    const stored = localStorage.getItem('parent_session')
-    if (stored) {
-      const data = JSON.parse(stored)
-      setStudentData(data.student)
-      setParentName(data.parentName)
+    async function restoreAndValidateSession() {
+      const stored = localStorage.getItem('parent_session')
+      if (!stored) return
+
+      try {
+        const data = JSON.parse(stored)
+        const { data: authData, error: authError } = await supabase.auth.getUser()
+        if (authError || !authData.user) {
+          localStorage.removeItem('parent_session')
+          return
+        }
+
+        const { data: parentUser, error: parentError } = await supabase
+          .from('users')
+          .select('id, full_name')
+          .eq('auth_id', authData.user.id)
+          .eq('role', 'parent')
+          .single()
+
+        if (parentError || !parentUser || parentUser.id !== data.parentId) {
+          localStorage.removeItem('parent_session')
+          return
+        }
+
+        const { data: children, error: childrenError } = await supabase
+          .from('parent_students')
+          .select('students(*, classes(name, level))')
+          .eq('parent_id', parentUser.id)
+
+        if (childrenError || !children || children.length === 0) {
+          localStorage.removeItem('parent_session')
+          return
+        }
+
+        const validChildren = children.map((c: any) => c.students).filter(Boolean)
+        const restoredStudent =
+          validChildren.find((c: any) => c.id === data.student?.id) || validChildren[0]
+
+        if (!restoredStudent) {
+          localStorage.removeItem('parent_session')
+          return
+        }
+
+        setStudentData(restoredStudent)
+        setParentName(parentUser.full_name)
+        localStorage.setItem(
+          'parent_session',
+          JSON.stringify({
+            ...data,
+            parentId: parentUser.id,
+            parentName: parentUser.full_name,
+            student: restoredStudent,
+            children: validChildren,
+          })
+        )
+      } catch {
+        localStorage.removeItem('parent_session')
+      }
     }
+
+    restoreAndValidateSession()
   }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
