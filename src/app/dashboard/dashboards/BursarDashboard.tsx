@@ -7,6 +7,8 @@ import MaterialIcon from '@/components/MaterialIcon'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { StatsGridSkeleton } from '@/components/Skeletons'
 
+import StatCard from '@/components/dashboard/StatCard'
+
 function BursarDashboardContent() {
   const { school, user } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
@@ -36,64 +38,26 @@ function BursarDashboardContent() {
   return (
     <div className="content">
       <div className="page-header">
-        <div className="min-w-0">
-          <div className="ph-title truncate">{greeting}, {user?.full_name?.split(' ')[0]}</div>
-          <div className="ph-sub truncate">{school?.name} • {currentDate.toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
+        <div>
+          <div className="ph-title">{greeting}, {user?.full_name?.split(' ')[0]}</div>
+          <div className="ph-sub">{school?.name} • {currentDate.toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
         </div>
         <div className="ph-actions">
           <Link href="/dashboard/reports" className="btn btn-ghost">
-            <MaterialIcon icon="download" style={{ fontSize: 16 }} />
+            <MaterialIcon icon="download" size={16} />
             Export
           </Link>
           <Link href="/dashboard/fees" className="btn btn-primary">
-            <MaterialIcon icon="add_card" style={{ fontSize: 16 }} />
+            <MaterialIcon icon="add_card" size={16} />
             Record Payment
           </Link>
         </div>
       </div>
 
-      <div className="stat-grid sm:grid-cols-3 lg:grid-cols-3">
-        <div className="stat-card">
-          <div className="stat-accent" style={{ background: 'var(--green)' }} />
-          <div className="stat-inner">
-            <div className="stat-meta">
-              <div className="stat-label">Total Collected</div>
-              <div className="stat-icon-box" style={{ background: 'var(--green-soft)', color: 'var(--green)' }}>
-                <MaterialIcon icon="account_balance" style={{ fontSize: 18 }} />
-              </div>
-            </div>
-            <div className="stat-val" style={{ color: 'var(--green)' }}>UGX {formatCurrency(totalFeesCollected)}</div>
-            <div className="text-[11px] text-[var(--t3)] font-medium mt-1">{collectionRate}% of expected</div>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-accent" style={{ background: 'var(--red)' }} />
-          <div className="stat-inner">
-            <div className="stat-meta">
-              <div className="stat-label">Total Arrears</div>
-              <div className="stat-icon-box" style={{ background: 'var(--red-soft)', color: 'var(--red)' }}>
-                <MaterialIcon icon="warning" style={{ fontSize: 18 }} />
-              </div>
-            </div>
-            <div className="stat-val" style={{ color: 'var(--red)' }}>UGX {formatCurrency(totalArrears)}</div>
-            <div className="text-[11px] text-[var(--t3)] font-medium mt-1">{students.length} students</div>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-accent" style={{ background: 'var(--navy)' }} />
-          <div className="stat-inner">
-            <div className="stat-meta">
-              <div className="stat-label">Expected Total</div>
-              <div className="stat-icon-box" style={{ background: 'var(--navy-soft)', color: 'var(--navy)' }}>
-                <MaterialIcon icon="calculate" style={{ fontSize: 18 }} />
-              </div>
-            </div>
-            <div className="stat-val" style={{ color: 'var(--navy)' }}>UGX {formatCurrency(totalFeesExpected)}</div>
-            <div className="text-[11px] text-[var(--t3)] font-medium mt-1">Term {currentTerm}</div>
-          </div>
-        </div>
+      <div className="stat-grid sm:grid-cols-3">
+        <StatCard label="Total Collected" value={`UGX ${formatCurrency(totalFeesCollected)}`} subValue={`${collectionRate}% of expected`} icon="account_balance" accentColor="green" />
+        <StatCard label="Total Arrears" value={`UGX ${formatCurrency(totalArrears)}`} subValue={`${students.length} students`} icon="warning" accentColor="red" />
+        <StatCard label="Expected Total" value={`UGX ${formatCurrency(totalFeesExpected)}`} subValue={`Term ${currentTerm}`} icon="calculate" accentColor="navy" />
       </div>
 
       <div className="mb-6">

@@ -11,6 +11,8 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 import { useToast } from '@/components/Toast'
 import { StatsGridSkeleton } from '@/components/Skeletons'
 
+import StatCard from '@/components/dashboard/StatCard'
+
 function TeacherDashboardContent() {
   const router = useRouter()
   const toast = useToast()
@@ -76,63 +78,25 @@ function TeacherDashboardContent() {
     <div className="content">
       <div className="page-header">
         <div>
-          <div className="ph-title truncate">{greeting}, {user?.full_name?.split(' ')[0]}</div>
-          <div className="ph-sub truncate">{school?.name} • {academicYear} Term {currentTerm}</div>
+          <div className="ph-title">{greeting}, {user?.full_name?.split(' ')[0]}</div>
+          <div className="ph-sub">{school?.name} • {academicYear} Term {currentTerm}</div>
         </div>
         <div className="ph-actions">
           <Link href="/dashboard/timetable" className="btn btn-ghost">
-            <MaterialIcon icon="calendar_month" style={{ fontSize: '16px' }} />
+            <MaterialIcon icon="calendar_month" size={16} />
             My Schedule
           </Link>
           <Link href="/dashboard/grades" className="btn btn-primary">
-            <MaterialIcon icon="add" style={{ fontSize: '16px' }} />
+            <MaterialIcon icon="add" size={16} />
             Quick Entry
           </Link>
         </div>
       </div>
 
       <div className="stat-grid">
-        <Link href="/dashboard/attendance" className="stat-card">
-          <div className="stat-accent" style={{ background: 'var(--amber)' }} />
-          <div className="stat-inner">
-            <div className="stat-meta">
-              <div className="stat-label">My Classes</div>
-              <div className="stat-icon-box" style={{ background: 'var(--amber-soft)', color: 'var(--amber)' }}>
-                <MaterialIcon icon="school" style={{ fontSize: '17px' }} />
-              </div>
-            </div>
-            <div className="stat-val" style={{ color: 'var(--amber)' }}>{myClasses.length}</div>
-            <div className="text-[11px] text-[var(--t3)] font-medium mt-1">Classes assigned</div>
-          </div>
-        </Link>
-
-        <Link href="/dashboard/grades" className="stat-card">
-          <div className="stat-accent" style={{ background: 'var(--navy)' }} />
-          <div className="stat-inner">
-            <div className="stat-meta">
-              <div className="stat-label">My Subjects</div>
-              <div className="stat-icon-box" style={{ background: 'var(--navy-soft)', color: 'var(--navy)' }}>
-                <MaterialIcon icon="menu_book" style={{ fontSize: '17px' }} />
-              </div>
-            </div>
-            <div className="stat-val" style={{ color: 'var(--navy)' }}>{mySubjects.length}</div>
-            <div className="text-[11px] text-[var(--t3)] font-medium mt-1">Subjects teaching</div>
-          </div>
-        </Link>
-
-        <Link href="/dashboard/students" className="stat-card">
-          <div className="stat-accent" style={{ background: 'var(--navy)' }} />
-          <div className="stat-inner">
-            <div className="stat-meta">
-              <div className="stat-label">Total Students</div>
-              <div className="stat-icon-box" style={{ background: 'var(--navy-soft)', color: 'var(--navy)' }}>
-                <MaterialIcon icon="group" style={{ fontSize: '17px' }} />
-              </div>
-            </div>
-            <div className="stat-val" style={{ color: 'var(--navy)' }}>{students.length}</div>
-            <div className="text-[11px] text-[var(--t3)] font-medium mt-1">In my classes</div>
-          </div>
-        </Link>
+        <StatCard label="My Classes" value={myClasses.length} subValue="Classes assigned" icon="school" accentColor="amber" />
+        <StatCard label="My Subjects" value={mySubjects.length} subValue="Subjects teaching" icon="menu_book" accentColor="navy" />
+        <StatCard label="Total Students" value={students.length} subValue="In my classes" icon="group" accentColor="navy" />
       </div>
 
       {needsSetup && (
