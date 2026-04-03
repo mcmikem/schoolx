@@ -11,11 +11,14 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey || '')
 const DEMO_SCHOOL_ID = '00000000-0000-0000-0000-000000000001'
 const DEMO_ACADEMIC_YEAR = '2025'
 
+// Helper for UUIDs
+const uuid = (n: number) => `00000000-0000-0000-0000-${String(n).padStart(12, '0')}`
+
 async function seedDemoData() {
   console.log('🌱 Seeding demo data...')
 
   // 1. Create demo school
-  const { data: school, error: schoolError } = await supabase
+  const { error: schoolError } = await supabase
     .from('schools')
     .upsert({
       id: DEMO_SCHOOL_ID,
@@ -28,51 +31,49 @@ async function seedDemoData() {
       subscription_plan: 'premium',
       subscription_status: 'active',
     }, { onConflict: 'id' })
-    .select()
-    .single()
 
-  if (schoolError) {
-    console.error('School error:', schoolError)
-  }
+  if (schoolError) throw new Error(`School Error: ${schoolError.message}`)
   console.log('✓ School created')
 
   // 2. Create classes
   const classes = [
-    { id: 'c001', name: 'P.1', level: 1, school_id: DEMO_SCHOOL_ID },
-    { id: 'c002', name: 'P.2', level: 2, school_id: DEMO_SCHOOL_ID },
-    { id: 'c003', name: 'P.3', level: 3, school_id: DEMO_SCHOOL_ID },
-    { id: 'c004', name: 'P.4', level: 4, school_id: DEMO_SCHOOL_ID },
-    { id: 'c005', name: 'P.5', level: 5, school_id: DEMO_SCHOOL_ID },
-    { id: 'c006', name: 'P.6', level: 6, school_id: DEMO_SCHOOL_ID },
-    { id: 'c007', name: 'P.7', level: 7, school_id: DEMO_SCHOOL_ID },
+    { id: uuid(1), name: 'P.1', level: '1', school_id: DEMO_SCHOOL_ID },
+    { id: uuid(2), name: 'P.2', level: '2', school_id: DEMO_SCHOOL_ID },
+    { id: uuid(3), name: 'P.3', level: '3', school_id: DEMO_SCHOOL_ID },
+    { id: uuid(4), name: 'P.4', level: '4', school_id: DEMO_SCHOOL_ID },
+    { id: uuid(5), name: 'P.5', level: '5', school_id: DEMO_SCHOOL_ID },
+    { id: uuid(6), name: 'P.6', level: '6', school_id: DEMO_SCHOOL_ID },
+    { id: uuid(7), name: 'P.7', level: '7', school_id: DEMO_SCHOOL_ID },
   ]
 
-  await supabase.from('classes').upsert(classes, { onConflict: 'id' })
+  const { error: classError } = await supabase.from('classes').upsert(classes, { onConflict: 'id' })
+  if (classError) throw new Error(`Class Error: ${classError.message}`)
   console.log('✓ Classes created')
 
   // 3. Create subjects
   const subjects = [
-    { id: 's001', name: 'Mathematics', code: 'MATH', school_id: DEMO_SCHOOL_ID },
-    { id: 's002', name: 'English', code: 'ENG', school_id: DEMO_SCHOOL_ID },
-    { id: 's003', name: 'Science', code: 'SCI', school_id: DEMO_SCHOOL_ID },
-    { id: 's004', name: 'Social Studies', code: 'SST', school_id: DEMO_SCHOOL_ID },
-    { id: 's005', name: 'Religious Education', code: 'RE', school_id: DEMO_SCHOOL_ID },
-    { id: 's006', name: 'Physical Education', code: 'PE', school_id: DEMO_SCHOOL_ID },
+    { id: uuid(101), name: 'Mathematics', code: 'MATH', school_id: DEMO_SCHOOL_ID },
+    { id: uuid(102), name: 'English', code: 'ENG', school_id: DEMO_SCHOOL_ID },
+    { id: uuid(103), name: 'Science', code: 'SCI', school_id: DEMO_SCHOOL_ID },
+    { id: uuid(104), name: 'Social Studies', code: 'SST', school_id: DEMO_SCHOOL_ID },
   ]
 
-  await supabase.from('subjects').upsert(subjects, { onConflict: 'id' })
+  const { error: subjError } = await supabase.from('subjects').upsert(subjects, { onConflict: 'id' })
+  if (subjError) throw new Error(`Subject Error: ${subjError.message}`)
   console.log('✓ Subjects created')
 
   // 4. Create demo users (staff)
   const staffUsers = [
-    { id: 'u001', auth_id: 'demo-user-001', school_id: DEMO_SCHOOL_ID, full_name: 'John Headmaster', phone: '0700000001', role: 'headmaster', is_active: true },
-    { id: 'u002', auth_id: 'demo-user-002', school_id: DEMO_SCHOOL_ID, full_name: 'Mary Teacher', phone: '0700000002', role: 'teacher', is_active: true },
-    { id: 'u003', auth_id: 'demo-user-003', school_id: DEMO_SCHOOL_ID, full_name: 'James Bursar', phone: '0700000003', role: 'bursar', is_active: true },
-    { id: 'u004', auth_id: 'demo-user-004', school_id: DEMO_SCHOOL_ID, full_name: 'Sarah Dean', phone: '0700000004', role: 'dean_of_studies', is_active: true },
+    { id: uuid(201), auth_id: 'demo-user-001', school_id: DEMO_SCHOOL_ID, full_name: 'John Headmaster', phone: '0700000001', role: 'headmaster', is_active: true },
+    { id: uuid(202), auth_id: 'demo-user-002', school_id: DEMO_SCHOOL_ID, full_name: 'Mary Teacher', phone: '0700000002', role: 'teacher', is_active: true },
+    { id: uuid(203), auth_id: 'demo-user-003', school_id: DEMO_SCHOOL_ID, full_name: 'James Bursar', phone: '0700000003', role: 'bursar', is_active: true },
+    { id: uuid(204), auth_id: 'demo-user-004', school_id: DEMO_SCHOOL_ID, full_name: 'Sarah Dean', phone: '0700000004', role: 'dean_of_studies', is_active: true },
   ]
 
-  await supabase.from('users').upsert(staffUsers, { onConflict: 'id' })
+  const { error: userError } = await supabase.from('users').upsert(staffUsers, { onConflict: 'id' })
+  if (userError) throw new Error(`User Error: ${userError.message}`)
   console.log('✓ Staff users created')
+
 
   // 5. Create academic year
   const { data: academicYear } = await supabase

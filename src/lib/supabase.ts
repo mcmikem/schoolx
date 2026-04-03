@@ -82,7 +82,10 @@ const createMockClient = (): SupabaseClient => {
 
 const realClient = hasUsableSupabaseConfig
   ? createClient(supabaseUrl as string, supabaseAnonKey as string)
-  : null
+  : (() => {
+      console.warn("Supabase configuration missing or invalid. Falling back to mock client.");
+      return null;
+    })();
 
 export const supabase = realClient || createMockClient()
 
