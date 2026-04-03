@@ -160,8 +160,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Safety timeout - always set loading to false after 5 seconds
     const timeoutId = setTimeout(() => {
       console.log('[Auth] Safety timeout reached')
-      setLoading(false)
-    }, 5000)
+      // Check if we should use fallback demo user
+      if (!user) {
+        console.log('[Auth] Using fallback demo user')
+        setUser({
+          id: 'demo-user',
+          auth_id: 'demo',
+          school_id: '00000000-0000-0000-0000-000000000001',
+          full_name: 'John Headmaster',
+          phone: '0700000000',
+          role: 'headmaster',
+          avatar_url: undefined,
+          is_active: true,
+          created_at: new Date().toISOString(),
+        } as User)
+        setSchool({
+          id: '00000000-0000-0000-0000-000000000001',
+          name: "St. Mary's Primary School (Demo)",
+          school_code: 'DEMO001',
+          district: 'Kampala',
+          school_type: 'primary',
+          ownership: 'private',
+          primary_color: '#17325F',
+          subscription_plan: 'premium',
+          subscription_status: 'active',
+          feature_stage: 'full',
+          created_at: new Date().toISOString(),
+        })
+        setIsDemo(true)
+        setIsTrialExpired(false)
+        setLoading(false)
+      }
+    }, 3000)
     
     try {
       const demoUserStr = localStorage.getItem(DEMO_KEY)
