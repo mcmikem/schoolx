@@ -1,13 +1,19 @@
 'use client'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useClasses, useSubjects } from '@/lib/hooks'
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
+import ErrorBoundary from '@/components/ErrorBoundary'
+import { useToast } from '@/components/Toast'
+import { StatsGridSkeleton } from '@/components/Skeletons'
 
-export default function TeacherDashboard() {
+function TeacherDashboardContent() {
+  const router = useRouter()
+  const toast = useToast()
   const { school, user } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
   const { students } = useStudents(school?.id)
@@ -20,7 +26,6 @@ export default function TeacherDashboard() {
 
   const myClasses = classes.slice(0, 6)
   const mySubjects = subjects.slice(0, 6)
-
   const needsSetup = classes.length === 0 || subjects.length === 0
 
   const runSetup = async () => {
@@ -28,8 +33,7 @@ export default function TeacherDashboard() {
     setSettingUp(true)
     try {
       const currentYear = new Date().getFullYear().toString()
-      
-      // Create default classes
+
       const defaultClasses = [
         { school_id: school.id, name: 'P1', level: 'primary', academic_year: currentYear },
         { school_id: school.id, name: 'P2', level: 'primary', academic_year: currentYear },
@@ -40,8 +44,7 @@ export default function TeacherDashboard() {
         { school_id: school.id, name: 'P7', level: 'primary', academic_year: currentYear },
       ]
       await supabase.from('classes').insert(defaultClasses)
-      
-      // Create default subjects
+
       const defaultSubjects = [
         { school_id: school.id, name: 'English', code: 'ENG', level: 'primary' },
         { school_id: school.id, name: 'Mathematics', code: 'MTC', level: 'primary' },
@@ -51,8 +54,7 @@ export default function TeacherDashboard() {
         { school_id: school.id, name: 'Physical Education', code: 'PE', level: 'primary' },
       ]
       await supabase.from('subjects').insert(defaultSubjects)
-      
-      // Create academic year
+
       await supabase.from('academic_years').insert({
         school_id: school.id,
         name: currentYear,
@@ -60,11 +62,11 @@ export default function TeacherDashboard() {
         end_date: `${currentYear}-12-31`,
         is_current: true,
       })
-      
-      window.location.reload()
+
+      toast?.success('School setup complete!')
+      router.refresh()
     } catch (err) {
-      console.error('Setup error:', err)
-      alert('Setup failed. Please try again.')
+      toast?.error('Setup failed. Please try again.')
     } finally {
       setSettingUp(false)
     }
@@ -72,7 +74,6 @@ export default function TeacherDashboard() {
 
   return (
     <div className="content">
-      {/* PAGE HEADER */}
       <div className="page-header">
         <div>
           <div className="ph-title truncate">{greeting}, {user?.full_name?.split(' ')[0]}</div>
@@ -90,7 +91,6 @@ export default function TeacherDashboard() {
         </div>
       </div>
 
-      {/* STATS */}
       <div className="stat-grid">
         <Link href="/dashboard/attendance" className="stat-card">
           <div className="stat-accent" style={{ background: 'var(--amber)' }} />
@@ -135,7 +135,6 @@ export default function TeacherDashboard() {
         </Link>
       </div>
 
-      {/* SETUP NEEDED PROMPT */}
       {needsSetup && (
         <div className="card !bg-amber-soft/50 border-amber/30 p-5 mt-4 mb-6">
           <div className="flex items-center gap-3 mb-3">
@@ -148,8 +147,8 @@ export default function TeacherDashboard() {
           <p className="text-xs text-on-surface-variant leading-relaxed mb-4">
             It looks like your school doesn&apos;t have classes or subjects yet. Click below to set up automatically.
           </p>
-          <button 
-            onClick={runSetup} 
+          <button
+            onClick={runSetup}
             disabled={settingUp}
             className="btn btn-primary !bg-amber border-none shadow-lg shadow-amber/20"
           >
@@ -158,7 +157,6 @@ export default function TeacherDashboard() {
         </div>
       )}
 
-      {/* QUICK ACTIONS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 mt-6">
         <Link href="/dashboard/attendance" className="qa-item !flex-row !justify-start !p-4">
           <div className="qa-icon !mb-0 !mr-3" style={{ background: 'var(--navy-soft)', borderColor: 'rgba(23,50,95,0.1)', color: 'var(--navy)' }}>
@@ -198,7 +196,6 @@ export default function TeacherDashboard() {
         </Link>
       </div>
 
-      {/* CLASSES & SUBJECTS */}
       <div className="main-grid">
         <div className="main-col">
           <div className="card">
@@ -249,26 +246,14 @@ export default function TeacherDashboard() {
           </div>
         </div>
       </div>
-
-      {/* Mobile Bottom Nav - Only shows on mobile */}
-      <div className="mobile-bottom-nav">
-        <Link href="/dashboard" className="mobile-nav-item">
-          <MaterialIcon icon="home" style={{ fontSize: 22 }} />
-          <span>Home</span>
-        </Link>
-        <Link href="/dashboard/attendance" className="mobile-nav-item">
-          <MaterialIcon icon="school" style={{ fontSize: 22 }} />
-          <span>Classes</span>
-        </Link>
-        <Link href="/dashboard/grades" className="mobile-nav-item">
-          <MaterialIcon icon="menu_book" style={{ fontSize: 22 }} />
-          <span>Subjects</span>
-        </Link>
-        <Link href="/dashboard/profile" className="mobile-nav-item">
-          <MaterialIcon icon="person" style={{ fontSize: 22 }} />
-          <span>Profile</span>
-        </Link>
-      </div>
     </div>
+  )
+}
+
+export default function TeacherDashboard() {
+  return (
+    <ErrorBoundary>
+      <TeacherDashboardContent />
+    </ErrorBoundary>
   )
 }

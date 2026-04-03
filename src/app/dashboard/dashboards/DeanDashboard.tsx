@@ -5,97 +5,100 @@ import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useClasses, useSubjects, useDashboardStats } from '@/lib/hooks'
 import MaterialIcon from '@/components/MaterialIcon'
+import ErrorBoundary from '@/components/ErrorBoundary'
+import { StatsGridSkeleton } from '@/components/Skeletons'
 
-export default function DeanDashboard() {
+function DeanDashboardContent() {
+  const router = useRouter()
   const { school, user } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
   const { students } = useStudents(school?.id)
   const { classes } = useClasses(school?.id)
   const { subjects } = useSubjects(school?.id)
   const { stats, loading: statsLoading } = useDashboardStats(school?.id)
-  const router = useRouter()
 
   const currentDate = new Date()
   const greeting = currentDate.getHours() < 12 ? 'Good Morning' : currentDate.getHours() < 17 ? 'Good Afternoon' : 'Good Evening'
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  if (statsLoading) {
+    return (
+      <div className="content">
+        <StatsGridSkeleton cols={3} />
+      </div>
+    )
   }
 
   const getStudentCountForClass = (classId: string) => {
     return students.filter(s => s.class_id === classId).length
   }
 
-  const attendanceRate = stats.totalStudents > 0 
-    ? Math.round((stats.presentToday / stats.totalStudents) * 100) 
+  const attendanceRate = stats.totalStudents > 0
+    ? Math.round((stats.presentToday / stats.totalStudents) * 100)
     : 0
 
   return (
     <div className="content">
-      {/* PAGE HEADER */}
       <div className="page-header">
         <div className="min-w-0">
           <div className="ph-title truncate">{greeting}, {user?.full_name?.split(' ')[0]}</div>
-          <div className="ph-sub truncate">{school?.name} • {formatDate(currentDate)}</div>
+          <div className="ph-sub truncate">{school?.name} • {currentDate.toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
         </div>
         <div className="ph-actions">
           <button className="btn btn-ghost" onClick={() => router.push('/dashboard/grades')}>
-            <MaterialIcon icon="filter_list" style={{ fontSize: 16 }} />
+            <MaterialIcon icon="filter_list"  />
             Filter
           </button>
           <button className="btn btn-primary" onClick={() => router.push('/dashboard/grades')}>
-            <MaterialIcon icon="add" style={{ fontSize: 16 }} />
+            <MaterialIcon icon="add"  />
             Quick Entry
           </button>
         </div>
       </div>
 
-      {/* STATS */}
       <div className="stat-grid sm:grid-cols-3 lg:grid-cols-3">
         <div className="stat-card">
-          <div className="stat-accent" style={{ background: 'var(--navy)' }} />
+          <div className="stat-accent bg-navy" />
           <div className="stat-inner">
             <div className="stat-meta">
               <div className="stat-label">Students</div>
-              <div className="stat-icon-box" style={{ background: 'var(--navy-soft)', color: 'var(--navy)' }}>
-                <MaterialIcon icon="group" style={{ fontSize: 18 }} />
+              <div className="stat-icon-box bg-navy-soft text-navy">
+                <MaterialIcon icon="group"  />
               </div>
             </div>
-            <div className="stat-val" style={{ color: 'var(--navy)' }}>{students.length}</div>
+            <div className="stat-val text-navy">{students.length}</div>
             <div className="text-[11px] text-[var(--t3)] font-medium mt-1 uppercase tracking-wider">{classes.length} Classes enrolled</div>
           </div>
         </div>
 
         <div className="stat-card">
-          <div className="stat-accent" style={{ background: 'var(--green)' }} />
+          <div className="stat-accent bg-green" />
           <div className="stat-inner">
             <div className="stat-meta">
               <div className="stat-label">Attendance</div>
-              <div className="stat-icon-box" style={{ background: 'var(--green-soft)', color: 'var(--green)' }}>
-                <MaterialIcon icon="how_to_reg" style={{ fontSize: 18 }} />
+              <div className="stat-icon-box bg-green-soft text-green">
+                <MaterialIcon icon="how_to_reg"  />
               </div>
             </div>
-            <div className="stat-val" style={{ color: 'var(--green)' }}>{statsLoading ? '...' : `${attendanceRate}%`}</div>
+            <div className="stat-val text-green">{attendanceRate}%</div>
             <div className="text-[11px] text-[var(--t3)] font-medium mt-1 uppercase tracking-wider">Average rate today</div>
           </div>
         </div>
 
         <div className="stat-card">
-          <div className="stat-accent" style={{ background: 'var(--amber)' }} />
+          <div className="stat-accent bg-amber" />
           <div className="stat-inner">
             <div className="stat-meta">
               <div className="stat-label">Subjects</div>
-              <div className="stat-icon-box" style={{ background: 'var(--amber-soft)', color: 'var(--amber)' }}>
-                <MaterialIcon icon="school" style={{ fontSize: 18 }} />
+              <div className="stat-icon-box bg-amber-soft text-amber">
+                <MaterialIcon icon="school"  />
               </div>
             </div>
-            <div className="stat-val" style={{ color: 'var(--amber)' }}>{subjects.length}</div>
+            <div className="stat-val text-amber">{subjects.length}</div>
             <div className="text-[11px] text-[var(--t3)] font-medium mt-1 uppercase tracking-wider">Across {classes.length} classes</div>
           </div>
         </div>
       </div>
 
-      {/* QUICK ACTIONS */}
       <div className="mb-6">
         <div className="mb-3">
           <h3 className="text-sm font-bold text-[var(--t1)]">Academic Actions</h3>
@@ -140,7 +143,6 @@ export default function DeanDashboard() {
         </div>
       </div>
 
-      {/* CLASSES */}
       <div className="card">
         <div className="card-header">
           <div>
@@ -164,8 +166,14 @@ export default function DeanDashboard() {
           </div>
         </div>
       </div>
-
-      {/* Mobile bottom nav is rendered by DashboardLayout — do not duplicate here */}
     </div>
+  )
+}
+
+export default function DeanDashboard() {
+  return (
+    <ErrorBoundary>
+      <DeanDashboardContent />
+    </ErrorBoundary>
   )
 }
