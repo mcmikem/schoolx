@@ -712,8 +712,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <ErrorBoundary>
       <OfflineIndicator />
       {isTrialExpired && <ExpiredNotice />}
-      <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
-        <aside className={`sidebar${sidebarOpen ? ' open' : ''}`} style={{ width: 240, minWidth: 240, background: 'var(--surface)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100, boxShadow: 'var(--sh1)' }}>
+      <div className="bg-motif" style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
+        <aside className={`sidebar${sidebarOpen ? ' open' : ''}`} style={{ width: 240, minWidth: 240, background: 'var(--surface)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100, boxShadow: 'var(--sh2)' }}>
           <div style={{ padding: '22px 18px 16px', borderBottom: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
               {school?.logo_url ? (
