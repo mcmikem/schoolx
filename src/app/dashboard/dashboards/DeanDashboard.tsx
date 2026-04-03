@@ -8,6 +8,8 @@ import MaterialIcon from '@/components/MaterialIcon'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { StatsGridSkeleton } from '@/components/Skeletons'
 
+import StatCard from '@/components/dashboard/StatCard'
+
 function DeanDashboardContent() {
   const router = useRouter()
   const { school, user } = useAuth()
@@ -39,64 +41,26 @@ function DeanDashboardContent() {
   return (
     <div className="content">
       <div className="page-header">
-        <div className="min-w-0">
-          <div className="ph-title truncate">{greeting}, {user?.full_name?.split(' ')[0]}</div>
-          <div className="ph-sub truncate">{school?.name} • {currentDate.toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
+        <div>
+          <div className="ph-title">{greeting}, {user?.full_name?.split(' ')[0]}</div>
+          <div className="ph-sub">{school?.name} • {currentDate.toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
         </div>
         <div className="ph-actions">
           <button className="btn btn-ghost" onClick={() => router.push('/dashboard/grades')}>
-            <MaterialIcon icon="filter_list"  />
+            <MaterialIcon icon="filter_list" size={16} />
             Filter
           </button>
           <button className="btn btn-primary" onClick={() => router.push('/dashboard/grades')}>
-            <MaterialIcon icon="add"  />
+            <MaterialIcon icon="add" size={16} />
             Quick Entry
           </button>
         </div>
       </div>
 
-      <div className="stat-grid sm:grid-cols-3 lg:grid-cols-3">
-        <div className="stat-card">
-          <div className="stat-accent bg-navy" />
-          <div className="stat-inner">
-            <div className="stat-meta">
-              <div className="stat-label">Students</div>
-              <div className="stat-icon-box bg-navy-soft text-navy">
-                <MaterialIcon icon="group"  />
-              </div>
-            </div>
-            <div className="stat-val text-navy">{students.length}</div>
-            <div className="text-[11px] text-[var(--t3)] font-medium mt-1 uppercase tracking-wider">{classes.length} Classes enrolled</div>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-accent bg-green" />
-          <div className="stat-inner">
-            <div className="stat-meta">
-              <div className="stat-label">Attendance</div>
-              <div className="stat-icon-box bg-green-soft text-green">
-                <MaterialIcon icon="how_to_reg"  />
-              </div>
-            </div>
-            <div className="stat-val text-green">{attendanceRate}%</div>
-            <div className="text-[11px] text-[var(--t3)] font-medium mt-1 uppercase tracking-wider">Average rate today</div>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-accent bg-amber" />
-          <div className="stat-inner">
-            <div className="stat-meta">
-              <div className="stat-label">Subjects</div>
-              <div className="stat-icon-box bg-amber-soft text-amber">
-                <MaterialIcon icon="school"  />
-              </div>
-            </div>
-            <div className="stat-val text-amber">{subjects.length}</div>
-            <div className="text-[11px] text-[var(--t3)] font-medium mt-1 uppercase tracking-wider">Across {classes.length} classes</div>
-          </div>
-        </div>
+      <div className="stat-grid sm:grid-cols-3">
+        <StatCard label="Students" value={students.length} subValue={`${classes.length} Classes enrolled`} icon="group" accentColor="navy" />
+        <StatCard label="Attendance" value={`${attendanceRate}%`} subValue="Average rate today" icon="how_to_reg" accentColor="green" />
+        <StatCard label="Subjects" value={subjects.length} subValue={`Across ${classes.length} classes`} icon="school" accentColor="amber" />
       </div>
 
       <div className="mb-6">
