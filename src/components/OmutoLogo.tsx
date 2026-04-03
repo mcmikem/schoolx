@@ -30,7 +30,7 @@ export default function OmutoLogo({ size = 'md', variant = 'default', showText =
     <div className={cn("flex items-center gap-2.5", className)}>
       <div className="relative" style={{ width: s.icon, height: s.icon }}>
         <Image
-          src="/schoolx-icon.svg"
+          src="/schoolx-logo.svg"
           alt="SchoolX Logo"
           width={s.icon}
           height={s.icon}

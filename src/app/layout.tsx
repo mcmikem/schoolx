@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   title: 'SchoolX | Academic Management System',
   description: 'Comprehensive school management for Ugandan schools - Primary & Secondary',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/schoolx-logo.svg',
+    apple: '/schoolx-logo.svg',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -42,7 +46,8 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="SchoolX" />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.svg" />
+        <link rel="apple-touch-icon" href="/schoolx-logo.svg" />
+        <link rel="icon" href="/schoolx-logo.svg" type="image/svg+xml" />
       </head>
       <body className="antialiased min-h-screen" style={{ backgroundColor: 'var(--bg)', color: 'var(--t1)', fontFamily: "'Lato', sans-serif" }}>
         <Providers>{children}</Providers>
