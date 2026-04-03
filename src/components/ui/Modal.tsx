@@ -94,7 +94,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', showClose
         {(title || showClose) && (
           <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
             {title && (
-              <h2 id="modal-title" className="text-lg font-semibold text-[var(--t1)] font-['Sora']">
+              <h2 id="modal-title" className="text-lg font-semibold text-[var(--t1)] font-['Outfit']">
                 {title}
               </h2>
             )}

@@ -316,7 +316,7 @@ export default function ExamsPage() {
         <div className="modal-overlay" onClick={() => setShowAddExam(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <div className="font-['Sora'] text-base font-bold">Create Exam</div>
+              <div className="font-['Outfit'] text-base font-bold">Create Exam</div>
               <button onClick={() => setShowAddExam(false)} className="bg-transparent border-none p-1 cursor-pointer">
                 <MaterialIcon className="text-lg text-[var(--t3)]">close</MaterialIcon>
               </button>

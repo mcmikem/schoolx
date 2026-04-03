@@ -351,7 +351,7 @@ export default function ExamTimetablePage() {
         <div className="modal-overlay" onClick={() => { setShowAddModal(false); setConflicts([]) }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <div style={{ fontFamily: 'Sora', fontSize: 16, fontWeight: 700 }}>
+              <div style={{ fontFamily: 'Outfit', fontSize: 16, fontWeight: 700 }}>
                 {editingId ? 'Edit Exam' : 'Add Exam to Timetable'}
               </div>
               <button onClick={() => { setShowAddModal(false); setConflicts([]) }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>

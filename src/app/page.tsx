@@ -305,7 +305,7 @@ export default function HomePage() {
                 <MaterialIcon icon="bolt" className="text-[18px]" />
                 Built from xperience on the ground in schools
               </div>
-              <h1 className="mt-6 font-['Sora'] text-5xl font-semibold leading-[0.95] tracking-[-0.05em] text-slate-950 sm:text-6xl lg:text-7xl">
+              <h1 className="mt-6 font-['Outfit'] text-5xl font-semibold leading-[0.95] tracking-[-0.05em] text-slate-950 sm:text-6xl lg:text-7xl">
                 The school system
                 <br />
                 built from what
@@ -374,7 +374,7 @@ export default function HomePage() {
         <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">What schools actually need</p>
-            <h2 className="mt-4 max-w-md font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
+            <h2 className="mt-4 max-w-md font-['Outfit'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
               Not generic software. Real workflows for head teachers, bursars, deans of studies, and class teachers.
             </h2>
           </div>
@@ -403,7 +403,7 @@ export default function HomePage() {
                   <p className={`text-xs font-semibold uppercase tracking-[0.24em] ${index === 1 ? 'text-white/65' : 'text-[#17325F]'}`}>
                     {story.eyebrow}
                   </p>
-                  <h3 className="mt-4 font-['Sora'] text-2xl font-semibold leading-tight tracking-[-0.03em]">
+                  <h3 className="mt-4 font-['Outfit'] text-2xl font-semibold leading-tight tracking-[-0.03em]">
                     {story.title}
                   </h3>
                   <p className={`mt-4 text-base leading-7 ${index === 1 ? 'text-white/78' : 'text-slate-600'}`}>
@@ -430,7 +430,7 @@ export default function HomePage() {
         <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
           <div className="rounded-[34px] bg-[#0f1f3d] p-7 text-white shadow-[0_24px_60px_rgba(15,23,42,0.16)] lg:p-8">
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/60">The story behind SchoolX</p>
-            <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl">
+            <h2 className="mt-4 font-['Outfit'] text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl">
               It did not start as an idea. It started with what schools kept carrying every day.
             </h2>
             <p className="mt-5 text-base leading-7 text-white/76">
@@ -448,7 +448,7 @@ export default function HomePage() {
           <div className="grid gap-5">
             <div className="rounded-[34px] border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">What became obvious</p>
-              <h3 className="mt-4 font-['Sora'] text-2xl font-semibold leading-tight tracking-[-0.03em] text-slate-950">
+              <h3 className="mt-4 font-['Outfit'] text-2xl font-semibold leading-tight tracking-[-0.03em] text-slate-950">
                 Schools do not need more pressure. They need better tools.
               </h3>
               <p className="mt-4 text-base leading-7 text-slate-600">
@@ -481,7 +481,7 @@ export default function HomePage() {
         <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">Inside the platform</p>
-            <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
+            <h2 className="mt-4 font-['Outfit'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
               Every major school unit connected in one system.
             </h2>
             <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
@@ -509,7 +509,7 @@ export default function HomePage() {
           <div className="grid gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-start">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">SchoolX and OSX</p>
-              <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
+              <h2 className="mt-4 font-['Outfit'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
                 SchoolX is the system layer inside the wider Omuto School Xperience.
               </h2>
               <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
@@ -557,7 +557,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/60">Pricing</p>
-            <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl">
+            <h2 className="mt-4 font-['Outfit'] text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl">
               Clear term pricing for schools that want to move fast.
             </h2>
             <p className="mt-5 text-lg leading-8 text-white/72">
@@ -583,7 +583,7 @@ export default function HomePage() {
                     </span>
                   )}
                 </div>
-                <p className={`mt-4 font-['Sora'] text-4xl font-semibold tracking-[-0.05em] ${plan.featured ? 'text-slate-950' : 'text-white'}`}>
+                <p className={`mt-4 font-['Outfit'] text-4xl font-semibold tracking-[-0.05em] ${plan.featured ? 'text-slate-950' : 'text-white'}`}>
                   {plan.price}
                 </p>
                 <p className={`mt-1 text-sm ${plan.featured ? 'text-slate-500' : 'text-white/60'}`}>{plan.cadence}</p>
@@ -614,7 +614,7 @@ export default function HomePage() {
         <div className="rounded-[36px] border border-slate-200 bg-white px-6 py-8 shadow-sm sm:px-8 lg:flex lg:items-center lg:justify-between">
           <div className="max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">Ready to launch</p>
-            <h2 className="mt-3 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950">
+            <h2 className="mt-3 font-['Outfit'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950">
               Give your school one place to run the term.
             </h2>
             <p className="mt-4 text-base leading-7 text-slate-600">

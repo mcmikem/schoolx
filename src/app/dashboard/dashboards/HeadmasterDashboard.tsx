@@ -367,7 +367,7 @@ export default function HeadmasterDashboard() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '6px' }}>
               <ProgressRing progress={attendanceRate} color="var(--green)" />
               <div>
-                <div style={{ fontFamily: 'Sora', fontSize: '20px', fontWeight: 800, color: 'var(--green)', lineHeight: 1 }}>{attendanceRate}%</div>
+                <div style={{ fontFamily: 'Outfit', fontSize: '20px', fontWeight: 800, color: 'var(--green)', lineHeight: 1 }}>{attendanceRate}%</div>
                 <div style={{ fontSize: '11px', color: 'var(--t3)', marginTop: '3px' }}>Attendance rate</div>
                 <div style={{ fontSize: '11px', color: 'var(--red)', marginTop: '4px' }}>{absentCount} absent</div>
               </div>
