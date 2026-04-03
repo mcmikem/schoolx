@@ -124,6 +124,8 @@ export default function DashboardRouter() {
   switch (user.role) {
     case 'headmaster':
     case 'school_admin':
+    case 'admin':
+    case 'board':
       return <HeadmasterDashboard />
 
     case 'dean_of_studies':
