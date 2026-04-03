@@ -29,6 +29,7 @@ const STUDENT_TEMPLATE_COLUMNS = [
   'parent_name',
   'parent_phone',
   'parent_phone2',
+  'opening_balance',
 ]
 
 export default function StudentsPage() {
@@ -56,6 +57,7 @@ export default function StudentsPage() {
     class_id: '',
     student_number: '',
     ple_index_number: '',
+    opening_balance: '0',
   })
 
   // Update draft when form changes
@@ -77,6 +79,7 @@ export default function StudentsPage() {
     class_id: '',
     student_number: '',
     ple_index_number: '',
+    opening_balance: '0',
   })
   const [smsTarget, setSmsTarget] = useState<{ id: string; first_name: string; last_name: string; parent_phone?: string } | null>(null)
   const [templateRows, setTemplateRows] = useState<Record<string, string>[]>([])
@@ -129,6 +132,7 @@ export default function StudentsPage() {
           parent_name: row.parent_name?.trim() || '',
           parent_phone: row.parent_phone?.trim() || '',
           parent_phone2: row.parent_phone2?.trim() || '',
+          opening_balance: row.opening_balance?.trim() || '0',
         }))
 
         setTemplateRows(normalized)
@@ -168,6 +172,7 @@ export default function StudentsPage() {
           parent_name: row.parent_name || '',
           parent_phone: row.parent_phone || '',
           parent_phone2: row.parent_phone2 || undefined,
+          opening_balance: parseFloat(row.opening_balance || '0'),
           status: 'active',
         })
         success++
@@ -221,6 +226,7 @@ export default function StudentsPage() {
         class_id: newStudent.class_id,
         student_number: studentNumber,
         ple_index_number: newStudent.ple_index_number?.trim() || undefined,
+        opening_balance: parseFloat(newStudent.opening_balance || '0'),
         status: 'active',
       })
       toast.success('Student added successfully')
@@ -237,6 +243,7 @@ export default function StudentsPage() {
         class_id: '',
         student_number: '',
         ple_index_number: '',
+        opening_balance: '0',
       })
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to add student'
@@ -276,6 +283,7 @@ export default function StudentsPage() {
       class_id: student.class_id || '',
       student_number: student.student_number || '',
       ple_index_number: student.ple_index_number || '',
+      opening_balance: student.opening_balance?.toString() || '0',
     })
     setShowEditModal(true)
   }
@@ -285,7 +293,11 @@ export default function StudentsPage() {
     if (!editingStudent) return
     try {
       setSaving(true)
-      await updateStudent(editingStudent.id, editForm)
+      const updateData = {
+        ...editForm,
+        opening_balance: parseFloat(editForm.opening_balance || '0')
+      }
+      await updateStudent(editingStudent.id, updateData)
       toast.success('Student updated successfully')
       setShowEditModal(false)
       setEditingStudent(null)
@@ -311,6 +323,7 @@ export default function StudentsPage() {
       s.parent_name || '',
       s.parent_phone || '',
       s.classes?.name || '',
+      s.opening_balance || '0',
     ])
     
     const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n')
@@ -665,6 +678,15 @@ export default function StudentsPage() {
                 </div>
               </div>
 
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Opening Balance (Previous Debt/Credit)</label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: 'var(--t3)' }}>UGX</span>
+                  <input type="number" value={newStudent.opening_balance} onChange={(e) => handleNewStudentChange({ opening_balance: e.target.value })} className="input" style={{ paddingLeft: 45 }} />
+                </div>
+                <p style={{ fontSize: 10, color: 'var(--t3)', marginTop: 4 }}>Positive for debt (arrears), negative for credit/advance.</p>
+              </div>
+
               <div style={{ display: 'flex', gap: 10 }}>
                 <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-ghost" style={{ flex: 1 }}>Cancel</button>
                 <button type="submit" disabled={saving} className="btn btn-primary" style={{ flex: 1 }}>{saving ? 'Adding...' : 'Add Student'}</button>
@@ -732,6 +754,14 @@ export default function StudentsPage() {
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Alt. Phone</label>
                   <input type="tel" placeholder="0700000000" value={editForm.parent_phone2} onChange={(e) => setEditForm({ ...editForm, parent_phone2: e.target.value })} className="input" />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 6, display: 'block' }}>Opening Balance</label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: 'var(--t3)' }}>UGX</span>
+                  <input type="number" value={editForm.opening_balance} onChange={(e) => setEditForm({ ...editForm, opening_balance: e.target.value })} className="input" style={{ paddingLeft: 45 }} />
                 </div>
               </div>
 

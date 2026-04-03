@@ -16,6 +16,12 @@ export interface StudentBalance {
     reference: string
     date: string
   }>
+  adjustments: Array<{
+    id: string
+    adjustment_type: string
+    amount: number
+    description: string
+  }>
 }
 
 interface FeeTableProps {

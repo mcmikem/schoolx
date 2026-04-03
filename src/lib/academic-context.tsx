@@ -6,8 +6,11 @@ import { supabase } from './supabase'
 interface AcademicContextType {
   academicYear: string
   currentTerm: 1 | 2 | 3
+  lockedTerms: string[]
   setAcademicYear: (year: string) => void
   setCurrentTerm: (term: 1 | 2 | 3) => void
+  isTermLocked: (year: string, term: 1 | 2 | 3) => boolean
+  lockTerm: (year: string, term: 1 | 2 | 3, locked: boolean) => Promise<void>
 }
 
 const AcademicContext = createContext<AcademicContextType | undefined>(undefined)
@@ -16,6 +19,7 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
   const { school } = useAuth()
   const [academicYear, setAcademicYearState] = useState<string>(new Date().getFullYear().toString())
   const [currentTerm, setCurrentTermState] = useState<1 | 2 | 3>(1)
+  const [lockedTerms, setLockedTerms] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
 
   // Load from school settings on mount or when school changes
@@ -31,8 +35,7 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
         .from('school_settings')
         .select('key, value')
         .eq('school_id', school.id)
-        .in('key', ['current_term', 'academic_year'])
-      
+
       if (error) throw error
       
       if (data && data.length > 0) {
@@ -48,6 +51,11 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
           setCurrentTermState(newTerm)
           localStorage.setItem('current_term', settings.current_term.toString())
         }
+
+        const locked = Object.keys(settings)
+          .filter(k => k.startsWith('term_locked_') && settings[k] === 'true')
+          .map(k => k.replace('term_locked_', ''))
+        setLockedTerms(locked)
       } else {
         // Initialize if empty
         const initialYear = new Date().getFullYear().toString()
@@ -91,8 +99,30 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const isTermLocked = (year: string, term: 1 | 2 | 3) => {
+    return lockedTerms.includes(`${year}_${term}`)
+  }
+
+  const lockTerm = async (year: string, term: 1 | 2 | 3, locked: boolean) => {
+    if (!school?.id) return
+    const key = `term_locked_${year}_${term}`
+    const val = locked ? 'true' : 'false'
+    
+    if (locked) {
+      if (!lockedTerms.includes(`${year}_${term}`)) setLockedTerms([...lockedTerms, `${year}_${term}`])
+    } else {
+      setLockedTerms(lockedTerms.filter(t => t !== `${year}_${term}`))
+    }
+
+    const { error } = await supabase
+      .from('school_settings')
+      .upsert({ school_id: school.id, key, value: val }, { onConflict: 'school_id,key' })
+    
+    if (error) console.error('Error locking term:', error)
+  }
+
   return (
-    <AcademicContext.Provider value={{ academicYear, currentTerm, setAcademicYear, setCurrentTerm }}>
+    <AcademicContext.Provider value={{ academicYear, currentTerm, lockedTerms, setAcademicYear, setCurrentTerm, isTermLocked, lockTerm }}>
       {children}
     </AcademicContext.Provider>
   )

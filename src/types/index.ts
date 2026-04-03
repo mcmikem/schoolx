@@ -61,6 +61,7 @@ export interface Student {
   nationality?: string
   photo_url?: string
   status: 'active' | 'transferred' | 'dropped' | 'completed'
+  opening_balance?: number
   transfer_from?: string
   transfer_to?: string
   transfer_reason?: string
@@ -85,6 +86,7 @@ export interface CreateStudentInput {
   student_number?: string
   ple_index_number?: string
   status?: 'active' | 'transferred' | 'dropped' | 'completed'
+  opening_balance?: number
   transfer_from?: string
   transfer_reason?: string
   repeating?: boolean

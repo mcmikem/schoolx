@@ -16,8 +16,10 @@ import { NoData } from '@/components/EmptyState'
 
 export default function ExamsPage() {
   const { school } = useAuth()
-  const { academicYear, currentTerm } = useAcademic()
+  const { academicYear, currentTerm, isTermLocked } = useAcademic()
   const toast = useToast()
+  
+  const termLocked = isTermLocked ? isTermLocked(academicYear, currentTerm) : false
   
   const { students } = useStudents(school?.id)
   const { classes } = useClasses(school?.id)
@@ -119,10 +121,17 @@ export default function ExamsPage() {
         title={isSecondary ? 'Exam Management' : 'Exams & Grades'}
         subtitle={`${academicYear} Term ${currentTerm} • ${isSecondary ? 'BOT, Mid Term, EOT, Saturday Tests' : 'CA, Mid Term, EOT'}`}
         actions={
-          <Button onClick={() => setShowAddExam(true)}>
-            <MaterialIcon icon="add" className="text-lg" />
-            Create Exam
-          </Button>
+          <div className="flex items-center gap-3">
+            {termLocked && (
+              <span className="px-3 py-1 bg-error-container text-on-error-container rounded-full text-xs font-bold uppercase flex items-center gap-1">
+                <MaterialIcon icon="lock" className="text-sm" /> Term Locked
+              </span>
+            )}
+            <Button onClick={() => setShowAddExam(true)} disabled={termLocked} variant="primary">
+              <MaterialIcon icon="add" className="text-lg" />
+              Create Exam
+            </Button>
+          </div>
         }
       />
 
@@ -237,8 +246,9 @@ export default function ExamsPage() {
                                 max={config.maxScore}
                                 value={score >= 0 ? score : ''}
                                 onChange={e => handleSaveScore(student.id, Number(e.target.value))}
+                                disabled={termLocked}
                                 placeholder="-"
-                                className="w-12 text-center px-1.5 py-1 border border-[var(--border)] rounded-md text-xs font-mono"
+                                className="w-12 text-center px-1.5 py-1 border border-[var(--border)] rounded-md text-xs font-mono disabled:opacity-50 disabled:cursor-not-allowed"
                                 style={{ 
                                   background: score >= 0 ? (score >= 50 ? 'var(--green-soft)' : 'var(--red-soft)') : 'var(--surface-container)'
                                 }}
