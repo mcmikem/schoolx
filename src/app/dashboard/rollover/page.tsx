@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useStudents, useClasses } from '@/lib/hooks'
@@ -8,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
 
 export default function RolloverPage() {
+  const router = useRouter()
   const { school } = useAuth()
   const { academicYear, currentTerm, setAcademicYear, setCurrentTerm } = useAcademic()
   const toast = useToast()
@@ -34,7 +36,7 @@ export default function RolloverPage() {
         toast.success(`New academic year ${newAcademicYear} started`)
       }
 
-      window.location.reload()
+      router.push('/dashboard')
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to rollover')
     } finally {
@@ -131,7 +133,7 @@ export default function RolloverPage() {
 
       toast.success(`Academic year ${newAcademicYear} setup complete`)
       setStep(4)
-      window.location.reload()
+      router.push('/dashboard')
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to rollover')
     } finally {

@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -246,18 +247,18 @@ function ParentDashboard({ student, parentName, onLogout, onSwitchChild }: { stu
 
         {/* Quick Actions */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 24 }}>
-          <button style={{ background: 'var(--surface)', border: 'none', borderRadius: 12, padding: 16, cursor: 'pointer', textAlign: 'center' }}>
+          <Link href="/dashboard/fees" style={{ background: 'var(--surface)', borderRadius: 12, padding: 16, textAlign: 'center', textDecoration: 'none', color: 'inherit' }}>
             <MaterialIcon icon="receipt_long" style={{ fontSize: 24, color: 'var(--navy)' }} />
             <div style={{ fontSize: 11, marginTop: 4, color: 'var(--t2)' }}>Fees</div>
-          </button>
-          <button style={{ background: 'var(--surface)', border: 'none', borderRadius: 12, padding: 16, cursor: 'pointer', textAlign: 'center' }}>
+          </Link>
+          <Link href="/dashboard/homework" style={{ background: 'var(--surface)', borderRadius: 12, padding: 16, textAlign: 'center', textDecoration: 'none', color: 'inherit' }}>
             <MaterialIcon icon="assignment" style={{ fontSize: 24, color: 'var(--navy)' }} />
             <div style={{ fontSize: 11, marginTop: 4, color: 'var(--t2)' }}>Homework</div>
-          </button>
-          <button style={{ background: 'var(--surface)', border: 'none', borderRadius: 12, padding: 16, cursor: 'pointer', textAlign: 'center' }}>
+          </Link>
+          <Link href="/dashboard/messages" style={{ background: 'var(--surface)', borderRadius: 12, padding: 16, textAlign: 'center', textDecoration: 'none', color: 'inherit' }}>
             <MaterialIcon icon="chat" style={{ fontSize: 24, color: 'var(--navy)' }} />
             <div style={{ fontSize: 11, marginTop: 4, color: 'var(--t2)' }}>Messages</div>
-          </button>
+          </Link>
         </div>
 
         {/* Recent Attendance */}

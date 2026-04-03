@@ -1,6 +1,7 @@
 'use client'
 import { useState, useRef, forwardRef, useImperativeHandle } from 'react'
 import MaterialIcon from '@/components/MaterialIcon'
+import { useToast } from '@/components/Toast'
 
 export interface PrintHandle {
   open: (content: React.ReactNode, options?: PrintOptions) => void
@@ -35,6 +36,7 @@ export const PRINT_FORMATS = {
 }
 
 export const UnifiedPrint = forwardRef<PrintHandle>(function UnifiedPrint(_, ref) {
+  const toast = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [content, setContent] = useState<PrintContent | null>(null)
   const printRef = useRef<HTMLDivElement>(null)
@@ -125,7 +127,7 @@ export const UnifiedPrint = forwardRef<PrintHandle>(function UnifiedPrint(_, ref
   }
 
   const handleDownloadPDF = () => {
-    alert('PDF download requires server-side implementation. Use Print to save as PDF.')
+    toast?.info('PDF download requires server-side implementation. Use Print to save as PDF.')
   }
 
   if (!isOpen) return null

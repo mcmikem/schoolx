@@ -25,45 +25,23 @@ function ProgressRing({ progress, color = '#2E9448' }: { progress: number; color
   )
 }
 
-import { useState, useMemo } from 'react'
-import { QuickActions } from '@/components/dashboard/QuickActions'
-
 function HeadmasterDashboardContent() {
-  const [viewMode, setViewMode] = useState<'overview' | 'operational'>('overview')
   const toast = useToast()
   const { school, user, isDemo } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
 
   const { stats, loading: statsLoading } = useDashboardStats(school?.id)
-  // ... existing code ...
+  const { students = [] } = useStudents(school?.id)
+  const { payments = [] } = useFeePayments(school?.id)
+  const { feeStructure = [] } = useFeeStructure(school?.id)
+  const { classes = [] } = useClasses(school?.id)
+  const { staff = [] } = useStaff(school?.id)
 
-  const actions = [
-    { label: 'Payments', href: '/dashboard/fees', icon: 'add_card', color: 'green' },
-    { label: 'Staff Leave', href: '/dashboard/leave', icon: 'event_busy', color: 'navy' },
-    { label: 'Expenses', href: '/dashboard/expenses', icon: 'receipt_long', color: 'amber' },
-    { label: 'Reports', href: '/dashboard/reports', icon: 'analytics', color: 'navy' },
-  ]
-
-  return (
-    <div className="content">
-      <div className="page-header">
-        <div>
-          <div className="ph-title">{greeting}, {user?.full_name?.split(' ')[0]}</div>
-          <div className="ph-sub">{school?.name}</div>
-        </div>
-        <div className="flex bg-[var(--bg)] p-1 rounded-lg">
-          <button onClick={() => setViewMode('overview')} className={`px-4 py-2 rounded-md text-xs font-bold transition ${viewMode === 'overview' ? 'bg-white shadow' : 'text-[var(--t3)]'}`}>Overview</button>
-          <button onClick={() => setViewMode('operational')} className={`px-4 py-2 rounded-md text-xs font-bold transition ${viewMode === 'operational' ? 'bg-white shadow' : 'text-[var(--t3)]'}`}>Operational</button>
-        </div>
-      </div>
-
-      {viewMode === 'overview' ? (
-         <div className="stat-grid sm:grid-cols-3">
-             {/* ... keep original StatCards ... */}
-         </div>
-      ) : (
-        <QuickActions title="Core Operations" actions={actions} />
-      )}
+  const {
+    classAttendance, atRiskStudents, smsStats, pendingExpenses, pendingLeave,
+    feesToday, feesThisWeek, feesThisTerm, staffOnDuty, overdueFeeCount,
+    lowAttendanceClasses, dropoutRiskCount, loading: loadingExtra
+  } = useDashboardExtraData(school?.id, students, feeStructure, currentTerm, academicYear)
 
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import MaterialIcon from '@/components/MaterialIcon'
+import { useToast } from '@/components/Toast'
 
 interface PinnedItem {
   href: string
@@ -40,6 +41,7 @@ const availableItems: PinnedItem[] = [
 
 export default function FavoritesBar() {
   const pathname = usePathname()
+  const toast = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [pinnedItems, setPinnedItems] = useState<PinnedItem[]>(defaultPins)
 
@@ -62,7 +64,7 @@ export default function FavoritesBar() {
   const pinItem = (item: PinnedItem) => {
     if (pinnedItems.find(p => p.href === item.href)) return
     if (pinnedItems.length >= 6) {
-      alert('Maximum 6 pinned items allowed. Remove one first.')
+      toast?.error('Maximum 6 pinned items allowed. Remove one first.')
       return
     }
     savePins([...pinnedItems, item])
