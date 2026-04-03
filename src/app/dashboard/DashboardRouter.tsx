@@ -8,6 +8,14 @@ import TeacherDashboard from './dashboards/TeacherDashboard'
 export default function DashboardRouter() {
   const { user, isDemo, loading } = useAuth()
 
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-[var(--t3)]">Loading dashboard...</div>
+      </div>
+    )
+  }
+
   // Skip loading check - show dashboard immediately
   if (!user) {
     // No user - redirect will happen in layout
