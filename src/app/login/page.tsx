@@ -30,6 +30,20 @@ function MaterialIcon({ icon, className, children }: { icon: string; className?:
   return <span className={`material-symbols-outlined ${className || ''}`}>{icon || children}</span>
 }
 
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import { useToast } from '@/components/Toast'
+import Link from 'next/link'
+import AuthShell from '@/components/layout/AuthShell'
+import MaterialIcon from '@/components/MaterialIcon'
+
+const DEMO_KEY = 'omuto_demo_v1'
+
+// ... (retain demo helpers as is)
+
 export default function LoginPage() {
   const router = useRouter()
   const toast = useToast()
@@ -69,10 +83,8 @@ export default function LoginPage() {
 
     const cleanPhone = phone.replace(/[^0-9]/g, '')
     
-    // Clear any previous demo data before login
     localStorage.removeItem(DEMO_KEY)
     
-    // DEMO LOGIN - always use local demo mode
     if (password === 'demo1234' && demoUsers[cleanPhone]) {
       const demoUser = demoUsers[cleanPhone]
       const demoSchoolData = {
@@ -95,7 +107,6 @@ export default function LoginPage() {
       return
     }
 
-    // Normal login - Supabase auth
     try {
       if (!supabase) {
         toast.error('Supabase not configured. Please use demo account.')
@@ -150,113 +161,73 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafb] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <OmutoLogo size="lg" />
+    <AuthShell title="Sign in" subtitle="Enter your phone number and password">
+      <form onSubmit={handleLogin} className="space-y-5">
+        <div>
+          <label className="text-sm font-medium text-[var(--t1)] mb-2 block">
+            Phone Number
+          </label>
+          <input
+            type="tel"
+            placeholder="e.g. 0700000000"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="input w-full"
+            required
+          />
         </div>
-        
-        <h2 className="mt-6 text-center text-2xl font-bold text-[#002045]">
-          Sign in to your account
-        </h2>
-        <p className="mt-2 text-center text-sm text-[#5c6670]">
-          Enter your phone number and password
-        </p>
-      </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white rounded-2xl border border-[#e8eaed] py-8 px-6 sm:px-10 shadow-sm">
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div>
-              <label htmlFor="phone" className="text-sm font-medium text-[#191c1d] mb-2 block">
-                Phone Number
-              </label>
-              <input
-                id="phone"
-                type="tel"
-                placeholder="e.g. 0700000000"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="input"
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="text-sm font-medium text-[#191c1d] mb-2 block">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input pr-12"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5c6670] hover:text-[#002045]"
-                >
-                  <MaterialIcon icon={showPassword ? 'visibility_off' : 'visibility'} className="text-xl" />
-                </button>
-              </div>
-            </div>
-
+        <div>
+          <label className="text-sm font-medium text-[var(--t1)] mb-2 block">
+            Password
+          </label>
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input w-full pr-12"
+              required
+            />
             <button
-              type="submit"
-              disabled={loading}
-              className="btn btn-primary w-full"
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--t3)] hover:text-[var(--t1)]"
             >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <MaterialIcon icon="progress_activity" className="animate-spin" />
-                  Signing in...
-                </span>
-              ) : (
-                <>
-                  <MaterialIcon icon="login" className="text-lg" />
-                  Sign In
-                </>
-              )}
+              <MaterialIcon icon={showPassword ? 'visibility_off' : 'visibility'} className="text-lg" />
             </button>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[#e8eaed]" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-3 bg-white text-[#5c6670]">Demo Accounts</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              {demoAccounts.map((demo) => (
-                <button
-                  key={demo.phone}
-                  type="button"
-                  onClick={() => handleDemoLogin(demo)}
-                  className="btn btn-secondary text-xs py-2"
-                >
-                  {demo.role}
-                </button>
-              ))}
-            </div>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-[#5c6670]">
-              Don&apos;t have an account?{' '}
-              <Link href="/register" className="font-semibold text-[#002045] hover:text-[#006e1c]">
-                Register your school
-              </Link>
-            </p>
           </div>
         </div>
-      </div>
-    </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="btn btn-primary w-full"
+        >
+          {loading ? 'Signing in...' : 'Sign In'}
+        </button>
+
+        <div className="relative py-2">
+          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[var(--border)]" /></div>
+          <div className="relative flex justify-center text-xs"><span className="px-2 bg-[var(--surface)] text-[var(--t4)] uppercase tracking-wider font-semibold">Demo Accounts</span></div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          {demoAccounts.map((demo) => (
+            <button key={demo.phone} type="button" onClick={() => handleDemoLogin(demo)} className="btn btn-ghost text-xs py-2">
+              {demo.role}
+            </button>
+          ))}
+        </div>
+
+        <p className="text-center text-sm text-[var(--t3)] mt-6">
+          Don&apos;t have an account?{' '}
+          <Link href="/register" className="font-bold text-[var(--navy)] hover:text-[var(--green)]">
+            Register your school
+          </Link>
+        </p>
+      </form>
+    </AuthShell>
   )
 }
