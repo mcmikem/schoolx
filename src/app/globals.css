@@ -176,7 +176,7 @@
 
   .ph-title {
     @apply text-lg sm:text-xl md:text-2xl font-extrabold text-[var(--t1)] tracking-tight leading-none truncate;
-    font-family: 'Sora', sans-serif;
+    font-family: 'Outfit', sans-serif;
   }
 
   .ph-sub {
@@ -214,7 +214,7 @@
 
   .card-title {
     @apply font-bold text-sm text-[var(--t1)] tracking-tight;
-    font-family: 'Sora', sans-serif;
+    font-family: 'Outfit', sans-serif;
   }
 
   .card-body {
@@ -255,7 +255,7 @@
 
   .stat-val {
     @apply text-2xl font-extrabold tracking-tight leading-none;
-    font-family: 'Sora', sans-serif;
+    font-family: 'Outfit', sans-serif;
   }
 
   .stat-footer {

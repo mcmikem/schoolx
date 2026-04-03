@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#17325F',
+  themeColor: '#0056D2',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
@@ -31,7 +31,7 @@ export default function RootLayout({
       <head>
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
-          href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700;800&family=Lato:wght@300;400;700;900&display=swap"
           rel="stylesheet"
         />
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
@@ -44,7 +44,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="SchoolX" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.svg" />
       </head>
-      <body className="antialiased min-h-screen" style={{ backgroundColor: 'var(--bg)', color: 'var(--t1)', fontFamily: "'Instrument Sans', 'Inter', system-ui, sans-serif" }}>
+      <body className="antialiased min-h-screen" style={{ backgroundColor: 'var(--bg)', color: 'var(--t1)', fontFamily: "'Lato', sans-serif" }}>
         <Providers>{children}</Providers>
         <script dangerouslySetInnerHTML={{
           __html: `

@@ -477,7 +477,7 @@ export default function StudentsPage() {
             </div>
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.7px', textTransform: 'uppercase', color: 'var(--t3)' }}>Total</span>
           </div>
-          <div style={{ fontFamily: 'Sora', fontSize: 28, fontWeight: 800, color: 'var(--navy)' }}>{students.length}</div>
+          <div style={{ fontFamily: 'Outfit', fontSize: 28, fontWeight: 800, color: 'var(--navy)' }}>{students.length}</div>
         </div>
         <div className="card" style={{ padding: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -486,7 +486,7 @@ export default function StudentsPage() {
             </div>
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.7px', textTransform: 'uppercase', color: 'var(--t3)' }}>Boys</span>
           </div>
-          <div style={{ fontFamily: 'Sora', fontSize: 28, fontWeight: 800, color: 'var(--navy)' }}>{boysCount}</div>
+          <div style={{ fontFamily: 'Outfit', fontSize: 28, fontWeight: 800, color: 'var(--navy)' }}>{boysCount}</div>
         </div>
         <div className="card" style={{ padding: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -495,7 +495,7 @@ export default function StudentsPage() {
             </div>
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.7px', textTransform: 'uppercase', color: 'var(--t3)' }}>Girls</span>
           </div>
-          <div style={{ fontFamily: 'Sora', fontSize: 28, fontWeight: 800, color: 'var(--navy)' }}>{girlsCount}</div>
+          <div style={{ fontFamily: 'Outfit', fontSize: 28, fontWeight: 800, color: 'var(--navy)' }}>{girlsCount}</div>
         </div>
         <div className="card" style={{ padding: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -504,7 +504,7 @@ export default function StudentsPage() {
             </div>
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.7px', textTransform: 'uppercase', color: 'var(--t3)' }}>Classes</span>
           </div>
-          <div style={{ fontFamily: 'Sora', fontSize: 28, fontWeight: 800, color: 'var(--navy)' }}>{classes.length}</div>
+          <div style={{ fontFamily: 'Outfit', fontSize: 28, fontWeight: 800, color: 'var(--navy)' }}>{classes.length}</div>
         </div>
       </div>
 
@@ -614,7 +614,7 @@ export default function StudentsPage() {
         <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <div style={{ fontFamily: 'Sora', fontSize: 16, fontWeight: 700 }}>Add New Student</div>
+              <div style={{ fontFamily: 'Outfit', fontSize: 16, fontWeight: 700 }}>Add New Student</div>
               <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
                 <MaterialIcon style={{ fontSize: 18, color: 'var(--t3)' }}>close</MaterialIcon>
               </button>
@@ -700,7 +700,7 @@ export default function StudentsPage() {
         <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <div style={{ fontFamily: 'Sora', fontSize: 16, fontWeight: 700 }}>Edit Student</div>
+              <div style={{ fontFamily: 'Outfit', fontSize: 16, fontWeight: 700 }}>Edit Student</div>
               <button onClick={() => setShowEditModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
                 <MaterialIcon style={{ fontSize: 18, color: 'var(--t3)' }}>close</MaterialIcon>
               </button>

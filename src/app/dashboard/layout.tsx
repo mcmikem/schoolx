@@ -719,12 +719,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {school?.logo_url ? (
                 <Image src={school.logo_url} alt={schoolName} width={36} height={36} style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover' }} />
               ) : (
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--navy)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: '#fff' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--navy)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: '#fff' }}>
                   {schoolInitial}
                 </div>
               )}
               <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: 'Sora', fontSize: 16, fontWeight: 700, color: 'var(--t1)', letterSpacing: '-.2px', lineHeight: 1.1 }}>{schoolName}</div>
+                <div style={{ fontFamily: 'Outfit', fontSize: 16, fontWeight: 700, color: 'var(--t1)', letterSpacing: '-.2px', lineHeight: 1.1 }}>{schoolName}</div>
                 <div style={{ fontSize: 10, color: 'var(--t4)', letterSpacing: '.3px', marginTop: 1 }}>by Omuto Foundation</div>
               </div>
               <button onClick={() => setSidebarOpen(false)} className="sidebar-close-btn" style={{ display: 'none', width: 32, height: 32, borderRadius: 8, border: 'none', background: 'var(--bg)', cursor: 'pointer', alignItems: 'center', justifyContent: 'center' }}>
@@ -756,7 +756,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <MaterialIcon icon="menu" style={{ fontSize: 24, color: 'var(--t1)' }} />
             </button>
             <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: 'Sora', fontSize: 18, fontWeight: 700, color: 'var(--t1)', letterSpacing: '-.2px' }}>{pageTitle}</div>
+              <div style={{ fontFamily: 'Outfit', fontSize: 18, fontWeight: 700, color: 'var(--t1)', letterSpacing: '-.2px' }}>{pageTitle}</div>
               <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>{currentDate.toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
             </div>
 
@@ -787,7 +787,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
               <div style={{ position: 'relative' }}>
                 <div className="user-menu" onClick={() => setUserMenuOpen(!userMenuOpen)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 12px 5px 5px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 99, cursor: 'pointer', boxShadow: 'var(--sh1)', transition: 'all var(--dur) var(--ease)' }}>
-                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--navy)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', fontFamily: 'Sora' }}>
+                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--navy)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', fontFamily: 'Outfit' }}>
                     {user?.full_name?.charAt(0) || 'U'}
                   </div>
                   <div>
