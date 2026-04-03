@@ -15,8 +15,9 @@ const isValidHttpUrl = (value?: string | null) => {
 
 const isValidAnonKey = (key?: string) => {
   if (!key) return false
-  // Real Supabase anon keys are JWT tokens starting with "eyJ"
-  return key.startsWith('eyJ') && key.length > 50
+  // Supabase anon keys start with "sb_publishable_" or are JWT tokens starting with "eyJ"
+  return (key.startsWith('sb_publishable_') && key.length > 20) || 
+         (key.startsWith('eyJ') && key.length > 50)
 }
 
 const hasUsableSupabaseConfig =

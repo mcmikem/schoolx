@@ -246,9 +246,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (supabase?.auth) {
         const { data: { session } } = await supabase!.auth.getSession()
         console.log('[Auth] Session:', !!session)
-        if (session) {
+        if (session && session.user) {
           await fetchUserData(session.user.id)
           setIsDemo(false)
+          clearTimeout(timeoutId)
+          setLoading(false)
         } else {
           setIsDemo(false)
           clearTimeout(timeoutId)
@@ -284,7 +286,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           if (isCurrentlyDemo && event !== 'SIGNED_OUT') return
           
-          if (event === 'SIGNED_IN' && session) {
+           if (event === 'SIGNED_IN' && session && session.user) {
             await fetchUserData(session.user.id)
           } else if (event === 'SIGNED_OUT') {
             setUser(null)
@@ -308,6 +310,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
 
       if (error) return { error }
+      if (!data.user) return { error: { message: 'No user returned from Supabase' } }
 
       // fetchUserData populates the user state including role — no second query needed
       await fetchUserData(data.user.id)
@@ -359,7 +362,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function refreshSchool() {
-    if (!user?.school_id) return
+    if (!user?.school_id || !supabase) return
     try {
       const { data: schoolData } = await supabase
         .from('schools')
