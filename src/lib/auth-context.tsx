@@ -176,8 +176,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               created_at: new Date().toISOString(),
             } as User)
             setSchool({
-              ...demoSchool,
-              feature_stage: (demoSchool.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
+              id: demoSchool.id,
+              name: demoSchool.name,
+              school_code: 'DEMO001',
+              district: 'Kampala',
+              school_type: 'primary',
+              ownership: 'private',
+              primary_color: '#17325F',
+              subscription_plan: 'premium',
+              subscription_status: 'active',
+              feature_stage: 'full' as FeatureStage,
+              created_at: new Date().toISOString(),
             })
             setIsDemo(true)
             setIsTrialExpired(false)
@@ -195,11 +204,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session) {
           await fetchUserData(session.user.id)
           setIsDemo(false)
+        } else {
+          setLoading(false)
         }
+      } else {
+        setLoading(false)
       }
     } catch (error) {
       console.error('Error checking user:', error)
-    } finally {
       setLoading(false)
     }
   }, [fetchUserData])

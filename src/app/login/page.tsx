@@ -223,7 +223,18 @@ export default function LoginPage() {
         }
         
         const demoUser = demoUsers[cleanPhone]
-        const demoData = encryptDemoData({ demoUser, demoSchool: { id: DEMO_SCHOOL_ID, name: demoSchool?.name || "St. Mary's Primary School (Demo)" } })
+        const demoSchoolData = {
+          id: DEMO_SCHOOL_ID,
+          name: demoSchool?.name || "St. Mary's Primary School (Demo)",
+          school_code: 'DEMO001',
+          district: 'Kampala',
+          school_type: 'primary' as const,
+          ownership: 'private' as const,
+          primary_color: '#17325F',
+          subscription_plan: 'premium' as const,
+          subscription_status: 'active' as const,
+        }
+        const demoData = encryptDemoData({ demoUser, demoSchool: demoSchoolData })
         localStorage.setItem(DEMO_KEY, demoData)
         toast.success(`Welcome, ${demoUser.name} (Demo Mode)`)
         router.push('/dashboard')
@@ -232,8 +243,19 @@ export default function LoginPage() {
         console.error('Demo login error:', err)
         // Still allow login even if seeding fails
         const demoUser = demoUsers[cleanPhone]
-        localStorage.setItem('demo_user', JSON.stringify(demoUser))
-        localStorage.setItem('demo_school', JSON.stringify({ id: DEMO_SCHOOL_ID, name: "St. Mary's Primary School (Demo)" }))
+        const demoSchoolData = {
+          id: DEMO_SCHOOL_ID,
+          name: "St. Mary's Primary School (Demo)",
+          school_code: 'DEMO001',
+          district: 'Kampala',
+          school_type: 'primary' as const,
+          ownership: 'private' as const,
+          primary_color: '#17325F',
+          subscription_plan: 'premium' as const,
+          subscription_status: 'active' as const,
+        }
+        const demoData = encryptDemoData({ demoUser, demoSchool: demoSchoolData })
+        localStorage.setItem(DEMO_KEY, demoData)
         toast.success(`Welcome, ${demoUser.name} (Demo Mode)`)
         router.push('/dashboard')
         router.refresh()
