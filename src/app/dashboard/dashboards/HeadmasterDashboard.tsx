@@ -28,6 +28,10 @@ export default function HeadmasterDashboard() {
   const toast = useToast()
   const { school, user, isDemo } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
+  
+  console.log('[Dashboard] school:', school?.id, school?.name)
+  console.log('[Dashboard] user:', user?.full_name, user?.role)
+  
   const { stats, loading: statsLoading } = useDashboardStats(school?.id)
   const { students = [] } = useStudents(school?.id)
   const { payments = [] } = useFeePayments(school?.id)
