@@ -67,9 +67,9 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
                         href={item.href}
                         onClick={onNavigate}
                         className={cn(
-                          "flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-all min-h-[36px] group",
+                          "flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] transition-all min-h-[36px] group",
                           isActive 
-                            ? "bg-[var(--primary-50)] text-[var(--primary)] font-semibold" 
+                            ? "bg-[var(--primary)] text-white font-semibold shadow-[var(--sh1)]" 
                             : "text-[var(--t2)] hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)]"
                         )}
                         aria-current={isActive ? 'page' : undefined}
@@ -78,7 +78,7 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
                           icon={item.icon} 
                           className={cn(
                             "text-[17px]",
-                            isActive ? "text-[var(--primary)]" : "text-[var(--t3)] group-hover:text-[var(--t2)]"
+                            isActive ? "text-white" : "text-[var(--t3)] group-hover:text-[var(--t2)]"
                           )} 
                         />
                         <span className="flex-1 truncate">{item.label}</span>
