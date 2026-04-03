@@ -155,6 +155,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const checkUser = useCallback(async () => {
+    // Safety timeout - always set loading to false after 5 seconds
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.warn('[Auth] Safety timeout - forcing loading=false')
+        setLoading(false)
+      }
+    }, 5000)
+    
     try {
       const demoUserStr = localStorage.getItem(DEMO_KEY)
       
@@ -170,7 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               school_id: demoSchool.id,
               full_name: demoUser.name,
               phone: '0700000000',
-              role: sanitizeDemoRole(demoUser.role),  // whitelist enforced
+              role: sanitizeDemoRole(demoUser.role),
               avatar_url: undefined,
               is_active: true,
               created_at: new Date().toISOString(),
@@ -178,18 +186,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setSchool({
               id: demoSchool.id,
               name: demoSchool.name,
-              school_code: 'DEMO001',
-              district: 'Kampala',
-              school_type: 'primary',
-              ownership: 'private',
-              primary_color: '#17325F',
-              subscription_plan: 'premium',
-              subscription_status: 'active',
-              feature_stage: 'full' as FeatureStage,
+              school_code: demoSchool.school_code || 'DEMO001',
+              district: demoSchool.district || 'Kampala',
+              school_type: demoSchool.school_type || 'primary',
+              ownership: demoSchool.ownership || 'private',
+              primary_color: demoSchool.primary_color || '#17325F',
+              subscription_plan: demoSchool.subscription_plan || 'premium',
+              subscription_status: demoSchool.subscription_status || 'active',
+              feature_stage: (demoSchool.feature_stage as FeatureStage) || 'full',
               created_at: new Date().toISOString(),
             })
             setIsDemo(true)
             setIsTrialExpired(false)
+            clearTimeout(timeoutId)
             setLoading(false)
             return
           }
@@ -205,13 +214,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await fetchUserData(session.user.id)
           setIsDemo(false)
         } else {
+          setIsDemo(false)
+          clearTimeout(timeoutId)
           setLoading(false)
         }
       } else {
+        setIsDemo(false)
+        clearTimeout(timeoutId)
         setLoading(false)
       }
     } catch (error) {
       console.error('Error checking user:', error)
+      setIsDemo(false)
+      clearTimeout(timeoutId)
       setLoading(false)
     }
   }, [fetchUserData])
