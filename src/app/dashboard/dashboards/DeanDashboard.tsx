@@ -47,11 +47,11 @@ function DeanDashboardContent() {
         </div>
         <div className="ph-actions">
           <button className="btn btn-ghost" onClick={() => router.push('/dashboard/grades')}>
-            <MaterialIcon icon="filter_list" size={16} />
+            <MaterialIcon icon="filter_list" />
             Filter
           </button>
           <button className="btn btn-primary" onClick={() => router.push('/dashboard/grades')}>
-            <MaterialIcon icon="add" size={16} />
+            <MaterialIcon icon="add" />
             Quick Entry
           </button>
         </div>
