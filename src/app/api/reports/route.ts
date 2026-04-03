@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { apiSuccess, apiError, handleApiError, validateRequiredFields } from '@/lib/api-utils'
+import { apiSuccess, apiError, handleApiError, validateRequiredFields, requireAuthenticatedUser } from '@/lib/api-utils'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -28,6 +28,8 @@ function getUNEBDivision(avg: number): string {
 export async function POST(request: NextRequest) {
   try {
     const { studentId, schoolId, term, academicYear } = await request.json()
+    const authCheck = await requireAuthenticatedUser(request)
+    if (!authCheck.ok) return authCheck.response
 
     const validationError = validateRequiredFields({ studentId, schoolId }, ['studentId', 'schoolId'])
     if (validationError) {
@@ -38,6 +40,20 @@ export async function POST(request: NextRequest) {
       ? createClient(supabaseUrl, supabaseServiceKey)
       : createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 
+    const { data: currentUser } = await supabase
+      .from('users')
+      .select('id, school_id, role')
+      .eq('auth_id', authCheck.context.authUserId)
+      .single()
+
+    if (!currentUser) {
+      return apiError('User profile not found', 403)
+    }
+
+    if (currentUser.school_id !== schoolId) {
+      return apiError('Forbidden: school access denied', 403)
+    }
+
     // Fetch student with class info
     const { data: student, error: studentError } = await supabase
       .from('students')
@@ -47,6 +63,10 @@ export async function POST(request: NextRequest) {
 
     if (studentError || !student) {
       return apiError('Student not found', 404)
+    }
+
+    if (student.school_id !== schoolId) {
+      return apiError('Student does not belong to the requested school', 403)
     }
 
     // Fetch school info
@@ -62,7 +82,7 @@ export async function POST(request: NextRequest) {
       .select('*, subjects (name, code)')
       .eq('student_id', studentId)
       .eq('term', term || 1)
-      .eq('academic_year', academicYear || '2026')
+      .eq('academic_year', academicYear || new Date().getFullYear().toString())
 
     // Fetch attendance summary
     const { data: attendanceRecords } = await supabase
@@ -121,7 +141,7 @@ export async function POST(request: NextRequest) {
       student,
       school,
       term: term || 1,
-      academicYear: academicYear || '2026',
+      academicYear: academicYear || new Date().getFullYear().toString(),
       subjects: reportData,
       attendance: attendanceSummary,
       overall: {
