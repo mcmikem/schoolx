@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 import HeadmasterDashboard from './dashboards/HeadmasterDashboard'
 import DeanDashboard from './dashboards/DeanDashboard'
@@ -20,7 +21,7 @@ function SecretaryDashboard() {
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <a href="/dashboard/visitors" className="stat-card">
+        <Link href="/dashboard/visitors" className="stat-card">
           <div className="stat-accent" style={{ background: 'var(--navy)' }} />
           <div className="stat-inner">
             <div className="stat-meta">
@@ -32,8 +33,8 @@ function SecretaryDashboard() {
             <div className="stat-val" style={{ color: 'var(--navy)' }}>Track Visitors</div>
             <div className="text-[11px] text-[var(--t3)] font-medium mt-1">Log and manage school visitors</div>
           </div>
-        </a>
-        <a href="/dashboard/messages" className="stat-card">
+        </Link>
+        <Link href="/dashboard/messages" className="stat-card">
           <div className="stat-accent" style={{ background: 'var(--green)' }} />
           <div className="stat-inner">
             <div className="stat-meta">
@@ -45,7 +46,7 @@ function SecretaryDashboard() {
             <div className="stat-val" style={{ color: 'var(--green)' }}>Communication</div>
             <div className="text-[11px] text-[var(--t3)] font-medium mt-1">Manage messages and notices</div>
           </div>
-        </a>
+        </Link>
       </div>
     </div>
   )
@@ -65,7 +66,7 @@ function DormMasterDashboard() {
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <a href="/dashboard/dorm" className="stat-card">
+        <Link href="/dashboard/dorm" className="stat-card">
           <div className="stat-accent" style={{ background: 'var(--navy)' }} />
           <div className="stat-inner">
             <div className="stat-meta">
@@ -77,8 +78,8 @@ function DormMasterDashboard() {
             <div className="stat-val" style={{ color: 'var(--navy)' }}>Manage Rooms</div>
             <div className="text-[11px] text-[var(--t3)] font-medium mt-1">Dormitory assignments</div>
           </div>
-        </a>
-        <a href="/dashboard/dorm-attendance" className="stat-card">
+        </Link>
+        <Link href="/dashboard/dorm-attendance" className="stat-card">
           <div className="stat-accent" style={{ background: 'var(--green)' }} />
           <div className="stat-inner">
             <div className="stat-meta">
@@ -90,8 +91,8 @@ function DormMasterDashboard() {
             <div className="stat-val" style={{ color: 'var(--green)' }}>Night Check</div>
             <div className="text-[11px] text-[var(--t3)] font-medium mt-1">Track student presence</div>
           </div>
-        </a>
-        <a href="/dashboard/health" className="stat-card">
+        </Link>
+        <Link href="/dashboard/health" className="stat-card">
           <div className="stat-accent" style={{ background: 'var(--amber)' }} />
           <div className="stat-inner">
             <div className="stat-meta">
@@ -103,7 +104,7 @@ function DormMasterDashboard() {
             <div className="stat-val" style={{ color: 'var(--amber)' }}>Student Health</div>
             <div className="text-[11px] text-[var(--t3)] font-medium mt-1">Medical records and visits</div>
           </div>
-        </a>
+        </Link>
       </div>
     </div>
   )
