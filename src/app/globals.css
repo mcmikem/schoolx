@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url("https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap");
+
 /* ── TOKENS ─────────────────────────────────────────────── */
 :root {
   /* SchoolX Brand Colors */
@@ -9,11 +13,11 @@
   --navy-mid: #1a6be0;
   --navy-soft: #e6f0ff;
 
-  --green: #40e0d0; /* Highlight Aqua */
-  --green-soft: #e0f8f6;
+  --green: #0d9488; /* Teal - WCAG compliant */
+  --green-soft: #ccfbf1;
 
-  --amber: #f39c12;
-  --amber-soft: #fef5e7;
+  --amber: #b45309; /* Amber-700 - WCAG compliant */
+  --amber-soft: #fef3c7;
 
   --red: #e74c3c;
   --red-soft: #fdedec;
@@ -145,7 +149,7 @@
   body {
     background: var(--bg);
     color: var(--t1);
-    @apply antialiased min-h-screen overflow-x-hidden w-full;
+    @apply antialiased min-h-screen overflow-x-auto w-full;
     font-family:
       "Lato",
       system-ui,
@@ -207,7 +211,7 @@
   }
 
   .btn-green {
-    @apply bg-[var(--green)] text-white shadow-[0_1px_4px_rgba(46,148,72,0.25)] hover:bg-[#26813e] hover:shadow-[0_3px_10px_rgba(46,148,72,0.3)];
+    @apply bg-[var(--green)] text-white shadow-[0_1px_4px_rgba(13,148,136,0.25)] hover:bg-[var(--green)]/90 hover:shadow-[0_3px_10px_rgba(13,148,136,0.3)];
   }
 
   .card {
@@ -228,7 +232,7 @@
   }
 
   .card-sub {
-    @apply text-[11px] text-[var(--t3)] font-medium mt-0.5;
+    @apply text-[12px] text-[var(--t3)] font-medium mt-0.5;
   }
 
   .stat-grid {
@@ -252,7 +256,7 @@
   }
 
   .stat-label {
-    @apply text-[11px] font-bold uppercase tracking-widest text-[var(--t3)];
+    @apply text-[12px] font-bold uppercase tracking-widest text-[var(--t3)];
   }
 
   .stat-icon-box {
@@ -269,11 +273,11 @@
   }
 
   .stat-foot-label {
-    @apply text-[10px] text-[var(--t3)] font-medium;
+    @apply text-[12px] text-[var(--t3)] font-medium;
   }
 
   .stat-foot-val {
-    @apply text-[10px] font-bold uppercase tracking-wider;
+    @apply text-[12px] font-bold uppercase tracking-wider;
   }
 
   .list-row {
@@ -281,7 +285,7 @@
   }
 
   .badge {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase;
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase;
     font-family: "DM Mono", monospace;
   }
 
@@ -353,7 +357,7 @@
     @apply text-[13px] font-bold text-[var(--t1)] truncate;
   }
   .att-meta {
-    @apply text-[10px] text-[var(--t3)] font-medium mt-0.5;
+    @apply text-[12px] text-[var(--t3)] font-medium mt-0.5;
   }
   .att-bar-col {
     @apply hidden sm:block w-24 flex-shrink-0;
@@ -388,7 +392,7 @@
     @apply text-[11px] text-[var(--t3)] font-medium mt-1;
   }
   .act-time {
-    @apply flex-shrink-0 text-[10px] text-[var(--t4)] font-bold uppercase tracking-wider pt-0.5;
+    @apply flex-shrink-0 text-[12px] text-[var(--t4)] font-bold uppercase tracking-wider pt-0.5;
   }
 
   /* Alert Boxes */
@@ -470,7 +474,42 @@
     box-shadow: 0 8px 18px rgba(23, 50, 95, 0.28);
   }
   .mobile-nav-item span {
-    @apply text-[10px] font-bold uppercase tracking-wider;
+    @apply text-[12px] font-bold uppercase tracking-wider;
+  }
+
+  /* ── FORM INPUTS ── */
+  .input {
+    @apply w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] text-[var(--on-surface)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors;
+  }
+
+  /* ── TABLE UTILITIES ── */
+  .tbl-wrap {
+    @apply overflow-x-auto;
+  }
+  .table-responsive {
+    @apply w-full;
+  }
+  .table-responsive table {
+    @apply w-full border-collapse;
+  }
+  .table-responsive th {
+    @apply px-4 py-3 text-xs font-bold text-[var(--t3)] uppercase tracking-wider text-left border-b border-[var(--border)] bg-[var(--surface-container-low)];
+  }
+  .table-responsive td {
+    @apply px-4 py-3 text-sm text-[var(--on-surface-variant)] border-b border-[var(--bg)];
+  }
+  .table-responsive tr:hover td {
+    @apply bg-[var(--surface-container-low)];
+  }
+
+  /* ── MOBILE CONTAINER ── */
+  .mobile-container {
+    @apply w-full max-w-[1600px] mx-auto;
+  }
+
+  /* ── MAIN CONTENT OVERFLOW FIX ── */
+  .main-content {
+    overflow: visible !important;
   }
 
   /* ── LAYOUT SAFETY & OVERLAP FIXES ── */
@@ -548,7 +587,7 @@
 }
 
 /* Desktop: sidebar always visible */
-@media (min-width: 1025px) {
+@media (min-width: 1024px) {
   .sidebar {
     display: flex !important;
     left: 0 !important;
@@ -562,7 +601,7 @@
 }
 
 /* Tablet / mobile: sidebar hidden by default, slides in on toggle */
-@media (max-width: 1024px) {
+@media (max-width: 1023px) {
   .sidebar {
     display: none !important;
   }
