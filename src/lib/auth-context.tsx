@@ -123,22 +123,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (!userData) {
-        // If not found and we have retries left, wait and try again
-        // This handles the race condition during registration
-        if (!userData) {
-          if (retryCount < 3) {
-            console.log(`[Auth] User profile not found for auth_id: ${authId}. Retrying...`)
-            await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)))
-            return fetchUserData(authId, retryCount + 1)
-          }
-          return
+        if (retryCount < 3) {
+          console.log(`[Auth] User profile not found for auth_id: ${authId}. Retrying...`)
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)))
+          return fetchUserData(authId, retryCount + 1)
         }
+        console.error('No user profile found for auth_id after retries:', authId)
+        setLoading(false)
+        return
+      }
 
-        // Hard-inject the actual role from the DB to prevent sanitization drift
-        setUser({
-          ...userData,
-          role: userData.role as User['role']
-        })
+      setUser({
+        ...userData,
+        role: userData.role as User['role']
+      })
 
       if (userData.school_id) {
         const { data: schoolData, error: schoolError } = await supabase
