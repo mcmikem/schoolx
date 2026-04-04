@@ -27,6 +27,7 @@ export default function SidebarShell({
 }) {
   const { user, school } = useAuth()
   const { currentTerm } = useAcademic()
+  const navigationGroups = user?.role ? getNavigationForRole(user.role) : []
 
   const schoolName = school?.name || 'My School'
   const schoolInitial = schoolName.charAt(0).toUpperCase()
@@ -45,7 +46,10 @@ export default function SidebarShell({
             <div className="text-[10px] text-[var(--t4)] tracking-[.3px] mt-0.5">School Management</div>
           </div>
           <button
-            onClick={() => document.querySelector('.sidebar')?.classList.remove('open')}
+            onClick={() => {
+              document.querySelector('.sidebar')?.classList.remove('open')
+              document.querySelector('.sidebar-overlay')?.classList.remove('visible')
+            }}
             className="sidebar-close-btn hidden w-8 h-8 rounded-lg border-none bg-[var(--bg)] cursor-pointer items-center justify-center"
             aria-label="Close sidebar"
           >
@@ -63,7 +67,7 @@ export default function SidebarShell({
       </div>
 
       <CollapsibleSidebar
-        groups={getNavigationForRole(user?.role || 'teacher')}
+        groups={navigationGroups}
         onNavigate={onNavigate}
       />
 

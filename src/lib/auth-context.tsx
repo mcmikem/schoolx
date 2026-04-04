@@ -1,6 +1,7 @@
 'use client'
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
 import { supabase } from './supabase'
+import { logger } from './logger'
 import { useRouter } from 'next/navigation'
 import { PlanType } from './payments/subscription-client'
 import { FeatureStage, DEFAULT_FEATURE_STAGE } from './featureStages'
@@ -114,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // If not found and we have retries left, wait and try again
         // This handles the race condition during registration
         if (retryCount < 3) {
-          console.log(`[Auth] User profile not found for auth_id: ${authId}. Retrying in ${1000 * (retryCount + 1)}ms... (Attempt ${retryCount + 1}/3)`)
+          logger.debug(`[Auth] User profile not found for auth_id: ${authId}. Retrying in ${1000 * (retryCount + 1)}ms... (Attempt ${retryCount + 1}/3)`)
           await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)))
           return fetchUserData(authId, retryCount + 1)
         }
@@ -155,18 +156,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const checkUser = useCallback(async () => {
-    console.log('[Auth] checkUser called')
+    logger.debug('[Auth] checkUser called')
     
     try {
       const demoUserStr = localStorage.getItem(DEMO_KEY)
-      console.log('[Auth] demoUserStr:', !!demoUserStr)
+      logger.debug('[Auth] demoUserStr:', !!demoUserStr)
       
       if (demoUserStr) {
         try {
           const decrypted = decryptDemoData(demoUserStr)
           if (decrypted) {
             const { demoUser, demoSchool } = JSON.parse(decrypted)
-            console.log('[Auth] Demo user loaded:', demoUser.name)
+            logger.debug('[Auth] Demo user loaded:', demoUser.name)
             
             setUser({
               id: 'demo-user',
@@ -204,21 +205,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Check for real auth session
-      console.log('[Auth] No demo data, checking supabase auth')
+      logger.debug('[Auth] No demo data, checking supabase auth')
       if (supabase?.auth) {
         const { data: { session } } = await supabase!.auth.getSession()
-        console.log('[Auth] Session:', !!session)
+        logger.debug('[Auth] Session:', !!session)
         if (session && session.user) {
           await fetchUserData(session.user.id)
           setIsDemo(false)
           setLoading(false)
         } else {
           setIsDemo(false)
-          console.log('[Auth] No session, setting loading=false')
+          logger.debug('[Auth] No session, setting loading=false')
           setLoading(false)
         }
       } else {
-        console.log('[Auth] No supabase, setting loading=false')
+        logger.debug('[Auth] No supabase, setting loading=false')
         setIsDemo(false)
         setLoading(false)
       }
