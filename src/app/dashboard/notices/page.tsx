@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { useStaff } from '@/lib/hooks'
 import { supabase } from '@/lib/supabase'
+import { DEMO_NOTICES, DEMO_STAFF } from '@/lib/demo-data'
 import MaterialIcon from '@/components/MaterialIcon'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
@@ -28,7 +29,7 @@ interface Notice {
 }
 
 export default function NoticeBoardPage() {
-  const { school, user } = useAuth()
+  const { school, user, isDemo } = useAuth()
   const toast = useToast()
   const { staff } = useStaff(school?.id)
   const [notices, setNotices] = useState<Notice[]>([])
@@ -50,6 +51,35 @@ export default function NoticeBoardPage() {
   const fetchNotices = useCallback(async () => {
     if (!school?.id) return
     try {
+      if (isDemo) {
+        setNotices(
+          DEMO_NOTICES
+            .filter((notice) => notice.school_id === school.id)
+            .map((notice) => {
+              const author = DEMO_STAFF.find((staffMember) => staffMember.id === notice.created_by)
+              const lowerTitle = notice.title.toLowerCase()
+              let category = 'General'
+              if (lowerTitle.includes('fee')) category = 'Finance'
+              else if (lowerTitle.includes('uneb') || lowerTitle.includes('term')) category = 'Academic'
+              else if (lowerTitle.includes('sport')) category = 'Sports'
+
+              return {
+                id: notice.id,
+                title: notice.title,
+                content: notice.content,
+                category,
+                priority: notice.priority === 'urgent' ? 'high' : notice.priority,
+                created_by: notice.created_by,
+                created_at: notice.created_at,
+                expires_at: notice.expires_at,
+                users: author ? { full_name: author.full_name } : undefined,
+                acknowledged_by: [],
+              }
+            })
+        )
+        return
+      }
+
       const { data, error } = await supabase
         .from('notices')
         .select('*, users(full_name)')
@@ -64,13 +94,14 @@ export default function NoticeBoardPage() {
     } finally {
       setLoading(false)
     }
-  }, [school?.id])
+  }, [school?.id, isDemo])
 
   useEffect(() => {
     fetchNotices()
   }, [fetchNotices])
 
   const sendNoticeSMS = async (title: string, content: string, category: string) => {
+    if (isDemo) return
     if (!school?.id || staff.length === 0) return
 
     const phones = staff
@@ -115,6 +146,31 @@ export default function NoticeBoardPage() {
 
     try {
       setSendingSMS(true)
+
+      if (isDemo) {
+        const author = staff.find((member: any) => member.id === user.id)
+        setNotices((prev) => ([
+          {
+            id: `demo-notice-${Date.now()}`,
+            title: newNotice.title,
+            content: newNotice.content,
+            category: newNotice.category,
+            priority: isEmergency && newNotice.category !== 'Emergency' ? 'high' : newNotice.priority,
+            created_by: user.id,
+            created_at: new Date().toISOString(),
+            expires_at: newNotice.expires_at || null,
+            image_url: newNotice.image_url || undefined,
+            send_sms: shouldSendSMS,
+            users: { full_name: author?.full_name || user.full_name },
+            acknowledged_by: [],
+          },
+          ...prev,
+        ]))
+        toast.success(shouldSendSMS ? `Notice posted and SMS sent to ${staff.filter((s: any) => s.phone).length} staff` : 'Notice posted')
+        setShowModal(false)
+        setNewNotice({ title: '', content: '', category: 'General', priority: 'normal', expires_at: '', image_url: '', send_sms: false })
+        return
+      }
 
       const { error } = await supabase.from('notices').insert({
         school_id: school.id,
@@ -176,6 +232,11 @@ export default function NoticeBoardPage() {
 
   const deleteNotice = async (id: string) => {
     if (!confirm('Delete this notice?')) return
+    if (isDemo) {
+      setNotices(notices.filter(n => n.id !== id))
+      toast.success('Notice deleted')
+      return
+    }
     try {
       const { error } = await supabase.from('notices').delete().eq('id', id)
       if (error) throw error
@@ -188,6 +249,15 @@ export default function NoticeBoardPage() {
 
   const acknowledgeNotice = async (noticeId: string) => {
     if (!user?.id) return
+    if (isDemo) {
+      setNotices((prev) => prev.map((notice) => (
+        notice.id === noticeId
+          ? { ...notice, acknowledged_by: Array.from(new Set([...(notice.acknowledged_by || []), user.id])) }
+          : notice
+      )))
+      toast.success('Notice acknowledged')
+      return
+    }
     try {
       const { error } = await supabase.from('notice_acknowledgments').upsert({
         notice_id: noticeId,
@@ -338,8 +408,9 @@ export default function NoticeBoardPage() {
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Title</label>
+                <label htmlFor="notice-title" className="text-sm font-medium text-[#191c1d] mb-2 block">Title</label>
                 <input
+                  id="notice-title"
                   type="text"
                   value={newNotice.title}
                   onChange={(e) => setNewNotice({...newNotice, title: e.target.value})}
@@ -349,8 +420,9 @@ export default function NoticeBoardPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Category</label>
+                  <label htmlFor="notice-category" className="text-sm font-medium text-[#191c1d] mb-2 block">Category</label>
                   <select 
+                    id="notice-category"
                     value={newNotice.category}
                     onChange={(e) => setNewNotice({...newNotice, category: e.target.value})}
                     className="input"
@@ -363,8 +435,9 @@ export default function NoticeBoardPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Priority</label>
+                  <label htmlFor="notice-priority" className="text-sm font-medium text-[#191c1d] mb-2 block">Priority</label>
                   <select 
+                    id="notice-priority"
                     value={newNotice.priority}
                     onChange={(e) => setNewNotice({...newNotice, priority: e.target.value})}
                     className="input"
@@ -376,8 +449,9 @@ export default function NoticeBoardPage() {
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Content</label>
+                <label htmlFor="notice-content" className="text-sm font-medium text-[#191c1d] mb-2 block">Content</label>
                 <textarea
+                  id="notice-content"
                   value={newNotice.content}
                   onChange={(e) => setNewNotice({...newNotice, content: e.target.value})}
                   className="input min-h-[120px]"
