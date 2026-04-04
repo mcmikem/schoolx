@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useStudents, useFeePayments, useFeeStructure } from '@/lib/hooks'
 import { supabase } from '@/lib/supabase'
+import { DEMO_ATTENDANCE } from '@/lib/demo-data'
 import { SendSMSModal } from '@/components/SendSMSModal'
 import MaterialIcon from '@/components/MaterialIcon'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -16,7 +17,7 @@ interface AttendanceRecord {
 }
 
 export default function StudentLookupPage() {
-  const { school } = useAuth()
+  const { school, isDemo } = useAuth()
   const { students, loading: studentsLoading } = useStudents(school?.id)
   const { payments } = useFeePayments(school?.id)
   const { feeStructure } = useFeeStructure(school?.id)
@@ -32,6 +33,14 @@ export default function StudentLookupPage() {
   useEffect(() => {
     async function fetchAttendance() {
       if (!school?.id) return
+      if (isDemo) {
+        const map: Record<string, string> = {}
+        DEMO_ATTENDANCE.forEach((record) => {
+          map[record.student_id] = record.status
+        })
+        setTodayAttendance(map)
+        return
+      }
       const { data } = await supabase
         .from('attendance')
         .select('student_id, status, date')
@@ -45,7 +54,7 @@ export default function StudentLookupPage() {
       setTodayAttendance(map)
     }
     fetchAttendance()
-  }, [school?.id, today])
+  }, [school?.id, today, isDemo])
 
   const formatCurrency = (amount: number) => `UGX ${amount.toLocaleString()}`
 
@@ -90,6 +99,7 @@ export default function StudentLookupPage() {
         <div className="relative">
           <MaterialIcon icon="search" className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--t3)]" />
           <input
+            aria-label="Student search"
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
