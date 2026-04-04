@@ -127,29 +127,26 @@ export default function DashboardRouter() {
     return null
   }
 
-  switch (user.role) {
+  const role = user.role as string
+
+  switch (role) {
     case 'headmaster':
     case 'school_admin':
     case 'admin':
     case 'board':
       return <HeadmasterDashboard />
-// ... rest of the file ...
     case 'dean_of_studies':
       return <DeanDashboard />
-
     case 'bursar':
       return <BursarDashboard />
-
     case 'teacher':
       return <TeacherDashboard />
-
     case 'secretary':
       return <SecretaryDashboard />
-
     case 'dorm_master':
       return <DormMasterDashboard />
-
     default:
+      console.warn('[DashboardRouter] Unknown role:', role, '- defaulting to HeadmasterDashboard')
       return <HeadmasterDashboard />
   }
 }

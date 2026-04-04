@@ -18,6 +18,10 @@ export type UserRoleValue =
   | 'parent'
   | 'secretary'
   | 'dorm_master'
+  | 'admin'
+  | 'school_admin'
+  | 'board'
+  | 'super_admin'
 
 const ALL_VALID_ROLES: string[] = [
   'super_admin', 'school_admin', 'headmaster', 'dean_of_studies',
@@ -32,8 +36,11 @@ function sanitizeDemoRole(raw: unknown): User['role'] {
   if (typeof raw === 'string' && DEMO_ALLOWED_ROLES.includes(raw)) {
     return raw as User['role']
   }
-  // Default to teacher — never grant elevated demo access
-  return 'teacher'
+  // Default to headmaster — admins and school_admins should get full access
+  if (typeof raw === 'string' && (raw === 'admin' || raw === 'school_admin')) {
+    return 'headmaster'
+  }
+  return 'headmaster'
 }
 
 const DEMO_KEY = 'omuto_demo_v1'
@@ -98,7 +105,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const fetchUserData = useCallback(async (authId: string, retryCount = 0) => {
-    if (!supabase) return
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
     try {
       const { data: userData, error: userError } = await supabase
         .from('users')
@@ -108,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (userError) {
         console.error('Error fetching user:', userError)
+        setLoading(false)
         return
       }
 
@@ -120,6 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return fetchUserData(authId, retryCount + 1)
         }
         console.error('No user profile found for auth_id after retries:', authId)
+        setLoading(false)
         return
       }
 
@@ -152,11 +164,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error fetching user data:', error)
+      setLoading(false)
     }
   }, [])
 
   const checkUser = useCallback(async () => {
     logger.debug('[Auth] checkUser called')
+    
+    // Safety timeout - always set loading to false after 5 seconds
+    const timeoutId = setTimeout(() => {
+      console.log('[Auth] Safety timeout reached, forcing loading=false')
+      setLoading(false)
+    }, 5000)
     
     try {
       const demoUserStr = localStorage.getItem(DEMO_KEY)
@@ -195,6 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             })
             setIsDemo(true)
             setIsTrialExpired(false)
+            clearTimeout(timeoutId)
             setLoading(false)
             return
           }
@@ -207,25 +227,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check for real auth session
       logger.debug('[Auth] No demo data, checking supabase auth')
       if (supabase?.auth) {
-        const { data: { session } } = await supabase!.auth.getSession()
-        logger.debug('[Auth] Session:', !!session)
-        if (session && session.user) {
-          await fetchUserData(session.user.id)
+        try {
+          const { data: { session } } = await supabase!.auth.getSession()
+          logger.debug('[Auth] Session:', !!session)
+          if (session && session.user) {
+            await fetchUserData(session.user.id)
+            setIsDemo(false)
+            setLoading(false)
+          } else {
+            setIsDemo(false)
+            logger.debug('[Auth] No session, setting loading=false')
+            setLoading(false)
+          }
+        } catch (sessionError) {
+          logger.error('[Auth] Session error:', sessionError)
           setIsDemo(false)
-          setLoading(false)
-        } else {
-          setIsDemo(false)
-          logger.debug('[Auth] No session, setting loading=false')
           setLoading(false)
         }
+        clearTimeout(timeoutId)
+        setLoading(false)
       } else {
         logger.debug('[Auth] No supabase, setting loading=false')
         setIsDemo(false)
+        clearTimeout(timeoutId)
         setLoading(false)
       }
     } catch (error) {
       console.error('[Auth] Error:', error)
       setIsDemo(false)
+      clearTimeout(timeoutId)
       setLoading(false)
     }
   }, [fetchUserData])
@@ -246,8 +276,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (isCurrentlyDemo && event !== 'SIGNED_OUT') return
           
            if (event === 'SIGNED_IN' && session && session.user) {
-            await fetchUserData(session.user.id)
-          } else if (event === 'SIGNED_OUT') {
+             await fetchUserData(session.user.id)
+             setIsDemo(false)
+             setLoading(false)
+           } else if (event === 'SIGNED_OUT') {
             setUser(null)
             setSchool(null)
             setIsDemo(false)
