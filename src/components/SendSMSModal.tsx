@@ -54,7 +54,7 @@ interface SendSMSModalProps {
 }
 
 export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalProps) {
-  const { school, user } = useAuth()
+  const { school, user, isDemo } = useAuth()
   const toast = useToast()
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
@@ -73,6 +73,16 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
 
     setSending(true)
     try {
+      if (isDemo) {
+        toast.success('SMS sent successfully')
+        setMessage('')
+        setSelectedTemplate(null)
+        setTemplateVars({})
+        onSent?.()
+        onClose()
+        return
+      }
+
       const response = await fetch('/api/sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -179,8 +189,9 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                   {QUICK_TEMPLATES[selectedTemplate].category === 'fee_reminder' && (
                     <>
                       <div>
-                        <label className="text-xs font-medium text-[#5c6670] mb-1 block">Amount</label>
+                        <label htmlFor="sms-template-amount" className="text-xs font-medium text-[#5c6670] mb-1 block">Amount</label>
                         <input
+                          id="sms-template-amount"
                           type="text"
                           placeholder="e.g. 50,000"
                           value={templateVars.amount || ''}
@@ -193,8 +204,9 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                         />
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-[#5c6670] mb-1 block">Due Date</label>
+                        <label htmlFor="sms-template-date" className="text-xs font-medium text-[#5c6670] mb-1 block">Due Date</label>
                         <input
+                          id="sms-template-date"
                           type="date"
                           value={templateVars.date || ''}
                           onChange={(e) => {
@@ -209,8 +221,9 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                   )}
                   {QUICK_TEMPLATES[selectedTemplate].category === 'attendance' && (
                     <div>
-                      <label className="text-xs font-medium text-[#5c6670] mb-1 block">Date</label>
+                      <label htmlFor="sms-attendance-date" className="text-xs font-medium text-[#5c6670] mb-1 block">Date</label>
                       <input
+                        id="sms-attendance-date"
                         type="date"
                         value={templateVars.date || new Date().toISOString().split('T')[0]}
                         onChange={(e) => {
@@ -224,8 +237,9 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                   )}
                   {QUICK_TEMPLATES[selectedTemplate].category === 'discipline' && (
                     <div className="col-span-2">
-                      <label className="text-xs font-medium text-[#5c6670] mb-1 block">Incident</label>
+                      <label htmlFor="sms-incident" className="text-xs font-medium text-[#5c6670] mb-1 block">Incident</label>
                       <input
+                        id="sms-incident"
                         type="text"
                         placeholder="e.g. fighting"
                         value={templateVars.incident || ''}
@@ -241,8 +255,9 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                   {QUICK_TEMPLATES[selectedTemplate].category === 'performance' && (
                     <>
                       <div>
-                        <label className="text-xs font-medium text-[#5c6670] mb-1 block">Marks</label>
+                        <label htmlFor="sms-marks" className="text-xs font-medium text-[#5c6670] mb-1 block">Marks</label>
                         <input
+                          id="sms-marks"
                           type="text"
                           placeholder="e.g. 85%"
                           value={templateVars.marks || ''}
@@ -255,8 +270,9 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                         />
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-[#5c6670] mb-1 block">Subject</label>
+                        <label htmlFor="sms-subject" className="text-xs font-medium text-[#5c6670] mb-1 block">Subject</label>
                         <input
+                          id="sms-subject"
                           type="text"
                           placeholder="e.g. Mathematics"
                           value={templateVars.subject || ''}
@@ -269,8 +285,9 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                         />
                       </div>
                       <div className="col-span-2">
-                        <label className="text-xs font-medium text-[#5c6670] mb-1 block">Advice</label>
+                        <label htmlFor="sms-advice" className="text-xs font-medium text-[#5c6670] mb-1 block">Advice</label>
                         <input
+                          id="sms-advice"
                           type="text"
                           placeholder="e.g. Please encourage revision"
                           value={templateVars.advice || ''}
@@ -289,8 +306,9 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
 
               {/* Message */}
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Message</label>
+                <label htmlFor="sms-message" className="text-sm font-medium text-[#191c1d] mb-2 block">Message</label>
                 <textarea
+                  id="sms-message"
                   value={message}
                   onChange={(e) => {
                     setMessage(e.target.value)

@@ -109,4 +109,37 @@ test.describe('Authenticated dashboard flows', () => {
     await expect(page.getByRole('button', { name: /sync now/i })).toBeVisible()
     await expect(page.getByText(/pending queue/i)).toBeVisible()
   })
+
+  test('headmaster can search a student and open SMS modal', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/student-lookup')
+    await expect(page.getByRole('heading', { name: /student lookup/i })).toBeVisible()
+
+    await page.getByLabel(/student search/i).fill('Amina')
+    await expect(page.getByText(/amina nakamya/i)).toBeVisible()
+
+    await page.getByRole('button', { name: /sms parent/i }).click()
+    await expect(page.getByRole('heading', { name: /sms parent of amina nakamya/i })).toBeVisible()
+
+    await page.getByRole('button', { name: /fee reminder/i }).click()
+    await expect(page.getByLabel(/message/i)).not.toHaveValue('')
+    await page.getByRole('button', { name: /cancel/i }).click()
+  })
+
+  test('headmaster can review dropout actions in demo mode', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/dropout-tracking')
+    await expect(page.getByRole('heading', { name: /dropout tracking/i })).toBeVisible()
+    await expect(page.getByText(/likely dropout|at risk/i).first()).toBeVisible()
+
+    await page.getByRole('button', { name: /contact/i }).first().click()
+    await page.getByRole('button', { name: /dropout/i }).first().click()
+    await expect(page.getByRole('heading', { name: /mark as dropout/i })).toBeVisible()
+
+    await page.getByLabel(/reason for dropout/i).selectOption('Family relocation')
+    await page.getByRole('button', { name: /mark as dropout/i }).last().click()
+    await expect(page.getByRole('heading', { name: /dropout tracking/i })).toBeVisible()
+  })
 })

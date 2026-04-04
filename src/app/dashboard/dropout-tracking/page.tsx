@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useStudents, useClasses } from '@/lib/hooks'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
+import { DEMO_ATTENDANCE } from '@/lib/demo-data'
 import MaterialIcon from '@/components/MaterialIcon'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
@@ -25,7 +26,7 @@ interface AtRiskStudent {
 }
 
 export default function DropoutTrackingPage() {
-  const { school, user } = useAuth()
+  const { school, user, isDemo } = useAuth()
   const toast = useToast()
   const { students, updateStudent } = useStudents(school?.id)
   const { classes } = useClasses(school?.id)
@@ -42,6 +43,26 @@ export default function DropoutTrackingPage() {
     setLoading(true)
 
     try {
+      if (isDemo) {
+        const activeStudents = students.filter(s => s.status === 'active')
+        const demoRiskList: AtRiskStudent[] = activeStudents.slice(0, 4).map((student, index) => ({
+          id: student.id,
+          first_name: student.first_name,
+          last_name: student.last_name,
+          gender: student.gender,
+          student_number: student.student_number || '',
+          class_id: student.class_id,
+          class_name: student.classes?.name || '-',
+          parent_name: student.parent_name || '',
+          parent_phone: student.parent_phone || '',
+          consecutive_absent: index === 0 ? 32 : index === 1 ? 21 : index === 2 ? 16 : 14,
+          last_attendance_date: index === 0 ? null : DEMO_ATTENDANCE.find(record => record.student_id === student.id && record.status !== 'absent')?.date || null,
+          risk_level: index === 0 ? 'likely_dropout' : 'at_risk',
+        }))
+        setAtRiskStudents(demoRiskList)
+        return
+      }
+
       const today = new Date()
       const thirtyDaysAgo = new Date(today)
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
@@ -128,7 +149,7 @@ export default function DropoutTrackingPage() {
     } finally {
       setLoading(false)
     }
-  }, [school?.id, students])
+  }, [school?.id, students, isDemo])
 
   useEffect(() => {
     fetchAtRiskStudents()
@@ -143,6 +164,11 @@ export default function DropoutTrackingPage() {
     setSendingSms(student.id)
     try {
       const message = `Dear ${student.parent_name || 'Parent/Guardian'}, your child ${student.first_name} ${student.last_name} has been absent from school for ${student.consecutive_absent} consecutive days. Please contact the school urgently.`
+
+      if (isDemo) {
+        toast.success(`SMS queued to ${student.parent_phone}`)
+        return
+      }
 
       await supabase.from('messages').insert({
         school_id: school?.id,
@@ -177,7 +203,11 @@ export default function DropoutTrackingPage() {
       toast.success('Student marked as dropout')
       setShowDropoutModal(null)
       setDropoutReason('')
-      fetchAtRiskStudents()
+      if (isDemo) {
+        setAtRiskStudents(prev => prev.filter(student => student.id !== showDropoutModal))
+      } else {
+        fetchAtRiskStudents()
+      }
     } catch (err) {
       toast.error('Failed to update student')
     }
@@ -240,6 +270,7 @@ export default function DropoutTrackingPage() {
 
       <div className="flex gap-4 mb-4 items-center">
         <select
+          aria-label="Class filter"
           value={selectedClass}
           onChange={(e) => setSelectedClass(e.target.value)}
           className="px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium"
@@ -359,8 +390,8 @@ export default function DropoutTrackingPage() {
             <div className="p-5">
               <p className="text-sm text-[var(--t3)] mb-4">This will set the student status to &quot;dropped&quot;. Please provide a reason.</p>
               <div className="mb-5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Reason for Dropout</label>
-                <select value={dropoutReason} onChange={(e) => setDropoutReason(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required>
+                <label htmlFor="dropout-reason" className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Reason for Dropout</label>
+                <select id="dropout-reason" value={dropoutReason} onChange={(e) => setDropoutReason(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required>
                   <option value="">Select reason...</option>
                   <option value="Financial difficulties">Financial difficulties</option>
                   <option value="Family relocation">Family relocation</option>

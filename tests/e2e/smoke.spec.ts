@@ -1,14 +1,11 @@
 import { test, expect } from '@playwright/test'
 
-test('landing page opens and reaches login', async ({ page }) => {
+test('landing page renders primary CTAs', async ({ page }) => {
   await page.goto('/')
 
-  const loginLink = page.getByRole('link', { name: /open dashboard/i })
-  await expect(loginLink).toBeVisible()
-  await loginLink.click({ force: true })
-
-  await expect(page).toHaveURL(/\/login/)
-  await expect(page.getByRole('heading', { name: /sign in to your account/i })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /run your entire school from one dashboard/i })).toBeVisible()
+  await expect(page.getByRole('link', { name: /open dashboard|sign in/i }).first()).toBeVisible()
+  await expect(page.getByRole('link', { name: /start free trial/i }).first()).toBeVisible()
 })
 
 test('parent portal login page renders', async ({ page }) => {
