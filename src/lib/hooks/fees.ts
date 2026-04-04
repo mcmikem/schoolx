@@ -208,6 +208,11 @@ export function useBudget(schoolId?: string) {
 
   useEffect(() => {
     async function fetchData() {
+      if (isDemo || schoolId === '00000000-0000-0000-0000-000000000001') {
+        setExpenses(DEMO_EXPENSES as any)
+        setLoading(false)
+        return
+      }
       if (!schoolId) { setLoading(false); return }
       const querySchoolId = getQuerySchoolId(schoolId, isDemo)
       try {

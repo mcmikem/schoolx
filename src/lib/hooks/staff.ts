@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import type { StaffSalary, SalaryPayment, StaffReview } from '@/types'
 import { getQuerySchoolId, withTimeout } from './utils'
+import { DEMO_STAFF } from '@/lib/demo-data'
 
 export function useStaff(schoolId?: string) {
   const [staff, setStaff] = useState<any[]>([])
@@ -13,6 +14,10 @@ export function useStaff(schoolId?: string) {
   useEffect(() => {
     let cancelled = false
     async function fetchStaff() {
+      if (isDemo || schoolId === '00000000-0000-0000-0000-000000000001') {
+        if (!cancelled) { setStaff(DEMO_STAFF as any); setLoading(false) }
+        return
+      }
       if (!schoolId) { setLoading(false); return }
       const querySchoolId = getQuerySchoolId(schoolId, isDemo)
       try {
