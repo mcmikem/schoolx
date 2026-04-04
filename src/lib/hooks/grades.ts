@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
+import { DEMO_GRADES } from '@/lib/demo-data'
 
 export function useGrades(classId?: string, subjectId?: string, term?: number, academicYear?: string) {
   const [grades, setGrades] = useState<any[]>([])
@@ -29,6 +30,11 @@ export function useGrades(classId?: string, subjectId?: string, term?: number, a
   }
 
   const fetchGrades = useCallback(async () => {
+    if (isDemo) {
+      setGrades(DEMO_GRADES as any)
+      setLoading(false)
+      return
+    }
     if (!classId) { setLoading(false); return }
     try {
       setLoading(true)

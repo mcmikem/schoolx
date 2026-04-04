@@ -4,18 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import type { FeePayment, FeeStructure, CreatePaymentInput } from '@/types'
 import { getQuerySchoolId, withTimeout } from './utils'
-
-// Demo data for fees
-const DEMO_PAYMENTS: any[] = [
-  { id: '1', student_id: '1', fee_id: '1', amount_paid: 50000, payment_method: 'cash', payment_reference: 'PAY001', payment_date: '2024-01-15', students: { first_name: 'John', last_name: 'Akena', classes: { name: 'P.1' } } },
-  { id: '2', student_id: '2', fee_id: '1', amount_paid: 50000, payment_method: 'mobile_money', payment_reference: 'PAY002', payment_date: '2024-01-14', students: { first_name: 'Mary', last_name: 'Adoch', classes: { name: 'P.1' } } },
-  { id: '3', student_id: '3', fee_id: '1', amount_paid: 25000, payment_method: 'bank_transfer', payment_reference: 'PAY003', payment_date: '2024-01-13', students: { first_name: 'Peter', last_name: 'Okello', classes: { name: 'P.2' } } },
-]
-
-const DEMO_FEE_STRUCTURE: any[] = [
-  { id: '1', name: 'Tuition', amount: 100000, term: 1, academic_year: '2024' },
-  { id: '2', name: 'Development Fund', amount: 50000, term: 1, academic_year: '2024' },
-]
+import { DEMO_FEE_PAYMENTS, DEMO_FEE_STRUCTURE, DEMO_EXPENSES } from '@/lib/demo-data'
 
 export function useFeePayments(schoolId?: string) {
   const [payments, setPayments] = useState<FeePayment[]>([])
@@ -26,7 +15,7 @@ export function useFeePayments(schoolId?: string) {
   const fetchPayments = useCallback(async () => {
     // Demo mode - check for demo school UUID
     if (isDemo || schoolId === '00000000-0000-0000-0000-000000000001') {
-      setPayments(DEMO_PAYMENTS)
+      setPayments(DEMO_FEE_PAYMENTS as any)
       setLoading(false)
       return
     }
@@ -90,7 +79,7 @@ export function useFeeStructure(schoolId?: string) {
   const fetchFeeStructure = useCallback(async () => {
     // Demo mode - check for demo school UUID
     if (isDemo || schoolId === '00000000-0000-0000-0000-000000000001') {
-      setFeeStructure(DEMO_FEE_STRUCTURE)
+      setFeeStructure(DEMO_FEE_STRUCTURE as any)
       setLoading(false)
       return
     }
