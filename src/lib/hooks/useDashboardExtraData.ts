@@ -1,6 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/lib/auth-context'
+import { isDemoSchool } from '@/lib/demo-utils'
 
 interface ClassAttendance {
   present: number
@@ -43,9 +45,35 @@ export function useDashboardExtraData(
   const [overdueFeeCount, setOverdueFeeCount] = useState(0)
   const [lowAttendanceClasses, setLowAttendanceClasses] = useState(0)
   const [dropoutRiskCount, setDropoutRiskCount] = useState(0)
+  const { isDemo } = useAuth()
 
   useEffect(() => {
     if (!schoolId) {
+      setLoading(false)
+      return
+    }
+
+    // Demo mode - return mock data
+    if (isDemo || isDemoSchool(schoolId)) {
+      setClassAttendance({
+        'demo-class-1': { present: 28, total: 30 },
+        'demo-class-2': { present: 25, total: 28 },
+        'demo-class-3': { present: 22, total: 25 },
+      })
+      setAtRiskStudents([
+        { id: 'demo-1', first_name: 'John', last_name: 'Okello', classes: { name: 'Primary 4' } },
+        { id: 'demo-2', first_name: 'Sarah', last_name: 'Nabukeera', classes: { name: 'Primary 5' } },
+      ])
+      setSmsStats({ sentToday: 12, deliveryRate: 92 })
+      setPendingExpenses(2)
+      setPendingLeave(1)
+      setFeesToday(850000)
+      setFeesThisWeek(4200000)
+      setFeesThisTerm(18500000)
+      setStaffOnDuty(18)
+      setOverdueFeeCount(15)
+      setLowAttendanceClasses(1)
+      setDropoutRiskCount(3)
       setLoading(false)
       return
     }
@@ -71,10 +99,11 @@ export function useDashboardExtraData(
           paymentsRes,
           staffAttRes,
         ] = await Promise.all([
-          supabase.from('attendance').select('student_id, class_id, status').eq('date', today),
+          supabase.from('attendance').select('student_id, class_id, status, students!inner(school_id)').eq('students.school_id', schoolId).eq('date', today),
           supabase
             .from('grades')
-            .select('student_id, score, term, academic_year')
+            .select('student_id, score, term, academic_year, students!inner(school_id)')
+            .eq('students.school_id', schoolId)
             .eq('term', currentTerm || 1)
             .eq('academic_year', academicYear || '2026'),
           supabase.from('messages').select('status, created_at').eq('school_id', schoolId).gte('created_at', today),
@@ -208,7 +237,7 @@ export function useDashboardExtraData(
     fetchExtraData()
 
     return () => { cancelled = true }
-  }, [schoolId, currentTerm, academicYear, students, feeStructure])
+  }, [schoolId, currentTerm, academicYear, students, feeStructure, isDemo])
 
   return {
     classAttendance,

@@ -50,17 +50,52 @@ export function useDashboardStats(schoolId?: string) {
 export function useAnalytics(schoolId?: string) {
   const [data, setData] = useState<any>({ attendanceTrends: [], classPerformance: [], subjectPerformance: [], feeCollection: [], genderDistribution: [], revenueProjections: [], atRiskStudents: [], stats: { totalStudents: 0, avgAttendance: 0, avgGrade: 0, feeCollectionRate: 0, projectedRevenue: 0 } })
   const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
 
   useEffect(() => {
     async function fetchAnalytics() {
       if (!schoolId) return
+
+      if (isDemo || isDemoSchool(schoolId)) {
+        setData({
+          genderDistribution: [
+            { name: 'Boys', value: 423, color: '#3b82f6' },
+            { name: 'Girls', value: 424, color: '#ec4899' }
+          ],
+          revenueProjections: [
+            { name: 'Collected', value: 45000000 },
+            { name: 'Outstanding', value: 12500000 }
+          ],
+          atRiskStudents: [
+            { student_id: 'demo-1', full_name: 'John Okello', class_name: 'Primary 4', risk_reason: 'low_attendance', attendance_rate: 62, avg_score: 78 },
+            { student_id: 'demo-2', full_name: 'Sarah Nabukeera', class_name: 'Primary 5', risk_reason: 'low_grades', attendance_rate: 88, avg_score: 42 },
+          ],
+          attendanceTrends: [
+            { name: 'Week 1', value: 94 }, { name: 'Week 2', value: 92 }, { name: 'Week 3', value: 89 }, { name: 'Week 4', value: 91 }
+          ],
+          classPerformance: [
+            { name: 'Primary 1', value: 78 }, { name: 'Primary 2', value: 82 }, { name: 'Primary 3', value: 75 }, { name: 'Primary 4', value: 71 }
+          ],
+          subjectPerformance: [
+            { name: 'Mathematics', value: 74 }, { name: 'English', value: 78 }, { name: 'Science', value: 72 }, { name: 'Social Studies', value: 68 }
+          ],
+          feeCollection: [
+            { name: 'Term 1', value: 45000000 }, { name: 'Term 2', value: 42000000 }, { name: 'Term 3', value: 38000000 }
+          ],
+          stats: { totalStudents: 847, avgAttendance: 92, avgGrade: 74, feeCollectionRate: 78, projectedRevenue: 57500000 }
+        })
+        setLoading(false)
+        return
+      }
+
       try {
         setLoading(true)
+        // Use proper joins - attendance and grades don't have school_id directly
         const [{ data: students }, { data: feeStructure }, { data: attendance }, { data: grades }] = await Promise.all([
           supabase.from('students').select('id, first_name, last_name, gender, class_id, classes(name)').eq('school_id', schoolId).eq('status', 'active'),
           supabase.from('fee_structure').select('id, amount').eq('school_id', schoolId),
-          supabase.from('attendance').select('student_id, status').eq('school_id', schoolId).order('date', { ascending: false }).limit(2000),
-          supabase.from('grades').select('student_id, score').eq('school_id', schoolId)
+          supabase.from('attendance').select('student_id, status, students!inner(school_id)').eq('students.school_id', schoolId).order('date', { ascending: false }).limit(2000),
+          supabase.from('grades').select('student_id, score, students!inner(school_id)').eq('students.school_id', schoolId)
         ])
 
         const genderLevels = { M: 0, F: 0 }
@@ -102,7 +137,7 @@ export function useAnalytics(schoolId?: string) {
       finally { setLoading(false) }
     }
     fetchAnalytics()
-  }, [schoolId])
+  }, [schoolId, isDemo])
 
   return { data, loading }
 }
