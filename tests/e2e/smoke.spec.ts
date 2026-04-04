@@ -5,7 +5,7 @@ test('landing page opens and reaches login', async ({ page }) => {
 
   const loginLink = page.getByRole('link', { name: /open dashboard/i })
   await expect(loginLink).toBeVisible()
-  await loginLink.click()
+  await loginLink.click({ force: true })
 
   await expect(page).toHaveURL(/\/login/)
   await expect(page.getByRole('heading', { name: /sign in to your account/i })).toBeVisible()

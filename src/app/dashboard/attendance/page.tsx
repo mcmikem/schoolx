@@ -6,6 +6,7 @@ import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import { offlineDB, useOnlineStatus } from '@/lib/offline'
 import { logAuditEventWithOfflineSupport } from '@/lib/audit'
+import { DEMO_ATTENDANCE, DEMO_STUDENTS } from '@/lib/demo-data'
 import MaterialIcon from '@/components/MaterialIcon'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Tabs, TabPanel } from '@/components/ui/Tabs'
@@ -29,7 +30,7 @@ function cycleStatus(current: string | undefined): AttendanceStatus {
 }
 
 export default function AttendancePage() {
-  const { school, user } = useAuth()
+  const { school, user, isDemo } = useAuth()
   const toast = useToast()
   const isOnline = useOnlineStatus()
   const { classes, loading: classesLoading } = useClasses(school?.id)
@@ -76,7 +77,17 @@ export default function AttendancePage() {
         let studentsData: any[] = []
         let attendanceData: any[] = []
 
-        if (isOnline) {
+        if (isDemo) {
+          studentsData = DEMO_STUDENTS.filter(
+            student =>
+              student.school_id === school.id &&
+              student.class_id === selectedClass &&
+              student.status === 'active'
+          )
+          attendanceData = DEMO_ATTENDANCE.filter(
+            record => record.class_id === selectedClass && record.date === date
+          )
+        } else if (isOnline) {
           const { data: onlineStudents, error: studentsError } = await supabase
             .from('students')
             .select('*')
@@ -123,7 +134,7 @@ export default function AttendancePage() {
     }
 
     fetchStudents()
-  }, [selectedClass, date, school?.id])
+  }, [selectedClass, date, school?.id, isDemo, isOnline])
 
   const markAttendance = (studentId: string, status: string) => {
     setAttendance(prev => ({ ...prev, [studentId]: status }))
