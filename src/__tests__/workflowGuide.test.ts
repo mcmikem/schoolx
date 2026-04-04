@@ -13,10 +13,13 @@ describe('WorkflowGuide step resolution', () => {
   it('maps fees pages to step 3', () => {
     expect(resolveActiveStep('/dashboard/fees')).toBe(2)
     expect(resolveActiveStep('/dashboard/fees/lookup')).toBe(2)
+    expect(resolveActiveStep('/dashboard/budget')).toBe(2)
   })
 
   it('maps reports pages to final step', () => {
     expect(resolveActiveStep('/dashboard/reports')).toBe(3)
+    expect(resolveActiveStep('/dashboard/grades')).toBe(3)
+    expect(resolveActiveStep('/dashboard/exams')).toBe(3)
   })
 
   it('handles null pathname safely', () => {
