@@ -89,7 +89,7 @@ export default function RegisterPage() {
       clearTimeout(timeoutId)
 
       const data = await response.json()
-      logger.debug('Registration response:', response.status, data)
+      console.debug('Registration response:', response.status, data)
 
       if (!response.ok) {
         setError(data.error || `Registration failed (${response.status})`)

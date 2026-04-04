@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import type { InventoryTransaction } from '@/types'
 import { getQuerySchoolId, withTimeout } from './utils'
+import { isDemoSchool } from '@/lib/demo-utils'
 
 export function useAssets(schoolId?: string) {
   const [assets, setAssets] = useState<any[]>([])
@@ -12,6 +13,15 @@ export function useAssets(schoolId?: string) {
 
   const fetchAssets = useCallback(async () => {
     if (!schoolId) { setLoading(false); return }
+    if (isDemo || isDemoSchool(schoolId)) {
+      setAssets([
+        { id: 'demo-asset-1', name: 'School Bus', type: 'vehicle', current_stock: 1, condition: 'good', purchase_date: '2020-01-01', school_id: schoolId },
+        { id: 'demo-asset-2', name: ' Computers', type: 'equipment', current_stock: 20, condition: 'good', purchase_date: '2021-06-15', school_id: schoolId },
+        { id: 'demo-asset-3', name: 'Desks', type: 'furniture', current_stock: 150, condition: 'good', purchase_date: '2019-03-10', school_id: schoolId },
+      ])
+      setLoading(false)
+      return
+    }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
       setLoading(true)
@@ -25,6 +35,11 @@ export function useAssets(schoolId?: string) {
   useEffect(() => { fetchAssets() }, [fetchAssets])
 
   const createAsset = async (asset: any) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      const newAsset = { ...asset, id: `demo-asset-${Date.now()}`, school_id: schoolId || '00000000-0000-0000-0000-000000000001', created_at: new Date().toISOString() }
+      setAssets(prev => [newAsset, ...prev])
+      return newAsset
+    }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
       const { data, error } = await supabase.from('assets').insert({ ...asset, school_id: querySchoolId }).select().single()
@@ -35,6 +50,10 @@ export function useAssets(schoolId?: string) {
   }
 
   const updateAsset = async (id: string, updates: any) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      setAssets(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a))
+      return { id, ...updates }
+    }
     try {
       const { data, error } = await supabase.from('assets').update(updates).eq('id', id).select().single()
       if (error) throw error
@@ -44,6 +63,10 @@ export function useAssets(schoolId?: string) {
   }
 
   const deleteAsset = async (id: string) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      setAssets(prev => prev.filter(a => a.id !== id))
+      return
+    }
     try {
       const { error } = await supabase.from('assets').delete().eq('id', id)
       if (error) throw error
@@ -60,6 +83,10 @@ export function useInventory(schoolId?: string) {
   const { isDemo } = useAuth()
 
   const recordTransaction = async (transaction: Omit<InventoryTransaction, 'id' | 'created_at'>) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      const newTrans = { ...transaction, id: `demo-inv-${Date.now()}`, school_id: schoolId || '00000000-0000-0000-0000-000000000001', created_at: new Date().toISOString() }
+      return { success: true, data: newTrans }
+    }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
     try {

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import type { Subject } from '@/types'
 import { getQuerySchoolId } from './utils'
+import { isDemoSchool } from '@/lib/demo-utils'
 
 export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
   const [subjects, setSubjects] = useState<Subject[]>([])
@@ -12,6 +13,13 @@ export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
 
   const fetchSubjects = useCallback(async () => {
     if (!schoolId) { setLoading(false); return }
+    if (isDemo || isDemoSchool(schoolId)) {
+      const { getDefaultSubjects } = await import('@/lib/curriculum')
+      const defaultSubjects = getDefaultSubjects('primary')
+      setSubjects(defaultSubjects.map(s => ({ ...s, id: `demo-sub-${s.code}`, school_id: schoolId, created_at: new Date().toISOString() })) as unknown as Subject[])
+      setLoading(false)
+      return
+    }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
       setLoading(true)
@@ -40,6 +48,11 @@ export function useSubjectAllocations(schoolId?: string, academicYear?: string) 
   const { isDemo } = useAuth()
 
   const createAllocation = async (allocation: { teacher_id: string; subject_id: string; class_id: string; academic_year: string; term?: number; is_class_teacher?: boolean }) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      const newAlloc = { ...allocation, id: `demo-alloc-${Date.now()}`, school_id: schoolId || '00000000-0000-0000-0000-000000000001', created_at: new Date().toISOString() }
+      setAllocations(prev => [...prev, newAlloc])
+      return newAlloc
+    }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
       const { data, error } = await supabase.from('subject_allocations')
@@ -53,6 +66,10 @@ export function useSubjectAllocations(schoolId?: string, academicYear?: string) 
   }
 
   const deleteAllocation = async (id: string) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      setAllocations(prev => prev.filter(a => a.id !== id))
+      return
+    }
     try {
       const { error } = await supabase.from('subject_allocations').delete().eq('id', id)
       if (error) throw error

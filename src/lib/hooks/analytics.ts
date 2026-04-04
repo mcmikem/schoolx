@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import type { DashboardStats } from '@/types'
 import { getQuerySchoolId, withTimeout } from './utils'
+import { isDemoSchool } from '@/lib/demo-utils'
 
 export function useDashboardStats(schoolId?: string) {
   const [stats, setStats] = useState({ totalStudents: 0, presentToday: 0, feesCollected: 0, feesBalance: 0, totalClasses: 0, totalTeachers: 0 })
@@ -14,6 +15,13 @@ export function useDashboardStats(schoolId?: string) {
     let cancelled = false
     async function fetchStats() {
       if (!schoolId) { setLoading(false); return }
+      
+      if (isDemo || isDemoSchool(schoolId)) {
+        setStats({ totalStudents: 847, presentToday: 798, feesCollected: 45000000, feesBalance: 12500000, totalClasses: 12, totalTeachers: 24 })
+        setLoading(false)
+        return
+      }
+      
       const querySchoolId = getQuerySchoolId(schoolId, isDemo)
       try {
         setLoading(true)

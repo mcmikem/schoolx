@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context'
 import type { FeePayment, FeeStructure, CreatePaymentInput } from '@/types'
 import { getQuerySchoolId, withTimeout } from './utils'
 import { DEMO_FEE_PAYMENTS, DEMO_FEE_STRUCTURE, DEMO_EXPENSES } from '@/lib/demo-data'
+import { isDemoSchool } from '@/lib/demo-utils'
 
 export function useFeePayments(schoolId?: string) {
   const [payments, setPayments] = useState<FeePayment[]>([])
@@ -14,7 +15,7 @@ export function useFeePayments(schoolId?: string) {
 
   const fetchPayments = useCallback(async () => {
     // Demo mode - check for demo school UUID
-    if (isDemo || schoolId === '00000000-0000-0000-0000-000000000001') {
+    if (isDemo || isDemoSchool(schoolId)) {
       setPayments(DEMO_FEE_PAYMENTS as any)
       setLoading(false)
       return
@@ -43,6 +44,17 @@ export function useFeePayments(schoolId?: string) {
   }, [schoolId, isDemo])
 
   const createPayment = async (payment: CreatePaymentInput) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      const newPaymentData = {
+        ...payment,
+        id: `demo-payment-${Date.now()}`,
+        school_id: schoolId || '00000000-0000-0000-0000-000000000001',
+        created_at: new Date().toISOString(),
+        students: { id: payment.student_id, first_name: 'Demo', last_name: 'Student', classes: { name: 'Primary 1' } }
+      }
+      setPayments(prev => [newPaymentData as any, ...prev])
+      return newPaymentData as any
+    }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
       const { data, error: insertError } = await supabase.from('fee_payments')
@@ -60,6 +72,10 @@ export function useFeePayments(schoolId?: string) {
   }
 
   const deletePayment = async (id: string) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      setPayments(prev => prev.filter(p => p.id !== id))
+      return
+    }
     try {
       const { error: deleteError } = await supabase.from('fee_payments').delete().eq('id', id)
       if (deleteError) throw deleteError
@@ -78,7 +94,7 @@ export function useFeeStructure(schoolId?: string) {
 
   const fetchFeeStructure = useCallback(async () => {
     // Demo mode - check for demo school UUID
-    if (isDemo || schoolId === '00000000-0000-0000-0000-000000000001') {
+    if (isDemo || isDemoSchool(schoolId)) {
       setFeeStructure(DEMO_FEE_STRUCTURE as any)
       setLoading(false)
       return
@@ -102,6 +118,18 @@ export function useFeeStructure(schoolId?: string) {
   }, [schoolId, isDemo])
 
   const createFeeStructure = async (fee: { name: string; class_id?: string; amount: number; term: number; academic_year: string; due_date?: string }) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      const newFeeData = {
+        ...fee,
+        id: `demo-fee-${Date.now()}`,
+        school_id: schoolId || '00000000-0000-0000-0000-000000000001',
+        class_id: fee.class_id || null,
+        due_date: fee.due_date || null,
+        created_at: new Date().toISOString(),
+      }
+      setFeeStructure(prev => [...prev, newFeeData as any])
+      return newFeeData
+    }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
       const { data, error } = await supabase.from('fee_structure').insert({ school_id: querySchoolId, ...fee, class_id: fee.class_id || null, due_date: fee.due_date || null }).select().single()
@@ -112,6 +140,10 @@ export function useFeeStructure(schoolId?: string) {
   }
 
   const deleteFeeStructure = async (id: string) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      setFeeStructure(prev => prev.filter(f => f.id !== id))
+      return
+    }
     try {
       const { error: deleteError } = await supabase.from('fee_structure').delete().eq('id', id)
       if (deleteError) throw deleteError
@@ -129,6 +161,11 @@ export function useFeeAdjustments(schoolId?: string) {
   const { isDemo, user } = useAuth()
 
   const fetchAdjustments = useCallback(async () => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      setAdjustments([])
+      setLoading(false)
+      return
+    }
     if (!schoolId) { setLoading(false); return }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
@@ -147,6 +184,11 @@ export function useFeeAdjustments(schoolId?: string) {
   }, [schoolId, isDemo])
 
   const createAdjustment = async (adj: { student_id: string; adjustment_type: 'scholarship' | 'discount' | 'penalty'; amount: number; description?: string }) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      const newAdj = { ...adj, id: `demo-adj-${Date.now()}`, school_id: schoolId || '00000000-0000-0000-0000-000000000001', created_by: user?.id, created_at: new Date().toISOString() }
+      setAdjustments(prev => [newAdj, ...prev])
+      return newAdj
+    }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
       const { data, error } = await supabase.from('fee_adjustments')
@@ -160,6 +202,10 @@ export function useFeeAdjustments(schoolId?: string) {
   }
 
   const deleteAdjustment = async (id: string) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      setAdjustments(prev => prev.filter(a => a.id !== id))
+      return
+    }
     try {
       const { error: deleteError } = await supabase.from('fee_adjustments').delete().eq('id', id)
       if (deleteError) throw deleteError
@@ -178,6 +224,11 @@ export function useBudget(schoolId?: string) {
   const { isDemo } = useAuth()
 
   const createBudget = async (budget: any) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      const newBudget = { ...budget, id: `demo-budget-${Date.now()}`, school_id: schoolId || '00000000-0000-0000-0000-000000000001', created_at: new Date().toISOString() }
+      setBudgets(prev => [newBudget, ...prev])
+      return newBudget
+    }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
       const { data, error } = await supabase.from('budgets').insert({ ...budget, school_id: querySchoolId }).select().single()
@@ -188,6 +239,11 @@ export function useBudget(schoolId?: string) {
   }
 
   const createExpense = async (expense: any) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      const newExpense = { ...expense, id: `demo-exp-${Date.now()}`, school_id: schoolId || '00000000-0000-0000-0000-000000000001', status: 'pending', created_at: new Date().toISOString() }
+      setExpenses(prev => [newExpense, ...prev])
+      return newExpense
+    }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
       const { data, error } = await supabase.from('expenses').insert({ ...expense, school_id: querySchoolId }).select().single()
@@ -198,6 +254,10 @@ export function useBudget(schoolId?: string) {
   }
 
   const updateExpenseStatus = async (id: string, status: string) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      setExpenses(prev => prev.map(e => e.id === id ? { ...e, status } : e))
+      return { id, status }
+    }
     try {
       const { data, error } = await supabase.from('expenses').update({ status }).eq('id', id).select().single()
       if (error) throw error
@@ -208,7 +268,7 @@ export function useBudget(schoolId?: string) {
 
   useEffect(() => {
     async function fetchData() {
-      if (isDemo || schoolId === '00000000-0000-0000-0000-000000000001') {
+      if (isDemo || isDemoSchool(schoolId)) {
         setExpenses(DEMO_EXPENSES as any)
         setLoading(false)
         return

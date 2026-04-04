@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context'
 import type { StaffSalary, SalaryPayment, StaffReview } from '@/types'
 import { getQuerySchoolId, withTimeout } from './utils'
 import { DEMO_STAFF } from '@/lib/demo-data'
+import { isDemoSchool } from '@/lib/demo-utils'
 
 export function useStaff(schoolId?: string) {
   const [staff, setStaff] = useState<any[]>([])
@@ -14,7 +15,7 @@ export function useStaff(schoolId?: string) {
   useEffect(() => {
     let cancelled = false
     async function fetchStaff() {
-      if (isDemo || schoolId === '00000000-0000-0000-0000-000000000001') {
+      if (isDemo || isDemoSchool(schoolId)) {
         if (!cancelled) { setStaff(DEMO_STAFF as any); setLoading(false) }
         return
       }
@@ -43,6 +44,9 @@ export function useSalaries(schoolId?: string) {
   const { isDemo } = useAuth()
 
   const updateSalary = async (staffId: string, updates: Partial<StaffSalary>) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      return { success: true }
+    }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
       const { error } = await supabase.from('staff_salaries').upsert({ staff_id: staffId, school_id: querySchoolId, ...updates }, { onConflict: 'staff_id' })
@@ -77,6 +81,9 @@ export function useSalaryPayments(schoolId?: string) {
   const { isDemo } = useAuth()
 
   const processPayment = async (payment: Omit<SalaryPayment, 'id' | 'created_at'>) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      return { success: true, data: { ...payment, id: `demo-pay-${Date.now()}`, created_at: new Date().toISOString() } }
+    }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
       const { data, error } = await supabase.from('salary_payments')
@@ -115,6 +122,9 @@ export function useStaffReviews(schoolId?: string, staffId?: string) {
   const { isDemo } = useAuth()
 
   const submitReview = async (review: Omit<StaffReview, 'id' | 'created_at'>) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      return { success: true, data: { ...review, id: `demo-review-${Date.now()}`, created_at: new Date().toISOString() } }
+    }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
       const { data, error } = await supabase.from('staff_reviews')
@@ -154,6 +164,11 @@ export function useLeaveRequests(schoolId?: string) {
   const { isDemo } = useAuth()
 
   const createRequest = async (request: { staff_id: string; leave_type: string; start_date: string; end_date: string; days_count: number; reason: string }) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      const newRequest = { ...request, id: `demo-leave-${Date.now()}`, school_id: schoolId || '00000000-0000-0000-0000-000000000001', status: 'pending' as const, created_at: new Date().toISOString() }
+      setRequests(prev => [newRequest, ...prev])
+      return newRequest
+    }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
       const { data, error } = await supabase.from('leave_requests')
@@ -167,6 +182,10 @@ export function useLeaveRequests(schoolId?: string) {
   }
 
   const updateRequestStatus = async (id: string, status: 'approved' | 'rejected') => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      setRequests(prev => prev.map(r => r.id === id ? { ...r, status } : r))
+      return { id, status }
+    }
     try {
       const { data, error } = await supabase.from('leave_requests')
         .update({ status, approved_at: new Date().toISOString() })

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import { getQuerySchoolId } from './utils'
 import { DEMO_ATTENDANCE } from '@/lib/demo-data'
+import { isDemoSchool } from '@/lib/demo-utils'
 
 export function useAttendance(classId?: string, date?: string) {
   const [attendance, setAttendance] = useState<any[]>([])
@@ -11,9 +12,19 @@ export function useAttendance(classId?: string, date?: string) {
   const { isDemo } = useAuth()
 
   const markAttendance = async (studentId: string, status: string, recordedBy?: string) => {
+    const currentDate = date || new Date().toISOString().split('T')[0]
+    if (isDemo) {
+      const newRecord = { student_id: studentId, class_id: classId, date: currentDate, status, recorded_by: recordedBy, id: `demo-att-${Date.now()}`, created_at: new Date().toISOString() }
+      setAttendance(prev => {
+        const existing = prev.findIndex(a => a.student_id === studentId)
+        if (existing >= 0) { const u = [...prev]; u[existing] = newRecord; return u }
+        return [...prev, newRecord]
+      })
+      return newRecord
+    }
     try {
       const { data, error } = await supabase.from('attendance').upsert(
-        { student_id: studentId, class_id: classId, date: date || new Date().toISOString().split('T')[0], status, recorded_by: recordedBy },
+        { student_id: studentId, class_id: classId, date: currentDate, status, recorded_by: recordedBy },
         { onConflict: 'student_id,date' }
       ).select('id, student_id, class_id, date, status, remarks, recorded_by, created_at').single()
       if (error) throw error
@@ -110,10 +121,16 @@ export function useStaffAttendance(schoolId?: string, date?: string) {
   const { isDemo } = useAuth()
 
   const markAttendance = async (staffId: string, status: string, remarks?: string) => {
+    const currentDate = date || new Date().toISOString().split('T')[0]
+    if (isDemo || isDemoSchool(schoolId)) {
+      const newRecord = { staff_id: staffId, school_id: schoolId || '00000000-0000-0000-0000-000000000001', date: currentDate, status, remarks, id: `demo-staff-att-${Date.now()}`, created_at: new Date().toISOString() }
+      setAttendance(prev => [...prev, newRecord])
+      return newRecord
+    }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
       const { data, error } = await supabase.from('staff_attendance').upsert(
-        { staff_id: staffId, school_id: querySchoolId, date: date || new Date().toISOString().split('T')[0], status, remarks },
+        { staff_id: staffId, school_id: querySchoolId, date: currentDate, status, remarks },
         { onConflict: 'staff_id,date' }
       ).select('id, staff_id, school_id, date, status, remarks, created_at').single()
       if (error) throw error

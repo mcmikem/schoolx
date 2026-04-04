@@ -13,7 +13,7 @@ import { useAccessControl, getPageTitle } from '@/components/dashboard/AccessCon
 import { usePathname, useRouter } from 'next/navigation'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading, isTrialExpired, signOut } = useAuth()
+  const { user, loading, isDemo, isTrialExpired, signOut } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
   const toast = useToast()
@@ -35,10 +35,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [])
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!loading && !user && !isDemo) {
       router.replace('/login')
     }
-  }, [loading, user, router])
+  }, [loading, user, isDemo, router])
 
   const handleSignOut = async () => {
     sessionStorage.removeItem('lastDeniedPath')
