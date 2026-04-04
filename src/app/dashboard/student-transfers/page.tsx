@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useStudents, useClasses } from '@/lib/hooks'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
+import { DEMO_CLASSES } from '@/lib/demo-data'
 
 import MaterialIcon from '@/components/MaterialIcon'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -37,7 +38,7 @@ interface TransferOutRecord {
 }
 
 export default function StudentTransfersPage() {
-  const { school } = useAuth()
+  const { school, isDemo } = useAuth()
   const toast = useToast()
   const { students, createStudent, updateStudent } = useStudents(school?.id)
   const { classes } = useClasses(school?.id)
@@ -75,6 +76,25 @@ export default function StudentTransfersPage() {
     if (!school?.id) return
     setLoadingHistory(true)
     try {
+      if (isDemo) {
+        const records: TransferOutRecord[] = students
+          .filter((student) => student.status === 'transferred')
+          .map((student) => ({
+            id: student.id,
+            student_id: student.id,
+            transfer_to: (student as any).transfer_to || 'Unknown',
+            reason: (student as any).transfer_reason || '',
+            transfer_date: (student as any).dropout_date || (student as any).updated_at?.split('T')[0] || '',
+            student_name: `${student.first_name} ${student.last_name}`,
+            class_name: student.classes?.name || DEMO_CLASSES.find((classItem) => classItem.id === student.class_id)?.name || '-',
+            student_number: student.student_number || '',
+            gender: student.gender || '',
+            admission_date: student.admission_date || (student as any).created_at?.split('T')[0] || '',
+          }))
+        setTransferHistory(records)
+        return
+      }
+
       const { data, error } = await supabase
         .from('students')
         .select('*, classes(name)')
@@ -102,7 +122,7 @@ export default function StudentTransfersPage() {
     } finally {
       setLoadingHistory(false)
     }
-  }, [school?.id])
+  }, [school?.id, students, isDemo])
 
   useEffect(() => {
     if (school?.id) fetchTransferHistory()
@@ -195,6 +215,9 @@ export default function StudentTransfersPage() {
       }
 
       setPrintData(record)
+      if (isDemo) {
+        setTransferHistory((prev) => [record, ...prev.filter((entry) => entry.student_id !== record.student_id)])
+      }
       toast.success('Student transferred out successfully')
       setShowTransferOutModal(false)
       setTransferOutForm({
@@ -203,7 +226,7 @@ export default function StudentTransfersPage() {
         reason: '',
         transfer_date: new Date().toISOString().split('T')[0],
       })
-      fetchTransferHistory()
+      if (!isDemo) fetchTransferHistory()
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Transfer failed'
       toast.error(errorMessage)
@@ -424,37 +447,37 @@ export default function StudentTransfersPage() {
             <form onSubmit={handleTransferIn} className="p-5">
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">First Name</label>
-                  <input type="text" value={transferInForm.first_name} onChange={(e) => setTransferInForm({ ...transferInForm, first_name: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required />
+                  <label htmlFor="transfer-in-first-name" className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">First Name</label>
+                  <input id="transfer-in-first-name" type="text" value={transferInForm.first_name} onChange={(e) => setTransferInForm({ ...transferInForm, first_name: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Last Name</label>
-                  <input type="text" value={transferInForm.last_name} onChange={(e) => setTransferInForm({ ...transferInForm, last_name: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required />
+                  <label htmlFor="transfer-in-last-name" className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Last Name</label>
+                  <input id="transfer-in-last-name" type="text" value={transferInForm.last_name} onChange={(e) => setTransferInForm({ ...transferInForm, last_name: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Gender</label>
-                  <select value={transferInForm.gender} onChange={(e) => setTransferInForm({ ...transferInForm, gender: e.target.value as 'M' | 'F' })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]">
+                  <label htmlFor="transfer-in-gender" className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Gender</label>
+                  <select id="transfer-in-gender" value={transferInForm.gender} onChange={(e) => setTransferInForm({ ...transferInForm, gender: e.target.value as 'M' | 'F' })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]">
                     <option value="M">Male</option>
                     <option value="F">Female</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Date of Birth</label>
-                  <input type="date" value={transferInForm.date_of_birth} onChange={(e) => setTransferInForm({ ...transferInForm, date_of_birth: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" />
+                  <label htmlFor="transfer-in-dob" className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Date of Birth</label>
+                  <input id="transfer-in-dob" type="date" value={transferInForm.date_of_birth} onChange={(e) => setTransferInForm({ ...transferInForm, date_of_birth: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" />
                 </div>
               </div>
 
               <div className="mb-4">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Previous School</label>
-                <input type="text" value={transferInForm.previous_school} onChange={(e) => setTransferInForm({ ...transferInForm, previous_school: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required placeholder="Name of previous school" />
+                <label htmlFor="transfer-in-previous-school" className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Previous School</label>
+                <input id="transfer-in-previous-school" type="text" value={transferInForm.previous_school} onChange={(e) => setTransferInForm({ ...transferInForm, previous_school: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required placeholder="Name of previous school" />
               </div>
 
               <div className="mb-4">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Transfer Reason</label>
-                <select value={transferInForm.reason} onChange={(e) => setTransferInForm({ ...transferInForm, reason: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required>
+                <label htmlFor="transfer-in-reason" className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Transfer Reason</label>
+                <select id="transfer-in-reason" value={transferInForm.reason} onChange={(e) => setTransferInForm({ ...transferInForm, reason: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required>
                   <option value="">Select reason</option>
                   {TRANSFER_REASONS.map(r => (
                     <option key={r} value={r}>{r}</option>
@@ -463,8 +486,8 @@ export default function StudentTransfersPage() {
               </div>
 
               <div className="mb-4">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Assign to Class</label>
-                <select value={transferInForm.class_id} onChange={(e) => setTransferInForm({ ...transferInForm, class_id: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required>
+                <label htmlFor="transfer-in-class" className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Assign to Class</label>
+                <select id="transfer-in-class" value={transferInForm.class_id} onChange={(e) => setTransferInForm({ ...transferInForm, class_id: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required>
                   <option value="">Select class</option>
                   {classes.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
@@ -473,18 +496,18 @@ export default function StudentTransfersPage() {
               </div>
 
               <div className="mb-4">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Parent/Guardian Name</label>
-                <input type="text" value={transferInForm.parent_name} onChange={(e) => setTransferInForm({ ...transferInForm, parent_name: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required />
+                <label htmlFor="transfer-in-parent-name" className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Parent/Guardian Name</label>
+                <input id="transfer-in-parent-name" type="text" value={transferInForm.parent_name} onChange={(e) => setTransferInForm({ ...transferInForm, parent_name: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required />
               </div>
 
               <div className="grid grid-cols-2 gap-3 mb-5">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Parent Phone</label>
-                  <input type="tel" placeholder="0700000000" value={transferInForm.parent_phone} onChange={(e) => setTransferInForm({ ...transferInForm, parent_phone: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required />
+                  <label htmlFor="transfer-in-parent-phone" className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Parent Phone</label>
+                  <input id="transfer-in-parent-phone" type="tel" placeholder="0700000000" value={transferInForm.parent_phone} onChange={(e) => setTransferInForm({ ...transferInForm, parent_phone: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Alt. Phone</label>
-                  <input type="tel" placeholder="0700000000" value={transferInForm.parent_phone2} onChange={(e) => setTransferInForm({ ...transferInForm, parent_phone2: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" />
+                  <label htmlFor="transfer-in-parent-phone-2" className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Alt. Phone</label>
+                  <input id="transfer-in-parent-phone-2" type="tel" placeholder="0700000000" value={transferInForm.parent_phone2} onChange={(e) => setTransferInForm({ ...transferInForm, parent_phone2: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" />
                 </div>
               </div>
 
@@ -508,11 +531,11 @@ export default function StudentTransfersPage() {
             </div>
             <form onSubmit={handleTransferOut} className="p-5">
               <div className="mb-4">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Select Student</label>
+                <label htmlFor="transfer-out-student" className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Select Student</label>
                 {activeStudents.length === 0 ? (
                   <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No active students</div>
                 ) : (
-                  <select value={transferOutForm.student_id} onChange={(e) => setTransferOutForm({ ...transferOutForm, student_id: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required>
+                  <select id="transfer-out-student" value={transferOutForm.student_id} onChange={(e) => setTransferOutForm({ ...transferOutForm, student_id: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required>
                     <option value="">Select student...</option>
                     {activeStudents.map(s => (
                       <option key={s.id} value={s.id}>{s.first_name} {s.last_name} - {s.classes?.name || 'No class'}</option>
@@ -522,13 +545,13 @@ export default function StudentTransfersPage() {
               </div>
 
               <div className="mb-4">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Transferring To (School Name)</label>
-                <input type="text" value={transferOutForm.transfer_to} onChange={(e) => setTransferOutForm({ ...transferOutForm, transfer_to: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required placeholder="Name of new school" />
+                <label htmlFor="transfer-out-school" className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Transferring To (School Name)</label>
+                <input id="transfer-out-school" type="text" value={transferOutForm.transfer_to} onChange={(e) => setTransferOutForm({ ...transferOutForm, transfer_to: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required placeholder="Name of new school" />
               </div>
 
               <div className="mb-4">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Reason</label>
-                <select value={transferOutForm.reason} onChange={(e) => setTransferOutForm({ ...transferOutForm, reason: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required>
+                <label htmlFor="transfer-out-reason" className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Reason</label>
+                <select id="transfer-out-reason" value={transferOutForm.reason} onChange={(e) => setTransferOutForm({ ...transferOutForm, reason: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required>
                   <option value="">Select reason</option>
                   {TRANSFER_REASONS.map(r => (
                     <option key={r} value={r}>{r}</option>
@@ -537,8 +560,8 @@ export default function StudentTransfersPage() {
               </div>
 
               <div className="mb-5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Transfer Date</label>
-                <input type="date" value={transferOutForm.transfer_date} onChange={(e) => setTransferOutForm({ ...transferOutForm, transfer_date: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required />
+                <label htmlFor="transfer-out-date" className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">Transfer Date</label>
+                <input id="transfer-out-date" type="date" value={transferOutForm.transfer_date} onChange={(e) => setTransferOutForm({ ...transferOutForm, transfer_date: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]" required />
               </div>
 
               <div className="flex gap-3">
