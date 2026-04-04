@@ -111,7 +111,7 @@ function DormMasterDashboard() {
 }
 
 export default function DashboardRouter() {
-  const { user, loading } = useAuth()
+  const { user, school, loading } = useAuth()
 
   if (loading) {
     return <DashboardSkeleton />
@@ -121,13 +121,19 @@ export default function DashboardRouter() {
     return null
   }
 
+  // Centralized setup check: ensure school is initialized
+  if (!school || !school.name || school.name === 'My School') {
+    window.location.href = '/dashboard/setup-wizard'
+    return null
+  }
+
   switch (user.role) {
     case 'headmaster':
     case 'school_admin':
     case 'admin':
     case 'board':
       return <HeadmasterDashboard />
-
+// ... rest of the file ...
     case 'dean_of_studies':
       return <DeanDashboard />
 
