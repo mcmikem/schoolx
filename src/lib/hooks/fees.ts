@@ -38,10 +38,11 @@ export function useFeePayments(schoolId?: string) {
         supabase.from('fee_payments')
           .select(`
             id, student_id, fee_id, amount_paid, payment_method, payment_reference, 
-            paid_by, notes, payment_date, created_at,
+            paid_by, notes, payment_date, created_at, deleted_at,
             students!inner (id, first_name, last_name, school_id, classes (name))
           `)
           .eq('students.school_id', querySchoolId)
+          .is('deleted_at', null)
           .order('payment_date', { ascending: false })
           .then(r => { if (r.error) throw r.error; return r.data }),
         8000, [] as any[]
@@ -127,9 +128,28 @@ export function useFeePayments(schoolId?: string) {
       return
     }
     try {
-      const { error: deleteError } = await supabase.from('fee_payments').delete().eq('id', id)
+      const existing = payments.find(p => p.id === id)
+      const payload = {
+        deleted_at: new Date().toISOString(),
+        deleted_by: user?.id || null,
+      }
+      const { error: deleteError } = await supabase.from('fee_payments').update(payload).eq('id', id)
       if (deleteError) throw deleteError
       setPayments(prev => prev.filter(p => p.id !== id))
+      if (school?.id && user?.id && existing) {
+        await logAuditEventWithOfflineSupport(
+          true,
+          school.id,
+          user.id,
+          user.full_name,
+          'delete',
+          'fees',
+          'Soft-deleted fee payment',
+          id,
+          existing as unknown as Record<string, unknown>,
+          payload
+        )
+      }
     } catch (err: unknown) { throw new Error(err instanceof Error ? err.message : 'Unknown error') }
   }
 
@@ -163,8 +183,9 @@ export function useFeeStructure(schoolId?: string) {
       }
       const data = await withTimeout(
         supabase.from('fee_structure')
-          .select(`id, school_id, class_id, name, amount, term, academic_year, due_date, created_at, classes (name)`)
+          .select(`id, school_id, class_id, name, amount, term, academic_year, due_date, created_at, deleted_at, classes (name)`)
           .eq('school_id', querySchoolId)
+          .is('deleted_at', null)
           .order('name')
           .then(r => { if (r.error) throw r.error; return r.data }),
         5000, [] as any[]
@@ -203,7 +224,9 @@ export function useFeeStructure(schoolId?: string) {
       return
     }
     try {
-      const { error: deleteError } = await supabase.from('fee_structure').delete().eq('id', id)
+      const { error: deleteError } = await supabase.from('fee_structure')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', id)
       if (deleteError) throw deleteError
       setFeeStructure(prev => prev.filter(f => f.id !== id))
     } catch (err: any) { throw new Error(err.message) }
@@ -239,6 +262,7 @@ export function useFeeAdjustments(schoolId?: string) {
         supabase.from('fee_adjustments')
           .select('*')
           .eq('school_id', querySchoolId)
+          .is('deleted_at', null)
           .order('created_at', { ascending: false })
           .then(r => { if (r.error) throw r.error; return r.data }),
         5000, [] as any[]
@@ -325,9 +349,28 @@ export function useFeeAdjustments(schoolId?: string) {
       return
     }
     try {
-      const { error: deleteError } = await supabase.from('fee_adjustments').delete().eq('id', id)
+      const existing = adjustments.find(a => a.id === id)
+      const payload = {
+        deleted_at: new Date().toISOString(),
+        deleted_by: user?.id || null,
+      }
+      const { error: deleteError } = await supabase.from('fee_adjustments').update(payload).eq('id', id)
       if (deleteError) throw deleteError
       setAdjustments(prev => prev.filter(a => a.id !== id))
+      if (school?.id && user?.id && existing) {
+        await logAuditEventWithOfflineSupport(
+          true,
+          school.id,
+          user.id,
+          user.full_name,
+          'delete',
+          'fees',
+          'Soft-deleted fee adjustment',
+          id,
+          existing as unknown as Record<string, unknown>,
+          payload
+        )
+      }
     } catch (err: any) { throw new Error(err.message) }
   }
 

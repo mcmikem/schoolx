@@ -13,7 +13,7 @@ export function useGrades(classId?: string, subjectId?: string, term?: number, a
   const { isDemo, user, school } = useAuth()
   const isOnline = useOnlineStatus()
 
-  const saveGrade = async (grade: { student_id: string; subject_id: string; class_id: string; assessment_type: string; score: number; max_score?: number; term: number; academic_year: string; recorded_by?: string }) => {
+  const saveGrade = async (grade: { student_id: string; subject_id: string; class_id: string; assessment_type: string; score: number; max_score?: number; term: number; academic_year: string; recorded_by?: string; status?: string }) => {
     const maxScore = grade.max_score || 100
     if (grade.score < 0 || grade.score > maxScore) {
       throw new Error(`Score must be between 0 and ${maxScore}`)
@@ -68,7 +68,7 @@ export function useGrades(classId?: string, subjectId?: string, term?: number, a
       )
       const { data, error } = await supabase.from('grades')
         .upsert(payload, { onConflict: 'student_id,subject_id,assessment_type,term,academic_year' })
-        .select('id, student_id, subject_id, class_id, assessment_type, score, max_score, term, academic_year, recorded_by, created_at')
+        .select('id, student_id, subject_id, class_id, assessment_type, score, max_score, term, academic_year, status, recorded_by, created_at, deleted_at')
         .single()
       if (error) throw error
       setGrades(prev => {
@@ -126,11 +126,12 @@ export function useGrades(classId?: string, subjectId?: string, term?: number, a
       }
       let query = supabase.from('grades')
         .select(`
-          id, student_id, subject_id, class_id, assessment_type, score, max_score, term, academic_year, recorded_by, created_at,
+          id, student_id, subject_id, class_id, assessment_type, score, max_score, term, academic_year, status, submitted_at, submitted_by, approved_at, approved_by, published_at, published_by, ca_locked, locked_by, locked_at, recorded_by, created_at, deleted_at,
           students (id, first_name, last_name), 
           subjects (id, name, code)
         `)
         .eq('class_id', classId)
+        .is('deleted_at', null)
       if (subjectId) query = query.eq('subject_id', subjectId)
       if (term) query = query.eq('term', term)
       if (academicYear) query = query.eq('academic_year', academicYear)

@@ -71,6 +71,7 @@ const roleBasedRoutes: Record<string, keyof RolePermissions> = {
   '/dashboard/report-cards': 'reports',
   '/dashboard/pricing': 'settings',
   '/dashboard/audit': 'settings',
+  '/dashboard/sync-center': 'settings',
 }
 
 const MODULE_FOR_ROUTE: Record<string, ModuleKey> = {
@@ -144,6 +145,7 @@ const PAGE_TITLE_OVERRIDES: Record<string, string> = {
   '/dashboard/payment-plans': 'Payment Plans',
   '/dashboard/expense-approvals': 'Expense Approvals',
   '/dashboard/leave-approvals': 'Leave Approvals',
+  '/dashboard/sync-center': 'Sync Center',
   '/dashboard/lesson-plans': 'Lesson Plans',
   '/dashboard/staff-attendance': 'Staff Attendance',
   '/dashboard/staff-activity': 'Staff Activity',

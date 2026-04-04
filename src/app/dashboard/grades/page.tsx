@@ -16,6 +16,7 @@ import { TableSkeleton, FullPageLoader } from '@/components/ui/Skeleton'
 import { EmptyState, NoData } from '@/components/EmptyState'
 import { logAuditEventWithOfflineSupport } from '@/lib/audit'
 import { useOnlineStatus } from '@/lib/offline'
+import { deriveGradeWorkflowStatus, getNextGradeWorkflowStatusActions, GradeWorkflowStatus } from '@/lib/operations'
 
 interface TopicCoverage {
   id: string
@@ -68,7 +69,7 @@ export default function GradesPage() {
   const [caLocked, setCaLocked] = useState(false)
   const [lockedByName, setLockedByName] = useState('')
   const [marksBy, setMarksBy] = useState<Record<string, { name: string, type: string }>>({})
-  const [submissionStatus, setSubmissionStatus] = useState<'draft' | 'submitted'>('draft')
+  const [submissionStatus, setSubmissionStatus] = useState<GradeWorkflowStatus>('draft')
   const { students: classStudents, loading: studentsLoading } = useStudents(school?.id)
   const { grades: existingGrades, saveGrade } = useGrades(selectedClass, selectedSubject, currentTerm, academicYear)
 
@@ -107,8 +108,7 @@ export default function GradesPage() {
         setLockedByName('')
       }
 
-      const hasSubmitted = existingGrades.some((g: any) => g.status === 'submitted')
-      setSubmissionStatus(hasSubmitted ? 'submitted' : 'draft')
+      setSubmissionStatus(deriveGradeWorkflowStatus(existingGrades))
     } else {
       setMarks({})
       setMarksBy({})
@@ -249,7 +249,7 @@ export default function GradesPage() {
     return { total, graded, notGraded, notGradedNames, percentage }
   }, [filteredStudents, isStudentGraded])
 
-  const handleSaveGrades = async (status: 'draft' | 'submitted' = 'draft') => {
+  const handleSaveGrades = async (status: GradeWorkflowStatus = 'draft') => {
     if (!selectedClass || !selectedSubject) return
     try {
       setSaving(true)
@@ -267,10 +267,19 @@ export default function GradesPage() {
           term: currentTerm,
           academic_year: academicYear,
           recorded_by: user?.id,
+          status,
         })
       }
       setSubmissionStatus(status)
-      toast.success(status === 'submitted' ? 'Grades submitted to Dean' : 'Draft saved successfully')
+      const successMessage =
+        status === 'submitted'
+          ? 'Grades submitted to Dean'
+          : status === 'approved'
+            ? 'Grades approved for publication'
+            : status === 'published'
+              ? 'Grades published for parent/report access'
+              : 'Draft saved successfully'
+      toast.success(successMessage)
     } catch {
       toast.error('Failed to save grades')
     } finally {
@@ -318,7 +327,7 @@ export default function GradesPage() {
       toast.error('Please select a class and subject first')
       return
     }
-    if (submissionStatus === 'submitted') {
+    if (submissionStatus !== 'draft') {
       toast.info('Grades already submitted')
       return
     }
@@ -329,6 +338,69 @@ export default function GradesPage() {
       if (!proceed) return
     }
     handleSaveGrades('submitted')
+  }
+
+  const handleAdvanceWorkflow = async (nextStatus: GradeWorkflowStatus) => {
+    if (!selectedClass || !selectedSubject || !user?.id || existingGrades.length === 0) {
+      toast.error('Save grades first before changing workflow status')
+      return
+    }
+
+    const actorLabel =
+      nextStatus === 'approved' ? 'approve' : nextStatus === 'published' ? 'publish' : 'submit'
+
+    if (!window.confirm(`Are you sure you want to ${actorLabel} these grades?`)) return
+
+    try {
+      setSaving(true)
+      const updatePayload: Record<string, string | null> = { status: nextStatus }
+      if (nextStatus === 'submitted') {
+        updatePayload.submitted_at = new Date().toISOString()
+        updatePayload.submitted_by = user.id
+      }
+      if (nextStatus === 'approved') {
+        updatePayload.approved_at = new Date().toISOString()
+        updatePayload.approved_by = user.id
+      }
+      if (nextStatus === 'published') {
+        updatePayload.published_at = new Date().toISOString()
+        updatePayload.published_by = user.id
+      }
+
+      const { error } = await supabase
+        .from('grades')
+        .update(updatePayload)
+        .eq('class_id', selectedClass)
+        .eq('subject_id', selectedSubject)
+        .eq('term', currentTerm)
+        .eq('academic_year', academicYear)
+        .is('deleted_at', null)
+
+      if (error) throw error
+
+      if (school?.id) {
+        await logAuditEventWithOfflineSupport(
+          isOnline,
+          school.id,
+          user.id,
+          user.full_name,
+          'update',
+          'grades',
+          `Changed grade workflow to ${nextStatus} for class ${selectedClass} subject ${selectedSubject}`,
+          `${selectedClass}:${selectedSubject}:${currentTerm}:${academicYear}`,
+          { status: submissionStatus },
+          updatePayload
+        )
+      }
+
+      setSubmissionStatus(nextStatus)
+      toast.success(`Grades ${nextStatus}`)
+    } catch (err) {
+      console.error('Error updating grade workflow:', err)
+      toast.error('Failed to update workflow status')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleSaveDraft = () => {
@@ -409,7 +481,17 @@ export default function GradesPage() {
     return { total, completed, inProgress, percentage: total > 0 ? Math.round((completed / total) * 100) : 0 }
   }, [topics, getTopicStatus])
 
-  const isSubmitted = submissionStatus === 'submitted'
+  const isSubmitted = submissionStatus !== 'draft'
+  const isPublished = submissionStatus === 'published'
+  const nextWorkflowActions = getNextGradeWorkflowStatusActions(submissionStatus, user?.role)
+  const statusTone =
+    submissionStatus === 'published'
+      ? 'bg-green-100 text-green-700'
+      : submissionStatus === 'approved'
+        ? 'bg-blue-100 text-blue-700'
+        : submissionStatus === 'submitted'
+          ? 'bg-amber-100 text-amber-700'
+          : 'bg-slate-100 text-slate-700'
 
   return (
     <div className="space-y-6">
@@ -450,7 +532,7 @@ export default function GradesPage() {
             </Button>
             <Button
               onClick={() => handleSaveGrades()}
-              disabled={saving || !selectedClass || !selectedSubject || isSubmitted}
+              disabled={saving || !selectedClass || !selectedSubject || isPublished}
               loading={saving}
               icon={<MaterialIcon icon="save" className="text-lg" style={{ fontVariationSettings: 'FILL 1' }} />}
             >
@@ -463,6 +545,10 @@ export default function GradesPage() {
       {/* Marks Entry Info */}
       {selectedClass && selectedSubject && Object.keys(marksBy).length > 0 && (
         <div className="flex gap-4 flex-wrap">
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${statusTone}`}>
+            <MaterialIcon icon="task_alt" className="text-sm" />
+            <span>Workflow: {submissionStatus}</span>
+          </div>
           {Object.values(marksBy).some(m => ['ca1', 'ca2', 'ca3'].includes(m.type)) && (
             <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full text-xs font-medium">
               <MaterialIcon icon="person" className="text-sm" />
@@ -482,6 +568,21 @@ export default function GradesPage() {
         <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 rounded-xl text-sm font-medium text-red-700">
           <MaterialIcon icon="lock" className="text-lg" />
           CA marks are locked for this subject/class. Contact DOS to unlock.
+        </div>
+      )}
+
+      {selectedClass && selectedSubject && nextWorkflowActions.length > 0 && (
+        <div className="flex flex-wrap gap-3">
+          {nextWorkflowActions.map((status) => (
+            <Button
+              key={status}
+              variant={status === 'published' ? 'primary' : 'secondary'}
+              onClick={() => handleAdvanceWorkflow(status)}
+              disabled={saving}
+            >
+              {status === 'submitted' ? 'Submit to Dean' : status === 'approved' ? 'Approve Grades' : 'Publish Grades'}
+            </Button>
+          ))}
         </div>
       )}
 

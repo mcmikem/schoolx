@@ -258,9 +258,9 @@ function ParentDashboard({ student, parentName, onLogout, onSwitchChild }: { stu
       
       const [attData, payData, gradeData, adjData] = await Promise.all([
         supabase.from('attendance').select('*').eq('student_id', student.id).order('date', { ascending: false }).limit(30),
-        supabase.from('fee_payments').select('*').eq('student_id', student.id).order('payment_date', { ascending: false }).limit(10),
-        supabase.from('grades').select('*, subjects(name)').eq('student_id', student.id).order('created_at', { ascending: false }).limit(10),
-        supabase.from('fee_adjustments').select('*').eq('student_id', student.id).order('created_at', { ascending: false }).limit(10),
+        supabase.from('fee_payments').select('*').eq('student_id', student.id).is('deleted_at', null).order('payment_date', { ascending: false }).limit(10),
+        supabase.from('grades').select('*, subjects(name)').eq('student_id', student.id).eq('status', 'published').is('deleted_at', null).order('created_at', { ascending: false }).limit(10),
+        supabase.from('fee_adjustments').select('*').eq('student_id', student.id).is('deleted_at', null).order('created_at', { ascending: false }).limit(10),
       ])
       
       setAttendance(attData.data || [])

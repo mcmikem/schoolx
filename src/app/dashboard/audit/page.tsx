@@ -14,6 +14,7 @@ export default function AuditLogPage() {
   const [logs, setLogs] = useState<AuditEntry[]>([])
   const [filterAction, setFilterAction] = useState('all')
   const [filterModule, setFilterModule] = useState('all')
+  const [filterRisk, setFilterRisk] = useState<'all' | 'high'>('all')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -27,9 +28,16 @@ export default function AuditLogPage() {
     fetchLogs()
   }, [school?.id])
 
+  const isHighRisk = (log: AuditEntry) => {
+    if (log.action === 'delete') return true
+    if (['fees', 'grades', 'automation', 'settings'].includes(log.module)) return true
+    return /publish|lock|unlock|write-off|write off|bursary|delete|approve/i.test(log.description)
+  }
+
   const filteredLogs = logs.filter(log => {
     if (filterAction !== 'all' && log.action !== filterAction) return false
     if (filterModule !== 'all' && log.module !== filterModule) return false
+    if (filterRisk === 'high' && !isHighRisk(log)) return false
     return true
   })
 
@@ -65,6 +73,15 @@ export default function AuditLogPage() {
           ]}
           className="sm:w-40"
         />
+        <Select
+          value={filterRisk}
+          onChange={(e) => setFilterRisk(e.target.value as 'all' | 'high')}
+          options={[
+            { value: 'all', label: 'All Risk Levels' },
+            { value: 'high', label: 'High Risk Only' },
+          ]}
+          className="sm:w-44"
+        />
       </div>
 
       {loading ? (
@@ -87,6 +104,7 @@ export default function AuditLogPage() {
                     <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">Action</th>
                     <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">Module</th>
                     <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">Description</th>
+                    <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">Risk</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -108,6 +126,13 @@ export default function AuditLogPage() {
                       </td>
                       <td className="p-3 text-[var(--t3)]">{log.module}</td>
                       <td className="p-3 text-[var(--t3)]">{log.description}</td>
+                      <td className="p-3">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                          isHighRisk(log) ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'
+                        }`}>
+                          {isHighRisk(log) ? 'High' : 'Standard'}
+                        </span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

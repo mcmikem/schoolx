@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { apiError, apiSuccess, handleApiError, requireAuthenticatedUser, withSecurity } from '@/lib/api-utils'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { detectConsecutiveAbsenceAlerts } from '@/lib/operations'
+import { detectConsecutiveAbsenceAlerts, filterAbsenceAlertsForCooldown } from '@/lib/operations'
 
 async function handlePost(request: NextRequest) {
   try {
@@ -70,10 +70,24 @@ async function handlePost(request: NextRequest) {
       },
     })
 
+    const { data: recentLogs } = await supabase
+      .from('automated_message_logs')
+      .select('trigger_id, record_id, status, sent_at, created_at')
+      .eq('school_id', schoolId)
+      .eq('trigger_id', trigger.id)
+      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+
+    const alertsToSend = filterAbsenceAlertsForCooldown({
+      alerts,
+      triggerId: trigger.id,
+      recentLogs: recentLogs || [],
+      cooldownHours: 24,
+    })
+
     const sentAt = new Date().toISOString()
     let createdMessages = 0
 
-    for (const alert of alerts) {
+    for (const alert of alertsToSend) {
       const { error: messageError } = await supabase.from('messages').insert({
         school_id: schoolId,
         recipient_type: 'individual',
@@ -92,7 +106,8 @@ async function handlePost(request: NextRequest) {
       await supabase.from('automated_message_logs').insert({
         school_id: schoolId,
         trigger_id: trigger.id,
-        recipient_id: null,
+        recipient_id: alert.parentPhone || null,
+        record_id: alert.studentId,
         status: alert.shouldSendSms ? 'sent' : 'failed',
         sent_at: sentAt,
       })
@@ -103,11 +118,29 @@ async function handlePost(request: NextRequest) {
       .update({ last_run_at: sentAt })
       .eq('id', trigger.id)
 
+    await supabase.from('audit_log').insert({
+      school_id: schoolId,
+      user_id: actor.id,
+      user_name: actor.full_name,
+      action: 'create',
+      module: 'automation',
+      description: `Ran SMS trigger ${trigger.name} (${alertsToSend.length} message candidate${alertsToSend.length === 1 ? '' : 's'})`,
+      record_id: trigger.id,
+      new_value: {
+        event_type: trigger.event_type,
+        threshold_days: trigger.threshold_days,
+        alertsMatched: alerts.length,
+        messagesCreated: createdMessages,
+        suppressedByCooldown: Math.max(0, alerts.length - alertsToSend.length),
+      },
+    })
+
     return apiSuccess({
       triggerId: trigger.id,
       eventType: trigger.event_type,
       threshold: trigger.threshold_days,
       alertsMatched: alerts.length,
+      suppressedByCooldown: Math.max(0, alerts.length - alertsToSend.length),
       messagesCreated: createdMessages,
       runAt: sentAt,
     })

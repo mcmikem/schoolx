@@ -20,10 +20,12 @@ const VALID_TABLES = [
   'grades',
   'fee_payments',
   'fee_structure',
+  'fee_adjustments',
   'messages',
   'events',
   'timetable',
 ]
+const SOFT_DELETE_TABLES = new Set(['grades', 'fee_payments', 'fee_structure', 'fee_adjustments'])
 
 export async function POST(request: NextRequest) {
   try {
@@ -108,10 +110,10 @@ export async function POST(request: NextRequest) {
               errors.push(`Missing id for delete on ${item.table}`)
               continue
             }
-            const { error } = await supabase
-              .from(item.table)
-              .delete()
-              .eq('id', deleteId)
+            const query = supabase.from(item.table)
+            const { error } = SOFT_DELETE_TABLES.has(item.table)
+              ? await query.update({ deleted_at: new Date().toISOString() }).eq('id', deleteId)
+              : await query.delete().eq('id', deleteId)
             if (error) {
               failedCount++
               errors.push(`Delete failed for ${item.table}: ${error.message}`)

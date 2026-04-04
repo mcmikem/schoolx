@@ -17,6 +17,7 @@ interface OfflineRecord {
 }
 
 const MAX_RETRY_ATTEMPTS = 3
+const SOFT_DELETE_TABLES = new Set(['grades', 'fee_payments', 'fee_structure', 'fee_adjustments'])
 
 class OfflineDB {
   private db: IDBDatabase | null = null
@@ -303,6 +304,24 @@ class OfflineDB {
     })
   }
 
+  async getFailedSync(): Promise<OfflineRecord[]> {
+    const db = await this.ensureDb()
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(['sync_queue'], 'readonly')
+      const store = transaction.objectStore('sync_queue')
+      const request = store.getAll()
+
+      request.onsuccess = () => {
+        const items = (request.result || []).filter(
+          (item) => !item.synced && item.attempts >= MAX_RETRY_ATTEMPTS
+        )
+        resolve(items)
+      }
+      request.onerror = () => reject(request.error)
+    })
+  }
+
   // Mark item as synced
   async markSynced(id: number): Promise<void> {
     const db = await this.ensureDb()
@@ -384,10 +403,11 @@ class OfflineDB {
       const { supabase } = await import('@/lib/supabase')
 
       if (item.action === 'delete') {
-        const { error } = await supabase
-          .from(item.table)
-          .delete()
-          .eq('id', (item.data as Record<string, unknown>).id as string)
+        const deleteId = (item.data as Record<string, unknown>).id as string
+        const query = supabase.from(item.table)
+        const { error } = SOFT_DELETE_TABLES.has(item.table)
+          ? await query.update({ deleted_at: new Date().toISOString() }).eq('id', deleteId)
+          : await query.delete().eq('id', deleteId)
         if (error) throw error
       } else if (item.table === 'attendance') {
         const { error } = await supabase
