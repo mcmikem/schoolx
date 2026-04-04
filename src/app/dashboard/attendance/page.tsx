@@ -579,7 +579,7 @@ export default function AttendancePage() {
           </TabPanel>
 
           {/* Sticky save button for mobile */}
-          <div className="fixed bottom-0 left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant/10 md:border-0 z-10">
+          <div className="fixed bottom-[80px] left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant/10 md:border-0 z-10">
             <Button
               onClick={saveAttendance}
               disabled={saving || Object.keys(attendance).length === 0}

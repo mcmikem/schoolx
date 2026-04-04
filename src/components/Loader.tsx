@@ -56,7 +56,7 @@ export default function AppLoader() {
       </div>
       <div
         style={{
-          fontFamily: "Outfit",
+          fontFamily: "Sora",
           fontSize: 20,
           fontWeight: 700,
           color: "var(--navy)",
