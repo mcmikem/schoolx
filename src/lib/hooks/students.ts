@@ -7,6 +7,7 @@ import { getQuerySchoolId, withTimeout } from './utils'
 
 import { DEMO_STUDENTS, DEMO_CLASSES } from '@/lib/demo-data'
 import { isDemoSchool } from '@/lib/demo-utils'
+import { getFeatureLimit, getPlanUsageWarning } from '@/lib/payments/subscription-client'
 
 export function useStudents(schoolId?: string, options?: { limit?: number; offset?: number }) {
   const limit = options?.limit || 100
@@ -15,7 +16,7 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [totalCount, setTotalCount] = useState(0)
-  const { isDemo } = useAuth()
+  const { isDemo, school } = useAuth()
 
   const fetchStudents = useCallback(async () => {
     // Demo mode - check for demo school UUID
@@ -42,6 +43,14 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
   }, [schoolId, isDemo, limit, offset])
 
   const createStudent = async (student: CreateStudentInput) => {
+    // Check plan limit for non-demo schools
+    if (!isDemo && !isDemoSchool(schoolId) && school?.subscription_plan) {
+      const maxStudents = getFeatureLimit(school.subscription_plan as any, 'maxStudents')
+      if (totalCount >= maxStudents) {
+        throw new Error(`Student limit reached. Your plan allows ${maxStudents.toLocaleString()} students. Upgrade to add more.`)
+      }
+    }
+
     if (isDemo || isDemoSchool(schoolId)) {
       const newId = `demo-student-${Date.now()}`
       const newStudentData = {
