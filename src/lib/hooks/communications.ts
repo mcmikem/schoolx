@@ -144,6 +144,48 @@ export function useSMSTriggers(schoolId?: string) {
     } catch (err: any) { return { success: false, error: err.message } }
   }
 
+  const runTrigger = async (id: string) => {
+    if (!schoolId) return { success: false, error: 'School ID required' }
+    if (isDemo) {
+      return {
+        success: true,
+        data: {
+          triggerId: id,
+          alertsMatched: 2,
+          messagesCreated: 2,
+          runAt: new Date().toISOString(),
+        }
+      }
+    }
+
+    try {
+      const response = await fetch('/api/automation/sms/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ schoolId, triggerId: id }),
+      })
+
+      const result = await response.json()
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to run trigger')
+      }
+
+      setTriggers(prev =>
+        prev.map(trigger =>
+          trigger.id === id
+            ? { ...trigger, last_run_at: result.data?.runAt || new Date().toISOString() }
+            : trigger
+        )
+      )
+
+      return { success: true, data: result.data }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  }
+
   useEffect(() => {
     async function fetchTriggers() {
       if (!schoolId) { setLoading(false); return }
@@ -168,5 +210,5 @@ export function useSMSTriggers(schoolId?: string) {
     fetchTriggers()
   }, [schoolId, isDemo])
 
-  return { triggers, loading, toggleTrigger }
+  return { triggers, loading, toggleTrigger, runTrigger }
 }
