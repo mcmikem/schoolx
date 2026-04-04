@@ -42,10 +42,10 @@ export default function ParentPortal() {
 
           const [attRes, gradesRes, payRes, fsRes, adjRes] = await Promise.all([
             supabase.from('attendance').select('*').eq('student_id', activeStudent.id).order('date', { ascending: false }).limit(10),
-            supabase.from('grades').select('*, subjects(name)').eq('student_id', activeStudent.id).eq('term', currentTerm).eq('academic_year', academicYear),
-            supabase.from('fee_payments').select('*').eq('student_id', activeStudent.id).order('payment_date', { ascending: false }),
-            supabase.from('fee_structure').select('*').eq('school_id', school.id).eq('academic_year', academicYear),
-            supabase.from('fee_adjustments').select('*').eq('student_id', activeStudent.id).order('created_at', { ascending: false }),
+            supabase.from('grades').select('*, subjects(name)').eq('student_id', activeStudent.id).eq('term', currentTerm).eq('academic_year', academicYear).eq('status', 'published').is('deleted_at', null),
+            supabase.from('fee_payments').select('*').eq('student_id', activeStudent.id).is('deleted_at', null).order('payment_date', { ascending: false }),
+            supabase.from('fee_structure').select('*').eq('school_id', school.id).eq('academic_year', academicYear).is('deleted_at', null),
+            supabase.from('fee_adjustments').select('*').eq('student_id', activeStudent.id).is('deleted_at', null).order('created_at', { ascending: false }),
           ])
 
           setAttendance(attRes.data || [])

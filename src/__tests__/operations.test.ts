@@ -5,6 +5,8 @@ import {
   suggestAvailableSubstitutes,
   detectConsecutiveAbsenceAlerts,
   buildAuditDiff,
+  deriveGradeWorkflowStatus,
+  filterAbsenceAlertsForCooldown,
 } from '../lib/operations'
 
 describe('Academic rollover logic', () => {
@@ -142,6 +144,46 @@ describe('Attendance SMS escalation', () => {
       })
     )
     expect(result[0].smsMessage).toContain('3 consecutive day(s)')
+  })
+
+  test('suppresses repeated absence alerts within the cooldown window', () => {
+    const alerts = detectConsecutiveAbsenceAlerts({
+      students: [{ id: 's1', first_name: 'Amina', last_name: 'Kato', parent_phone: '0770000000' }],
+      attendance: [
+        { student_id: 's1', date: '2026-04-04', status: 'absent' },
+        { student_id: 's1', date: '2026-04-03', status: 'absent' },
+        { student_id: 's1', date: '2026-04-02', status: 'absent' },
+      ],
+      trigger: { threshold_days: 3, is_active: true },
+    })
+
+    const filtered = filterAbsenceAlertsForCooldown({
+      alerts,
+      triggerId: 'trigger-1',
+      recentLogs: [
+        {
+          trigger_id: 'trigger-1',
+          record_id: 's1',
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+        },
+      ],
+      cooldownHours: 24,
+    })
+
+    expect(filtered).toHaveLength(0)
+  })
+})
+
+describe('Grade workflow status', () => {
+  test('derives the highest workflow status across grade records', () => {
+    expect(
+      deriveGradeWorkflowStatus([
+        { status: 'draft' },
+        { status: 'approved' },
+        { status: 'submitted' },
+      ])
+    ).toBe('approved')
   })
 })
 

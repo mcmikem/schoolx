@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { offlineDB } from '@/lib/offline'
 import MaterialIcon from '@/components/MaterialIcon'
 
@@ -239,6 +240,23 @@ export function OfflineIndicator() {
               {pendingSync} changes syncing
             </>
           ) : null}
+          {(pendingSync > 0 || !isOnline) && (
+            <Link
+              href="/dashboard/sync-center"
+              style={{
+                marginLeft: 6,
+                background: '#fff',
+                color: isOnline ? '#15803d' : '#b91c1c',
+                padding: '6px 10px',
+                borderRadius: 999,
+                fontSize: 12,
+                fontWeight: 700,
+                textDecoration: 'none',
+              }}
+            >
+              View Queue
+            </Link>
+          )}
         </div>
       )}
 

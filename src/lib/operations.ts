@@ -100,6 +100,16 @@ export interface AttendanceAlert {
   smsMessage: string
 }
 
+export type GradeWorkflowStatus = 'draft' | 'submitted' | 'approved' | 'published'
+
+export interface AutomatedAlertLogLike {
+  trigger_id?: string | null
+  record_id?: string | null
+  sent_at?: string | null
+  created_at?: string | null
+  status?: string | null
+}
+
 export interface AuditDiffEntry {
   field: string
   before: unknown
@@ -115,6 +125,7 @@ const CREDIT_ADJUSTMENTS = new Set<FinancialAdjustmentType>([
 ])
 
 const TERMINAL_CLASS_NAMES = ['P.7', 'P7', 'S.6', 'S6']
+const GRADE_STATUS_ORDER: GradeWorkflowStatus[] = ['draft', 'submitted', 'approved', 'published']
 
 export function getNextClassName(name: string): string {
   const match = name.match(/([A-Z]\.?)(\d+)(.*)/)
@@ -224,6 +235,38 @@ export function calculateStudentFeePosition(input: StudentFeePositionInput): Stu
   }
 }
 
+export function deriveGradeWorkflowStatus(
+  grades: Array<{ status?: string | null }> = []
+): GradeWorkflowStatus {
+  let current: GradeWorkflowStatus = 'draft'
+
+  grades.forEach((grade) => {
+    const status = (grade.status || 'draft') as GradeWorkflowStatus
+    if (GRADE_STATUS_ORDER.indexOf(status) > GRADE_STATUS_ORDER.indexOf(current)) {
+      current = status
+    }
+  })
+
+  return current
+}
+
+export function getNextGradeWorkflowStatusActions(
+  status: GradeWorkflowStatus,
+  role?: string | null
+): GradeWorkflowStatus[] {
+  const normalizedRole = role || ''
+
+  if (status === 'draft') return ['submitted']
+  if (status === 'submitted' && ['dean_of_studies', 'headmaster', 'admin', 'school_admin'].includes(normalizedRole)) {
+    return ['approved']
+  }
+  if (status === 'approved' && ['headmaster', 'admin', 'school_admin'].includes(normalizedRole)) {
+    return ['published']
+  }
+
+  return []
+}
+
 function getIsoDayOfWeek(date: string): number {
   const jsDay = new Date(date).getDay()
   return jsDay === 0 ? 7 : jsDay
@@ -322,6 +365,28 @@ export function detectConsecutiveAbsenceAlerts(input: {
   return alerts
     .filter((item): item is AttendanceAlert => item !== null)
     .sort((a, b) => b.consecutiveAbsentDays - a.consecutiveAbsentDays)
+}
+
+export function filterAbsenceAlertsForCooldown(input: {
+  alerts: AttendanceAlert[]
+  triggerId: string
+  recentLogs?: AutomatedAlertLogLike[]
+  cooldownHours?: number
+}): AttendanceAlert[] {
+  const cooldownHours = input.cooldownHours ?? 24
+  const cutoff = Date.now() - cooldownHours * 60 * 60 * 1000
+
+  return input.alerts.filter((alert) => {
+    const matchingLog = (input.recentLogs || []).find((log) => {
+      const sentAt = log.sent_at || log.created_at
+      if (!sentAt) return false
+      if (log.trigger_id !== input.triggerId || log.record_id !== alert.studentId) return false
+      if (log.status && !['sent', 'queued'].includes(log.status)) return false
+      return new Date(sentAt).getTime() >= cutoff
+    })
+
+    return !matchingLog
+  })
 }
 
 export function buildAuditDiff<T extends Record<string, unknown>>(before: T, after: T): AuditDiffEntry[] {
