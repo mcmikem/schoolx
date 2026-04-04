@@ -179,10 +179,11 @@ export default function TopBar({
       <div className="flex items-center gap-[10px]">
         <Link
           href={nextStep.href}
-          className="hidden md:flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-[var(--navy)] text-white text-[12px] font-semibold no-underline shadow-[var(--sh1)]"
+          className="flex items-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-[10px] bg-[var(--navy)] text-white text-[12px] font-semibold no-underline shadow-[var(--sh1)]"
+          aria-label={`Next step: ${nextStep.label}`}
         >
           <MaterialIcon icon={nextStep.icon} style={{ fontSize: 15 }} />
-          {nextStep.label}
+          <span className="hidden sm:inline">{nextStep.label}</span>
         </Link>
 
         <div className="notif-panel relative">

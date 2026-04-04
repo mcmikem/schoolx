@@ -14,6 +14,8 @@ interface CollapsibleSidebarProps {
 export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSidebarProps) {
   const pathname = usePathname()
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
+  const [query, setQuery] = useState('')
+  const [recentPages, setRecentPages] = useState<Array<{ href: string; label: string; icon: string }>>([])
 
   useEffect(() => {
     const initial: Record<string, boolean> = {}
@@ -28,10 +30,70 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
     setOpenGroups(prev => ({ ...prev, [label]: !prev[label] }))
   }
 
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('schoolx_recent_pages')
+      if (saved) setRecentPages(JSON.parse(saved))
+    } catch {
+      // Ignore localStorage parsing issues
+    }
+  }, [])
+
+  const normalizedQuery = query.trim().toLowerCase()
+  const filteredGroups = normalizedQuery
+    ? groups
+        .map(group => ({
+          ...group,
+          items: group.items.filter(item =>
+            item.label.toLowerCase().includes(normalizedQuery) ||
+            group.label.toLowerCase().includes(normalizedQuery)
+          ),
+        }))
+        .filter(group => group.items.length > 0)
+    : groups
+
+  const trackRecentPage = (href: string, label: string, icon: string) => {
+    const updated = [{ href, label, icon }, ...recentPages.filter(p => p.href !== href)].slice(0, 4)
+    setRecentPages(updated)
+    localStorage.setItem('schoolx_recent_pages', JSON.stringify(updated))
+  }
+
   return (
     <nav className="sidebar-nav overflow-y-auto flex-1 px-2 py-3" role="navigation" aria-label="Main navigation">
+      <div className="px-2 pb-2">
+        <div className="flex items-center gap-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl px-3 py-2">
+          <span className="material-symbols-outlined text-[16px] text-[var(--t4)]">search</span>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Find page..."
+            className="w-full bg-transparent border-none outline-none text-[12px] text-[var(--t1)] placeholder:text-[var(--t4)]"
+            aria-label="Search navigation pages"
+          />
+        </div>
+      </div>
+
+      {recentPages.length > 0 && !normalizedQuery && (
+        <div className="px-2 pb-2">
+          <div className="text-[10px] uppercase tracking-wider font-bold text-[var(--t4)] mb-1.5">Continue where you left off</div>
+          <div className="space-y-1">
+            {recentPages.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onNavigate}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] text-[var(--t2)] hover:bg-[var(--surface-container-low)] no-underline"
+              >
+                <MaterialIcon icon={item.icon} className="text-[15px] text-[var(--t3)]" />
+                <span className="truncate">{item.label}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="space-y-1">
-        {groups.map((group) => {
+        {filteredGroups.map((group) => {
           const isOpen = openGroups[group.label]
           const hasActive = group.items.some(item => pathname === item.href || pathname.startsWith(item.href + '/'))
 
@@ -65,7 +127,10 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
                       <Link
                         key={item.href}
                         href={item.href}
-                        onClick={onNavigate}
+                        onClick={() => {
+                          trackRecentPage(item.href, item.label, item.icon)
+                          onNavigate?.()
+                        }}
                         className={cn(
                           "flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] transition-all min-h-[36px] group",
                           isActive 
@@ -100,6 +165,14 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
             </div>
           )
         })}
+        {filteredGroups.length === 0 && (
+          <div className="px-3 py-3 text-[12px] text-[var(--t3)]">
+            No results for “{query}”.
+            <Link href="/dashboard" onClick={onNavigate} className="block mt-2 text-[var(--navy)] no-underline font-semibold">
+              Go to dashboard home
+            </Link>
+          </div>
+        )}
       </div>
     </nav>
   )

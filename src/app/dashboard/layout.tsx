@@ -8,6 +8,7 @@ import ExpiredNotice from '@/components/dashboard/ExpiredNotice'
 import SidebarShell from '@/components/dashboard/SidebarShell'
 import TopBar from '@/components/dashboard/TopBar'
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
+import WorkflowGuide from '@/components/dashboard/WorkflowGuide'
 import { useAccessControl, getPageTitle } from '@/components/dashboard/AccessControlGuard'
 import { usePathname } from 'next/navigation'
 
@@ -61,6 +62,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <main className="main-content mobile-container ml-[var(--sidebar-width)] flex-1 flex flex-col min-h-screen w-[calc(100%-var(--sidebar-width))] overflow-hidden">
           <TopBar pageTitle={pageTitle} onSignOut={handleSignOut} />
+          <WorkflowGuide />
           {children}
         </main>
       </div>
