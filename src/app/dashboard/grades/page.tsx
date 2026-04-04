@@ -14,6 +14,8 @@ import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button, Input, Select, Badge } from '@/components/ui/index'
 import { TableSkeleton, FullPageLoader } from '@/components/ui/Skeleton'
 import { EmptyState, NoData } from '@/components/EmptyState'
+import { logAuditEventWithOfflineSupport } from '@/lib/audit'
+import { useOnlineStatus } from '@/lib/offline'
 
 interface TopicCoverage {
   id: string
@@ -51,6 +53,7 @@ export default function GradesPage() {
   const { school, user } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
   const toast = useToast()
+  const isOnline = useOnlineStatus()
   const { classes } = useClasses(school?.id)
   const { subjects } = useSubjects(school?.id)
   const { staff } = useStaff(school?.id)
@@ -134,6 +137,21 @@ export default function GradesPage() {
         .in('assessment_type', ['ca1', 'ca2', 'ca3'])
         .eq('term', currentTerm)
         .eq('academic_year', academicYear)
+
+      if (school?.id && user?.id) {
+        await logAuditEventWithOfflineSupport(
+          isOnline,
+          school.id,
+          user.id,
+          user.full_name,
+          'update',
+          'grades',
+          `Locked CA marks for class ${selectedClass} subject ${selectedSubject}`,
+          `${selectedClass}:${selectedSubject}:${currentTerm}:${academicYear}`,
+          { ca_locked: false },
+          { ca_locked: true, locked_by: user.id }
+        )
+      }
       
       setCaLocked(true)
       setLockedByName(staff.find(s => s.id === user.id)?.full_name || 'You')
@@ -165,6 +183,21 @@ export default function GradesPage() {
         .in('assessment_type', ['ca1', 'ca2', 'ca3'])
         .eq('term', currentTerm)
         .eq('academic_year', academicYear)
+
+      if (school?.id && user?.id) {
+        await logAuditEventWithOfflineSupport(
+          isOnline,
+          school.id,
+          user.id,
+          user.full_name,
+          'update',
+          'grades',
+          `Unlocked CA marks for class ${selectedClass} subject ${selectedSubject}`,
+          `${selectedClass}:${selectedSubject}:${currentTerm}:${academicYear}`,
+          { ca_locked: true },
+          { ca_locked: false, locked_by: null }
+        )
+      }
       
       setCaLocked(false)
       setLockedByName('')

@@ -7,9 +7,11 @@ import MaterialIcon from '@/components/MaterialIcon'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card, CardHeader, CardBody, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/index'
+import { COMPETENCY_SCHEME, PERCENTAGE_SCHEME } from '@/lib/grading'
 
 interface GradingConfig {
   schoolLevel: 'primary' | 'secondary_o' | 'secondary_a'
+  gradingScale: 'percentage' | 'competency'
   caWeight: number
   examWeight: number
   caBreakdown: {
@@ -31,6 +33,7 @@ export default function GradingConfigPage() {
   const [saving, setSaving] = useState(false)
   const [config, setConfig] = useState<GradingConfig>({
     schoolLevel: 'primary',
+    gradingScale: 'percentage',
     caWeight: 40,
     examWeight: 60,
     caBreakdown: {
@@ -50,7 +53,7 @@ export default function GradingConfigPage() {
     const saved = localStorage.getItem('grading_config')
     if (saved) {
       try {
-        setConfig(JSON.parse(saved))
+        setConfig((current) => ({ ...current, ...JSON.parse(saved) }))
       } catch (e) {}
     }
   }, [])
@@ -78,6 +81,14 @@ export default function GradingConfigPage() {
   const totalWeight = config.caWeight + config.examWeight
 
   const getGradePreview = () => {
+    if (config.gradingScale === 'competency') {
+      return COMPETENCY_SCHEME.values?.map((item) => ({
+        range: String(item.value),
+        grade: item.label,
+        desc: item.description,
+      })) || []
+    }
+
     if (config.schoolLevel === 'primary' || config.schoolLevel === 'secondary_o') {
       return [
         { range: '80-100%', grade: 'D1', desc: 'Distinction 1' },
@@ -162,7 +173,24 @@ export default function GradingConfigPage() {
                 </p>
               </div>
 
-              {config.schoolLevel !== 'secondary_a' && (
+              <div>
+                <h2 className="font-semibold text-[var(--t1)] mb-4">Assessment Scale</h2>
+                <select
+                  value={config.gradingScale}
+                  onChange={(e) => setConfig({ ...config, gradingScale: e.target.value as 'percentage' | 'competency' })}
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
+                >
+                  <option value={PERCENTAGE_SCHEME.scale}>Percentage (0-100)</option>
+                  <option value={COMPETENCY_SCHEME.scale}>Competency (1-3)</option>
+                </select>
+                <p className="text-sm text-[var(--t3)] mt-2">
+                  {config.gradingScale === 'competency'
+                    ? 'Use this for Lower Secondary competency entries that must be captured as 1, 2, or 3.'
+                    : 'Use this for UNEB-style percentage grading and aggregate calculations.'}
+                </p>
+              </div>
+
+              {config.schoolLevel !== 'secondary_a' && config.gradingScale === 'percentage' && (
                 <>
                   <div>
                     <h2 className="font-semibold text-[var(--t1)] mb-4">Overall Weighting</h2>
@@ -266,7 +294,7 @@ export default function GradingConfigPage() {
                 </>
               )}
 
-              {config.schoolLevel === 'secondary_a' && (
+              {config.schoolLevel === 'secondary_a' && config.gradingScale === 'percentage' && (
                 <div>
                   <h2 className="font-semibold text-[var(--t1)] mb-4">A-Level Subject Classification</h2>
                   <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
@@ -314,7 +342,7 @@ export default function GradingConfigPage() {
 
               <Button 
                 onClick={saveConfig} 
-                disabled={saving || (config.schoolLevel !== 'secondary_a' && (totalWeight !== 100 || totalCA !== 100))}
+                disabled={saving || (config.gradingScale === 'percentage' && config.schoolLevel !== 'secondary_a' && (totalWeight !== 100 || totalCA !== 100))}
                 loading={saving}
                 className="w-full"
               >
@@ -329,7 +357,11 @@ export default function GradingConfigPage() {
           <Card>
             <CardHeader>
               <CardTitle>
-                {config.schoolLevel === 'secondary_a' ? 'A-Level Grade Scale (A-F)' : 'UNEB Grade Scale (D1-F9)'}
+                {config.gradingScale === 'competency'
+                  ? 'Competency Scale (1-3)'
+                  : config.schoolLevel === 'secondary_a'
+                    ? 'A-Level Grade Scale (A-F)'
+                    : 'UNEB Grade Scale (D1-F9)'}
               </CardTitle>
             </CardHeader>
             <CardBody>
@@ -368,11 +400,19 @@ export default function GradingConfigPage() {
           <Card>
             <CardHeader>
               <CardTitle>
-                {config.schoolLevel === 'secondary_a' ? 'A-Level Division System' : 
+                {config.gradingScale === 'competency' ? 'Competency Notes' :
+                 config.schoolLevel === 'secondary_a' ? 'A-Level Division System' : 
                  config.schoolLevel === 'secondary_o' ? 'UCE Division (8 subjects)' : 'PLE Division (4 subjects)'}
               </CardTitle>
             </CardHeader>
             <CardBody>
+              {config.gradingScale === 'competency' ? (
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-container)] p-4 text-sm text-[var(--t3)] space-y-2">
+                  <p>Competency assessments do not use UNEB aggregate divisions.</p>
+                  <p>Recommended use: classroom activities, projects, practicals, and formative Lower Secondary tasks.</p>
+                  <p>Suggested interpretation: `1 = Emerging`, `2 = Developing`, `3 = Secure`.</p>
+                </div>
+              ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-[var(--surface-container)]">
@@ -402,6 +442,7 @@ export default function GradingConfigPage() {
                   </tbody>
                 </table>
               </div>
+              )}
             </CardBody>
           </Card>
         </div>

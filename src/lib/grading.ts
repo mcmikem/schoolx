@@ -153,6 +153,29 @@ export function getDivisionColor(division: string): string {
 }
 
 export type SchoolLevel = 'primary' | 'secondary_o' | 'secondary_a'
+export type GradingScale = 'percentage' | 'competency'
+export type CompetencyValue = 1 | 2 | 3
+
+export interface GradingScheme {
+  scale: GradingScale
+  label: string
+  values?: Array<{ value: CompetencyValue; label: string; description: string }>
+}
+
+export const COMPETENCY_SCHEME: GradingScheme = {
+  scale: 'competency',
+  label: 'Competency 3-Point',
+  values: [
+    { value: 1, label: 'Emerging', description: 'Learner needs substantial support.' },
+    { value: 2, label: 'Developing', description: 'Learner shows progress but is not yet secure.' },
+    { value: 3, label: 'Secure', description: 'Learner demonstrates expected competency.' },
+  ],
+}
+
+export const PERCENTAGE_SCHEME: GradingScheme = {
+  scale: 'percentage',
+  label: 'Percentage 0-100',
+}
 
 export function getGradeForLevel(score: number, level: SchoolLevel): string {
   switch (level) {
@@ -160,5 +183,35 @@ export function getGradeForLevel(score: number, level: SchoolLevel): string {
     case 'secondary_o': return getUCEGrade(score)
     case 'secondary_a': return getUACEGrade(score)
     default: return getPLEGrade(score)
+  }
+}
+
+export function isCompetencyScale(level: string): boolean {
+  return ['secondary_competency', 'competency', 'lsc'].includes(level)
+}
+
+export function getCompetencyLabel(value: CompetencyValue): string {
+  const found = COMPETENCY_SCHEME.values?.find((item) => item.value === value)
+  return found?.label || 'Unknown'
+}
+
+export function validateCompetencyScore(value: number): boolean {
+  return Number.isInteger(value) && value >= 1 && value <= 3
+}
+
+export function getGradeOutcome(
+  value: number,
+  options?: { level?: SchoolLevel | string; scale?: GradingScale }
+): { grade: string; scheme: GradingScale } {
+  if (options?.scale === 'competency' || isCompetencyScale(options?.level || '')) {
+    return {
+      grade: validateCompetencyScore(value) ? getCompetencyLabel(value as CompetencyValue) : 'Invalid competency score',
+      scheme: 'competency',
+    }
+  }
+
+  return {
+    grade: getGradeForLevel(value, (options?.level as SchoolLevel) || 'primary'),
+    scheme: 'percentage',
   }
 }

@@ -4,11 +4,14 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import { DEMO_GRADES } from '@/lib/demo-data'
 import { isDemoSchool } from '@/lib/demo-utils'
+import { offlineDB, useOnlineStatus } from '@/lib/offline'
+import { logAuditEventWithOfflineSupport, logRecordChangeWithOfflineSupport } from '@/lib/audit'
 
 export function useGrades(classId?: string, subjectId?: string, term?: number, academicYear?: string) {
   const [grades, setGrades] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const { isDemo } = useAuth()
+  const { isDemo, user, school } = useAuth()
+  const isOnline = useOnlineStatus()
 
   const saveGrade = async (grade: { student_id: string; subject_id: string; class_id: string; assessment_type: string; score: number; max_score?: number; term: number; academic_year: string; recorded_by?: string }) => {
     const maxScore = grade.max_score || 100
@@ -24,9 +27,47 @@ export function useGrades(classId?: string, subjectId?: string, term?: number, a
       })
       return newGrade
     }
+    const payload = { ...grade, max_score: maxScore }
+
+    if (!isOnline) {
+      const offlineSaved = await offlineDB.save('grades', payload as unknown as Record<string, unknown>)
+      const newGrade = {
+        ...payload,
+        id: String(offlineSaved.id || `offline-grade-${Date.now()}`),
+        created_at: new Date().toISOString(),
+      }
+      setGrades(prev => {
+        const existing = prev.findIndex(g => g.student_id === grade.student_id && g.subject_id === grade.subject_id && g.assessment_type === grade.assessment_type)
+        if (existing >= 0) { const u = [...prev]; u[existing] = newGrade; return u }
+        return [...prev, newGrade]
+      })
+      if (school?.id && user?.id) {
+        await logAuditEventWithOfflineSupport(
+          false,
+          school.id,
+          user.id,
+          user.full_name,
+          'update',
+          'grades',
+          `Queued offline grade update for ${grade.assessment_type}`,
+          grade.student_id,
+          undefined,
+          payload
+        )
+      }
+      return newGrade
+    }
     try {
+      const previousGrade = grades.find(
+        g =>
+          g.student_id === grade.student_id &&
+          g.subject_id === grade.subject_id &&
+          g.assessment_type === grade.assessment_type &&
+          g.term === grade.term &&
+          g.academic_year === grade.academic_year
+      )
       const { data, error } = await supabase.from('grades')
-        .upsert({ ...grade, max_score: maxScore }, { onConflict: 'student_id,subject_id,assessment_type,term,academic_year' })
+        .upsert(payload, { onConflict: 'student_id,subject_id,assessment_type,term,academic_year' })
         .select('id, student_id, subject_id, class_id, assessment_type, score, max_score, term, academic_year, recorded_by, created_at')
         .single()
       if (error) throw error
@@ -35,6 +76,35 @@ export function useGrades(classId?: string, subjectId?: string, term?: number, a
         if (existing >= 0) { const u = [...prev]; u[existing] = data; return u }
         return [...prev, data]
       })
+      if (school?.id && user?.id) {
+        if (previousGrade) {
+          await logRecordChangeWithOfflineSupport(
+            true,
+            school.id,
+            user.id,
+            user.full_name,
+            'grades',
+            'Updated grade record',
+            previousGrade,
+            data,
+            data.id
+          )
+        } else {
+          await logAuditEventWithOfflineSupport(
+            true,
+            school.id,
+            user.id,
+            user.full_name,
+            'create',
+            'grades',
+            'Created grade record',
+            data.id,
+            undefined,
+            data
+          )
+        }
+      }
+      await offlineDB.cacheFromServer('grades', [data as unknown as Record<string, unknown>])
       return data
     } catch (err: any) { throw new Error(err.message) }
   }
@@ -48,6 +118,12 @@ export function useGrades(classId?: string, subjectId?: string, term?: number, a
     if (!classId) { setLoading(false); return }
     try {
       setLoading(true)
+      if (!isOnline) {
+        const cached = await offlineDB.getAllFromCache('grades', { class_id: classId })
+        setGrades(cached as any[])
+        setLoading(false)
+        return
+      }
       let query = supabase.from('grades')
         .select(`
           id, student_id, subject_id, class_id, assessment_type, score, max_score, term, academic_year, recorded_by, created_at,
@@ -61,9 +137,10 @@ export function useGrades(classId?: string, subjectId?: string, term?: number, a
       const { data, error } = await query
       if (error) throw error
       setGrades(data || [])
+      await offlineDB.cacheFromServer('grades', (data || []) as unknown as Record<string, unknown>[])
     } catch (err) { console.error('Failed to fetch grades:', err) }
     finally { setLoading(false) }
-  }, [classId, subjectId, term, academicYear, isDemo])
+  }, [classId, subjectId, term, academicYear, isDemo, isOnline])
 
   useEffect(() => { fetchGrades() }, [fetchGrades])
   return { grades, loading, saveGrade }

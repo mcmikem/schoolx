@@ -9,6 +9,7 @@ export interface StudentBalance {
   expected: number
   paid: number
   balance: number
+  status?: 'paid' | 'partial' | 'unpaid' | 'written_off'
   payments: Array<{
     id: string
     amount: number
@@ -59,7 +60,9 @@ export default function FeeTable({ balances, onViewReceipt }: FeeTableProps) {
                 <td className="px-6 py-4 font-bold text-secondary">{formatCurrency(student.paid || 0)}</td>
                 <td className={`px-6 py-4 font-bold ${student.balance > 0 ? 'text-error' : 'text-secondary'}`}>{formatCurrency(student.balance)}</td>
                 <td className="px-6 py-4">
-                  {student.balance === 0 ? (
+                  {student.status === 'written_off' ? (
+                    <span className="px-3 py-1 rounded-full bg-slate-200 text-slate-800 text-xs font-bold uppercase">Written Off</span>
+                  ) : student.balance === 0 ? (
                     <span className="px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container text-xs font-bold uppercase">Paid</span>
                   ) : (student.paid || 0) > 0 ? (
                     <span className="px-3 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed text-xs font-bold uppercase">Partial</span>

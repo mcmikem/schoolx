@@ -73,9 +73,15 @@ export function useEvents(schoolId?: string) {
 export function useAnnouncements(schoolId?: string, limit = 5) {
   const [announcements, setAnnouncements] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
 
   useEffect(() => {
     async function fetch() {
+      if (isDemo || isDemoSchool(schoolId)) {
+        setAnnouncements(DEMO_NOTICES.slice(0, limit) as any)
+        setLoading(false)
+        return
+      }
       if (!schoolId) return
       try {
         setLoading(true)
@@ -89,7 +95,7 @@ export function useAnnouncements(schoolId?: string, limit = 5) {
       finally { setLoading(false) }
     }
     fetch()
-  }, [schoolId, limit])
+  }, [schoolId, limit, isDemo])
 
   return { announcements, loading }
 }
@@ -97,9 +103,15 @@ export function useAnnouncements(schoolId?: string, limit = 5) {
 export function useAcademicEvents(schoolId?: string, limit = 5) {
   const [events, setEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
 
   useEffect(() => {
     async function fetch() {
+      if (isDemo || isDemoSchool(schoolId)) {
+        setEvents(DEMO_EVENTS.slice(0, limit) as any)
+        setLoading(false)
+        return
+      }
       if (!schoolId) return
       try {
         setLoading(true)
@@ -113,7 +125,7 @@ export function useAcademicEvents(schoolId?: string, limit = 5) {
       finally { setLoading(false) }
     }
     fetch()
-  }, [schoolId, limit])
+  }, [schoolId, limit, isDemo])
 
   return { events, loading }
 }
