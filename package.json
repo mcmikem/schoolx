@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "jest --runInBand --forceExit"
+    "test": "jest --runInBand --forceExit",
+    "audit:uiux": "node scripts/audit-uiux.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.46.0",
