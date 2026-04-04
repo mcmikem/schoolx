@@ -57,7 +57,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       items: [
         { href: '/dashboard/fees', label: 'Fee Collection', icon: 'payments' },
         { href: '/dashboard/budget', label: 'Budget', icon: 'account_balance_wallet' },
-        { href: '/dashboard/fees', label: 'Expenses', icon: 'receipt_long' },
+        { href: '/dashboard/expense-approvals', label: 'Expenses', icon: 'receipt_long' },
         { href: '/dashboard/reports', label: 'Financial Reports', icon: 'analytics' },
       ]
     },
@@ -68,7 +68,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       items: [
         { href: '/dashboard/messages', label: 'Messages', icon: 'chat' },
         { href: '/dashboard/notices', label: 'Announcements', icon: 'campaign' },
-        { href: '/dashboard/messages', label: 'SMS Center', icon: 'sms' },
+        { href: '/dashboard/bulk-sms', label: 'SMS Center', icon: 'sms' },
       ]
     },
     {
@@ -144,7 +144,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       defaultOpen: false,
       items: [
         { href: '/dashboard/budget', label: 'Budget', icon: 'account_balance_wallet' },
-        { href: '/dashboard/fees', label: 'Expenses', icon: 'receipt_long' },
+        { href: '/dashboard/expense-approvals', label: 'Expenses', icon: 'receipt_long' },
         { href: '/dashboard/payroll', label: 'Payroll', icon: 'payments' },
         { href: '/dashboard/reports', label: 'Reports', icon: 'analytics' },
       ]
