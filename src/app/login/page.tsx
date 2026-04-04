@@ -79,17 +79,47 @@ export default function LoginPage() {
       const demoData = encryptDemoData({ demoUser, demoSchool: demoSchoolData })
       localStorage.setItem(DEMO_KEY, demoData)
       toast.success(`Welcome, ${demoUser.name} (Demo Mode)`)
-      router.push('/dashboard')
-      router.refresh()
-      setLoading(false)
+      // Use window.location for a full page reload to ensure auth context picks up the new demo data
+      window.location.href = '/dashboard'
       return
     }
 
-    // Normal login - Supabase auth (not available in demo)
+    // Normal login - Supabase auth
     try {
-      toast.error('Supabase not configured. Please use demo account.')
+      if (!supabase) {
+        toast.error('Supabase not configured. Please use demo account.')
+        setLoading(false)
+        return
+      }
+
+      const email = `${cleanPhone}@omuto.sms`
+
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (authError) {
+        if (authError.message.includes('Invalid login credentials')) {
+          toast.error('Wrong phone number or password. Please try again.')
+        } else {
+          toast.error(authError.message)
+        }
+        setLoading(false)
+        return
+      }
+
+      if (!data.user) {
+        toast.error('Login failed. Please try again.')
+        setLoading(false)
+        return
+      }
+
+      toast.success('Welcome back!')
+      router.push('/dashboard')
+      router.refresh()
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Something went wrong'
+      const errorMessage = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
       toast.error(errorMessage)
     } finally {
       setLoading(false)
