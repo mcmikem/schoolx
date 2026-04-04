@@ -184,4 +184,250 @@ test.describe('Authenticated dashboard flows', () => {
     await expect(page.locator('div').filter({ hasText: /^Division 1$/ }).first()).toBeVisible()
     await expect(page.getByRole('checkbox')).toBeVisible()
   })
+
+  test('headmaster can view staff directory in demo mode', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/staff')
+    await expect(page.getByRole('heading', { name: /staff/i })).toBeVisible()
+  })
+
+  test('headmaster can view fee structure tab', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/fees')
+    await expect(page.getByRole('heading', { name: /fee/i })).toBeVisible()
+  })
+
+  test('headmaster can view student registry with demo data', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/students')
+    // Wait longer for page to load and avoid redirect
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(3000)
+    // Check we're still on the students page (not redirected to login)
+    expect(page.url()).toContain('/dashboard/students')
+    await expect(page.locator('h1, h2, h3').first()).toBeVisible({ timeout: 10000 })
+  })
+
+  test('teacher can open teacher dashboard and sub-pages', async ({ page }) => {
+    await seedDemoSession(page, 'teacher')
+
+    await page.goto('/dashboard')
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(3000)
+    // Check we're still on dashboard (not redirected to login)
+    expect(page.url()).toContain('/dashboard')
+    await expect(page.locator('h1, h2, h3').first()).toBeVisible({ timeout: 10000 })
+
+    await page.goto('/dashboard/homework')
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(2000)
+    expect(page.url()).toContain('/dashboard/homework')
+    await expect(page.locator('h1, h2, h3').first()).toBeVisible({ timeout: 10000 })
+
+    await page.goto('/dashboard/lesson-plans')
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(2000)
+    expect(page.url()).toContain('/dashboard/lesson-plans')
+    await expect(page.locator('h1, h2, h3').first()).toBeVisible({ timeout: 10000 })
+  })
+
+  test('headmaster can open exam management', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/exams')
+    await expect(page.getByRole('heading', { name: /exam/i })).toBeVisible()
+  })
+
+  test('headmaster can open UNEB page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/uneb')
+    await expect(page.getByRole('heading', { name: /uneb/i })).toBeVisible()
+  })
+
+  test('headmaster can open timetable page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/timetable')
+    await expect(page.getByRole('heading', { name: /timetable/i })).toBeVisible()
+  })
+
+  test('headmaster can open homework page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/homework')
+    await expect(page.locator('h1, h2, h3').first()).toBeVisible()
+  })
+
+  test('headmaster can open discipline page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/discipline')
+    await expect(page.getByRole('heading', { name: /discipline/i })).toBeVisible()
+  })
+
+  test('headmaster can open health page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/health')
+    await expect(page.getByRole('heading', { name: /health/i })).toBeVisible()
+  })
+
+  test('headmaster can open library page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/library')
+    await expect(page.getByRole('heading', { name: /library/i })).toBeVisible()
+  })
+
+  test('headmaster can open inventory page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/inventory')
+    await expect(page.getByRole('heading', { name: /inventory/i })).toBeVisible()
+  })
+
+  test('headmaster can open budget page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/budget')
+    await expect(page.getByRole('heading', { name: /budget/i })).toBeVisible()
+  })
+
+  test('headmaster can open payroll page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/payroll')
+    await expect(page.getByRole('heading', { name: /payroll/i })).toBeVisible()
+  })
+
+  test('headmaster can open leave requests page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/leave')
+    await expect(page.getByRole('heading', { name: /leave/i })).toBeVisible()
+  })
+
+  test('headmaster can open syllabus tracking page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/syllabus')
+    await expect(page.getByRole('heading', { name: /syllabus/i })).toBeVisible()
+  })
+
+  test('headmaster can open scheme of work page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/scheme-of-work')
+    await expect(page.getByRole('heading', { name: /scheme/i })).toBeVisible()
+  })
+
+  test('headmaster can open lesson plans page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/lesson-plans')
+    await expect(page.getByRole('heading', { name: /lesson/i })).toBeVisible()
+  })
+
+  test('headmaster can open trends page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/trends')
+    await expect(page.getByRole('heading', { name: /trend/i })).toBeVisible()
+  })
+
+  test('headmaster can open export page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/export')
+    await expect(page.locator('h1, h2, h3').first()).toBeVisible()
+  })
+
+  test('headmaster can open warnings page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/warnings')
+    await expect(page.getByRole('heading', { name: /warning/i })).toBeVisible()
+  })
+
+  test('headmaster can open workload page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/workload')
+    await expect(page.getByRole('heading', { name: /workload/i })).toBeVisible()
+  })
+
+  test('headmaster can open staff attendance page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/staff-attendance')
+    await expect(page.getByRole('heading', { name: /staff attendance/i })).toBeVisible()
+  })
+
+  test('headmaster can open staff activity page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/staff-activity')
+    await expect(page.getByRole('heading', { name: /staff activity/i })).toBeVisible()
+  })
+
+  test('headmaster can open staff reviews page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/staff-reviews')
+    await expect(page.locator('h1, h2, h3').first()).toBeVisible()
+  })
+
+  test('headmaster can open promotion page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/promotion')
+    await expect(page.getByRole('heading', { name: 'Student Promotion' })).toBeVisible()
+  })
+
+  test('headmaster can open audit log page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/audit')
+    await expect(page.locator('h1, h2, h3').first()).toBeVisible()
+  })
+
+  test('headmaster can open settings page', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/settings')
+    await expect(page.locator('h1, h2, h3').first()).toBeVisible()
+  })
+
+  test('teacher can open teacher dashboard and sub-pages', async ({ page }) => {
+    await seedDemoSession(page, 'teacher')
+
+    await page.goto('/dashboard')
+    await page.waitForTimeout(2000)
+    await expect(page.locator('h1, h2, h3').first()).toBeVisible()
+
+    await page.goto('/dashboard/homework')
+    await page.waitForTimeout(1000)
+    await expect(page.locator('h1, h2, h3').first()).toBeVisible()
+
+    await page.goto('/dashboard/lesson-plans')
+    await page.waitForTimeout(1000)
+    await expect(page.locator('h1, h2, h3').first()).toBeVisible()
+  })
+
+  test('dean can open dean dashboard and sub-pages', async ({ page }) => {
+    await seedDemoSession(page, 'dean_of_studies')
+
+    await page.goto('/dashboard')
+    await expect(page.locator('h1, h2, h3').first()).toBeVisible()
+
+    await page.goto('/dashboard/syllabus')
+    await expect(page.getByRole('heading', { name: /syllabus/i })).toBeVisible()
+
+    await page.goto('/dashboard/promotion')
+    await expect(page.getByRole('heading', { name: 'Student Promotion' })).toBeVisible()
+  })
 })
