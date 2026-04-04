@@ -10,6 +10,9 @@ import {
   getGradeColor,
   getDivisionColor,
   getGradeForLevel,
+  getCompetencyLabel,
+  validateCompetencyScore,
+  getGradeOutcome,
 } from '../lib/grading'
 
 describe('Grading - PLE (Primary Leaving Examination)', () => {
@@ -187,6 +190,32 @@ describe('Grading Utilities', () => {
 
     test('defaults to PLE for unknown level', () => {
       expect(getGradeForLevel(85, 'unknown' as any)).toBe('D1')
+    })
+  })
+
+  describe('competency grading support', () => {
+    test('returns competency labels for 1-3 scores', () => {
+      expect(getCompetencyLabel(1)).toBe('Emerging')
+      expect(getCompetencyLabel(2)).toBe('Developing')
+      expect(getCompetencyLabel(3)).toBe('Secure')
+    })
+
+    test('validates competency score range', () => {
+      expect(validateCompetencyScore(1)).toBe(true)
+      expect(validateCompetencyScore(3)).toBe(true)
+      expect(validateCompetencyScore(0)).toBe(false)
+      expect(validateCompetencyScore(4)).toBe(false)
+    })
+
+    test('switches grade outcome to competency mode when configured', () => {
+      expect(getGradeOutcome(3, { scale: 'competency' })).toEqual({
+        grade: 'Secure',
+        scheme: 'competency',
+      })
+      expect(getGradeOutcome(85, { level: 'primary' })).toEqual({
+        grade: 'D1',
+        scheme: 'percentage',
+      })
     })
   })
 })

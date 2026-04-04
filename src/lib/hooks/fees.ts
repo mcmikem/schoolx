@@ -6,12 +6,15 @@ import type { FeePayment, FeeStructure, CreatePaymentInput } from '@/types'
 import { getQuerySchoolId, withTimeout } from './utils'
 import { DEMO_FEE_PAYMENTS, DEMO_FEE_STRUCTURE, DEMO_EXPENSES } from '@/lib/demo-data'
 import { isDemoSchool } from '@/lib/demo-utils'
+import { offlineDB, useOnlineStatus } from '@/lib/offline'
+import { logAuditEventWithOfflineSupport } from '@/lib/audit'
 
 export function useFeePayments(schoolId?: string) {
   const [payments, setPayments] = useState<FeePayment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const { isDemo } = useAuth()
+  const { isDemo, user, school } = useAuth()
+  const isOnline = useOnlineStatus()
 
   const fetchPayments = useCallback(async () => {
     // Demo mode - check for demo school UUID
@@ -25,6 +28,12 @@ export function useFeePayments(schoolId?: string) {
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
       setLoading(true)
+      if (!isOnline) {
+        const cached = await offlineDB.getAllFromCache('fee_payments', { school_id: querySchoolId })
+        setPayments(cached as any[])
+        setLoading(false)
+        return
+      }
       const data = await withTimeout(
         supabase.from('fee_payments')
           .select(`
@@ -38,10 +47,11 @@ export function useFeePayments(schoolId?: string) {
         8000, [] as any[]
       )
       setPayments((data as any[]) || [])
+      await offlineDB.cacheFromServer('fee_payments', (data as any[]) || [])
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally { setLoading(false) }
-  }, [schoolId, isDemo])
+  }, [schoolId, isDemo, isOnline])
 
   const createPayment = async (payment: CreatePaymentInput) => {
     if (isDemo || isDemoSchool(schoolId)) {
@@ -56,6 +66,31 @@ export function useFeePayments(schoolId?: string) {
       return newPaymentData as any
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+    const payload = { ...payment, school_id: querySchoolId, payment_date: new Date().toISOString().split('T')[0] }
+    if (!isOnline) {
+      const offlineSaved = await offlineDB.save('fee_payments', payload as unknown as Record<string, unknown>)
+      const offlinePayment = {
+        ...payload,
+        id: String(offlineSaved.id || `offline-payment-${Date.now()}`),
+        created_at: new Date().toISOString(),
+      }
+      setPayments(prev => [offlinePayment as any, ...prev])
+      if (school?.id && user?.id) {
+        await logAuditEventWithOfflineSupport(
+          false,
+          school.id,
+          user.id,
+          user.full_name,
+          'create',
+          'fees',
+          'Queued offline fee payment',
+          String(offlinePayment.id),
+          undefined,
+          offlinePayment as unknown as Record<string, unknown>
+        )
+      }
+      return offlinePayment as any
+    }
     try {
       const { data, error: insertError } = await supabase.from('fee_payments')
         .insert({ ...payment, school_id: querySchoolId })
@@ -67,6 +102,21 @@ export function useFeePayments(schoolId?: string) {
         .single()
       if (insertError) throw insertError
       setPayments(prev => [data as any, ...prev])
+      await offlineDB.cacheFromServer('fee_payments', [data as unknown as Record<string, unknown>])
+      if (school?.id && user?.id) {
+        await logAuditEventWithOfflineSupport(
+          true,
+          school.id,
+          user.id,
+          user.full_name,
+          'create',
+          'fees',
+          'Recorded fee payment',
+          data.id,
+          undefined,
+          data as unknown as Record<string, unknown>
+        )
+      }
       return data as any
     } catch (err: unknown) { throw new Error(err instanceof Error ? err.message : 'Unknown error') }
   }
@@ -91,6 +141,7 @@ export function useFeeStructure(schoolId?: string) {
   const [feeStructure, setFeeStructure] = useState<FeeStructure[]>([])
   const [loading, setLoading] = useState(true)
   const { isDemo } = useAuth()
+  const isOnline = useOnlineStatus()
 
   const fetchFeeStructure = useCallback(async () => {
     // Demo mode - check for demo school UUID
@@ -104,6 +155,12 @@ export function useFeeStructure(schoolId?: string) {
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
       setLoading(true)
+      if (!isOnline) {
+        const cached = await offlineDB.getAllFromCache('fee_structure', { school_id: querySchoolId })
+        setFeeStructure(cached as any[])
+        setLoading(false)
+        return
+      }
       const data = await withTimeout(
         supabase.from('fee_structure')
           .select(`id, school_id, class_id, name, amount, term, academic_year, due_date, created_at, classes (name)`)
@@ -113,9 +170,10 @@ export function useFeeStructure(schoolId?: string) {
         5000, [] as any[]
       )
       setFeeStructure((data as any[]) || [])
+      await offlineDB.cacheFromServer('fee_structure', (data as any[]) || [])
     } catch (err) { console.error('Error fetching fee structure:', err) }
     finally { setLoading(false) }
-  }, [schoolId, isDemo])
+  }, [schoolId, isDemo, isOnline])
 
   const createFeeStructure = async (fee: { name: string; class_id?: string; amount: number; term: number; academic_year: string; due_date?: string }) => {
     if (isDemo || isDemoSchool(schoolId)) {
@@ -158,7 +216,8 @@ export function useFeeStructure(schoolId?: string) {
 export function useFeeAdjustments(schoolId?: string) {
   const [adjustments, setAdjustments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const { isDemo, user } = useAuth()
+  const { isDemo, user, school } = useAuth()
+  const isOnline = useOnlineStatus()
 
   const fetchAdjustments = useCallback(async () => {
     if (isDemo || isDemoSchool(schoolId)) {
@@ -170,6 +229,12 @@ export function useFeeAdjustments(schoolId?: string) {
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
       setLoading(true)
+      if (!isOnline) {
+        const cached = await offlineDB.getAllFromCache('fee_adjustments', { school_id: querySchoolId })
+        setAdjustments(cached as any[])
+        setLoading(false)
+        return
+      }
       const data = await withTimeout(
         supabase.from('fee_adjustments')
           .select('*')
@@ -179,24 +244,77 @@ export function useFeeAdjustments(schoolId?: string) {
         5000, [] as any[]
       )
       setAdjustments(data || [])
+      await offlineDB.cacheFromServer('fee_adjustments', (data || []) as any[])
     } catch (err) { console.error('Error fetching adjustments:', err) }
     finally { setLoading(false) }
-  }, [schoolId, isDemo])
+  }, [schoolId, isDemo, isOnline])
 
-  const createAdjustment = async (adj: { student_id: string; adjustment_type: 'scholarship' | 'discount' | 'penalty'; amount: number; description?: string }) => {
+  const createAdjustment = async (adj: {
+    student_id: string
+    adjustment_type: 'scholarship' | 'discount' | 'penalty' | 'manual_credit' | 'write_off' | 'bursary'
+    amount: number
+    description?: string
+  }) => {
     if (isDemo || isDemoSchool(schoolId)) {
-      const newAdj = { ...adj, id: `demo-adj-${Date.now()}`, school_id: schoolId || '00000000-0000-0000-0000-000000000001', created_by: user?.id, created_at: new Date().toISOString() }
+      const newAdj = { ...adj, notes: adj.description, id: `demo-adj-${Date.now()}`, school_id: schoolId || '00000000-0000-0000-0000-000000000001', created_by: user?.id, created_at: new Date().toISOString() }
       setAdjustments(prev => [newAdj, ...prev])
       return newAdj
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+    const payload = {
+      student_id: adj.student_id,
+      adjustment_type: adj.adjustment_type,
+      amount: adj.amount,
+      notes: adj.description,
+      school_id: querySchoolId,
+      recorded_by: user?.id,
+    }
+
+    if (!isOnline) {
+      const offlineSaved = await offlineDB.save('fee_adjustments', payload as unknown as Record<string, unknown>)
+      const offlineAdjustment = {
+        ...payload,
+        id: String(offlineSaved.id || `offline-adjustment-${Date.now()}`),
+        created_at: new Date().toISOString(),
+      }
+      setAdjustments(prev => [offlineAdjustment, ...prev])
+      if (school?.id && user?.id) {
+        await logAuditEventWithOfflineSupport(
+          false,
+          school.id,
+          user.id,
+          user.full_name,
+          'create',
+          'fees',
+          `Queued offline fee adjustment (${adj.adjustment_type})`,
+          String(offlineAdjustment.id),
+          undefined,
+          offlineAdjustment as unknown as Record<string, unknown>
+        )
+      }
+      return offlineAdjustment
+    }
     try {
       const { data, error } = await supabase.from('fee_adjustments')
-        .insert({ ...adj, school_id: querySchoolId, created_by: user?.id })
+        .insert(payload)
         .select()
         .single()
       if (error) throw error
       setAdjustments(prev => [data, ...prev])
+      if (school?.id && user?.id) {
+        await logAuditEventWithOfflineSupport(
+          true,
+          school.id,
+          user.id,
+          user.full_name,
+          'create',
+          'fees',
+          `Recorded fee adjustment (${adj.adjustment_type})`,
+          data.id,
+          undefined,
+          data as unknown as Record<string, unknown>
+        )
+      }
       return data
     } catch (err: any) { throw new Error(err.message) }
   }

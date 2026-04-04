@@ -7,6 +7,8 @@ import { useStudents, useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
+import { buildRolloverPreview, getNextClassName } from '@/lib/operations'
+import { logAuditEventWithOfflineSupport } from '@/lib/audit'
 
 export default function RolloverPage() {
   const router = useRouter()
@@ -19,7 +21,20 @@ export default function RolloverPage() {
   const [newAcademicYear, setNewAcademicYear] = useState(String(Number(academicYear) + 1))
   const [promoting, setPromoting] = useState(false)
   const [rolloverType, setRolloverType] = useState<'term' | 'year'>('term')
-  const [step, setStep] = useState(1)
+  const [wizardOptions, setWizardOptions] = useState({
+    archiveGrades: true,
+    carryForwardBalances: true,
+    resetOpeningBalances: false,
+    archiveSummary: true,
+  })
+  const preview = buildRolloverPreview({
+    academicYear,
+    currentTerm,
+    nextAcademicYear: newAcademicYear,
+    schoolType: school?.school_type || 'primary',
+    students,
+    classes: allSchoolClasses,
+  })
 
   const handleTermRollover = async () => {
     if (!school?.id) return
@@ -42,18 +57,6 @@ export default function RolloverPage() {
     } finally {
       setPromoting(false)
     }
-  }
-
-  const getNextClassName = (name: string) => {
-    // Basic logic: P.1 -> P.2, S.1 -> S.2
-    const match = name.match(/([A-Z]\.)(\d+)(.*)/)
-    if (match) {
-      const prefix = match[1]
-      const num = parseInt(match[2])
-      const suffix = match[3] || ''
-      return `${prefix}${num + 1}${suffix}`
-    }
-    return name
   }
 
   const handleYearRollover = async () => {
@@ -128,11 +131,55 @@ export default function RolloverPage() {
       }
 
       // 5. Update global academic state
+      if (wizardOptions.resetOpeningBalances) {
+        await supabase
+          .from('students')
+          .update({ opening_balance: 0 })
+          .eq('school_id', school.id)
+          .in('status', ['active', 'completed'])
+      }
+
+      if (wizardOptions.archiveSummary) {
+        await supabase.from('school_settings').upsert({
+          school_id: school.id,
+          key: 'last_rollover_summary',
+          value: JSON.stringify({
+            completed_at: new Date().toISOString(),
+            from_year: academicYear,
+            to_year: newAcademicYear,
+            graduated_students: preview.graduatingStudentIds.length,
+            promoted_students: preview.promotableStudentIds.length,
+            carry_forward_balances: wizardOptions.carryForwardBalances,
+            reset_opening_balances: wizardOptions.resetOpeningBalances,
+            archive_grades: wizardOptions.archiveGrades,
+          })
+        }, { onConflict: 'school_id,key' })
+      }
+
       await setAcademicYear(newAcademicYear)
       await setCurrentTerm(1)
+      await logAuditEventWithOfflineSupport(
+        true,
+        school.id,
+        'system',
+        'Rollover Wizard',
+        'update',
+        'academic_rollover',
+        `Executed year rollover ${academicYear} -> ${newAcademicYear}`,
+        undefined,
+        {
+          currentTerm,
+          academicYear,
+        },
+        {
+          nextAcademicYear: newAcademicYear,
+          options: wizardOptions,
+          graduatingStudents: preview.graduatingStudentIds.length,
+          promotedStudents: preview.promotableStudentIds.length,
+        }
+      )
 
       toast.success(`Academic year ${newAcademicYear} setup complete`)
-      setStep(4)
       router.push('/dashboard')
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to rollover')
@@ -169,6 +216,35 @@ export default function RolloverPage() {
             <div className="text-xl font-bold text-[#002045]">{allSchoolClasses.length}</div>
           </div>
         </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 mb-6 max-w-2xl">
+        <h2 className="font-semibold text-[#002045] mb-4">Rollover Preview</h2>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <div className="text-[#5c6670]">Promotions queued</div>
+            <div className="text-xl font-bold text-[#002045]">{preview.promotableStudentIds.length}</div>
+          </div>
+          <div>
+            <div className="text-[#5c6670]">Graduations queued</div>
+            <div className="text-xl font-bold text-[#002045]">{preview.graduatingStudentIds.length}</div>
+          </div>
+          <div>
+            <div className="text-[#5c6670]">Classes to clone</div>
+            <div className="text-xl font-bold text-[#002045]">{preview.clonedClasses.length}</div>
+          </div>
+          <div>
+            <div className="text-[#5c6670]">Entry classes to create</div>
+            <div className="text-xl font-bold text-[#002045]">{preview.entryClassNames.length}</div>
+          </div>
+        </div>
+        {preview.warnings.length > 0 && (
+          <div className="mt-4 rounded-lg bg-yellow-50 border border-yellow-200 p-3 text-sm text-yellow-800">
+            {preview.warnings.map((warning) => (
+              <div key={warning}>{warning}</div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Rollover Options */}
@@ -212,15 +288,58 @@ export default function RolloverPage() {
           </div>
 
           {rolloverType === 'year' && (
-            <div className="mt-4">
-              <label className="label">New Academic Year</label>
-              <input
-                type="text"
-                value={newAcademicYear}
-                onChange={(e) => setNewAcademicYear(e.target.value)}
-                className="input"
-                placeholder="2027"
-              />
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="label">New Academic Year</label>
+                <input
+                  type="text"
+                  value={newAcademicYear}
+                  onChange={(e) => setNewAcademicYear(e.target.value)}
+                  className="input"
+                  placeholder="2027"
+                />
+              </div>
+
+              <div className="rounded-lg border border-[#e8eaed] p-4 space-y-3">
+                <div className="font-medium text-[#002045]">Wizard Options</div>
+                <label className="flex items-center gap-3 text-sm text-[#002045]">
+                  <input
+                    type="checkbox"
+                    checked={wizardOptions.archiveGrades}
+                    onChange={(e) => setWizardOptions(prev => ({ ...prev, archiveGrades: e.target.checked }))}
+                  />
+                  Archive current-year grading summary
+                </label>
+                <label className="flex items-center gap-3 text-sm text-[#002045]">
+                  <input
+                    type="checkbox"
+                    checked={wizardOptions.carryForwardBalances}
+                    onChange={(e) => setWizardOptions(prev => ({
+                      ...prev,
+                      carryForwardBalances: e.target.checked,
+                      resetOpeningBalances: e.target.checked ? false : prev.resetOpeningBalances,
+                    }))}
+                  />
+                  Carry forward fee balances into next year
+                </label>
+                <label className="flex items-center gap-3 text-sm text-[#002045]">
+                  <input
+                    type="checkbox"
+                    checked={wizardOptions.resetOpeningBalances}
+                    disabled={wizardOptions.carryForwardBalances}
+                    onChange={(e) => setWizardOptions(prev => ({ ...prev, resetOpeningBalances: e.target.checked }))}
+                  />
+                  Reset student opening balances to zero
+                </label>
+                <label className="flex items-center gap-3 text-sm text-[#002045]">
+                  <input
+                    type="checkbox"
+                    checked={wizardOptions.archiveSummary}
+                    onChange={(e) => setWizardOptions(prev => ({ ...prev, archiveSummary: e.target.checked }))}
+                  />
+                  Save rollover summary to school settings
+                </label>
+              </div>
             </div>
           )}
 

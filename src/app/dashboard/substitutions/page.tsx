@@ -8,6 +8,7 @@ import MaterialIcon from '@/components/MaterialIcon'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/index'
+import { suggestAvailableSubstitutes, type SubstituteSuggestion } from '@/lib/operations'
 
 interface Teacher {
   id: string
@@ -26,6 +27,7 @@ export default function SubstitutionsPage() {
   const [showModal, setShowModal] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7))
   const [availability, setAvailability] = useState<{ status: 'loading' | 'free' | 'busy' | 'idle', message?: string }>({ status: 'idle' })
+  const [suggestions, setSuggestions] = useState<SubstituteSuggestion[]>([])
   const [form, setForm] = useState({
     absent_teacher_id: '',
     substitute_teacher_id: '',
@@ -77,7 +79,7 @@ export default function SubstitutionsPage() {
   }, [school?.id, selectedMonth])
 
   const checkAvailability = useCallback(async () => {
-    if (!form.substitute_teacher_id || !form.date || !form.period || !school?.id) return
+    if (!form.date || !form.period || !school?.id) return
     
     setAvailability({ status: 'loading' })
     try {
@@ -87,48 +89,67 @@ export default function SubstitutionsPage() {
       // 1. Check Regular Timetable
       const { data: timetableEntries } = await supabase
         .from('teacher_timetable')
-        .select('id, subjects(name), classes(name)')
-        .eq('teacher_id', form.substitute_teacher_id)
+        .select('teacher_id, day_of_week, period_number, subjects(name), classes(name)')
         .eq('day_of_week', dayOfWeek)
         .eq('period_number', form.period)
-        .maybeSingle()
+        .in('teacher_id', teachers.map((teacher) => teacher.id))
 
-      if (timetableEntries) {
-        const entry = timetableEntries as any
-        setAvailability({ 
-          status: 'busy', 
-          message: `Already teaching ${entry.subjects?.name || 'Subject'} in ${entry.classes?.name || 'Class'}` 
-        })
-        return
-      }
-
-      // 2. Check other substitutions for this day/period
-      const { data: existingSub } = await supabase
+      const { data: existingSubs } = await supabase
         .from('teacher_substitutions')
-        .select('id, class:class_id(name)')
-        .eq('substitute_teacher_id', form.substitute_teacher_id)
+        .select('substitute_teacher_id, date, period, class:class_id(name)')
         .eq('date', form.date)
         .eq('period', form.period)
-        .maybeSingle()
 
-      if (existingSub) {
-        setAvailability({ 
-          status: 'busy', 
-          message: `Already substituting in ${(existingSub.class as any)?.name || 'Class'}` 
-        })
+      const nextSuggestions = suggestAvailableSubstitutes({
+        teachers,
+        absentTeacherId: form.absent_teacher_id,
+        date: form.date,
+        period: form.period,
+        timetable: (timetableEntries || []).map((entry: any) => ({
+          teacher_id: entry.teacher_id,
+          day_of_week: entry.day_of_week,
+          period_number: entry.period_number,
+          subject_name: entry.subjects?.name,
+          class_name: entry.classes?.name,
+        })),
+        substitutions: (existingSubs || []).map((entry: any) => ({
+          substitute_teacher_id: entry.substitute_teacher_id,
+          date: entry.date,
+          period: entry.period,
+          class_name: entry.class?.name,
+        })),
+      })
+
+      setSuggestions(nextSuggestions)
+
+      if (!form.substitute_teacher_id) {
+        setAvailability({ status: 'idle' })
         return
       }
 
-      setAvailability({ status: 'free', message: 'Teacher is available' })
+      const selectedSuggestion = nextSuggestions.find((item) => item.teacherId === form.substitute_teacher_id)
+      if (!selectedSuggestion) {
+        setAvailability({ status: 'idle' })
+        return
+      }
+
+      if (selectedSuggestion.status === 'busy') {
+        setAvailability({ status: 'busy', message: selectedSuggestion.reason })
+        return
+      }
+
+      setAvailability({ status: 'free', message: selectedSuggestion.reason })
+      return
     } catch (err) {
       console.error('Availability check failed', err)
       setAvailability({ status: 'idle' })
+      setSuggestions([])
     }
-  }, [form.substitute_teacher_id, form.date, form.period, school?.id])
+  }, [form.absent_teacher_id, form.substitute_teacher_id, form.date, form.period, school?.id, teachers])
 
   useEffect(() => {
-    if (form.substitute_teacher_id) checkAvailability()
-  }, [form.substitute_teacher_id, form.date, form.period, checkAvailability])
+    if (teachers.length > 0 && form.date && form.period) checkAvailability()
+  }, [teachers.length, form.substitute_teacher_id, form.absent_teacher_id, form.date, form.period, checkAvailability])
 
   useEffect(() => {
     if (school?.id) {
@@ -427,6 +448,28 @@ export default function SubstitutionsPage() {
                         {availability.message}
                       </>
                     )}
+                  </div>
+                )}
+                {suggestions.length > 0 && (
+                  <div className="mt-3 rounded-xl border border-[var(--border)] p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-[var(--t3)] mb-2">Suggested Coverage</div>
+                    <div className="space-y-2">
+                      {suggestions.slice(0, 4).map((suggestion) => (
+                        <button
+                          type="button"
+                          key={suggestion.teacherId}
+                          onClick={() => setForm({ ...form, substitute_teacher_id: suggestion.teacherId })}
+                          className={`w-full text-left rounded-lg border px-3 py-2 text-sm ${
+                            suggestion.status === 'recommended'
+                              ? 'border-green-200 bg-green-50'
+                              : 'border-red-200 bg-red-50'
+                          }`}
+                        >
+                          <div className="font-medium text-[var(--t1)]">{suggestion.teacherName}</div>
+                          <div className="text-xs text-[var(--t3)]">{suggestion.reason}</div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

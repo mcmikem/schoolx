@@ -14,11 +14,13 @@ import PaymentModal from '@/components/fees/PaymentModal'
 import FeeFormModal from '@/components/fees/FeeFormModal'
 import ReceiptModal from '@/components/fees/ReceiptModal'
 import InvoiceModal from '@/components/fees/InvoiceModal'
+import AdjustmentModal from '@/components/fees/AdjustmentModal'
 import { PageHeader, PageSection } from '@/components/ui/PageHeader'
 import { Tabs, TabPanel } from '@/components/ui/Tabs'
 import { Button } from '@/components/ui/index'
 import { TableSkeleton, FullPageLoader } from '@/components/ui/Skeleton'
 import { EmptyState, NoData } from '@/components/EmptyState'
+import { calculateStudentFeePosition } from '@/lib/operations'
 
 export default function FeesPage() {
   const { school } = useAuth()
@@ -36,6 +38,7 @@ export default function FeesPage() {
   const [showReceiptModal, setShowReceiptModal] = useState(false)
   const [showInvoiceModal, setShowInvoiceModal] = useState(false)
   const [showFeeModal, setShowFeeModal] = useState(false)
+  const [showAdjustmentModal, setShowAdjustmentModal] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<StudentBalance | null>(null)
   const [selectedClass, setSelectedClass] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
@@ -70,6 +73,17 @@ export default function FeesPage() {
     paid_by: '',
     notes: '',
   })
+  const [newAdjustment, setNewAdjustment] = useState<{
+    student_id: string
+    adjustment_type: 'discount' | 'scholarship' | 'penalty' | 'manual_credit' | 'write_off' | 'bursary'
+    amount: string
+    description: string
+  }>({
+    student_id: '',
+    adjustment_type: 'bursary',
+    amount: '',
+    description: '',
+  })
 
   const formatCurrency = (amount: number) => `UGX ${amount.toLocaleString()}`
 
@@ -77,31 +91,29 @@ export default function FeesPage() {
     return students.map(student => {
       const studentClassId = student.class_id
       const studentPayments = payments.filter(p => p.student_id === student.id)
-      const paid = studentPayments.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0)
       
       // Filter fees by class_id (null = applies to all) or no class filter exists
       const applicableFees = feeStructure.filter(f => 
         f.class_id === null || f.class_id === studentClassId
       )
       
-      let totalExpected = applicableFees.reduce((sum, f) => sum + Number(f.amount || 0), 0)
       const studentAdjustments = adjustments.filter(a => a.student_id === student.id)
-      
-      const discounts = studentAdjustments.filter(a => a.adjustment_type === 'discount' || a.adjustment_type === 'scholarship').reduce((sum, a) => sum + Number(a.amount || 0), 0)
-      const penalties = studentAdjustments.filter(a => a.adjustment_type === 'penalty').reduce((sum, a) => sum + Number(a.amount || 0), 0)
-      
-      totalExpected += penalties
-      totalExpected -= discounts
-      totalExpected += Number(student.opening_balance || 0)
+      const feePosition = calculateStudentFeePosition({
+        feeTotal: applicableFees.reduce((sum, f) => sum + Number(f.amount || 0), 0),
+        payments: studentPayments,
+        adjustments: studentAdjustments,
+        openingBalance: Number(student.opening_balance || 0),
+      })
       
       return {
         id: student.id,
         name: `${student.first_name} ${student.last_name}`,
         student_number: student.student_number || '',
         class_name: student.classes?.name || '',
-        expected: totalExpected,
-        paid,
-        balance: Math.max(0, totalExpected - paid),
+        expected: feePosition.totalExpected,
+        paid: feePosition.totalPaid,
+        balance: feePosition.balance,
+        status: feePosition.status,
         payments: studentPayments.map(p => ({
           id: p.id,
           amount: Number(p.amount_paid),
@@ -113,7 +125,7 @@ export default function FeesPage() {
           id: a.id,
           adjustment_type: a.adjustment_type,
           amount: Number(a.amount),
-          description: a.description || ''
+          description: a.description || a.notes || ''
         }))
       }
     })
@@ -331,6 +343,50 @@ export default function FeesPage() {
     setNewPayment(prev => ({ ...prev, ...updates }))
   }
 
+  const handleAdjustmentChange = (updates: Partial<typeof newAdjustment>) => {
+    setNewAdjustment(prev => ({ ...prev, ...updates }))
+  }
+
+  const handleCreateAdjustment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newAdjustment.student_id || !newAdjustment.amount || !newAdjustment.description.trim()) {
+      toast.error('Please complete all adjustment fields')
+      return
+    }
+
+    try {
+      setSaving(true)
+      await createAdjustment({
+        student_id: newAdjustment.student_id,
+        adjustment_type: newAdjustment.adjustment_type,
+        amount: Number(newAdjustment.amount),
+        description: newAdjustment.description.trim(),
+      })
+      toast.success('Adjustment recorded')
+      setShowAdjustmentModal(false)
+      setNewAdjustment({
+        student_id: '',
+        adjustment_type: 'bursary',
+        amount: '',
+        description: '',
+      })
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to record adjustment')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteAdjustment = async (adjustmentId: string) => {
+    if (!confirm('Delete this fee adjustment?')) return
+    try {
+      await deleteAdjustment(adjustmentId)
+      toast.success('Adjustment deleted')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete adjustment')
+    }
+  }
+
   return (
     <div className="content">
       <PageHeader 
@@ -341,6 +397,10 @@ export default function FeesPage() {
             <Button variant="ghost" size="sm" onClick={() => setShowInvoiceModal(true)}>
               <MaterialIcon icon="receipt_long" />
               Generate Invoice
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowAdjustmentModal(true)}>
+              <MaterialIcon icon="tune" />
+              Add Adjustment
             </Button>
             <Button variant="primary" size="sm" onClick={() => setShowPaymentModal(true)}>
               <MaterialIcon icon="add" />
@@ -390,6 +450,7 @@ export default function FeesPage() {
       </TabPanel>
 
       <TabPanel activeTab={tab} tabId="payments">
+        <div className="space-y-6">
         <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
@@ -426,6 +487,62 @@ export default function FeesPage() {
               </tbody>
             </table>
           </div>
+        </div>
+        <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-outline-variant/10 flex items-center justify-between">
+            <div>
+              <div className="font-semibold text-on-surface">Recent Adjustments</div>
+              <div className="text-sm text-on-surface-variant">Non-cash items that affect balances and revenue projections</div>
+            </div>
+            <Button variant="secondary" size="sm" onClick={() => setShowAdjustmentModal(true)}>
+              <MaterialIcon icon="add" />
+              Add Adjustment
+            </Button>
+          </div>
+          {adjustments.length === 0 ? (
+            <div className="p-6 text-sm text-on-surface-variant">No adjustments recorded.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-surface-container-low text-left">
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Date</th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Student</th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Type</th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Amount</th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Notes</th>
+                    <th className="px-6 py-4"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/5">
+                  {adjustments.map((adjustment) => {
+                    const student = students.find(s => s.id === adjustment.student_id)
+                    return (
+                      <tr key={adjustment.id} className="hover:bg-surface-bright">
+                        <td className="px-6 py-4 text-sm">{new Date(adjustment.created_at).toLocaleDateString()}</td>
+                        <td className="px-6 py-4 font-medium">{student?.first_name} {student?.last_name}</td>
+                        <td className="px-6 py-4">
+                          <span className="px-2 py-1 bg-surface-container text-on-surface-variant rounded text-xs font-bold uppercase">
+                            {adjustment.adjustment_type.replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td className={`px-6 py-4 font-bold ${adjustment.adjustment_type === 'penalty' ? 'text-error' : 'text-primary'}`}>
+                          {formatCurrency(Number(adjustment.amount))}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-on-surface-variant">{adjustment.description || adjustment.notes || '-'}</td>
+                        <td className="px-6 py-4">
+                          <button onClick={() => handleDeleteAdjustment(adjustment.id)} className="p-2 text-error hover:bg-error-container rounded-lg">
+                            <MaterialIcon icon="delete" className="text-lg" />
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
         </div>
       </TabPanel>
 
@@ -497,6 +614,16 @@ export default function FeesPage() {
         onSubmit={handleCreateFee}
         newFee={newFee}
         onFeeChange={handleNewFeeChange}
+        saving={saving}
+      />
+
+      <AdjustmentModal
+        isOpen={showAdjustmentModal}
+        onClose={() => setShowAdjustmentModal(false)}
+        students={studentBalances.map(s => ({ id: s.id, name: s.name, balance: s.balance }))}
+        onSubmit={handleCreateAdjustment}
+        newAdjustment={newAdjustment}
+        onAdjustmentChange={handleAdjustmentChange}
         saving={saving}
       />
 

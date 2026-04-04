@@ -5,11 +5,14 @@ import { useAuth } from '@/lib/auth-context'
 import { getQuerySchoolId } from './utils'
 import { DEMO_ATTENDANCE } from '@/lib/demo-data'
 import { isDemoSchool } from '@/lib/demo-utils'
+import { offlineDB, useOnlineStatus } from '@/lib/offline'
+import { logAuditEventWithOfflineSupport, logRecordChangeWithOfflineSupport } from '@/lib/audit'
 
 export function useAttendance(classId?: string, date?: string) {
   const [attendance, setAttendance] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const { isDemo } = useAuth()
+  const { isDemo, user, school } = useAuth()
+  const isOnline = useOnlineStatus()
 
   const markAttendance = async (studentId: string, status: string, recordedBy?: string) => {
     const currentDate = date || new Date().toISOString().split('T')[0]
@@ -22,9 +25,40 @@ export function useAttendance(classId?: string, date?: string) {
       })
       return newRecord
     }
+    const payload = { student_id: studentId, class_id: classId, date: currentDate, status, recorded_by: recordedBy }
+    const previousRecord = attendance.find(a => a.student_id === studentId)
+
+    if (!isOnline) {
+      const offlineSaved = await offlineDB.save('attendance', payload as unknown as Record<string, unknown>)
+      const newRecord = {
+        ...payload,
+        id: String(offlineSaved.id || `offline-att-${Date.now()}`),
+        created_at: new Date().toISOString(),
+      }
+      setAttendance(prev => {
+        const existing = prev.findIndex(a => a.student_id === studentId)
+        if (existing >= 0) { const u = [...prev]; u[existing] = newRecord; return u }
+        return [...prev, newRecord]
+      })
+      if (school?.id && user?.id) {
+        await logAuditEventWithOfflineSupport(
+          false,
+          school.id,
+          user.id,
+          user.full_name,
+          'update',
+          'attendance',
+          `Queued offline attendance as ${status}`,
+          studentId,
+          previousRecord,
+          payload as Record<string, unknown>
+        )
+      }
+      return newRecord
+    }
     try {
       const { data, error } = await supabase.from('attendance').upsert(
-        { student_id: studentId, class_id: classId, date: currentDate, status, recorded_by: recordedBy },
+        payload,
         { onConflict: 'student_id,date' }
       ).select('id, student_id, class_id, date, status, remarks, recorded_by, created_at').single()
       if (error) throw error
@@ -33,6 +67,35 @@ export function useAttendance(classId?: string, date?: string) {
         if (existing >= 0) { const u = [...prev]; u[existing] = data; return u }
         return [...prev, data]
       })
+      if (school?.id && user?.id) {
+        if (previousRecord) {
+          await logRecordChangeWithOfflineSupport(
+            true,
+            school.id,
+            user.id,
+            user.full_name,
+            'attendance',
+            'Updated attendance record',
+            previousRecord,
+            data,
+            data.id
+          )
+        } else {
+          await logAuditEventWithOfflineSupport(
+            true,
+            school.id,
+            user.id,
+            user.full_name,
+            'create',
+            'attendance',
+            'Created attendance record',
+            data.id,
+            undefined,
+            data
+          )
+        }
+      }
+      await offlineDB.cacheFromServer('attendance', [data as unknown as Record<string, unknown>])
       return data
     } catch (err: any) { throw new Error(err.message) }
   }
@@ -47,17 +110,24 @@ export function useAttendance(classId?: string, date?: string) {
       if (!classId || !date) { setLoading(false); return }
       try {
         setLoading(true)
+        if (!isOnline) {
+          const cached = await offlineDB.getAllFromCache('attendance', { class_id: classId, date })
+          setAttendance(cached as any[])
+          setLoading(false)
+          return
+        }
         const { data, error } = await supabase.from('attendance')
           .select('id, student_id, class_id, date, status, remarks, recorded_by, created_at')
           .eq('class_id', classId)
           .eq('date', date)
         if (error) throw error
         setAttendance(data || [])
+        await offlineDB.cacheFromServer('attendance', (data || []) as unknown as Record<string, unknown>[])
       } catch (err) { console.error('Error fetching attendance:', err) }
       finally { setLoading(false) }
     }
     fetchAttendance()
-  }, [classId, date, isDemo])
+  }, [classId, date, isDemo, isOnline])
 
   return { attendance, loading, markAttendance }
 }

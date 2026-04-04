@@ -2,7 +2,7 @@ describe('Sync API Validation', () => {
   describe('Sync Item Validation', () => {
     const VALID_TABLES = [
       'students', 'classes', 'subjects', 'attendance', 'grades',
-      'fee_payments', 'fee_structure', 'messages', 'events', 'timetable'
+      'fee_payments', 'fee_structure', 'messages', 'events', 'timetable', 'audit_log'
     ]
 
     const VALID_ACTIONS = ['create', 'update', 'delete']

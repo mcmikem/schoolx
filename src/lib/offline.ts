@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react'
 
 const DB_NAME = 'omuto-sms-db'
-const DB_VERSION = 2
+const DB_VERSION = 4
 
 interface OfflineRecord {
   id?: string
@@ -50,10 +50,12 @@ class OfflineDB {
           'grades',
           'fee_payments',
           'fee_structure',
+          'fee_adjustments',
           'messages',
           'events',
           'timetable',
           'users',
+          'audit_log',
           'sync_queue',
           'sync_metadata'
         ]
@@ -386,6 +388,16 @@ class OfflineDB {
           .from(item.table)
           .delete()
           .eq('id', (item.data as Record<string, unknown>).id as string)
+        if (error) throw error
+      } else if (item.table === 'attendance') {
+        const { error } = await supabase
+          .from('attendance')
+          .upsert(item.data, { onConflict: 'student_id,date' })
+        if (error) throw error
+      } else if (item.table === 'grades') {
+        const { error } = await supabase
+          .from('grades')
+          .upsert(item.data, { onConflict: 'student_id,subject_id,assessment_type,term,academic_year' })
         if (error) throw error
       } else if (item.action === 'update') {
         const { id, ...updateData } = item.data as Record<string, unknown> & { id: string }

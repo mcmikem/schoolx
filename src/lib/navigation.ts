@@ -359,5 +359,5 @@ export function getNavigationForRole(role: string): NavGroup[] {
   if (role === 'admin' || role === 'school_admin' || role === 'board') {
     return navigationByRole.headmaster
   }
-  return navigationByRole[role] || navigationByRole.headmaster
+  return navigationByRole[role] || navigationByRole.teacher
 }

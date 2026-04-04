@@ -5,6 +5,7 @@ import { useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import { offlineDB, useOnlineStatus } from '@/lib/offline'
+import { logAuditEventWithOfflineSupport } from '@/lib/audit'
 import MaterialIcon from '@/components/MaterialIcon'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Tabs, TabPanel } from '@/components/ui/Tabs'
@@ -72,28 +73,47 @@ export default function AttendancePage() {
 
       try {
         setLoading(true)
+        let studentsData: any[] = []
+        let attendanceData: any[] = []
 
-        const { data: studentsData, error: studentsError } = await supabase
-          .from('students')
-          .select('*')
-          .eq('school_id', school.id)
-          .eq('class_id', selectedClass)
-          .eq('status', 'active')
-          .order('first_name')
+        if (isOnline) {
+          const { data: onlineStudents, error: studentsError } = await supabase
+            .from('students')
+            .select('*')
+            .eq('school_id', school.id)
+            .eq('class_id', selectedClass)
+            .eq('status', 'active')
+            .order('first_name')
 
-        if (studentsError) throw studentsError
-        setStudents(studentsData || [])
+          if (studentsError) throw studentsError
+          studentsData = onlineStudents || []
 
-        const { data: attendanceData } = await supabase
-          .from('attendance')
-          .select('*')
-          .eq('class_id', selectedClass)
-          .eq('date', date)
+          const { data: onlineAttendance } = await supabase
+            .from('attendance')
+            .select('*')
+            .eq('class_id', selectedClass)
+            .eq('date', date)
+
+          attendanceData = onlineAttendance || []
+          await offlineDB.cacheFromServer('students', studentsData as Record<string, unknown>[])
+          await offlineDB.cacheFromServer('attendance', attendanceData as Record<string, unknown>[])
+        } else {
+          studentsData = await offlineDB.getAllFromCache('students', {
+            school_id: school.id,
+            class_id: selectedClass,
+            status: 'active',
+          }) as any[]
+          attendanceData = await offlineDB.getAllFromCache('attendance', {
+            class_id: selectedClass,
+            date,
+          }) as any[]
+        }
 
         const attendanceMap: Record<string, string> = {}
         attendanceData?.forEach((record: {student_id: string, status: string}) => {
           attendanceMap[record.student_id] = record.status
         })
+        setStudents(studentsData || [])
         setAttendance(attendanceMap)
       } catch (err) {
         console.error('Error fetching students:', err)
@@ -164,6 +184,21 @@ export default function AttendancePage() {
           .upsert(records, { onConflict: 'student_id,date' })
 
         if (error) throw error
+        await offlineDB.cacheFromServer('attendance', records as unknown as Record<string, unknown>[])
+        if (school?.id && user?.id) {
+          await logAuditEventWithOfflineSupport(
+            true,
+            school.id,
+            user.id,
+            user.full_name,
+            'update',
+            'attendance',
+            `Saved attendance batch for ${records.length} student(s)`,
+            `${selectedClass}:${date}`,
+            undefined,
+            { count: records.length, class_id: selectedClass, date }
+          )
+        }
         toast.success('Attendance saved')
         await loadOfflineCount()
       } catch {
@@ -181,6 +216,20 @@ export default function AttendancePage() {
     try {
       for (const record of records) {
         await offlineDB.save('attendance', record as unknown as Record<string, unknown>)
+      }
+      if (school?.id && user?.id) {
+        await logAuditEventWithOfflineSupport(
+          false,
+          school.id,
+          user.id,
+          user.full_name,
+          'update',
+          'attendance',
+          `Queued offline attendance batch for ${records.length} student(s)`,
+          `${selectedClass}:${date}`,
+          undefined,
+          { count: records.length, class_id: selectedClass, date }
+        )
       }
       toast.success(`Saved locally (${records.length} records)`)
       await loadOfflineCount()
