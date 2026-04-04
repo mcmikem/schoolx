@@ -5,6 +5,7 @@ import { useToast } from '@/components/Toast'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import ExpiredNotice from '@/components/dashboard/ExpiredNotice'
+import TrialBanner from '@/components/dashboard/TrialBanner'
 import SidebarShell from '@/components/dashboard/SidebarShell'
 import TopBar from '@/components/dashboard/TopBar'
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
@@ -70,6 +71,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <main className="main-content mobile-container ml-[var(--sidebar-width)] flex-1 flex flex-col min-h-screen w-[calc(100%-var(--sidebar-width))] overflow-hidden">
           <TopBar pageTitle={pageTitle} onSignOut={handleSignOut} />
+          <TrialBanner />
           <WorkflowGuide />
           {children}
         </main>
