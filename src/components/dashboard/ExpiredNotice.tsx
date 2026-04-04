@@ -8,14 +8,12 @@ export default function ExpiredNotice() {
   const [loading, setLoading] = useState(false)
 
   const handleContactSupport = () => {
-    // Open email client with pre-filled subject
     window.location.href = `mailto:billing@omuto.sms?subject=Subscription Renewal: ${school?.name}`
   }
 
   return (
     <div className="fixed inset-0 bg-[#f8fbff] flex flex-col items-center justify-center p-6 z-[9999]">
       <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 max-w-md w-full border border-red-100/50 text-center relative overflow-hidden">
-        {/* Decorative background element */}
         <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-red-500 to-orange-400"></div>
         
         <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -60,6 +58,27 @@ export default function ExpiredNotice() {
             <MaterialIcon style={{ fontSize: '20px' }}>logout</MaterialIcon>
             Sign Out
           </button>
+        </div>
+
+        {/* Omuto Foundation Ads */}
+        <div className="mt-8 pt-6 border-t border-[#e5e9f0]">
+          <p className="text-xs text-[#5c6670] mb-3">Brought to you by <a href="https://omuto.org" target="_blank" rel="noopener noreferrer" className="text-amber-700 hover:text-amber-900 font-semibold">Omuto Foundation</a></p>
+          <div className="grid grid-cols-2 gap-2">
+            <a href="https://omuto.org" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 p-3 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors group">
+              <MaterialIcon icon="volunteer_activism" className="text-amber-600 group-hover:text-amber-800" style={{ fontSize: 20 }} />
+              <span className="text-xs font-medium text-amber-800">Omuto Foundation</span>
+              <span className="text-[10px] text-amber-600">omuto.org</span>
+            </a>
+            <a href="https://essentials.omuto.org" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 p-3 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors group">
+              <MaterialIcon icon="star" className="text-blue-600 group-hover:text-blue-800" style={{ fontSize: 20 }} />
+              <span className="text-xs font-medium text-blue-800">Omuto Essentials</span>
+              <span className="text-[10px] text-blue-600">essentials.omuto.org</span>
+            </a>
+          </div>
+          <a href="https://omuto.org/osx.php" target="_blank" rel="noopener noreferrer" className="mt-3 flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold text-sm transition-all active:scale-[0.98]">
+            <MaterialIcon icon="rocket_launch" style={{ fontSize: 18 }} />
+            Join Omuto SchoolXperience
+          </a>
         </div>
       </div>
     </div>
