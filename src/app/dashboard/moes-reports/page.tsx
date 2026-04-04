@@ -1,58 +1,60 @@
-'use client'
-import { useState, useEffect } from 'react'
-import { useAuth } from '@/lib/auth-context'
-import { useAcademic } from '@/lib/academic-context'
-import { supabase } from '@/lib/supabase'
-import * as XLSX from 'xlsx'
-import MaterialIcon from '@/components/MaterialIcon'
-import { PageHeader } from '@/components/ui/PageHeader'
-import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Button } from '@/components/ui/index'
-import { Tabs, TabPanel } from '@/components/ui/Tabs'
-import { TableSkeleton } from '@/components/ui/Skeleton'
+"use client";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { useAcademic } from "@/lib/academic-context";
+import { supabase } from "@/lib/supabase";
+import ExcelJS from "exceljs";
+import MaterialIcon from "@/components/MaterialIcon";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/index";
+import { Tabs, TabPanel } from "@/components/ui/Tabs";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 
 export default function MOESReportsPage() {
-  const { school } = useAuth()
-  const { academicYear, currentTerm } = useAcademic()
-  
-  const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState('headcount')
-  const [exporting, setExporting] = useState(false)
-  const [reportData, setReportData] = useState<any>(null)
+  const { school } = useAuth();
+  const { academicYear, currentTerm } = useAcademic();
+
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("headcount");
+  const [exporting, setExporting] = useState(false);
+  const [reportData, setReportData] = useState<any>(null);
 
   const generateReport = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
       const { data: students } = await supabase
-        .from('students')
-        .select('*, classes(level, name)')
-        .eq('school_id', school?.id)
+        .from("students")
+        .select("*, classes(level, name)")
+        .eq("school_id", school?.id);
 
       const { data: staff } = await supabase
-        .from('users')
-        .select('*')
-        .eq('school_id', school?.id)
+        .from("users")
+        .select("*")
+        .eq("school_id", school?.id);
 
       const { data: classes } = await supabase
-        .from('classes')
-        .select('*')
-        .eq('school_id', school?.id)
+        .from("classes")
+        .select("*")
+        .eq("school_id", school?.id);
 
-      const maleStudents = students?.filter(s => s.gender === 'M').length || 0
-      const femaleStudents = students?.filter(s => s.gender === 'F').length || 0
-      const totalStudents = maleStudents + femaleStudents
+      const maleStudents =
+        students?.filter((s) => s.gender === "M").length || 0;
+      const femaleStudents =
+        students?.filter((s) => s.gender === "F").length || 0;
+      const totalStudents = maleStudents + femaleStudents;
 
-      const maleStaff = staff?.filter(s => s.gender === 'M').length || 0
-      const femaleStaff = staff?.filter(s => s.gender === 'F').length || 0
-      const totalStaff = maleStaff + femaleStaff
+      const maleStaff = staff?.filter((s) => s.gender === "M").length || 0;
+      const femaleStaff = staff?.filter((s) => s.gender === "F").length || 0;
+      const totalStaff = maleStaff + femaleStaff;
 
       const data: any = {
         school: {
-          name: school?.name || '',
-          code: school?.school_code || '',
-          district: school?.district || '',
-          type: (school as { school_type?: string })?.school_type || '',
-          ownership: (school as { ownership?: string })?.ownership || '',
+          name: school?.name || "",
+          code: school?.school_code || "",
+          district: school?.district || "",
+          type: (school as { school_type?: string })?.school_type || "",
+          ownership: (school as { ownership?: string })?.ownership || "",
         },
         academicYear,
         term: currentTerm,
@@ -66,104 +68,131 @@ export default function MOESReportsPage() {
           femaleStaff,
           totalClasses: classes?.length || 0,
         },
-        byClass: classes?.map(c => {
-          const classStudents = students?.filter(s => s.class_id === c.id) || []
-          return {
-            class: c.name,
-            level: c.level,
-            male: classStudents.filter(s => s.gender === 'M').length,
-            female: classStudents.filter(s => s.gender === 'F').length,
-            total: classStudents.length
-          }
-        }) || []
-      }
+        byClass:
+          classes?.map((c) => {
+            const classStudents =
+              students?.filter((s) => s.class_id === c.id) || [];
+            return {
+              class: c.name,
+              level: c.level,
+              male: classStudents.filter((s) => s.gender === "M").length,
+              female: classStudents.filter((s) => s.gender === "F").length,
+              total: classStudents.length,
+            };
+          }) || [],
+      };
 
-      setReportData(data)
+      setReportData(data);
     } catch (err) {
-      console.error(err)
+      console.error(err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const exportToExcel = () => {
-    if (!reportData) return
+  const exportToExcel = async () => {
+    if (!reportData) return;
 
-    setExporting(true)
+    setExporting(true);
     try {
-      const wb = XLSX.utils.book_new()
+      const workbook = new ExcelJS.Workbook();
 
+      const summarySheet = workbook.addWorksheet("Summary");
       const summaryData = [
-        ['MOES EMIS REPORT - HEADCOUNT'],
-        [''],
-        ['School Name', reportData.school.name],
-        ['School Code', reportData.school.code],
-        ['District', reportData.school.district],
-        ['School Type', reportData.school.type],
-        ['Ownership', reportData.school.ownership],
-        ['Academic Year', reportData.academicYear],
-        ['Term', reportData.term],
-        [''],
-        ['SUMMARY'],
-        ['Total Students', reportData.summary.totalStudents],
-        ['Male Students', reportData.summary.maleStudents],
-        ['Female Students', reportData.summary.femaleStudents],
-        ['Total Staff', reportData.summary.totalStaff],
-        ['Male Staff', reportData.summary.maleStaff],
-        ['Female Staff', reportData.summary.femaleStaff],
-        ['Total Classes', reportData.summary.totalClasses],
-      ]
-      const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
-      XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary')
+        ["MOES EMIS REPORT - HEADCOUNT"],
+        [""],
+        ["School Name", reportData.school.name],
+        ["School Code", reportData.school.code],
+        ["District", reportData.school.district],
+        ["School Type", reportData.school.type],
+        ["Ownership", reportData.school.ownership],
+        ["Academic Year", reportData.academicYear],
+        ["Term", reportData.term],
+        [""],
+        ["SUMMARY"],
+        ["Total Students", reportData.summary.totalStudents],
+        ["Male Students", reportData.summary.maleStudents],
+        ["Female Students", reportData.summary.femaleStudents],
+        ["Total Staff", reportData.summary.totalStaff],
+        ["Male Staff", reportData.summary.maleStaff],
+        ["Female Staff", reportData.summary.femaleStaff],
+        ["Total Classes", reportData.summary.totalClasses],
+      ];
+      summaryData.forEach((row) => summarySheet.addRow(row));
 
-      const classData = [['Class', 'Level', 'Male', 'Female', 'Total']]
+      const classSheet = workbook.addWorksheet("By Class");
+      classSheet.addRow(["Class", "Level", "Male", "Female", "Total"]);
       reportData.byClass.forEach((c: any) => {
-        classData.push([c.class, c.level, c.male, c.female, c.total])
-      })
-      const classSheet = XLSX.utils.aoa_to_sheet(classData)
-      XLSX.utils.book_append_sheet(wb, classSheet, 'By Class')
+        classSheet.addRow([c.class, c.level, c.male, c.female, c.total]);
+      });
 
-      XLSX.writeFile(wb, `MOES_EMIS_${school?.school_code}_${academicYear}_T${currentTerm}.xlsx`)
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `MOES_EMIS_${school?.school_code}_${academicYear}_T${currentTerm}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
     } catch (err) {
-      console.error(err)
+      console.error(err);
     } finally {
-      setExporting(false)
+      setExporting(false);
     }
-  }
+  };
 
   const exportToJSON = () => {
-    if (!reportData) return
-    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `MOES_EMIS_${school?.school_code}_${academicYear}_T${currentTerm}.json`
-    a.click()
-  }
+    if (!reportData) return;
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `MOES_EMIS_${school?.school_code}_${academicYear}_T${currentTerm}.json`;
+    a.click();
+  };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <PageHeader title="MOES EMIS Reports" subtitle="Generate reports for Ministry of Education & Sports" />
+      <PageHeader
+        title="MOES EMIS Reports"
+        subtitle="Generate reports for Ministry of Education & Sports"
+      />
 
       <Card className="mb-6">
         <CardBody>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[var(--on-surface)] mb-1">Report Type</label>
-              <select value={activeTab} onChange={(e) => setActiveTab(e.target.value)} className="input">
+              <label className="block text-sm font-medium text-[var(--on-surface)] mb-1">
+                Report Type
+              </label>
+              <select
+                value={activeTab}
+                onChange={(e) => setActiveTab(e.target.value)}
+                className="input"
+              >
                 <option value="headcount">Student Headcount</option>
                 <option value="staff">Staff Returns</option>
                 <option value="facility">Facility Inventory</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-[var(--on-surface)] mb-1">Academic Year</label>
+              <label className="block text-sm font-medium text-[var(--on-surface)] mb-1">
+                Academic Year
+              </label>
               <input value={academicYear} disabled className="input" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">&nbsp;</label>
-              <Button onClick={generateReport} disabled={loading} className="w-full">
-                {loading ? 'Generating...' : 'Generate Report'}
+              <Button
+                onClick={generateReport}
+                disabled={loading}
+                className="w-full"
+              >
+                {loading ? "Generating..." : "Generate Report"}
               </Button>
             </div>
           </div>
@@ -176,10 +205,23 @@ export default function MOESReportsPage() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Report Preview</CardTitle>
               <div className="flex gap-2">
-                <Button onClick={exportToExcel} disabled={exporting} size="sm" variant="secondary" icon={<MaterialIcon icon="download" style={{ fontSize: 16 }} />}>
+                <Button
+                  onClick={exportToExcel}
+                  disabled={exporting}
+                  size="sm"
+                  variant="secondary"
+                  icon={
+                    <MaterialIcon icon="download" style={{ fontSize: 16 }} />
+                  }
+                >
                   Export Excel
                 </Button>
-                <Button onClick={exportToJSON} size="sm" variant="secondary" icon={<MaterialIcon icon="code" style={{ fontSize: 16 }} />}>
+                <Button
+                  onClick={exportToJSON}
+                  size="sm"
+                  variant="secondary"
+                  icon={<MaterialIcon icon="code" style={{ fontSize: 16 }} />}
+                >
                   Export JSON
                 </Button>
               </div>
@@ -187,19 +229,27 @@ export default function MOESReportsPage() {
             <CardBody>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="text-center p-4 bg-[var(--surface-container-low)] rounded-lg">
-                  <div className="text-2xl font-bold text-[var(--t1)]">{reportData.summary.totalStudents}</div>
+                  <div className="text-2xl font-bold text-[var(--t1)]">
+                    {reportData.summary.totalStudents}
+                  </div>
                   <div className="text-sm text-[var(--t3)]">Total Students</div>
                 </div>
                 <div className="text-center p-4 bg-[var(--surface-container-low)] rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{reportData.summary.maleStudents}</div>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {reportData.summary.maleStudents}
+                  </div>
                   <div className="text-sm text-[var(--t3)]">Male</div>
                 </div>
                 <div className="text-center p-4 bg-[var(--surface-container-low)] rounded-lg">
-                  <div className="text-2xl font-bold text-pink-600">{reportData.summary.femaleStudents}</div>
+                  <div className="text-2xl font-bold text-pink-600">
+                    {reportData.summary.femaleStudents}
+                  </div>
                   <div className="text-sm text-[var(--t3)]">Female</div>
                 </div>
                 <div className="text-center p-4 bg-[var(--surface-container-low)] rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">{reportData.summary.totalClasses}</div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {reportData.summary.totalClasses}
+                  </div>
                   <div className="text-sm text-[var(--t3)]">Classes</div>
                 </div>
               </div>
@@ -238,11 +288,16 @@ export default function MOESReportsPage() {
 
           <Card>
             <CardBody>
-              <h3 className="font-bold mb-3">Submit to District Education Officer</h3>
+              <h3 className="font-bold mb-3">
+                Submit to District Education Officer
+              </h3>
               <p className="text-sm text-[var(--t3)] mb-4">
-                This report can be submitted to your District Education Officer (DEO) for official records.
+                This report can be submitted to your District Education Officer
+                (DEO) for official records.
               </p>
-              <Button icon={<MaterialIcon icon="send" style={{ fontSize: 18 }} />}>
+              <Button
+                icon={<MaterialIcon icon="send" style={{ fontSize: 18 }} />}
+              >
                 Submit Report to DEO
               </Button>
             </CardBody>
@@ -250,5 +305,5 @@ export default function MOESReportsPage() {
         </>
       )}
     </div>
-  )
+  );
 }

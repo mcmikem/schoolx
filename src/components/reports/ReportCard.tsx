@@ -1,71 +1,73 @@
-'use client'
-import { useRef } from 'react'
-import { Printer, Download } from 'lucide-react'
+"use client";
+import { useRef } from "react";
+import { Printer, Download } from "lucide-react";
 
 interface ReportCardProps {
   report: {
     student: {
-      first_name: string
-      last_name: string
-      student_number: string
-      gender: string
-      ple_index_number?: string
-      classes?: { name: string; level: string }
-    }
+      first_name: string;
+      last_name: string;
+      student_number: string;
+      gender: string;
+      ple_index_number?: string;
+      classes?: { name: string; level: string };
+    };
     school?: {
-      name: string
-      district: string
-      uneab_center_number?: string
-      logo_url?: string
-    }
-    term: number
-    academicYear: string
+      name: string;
+      district: string;
+      uneab_center_number?: string;
+      logo_url?: string;
+    };
+    term: number;
+    academicYear: string;
     subjects: Array<{
-      name: string
-      code: string
-      ca1: number
-      ca2: number
-      ca3: number
-      ca4: number
-      project: number
-      exam: number
-      totalCA: number
-      finalScore: number
-      grade: string
-    }>
+      name: string;
+      code: string;
+      ca1: number;
+      ca2: number;
+      ca3: number;
+      ca4: number;
+      project: number;
+      exam: number;
+      totalCA: number;
+      finalScore: number;
+      grade: string;
+    }>;
     attendance: {
-      total: number
-      present: number
-      absent: number
-      late: number
-    }
+      total: number;
+      present: number;
+      absent: number;
+      late: number;
+    };
     overall: {
-      average: number
-      grade: string
-      division: string
-      position?: number | null
-    }
-  }
+      average: number;
+      grade: string;
+      division: string;
+      position?: number | null;
+    };
+  };
 }
 
 function sanitizeHTML(str: string): string {
   return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 export default function ReportCard({ report }: ReportCardProps) {
-  const reportRef = useRef<HTMLDivElement>(null)
+  const reportRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
     if (reportRef.current) {
-      const printContent = reportRef.current.innerHTML
-      const printWindow = window.open('', '_blank')
+      const printContent = reportRef.current.innerHTML;
+      const printWindow = window.open("", "_blank");
       if (printWindow) {
-        const studentName = sanitizeHTML(`${report.student.first_name} ${report.student.last_name}`)
+        const studentName = sanitizeHTML(
+          `${report.student.first_name} ${report.student.last_name}`,
+        );
         printWindow.document.write(`
           <html>
             <head>
@@ -103,84 +105,126 @@ export default function ReportCard({ report }: ReportCardProps) {
             </head>
             <body>${printContent}</body>
           </html>
-        `)
-        printWindow.document.close()
-        printWindow.print()
+        `);
+        printWindow.document.close();
+        printWindow.print();
       }
     }
-  }
+  };
 
   const handleDownloadPDF = async () => {
-    const { jsPDF } = await import('jspdf')
-    const { default: autoTable } = await import('jspdf-autotable')
+    const { jsPDF } = await import("jspdf");
+    const { default: autoTable } = await import("jspdf-autotable");
 
-    const doc = new jsPDF()
+    const doc = new jsPDF();
 
     // Header
-    doc.setFillColor(30, 58, 95)
-    doc.rect(0, 0, 210, 35, 'F')
-    doc.setTextColor(255, 255, 255)
-    doc.setFontSize(16)
-    doc.text(report.school?.name || 'School Name', 105, 15, { align: 'center' })
-    doc.setFontSize(10)
-    doc.text(`${report.school?.district || ''} District | Report Card`, 105, 23, { align: 'center' })
-    doc.text(`Term ${report.term}, ${report.academicYear}`, 105, 30, { align: 'center' })
+    doc.setFillColor(30, 58, 95);
+    doc.rect(0, 0, 210, 35, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.text(report.school?.name || "School Name", 105, 15, {
+      align: "center",
+    });
+    doc.setFontSize(10);
+    doc.text(
+      `${report.school?.district || ""} District | Report Card`,
+      105,
+      23,
+      { align: "center" },
+    );
+    doc.text(`Term ${report.term}, ${report.academicYear}`, 105, 30, {
+      align: "center",
+    });
 
     // Student Info
-    doc.setTextColor(0, 0, 0)
-    doc.setFontSize(11)
-    const studentY = 45
-    doc.text(`Name: ${report.student.first_name} ${report.student.last_name}`, 14, studentY)
-    doc.text(`Class: ${report.student.classes?.name || 'N/A'}`, 120, studentY)
-    doc.text(`Student No: ${report.student.student_number}`, 14, studentY + 7)
-    doc.text(`Gender: ${report.student.gender === 'M' ? 'Male' : 'Female'}`, 120, studentY + 7)
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    const studentY = 45;
+    doc.text(
+      `Name: ${report.student.first_name} ${report.student.last_name}`,
+      14,
+      studentY,
+    );
+    doc.text(`Class: ${report.student.classes?.name || "N/A"}`, 120, studentY);
+    doc.text(`Student No: ${report.student.student_number}`, 14, studentY + 7);
+    doc.text(
+      `Gender: ${report.student.gender === "M" ? "Male" : "Female"}`,
+      120,
+      studentY + 7,
+    );
 
     // Grades Table
     const tableData = report.subjects.map((s) => [
       s.name,
-      s.ca1, s.ca2, s.ca3, s.ca4, s.project,
+      s.ca1,
+      s.ca2,
+      s.ca3,
+      s.ca4,
+      s.project,
       Math.round(s.totalCA),
       s.exam,
       Math.round(s.finalScore),
       s.grade,
-    ])
+    ]);
 
     autoTable(doc, {
       startY: 60,
-      head: [['Subject', 'CA1', 'CA2', 'CA3', 'CA4', 'Proj', 'CA Avg', 'Exam', 'Total', 'Grade']],
+      head: [
+        [
+          "Subject",
+          "CA1",
+          "CA2",
+          "CA3",
+          "CA4",
+          "Proj",
+          "CA Avg",
+          "Exam",
+          "Total",
+          "Grade",
+        ],
+      ],
       body: tableData,
       styles: { fontSize: 8, cellPadding: 2 },
       headStyles: { fillColor: [30, 58, 95], textColor: 255 },
       columnStyles: {
-        0: { cellWidth: 45, halign: 'left' },
-        9: { fontStyle: 'bold' },
+        0: { cellWidth: 45, halign: "left" },
+        9: { fontStyle: "bold" },
       },
-    })
+    });
 
     // Summary
-    const finalY = (doc as any).lastAutoTable.finalY + 10
-    doc.setFontSize(11)
-    doc.setFont('helvetica', 'bold')
-    doc.text(`Overall Average: ${report.overall.average}%`, 14, finalY)
-    doc.text(`Grade: ${report.overall.grade}`, 80, finalY)
-    doc.text(`Division: ${report.overall.division}`, 140, finalY)
+    const finalY =
+      (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable
+        .finalY + 10;
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Overall Average: ${report.overall.average}%`, 14, finalY);
+    doc.text(`Grade: ${report.overall.grade}`, 80, finalY);
+    doc.text(`Division: ${report.overall.division}`, 140, finalY);
 
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(9)
-    doc.text(`Attendance: ${report.attendance.present} present, ${report.attendance.absent} absent, ${report.attendance.late} late`, 14, finalY + 8)
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(
+      `Attendance: ${report.attendance.present} present, ${report.attendance.absent} absent, ${report.attendance.late} late`,
+      14,
+      finalY + 8,
+    );
 
     // Signature lines
-    const sigY = finalY + 25
-    doc.line(14, sigY + 15, 60, sigY + 15)
-    doc.line(80, sigY + 15, 130, sigY + 15)
-    doc.line(150, sigY + 15, 196, sigY + 15)
-    doc.setFontSize(8)
-    doc.text('Class Teacher', 30, sigY + 20, { align: 'center' })
-    doc.text('Head Teacher', 105, sigY + 20, { align: 'center' })
-    doc.text('Parent/Guardian', 173, sigY + 20, { align: 'center' })
+    const sigY = finalY + 25;
+    doc.line(14, sigY + 15, 60, sigY + 15);
+    doc.line(80, sigY + 15, 130, sigY + 15);
+    doc.line(150, sigY + 15, 196, sigY + 15);
+    doc.setFontSize(8);
+    doc.text("Class Teacher", 30, sigY + 20, { align: "center" });
+    doc.text("Head Teacher", 105, sigY + 20, { align: "center" });
+    doc.text("Parent/Guardian", 173, sigY + 20, { align: "center" });
 
-    doc.save(`Report_${report.student.first_name}_${report.student.last_name}_T${report.term}.pdf`)
-  }
+    doc.save(
+      `Report_${report.student.first_name}_${report.student.last_name}_T${report.term}.pdf`,
+    );
+  };
 
   return (
     <div>
@@ -205,13 +249,19 @@ export default function ReportCard({ report }: ReportCardProps) {
       </div>
 
       {/* Report Card Preview */}
-      <div ref={reportRef} className="bg-white rounded-xl border-2 border-primary-800 overflow-hidden max-w-2xl">
+      <div
+        ref={reportRef}
+        className="bg-white rounded-xl border-2 border-primary-800 overflow-hidden max-w-2xl"
+      >
         {/* Header */}
         <div className="bg-primary-800 text-white p-4 text-center">
-          <div className="text-xl font-bold">{report.school?.name || 'School Name'}</div>
+          <div className="text-xl font-bold">
+            {report.school?.name || "School Name"}
+          </div>
           <div className="text-sm opacity-90">
-            {report.school?.district || ''} District
-            {report.school?.uneab_center_number && ` | Center: ${report.school.uneab_center_number}`}
+            {report.school?.district || ""} District
+            {report.school?.uneab_center_number &&
+              ` | Center: ${report.school.uneab_center_number}`}
           </div>
           <div className="text-sm font-medium mt-1">
             TERM {report.term} REPORT CARD — {report.academicYear}
@@ -228,16 +278,20 @@ export default function ReportCard({ report }: ReportCardProps) {
           </div>
           <div>
             <div className="text-xs text-gray-500">Class</div>
-            <div className="font-medium text-sm">{report.student.classes?.name || 'N/A'}</div>
+            <div className="font-medium text-sm">
+              {report.student.classes?.name || "N/A"}
+            </div>
           </div>
           <div>
             <div className="text-xs text-gray-500">Student No.</div>
-            <div className="font-medium text-sm">{report.student.student_number}</div>
+            <div className="font-medium text-sm">
+              {report.student.student_number}
+            </div>
           </div>
           <div>
             <div className="text-xs text-gray-500">Gender</div>
             <div className="font-medium text-sm">
-              {report.student.gender === 'M' ? 'Male' : 'Female'}
+              {report.student.gender === "M" ? "Male" : "Female"}
             </div>
           </div>
         </div>
@@ -247,22 +301,44 @@ export default function ReportCard({ report }: ReportCardProps) {
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="text-left px-3 py-2 font-semibold text-gray-600">Subject</th>
-                <th className="text-center px-2 py-2 font-semibold text-gray-600">CA1</th>
-                <th className="text-center px-2 py-2 font-semibold text-gray-600">CA2</th>
-                <th className="text-center px-2 py-2 font-semibold text-gray-600">CA3</th>
-                <th className="text-center px-2 py-2 font-semibold text-gray-600">CA4</th>
-                <th className="text-center px-2 py-2 font-semibold text-gray-600">Proj</th>
-                <th className="text-center px-2 py-2 font-semibold text-gray-600 bg-blue-50">CA Avg</th>
-                <th className="text-center px-2 py-2 font-semibold text-gray-600">Exam</th>
-                <th className="text-center px-2 py-2 font-semibold text-gray-600 bg-blue-50">Total</th>
-                <th className="text-center px-2 py-2 font-semibold text-gray-600">Grade</th>
+                <th className="text-left px-3 py-2 font-semibold text-gray-600">
+                  Subject
+                </th>
+                <th className="text-center px-2 py-2 font-semibold text-gray-600">
+                  CA1
+                </th>
+                <th className="text-center px-2 py-2 font-semibold text-gray-600">
+                  CA2
+                </th>
+                <th className="text-center px-2 py-2 font-semibold text-gray-600">
+                  CA3
+                </th>
+                <th className="text-center px-2 py-2 font-semibold text-gray-600">
+                  CA4
+                </th>
+                <th className="text-center px-2 py-2 font-semibold text-gray-600">
+                  Proj
+                </th>
+                <th className="text-center px-2 py-2 font-semibold text-gray-600 bg-blue-50">
+                  CA Avg
+                </th>
+                <th className="text-center px-2 py-2 font-semibold text-gray-600">
+                  Exam
+                </th>
+                <th className="text-center px-2 py-2 font-semibold text-gray-600 bg-blue-50">
+                  Total
+                </th>
+                <th className="text-center px-2 py-2 font-semibold text-gray-600">
+                  Grade
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {report.subjects.map((subject, i) => (
                 <tr key={i} className="hover:bg-gray-50">
-                  <td className="px-3 py-2 text-gray-900 font-medium">{subject.name}</td>
+                  <td className="px-3 py-2 text-gray-900 font-medium">
+                    {subject.name}
+                  </td>
                   <td className="text-center px-2 py-2">{subject.ca1}</td>
                   <td className="text-center px-2 py-2">{subject.ca2}</td>
                   <td className="text-center px-2 py-2">{subject.ca3}</td>
@@ -275,7 +351,9 @@ export default function ReportCard({ report }: ReportCardProps) {
                   <td className="text-center px-2 py-2 font-bold bg-blue-50">
                     {Math.round(subject.finalScore)}
                   </td>
-                  <td className="text-center px-2 py-2 font-bold">{subject.grade}</td>
+                  <td className="text-center px-2 py-2 font-bold">
+                    {subject.grade}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -287,20 +365,29 @@ export default function ReportCard({ report }: ReportCardProps) {
           <div className="grid grid-cols-4 gap-4 mb-4">
             <div className="text-center p-3 bg-gray-50 rounded-lg">
               <div className="text-xs text-gray-500">Overall Average</div>
-              <div className="text-2xl font-bold text-gray-900">{report.overall.average}%</div>
+              <div className="text-2xl font-bold text-gray-900">
+                {report.overall.average}%
+              </div>
             </div>
             <div className="text-center p-3 bg-gray-50 rounded-lg">
               <div className="text-xs text-gray-500">Grade</div>
-              <div className="text-2xl font-bold text-primary-700">{report.overall.grade}</div>
+              <div className="text-2xl font-bold text-primary-700">
+                {report.overall.grade}
+              </div>
             </div>
             <div className="text-center p-3 bg-gray-50 rounded-lg">
               <div className="text-xs text-gray-500">Division</div>
-              <div className={`text-xl font-bold ${
-                report.overall.division === 'Division I' ? 'text-green-600' :
-                report.overall.division === 'Division II' ? 'text-blue-600' :
-                report.overall.division === 'Division III' ? 'text-yellow-600' :
-                'text-red-600'
-              }`}>
+              <div
+                className={`text-xl font-bold ${
+                  report.overall.division === "Division I"
+                    ? "text-green-600"
+                    : report.overall.division === "Division II"
+                      ? "text-blue-600"
+                      : report.overall.division === "Division III"
+                        ? "text-yellow-600"
+                        : "text-red-600"
+                }`}
+              >
                 {report.overall.division}
               </div>
             </div>
@@ -334,5 +421,5 @@ export default function ReportCard({ report }: ReportCardProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }

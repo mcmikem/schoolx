@@ -1,141 +1,159 @@
-import { NextRequest } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { apiSuccess, apiError, handleApiError, validateRequiredFields, requireAuthenticatedUser } from '@/lib/api-utils'
+import { NextRequest } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import {
+  apiSuccess,
+  apiError,
+  handleApiError,
+  validateRequiredFields,
+  requireAuthenticatedUser,
+} from "@/lib/api-utils";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 function getUNEBGrade(score: number): string {
-  if (score >= 80) return 'D1'
-  if (score >= 70) return 'D2'
-  if (score >= 65) return 'C3'
-  if (score >= 60) return 'C4'
-  if (score >= 55) return 'C5'
-  if (score >= 50) return 'C6'
-  if (score >= 45) return 'P7'
-  if (score >= 40) return 'P8'
-  return 'F9'
+  if (score >= 80) return "D1";
+  if (score >= 70) return "D2";
+  if (score >= 65) return "C3";
+  if (score >= 60) return "C4";
+  if (score >= 55) return "C5";
+  if (score >= 50) return "C6";
+  if (score >= 45) return "P7";
+  if (score >= 40) return "P8";
+  return "F9";
 }
 
 function getUNEBDivision(avg: number): string {
-  if (avg >= 80) return 'Division I'
-  if (avg >= 60) return 'Division II'
-  if (avg >= 40) return 'Division III'
-  if (avg >= 20) return 'Division IV'
-  return 'Ungraded'
+  if (avg >= 80) return "Division I";
+  if (avg >= 60) return "Division II";
+  if (avg >= 40) return "Division III";
+  if (avg >= 20) return "Division IV";
+  return "Ungraded";
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { studentId, schoolId, term, academicYear } = await request.json()
-    const authCheck = await requireAuthenticatedUser(request)
-    if (!authCheck.ok) return authCheck.response
+    const { studentId, schoolId, term, academicYear } = await request.json();
+    const authCheck = await requireAuthenticatedUser(request);
+    if (!authCheck.ok) return authCheck.response;
 
-    const validationError = validateRequiredFields({ studentId, schoolId }, ['studentId', 'schoolId'])
+    const validationError = validateRequiredFields({ studentId, schoolId }, [
+      "studentId",
+      "schoolId",
+    ]);
     if (validationError) {
-      return apiError(validationError, 400)
+      return apiError(validationError, 400);
     }
 
     const supabase = supabaseServiceKey
       ? createClient(supabaseUrl, supabaseServiceKey)
-      : createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+      : createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
     const { data: currentUser } = await supabase
-      .from('users')
-      .select('id, school_id, role')
-      .eq('auth_id', authCheck.context.authUserId)
-      .single()
+      .from("users")
+      .select("id, school_id, role")
+      .eq("auth_id", authCheck.context.authUserId)
+      .single();
 
     if (!currentUser) {
-      return apiError('User profile not found', 403)
+      return apiError("User profile not found", 403);
     }
 
     if (currentUser.school_id !== schoolId) {
-      return apiError('Forbidden: school access denied', 403)
+      return apiError("Forbidden: school access denied", 403);
     }
 
     // Fetch student with class info
     const { data: student, error: studentError } = await supabase
-      .from('students')
-      .select('*, classes (id, name, level)')
-      .eq('id', studentId)
-      .single()
+      .from("students")
+      .select("*, classes (id, name, level)")
+      .eq("id", studentId)
+      .single();
 
     if (studentError || !student) {
-      return apiError('Student not found', 404)
+      return apiError("Student not found", 404);
     }
 
     if (student.school_id !== schoolId) {
-      return apiError('Student does not belong to the requested school', 403)
+      return apiError("Student does not belong to the requested school", 403);
     }
 
     // Fetch school info
     const { data: school } = await supabase
-      .from('schools')
-      .select('*')
-      .eq('id', schoolId)
-      .single()
+      .from("schools")
+      .select("*")
+      .eq("id", schoolId)
+      .single();
 
     // Fetch grades for this term
     const { data: grades } = await supabase
-      .from('grades')
-      .select('*, subjects (name, code)')
-      .eq('student_id', studentId)
-      .eq('term', term || 1)
-      .eq('academic_year', academicYear || new Date().getFullYear().toString())
+      .from("grades")
+      .select("*, subjects (name, code)")
+      .eq("student_id", studentId)
+      .eq("term", term || 1)
+      .eq("academic_year", academicYear || new Date().getFullYear().toString());
 
     // Fetch attendance summary
     const { data: attendanceRecords } = await supabase
-      .from('attendance')
-      .select('status')
-      .eq('student_id', studentId)
+      .from("attendance")
+      .select("status")
+      .eq("student_id", studentId);
 
     const attendanceSummary = {
       total: attendanceRecords?.length || 0,
-      present: attendanceRecords?.filter((a) => a.status === 'present').length || 0,
-      absent: attendanceRecords?.filter((a) => a.status === 'absent').length || 0,
-      late: attendanceRecords?.filter((a) => a.status === 'late').length || 0,
-    }
+      present:
+        attendanceRecords?.filter((a) => a.status === "present").length || 0,
+      absent:
+        attendanceRecords?.filter((a) => a.status === "absent").length || 0,
+      late: attendanceRecords?.filter((a) => a.status === "late").length || 0,
+    };
 
     // Organize grades by subject
-    const subjectGrades: Record<string, any> = {}
+    const subjectGrades: Record<string, any> = {};
     grades?.forEach((grade) => {
-      const subjectName = (grade.subjects as any)?.name || 'Unknown'
+      const subjectName = grade.subjects?.name || "Unknown";
       if (!subjectGrades[subjectName]) {
         subjectGrades[subjectName] = {
           name: subjectName,
-          code: (grade.subjects as any)?.code || '',
+          code: grade.subjects?.code || "",
           ca1: 0,
           ca2: 0,
           ca3: 0,
           ca4: 0,
           project: 0,
           exam: 0,
-        }
+        };
       }
-      subjectGrades[subjectName][grade.assessment_type] = Number(grade.score)
-    })
+      subjectGrades[subjectName][grade.assessment_type] = Number(grade.score);
+    });
 
     // Calculate averages and grades
     const reportData = Object.values(subjectGrades).map((subject: any) => {
-      const totalCA = (subject.ca1 + subject.ca2 + subject.ca3 + subject.ca4 + subject.project) / 5
-      const finalScore = totalCA * 0.8 + subject.exam * 0.2
-      const grade = getUNEBGrade(finalScore)
+      const totalCA =
+        (subject.ca1 +
+          subject.ca2 +
+          subject.ca3 +
+          subject.ca4 +
+          subject.project) /
+        5;
+      const finalScore = totalCA * 0.8 + subject.exam * 0.2;
+      const grade = getUNEBGrade(finalScore);
       return {
         ...subject,
         totalCA: Math.round(totalCA * 10) / 10,
         finalScore: Math.round(finalScore * 10) / 10,
         grade,
-      }
-    })
+      };
+    });
 
     // Calculate overall average
     const overallAvg =
       reportData.length > 0
-        ? reportData.reduce((sum, s) => sum + s.finalScore, 0) / reportData.length
-        : 0
+        ? reportData.reduce((sum, s) => sum + s.finalScore, 0) /
+          reportData.length
+        : 0;
 
-    const division = getUNEBDivision(overallAvg)
+    const division = getUNEBDivision(overallAvg);
 
     return apiSuccess({
       student,
@@ -150,8 +168,8 @@ export async function POST(request: NextRequest) {
         division,
         position: null,
       },
-    })
+    });
   } catch (error) {
-    return handleApiError(error)
+    return handleApiError(error);
   }
 }
