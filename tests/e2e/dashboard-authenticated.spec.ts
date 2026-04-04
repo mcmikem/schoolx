@@ -52,4 +52,61 @@ test.describe('Authenticated dashboard flows', () => {
     await expect(page.getByRole('heading', { name: /record fee adjustment/i })).toBeVisible()
     await page.getByRole('button', { name: /cancel/i }).click()
   })
+
+  test('headmaster can post a notice in demo mode', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/notices')
+    await expect(page.getByRole('heading', { name: /notices/i })).toBeVisible()
+
+    await page.getByRole('button', { name: /post notice/i }).click()
+    await expect(page.getByRole('heading', { name: /post notice/i })).toBeVisible()
+
+    await page.getByLabel(/title/i).fill('Playwright Notice')
+    await page.getByLabel(/category/i).selectOption('Academic')
+    await page.getByLabel(/content/i).fill('Browser test notice body')
+    await page.getByRole('button', { name: /^post notice$/i }).click()
+
+    await expect(page.getByText(/playwright notice/i)).toBeVisible()
+  })
+
+  test('headmaster can log a substitution in demo mode', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/substitutions')
+    await expect(page.getByRole('heading', { name: /substitutions/i })).toBeVisible()
+
+    await page.getByRole('button', { name: /log substitution/i }).click()
+    await expect(page.getByRole('heading', { name: /log substitution/i })).toBeVisible()
+
+    await page.getByLabel(/absent teacher/i).selectOption({ index: 1 })
+    await page.getByLabel(/class affected/i).selectOption('4')
+    await page.getByLabel(/substitute teacher/i).selectOption({ index: 1 })
+    await page.getByRole('button', { name: /^log substitution$/i }).last().click()
+
+    await expect(page.getByText(/→/).first()).toBeVisible()
+  })
+
+  test('headmaster can send a demo parent message', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/messages')
+    await expect(page.getByRole('heading', { name: /messages/i })).toBeVisible()
+
+    await page.getByLabel(/phone number/i).fill('0700000000')
+    await page.getByLabel(/message/i).fill('Playwright demo message')
+    await page.getByRole('button', { name: /send message/i }).click()
+
+    await expect(page.getByText(/playwright demo message/i)).toBeVisible()
+  })
+
+  test('headmaster can open sync center controls', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/sync-center')
+    await expect(page.getByRole('heading', { name: /sync center/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /refresh cache/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /sync now/i })).toBeVisible()
+    await expect(page.getByText(/pending queue/i)).toBeVisible()
+  })
 })

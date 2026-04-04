@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import { useClasses } from '@/lib/hooks'
+import { DEMO_STAFF } from '@/lib/demo-data'
 import MaterialIcon from '@/components/MaterialIcon'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
@@ -16,7 +17,7 @@ interface Teacher {
 }
 
 export default function SubstitutionsPage() {
-  const { school } = useAuth()
+  const { school, isDemo } = useAuth()
   const toast = useToast()
   const { classes } = useClasses(school?.id)
 
@@ -39,6 +40,14 @@ export default function SubstitutionsPage() {
 
   const fetchTeachers = useCallback(async () => {
     if (!school?.id) return
+    if (isDemo) {
+      setTeachers(
+        DEMO_STAFF
+          .filter((member) => member.school_id === school.id && member.role === 'teacher' && member.status === 'active')
+          .map((member) => ({ id: member.id, full_name: member.full_name }))
+      )
+      return
+    }
     const { data } = await supabase
       .from('users')
       .select('id, full_name')
@@ -47,12 +56,16 @@ export default function SubstitutionsPage() {
       .eq('is_active', true)
       .order('full_name')
     setTeachers(data || [])
-  }, [school?.id])
+  }, [school?.id, isDemo])
 
   const fetchSubstitutions = useCallback(async () => {
     if (!school?.id) return
     setLoading(true)
     try {
+      if (isDemo) {
+        setSubstitutions([])
+        return
+      }
       const startDate = `${selectedMonth}-01`
       const [year, month] = selectedMonth.split('-').map(Number)
       const endDate = `${selectedMonth}-${new Date(year, month, 0).getDate()}`
@@ -76,13 +89,48 @@ export default function SubstitutionsPage() {
     } finally {
       setLoading(false)
     }
-  }, [school?.id, selectedMonth])
+  }, [school?.id, selectedMonth, isDemo])
 
   const checkAvailability = useCallback(async () => {
     if (!form.date || !form.period || !school?.id) return
     
     setAvailability({ status: 'loading' })
     try {
+      if (isDemo) {
+        const nextSuggestions = suggestAvailableSubstitutes({
+          teachers,
+          absentTeacherId: form.absent_teacher_id,
+          date: form.date,
+          period: form.period,
+          timetable: [],
+          substitutions: substitutions.map((entry: any) => ({
+            substitute_teacher_id: entry.substitute_teacher_id,
+            date: entry.date,
+            period: entry.period,
+            class_name: entry.class?.name,
+          })),
+        })
+
+        setSuggestions(nextSuggestions)
+
+        if (!form.substitute_teacher_id) {
+          setAvailability({ status: 'idle' })
+          return
+        }
+
+        const selectedSuggestion = nextSuggestions.find((item) => item.teacherId === form.substitute_teacher_id)
+        if (!selectedSuggestion) {
+          setAvailability({ status: 'idle' })
+          return
+        }
+
+        setAvailability({
+          status: selectedSuggestion.status === 'busy' ? 'busy' : 'free',
+          message: selectedSuggestion.reason,
+        })
+        return
+      }
+
       const dateObj = new Date(form.date)
       const dayOfWeek = dateObj.getDay() === 0 ? 7 : dateObj.getDay() // 1-7 (Mon-Sun)
       
@@ -145,7 +193,7 @@ export default function SubstitutionsPage() {
       setAvailability({ status: 'idle' })
       setSuggestions([])
     }
-  }, [form.absent_teacher_id, form.substitute_teacher_id, form.date, form.period, school?.id, teachers])
+  }, [form.absent_teacher_id, form.substitute_teacher_id, form.date, form.period, school?.id, teachers, substitutions, isDemo])
 
   useEffect(() => {
     if (teachers.length > 0 && form.date && form.period) checkAvailability()
@@ -173,6 +221,41 @@ export default function SubstitutionsPage() {
 
     setSaving(true)
     try {
+      if (isDemo) {
+        const absentTeacher = teachers.find((teacher) => teacher.id === form.absent_teacher_id)
+        const substituteTeacher = teachers.find((teacher) => teacher.id === form.substitute_teacher_id)
+        const selectedClassRecord = classes.find((classItem) => classItem.id === form.class_id)
+
+        setSubstitutions((prev) => ([
+          {
+            id: `demo-sub-${Date.now()}`,
+            date: form.date,
+            period: form.period,
+            reason: form.reason,
+            created_at: new Date().toISOString(),
+            absent_teacher_id: form.absent_teacher_id,
+            substitute_teacher_id: form.substitute_teacher_id,
+            class_id: form.class_id,
+            absent_teacher: absentTeacher ? { full_name: absentTeacher.full_name } : null,
+            substitute_teacher: substituteTeacher ? { full_name: substituteTeacher.full_name } : null,
+            class: selectedClassRecord ? { name: selectedClassRecord.name } : null,
+          },
+          ...prev,
+        ]))
+
+        toast.success('Substitution logged')
+        setShowModal(false)
+        setForm({
+          absent_teacher_id: '',
+          substitute_teacher_id: '',
+          date: new Date().toISOString().split('T')[0],
+          period: 1,
+          class_id: '',
+          reason: 'Sick',
+        })
+        return
+      }
+
       const { error } = await supabase
         .from('teacher_substitutions')
         .insert({
@@ -358,8 +441,9 @@ export default function SubstitutionsPage() {
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Absent Teacher</label>
+                <label htmlFor="sub-absent-teacher" className="text-sm font-medium text-[var(--t1)] mb-2 block">Absent Teacher</label>
                 <select
+                  id="sub-absent-teacher"
                   value={form.absent_teacher_id}
                   onChange={(e) => setForm({ ...form, absent_teacher_id: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
@@ -374,8 +458,9 @@ export default function SubstitutionsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Date</label>
+                  <label htmlFor="sub-date" className="text-sm font-medium text-[var(--t1)] mb-2 block">Date</label>
                   <input
+                    id="sub-date"
                     type="date"
                     value={form.date}
                     onChange={(e) => setForm({ ...form, date: e.target.value })}
@@ -384,8 +469,9 @@ export default function SubstitutionsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Period</label>
+                  <label htmlFor="sub-period" className="text-sm font-medium text-[var(--t1)] mb-2 block">Period</label>
                   <select
+                    id="sub-period"
                     value={form.period}
                     onChange={(e) => setForm({ ...form, period: Number(e.target.value) })}
                     className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
@@ -398,8 +484,9 @@ export default function SubstitutionsPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Class Affected</label>
+                <label htmlFor="sub-class" className="text-sm font-medium text-[var(--t1)] mb-2 block">Class Affected</label>
                 <select
+                  id="sub-class"
                   value={form.class_id}
                   onChange={(e) => setForm({ ...form, class_id: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
@@ -413,8 +500,9 @@ export default function SubstitutionsPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Substitute Teacher</label>
+                <label htmlFor="sub-teacher" className="text-sm font-medium text-[var(--t1)] mb-2 block">Substitute Teacher</label>
                 <select
+                  id="sub-teacher"
                   value={form.substitute_teacher_id}
                   onChange={(e) => setForm({ ...form, substitute_teacher_id: e.target.value })}
                   className={`w-full px-4 py-3 rounded-xl border bg-[var(--surface)] text-[var(--on-surface)] ${
@@ -475,8 +563,9 @@ export default function SubstitutionsPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Reason</label>
+                <label htmlFor="sub-reason" className="text-sm font-medium text-[var(--t1)] mb-2 block">Reason</label>
                 <select
+                  id="sub-reason"
                   value={form.reason}
                   onChange={(e) => setForm({ ...form, reason: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"

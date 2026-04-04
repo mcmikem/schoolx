@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
+import { DEMO_CLASSES, DEMO_MESSAGES, DEMO_STUDENTS } from '@/lib/demo-data'
 import MaterialIcon from '@/components/MaterialIcon'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Button, Badge } from '@/components/ui/index'
@@ -24,7 +25,7 @@ const recentTabs = [
 ]
 
 export default function MessagesPage() {
-  const { user } = useAuth()
+  const { user, school, isDemo } = useAuth()
   const toast = useToast()
   const [messageType, setMessageType] = useState<'individual' | 'class' | 'all'>('individual')
   const [recentTab, setRecentTab] = useState('all')
@@ -40,6 +41,26 @@ export default function MessagesPage() {
     if (!user?.school_id) return
     
     try {
+      if (isDemo && school?.id) {
+        setClasses(
+          DEMO_CLASSES
+            .filter((classItem) => classItem.school_id === school.id)
+            .map((classItem) => ({ id: classItem.id, name: classItem.name }))
+        )
+        setMessages(
+          DEMO_MESSAGES
+            .filter((entry) => entry.school_id === school.id)
+            .map((entry) => ({
+              id: entry.id,
+              message: entry.message,
+              recipient_type: entry.recipient_type,
+              status: entry.status,
+              created_at: entry.sent_at,
+            }))
+        )
+        return
+      }
+
       const [classesRes, messagesRes] = await Promise.all([
         supabase.from('classes').select('id, name').eq('school_id', user.school_id),
         supabase.from('messages').select('*').eq('school_id', user.school_id).order('created_at', { ascending: false }).limit(20)
@@ -52,7 +73,7 @@ export default function MessagesPage() {
     } finally {
       setLoading(false)
     }
-  }, [user?.school_id])
+  }, [user?.school_id, school?.id, isDemo])
 
   useEffect(() => {
     fetchData()
@@ -65,7 +86,29 @@ export default function MessagesPage() {
     try {
       let phones: string[] = []
       
-      if (messageType === 'individual') {
+      if (isDemo) {
+        if (messageType === 'individual') {
+          if (!phone.trim()) {
+            toast.error('Enter a phone number')
+            return
+          }
+          phones = [phone]
+        } else if (messageType === 'class') {
+          if (!selectedClass) {
+            toast.error('Select a class')
+            return
+          }
+          phones = DEMO_STUDENTS
+            .filter((student) => student.class_id === selectedClass && student.status === 'active')
+            .map((student) => student.parent_phone)
+            .filter(Boolean)
+        } else {
+          phones = DEMO_STUDENTS
+            .filter((student) => student.school_id === school?.id && student.status === 'active')
+            .map((student) => student.parent_phone)
+            .filter(Boolean)
+        }
+      } else if (messageType === 'individual') {
         if (!phone.trim()) {
           toast.error('Enter a phone number')
           return
@@ -93,6 +136,24 @@ export default function MessagesPage() {
 
       if (phones.length === 0) {
         toast.error('No recipients found')
+        return
+      }
+
+      if (isDemo && school?.id) {
+        setMessages((prev) => ([
+          {
+            id: `demo-message-${Date.now()}`,
+            message,
+            recipient_type: messageType,
+            status: 'sent',
+            created_at: new Date().toISOString(),
+          },
+          ...prev,
+        ]))
+        toast.success(`Sent to ${phones.length} recipient${phones.length > 1 ? 's' : ''}`)
+        setMessage('')
+        setPhone('')
+        setSelectedClass('')
         return
       }
 
@@ -172,8 +233,9 @@ export default function MessagesPage() {
 
             {messageType === 'individual' && (
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Phone Number</label>
+                <label htmlFor="message-phone" className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Phone Number</label>
                 <input
+                  id="message-phone"
                   type="tel"
                   placeholder="0700000000"
                   value={phone}
@@ -185,11 +247,11 @@ export default function MessagesPage() {
 
             {messageType === 'class' && (
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Select Class</label>
+                <label htmlFor="message-class" className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Select Class</label>
                 {classes.length === 0 ? (
                   <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No classes available</div>
                 ) : (
-                  <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors">
+                  <select id="message-class" value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors">
                     <option value="">Choose class</option>
                     {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
@@ -198,8 +260,9 @@ export default function MessagesPage() {
             )}
 
             <div>
-              <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Message</label>
+              <label htmlFor="message-body" className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Message</label>
               <textarea
+                id="message-body"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Type your message here..."
