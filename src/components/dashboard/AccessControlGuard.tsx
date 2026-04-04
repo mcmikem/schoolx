@@ -209,7 +209,7 @@ export function useAccessControl() {
 }
 
 export function useDashboardNotifications() {
-  const { school } = useAuth()
+  const { school, isDemo } = useAuth()
   const { students } = useStudents(school?.id)
   const { classes } = useClasses(school?.id)
   const { payments } = useFeePayments(school?.id)
@@ -217,78 +217,111 @@ export function useDashboardNotifications() {
   const { currentTerm, academicYear } = useAcademic()
 
   const notifications = useMemo(() => {
-    const items: Array<{ id: string; title: string; desc: string; time: string; icon: string; color: string; href: string }> = []
-    const totalExpectedPerStudent = feeStructure.reduce((sum, item) => sum + Number(item.amount || 0), 0)
-    const totalExpected = totalExpectedPerStudent * students.length
-    const totalCollected = payments.reduce((sum, payment) => sum + Number(payment.amount_paid || 0), 0)
-    const outstanding = Math.max(0, totalExpected - totalCollected)
-    const collectionRate = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0
-    const latestPayment = payments
-      .slice()
-      .sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime())[0]
+    if (!isDemo) {
+      const items: Array<{ id: string; title: string; desc: string; time: string; icon: string; color: string; href: string }> = []
+      const totalExpectedPerStudent = feeStructure.reduce((sum, item) => sum + Number(item.amount || 0), 0)
+      const totalExpected = totalExpectedPerStudent * students.length
+      const totalCollected = payments.reduce((sum, payment) => sum + Number(payment.amount_paid || 0), 0)
+      const outstanding = Math.max(0, totalExpected - totalCollected)
+      const collectionRate = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0
+      const latestPayment = payments
+        .slice()
+        .sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime())[0]
 
-    if (students.length === 0) {
-      items.push({
-        id: 'setup-students',
-        title: 'Student registry is empty',
-        desc: 'Add your first students to activate admissions, fees, and reporting flows.',
-        time: 'Action needed',
-        icon: 'group',
-        color: 'var(--amber)',
-        href: '/dashboard/students',
-      })
+      if (students.length === 0) {
+        items.push({
+          id: 'setup-students',
+          title: 'Student registry is empty',
+          desc: 'Add your first students to activate admissions, fees, and reporting flows.',
+          time: 'Action needed',
+          icon: 'group',
+          color: 'var(--amber)',
+          href: '/dashboard/students',
+        })
+      }
+
+      if (classes.length === 0) {
+        items.push({
+          id: 'setup-classes',
+          title: 'No classes configured yet',
+          desc: 'Create classes before tracking attendance, marks, and timetables.',
+          time: 'Action needed',
+          icon: 'school',
+          color: 'var(--red)',
+          href: '/dashboard/setup',
+        })
+      }
+
+      if (totalExpected > 0) {
+        items.push({
+          id: 'fees-health',
+          title: `${collectionRate}% fee collection this term`,
+          desc: outstanding > 0 ? `${outstanding.toLocaleString()} UGX still outstanding across active students.` : 'All expected fees are currently covered.',
+          time: `Term ${currentTerm || '-'} · ${academicYear || 'Current year'}`,
+          icon: outstanding > 0 ? 'warning' : 'check_circle',
+          color: outstanding > 0 ? 'var(--amber)' : 'var(--green)',
+          href: '/dashboard/fees',
+        })
+      }
+
+      if (latestPayment) {
+        items.push({
+          id: 'latest-payment',
+          title: 'Latest payment received',
+          desc: `${Number(latestPayment.amount_paid).toLocaleString()} UGX via ${latestPayment.payment_method.replace('_', ' ')}.`,
+          time: formatRelativeTime(latestPayment.payment_date),
+          icon: 'payments',
+          color: 'var(--green)',
+          href: '/dashboard/fees',
+        })
+      }
+
+      if (payments.length === 0 && students.length > 0) {
+        items.push({
+          id: 'no-payments',
+          title: 'No fee payments recorded yet',
+          desc: 'Start with the bursar workflow so balances and receipts become reliable.',
+          time: 'Action needed',
+          icon: 'receipt_long',
+          color: 'var(--navy)',
+          href: '/dashboard/fees',
+        })
+      }
+
+      return items.slice(0, 5)
     }
 
-    if (classes.length === 0) {
-      items.push({
-        id: 'setup-classes',
-        title: 'No classes configured yet',
-        desc: 'Create classes before tracking attendance, marks, and timetables.',
-        time: 'Action needed',
-        icon: 'school',
-        color: 'var(--red)',
-        href: '/dashboard/setup',
-      })
-    }
-
-    if (totalExpected > 0) {
-      items.push({
-        id: 'fees-health',
-        title: `${collectionRate}% fee collection this term`,
-        desc: outstanding > 0 ? `${outstanding.toLocaleString()} UGX still outstanding across active students.` : 'All expected fees are currently covered.',
-        time: `Term ${currentTerm || '-'} · ${academicYear || 'Current year'}`,
-        icon: outstanding > 0 ? 'warning' : 'check_circle',
-        color: outstanding > 0 ? 'var(--amber)' : 'var(--green)',
-        href: '/dashboard/fees',
-      })
-    }
-
-    if (latestPayment) {
-      items.push({
-        id: 'latest-payment',
-        title: 'Latest payment received',
-        desc: `${Number(latestPayment.amount_paid).toLocaleString()} UGX via ${latestPayment.payment_method.replace('_', ' ')}.`,
-        time: formatRelativeTime(latestPayment.payment_date),
+    // Demo mode: show static summary notifications
+    return [
+      {
+        id: 'demo-fees',
+        title: 'Demo: 30 payments recorded',
+        desc: 'UGX 4,175,000 collected across 32 students. Fee collection at ~45%.',
+        time: 'Term 1 · 2025',
         icon: 'payments',
         color: 'var(--green)',
         href: '/dashboard/fees',
-      })
-    }
-
-    if (payments.length === 0 && students.length > 0) {
-      items.push({
-        id: 'no-payments',
-        title: 'No fee payments recorded yet',
-        desc: 'Start with the bursar workflow so balances and receipts become reliable.',
-        time: 'Action needed',
-        icon: 'receipt_long',
+      },
+      {
+        id: 'demo-students',
+        title: 'Demo: 32 students enrolled',
+        desc: 'Across 14 classes from Baby Class to P.7. 29 active, 1 transferred, 1 completed.',
+        time: 'Academic Year 2025',
+        icon: 'group',
         color: 'var(--navy)',
-        href: '/dashboard/fees',
-      })
-    }
-
-    return items.slice(0, 5)
-  }, [students, classes, payments, feeStructure, currentTerm, academicYear])
+        href: '/dashboard/students',
+      },
+      {
+        id: 'demo-attendance',
+        title: 'Demo: Attendance tracking active',
+        desc: '32 attendance records for today. 2 absent, 2 late, 28 present.',
+        time: 'Today',
+        icon: 'how_to_reg',
+        color: 'var(--amber)',
+        href: '/dashboard/attendance',
+      },
+    ]
+  }, [isDemo, students.length, classes.length, payments.length, feeStructure.length, currentTerm, academicYear])
 
   return { notifications }
 }
