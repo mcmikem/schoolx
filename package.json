@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest --runInBand --forceExit",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
     "audit:uiux": "node scripts/audit-uiux.mjs",
     "audit:uiux:strict": "node scripts/audit-uiux.mjs --strict"
   },
@@ -32,6 +34,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/jest": "^30.0.0",

@@ -194,6 +194,47 @@ export default function SettingsPage() {
     }
   }
 
+  const exportStudentPhotos = async () => {
+    if (!school?.id) return
+
+    try {
+      toast.success('Preparing student photo backup...')
+      const { data, error } = await supabase
+        .from('students')
+        .select('*')
+        .eq('school_id', school.id)
+
+      if (error) throw error
+
+      const photoManifest = (data || [])
+        .map((student: Record<string, unknown>) => ({
+          id: student.id,
+          student_number: student.student_number,
+          first_name: student.first_name,
+          last_name: student.last_name,
+          photo_url: student.photo_url || null,
+        }))
+        .filter((student) => Boolean(student.photo_url))
+
+      const blob = new Blob([JSON.stringify(photoManifest, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `omuto_student_photos_${school.name}_${new Date().toISOString().split('T')[0]}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+
+      toast.success(
+        photoManifest.length > 0
+          ? `Exported photo manifest for ${photoManifest.length} student(s)`
+          : 'No student photos were found, but an empty manifest was exported'
+      )
+    } catch (err) {
+      console.error(err)
+      toast.error('Photo export failed')
+    }
+  }
+
   useEffect(() => {
     if (school) {
       setSchoolData(prev => ({
@@ -519,7 +560,7 @@ export default function SettingsPage() {
                       <div className="font-medium text-[var(--on-surface)]">Student Photos Backup</div>
                       <div className="text-sm text-[var(--t3)]">Export student photos and documents</div>
                     </div>
-                    <Button variant="secondary">Export Photos</Button>
+                    <Button variant="secondary" onClick={exportStudentPhotos}>Export Photos</Button>
                   </div>
                 </div>
                 <div className="p-4 bg-[var(--amber-soft)] rounded-xl border border-[var(--amber)]/20">

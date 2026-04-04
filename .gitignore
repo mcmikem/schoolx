@@ -29,3 +29,6 @@ Thumbs.db
 *.swo
 .vercel
 .aider*
+playwright-report/
+test-results/
+tsconfig.tsbuildinfo

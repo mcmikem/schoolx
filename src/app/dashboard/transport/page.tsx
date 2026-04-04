@@ -16,6 +16,7 @@ export default function TransportPage() {
   
   const [showLogModal, setShowLogModal] = useState(false)
   const [selectedRouteId, setSelectedRouteId] = useState('')
+  const [selectedRoute, setSelectedRoute] = useState<any | null>(null)
 
   const handleAddLog = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -91,7 +92,12 @@ export default function TransportPage() {
                       <span className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-widest">
                         {route.transport_stops?.length || 0} Stops
                       </span>
-                      <button className="text-xs text-[var(--t3)] hover:text-[var(--on-surface)] transition-colors">View Schedule</button>
+                      <button
+                        onClick={() => setSelectedRoute(route)}
+                        className="text-xs text-[var(--t3)] hover:text-[var(--on-surface)] transition-colors"
+                      >
+                        View Schedule
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -192,6 +198,39 @@ export default function TransportPage() {
                 Save Vehicle Log
               </Button>
             </form>
+          </Card>
+        </div>
+      )}
+
+      {selectedRoute && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setSelectedRoute(null)}>
+          <Card className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-[var(--border)]">
+              <div>
+                <h2 className="text-xl font-bold text-[var(--on-surface)]">{selectedRoute.route_name}</h2>
+                <p className="text-sm text-[var(--t3)]">{selectedRoute.vehicle_number || 'No vehicle assigned'}</p>
+              </div>
+              <button onClick={() => setSelectedRoute(null)} className="text-[var(--t3)] hover:text-[var(--on-surface)]">
+                <MaterialIcon icon="close" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {selectedRoute.transport_stops?.length ? (
+                selectedRoute.transport_stops.map((stop: any, index: number) => (
+                  <div key={stop.id || `${stop.stop_name}-${index}`} className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-4 py-3">
+                    <div>
+                      <div className="font-medium text-[var(--on-surface)]">{stop.stop_name}</div>
+                      <div className="text-xs text-[var(--t3)]">Stop {index + 1}</div>
+                    </div>
+                    <div className="text-sm font-semibold text-[var(--primary)]">{stop.arrival_time || 'Time not set'}</div>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  No route stops have been configured for this schedule yet.
+                </div>
+              )}
+            </div>
           </Card>
         </div>
       )}

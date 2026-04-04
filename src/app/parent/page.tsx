@@ -186,8 +186,9 @@ export default function ParentPortal() {
         <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: 'var(--sh2)' }}>
           <form onSubmit={handleLogin}>
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: 'var(--t2)' }}>Phone Number</label>
+              <label htmlFor="parent-phone" style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: 'var(--t2)' }}>Phone Number</label>
               <input
+                id="parent-phone"
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
@@ -198,8 +199,9 @@ export default function ParentPortal() {
             </div>
 
             <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: 'var(--t2)' }}>Password</label>
+              <label htmlFor="parent-password" style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: 'var(--t2)' }}>Password</label>
               <input
+                id="parent-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
