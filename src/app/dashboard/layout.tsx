@@ -10,11 +10,12 @@ import TopBar from '@/components/dashboard/TopBar'
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
 import WorkflowGuide from '@/components/dashboard/WorkflowGuide'
 import { useAccessControl, getPageTitle } from '@/components/dashboard/AccessControlGuard'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, isTrialExpired, signOut } = useAuth()
+  const { user, loading, isTrialExpired, signOut } = useAuth()
   const pathname = usePathname()
+  const router = useRouter()
   const toast = useToast()
 
   useAccessControl()
@@ -33,6 +34,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [])
 
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/login')
+    }
+  }, [loading, user, router])
+
   const handleSignOut = async () => {
     sessionStorage.removeItem('lastDeniedPath')
     await signOut()
@@ -40,6 +47,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const pageTitle = getPageTitle(pathname || '/dashboard')
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] text-[var(--t3)]">
+        Loading dashboard...
+      </div>
+    )
+  }
+
+  if (!user) return null
 
   return (
     <ErrorBoundary>

@@ -165,12 +165,17 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
             </div>
           )
         })}
-        {filteredGroups.length === 0 && (
+        {filteredGroups.length === 0 && normalizedQuery && (
           <div className="px-3 py-3 text-[12px] text-[var(--t3)]">
             No results for “{query}”.
             <Link href="/dashboard" onClick={onNavigate} className="block mt-2 text-[var(--navy)] no-underline font-semibold">
               Go to dashboard home
             </Link>
+          </div>
+        )}
+        {filteredGroups.length === 0 && !normalizedQuery && (
+          <div className="px-3 py-3 text-[12px] text-[var(--t3)]">
+            Preparing your navigation...
           </div>
         )}
       </div>
