@@ -427,13 +427,20 @@
 
   /* Mobile Navigation */
   .mobile-bottom-nav {
-    @apply fixed bottom-0 left-0 w-full h-16 bg-[var(--surface)] border-t border-[var(--border)] flex items-center justify-around px-2 z-50 sm:hidden shadow-[0_-4px_12px_rgba(0,0,0,0.05)];
+    @apply fixed bottom-0 left-0 w-full h-[74px] bg-[var(--surface)] border-t border-[var(--border)] flex items-center justify-around px-2 z-50 sm:hidden shadow-[0_-4px_12px_rgba(0,0,0,0.05)];
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
   }
   .mobile-nav-item {
-    @apply flex flex-col items-center gap-1 text-[var(--t3)] transition-colors;
+    @apply flex flex-col items-center justify-center gap-1 text-[var(--t3)] transition-colors rounded-xl px-2 py-1 min-w-[58px];
     text-decoration: none;
+    border: none;
+    background: transparent;
   }
-  .mobile-nav-item.active { @apply text-[var(--navy)]; }
+  .mobile-nav-item.active { @apply text-[var(--navy)] bg-[var(--navy-soft)]; }
+  .mobile-nav-item-primary {
+    @apply text-white bg-[var(--navy)] px-3;
+    box-shadow: 0 8px 18px rgba(23, 50, 95, 0.28);
+  }
   .mobile-nav-item span { @apply text-[10px] font-bold uppercase tracking-wider; }
 
   /* ── LAYOUT SAFETY & OVERLAP FIXES ── */
@@ -525,6 +532,7 @@
     margin-left: 0 !important;
     padding: 0 12px !important;
     width: 100% !important;
+    padding-bottom: 90px !important;
   }
   .topbar    { padding: 0 12px !important; gap: 8px !important; }
   .search-bar { display: none !important; }
@@ -541,4 +549,3 @@ h1, h2, h3, h4, h5, h6,
 .font-heading {
   font-family: 'Sora', sans-serif;
 }
-

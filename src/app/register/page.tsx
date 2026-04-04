@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import OmutoLogo from '@/components/OmutoLogo'
+import { logger } from '@/lib/logger'
 
 function MaterialIcon({ icon, className, children }: { icon: string; className?: string; children?: React.ReactNode }) {
   return <span className={`material-symbols-outlined ${className || ''}`}>{icon || children}</span>
@@ -88,7 +89,7 @@ export default function RegisterPage() {
       clearTimeout(timeoutId)
 
       const data = await response.json()
-      console.log('Registration response:', response.status, data)
+      logger.debug('Registration response:', response.status, data)
 
       if (!response.ok) {
         setError(data.error || `Registration failed (${response.status})`)
