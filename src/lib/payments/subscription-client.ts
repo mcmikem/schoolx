@@ -128,3 +128,27 @@ export function formatPrice(amount: number): string {
 export function getUpgradeMessage(feature: string): string {
   return `This feature requires a higher plan. Upgrade to unlock ${feature}.`
 }
+
+export function canUseFeature(plan: PlanType, feature: keyof PlanFeatures): boolean {
+  return !!PLANS[plan][feature]
+}
+
+export function getFeatureLimit(plan: PlanType, feature: 'maxStudents' | 'maxSMSPerMonth'): number {
+  return PLANS[plan][feature]
+}
+
+export function isPlanUpgrade(current: PlanType, target: PlanType): boolean {
+  const order: PlanType[] = ['free_trial', 'basic', 'premium', 'max']
+  return order.indexOf(target) > order.indexOf(current)
+}
+
+export function getPlanUsageWarning(plan: PlanType, currentCount: number, limitKey: 'maxStudents' | 'maxSMSPerMonth'): string | null {
+  const limit = getFeatureLimit(plan, limitKey)
+  if (currentCount >= limit) {
+    return `You've reached your plan limit of ${limit === Infinity ? '∞' : limit.toLocaleString()} ${limitKey === 'maxStudents' ? 'students' : 'SMS messages'}. Upgrade to add more.`
+  }
+  if (currentCount >= limit * 0.8) {
+    return `You're at ${Math.round((currentCount / limit) * 100)}% of your ${limitKey === 'maxStudents' ? 'student' : 'SMS'} limit (${currentCount}/${limit === Infinity ? '∞' : limit.toLocaleString()}). Consider upgrading.`
+  }
+  return null
+}
