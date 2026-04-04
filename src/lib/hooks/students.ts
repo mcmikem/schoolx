@@ -6,6 +6,7 @@ import type { Student, CreateStudentInput, Class } from '@/types'
 import { getQuerySchoolId, withTimeout } from './utils'
 
 import { DEMO_STUDENTS, DEMO_CLASSES } from '@/lib/demo-data'
+import { isDemoSchool } from '@/lib/demo-utils'
 
 export function useStudents(schoolId?: string, options?: { limit?: number; offset?: number }) {
   const limit = options?.limit || 100
@@ -41,6 +42,20 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
   }, [schoolId, isDemo, limit, offset])
 
   const createStudent = async (student: CreateStudentInput) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      const newId = `demo-student-${Date.now()}`
+      const newStudentData = {
+        ...student,
+        id: newId,
+        school_id: schoolId || '00000000-0000-0000-0000-000000000001',
+        status: 'active' as const,
+        created_at: new Date().toISOString(),
+        classes: DEMO_CLASSES.find(c => c.id === student.class_id) || DEMO_CLASSES[0],
+      }
+      setStudents(prev => [newStudentData as any, ...prev])
+      setTotalCount(prev => prev + 1)
+      return newStudentData as any
+    }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
       const { data, error: insertError } = await supabase.from('students')
@@ -59,6 +74,10 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
   }
 
   const updateStudent = async (id: string, updates: Partial<Student>) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      setStudents(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s))
+      return { ...students.find(s => s.id === id), ...updates } as any
+    }
     try {
       const { data, error: updateError } = await supabase.from('students')
         .update(updates)
@@ -76,6 +95,11 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
   }
 
   const deleteStudent = async (id: string) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      setStudents(prev => prev.filter(s => s.id !== id))
+      setTotalCount(prev => prev - 1)
+      return
+    }
     try {
       const { error: deleteError } = await supabase.from('students').delete().eq('id', id)
       if (deleteError) throw deleteError

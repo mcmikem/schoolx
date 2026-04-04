@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import { getQuerySchoolId } from './utils'
 import { DEMO_MESSAGES, DEMO_EVENTS, DEMO_NOTICES } from '@/lib/demo-data'
+import { isDemoSchool } from '@/lib/demo-utils'
 
 export function useMessages(schoolId?: string) {
   const [messages, setMessages] = useState<any[]>([])
@@ -12,7 +13,7 @@ export function useMessages(schoolId?: string) {
 
   useEffect(() => {
     async function fetchMessages() {
-      if (isDemo || schoolId === '00000000-0000-0000-0000-000000000001') {
+      if (isDemo || isDemoSchool(schoolId)) {
         setMessages(DEMO_MESSAGES as any)
         setLoading(false)
         return
@@ -44,7 +45,7 @@ export function useEvents(schoolId?: string) {
 
   useEffect(() => {
     async function fetchEvents() {
-      if (isDemo || schoolId === '00000000-0000-0000-0000-000000000001') {
+      if (isDemo || isDemoSchool(schoolId)) {
         setEvents(DEMO_EVENTS as any)
         setLoading(false)
         return

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import { getQuerySchoolId } from './utils'
+import { isDemoSchool } from '@/lib/demo-utils'
 
 export function useDormManager(schoolId?: string, dormId?: string) {
   const [rooms, setRooms] = useState<any[]>([])
@@ -13,6 +14,18 @@ export function useDormManager(schoolId?: string, dormId?: string) {
   useEffect(() => {
     async function fetchData() {
       if (!schoolId) {
+        setLoading(false)
+        return
+      }
+
+      if (isDemo || isDemoSchool(schoolId)) {
+        setRooms([
+          { id: 'demo-room-1', dorm_id: dormId, room_number: 'A1', capacity: 8, current_occupancy: 6 },
+          { id: 'demo-room-2', dorm_id: dormId, room_number: 'A2', capacity: 8, current_occupancy: 7 },
+        ])
+        setIncidents([
+          { id: 'demo-inc-1', dorm_id: dormId, student_id: 'demo-1', description: 'Late return after prep', incident_date: '2026-04-01', status: 'resolved', students: { id: 'demo-1', first_name: 'John', last_name: 'Okello' } },
+        ])
         setLoading(false)
         return
       }
@@ -48,6 +61,18 @@ export function useTransportManager(schoolId?: string) {
   useEffect(() => {
     async function fetchData() {
       if (!schoolId) {
+        setLoading(false)
+        return
+      }
+
+      if (isDemo || isDemoSchool(schoolId)) {
+        setRoutes([
+          { id: 'demo-route-1', route_name: 'Kampala North', vehicle_number: 'UGX 001', transport_stops: [{ stop_name: 'Kisasi', arrival_time: '06:30' }, { stop_name: 'Ntinda', arrival_time: '06:45' }] },
+          { id: 'demo-route-2', route_name: 'Kampala South', vehicle_number: 'UGX 002', transport_stops: [{ stop_name: 'Kibuye', arrival_time: '06:30' }, { stop_name: 'Nsambya', arrival_time: '06:45' }] },
+        ])
+        setLogs([
+          { id: 'demo-log-1', vehicle_id: 'demo-route-1', log_date: '2026-04-03', description: 'Routine maintenance', status: 'completed' },
+        ])
         setLoading(false)
         return
       }

@@ -4,14 +4,25 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import type { TimetableSlot, TimetableConstraint } from '@/types'
 import { getQuerySchoolId } from './utils'
+import { isDemoSchool } from '@/lib/demo-utils'
 
 export function useTimetable(classId?: string) {
   const [timetable, setTimetable] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const { isDemo } = useAuth()
 
   useEffect(() => {
     async function fetchTimetable() {
       if (!classId) {
+        setLoading(false)
+        return
+      }
+
+      if (isDemo) {
+        setTimetable([
+          { id: 'demo-tt-1', day_of_week: 'monday', start_time: '08:00', end_time: '08:40', subject_id: 'demo-sub-1', teacher_id: 'demo-1', subjects: { name: 'Mathematics', code: 'MATH' }, teachers: { full_name: 'Mr. Kato' } },
+          { id: 'demo-tt-2', day_of_week: 'monday', start_time: '08:40', end_time: '09:20', subject_id: 'demo-sub-2', teacher_id: 'demo-2', subjects: { name: 'English', code: 'ENG' }, teachers: { full_name: 'Ms. Nabukeera' } },
+        ])
         setLoading(false)
         return
       }
@@ -50,9 +61,22 @@ export function useTimetable(classId?: string) {
     }
 
     fetchTimetable()
-  }, [classId])
+  }, [classId, isDemo])
 
   const saveEntry = async (entry: any) => {
+    if (isDemo) {
+      const newEntry = { ...entry, id: entry.id || `demo-tt-${Date.now()}` }
+      setTimetable(prev => {
+        const idx = prev.findIndex(t => t.id === entry.id)
+        if (idx >= 0) {
+          const updated = [...prev]
+          updated[idx] = newEntry
+          return updated
+        }
+        return [...prev, newEntry]
+      })
+      return newEntry
+    }
     try {
       const { data, error } = await supabase
         .from('timetable')
@@ -77,6 +101,10 @@ export function useTimetable(classId?: string) {
   }
 
   const deleteEntry = async (id: string) => {
+    if (isDemo) {
+      setTimetable(prev => prev.filter(t => t.id !== id))
+      return
+    }
     try {
       const { error } = await supabase.from('timetable').delete().eq('id', id)
       if (error) throw error
@@ -98,6 +126,17 @@ export function useTimetableManager(schoolId?: string) {
   useEffect(() => {
     async function fetchData() {
       if (!schoolId) {
+        setLoading(false)
+        return
+      }
+
+      if (isDemo || isDemoSchool(schoolId)) {
+        setSlots([
+          { id: 'demo-slot-1', name: 'Period 1', start_time: '08:00', end_time: '08:40', order_number: 1, is_break: false },
+          { id: 'demo-slot-2', name: 'Period 2', start_time: '08:40', end_time: '09:20', order_number: 2, is_break: false },
+          { id: 'demo-slot-3', name: 'Break', start_time: '09:20', end_time: '09:40', order_number: 3, is_break: true },
+        ] as unknown as TimetableSlot[])
+        setConstraints([] as unknown as TimetableConstraint[])
         setLoading(false)
         return
       }

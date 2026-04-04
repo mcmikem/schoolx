@@ -1,7 +1,6 @@
 'use client'
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
 import { supabase } from './supabase'
-import { logger } from './logger'
 import { useRouter } from 'next/navigation'
 import { PlanType } from './payments/subscription-client'
 import { FeatureStage, DEFAULT_FEATURE_STAGE } from './featureStages'
@@ -170,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const checkUser = useCallback(async () => {
-    logger.debug('[Auth] checkUser called')
+    console.debug('[Auth] checkUser called')
     
     // Safety timeout - always set loading to false after 5 seconds
     const timeoutId = setTimeout(() => {
@@ -180,14 +179,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     try {
       const demoUserStr = localStorage.getItem(DEMO_KEY)
-      logger.debug('[Auth] demoUserStr:', !!demoUserStr)
+      console.debug('[Auth] demoUserStr:', !!demoUserStr)
       
       if (demoUserStr) {
         try {
           const decrypted = decryptDemoData(demoUserStr)
           if (decrypted) {
             const { demoUser, demoSchool } = JSON.parse(decrypted)
-            logger.debug('[Auth] Demo user loaded:', demoUser.name)
+            console.debug('[Auth] Demo user loaded:', demoUser.name)
             
             setUser({
               id: 'demo-user',
@@ -226,29 +225,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Check for real auth session
-      logger.debug('[Auth] No demo data, checking supabase auth')
+      console.debug('[Auth] No demo data, checking supabase auth')
       if (supabase?.auth) {
         try {
           const { data: { session } } = await supabase!.auth.getSession()
-          logger.debug('[Auth] Session:', !!session)
+          console.debug('[Auth] Session:', !!session)
           if (session && session.user) {
             await fetchUserData(session.user.id)
             setIsDemo(false)
             setLoading(false)
           } else {
             setIsDemo(false)
-            logger.debug('[Auth] No session, setting loading=false')
+            console.debug('[Auth] No session, setting loading=false')
             setLoading(false)
           }
         } catch (sessionError) {
-          logger.error('[Auth] Session error:', sessionError)
+          console.error('[Auth] Session error:', sessionError)
           setIsDemo(false)
           setLoading(false)
         }
         clearTimeout(timeoutId)
         setLoading(false)
       } else {
-        logger.debug('[Auth] No supabase, setting loading=false')
+        console.debug('[Auth] No supabase, setting loading=false')
         setIsDemo(false)
         clearTimeout(timeoutId)
         setLoading(false)

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import { DEMO_GRADES } from '@/lib/demo-data'
+import { isDemoSchool } from '@/lib/demo-utils'
 
 export function useGrades(classId?: string, subjectId?: string, term?: number, academicYear?: string) {
   const [grades, setGrades] = useState<any[]>([])
@@ -13,6 +14,15 @@ export function useGrades(classId?: string, subjectId?: string, term?: number, a
     const maxScore = grade.max_score || 100
     if (grade.score < 0 || grade.score > maxScore) {
       throw new Error(`Score must be between 0 and ${maxScore}`)
+    }
+    if (isDemo) {
+      const newGrade = { ...grade, max_score: maxScore, id: `demo-grade-${Date.now()}`, created_at: new Date().toISOString() }
+      setGrades(prev => {
+        const existing = prev.findIndex(g => g.student_id === grade.student_id && g.subject_id === grade.subject_id && g.assessment_type === grade.assessment_type)
+        if (existing >= 0) { const u = [...prev]; u[existing] = newGrade; return u }
+        return [...prev, newGrade]
+      })
+      return newGrade
     }
     try {
       const { data, error } = await supabase.from('grades')
@@ -53,7 +63,7 @@ export function useGrades(classId?: string, subjectId?: string, term?: number, a
       setGrades(data || [])
     } catch (err) { console.error('Failed to fetch grades:', err) }
     finally { setLoading(false) }
-  }, [classId, subjectId, term, academicYear])
+  }, [classId, subjectId, term, academicYear, isDemo])
 
   useEffect(() => { fetchGrades() }, [fetchGrades])
   return { grades, loading, saveGrade }
@@ -68,6 +78,15 @@ export function useExamScores(classId?: string, subjectId?: string, term?: numbe
     const maxScore = score.max_score || 100
     if (score.score < 0 || score.score > maxScore) {
       throw new Error(`Score must be between 0 and ${maxScore}`)
+    }
+    if (isDemo) {
+      const newScore = { ...score, max_score: maxScore, id: `demo-exam-${Date.now()}`, created_at: new Date().toISOString() }
+      setExamScores(prev => {
+        const existing = prev.findIndex(s => s.student_id === score.student_id && s.subject_id === score.subject_id && s.exam_type === score.exam_type)
+        if (existing >= 0) { const u = [...prev]; u[existing] = newScore; return u }
+        return [...prev, newScore]
+      })
+      return newScore
     }
     try {
       const { data, error } = await supabase.from('exam_scores')
@@ -85,6 +104,10 @@ export function useExamScores(classId?: string, subjectId?: string, term?: numbe
   }
 
   const deleteExamScore = async (id: string) => {
+    if (isDemo) {
+      setExamScores(prev => prev.filter(s => s.id !== id))
+      return
+    }
     try {
       const { error } = await supabase.from('exam_scores').delete().eq('id', id)
       if (error) throw error
@@ -125,6 +148,11 @@ export function useExams(schoolId?: string) {
   const { isDemo } = useAuth()
 
   const createExam = async (exam: { name: string; exam_type: string; class_id: string; subject_id: string; term: number; academic_year: string; exam_date: string; max_score: number; weight: number }) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      const newExam = { ...exam, id: `demo-exam-${Date.now()}`, school_id: schoolId || '00000000-0000-0000-0000-000000000001', created_at: new Date().toISOString() }
+      setExams(prev => [newExam, ...prev])
+      return newExam
+    }
     try {
       const { data, error } = await supabase.from('exams')
         .insert({ ...exam, school_id: schoolId })
@@ -137,6 +165,10 @@ export function useExams(schoolId?: string) {
   }
 
   const deleteExam = async (id: string) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      setExams(prev => prev.filter(e => e.id !== id))
+      return
+    }
     try {
       const { error } = await supabase.from('exams').delete().eq('id', id)
       if (error) throw error
