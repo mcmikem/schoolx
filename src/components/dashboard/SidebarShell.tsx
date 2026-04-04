@@ -27,6 +27,7 @@ export default function SidebarShell({
 }) {
   const { user, school } = useAuth()
   const { currentTerm } = useAcademic()
+  const navigationGroups = user?.role ? getNavigationForRole(user.role) : []
 
   const schoolName = school?.name || 'My School'
   const schoolInitial = schoolName.charAt(0).toUpperCase()
@@ -66,7 +67,7 @@ export default function SidebarShell({
       </div>
 
       <CollapsibleSidebar
-        groups={getNavigationForRole(user?.role || 'teacher')}
+        groups={navigationGroups}
         onNavigate={onNavigate}
       />
 
