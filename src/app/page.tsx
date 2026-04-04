@@ -422,7 +422,7 @@ function PhoneMockup() {
           <div className="rounded-full bg-white/10 px-2.5 py-1 text-[11px]">SMS</div>
         </div>
 
-        <div className="space-y-3 bg-[#f6f9fc] p-4 min-h-[280px]">
+        <div className="space-y-3 bg-[#f6f9fc] p-4">
           <div className="rounded-[24px] bg-white p-3.5 shadow-sm ring-1 ring-slate-200">
             <p className="text-sm font-semibold text-slate-900 mb-2">
               {smsMessages[activeMsg].from}
@@ -430,10 +430,12 @@ function PhoneMockup() {
                 {activeMsg === 0 ? 'Incoming' : 'Outgoing'}
               </span>
             </p>
-            <p className="text-sm leading-6 text-slate-600 min-h-[60px]">
-              {typedText}
-              <span className="inline-block w-[2px] h-[16px] bg-[#17325F] ml-0.5 animate-pulse align-middle" />
-            </p>
+            <div className="h-[72px] overflow-hidden">
+              <p className="text-sm leading-6 text-slate-600">
+                {typedText}
+                <span className="inline-block w-[2px] h-[16px] bg-[#17325F] ml-0.5 animate-pulse align-middle" />
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

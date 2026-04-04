@@ -5,20 +5,7 @@ import { useAuth } from '@/lib/auth-context'
 import type { Student, CreateStudentInput, Class } from '@/types'
 import { getQuerySchoolId, withTimeout } from './utils'
 
-// Demo data for offline/demo mode
-const DEMO_STUDENTS: any[] = [
-  { id: '1', school_id: 'demo-school', student_number: 'P001', first_name: 'John', last_name: 'Akena', gender: 'M', class_id: '1', status: 'active', opening_balance: 0, classes: { id: '1', name: 'P.1', level: 'primary' } },
-  { id: '2', school_id: 'demo-school', student_number: 'P002', first_name: 'Mary', last_name: 'Adoch', gender: 'F', class_id: '1', status: 'active', opening_balance: 0, classes: { id: '1', name: 'P.1', level: 'primary' } },
-  { id: '3', school_id: 'demo-school', student_number: 'P003', first_name: 'Peter', last_name: 'Okello', gender: 'M', class_id: '2', status: 'active', opening_balance: 0, classes: { id: '2', name: 'P.2', level: 'primary' } },
-  { id: '4', school_id: 'demo-school', student_number: 'P004', first_name: 'Sarah', last_name: 'Namatovu', gender: 'F', class_id: '2', status: 'active', opening_balance: 0, classes: { id: '2', name: 'P.2', level: 'primary' } },
-  { id: '5', school_id: 'demo-school', student_number: 'P005', first_name: 'James', last_name: 'Ochieng', gender: 'M', class_id: '3', status: 'active', opening_balance: 0, classes: { id: '3', name: 'P.3', level: 'primary' } },
-]
-
-const DEMO_CLASSES: any[] = [
-  { id: '1', school_id: 'demo-school', name: 'P.1', level: 'primary' },
-  { id: '2', school_id: 'demo-school', name: 'P.2', level: 'primary' },
-  { id: '3', school_id: 'demo-school', name: 'P.3', level: 'primary' },
-]
+import { DEMO_STUDENTS, DEMO_CLASSES } from '@/lib/demo-data'
 
 export function useStudents(schoolId?: string, options?: { limit?: number; offset?: number }) {
   const limit = options?.limit || 100
@@ -32,7 +19,7 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
   const fetchStudents = useCallback(async () => {
     // Demo mode - check for demo school UUID
     if (isDemo || schoolId === '00000000-0000-0000-0000-000000000001') {
-      setStudents(DEMO_STUDENTS)
+      setStudents(DEMO_STUDENTS as any)
       setTotalCount(DEMO_STUDENTS.length)
       setLoading(false)
       return

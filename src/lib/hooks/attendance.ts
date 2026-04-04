@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import { getQuerySchoolId } from './utils'
+import { DEMO_ATTENDANCE } from '@/lib/demo-data'
 
 export function useAttendance(classId?: string, date?: string) {
   const [attendance, setAttendance] = useState<any[]>([])
@@ -27,6 +28,11 @@ export function useAttendance(classId?: string, date?: string) {
 
   useEffect(() => {
     async function fetchAttendance() {
+      if (isDemo) {
+        setAttendance(DEMO_ATTENDANCE as any)
+        setLoading(false)
+        return
+      }
       if (!classId || !date) { setLoading(false); return }
       try {
         setLoading(true)

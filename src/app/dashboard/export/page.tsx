@@ -32,7 +32,7 @@ export default function ExportPage() {
       let filename = ''
 
       if (isDemo) {
-        const { getDemoStudents, getDemoPayments, getDemoGrades, getDemoAttendance, getDemoClasses } = await import('@/lib/demo-data')
+        const { DEMO_GRADES, DEMO_ATTENDANCE, DEMO_FEE_PAYMENTS, DEMO_STUDENTS } = await import('@/lib/demo-data')
         
         switch (exportType) {
           case 'students':
@@ -65,13 +65,12 @@ export default function ExportPage() {
             break
 
           case 'grades':
-            const demoGrades = getDemoGrades()
-            data = demoGrades.map(g => ({
-              'Student Name': 'Demo Student',
-              'Student Number': g.student_id,
-              'Subject': 'Subject',
+            data = DEMO_GRADES.map(g => ({
+              'Student ID': g.student_id,
+              'Subject ID': g.subject_id,
               'Assessment': g.assessment_type,
               'Score': g.score,
+              'Max Score': g.max_score,
               'Term': g.term,
               'Year': g.academic_year,
             }))
@@ -79,24 +78,23 @@ export default function ExportPage() {
             break
 
           case 'attendance':
-            const demoAtt = getDemoAttendance()
-            data = demoAtt.slice(0, 50).map(a => ({
-              'Student Name': 'Demo Student',
-              'Student Number': a.student_id,
+            data = DEMO_ATTENDANCE.slice(0, 50).map(a => ({
+              'Student ID': a.student_id,
+              'Class ID': a.class_id,
               'Date': a.date,
               'Status': a.status,
+              'Remarks': a.remarks || '',
             }))
             filename = 'attendance_export.xlsx'
             break
 
           case 'fees':
-            const demoPayments = getDemoPayments()
-            data = demoPayments.map(p => ({
-              'Student Name': `${p.students?.first_name || 'Demo'} ${p.students?.last_name || 'Student'}`,
-              'Student Number': p.student_id,
+            data = DEMO_FEE_PAYMENTS.map(p => ({
+              'Student ID': p.student_id,
               'Amount': p.amount_paid,
               'Method': p.payment_method,
               'Reference': p.payment_reference || '',
+              'Paid By': p.paid_by || '',
               'Date': p.payment_date,
             }))
             filename = 'fees_export.xlsx'

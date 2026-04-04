@@ -180,6 +180,138 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       ]
     },
   ],
+
+  admin: [
+    {
+      label: 'Overview',
+      icon: 'dashboard',
+      defaultOpen: true,
+      items: [
+        { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+        { href: '/dashboard/analytics', label: 'Analytics', icon: 'analytics', badge: 'New' },
+      ]
+    },
+    {
+      label: 'Students',
+      icon: 'group',
+      defaultOpen: true,
+      items: [
+        { href: '/dashboard/students', label: 'Student Registry', icon: 'group' },
+        { href: '/dashboard/attendance', label: 'Attendance', icon: 'how_to_reg' },
+        { href: '/dashboard/grades', label: 'Grades & Reports', icon: 'menu_book' },
+        { href: '/dashboard/exams', label: 'Exams', icon: 'fact_check' },
+        { href: '/dashboard/promotion', label: 'Promotion', icon: 'trending_up' },
+      ]
+    },
+    {
+      label: 'Staff',
+      icon: 'person',
+      defaultOpen: false,
+      items: [
+        { href: '/dashboard/staff', label: 'Staff Directory', icon: 'person' },
+        { href: '/dashboard/staff-attendance', label: 'Staff Attendance', icon: 'how_to_reg' },
+        { href: '/dashboard/leave', label: 'Leave Requests', icon: 'event_busy' },
+        { href: '/dashboard/payroll', label: 'Payroll', icon: 'payments', badge: 'New' },
+      ]
+    },
+    {
+      label: 'Finance',
+      icon: 'payments',
+      defaultOpen: false,
+      items: [
+        { href: '/dashboard/fees', label: 'Fee Collection', icon: 'payments' },
+        { href: '/dashboard/budget', label: 'Budget', icon: 'account_balance_wallet' },
+        { href: '/dashboard/expense-approvals', label: 'Expenses', icon: 'receipt_long' },
+        { href: '/dashboard/reports', label: 'Financial Reports', icon: 'analytics' },
+      ]
+    },
+    {
+      label: 'Communication',
+      icon: 'chat',
+      defaultOpen: false,
+      items: [
+        { href: '/dashboard/messages', label: 'Messages', icon: 'chat' },
+        { href: '/dashboard/notices', label: 'Announcements', icon: 'campaign' },
+        { href: '/dashboard/bulk-sms', label: 'SMS Center', icon: 'sms' },
+      ]
+    },
+    {
+      label: 'Administration',
+      icon: 'settings',
+      defaultOpen: false,
+      items: [
+        { href: '/dashboard/timetable', label: 'Timetable', icon: 'calendar_month' },
+        { href: '/dashboard/settings', label: 'School Settings', icon: 'settings' },
+        { href: '/dashboard/audit', label: 'Audit Log', icon: 'history' },
+      ]
+    },
+  ],
+
+  school_admin: [
+    {
+      label: 'Overview',
+      icon: 'dashboard',
+      defaultOpen: true,
+      items: [
+        { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+        { href: '/dashboard/analytics', label: 'Analytics', icon: 'analytics', badge: 'New' },
+      ]
+    },
+    {
+      label: 'Students',
+      icon: 'group',
+      defaultOpen: true,
+      items: [
+        { href: '/dashboard/students', label: 'Student Registry', icon: 'group' },
+        { href: '/dashboard/attendance', label: 'Attendance', icon: 'how_to_reg' },
+        { href: '/dashboard/grades', label: 'Grades & Reports', icon: 'menu_book' },
+        { href: '/dashboard/exams', label: 'Exams', icon: 'fact_check' },
+        { href: '/dashboard/promotion', label: 'Promotion', icon: 'trending_up' },
+      ]
+    },
+    {
+      label: 'Staff',
+      icon: 'person',
+      defaultOpen: false,
+      items: [
+        { href: '/dashboard/staff', label: 'Staff Directory', icon: 'person' },
+        { href: '/dashboard/staff-attendance', label: 'Staff Attendance', icon: 'how_to_reg' },
+        { href: '/dashboard/leave', label: 'Leave Requests', icon: 'event_busy' },
+        { href: '/dashboard/payroll', label: 'Payroll', icon: 'payments', badge: 'New' },
+      ]
+    },
+    {
+      label: 'Finance',
+      icon: 'payments',
+      defaultOpen: false,
+      items: [
+        { href: '/dashboard/fees', label: 'Fee Collection', icon: 'payments' },
+        { href: '/dashboard/budget', label: 'Budget', icon: 'account_balance_wallet' },
+        { href: '/dashboard/expense-approvals', label: 'Expenses', icon: 'receipt_long' },
+        { href: '/dashboard/reports', label: 'Financial Reports', icon: 'analytics' },
+      ]
+    },
+    {
+      label: 'Communication',
+      icon: 'chat',
+      defaultOpen: false,
+      items: [
+        { href: '/dashboard/messages', label: 'Messages', icon: 'chat' },
+        { href: '/dashboard/notices', label: 'Announcements', icon: 'campaign' },
+        { href: '/dashboard/bulk-sms', label: 'SMS Center', icon: 'sms' },
+      ]
+    },
+    {
+      label: 'Administration',
+      icon: 'settings',
+      defaultOpen: false,
+      items: [
+        { href: '/dashboard/timetable', label: 'Timetable', icon: 'calendar_month' },
+        { href: '/dashboard/settings', label: 'School Settings', icon: 'settings' },
+        { href: '/dashboard/audit', label: 'Audit Log', icon: 'history' },
+      ]
+    },
+  ],
   
   secretary: [
     {
@@ -223,5 +355,9 @@ export const navigationByRole: Record<string, NavGroup[]> = {
 }
 
 export function getNavigationForRole(role: string): NavGroup[] {
-  return navigationByRole[role] || navigationByRole.teacher
+  // Admin and school_admin get full headmaster access
+  if (role === 'admin' || role === 'school_admin' || role === 'board') {
+    return navigationByRole.headmaster
+  }
+  return navigationByRole[role] || navigationByRole.headmaster
 }
