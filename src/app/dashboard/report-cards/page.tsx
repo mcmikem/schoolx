@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { useClasses, useStudents, useSubjects, useFeePayments, useFeeStructure } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
+import { DEMO_GRADES, DEMO_SUBJECTS } from '@/lib/demo-data'
 import MaterialIcon from '@/components/MaterialIcon'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card, CardBody } from '@/components/ui/Card'
@@ -56,7 +57,7 @@ function getAutoComment(position: number): string {
 }
 
 export default function ReportCardsPage() {
-  const { school } = useAuth()
+  const { school, isDemo } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
   const toast = useToast()
   const { classes } = useClasses(school?.id)
@@ -100,20 +101,32 @@ export default function ReportCardsPage() {
     }
 
     try {
-      const { supabase: sb } = await import('@/lib/supabase')
+      let gradesData: any[] = []
 
-      const { data: gradesData, error } = await sb
-        .from('grades')
-        .select('*, subjects(id, name)')
-        .eq('class_id', selectedClass)
-        .eq('term', currentTerm)
-        .eq('academic_year', academicYear)
+      if (isDemo) {
+        gradesData = DEMO_GRADES
+          .filter((grade) => grade.class_id === selectedClass)
+          .map((grade) => ({
+            ...grade,
+            subjects: DEMO_SUBJECTS.find((subject) => subject.id === grade.subject_id) || null,
+          }))
+      } else {
+        const { supabase: sb } = await import('@/lib/supabase')
 
-      if (error) throw error
+        const { data, error } = await sb
+          .from('grades')
+          .select('*, subjects(id, name)')
+          .eq('class_id', selectedClass)
+          .eq('term', currentTerm)
+          .eq('academic_year', academicYear)
+
+        if (error) throw error
+        gradesData = data || []
+      }
 
       const studentSubjectScores: Record<string, Record<string, { total: number; name: string }>> = {}
 
-      for (const g of (gradesData || [])) {
+      for (const g of gradesData) {
         if (!studentSubjectScores[g.student_id]) {
           studentSubjectScores[g.student_id] = {}
         }
@@ -362,11 +375,12 @@ export default function ReportCardsPage() {
         <CardBody>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2 text-[var(--on-surface)]">Select Class</label>
+              <label htmlFor="report-cards-class" className="block text-sm font-medium mb-2 text-[var(--on-surface)]">Select Class</label>
               {classes.length === 0 ? (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No classes available</div>
               ) : (
                 <select 
+                  id="report-cards-class"
                   value={selectedClass} 
                   onChange={(e) => { setSelectedClass(e.target.value); setGenerated(false); setReports([]) }} 
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"

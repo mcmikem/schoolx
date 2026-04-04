@@ -142,4 +142,46 @@ test.describe('Authenticated dashboard flows', () => {
     await page.getByRole('button', { name: /mark as dropout/i }).last().click()
     await expect(page.getByRole('heading', { name: /dropout tracking/i })).toBeVisible()
   })
+
+  test('headmaster can record transfer in and transfer out flows', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/student-transfers')
+    await expect(page.getByRole('heading', { name: /student transfers/i })).toBeVisible()
+
+    await page.getByRole('button', { name: /new transfer/i }).click()
+    await expect(page.getByRole('heading', { name: /new transfer in/i })).toBeVisible()
+    await page.getByLabel(/first name/i).fill('Play')
+    await page.getByLabel(/last name/i).fill('Transfer')
+    await page.getByLabel(/previous school/i).fill('Demo Primary')
+    await page.getByLabel(/transfer reason/i).selectOption('Family relocation')
+    await page.getByLabel(/assign to class/i).selectOption('4')
+    await page.getByLabel(/parent\/guardian name/i).fill('Test Parent')
+    await page.getByLabel(/^parent phone$/i).fill('0700000011')
+    await page.getByRole('button', { name: /add transfer student/i }).click()
+    await expect(page.getByText(/play transfer/i)).toBeVisible()
+
+    await page.getByRole('tab', { name: /^transfer out$/i }).click()
+    await expect(page.getByRole('heading', { name: /students transferred out/i })).toBeVisible()
+    await page.getByRole('button', { name: /transfer out/i }).first().click()
+    await page.getByLabel(/select student/i).selectOption({ index: 1 })
+    await page.getByLabel(/transferring to/i).fill('Next School')
+    await page.getByLabel(/^reason$/i).selectOption('Better opportunity')
+    await page.getByRole('button', { name: /transfer out/i }).last().click()
+    await expect(page.getByRole('cell', { name: /next school/i })).toBeVisible()
+  })
+
+  test('headmaster can generate report cards in demo mode', async ({ page }) => {
+    await seedDemoSession(page, 'headmaster')
+
+    await page.goto('/dashboard/report-cards')
+    await expect(page.getByRole('heading', { name: 'Report Cards', exact: true })).toBeVisible()
+
+    await page.getByLabel(/select class/i).selectOption('4')
+    await page.getByRole('button', { name: /generate report cards/i }).click()
+
+    await expect(page.getByText(/class average/i)).toBeVisible()
+    await expect(page.locator('div').filter({ hasText: /^Division 1$/ }).first()).toBeVisible()
+    await expect(page.getByRole('checkbox')).toBeVisible()
+  })
 })
