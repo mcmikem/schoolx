@@ -133,7 +133,7 @@ function HeadmasterDashboardContent() {
     0,
   );
   const attendanceRate =
-    totalInClass > 0 ? Math.round((totalPresent / totalInClass) * 100) : 0;
+    totalInClass > 0 ? Math.round((totalPresent / totalInClass) * 100) : (stats.presentToday > 0 && stats.totalStudents > 0 ? Math.round((stats.presentToday / stats.totalStudents) * 100) : 0);
   const absentCount = students.length - stats.presentToday;
 
   const classesNotMarked = classes.filter(
