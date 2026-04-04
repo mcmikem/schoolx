@@ -3,8 +3,8 @@ import './globals.css'
 import Providers from './providers'
 
 export const metadata: Metadata = {
-  title: 'SchoolX | Academic Management System',
-  description: 'Comprehensive school management for Ugandan schools - Primary & Secondary',
+  title: 'SchoolX | Run Your Entire School From One Dashboard',
+  description: 'The all-in-one school management system built for Ugandan schools. Track attendance, grades, fees, and send parent SMS — all from one dashboard. Start your free 30-day trial today.',
   manifest: '/manifest.json',
   icons: {
     icon: '/schoolx-logo.svg',
@@ -14,6 +14,18 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'SchoolX',
+  },
+  openGraph: {
+    title: 'SchoolX | Run Your Entire School From One Dashboard',
+    description: 'Attendance, grades, fees, and parent SMS — all in one system built for Ugandan schools. Start your free 30-day trial.',
+    type: 'website',
+    locale: 'en_UG',
+    siteName: 'SchoolX',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'SchoolX | School Management for Ugandan Schools',
+    description: 'Run your entire school from one dashboard. Attendance, grades, fees, and parent SMS.',
   },
 }
 
