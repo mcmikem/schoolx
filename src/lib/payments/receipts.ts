@@ -1,110 +1,119 @@
-import { jsPDF } from 'jspdf'
-import 'jspdf-autotable'
-import { createSupabaseServerClient } from '../supabase/server'
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import { createSupabaseServerClient } from "../supabase/server";
 
 export interface ReceiptData {
-  schoolName: string
-  schoolCode: string
-  schoolEmail?: string
-  schoolPhone?: string
-  schoolLogo?: string
-  amount: number
-  currency: string
-  plan: string
-  provider: string
-  transactionId: string
-  paymentDate: string
-  receiptNumber: string
+  schoolName: string;
+  schoolCode: string;
+  schoolEmail?: string;
+  schoolPhone?: string;
+  schoolLogo?: string;
+  amount: number;
+  currency: string;
+  plan: string;
+  provider: string;
+  transactionId: string;
+  paymentDate: string;
+  receiptNumber: string;
 }
 
 export async function generateReceiptPDF(data: ReceiptData): Promise<Buffer> {
-  const doc = new jsPDF()
+  const doc = new jsPDF();
 
-  doc.setFontSize(20)
-  doc.setFont('helvetica', 'bold')
-  doc.text('PAYMENT RECEIPT', 105, 25, { align: 'center' })
+  doc.setFontSize(20);
+  doc.setFont("helvetica", "bold");
+  doc.text("PAYMENT RECEIPT", 105, 25, { align: "center" });
 
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'normal')
-  doc.text('Omuto School Management System', 105, 32, { align: 'center' })
-  doc.text('www.omuto.org | info@omuto.org', 105, 37, { align: 'center' })
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text("Omuto School Management System", 105, 32, { align: "center" });
+  doc.text("www.omuto.org | info@omuto.org", 105, 37, { align: "center" });
 
-  doc.setLineWidth(0.5)
-  doc.line(20, 42, 190, 42)
+  doc.setLineWidth(0.5);
+  doc.line(20, 42, 190, 42);
 
-  doc.setFontSize(12)
-  doc.setFont('helvetica', 'bold')
-  doc.text('School Information', 20, 52)
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("School Information", 20, 52);
 
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'normal')
-  doc.text(`School Name: ${data.schoolName}`, 20, 60)
-  doc.text(`School Code: ${data.schoolCode}`, 20, 66)
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(`School Name: ${data.schoolName}`, 20, 60);
+  doc.text(`School Code: ${data.schoolCode}`, 20, 66);
   if (data.schoolEmail) {
-    doc.text(`Email: ${data.schoolEmail}`, 20, 72)
+    doc.text(`Email: ${data.schoolEmail}`, 20, 72);
   }
   if (data.schoolPhone) {
-    doc.text(`Phone: ${data.schoolPhone}`, 20, 78)
+    doc.text(`Phone: ${data.schoolPhone}`, 20, 78);
   }
 
-  doc.setFontSize(12)
-  doc.setFont('helvetica', 'bold')
-  doc.text('Payment Details', 120, 52)
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("Payment Details", 120, 52);
 
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'normal')
-  doc.text(`Receipt #: ${data.receiptNumber}`, 120, 60)
-  doc.text(`Date: ${data.paymentDate}`, 120, 66)
-  doc.text(`Transaction ID: ${data.transactionId}`, 120, 72)
-  doc.text(`Payment Method: ${data.provider.toUpperCase()}`, 120, 78)
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Receipt #: ${data.receiptNumber}`, 120, 60);
+  doc.text(`Date: ${data.paymentDate}`, 120, 66);
+  doc.text(`Transaction ID: ${data.transactionId}`, 120, 72);
+  doc.text(`Payment Method: ${data.provider.toUpperCase()}`, 120, 78);
 
-  doc.line(20, 85, 190, 85)
+  doc.line(20, 85, 190, 85);
 
   const tableData = [
-    ['Plan', data.plan.charAt(0).toUpperCase() + data.plan.slice(1)],
-    ['Amount', `${data.currency} ${data.amount.toLocaleString()}`],
-    ['Total', `${data.currency} ${data.amount.toLocaleString()}`],
-  ]
+    ["Plan", data.plan.charAt(0).toUpperCase() + data.plan.slice(1)],
+    ["Amount", `${data.currency} ${data.amount.toLocaleString()}`],
+    ["Total", `${data.currency} ${data.amount.toLocaleString()}`],
+  ];
 
-  ;(doc as jsPDF & { autoTable: (options: unknown) => void }).autoTable({
+  (doc as jsPDF & { autoTable: (options: unknown) => void }).autoTable({
     startY: 92,
-    head: [['Description', 'Value']],
+    head: [["Description", "Value"]],
     body: tableData,
-    theme: 'striped',
+    theme: "striped",
     headStyles: {
       fillColor: [0, 32, 69],
       textColor: [255, 255, 255],
     },
     columnStyles: {
-      0: { fontStyle: 'bold' },
+      0: { fontStyle: "bold" },
     },
-  })
+  });
 
-  const finalY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15
+  const finalY =
+    (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable
+      .finalY + 15;
 
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'italic')
-  doc.text('Thank you for your payment!', 105, finalY, { align: 'center' })
-  doc.text('Your subscription is now active.', 105, finalY + 6, { align: 'center' })
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "italic");
+  doc.text("Thank you for your payment!", 105, finalY, { align: "center" });
+  doc.text("Your subscription is now active.", 105, finalY + 6, {
+    align: "center",
+  });
 
-  doc.setFontSize(8)
-  doc.setFont('helvetica', 'normal')
-  doc.text('This is an electronically generated receipt. No signature required.', 105, finalY + 20, { align: 'center' })
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.text(
+    "This is an electronically generated receipt. No signature required.",
+    105,
+    finalY + 20,
+    { align: "center" },
+  );
 
-  const pdfBuffer = Buffer.from(doc.output('arraybuffer'))
-  return pdfBuffer
+  const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
+  return pdfBuffer;
 }
 
 export async function sendEmailReceipt(
   schoolId: string,
-  receiptData: ReceiptData
+  receiptData: ReceiptData,
 ): Promise<{ success: boolean; message: string }> {
   try {
-    const resendApiKey = process.env.RESEND_API_KEY
-    
+    const resendApiKey = process.env.RESEND_API_KEY;
+
     if (!resendApiKey) {
-      console.log('Resend API key not configured, skipping email receipt')
-      return { success: false, message: 'Email service not configured' }
+      console.log("Resend API key not configured, skipping email receipt");
+      return { success: false, message: "Email service not configured" };
     }
 
     const emailHtml = `
@@ -169,91 +178,94 @@ export async function sendEmailReceipt(
         </div>
       </body>
       </html>
-    `
+    `;
 
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: process.env.EMAIL_FROM || 'Omuto <payments@omuto.org>',
-        to: receiptData.schoolEmail || 'sms@omuto.org',
+        from: process.env.EMAIL_FROM || "Omuto <payments@omuto.org>",
+        to: receiptData.schoolEmail || "sms@omuto.org",
         subject: `Payment Receipt - ${receiptData.schoolName}`,
         html: emailHtml,
       }),
-    })
+    });
 
     if (!response.ok) {
-      const error = await response.text()
-      console.error('Resend API error:', error)
-      return { success: false, message: 'Failed to send email' }
+      const error = await response.text();
+      console.error("Resend API error:", error);
+      return { success: false, message: "Failed to send email" };
     }
 
-    return { success: true, message: 'Receipt sent successfully' }
+    return { success: true, message: "Receipt sent successfully" };
   } catch (error) {
-    console.error('Email receipt error:', error)
-    return { success: false, message: 'Failed to send email receipt' }
+    console.error("Email receipt error:", error);
+    return { success: false, message: "Failed to send email receipt" };
   }
 }
 
 export async function sendSMSReceipt(
   schoolId: string,
-  receiptData: ReceiptData
+  receiptData: ReceiptData,
 ): Promise<{ success: boolean; message: string }> {
   try {
-    const smsApiKey = process.env.AFRICAS_TALKING_API_KEY
-    const smsUsername = process.env.AFRICAS_TALKING_USERNAME
-    
+    const smsApiKey = process.env.AFRICAS_TALKING_API_KEY;
+    const smsUsername = process.env.AFRICAS_TALKING_USERNAME;
+
     if (!smsApiKey || !smsUsername) {
-      console.log('SMS not configured, skipping SMS receipt')
-      return { success: false, message: 'SMS service not configured' }
+      console.log("SMS not configured, skipping SMS receipt");
+      return { success: false, message: "SMS service not configured" };
     }
 
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient();
     const { data: school } = await supabase
-      .from('schools')
-      .select('phone')
-      .eq('id', schoolId)
-      .single()
+      .from("schools")
+      .select("phone")
+      .eq("id", schoolId)
+      .single();
 
     if (!school?.phone) {
-      return { success: false, message: 'School phone number not found' }
+      return { success: false, message: "School phone number not found" };
     }
 
-    const message = `OMUTO: Payment of UGX ${receiptData.amount.toLocaleString()} for ${receiptData.plan.toUpperCase()} plan received. Receipt: ${receiptData.receiptNumber}. Thank you!`
+    const message = `OMUTO: Payment of UGX ${receiptData.amount.toLocaleString()} for ${receiptData.plan.toUpperCase()} plan received. Receipt: ${receiptData.receiptNumber}. Thank you!`;
 
-    const response = await fetch(`https://api.africastalking.com/version1/messaging`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'apiKey': smsApiKey,
+    const response = await fetch(
+      `https://api.africastalking.com/version1/messaging`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          apiKey: smsApiKey,
+        },
+        body: new URLSearchParams({
+          username: smsUsername,
+          to: school.phone,
+          message: message,
+        }),
       },
-      body: new URLSearchParams({
-        username: smsUsername,
-        to: school.phone,
-        message: message,
-      }),
-    })
+    );
 
     if (!response.ok) {
-      const error = await response.text()
-      console.error('Africa\'s Talking API error:', error)
-      return { success: false, message: 'Failed to send SMS' }
+      const error = await response.text();
+      console.error("Africa's Talking API error:", error);
+      return { success: false, message: "Failed to send SMS" };
     }
 
-    return { success: true, message: 'SMS receipt sent successfully' }
+    return { success: true, message: "SMS receipt sent successfully" };
   } catch (error) {
-    console.error('SMS receipt error:', error)
-    return { success: false, message: 'Failed to send SMS receipt' }
+    console.error("SMS receipt error:", error);
+    return { success: false, message: "Failed to send SMS receipt" };
   }
 }
 
 export async function generateReceiptNumber(): Promise<string> {
-  const timestamp = Date.now().toString(36).toUpperCase()
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase()
-  return `OMR-${timestamp}-${random}`
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `OMR-${timestamp}-${random}`;
 }
 
 const receiptsApi = {
@@ -261,6 +273,6 @@ const receiptsApi = {
   sendEmailReceipt,
   sendSMSReceipt,
   generateReceiptNumber,
-}
+};
 
-export default receiptsApi
+export default receiptsApi;

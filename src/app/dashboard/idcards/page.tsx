@@ -1,56 +1,62 @@
-'use client'
-import { useState } from 'react'
-import Link from 'next/link'
-import { useAuth } from '@/lib/auth-context'
-import { useStudents, useClasses } from '@/lib/hooks'
-import MaterialIcon from '@/components/MaterialIcon'
-import { PageHeader } from '@/components/ui/PageHeader'
-import { Card, CardBody } from '@/components/ui/Card'
-import { Button } from '@/components/ui/index'
-import { Select } from '@/components/ui/index'
-import { EmptyState } from '@/components/EmptyState'
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+import { useAuth } from "@/lib/auth-context";
+import { useStudents, useClasses } from "@/lib/hooks";
+import MaterialIcon from "@/components/MaterialIcon";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Card, CardBody } from "@/components/ui/Card";
+import { Button } from "@/components/ui/index";
+import { Select } from "@/components/ui/index";
+import { EmptyState } from "@/components/EmptyState";
 
 export default function IDCardsPage() {
-  const { school } = useAuth()
-  const { students } = useStudents(school?.id)
-  const { classes } = useClasses(school?.id)
-  
-  const [selectedClass, setSelectedClass] = useState('')
-  const [selectedStudents, setSelectedStudents] = useState<string[]>([])
+  const { school } = useAuth();
+  const { students } = useStudents(school?.id);
+  const { classes } = useClasses(school?.id);
 
-  const filteredStudents = selectedClass 
-    ? students.filter(s => s.class_id === selectedClass)
-    : students
+  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+
+  const filteredStudents = selectedClass
+    ? students.filter((s) => s.class_id === selectedClass)
+    : students;
 
   const toggleStudent = (id: string) => {
-    setSelectedStudents(prev => 
-      prev.includes(id) 
-        ? prev.filter(s => s !== id)
-        : [...prev, id]
-    )
-  }
+    setSelectedStudents((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
+    );
+  };
 
   const selectAll = () => {
-    setSelectedStudents(filteredStudents.map(s => s.id))
-  }
+    setSelectedStudents(filteredStudents.map((s) => s.id));
+  };
 
   const deselectAll = () => {
-    setSelectedStudents([])
-  }
+    setSelectedStudents([]);
+  };
 
-  const generateIDCard = (student: typeof students[0]) => {
-    const cardWindow = window.open('', '_blank')
-    if (!cardWindow) return
+  const generateIDCard = (student: (typeof students)[0]) => {
+    const cardWindow = window.open("", "_blank");
+    if (!cardWindow) return;
 
-    const schoolColor = school?.primary_color || '#002045'
-    const schoolName = school?.name || 'School'
-    const schoolCode = school?.school_code || ''
-    
+    const schoolColor = school?.primary_color || "#002045";
+    const schoolName = school?.name || "School";
+    const escapeHtml = (s: string) =>
+      String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    const firstName = student.first_name || "";
+    const lastName = student.last_name || "";
+
     cardWindow.document.write(`
       <!DOCTYPE html>
       <html>
       <head>
-        <title>ID Card - ${student.first_name} ${student.last_name}</title>
+        <title>ID Card - ${escapeHtml(firstName)} ${escapeHtml(lastName)}</title>
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
           * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -159,42 +165,42 @@ export default function IDCardsPage() {
       <body>
         <div class="id-card">
           <div class="left-section">
-            <div class="avatar">${student.first_name?.[0]}${student.last_name?.[0]}</div>
-            <div class="school-name-small">${schoolName}</div>
+            <div class="avatar">${firstName?.[0]}${lastName?.[0]}</div>
+            <div class="school-name-small">${escapeHtml(schoolName)}</div>
           </div>
           <div class="right-section">
             <div class="header">
-              <span class="school-name">${schoolName}</span>
+              <span class="school-name">${escapeHtml(schoolName)}</span>
               <span class="card-type">STUDENT</span>
             </div>
-            <div class="student-name">${student.first_name} ${student.last_name}</div>
-            <div class="student-info">Class: ${student.classes?.name || 'N/A'}</div>
-            <div class="student-info">Student No: ${student.student_number || 'N/A'}</div>
-            <div class="student-info">Gender: ${student.gender === 'M' ? 'Male' : 'Female'}</div>
+            <div class="student-name">${escapeHtml(firstName)} ${escapeHtml(lastName)}</div>
+            <div class="student-info">Class: ${escapeHtml(student.classes?.name || "N/A")}</div>
+            <div class="student-info">Student No: ${escapeHtml(student.student_number || "N/A")}</div>
+            <div class="student-info">Gender: ${student.gender === "M" ? "Male" : "Female"}</div>
             <div class="barcode"></div>
           </div>
         </div>
       </body>
       </html>
-    `)
-    cardWindow.document.close()
-    cardWindow.print()
-  }
+    `);
+    cardWindow.document.close();
+    cardWindow.print();
+  };
 
   const printAllCards = () => {
-    selectedStudents.forEach(id => {
-      const student = students.find(s => s.id === id)
-      if (student) generateIDCard(student)
-    })
-  }
+    selectedStudents.forEach((id) => {
+      const student = students.find((s) => s.id === id);
+      if (student) generateIDCard(student);
+    });
+  };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      <PageHeader 
+      <PageHeader
         title="Student ID Cards"
         subtitle="Generate and print student identification cards"
         actions={
-          <Button 
+          <Button
             onClick={printAllCards}
             disabled={selectedStudents.length === 0}
             icon={<MaterialIcon icon="print" />}
@@ -206,54 +212,79 @@ export default function IDCardsPage() {
 
       <div className="flex flex-wrap gap-3 items-center">
         <Select
+          aria-label="Filter by class"
           value={selectedClass}
-          onChange={(e) => { setSelectedClass(e.target.value); setSelectedStudents([]) }}
+          onChange={(e) => {
+            setSelectedClass(e.target.value);
+            setSelectedStudents([]);
+          }}
           options={[
-            { value: '', label: 'All Classes' },
-            ...classes.map(c => ({ value: c.id, label: c.name }))
+            { value: "", label: "All Classes" },
+            ...classes.map((c) => ({ value: c.id, label: c.name })),
           ]}
         />
-        <Button variant="secondary" size="sm" onClick={selectAll}>Select All</Button>
-        <Button variant="ghost" size="sm" onClick={deselectAll}>Deselect All</Button>
+        <Button variant="secondary" size="sm" onClick={selectAll}>
+          Select All
+        </Button>
+        <Button variant="ghost" size="sm" onClick={deselectAll}>
+          Deselect All
+        </Button>
       </div>
 
       {filteredStudents.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredStudents.map(student => (
-            <Card 
+          {filteredStudents.map((student) => (
+            <Card
               key={student.id}
               className={`overflow-hidden transition-all ${
-                selectedStudents.includes(student.id) 
-                  ? 'ring-2 ring-[var(--primary)] shadow-md' 
-                  : ''
+                selectedStudents.includes(student.id)
+                  ? "ring-2 ring-[var(--primary)] shadow-md"
+                  : ""
               }`}
               onClick={() => toggleStudent(student.id)}
             >
               <CardBody>
                 <div className="flex items-center gap-4">
-                  <div className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg shadow-sm ${
-                    student.gender === 'M' 
-                      ? 'bg-[var(--primary)] text-[var(--on-primary)]' 
-                      : 'bg-[var(--pink-500)] text-white'
-                  }`}>
-                    {student.first_name?.[0]}{student.last_name?.[0]}
+                  <div
+                    className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg shadow-sm ${
+                      student.gender === "M"
+                        ? "bg-[var(--primary)] text-[var(--on-primary)]"
+                        : "bg-[var(--pink-500)] text-white"
+                    }`}
+                  >
+                    {student.first_name?.[0]}
+                    {student.last_name?.[0]}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-[var(--t1)] truncate">{student.first_name} {student.last_name}</h3>
-                    <p className="text-sm text-[var(--t3)]">{student.classes?.name}</p>
-                    <p className="text-xs text-[var(--t4)]">{student.student_number}</p>
+                    <h3 className="font-semibold text-[var(--t1)] truncate">
+                      {student.first_name} {student.last_name}
+                    </h3>
+                    <p className="text-sm text-[var(--t3)]">
+                      {student.classes?.name}
+                    </p>
+                    <p className="text-xs text-[var(--t4)]">
+                      {student.student_number}
+                    </p>
                   </div>
                   {selectedStudents.includes(student.id) && (
                     <div className="w-6 h-6 bg-[var(--primary)] rounded-full flex items-center justify-center">
-                      <MaterialIcon className="text-white text-sm" style={{ fontVariationSettings: 'FILL 1' }}>check</MaterialIcon>
+                      <MaterialIcon
+                        className="text-white text-sm"
+                        style={{ fontVariationSettings: "FILL 1" }}
+                      >
+                        check
+                      </MaterialIcon>
                     </div>
                   )}
                 </div>
-                <Button 
-                  variant="secondary" 
-                  size="sm" 
+                <Button
+                  variant="secondary"
+                  size="sm"
                   className="w-full mt-4"
-                  onClick={(e) => { e.stopPropagation(); generateIDCard(student) }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    generateIDCard(student);
+                  }}
                   icon={<MaterialIcon icon="badge" />}
                 >
                   Generate Card
@@ -263,12 +294,12 @@ export default function IDCardsPage() {
           ))}
         </div>
       ) : (
-        <EmptyState 
+        <EmptyState
           icon="badge"
           title="No Students Found"
           description="Add students to generate ID cards"
         />
       )}
     </div>
-  )
+  );
 }

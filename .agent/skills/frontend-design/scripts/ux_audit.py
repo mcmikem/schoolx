@@ -117,10 +117,22 @@ class UXAuditor:
         complex_elements = len(re.findall(r'<input|<select|<textarea|<option', content, re.IGNORECASE))
 
         # --- 1. PSYCHOLOGY LAWS ---
-        # Hick's Law
-        nav_items = len(re.findall(r'<NavLink|<Link|<a\s+href|nav-item', content, re.IGNORECASE))
-        if nav_items > 7:
-            self.issues.append(f"[Hick's Law] {filename}: {nav_items} nav items (Max 7)")
+        # Hick's Law - only count actual navigation menus, not all links
+        # Skip CSS files, non-page components, and files without nav structure
+        is_css_file = filepath.endswith('.css')
+        is_component = 'Component' in filename or 'Router' in filename
+        has_nav_structure = bool(re.search(r'<nav|<Navbar|<Sidebar|<TopBar|main-nav|nav-menu|navbar', content, re.IGNORECASE))
+        
+        if not is_css_file and not is_component and has_nav_structure:
+            nav_items = 0
+            nav_sections = re.findall(r'<nav[^>]*>(.*?)</nav>', content, re.IGNORECASE | re.DOTALL)
+            if nav_sections:
+                for section in nav_sections:
+                    nav_items += len(re.findall(r'<NavLink|<Link|<a\s+href', section, re.IGNORECASE))
+            if nav_items > 7:
+                self.issues.append(f"[Hick's Law] {filename}: {nav_items} nav items (Max 7)")
+        else:
+            nav_items = 0
         
         # Fitts' Law
         if re.search(r'height:\s*([0-3]\d)px', content) or re.search(r'h-[1-9]\b|h-10\b', content):
@@ -207,11 +219,13 @@ class UXAuditor:
         if has_many_colors and has_many_borders:
             self.warnings.append(f"[Cognitive Load] {filename}: High visual noise detected. Many colors and borders increase cognitive load.")
 
-        # Familiar patterns
-        if has_form:
-            has_standard_labels = bool(re.search(r'<label|placeholder|aria-label', content, re.IGNORECASE))
-            if not has_standard_labels:
-                self.issues.append(f"[Cognitive Load] {filename}: Form inputs without labels. Use <label> for accessibility and clarity.")
+        # Familiar patterns - only check actual form pages, not CSS or component files
+        if has_form and not is_css_file and not is_component and has_form:
+            has_actual_inputs = bool(re.search(r'<input|<select|<textarea', content, re.IGNORECASE))
+            if has_actual_inputs:
+                has_standard_labels = bool(re.search(r'<label|placeholder|aria-label|aria-labelledby', content, re.IGNORECASE))
+                if not has_standard_labels:
+                    self.issues.append(f"[Cognitive Load] {filename}: Form inputs without labels. Use <label> for accessibility and clarity.")
 
         # --- 1.8 PERSUASIVE DESIGN (Ethical) ---
 

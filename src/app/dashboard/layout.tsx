@@ -1,5 +1,5 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
@@ -17,25 +17,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
   const router = useRouter()
   const toast = useToast()
+  const hasCheckedAuth = useRef(false)
 
   useAccessControl()
 
+  // Only redirect after initial auth check is complete
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        const sidebar = document.querySelector('.sidebar.open')
-        if (sidebar) {
-          sidebar.classList.remove('open')
-          document.querySelector('.sidebar-overlay')?.classList.remove('visible')
-        }
-      }
+    if (!loading) {
+      hasCheckedAuth.current = true
     }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [])
-
-  useEffect(() => {
-    if (!loading && !user && !isDemo) {
+    if (hasCheckedAuth.current && !loading && !user && !isDemo) {
       router.replace('/login')
     }
   }, [loading, user, isDemo, router])
