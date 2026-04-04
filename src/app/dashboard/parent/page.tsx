@@ -4,16 +4,20 @@ import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
+import { calculateStudentFeePosition } from '@/lib/operations'
 
 export default function ParentPortal() {
   const { user, school } = useAuth()
   const { academicYear, currentTerm } = useAcademic()
   const [loading, setLoading] = useState(true)
+  const [linkedStudents, setLinkedStudents] = useState<any[]>([])
+  const [selectedStudentId, setSelectedStudentId] = useState<string>('')
   const [linkedStudent, setLinkedStudent] = useState<any>(null)
   const [attendance, setAttendance] = useState<any[]>([])
   const [grades, setGrades] = useState<any[]>([])
   const [payments, setPayments] = useState<any[]>([])
   const [feeStructure, setFeeStructure] = useState<any[]>([])
+  const [adjustments, setAdjustments] = useState<any[]>([])
 
   useEffect(() => {
     async function fetchData() {
@@ -21,26 +25,34 @@ export default function ParentPortal() {
 
       setLoading(true)
       try {
-        const { data: parentStudent } = await supabase
+        const { data: parentLinks } = await supabase
           .from('parent_students')
           .select('*, students(*, classes(*))')
           .eq('parent_id', user.id)
-          .single()
+          .order('created_at', { ascending: true })
 
-        if (parentStudent?.students) {
-          setLinkedStudent(parentStudent.students)
+        const students = (parentLinks || []).map((link: any) => link.students).filter(Boolean)
+        setLinkedStudents(students)
 
-          const [attRes, gradesRes, payRes, fsRes] = await Promise.all([
-            supabase.from('attendance').select('*').eq('student_id', parentStudent.students.id).order('date', { ascending: false }).limit(10),
-            supabase.from('grades').select('*, subjects(name)').eq('student_id', parentStudent.students.id).eq('term', currentTerm).eq('academic_year', academicYear),
-            supabase.from('fee_payments').select('*').eq('student_id', parentStudent.students.id).order('payment_date', { ascending: false }),
-            supabase.from('fee_structure').select('*').eq('school_id', school.id).eq('academic_year', academicYear)
+        const activeStudent = students.find((student: any) => student.id === selectedStudentId) || students[0]
+        setSelectedStudentId(activeStudent?.id || '')
+
+        if (activeStudent) {
+          setLinkedStudent(activeStudent)
+
+          const [attRes, gradesRes, payRes, fsRes, adjRes] = await Promise.all([
+            supabase.from('attendance').select('*').eq('student_id', activeStudent.id).order('date', { ascending: false }).limit(10),
+            supabase.from('grades').select('*, subjects(name)').eq('student_id', activeStudent.id).eq('term', currentTerm).eq('academic_year', academicYear),
+            supabase.from('fee_payments').select('*').eq('student_id', activeStudent.id).order('payment_date', { ascending: false }),
+            supabase.from('fee_structure').select('*').eq('school_id', school.id).eq('academic_year', academicYear),
+            supabase.from('fee_adjustments').select('*').eq('student_id', activeStudent.id).order('created_at', { ascending: false }),
           ])
 
           setAttendance(attRes.data || [])
           setGrades(gradesRes.data || [])
           setPayments(payRes.data || [])
           setFeeStructure(fsRes.data || [])
+          setAdjustments(adjRes.data || [])
         }
       } catch (err) {
         console.error('Error:', err)
@@ -50,17 +62,22 @@ export default function ParentPortal() {
     }
 
     fetchData()
-  }, [user?.id, school?.id, currentTerm, academicYear])
+  }, [user?.id, school?.id, currentTerm, academicYear, selectedStudentId])
 
   const feeStats = useMemo(() => {
-    const totalExpected = feeStructure.reduce((sum, f) => sum + Number(f.amount || 0), 0)
-    const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0)
+    const position = calculateStudentFeePosition({
+      feeTotal: feeStructure.reduce((sum, fee) => sum + Number(fee.amount || 0), 0),
+      payments,
+      adjustments,
+      openingBalance: Number(linkedStudent?.opening_balance || 0),
+    })
     return {
-      totalFee: totalExpected,
-      totalPaid,
-      balance: Math.max(0, totalExpected - totalPaid)
+      totalFee: position.totalExpected,
+      totalPaid: position.totalPaid,
+      balance: position.balance,
+      status: position.status,
     }
-  }, [feeStructure, payments])
+  }, [feeStructure, payments, adjustments, linkedStudent?.opening_balance])
 
   const attendanceRate = useMemo(() => {
     if (attendance.length === 0) return 0
@@ -131,6 +148,23 @@ export default function ParentPortal() {
       </div>
 
       <div className="max-w-2xl mx-auto space-y-6">
+        {linkedStudents.length > 1 && (
+          <div className="bg-white rounded-2xl border border-[#e8eaed] p-4">
+            <label className="block text-sm font-medium text-[#002045] mb-2">Linked Child</label>
+            <select
+              value={selectedStudentId}
+              onChange={(e) => setSelectedStudentId(e.target.value)}
+              className="w-full rounded-xl border border-[#e8eaed] px-4 py-3 text-sm"
+            >
+              {linkedStudents.map((student) => (
+                <option key={student.id} value={student.id}>
+                  {student.first_name} {student.last_name} - {student.classes?.name || 'No class'}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 flex items-center gap-4">
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
             <span className="text-xl font-bold text-blue-600">{initials}</span>
@@ -179,7 +213,32 @@ export default function ParentPortal() {
               <div className="text-sm text-[#5c6670]">Balance</div>
               <div className="text-xl font-bold text-red-600">UGX {feeStats.balance.toLocaleString()}</div>
             </div>
+            <div className="text-right">
+              <div className="text-sm text-[#5c6670]">Status</div>
+              <div className="text-base font-semibold text-[#002045] capitalize">{feeStats.status.replace('_', ' ')}</div>
+            </div>
           </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+          <h2 className="font-semibold text-[#002045] mb-4">Recent Fee Adjustments</h2>
+          {adjustments.length === 0 ? (
+            <div className="text-gray-500 text-center py-4">No fee adjustments recorded</div>
+          ) : (
+            <div className="space-y-3">
+              {adjustments.slice(0, 5).map((adjustment: any) => (
+                <div key={adjustment.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                  <div>
+                    <div className="font-medium text-[#002045] capitalize">{String(adjustment.adjustment_type).replace('_', ' ')}</div>
+                    <div className="text-xs text-[#5c6670]">{adjustment.notes || 'No notes'}</div>
+                  </div>
+                  <div className={`font-semibold ${adjustment.adjustment_type === 'penalty' ? 'text-red-600' : 'text-blue-600'}`}>
+                    UGX {Number(adjustment.amount || 0).toLocaleString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">

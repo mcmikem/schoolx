@@ -13,8 +13,9 @@ import { detectConsecutiveAbsenceAlerts } from '@/lib/operations'
 export default function AutoSMSPage() {
   const { school } = useAuth()
   const toast = useToast()
-  const { triggers, loading, toggleTrigger } = useSMSTriggers(school?.id)
+  const { triggers, loading, toggleTrigger, runTrigger } = useSMSTriggers(school?.id)
   const [absencePreview, setAbsencePreview] = useState<{ count: number; threshold: number }>({ count: 0, threshold: 3 })
+  const [runningTriggerId, setRunningTriggerId] = useState<string | null>(null)
 
   const handleToggle = async (id: string, currentStatus: boolean) => {
     const result = await toggleTrigger(id, !currentStatus)
@@ -23,6 +24,17 @@ export default function AutoSMSPage() {
     } else {
       toast.error('Failed to update trigger')
     }
+  }
+
+  const handleRunTrigger = async (id: string) => {
+    setRunningTriggerId(id)
+    const result = await runTrigger(id)
+    if (result.success) {
+      toast.success(`Trigger run complete: ${result.data?.messagesCreated || 0} message(s) created`)
+    } else {
+      toast.error(result.error || 'Failed to run trigger')
+    }
+    setRunningTriggerId(null)
   }
 
   useEffect(() => {
@@ -122,7 +134,17 @@ export default function AutoSMSPage() {
                 <p className="text-[10px] text-[var(--t3)] italic">
                   Last run: {trigger.last_run_at ? new Date(trigger.last_run_at).toLocaleDateString() : 'Never'}
                 </p>
-                <Button variant="ghost" size="sm">Edit Rule</Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={runningTriggerId === trigger.id || !trigger.is_active}
+                    onClick={() => handleRunTrigger(trigger.id)}
+                  >
+                    {runningTriggerId === trigger.id ? 'Running...' : 'Run Now'}
+                  </Button>
+                  <Button variant="ghost" size="sm">Edit Rule</Button>
+                </div>
               </div>
             </div>
           </Card>
