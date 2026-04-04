@@ -10,17 +10,33 @@ import { Button } from '@/components/ui/index'
 import { TableSkeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
 import { Card } from '@/components/ui/Card'
+import { DEMO_STAFF } from '@/lib/demo-data'
+import { DEMO_SCHOOL_ID } from '@/lib/demo-data'
 
 interface StaffMember {
   id: string
   full_name: string
   phone: string
+  email?: string
   role: string
+  subject?: string
   is_active: boolean
+  hire_date?: string
+  salary?: number
+}
+
+const ROLE_DESCRIPTIONS: Record<string, { desc: string; icon: string }> = {
+  teacher: { desc: 'Teach classes, enter grades, take attendance', icon: 'menu_book' },
+  dean_of_studies: { desc: 'Manage academics, exams, timetables, reports', icon: 'school' },
+  bursar: { desc: 'Collect fees, manage payments, financial reports', icon: 'payments' },
+  secretary: { desc: 'Manage office, visitors, messages, notices', icon: 'admin_panel_settings' },
+  dorm_master: { desc: 'Manage dormitories, night checks, student welfare', icon: 'bed' },
+  school_admin: { desc: 'Full access to all school management features', icon: 'admin_panel_settings' },
+  headmaster: { desc: 'Complete school management with all privileges', icon: 'verified' },
 }
 
 export default function StaffPage() {
-  const { school } = useAuth()
+  const { school, isDemo } = useAuth()
   const toast = useToast()
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [loading, setLoading] = useState(true)
@@ -31,17 +47,26 @@ export default function StaffPage() {
   const [editForm, setEditForm] = useState({
     full_name: '',
     phone: '',
+    email: '',
     role: 'teacher',
+    subject: '',
   })
   const [newStaff, setNewStaff] = useState({
     full_name: '',
     phone: '',
+    email: '',
     role: 'teacher',
     password: '',
+    subject: '',
   })
   const [activeTab, setActiveTab] = useState('all')
 
   const fetchStaff = useCallback(async () => {
+    if (isDemo) {
+      setStaff(DEMO_STAFF as any)
+      setLoading(false)
+      return
+    }
     if (!school?.id) return
     try {
       setLoading(true)
@@ -57,7 +82,7 @@ export default function StaffPage() {
     } finally {
       setLoading(false)
     }
-  }, [school?.id])
+  }, [school?.id, isDemo])
 
   useEffect(() => {
     fetchStaff()
@@ -65,6 +90,30 @@ export default function StaffPage() {
 
   const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (isDemo) {
+      const newId = `demo-staff-${Date.now()}`
+      const newMember = {
+        id: newId,
+        school_id: DEMO_SCHOOL_ID,
+        full_name: newStaff.full_name,
+        phone: newStaff.phone.replace(/[^0-9]/g, ''),
+        email: newStaff.email || `${newStaff.full_name.toLowerCase().replace(/\s/g, '.')}@stmarys.edu.ug`,
+        role: newStaff.role,
+        subject: newStaff.subject || 'General',
+        gender: 'M',
+        status: 'active',
+        hire_date: new Date().toISOString().split('T')[0],
+        salary: 500000,
+        is_active: true,
+      }
+      setStaff(prev => [newMember as any, ...prev])
+      toast.success('Staff member added (Demo Mode)')
+      setShowAddModal(false)
+      setNewStaff({ full_name: '', phone: '', email: '', role: 'teacher', password: '', subject: '' })
+      return
+    }
+
     if (!school?.id) return
 
     try {
@@ -91,7 +140,7 @@ export default function StaffPage() {
 
       toast.success('Staff member added')
       setShowAddModal(false)
-      setNewStaff({ full_name: '', phone: '', role: 'teacher', password: '' })
+      setNewStaff({ full_name: '', phone: '', email: '', role: 'teacher', password: '', subject: '' })
       fetchStaff()
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to add staff'
@@ -121,7 +170,9 @@ export default function StaffPage() {
     setEditForm({
       full_name: member.full_name || '',
       phone: member.phone || '',
+      email: member.email || '',
       role: member.role || 'teacher',
+      subject: member.subject || '',
     })
     setShowEditModal(true)
   }
@@ -224,11 +275,15 @@ export default function StaffPage() {
                 </div>
                 <div>
                   <div className="font-medium text-gray-900">{member.full_name}</div>
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center gap-2 mt-1">
                     {getRoleBadge(member.role)}
                     <span className={`px-2 py-1 rounded-lg text-xs font-medium ${member.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                       {member.is_active ? 'Active' : 'Inactive'}
                     </span>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {member.phone}
+                    {member.subject && <span className="ml-2">• {member.subject}</span>}
                   </div>
                 </div>
               </div>
@@ -328,6 +383,38 @@ export default function StaffPage() {
                   <option value="secretary">Secretary</option>
                   <option value="dorm_master">Dorm Master/Mistress</option>
                 </select>
+                <p className="text-xs text-[#5c6670] mt-1">{ROLE_DESCRIPTIONS[newStaff.role]?.desc}</p>
+              </div>
+
+              {newStaff.role === 'teacher' && (
+                <div>
+                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">Subject</label>
+                  <select
+                    value={newStaff.subject}
+                    onChange={(e) => setNewStaff({ ...newStaff, subject: e.target.value })}
+                    className="input"
+                  >
+                    <option value="">Select subject</option>
+                    <option value="English">English</option>
+                    <option value="Mathematics">Mathematics</option>
+                    <option value="Science">Science</option>
+                    <option value="Social Studies">Social Studies</option>
+                    <option value="Religious Education">Religious Education</option>
+                    <option value="Creative Arts">Creative Arts</option>
+                    <option value="Physical Education">Physical Education</option>
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Email (optional)</label>
+                <input
+                  type="email"
+                  placeholder="teacher@school.edu.ug"
+                  value={newStaff.email}
+                  onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
+                  className="input"
+                />
               </div>
 
               <div>
