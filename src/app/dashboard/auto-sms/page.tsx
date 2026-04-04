@@ -6,16 +6,26 @@ import { useToast } from '@/components/Toast'
 import MaterialIcon from '@/components/MaterialIcon'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/index'
+import { Button, Input } from '@/components/ui/index'
 import { supabase } from '@/lib/supabase'
 import { detectConsecutiveAbsenceAlerts } from '@/lib/operations'
 
 export default function AutoSMSPage() {
   const { school } = useAuth()
   const toast = useToast()
-  const { triggers, loading, toggleTrigger, runTrigger } = useSMSTriggers(school?.id)
+  const { triggers, loading, toggleTrigger, runTrigger, createTrigger, updateTrigger } = useSMSTriggers(school?.id)
   const [absencePreview, setAbsencePreview] = useState<{ count: number; threshold: number }>({ count: 0, threshold: 3 })
   const [runningTriggerId, setRunningTriggerId] = useState<string | null>(null)
+  const [automationLogs, setAutomationLogs] = useState<any[]>([])
+  const [showRuleModal, setShowRuleModal] = useState(false)
+  const [editingTrigger, setEditingTrigger] = useState<any | null>(null)
+  const [savingRule, setSavingRule] = useState(false)
+  const [ruleForm, setRuleForm] = useState({
+    name: '',
+    event_type: 'student_absent',
+    threshold_days: 3,
+    is_active: true,
+  })
 
   const handleToggle = async (id: string, currentStatus: boolean) => {
     const result = await toggleTrigger(id, !currentStatus)
@@ -35,6 +45,59 @@ export default function AutoSMSPage() {
       toast.error(result.error || 'Failed to run trigger')
     }
     setRunningTriggerId(null)
+  }
+
+  const openCreateRule = () => {
+    setEditingTrigger(null)
+    setRuleForm({
+      name: '',
+      event_type: 'student_absent',
+      threshold_days: 3,
+      is_active: true,
+    })
+    setShowRuleModal(true)
+  }
+
+  const openEditRule = (trigger: any) => {
+    setEditingTrigger(trigger)
+    setRuleForm({
+      name: trigger.name,
+      event_type: trigger.event_type,
+      threshold_days: Number(trigger.threshold_days || 0),
+      is_active: Boolean(trigger.is_active),
+    })
+    setShowRuleModal(true)
+  }
+
+  const handleSaveRule = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!ruleForm.name.trim()) {
+      toast.error('Rule name is required')
+      return
+    }
+
+    setSavingRule(true)
+    const result = editingTrigger
+      ? await updateTrigger(editingTrigger.id, {
+          name: ruleForm.name.trim(),
+          threshold_days: Number(ruleForm.threshold_days),
+          is_active: ruleForm.is_active,
+        })
+      : await createTrigger({
+          name: ruleForm.name.trim(),
+          event_type: ruleForm.event_type,
+          threshold_days: Number(ruleForm.threshold_days),
+          is_active: ruleForm.is_active,
+        })
+
+    if (result.success) {
+      toast.success(editingTrigger ? 'Rule updated' : 'Rule created')
+      setShowRuleModal(false)
+      setEditingTrigger(null)
+    } else {
+      toast.error(result.error || 'Failed to save rule')
+    }
+    setSavingRule(false)
   }
 
   useEffect(() => {
@@ -81,6 +144,27 @@ export default function AutoSMSPage() {
       loadAbsencePreview()
     }
   }, [school?.id, triggers, loading])
+
+  useEffect(() => {
+    async function loadLogs() {
+      if (!school?.id) return
+
+      const { data, error } = await supabase
+        .from('automated_message_logs')
+        .select('id, trigger_id, record_id, recipient_id, status, sent_at, created_at, sms_triggers(name)')
+        .eq('school_id', school.id)
+        .order('sent_at', { ascending: false })
+        .limit(10)
+
+      if (!error) {
+        setAutomationLogs(data || [])
+      }
+    }
+
+    if (!loading) {
+      loadLogs()
+    }
+  }, [school?.id, loading, triggers])
 
   if (loading) return <div className="p-8 text-center">Loading automation rules...</div>
 
@@ -143,14 +227,14 @@ export default function AutoSMSPage() {
                   >
                     {runningTriggerId === trigger.id ? 'Running...' : 'Run Now'}
                   </Button>
-                  <Button variant="ghost" size="sm">Edit Rule</Button>
+                  <Button variant="ghost" size="sm" onClick={() => openEditRule(trigger)}>Edit Rule</Button>
                 </div>
               </div>
             </div>
           </Card>
         ))}
 
-        <button className="border-2 border-dashed border-[var(--border)] hover:border-blue-300 hover:bg-blue-50/50 rounded-2xl p-8 flex flex-col items-center justify-center gap-4 transition-all group">
+        <button onClick={openCreateRule} className="border-2 border-dashed border-[var(--border)] hover:border-blue-300 hover:bg-blue-50/50 rounded-2xl p-8 flex flex-col items-center justify-center gap-4 transition-all group">
           <div className="w-12 h-12 rounded-full bg-[var(--surface-container)] flex items-center justify-center text-[var(--t3)] group-hover:text-blue-500 group-hover:bg-blue-100 transition-all">
             <MaterialIcon>add</MaterialIcon>
           </div>
@@ -167,28 +251,82 @@ export default function AutoSMSPage() {
         </div>
         <h2 className="text-xl font-bold text-[var(--t1)] mb-6">Automation Logs</h2>
         <div className="space-y-3">
-          <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--surface-container)] border border-[var(--border)]">
-            <div className="flex items-center gap-4">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-              <div>
-                <p className="text-sm font-medium text-[var(--t1)]">Sent &quot;Fee Reminder&quot; to 12 parents</p>
-                <p className="text-[10px] text-[var(--t3)]">Today at 09:15 AM</p>
-              </div>
+          {automationLogs.length === 0 ? (
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-container)] p-4 text-sm text-[var(--t3)]">
+              No automation runs recorded yet.
             </div>
-            <MaterialIcon className="text-[var(--t3)]">chevron_right</MaterialIcon>
-          </div>
-          <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--surface-container)] border border-[var(--border)] opacity-60">
-            <div className="flex items-center gap-4">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-              <div>
-                <p className="text-sm font-medium text-[var(--t1)]">Sent &quot;Absentee Alert&quot; to 3 parents</p>
-                <p className="text-[10px] text-[var(--t3)]">Yesterday at 10:30 AM</p>
+          ) : automationLogs.map((log) => (
+            <div key={log.id} className="flex items-center justify-between p-4 rounded-xl bg-[var(--surface-container)] border border-[var(--border)]">
+              <div className="flex items-center gap-4">
+                <div className={`w-2 h-2 rounded-full ${log.status === 'sent' ? 'bg-green-500' : 'bg-red-500'}`} />
+                <div>
+                  <p className="text-sm font-medium text-[var(--t1)]">
+                    {log.sms_triggers?.name || 'Automation Rule'} {log.status === 'sent' ? 'processed successfully' : 'failed'}
+                  </p>
+                  <p className="text-[10px] text-[var(--t3)]">
+                    {new Date(log.sent_at || log.created_at).toLocaleString()}
+                  </p>
+                </div>
               </div>
+              <MaterialIcon className="text-[var(--t3)]">{log.status === 'sent' ? 'check_circle' : 'error'}</MaterialIcon>
             </div>
-            <MaterialIcon className="text-[var(--t3)]">chevron_right</MaterialIcon>
-          </div>
+          ))}
         </div>
       </Card>
+
+      {showRuleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowRuleModal(false)}>
+          <Card className="w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">
+              {editingTrigger ? 'Edit Automation Rule' : 'Create Automation Rule'}
+            </h2>
+            <form className="space-y-4" onSubmit={handleSaveRule}>
+              <Input
+                label="Rule Name"
+                value={ruleForm.name}
+                onChange={(e) => setRuleForm((prev) => ({ ...prev, name: e.target.value }))}
+                required
+              />
+              <div>
+                <label className="block text-sm font-medium text-[var(--on-surface)] mb-2">Trigger Event</label>
+                <select
+                  value={ruleForm.event_type}
+                  disabled={Boolean(editingTrigger)}
+                  onChange={(e) => setRuleForm((prev) => ({ ...prev, event_type: e.target.value }))}
+                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3"
+                >
+                  <option value="student_absent">Student Absent</option>
+                  <option value="fee_overdue">Fee Overdue</option>
+                </select>
+              </div>
+              <Input
+                label="Threshold Days"
+                type="number"
+                min={0}
+                value={String(ruleForm.threshold_days)}
+                onChange={(e) => setRuleForm((prev) => ({ ...prev, threshold_days: Number(e.target.value) || 0 }))}
+                required
+              />
+              <label className="flex items-center gap-3 text-sm text-[var(--t1)]">
+                <input
+                  type="checkbox"
+                  checked={ruleForm.is_active}
+                  onChange={(e) => setRuleForm((prev) => ({ ...prev, is_active: e.target.checked }))}
+                />
+                Active
+              </label>
+              <div className="flex gap-3 pt-2">
+                <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowRuleModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="flex-1" loading={savingRule}>
+                  Save Rule
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

@@ -41,6 +41,7 @@ export default function FeesPage() {
   const [showAdjustmentModal, setShowAdjustmentModal] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<StudentBalance | null>(null)
   const [selectedClass, setSelectedClass] = useState('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'unpaid' | 'partial' | 'paid' | 'written_off'>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [saving, setSaving] = useState(false)
   
@@ -136,9 +137,10 @@ export default function FeesPage() {
       const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            s.student_number.toLowerCase().includes(searchTerm.toLowerCase())
       const matchesClass = selectedClass === 'all' || s.class_name === selectedClass
-      return matchesSearch && matchesClass
+      const matchesStatus = statusFilter === 'all' || s.status === statusFilter
+      return matchesSearch && matchesClass && matchesStatus
     }).sort((a, b) => b.balance - a.balance)
-  }, [studentBalances, searchTerm, selectedClass])
+  }, [studentBalances, searchTerm, selectedClass, statusFilter])
 
   const stats = useMemo(() => {
     const totalExpected = studentBalances.reduce((sum, s) => sum + s.expected, 0)
@@ -423,9 +425,17 @@ export default function FeesPage() {
               <option value="all">All Classes</option>
               {classes.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
             </select>
-            <button className="bg-surface-container-highest px-4 py-3 rounded-xl flex items-center justify-center hover:bg-outline-variant/30">
-                <MaterialIcon icon="filter_list" className="text-lg" />
-            </button>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+              className="bg-surface-container-lowest border-none rounded-xl py-3 px-4 text-xs font-bold text-primary cursor-pointer min-w-[150px]"
+            >
+              <option value="all">All Statuses</option>
+              <option value="unpaid">Unpaid</option>
+              <option value="partial">Partial</option>
+              <option value="paid">Paid</option>
+              <option value="written_off">Written Off</option>
+            </select>
           </div>
         </div>
       </div>

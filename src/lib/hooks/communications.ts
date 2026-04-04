@@ -186,6 +186,70 @@ export function useSMSTriggers(schoolId?: string) {
     }
   }
 
+  const createTrigger = async (input: {
+    name: string
+    event_type: string
+    threshold_days: number
+    is_active?: boolean
+  }) => {
+    if (!schoolId) return { success: false, error: 'School ID required' }
+    if (isDemo) {
+      const newTrigger = {
+        id: `demo-trigger-${Date.now()}`,
+        school_id: schoolId,
+        created_at: new Date().toISOString(),
+        last_run_at: null,
+        template_id: null,
+        is_active: input.is_active ?? true,
+        ...input,
+      }
+      setTriggers(prev => [...prev, newTrigger])
+      return { success: true, data: newTrigger }
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('sms_triggers')
+        .insert({
+          school_id: schoolId,
+          name: input.name,
+          event_type: input.event_type,
+          threshold_days: input.threshold_days,
+          is_active: input.is_active ?? true,
+        })
+        .select('id, school_id, name, event_type, threshold_days, template_id, is_active, last_run_at, created_at')
+        .single()
+
+      if (error) throw error
+      setTriggers(prev => [...prev, data])
+      return { success: true, data }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  }
+
+  const updateTrigger = async (id: string, input: { name: string; threshold_days: number; is_active: boolean }) => {
+    if (isDemo) {
+      setTriggers(prev => prev.map(t => t.id === id ? { ...t, ...input } : t))
+      return { success: true }
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('sms_triggers')
+        .update(input)
+        .eq('id', id)
+        .select('id, school_id, name, event_type, threshold_days, template_id, is_active, last_run_at, created_at')
+        .single()
+
+      if (error) throw error
+      setTriggers(prev => prev.map(t => t.id === id ? data : t))
+      return { success: true, data }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  }
+
   useEffect(() => {
     async function fetchTriggers() {
       if (!schoolId) { setLoading(false); return }
@@ -210,5 +274,5 @@ export function useSMSTriggers(schoolId?: string) {
     fetchTriggers()
   }, [schoolId, isDemo])
 
-  return { triggers, loading, toggleTrigger, runTrigger }
+  return { triggers, loading, toggleTrigger, runTrigger, createTrigger, updateTrigger }
 }
