@@ -18,7 +18,7 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
 
   const fetchStudents = useCallback(async () => {
     // Demo mode - check for demo school UUID
-    if (isDemo || schoolId === '00000000-0000-0000-0000-000000000001') {
+    if (isDemo || isDemoSchool(schoolId)) {
       setStudents(DEMO_STUDENTS as any)
       setTotalCount(DEMO_STUDENTS.length)
       setLoading(false)
@@ -124,7 +124,7 @@ export function useClasses(schoolId?: string) {
 
   const fetchClasses = useCallback(async () => {
     // Demo mode - check for demo school UUID
-    if (isDemo || schoolId === '00000000-0000-0000-0000-000000000001') {
+    if (isDemo || isDemoSchool(schoolId)) {
       setClasses(DEMO_CLASSES)
       setLoading(false)
       return

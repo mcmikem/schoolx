@@ -1,17 +1,13 @@
-const isDev = process.env.NODE_ENV === 'development'
+const isProduction = process.env.NODE_ENV === 'production';
 
 export const logger = {
-  debug: (...args: unknown[]) => {
-    if (isDev) console.debug(...args)
+  log: (...args: any[]) => {
+    if (!isProduction) console.log(...args);
   },
-  info: (...args: unknown[]) => {
-    if (isDev) console.info(...args)
+  warn: (...args: any[]) => {
+    if (!isProduction) console.warn(...args);
   },
-  warn: (...args: unknown[]) => {
-    console.warn(...args)
-  },
-  error: (...args: unknown[]) => {
-    console.error(...args)
-  },
-}
-
+  error: (...args: any[]) => {
+    console.error(...args);
+  }
+};
