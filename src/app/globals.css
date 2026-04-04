@@ -6,7 +6,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap");
 
-/* ── TOKENS ─────────────────────────────────────────────── */
+/* -- TOKENS ----------------------------------------------- */
 :root {
   /* SchoolX Brand Colors */
   --navy: #0056d2; /* Core Blue */
@@ -175,7 +175,7 @@
 }
 
 @layer components {
-  /* ── LEGACY CLASS SHIMS (To be refactored into components) ── */
+  /* -- LEGACY CLASS SHIMS (To be refactored into components) -- */
   .content {
     @apply p-8 flex flex-col gap-8 max-w-[1600px] mx-auto w-full;
   }
@@ -328,7 +328,7 @@
     @apply text-[11px] font-bold text-[var(--t2)] text-center;
   }
 
-  /* ── UTILITIES ── */
+  /* -- UTILITIES -- */
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -341,7 +341,7 @@
     @apply bg-white/10 dark:bg-black/20 backdrop-blur-xl border border-white/20 dark:border-white/5;
   }
 
-  /* ── DASHBOARD MICRO-LAYOUTS ── */
+  /* -- DASHBOARD MICRO-LAYOUTS -- */
 
   /* Attendance Rows */
   .att-row {
@@ -477,12 +477,12 @@
     @apply text-[12px] font-bold uppercase tracking-wider;
   }
 
-  /* ── FORM INPUTS ── */
+  /* -- FORM INPUTS -- */
   .input {
     @apply w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] text-[var(--on-surface)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] transition-colors;
   }
 
-  /* ── PROGRESS RING ── */
+  /* -- PROGRESS RING -- */
   .ring-svg {
     transform: rotate(-90deg);
   }
@@ -498,7 +498,7 @@
     transition: stroke-dashoffset 0.6s ease;
   }
 
-  /* ── TABLE UTILITIES ── */
+  /* -- TABLE UTILITIES -- */
   .tbl-wrap {
     @apply overflow-x-auto;
   }
@@ -518,17 +518,17 @@
     @apply bg-[var(--surface-container-low)];
   }
 
-  /* ── MOBILE CONTAINER ── */
+  /* -- MOBILE CONTAINER -- */
   .mobile-container {
     @apply w-full max-w-[1600px] mx-auto;
   }
 
-  /* ── MAIN CONTENT OVERFLOW FIX ── */
+  /* -- MAIN CONTENT OVERFLOW FIX -- */
   .main-content {
     overflow: visible !important;
   }
 
-  /* ── LAYOUT SAFETY & OVERLAP FIXES ── */
+  /* -- LAYOUT SAFETY & OVERLAP FIXES -- */
   .line-clamp-1 {
     display: -webkit-box;
     -webkit-line-clamp: 1;
@@ -558,7 +558,7 @@
   }
 }
 
-/* ── CUSTOM ANIMATIONS ────────────────────────────────────── */
+/* -- CUSTOM ANIMATIONS -------------------------------------- */
 @keyframes rise {
   from {
     opacity: 0;
@@ -580,7 +580,7 @@
   }
 }
 
-/* ── DASHBOARD LAYOUT — SIDEBAR & RESPONSIVE STYLES ─────── */
+/* -- DASHBOARD LAYOUT - SIDEBAR & RESPONSIVE STYLES ------- */
 /*  Previously injected as a JSX <style> block on every render.  */
 /*  Moved here so it is cached by the browser and not duplicated. */
 
@@ -675,7 +675,7 @@
   }
 }
 
-/* ── TYPOGRAPHY — Sora for headings, Lato for body ──────── */
+/* -- TYPOGRAPHY - Sora for headings, Lato for body -------- */
 h1,
 h2,
 h3,
