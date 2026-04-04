@@ -79,6 +79,19 @@ export const navigationByRole: Record<string, NavGroup[]> = {
         { href: '/dashboard/timetable', label: 'Timetable', icon: 'calendar_month' },
         { href: '/dashboard/settings', label: 'School Settings', icon: 'settings' },
         { href: '/dashboard/audit', label: 'Audit Log', icon: 'history' },
+        { href: '/dashboard/feedback', label: 'Feedback & Support', icon: 'feedback' },
+      ]
+    },
+    {
+      label: 'Optional Modules',
+      icon: 'extension',
+      defaultOpen: false,
+      items: [
+        { href: '/dashboard/health', label: 'Health/Sick Bay', icon: 'local_hospital' },
+        { href: '/dashboard/transport', label: 'Transport', icon: 'directions_bus' },
+        { href: '/dashboard/library', label: 'Library', icon: 'local_library' },
+        { href: '/dashboard/assets', label: 'Asset Register', icon: 'inventory_2' },
+        { href: '/dashboard/dorm', label: 'Dormitory', icon: 'bed' },
       ]
     },
   ],
@@ -179,6 +192,21 @@ export const navigationByRole: Record<string, NavGroup[]> = {
         { href: '/dashboard/timetable', label: 'Timetable', icon: 'calendar_month' },
       ]
     },
+    {
+      label: 'Support',
+      defaultOpen: false,
+      items: [
+        { href: '/dashboard/feedback', label: 'Feedback & Support', icon: 'feedback' },
+      ]
+    },
+    {
+      label: 'Optional',
+      defaultOpen: false,
+      items: [
+        { href: '/dashboard/health', label: 'Health', icon: 'local_hospital' },
+        { href: '/dashboard/library', label: 'Library', icon: 'local_library' },
+      ]
+    },
   ],
 
   admin: [
@@ -243,6 +271,19 @@ export const navigationByRole: Record<string, NavGroup[]> = {
         { href: '/dashboard/timetable', label: 'Timetable', icon: 'calendar_month' },
         { href: '/dashboard/settings', label: 'School Settings', icon: 'settings' },
         { href: '/dashboard/audit', label: 'Audit Log', icon: 'history' },
+        { href: '/dashboard/feedback', label: 'Feedback & Support', icon: 'feedback' },
+      ]
+    },
+    {
+      label: 'Optional Modules',
+      icon: 'extension',
+      defaultOpen: false,
+      items: [
+        { href: '/dashboard/health', label: 'Health/Sick Bay', icon: 'local_hospital' },
+        { href: '/dashboard/transport', label: 'Transport', icon: 'directions_bus' },
+        { href: '/dashboard/library', label: 'Library', icon: 'local_library' },
+        { href: '/dashboard/assets', label: 'Asset Register', icon: 'inventory_2' },
+        { href: '/dashboard/dorm', label: 'Dormitory', icon: 'bed' },
       ]
     },
   ],
@@ -328,6 +369,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       items: [
         { href: '/dashboard/messages', label: 'Messages', icon: 'chat' },
         { href: '/dashboard/notices', label: 'Notices', icon: 'campaign' },
+        { href: '/dashboard/feedback', label: 'Feedback & Support', icon: 'feedback' },
       ]
     },
   ],
