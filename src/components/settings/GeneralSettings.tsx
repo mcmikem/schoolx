@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
+import { logger } from '@/lib/logger'
 import { FEATURE_STAGES, FeatureStage, DEFAULT_FEATURE_STAGE } from '@/lib/featureStages'
 import MaterialIcon from '@/components/MaterialIcon'
 
@@ -101,7 +102,7 @@ export default function GeneralSettings({
       const response = await fetch('/api/storage', { method: 'GET' })
       const result = await response.json()
       
-      console.log('Storage check:', result)
+      logger.debug('Storage check:', result)
       
       if (result.success) {
         if (result.exists) {
@@ -161,7 +162,7 @@ export default function GeneralSettings({
       const fileExt = 'jpg'
       const fileName = `${school.id}-logo.${fileExt}`
       
-      console.log('Starting upload to bucket...')
+      logger.debug('Starting upload to bucket...')
       
       let uploadData = await supabase.storage
         .from('school-logos')
@@ -170,12 +171,12 @@ export default function GeneralSettings({
           contentType: 'image/jpeg'
         })
       
-      console.log('Upload result:', uploadData)
+      logger.debug('Upload result:', uploadData)
       
       let { data, error } = uploadData
       
       if (error && error.message.includes('bucket')) {
-        console.log('Bucket not found, attempting to create...')
+        logger.debug('Bucket not found, attempting to create...')
         await supabase.storage.createBucket('school-logos', {
           public: true,
           fileSizeLimit: 5242880,

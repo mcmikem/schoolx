@@ -24,6 +24,7 @@ const checks = [
 ]
 
 const results = checks.map(c => ({ ...c, ...count(c.pattern) }))
+const strict = process.argv.includes('--strict')
 
 console.log('=== UI/UX + Debug Audit Snapshot ===')
 for (const r of results) {
@@ -42,3 +43,10 @@ if (failures.length > 0) {
   failures[0].lines.slice(0, 20).forEach(l => console.log(`  ${l}`))
 }
 
+if (strict) {
+  const consoleLogs = results.find(r => r.label === 'console.log usage')?.count || 0
+  if (consoleLogs > 0) {
+    console.error(`\nStrict audit failed: found ${consoleLogs} console.log entries.`)
+    process.exit(1)
+  }
+}
