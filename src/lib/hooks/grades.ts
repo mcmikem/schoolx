@@ -286,7 +286,12 @@ export function useExamScores(
           "id, student_id, subject_id, class_id, exam_type, score, max_score, term, academic_year, recorded_by, created_at",
         )
         .single();
-      if (error) throw error;
+      if (error) {
+        if (error.code === "42P01") {
+          throw new Error("Exam scores table not set up. Contact your admin to run migrations.");
+        }
+        throw error;
+      }
       setExamScores((prev) => {
         const existing = prev.findIndex(
           (s) =>
@@ -401,7 +406,12 @@ export function useExams(schoolId?: string) {
           "id, school_id, name, exam_type, class_id, subject_id, term, academic_year, exam_date, max_score, weight, created_at",
         )
         .single();
-      if (error) throw error;
+      if (error) {
+        if (error.code === "42P01") {
+          throw new Error("Exams table not set up. Contact your admin to run migrations.");
+        }
+        throw error;
+      }
       setExams((prev) => [data, ...prev]);
       return data;
     } catch (err: any) {
