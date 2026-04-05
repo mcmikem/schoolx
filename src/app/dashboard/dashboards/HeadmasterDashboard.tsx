@@ -196,9 +196,9 @@ function HeadmasterDashboardContent() {
           <div className="ph-title truncate">
             {greeting}, {user?.full_name?.split(" ")[0]}
           </div>
-          <div className="ph-sub truncate">
-            {school?.name} • {academicYear} Term {currentTerm}
-          </div>
+            <div className="ph-sub truncate">
+              {school?.name} • {academicYear} Term {currentTerm} • {currentDate.toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
+            </div>
         </div>
         <div className="ph-actions">
           <Link href="/dashboard/reports" className="btn btn-ghost">
@@ -224,29 +224,33 @@ function HeadmasterDashboardContent() {
           <Link
             key={item.id}
             href={item.link}
-            className={`rounded-[22px] border p-5 shadow-sm transition hover:shadow-md active:scale-[0.98] ${
+            className={`stat-card ${
               item.status === "alert"
                 ? "border-amber/30 bg-amber-soft/50"
                 : "border-outline-variant bg-surface-lowest"
             }`}
+            style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}
           >
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
-                {item.label}
+            <div className="stat-accent" style={{ background: item.status === "alert" ? "var(--amber)" : "var(--navy)" }} />
+            <div className="stat-inner">
+              <div className="flex items-center justify-between">
+                <p className="stat-label">
+                  {item.label}
+                </p>
+                {item.status === "alert" && (
+                  <span
+                    className="flex h-2 w-2 rounded-full bg-amber animate-pulse"
+                    title="Urgent"
+                  />
+                )}
+              </div>
+              <div className="mt-4 text-3xl font-bold text-on-surface tracking-tight">
+                {item.value === null ? "…" : item.value}
+              </div>
+              <p className="text-xs text-on-surface-variant/80 mt-3 font-medium">
+                {item.description}
               </p>
-              {item.status === "alert" && (
-                <span
-                  className="flex h-2 w-2 rounded-full bg-amber animate-pulse"
-                  title="Urgent"
-                />
-              )}
             </div>
-            <div className="mt-4 text-3xl font-bold text-on-surface tracking-tight">
-              {item.value === null ? "…" : item.value}
-            </div>
-            <p className="text-xs text-on-surface-variant/80 mt-3 font-medium">
-              {item.description}
-            </p>
           </Link>
         ))}
       </div>
@@ -642,6 +646,19 @@ function HeadmasterDashboardContent() {
                   </div>
                   <div className="qa-label">Send Message</div>
                 </Link>
+                <Link href="/dashboard/bulk-sms" className="qa-item">
+                  <div
+                    className="qa-icon"
+                    style={{
+                      background: "rgba(37,99,235,0.1)",
+                      borderColor: "rgba(37,99,235,0.2)",
+                      color: "#2563eb",
+                    }}
+                  >
+                    <MaterialIcon icon="sms" style={{ fontSize: "20px" }} />
+                  </div>
+                  <div className="qa-label">Bulk SMS</div>
+                </Link>
               </div>
             </div>
           </div>
@@ -783,10 +800,10 @@ function HeadmasterDashboardContent() {
                   />
                 </div>
                 <div className="act-body">
-                  <div className="act-title">System synced successfully</div>
-                  <div className="act-sub">All data up to date</div>
+                  <div className="act-title">Fee payment recorded</div>
+                  <div className="act-sub">From {payments[0]?.students?.first_name || 'Student'}</div>
                 </div>
-                <div className="act-time">Just now</div>
+                <div className="act-time">{payments[0]?.payment_date || "Today"}</div>
               </div>
             </div>
           </div>
