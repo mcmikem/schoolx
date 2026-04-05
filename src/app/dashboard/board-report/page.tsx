@@ -102,7 +102,7 @@ export default function BoardReportPage() {
       doc.setTextColor(100, 100, 100)
       doc.setFontSize(8)
       doc.text('This report is confidential and intended for board members only.', 105, 283, { align: 'center' })
-      doc.text(`${school?.name || 'SchoolX'} | Generated ${new Date().toLocaleDateString()}`, 105, 290, { align: 'center' })
+      doc.text(`${school?.name || 'ASSEMBLE'} | Generated ${new Date().toLocaleDateString()}`, 105, 290, { align: 'center' })
 
       doc.save('board_report.pdf')
       toast.success('Report downloaded')

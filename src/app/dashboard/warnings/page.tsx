@@ -183,7 +183,7 @@ export default function EarlyWarningsPage() {
     
     toast.success(`Sending SMS to ${filteredWarnings.length} guardians...`)
     
-    const message = `Dear Parent, Your child ${filteredWarnings[0].student_name} has been flagged for academic concerns. Please contact the school to discuss how we can support your child's progress. - SchoolX`
+    const message = `Dear Parent, Your child ${filteredWarnings[0].student_name} has been flagged for academic concerns. Please contact the school to discuss how we can support your child's progress. - ASSEMBLE`
     
     try {
       const { data: studentData } = await supabase
