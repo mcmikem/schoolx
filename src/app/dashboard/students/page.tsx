@@ -5,6 +5,7 @@ import Papa from "papaparse";
 import { useAuth } from "@/lib/auth-context";
 import { useStudents, useClasses } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
+import { supabase } from "@/lib/supabase";
 import { useFormDraft } from "@/lib/useAutoSave";
 import { SendSMSModal } from "@/components/SendSMSModal";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -38,6 +39,7 @@ export default function StudentsPage() {
   const { students, loading, createStudent, updateStudent, deleteStudent } =
     useStudents(school?.id);
   const { classes } = useClasses(school?.id);
+  const [houses, setHouses] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClass, setSelectedClass] = useState("all");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -59,6 +61,18 @@ export default function StudentsPage() {
     student_number: "",
     ple_index_number: "",
     opening_balance: "0",
+    // Real-world fields
+    boarding_status: "day" as "day" | "boarding" | "weekly",
+    house_id: "",
+    previous_school: "",
+    district_origin: "",
+    sub_county: "",
+    parish: "",
+    village: "",
+    is_class_monitor: false,
+    prefect_role: "",
+    student_council_role: "",
+    games_house: "",
   });
 
   // Update draft when form changes
@@ -108,6 +122,14 @@ export default function StudentsPage() {
     open: boolean;
     studentId: string | null;
   }>({ open: false, studentId: null });
+
+  // Fetch houses
+  useEffect(() => {
+    if (!school?.id) return
+    supabase.from('houses').select('*').eq('school_id', school.id).order('name').then(({ data }) => {
+      setHouses(data || [])
+    })
+  }, [school?.id])
 
   const resolveClassId = (row: Record<string, string>) => {
     if (row.class_id) return row.class_id;
@@ -273,6 +295,17 @@ export default function StudentsPage() {
         student_number: "",
         ple_index_number: "",
         opening_balance: "0",
+        boarding_status: "day",
+        house_id: "",
+        previous_school: "",
+        district_origin: "",
+        sub_county: "",
+        parish: "",
+        village: "",
+        is_class_monitor: false,
+        prefect_role: "",
+        student_council_role: "",
+        games_house: "",
       });
     } catch (err: unknown) {
       const errorMessage =
@@ -1366,6 +1399,91 @@ export default function StudentsPage() {
                 </p>
               </div>
 
+              {/* Real-world fields */}
+              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16, marginBottom: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--t1)", marginBottom: 12 }}>Additional Details</div>
+                
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", color: "var(--t3)", marginBottom: 6, display: "block" }}>Boarding Status</label>
+                    <select value={newStudent.boarding_status} onChange={(e) => handleNewStudentChange({ boarding_status: e.target.value as "day" | "boarding" | "weekly" })} className="input">
+                      <option value="day">Day Scholar</option>
+                      <option value="boarding">Boarding</option>
+                      <option value="weekly">Weekly Boarder</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", color: "var(--t3)", marginBottom: 6, display: "block" }}>Previous School</label>
+                    <input type="text" value={newStudent.previous_school} onChange={(e) => handleNewStudentChange({ previous_school: e.target.value })} className="input" placeholder="e.g., St. Peter's PS" />
+                  </div>
+                </div>
+
+                {houses.length > 0 && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+                    <div>
+                      <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", color: "var(--t3)", marginBottom: 6, display: "block" }}>House</label>
+                      <select value={newStudent.house_id} onChange={(e) => handleNewStudentChange({ house_id: e.target.value })} className="input">
+                        <option value="">No house</option>
+                        {houses.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", color: "var(--t3)", marginBottom: 6, display: "block" }}>Games House</label>
+                      <select value={newStudent.games_house} onChange={(e) => handleNewStudentChange({ games_house: e.target.value })} className="input">
+                        <option value="">Same as house</option>
+                        {houses.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", color: "var(--t3)", marginBottom: 6, display: "block" }}>District of Origin</label>
+                    <input type="text" value={newStudent.district_origin} onChange={(e) => handleNewStudentChange({ district_origin: e.target.value })} className="input" placeholder="e.g., Kampala" />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", color: "var(--t3)", marginBottom: 6, display: "block" }}>Sub-County</label>
+                    <input type="text" value={newStudent.sub_county} onChange={(e) => handleNewStudentChange({ sub_county: e.target.value })} className="input" />
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", color: "var(--t3)", marginBottom: 6, display: "block" }}>Parish</label>
+                    <input type="text" value={newStudent.parish} onChange={(e) => handleNewStudentChange({ parish: e.target.value })} className="input" />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", color: "var(--t3)", marginBottom: 6, display: "block" }}>Village</label>
+                    <input type="text" value={newStudent.village} onChange={(e) => handleNewStudentChange({ village: e.target.value })} className="input" />
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", color: "var(--t3)", marginBottom: 6, display: "block" }}>Prefect Role</label>
+                    <select value={newStudent.prefect_role} onChange={(e) => handleNewStudentChange({ prefect_role: e.target.value })} className="input">
+                      <option value="">None</option>
+                      <option value="head_boy">Head Boy</option>
+                      <option value="head_girl">Head Girl</option>
+                      <option value="sports_prefect">Sports Prefect</option>
+                      <option value="dining_prefect">Dining Prefect</option>
+                      <option value="library_prefect">Library Prefect</option>
+                      <option value="health_prefect">Health Prefect</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", color: "var(--t3)", marginBottom: 6, display: "block" }}>Council Role</label>
+                    <select value={newStudent.student_council_role} onChange={(e) => handleNewStudentChange({ student_council_role: e.target.value })} className="input">
+                      <option value="">None</option>
+                      <option value="president">President</option>
+                      <option value="vice_president">Vice President</option>
+                      <option value="secretary">Secretary</option>
+                      <option value="treasurer">Treasurer</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
               <div style={{ display: "flex", gap: 10 }}>
                 <button
                   type="button"
@@ -1767,6 +1885,17 @@ export default function StudentsPage() {
                       student_number: draft.student_number || '',
                       ple_index_number: draft.ple_index_number || '',
                       opening_balance: draft.opening_balance || '0',
+                      boarding_status: draft.boarding_status || 'day',
+                      house_id: draft.house_id || '',
+                      previous_school: draft.previous_school || '',
+                      district_origin: draft.district_origin || '',
+                      sub_county: draft.sub_county || '',
+                      parish: draft.parish || '',
+                      village: draft.village || '',
+                      is_class_monitor: draft.is_class_monitor || false,
+                      prefect_role: draft.prefect_role || '',
+                      student_council_role: draft.student_council_role || '',
+                      games_house: draft.games_house || '',
                     })
                   }
                   newStudentDraft.discardDraft()
