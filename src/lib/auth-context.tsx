@@ -138,6 +138,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: userData.role as User['role']
       })
 
+      // Super admins don't have a school - they manage all schools
+      if (userData.role === 'super_admin') {
+        setSchool(null)
+        setLoading(false)
+        return
+      }
+
       if (userData.school_id) {
         const { data: schoolData, error: schoolError } = await supabase
           .from('schools')
