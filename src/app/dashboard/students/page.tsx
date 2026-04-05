@@ -47,8 +47,14 @@ export default function StudentsPage() {
   const [editingStudent, setEditingStudent] = useState<any>(null);
   const [saving, setSaving] = useState(false);
 
-  // Auto-save for new student form
-  const newStudentDraft = useFormDraft("student_add_form");
+  // Auto-save disabled - was causing restore dialog issues
+  const newStudentDraft: any = { 
+    showRestoreDialog: false, 
+    discardDraft: () => {}, 
+    savedDraft: null,
+    updateData: () => {},
+    clearSaved: () => {},
+  };
   const [newStudent, setNewStudent] = useState({
     first_name: "",
     last_name: "",
@@ -75,13 +81,9 @@ export default function StudentsPage() {
     games_house: "",
   });
 
-  // Update draft when form changes
+  // Update form state
   const handleNewStudentChange = (updates: Partial<typeof newStudent>) => {
-    setNewStudent((prev) => {
-      const newState = { ...prev, ...updates };
-      newStudentDraft.updateData(newState);
-      return newState;
-    });
+    setNewStudent((prev) => ({ ...prev, ...updates }));
   };
   const [editForm, setEditForm] = useState({
     first_name: "",
@@ -1069,12 +1071,10 @@ export default function StudentsPage() {
       </div>
 
       {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div
-                style={{ fontFamily: "Sora", fontSize: 16, fontWeight: 700 }}
-              >
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowAddModal(false)}>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-[var(--surface)] border-b border-[var(--border)] p-4 flex items-center justify-between">
+              <div style={{ fontFamily: "Sora", fontSize: 16, fontWeight: 700 }}>
                 Add New Student
               </div>
               <button
@@ -1460,26 +1460,40 @@ export default function StudentsPage() {
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   <div>
-                    <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", color: "var(--t3)", marginBottom: 6, display: "block" }}>Prefect Role</label>
-                    <select value={newStudent.prefect_role} onChange={(e) => handleNewStudentChange({ prefect_role: e.target.value })} className="input">
+                    <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", color: "var(--t3)", marginBottom: 6, display: "block" }}>Leadership Position</label>
+                    <select value={newStudent.prefect_role || newStudent.student_council_role || ""} onChange={(e) => {
+                      const val = e.target.value
+                      if (['head_boy', 'head_girl', 'sports_prefect', 'dining_prefect', 'library_prefect', 'health_prefect'].includes(val)) {
+                        handleNewStudentChange({ prefect_role: val, student_council_role: '' })
+                      } else if (['president', 'vice_president', 'secretary', 'treasurer'].includes(val)) {
+                        handleNewStudentChange({ student_council_role: val, prefect_role: '' })
+                      } else {
+                        handleNewStudentChange({ prefect_role: '', student_council_role: '' })
+                      }
+                    }} className="input">
                       <option value="">None</option>
-                      <option value="head_boy">Head Boy</option>
-                      <option value="head_girl">Head Girl</option>
-                      <option value="sports_prefect">Sports Prefect</option>
-                      <option value="dining_prefect">Dining Prefect</option>
-                      <option value="library_prefect">Library Prefect</option>
-                      <option value="health_prefect">Health Prefect</option>
+                      <optgroup label="Prefects">
+                        <option value="head_boy">Head Boy</option>
+                        <option value="head_girl">Head Girl</option>
+                        <option value="sports_prefect">Sports Prefect</option>
+                        <option value="dining_prefect">Dining Prefect</option>
+                        <option value="library_prefect">Library Prefect</option>
+                        <option value="health_prefect">Health Prefect</option>
+                      </optgroup>
+                      <optgroup label="Student Council">
+                        <option value="president">President</option>
+                        <option value="vice_president">Vice President</option>
+                        <option value="secretary">Secretary</option>
+                        <option value="treasurer">Treasurer</option>
+                      </optgroup>
                     </select>
                   </div>
                   <div>
-                    <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", color: "var(--t3)", marginBottom: 6, display: "block" }}>Council Role</label>
-                    <select value={newStudent.student_council_role} onChange={(e) => handleNewStudentChange({ student_council_role: e.target.value })} className="input">
-                      <option value="">None</option>
-                      <option value="president">President</option>
-                      <option value="vice_president">Vice President</option>
-                      <option value="secretary">Secretary</option>
-                      <option value="treasurer">Treasurer</option>
-                    </select>
+                    <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", color: "var(--t3)", marginBottom: 6, display: "block" }}>Class Monitor</label>
+                    <div className="flex items-center gap-2 mt-2">
+                      <input type="checkbox" checked={newStudent.is_class_monitor} onChange={(e) => handleNewStudentChange({ is_class_monitor: e.target.checked })} className="w-5 h-5 rounded" />
+                      <span className="text-sm">Yes, this student is a class monitor</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1508,12 +1522,10 @@ export default function StudentsPage() {
       )}
 
       {showEditModal && editingStudent && (
-        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div
-                style={{ fontFamily: "Sora", fontSize: 16, fontWeight: 700 }}
-              >
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowEditModal(false)}>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-[var(--surface)] border-b border-[var(--border)] p-4 flex items-center justify-between">
+              <div style={{ fontFamily: "Sora", fontSize: 16, fontWeight: 700 }}>
                 Edit Student
               </div>
               <button
@@ -1844,70 +1856,8 @@ export default function StudentsPage() {
         />
       )}
 
-      {/* Draft Restore Dialog */}
-      {newStudentDraft.showRestoreDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--surface)] rounded-2xl max-w-sm w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-[var(--surface-container)] flex items-center justify-center">
-                <MaterialIcon icon="restore" />
-              </div>
-              <div>
-                <h3 className="font-bold text-[var(--t1)]">Restore Draft?</h3>
-                <p className="text-sm text-[var(--t3)]">
-                  You have an unsaved student form
-                </p>
-              </div>
-            </div>
-            <p className="text-sm text-[var(--t3)] mb-6">
-              Would you like to restore your previous draft?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={newStudentDraft.discardDraft}
-                className="flex-1 py-3 bg-[var(--surface-container)] font-semibold rounded-xl text-[var(--t3)]"
-              >
-                Discard
-              </button>
-              <button
-                onClick={() => {
-                  const draft = newStudentDraft.savedDraft
-                  if (draft) {
-                    setNewStudent({
-                      first_name: draft.first_name || '',
-                      last_name: draft.last_name || '',
-                      gender: draft.gender || 'M',
-                      date_of_birth: draft.date_of_birth || '',
-                      parent_name: draft.parent_name || '',
-                      parent_phone: draft.parent_phone || '',
-                      parent_phone2: draft.parent_phone2 || '',
-                      class_id: draft.class_id || '',
-                      student_number: draft.student_number || '',
-                      ple_index_number: draft.ple_index_number || '',
-                      opening_balance: draft.opening_balance || '0',
-                      boarding_status: draft.boarding_status || 'day',
-                      house_id: draft.house_id || '',
-                      previous_school: draft.previous_school || '',
-                      district_origin: draft.district_origin || '',
-                      sub_county: draft.sub_county || '',
-                      parish: draft.parish || '',
-                      village: draft.village || '',
-                      is_class_monitor: draft.is_class_monitor || false,
-                      prefect_role: draft.prefect_role || '',
-                      student_council_role: draft.student_council_role || '',
-                      games_house: draft.games_house || '',
-                    })
-                  }
-                  newStudentDraft.discardDraft()
-                }}
-                className="flex-1 py-3 bg-[var(--surface-container-lowest)] text-[var(--t1)] font-semibold rounded-xl border border-[var(--border)]"
-              >
-                Restore
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Draft Restore Dialog - disabled since auto-save is disabled */}
+      {/* Draft Restore Dialog - disabled since auto-save was removed */}
     </div>
   );
 }
