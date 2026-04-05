@@ -28,7 +28,7 @@ const ALL_VALID_ROLES: string[] = [
 ]
 
 const DEMO_ALLOWED_ROLES: string[] = [
-  'headmaster', 'dean_of_studies', 'bursar', 'teacher', 'secretary', 'dorm_master', 'admin', 'school_admin'
+  'headmaster', 'dean_of_studies', 'bursar', 'teacher', 'secretary', 'dorm_master', 'admin', 'school_admin', 'super_admin'
 ]
 
 function sanitizeDemoRole(raw: unknown): User['role'] {
@@ -39,6 +39,7 @@ function sanitizeDemoRole(raw: unknown): User['role'] {
   if (typeof raw === 'string' && (raw === 'admin' || raw === 'school_admin')) {
     return 'headmaster'
   }
+  // Default to headmaster for any other role
   return 'headmaster'
 }
 
