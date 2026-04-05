@@ -771,7 +771,7 @@ export default function GradesPage() {
                   <option value="">Select Class</option>
                   {classes.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name}
+                      {c.name}{c.stream ? ` ${c.stream}` : ''}
                     </option>
                   ))}
                 </select>
