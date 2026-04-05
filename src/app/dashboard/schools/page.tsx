@@ -109,6 +109,8 @@ export default function SchoolsPage() {
   const [showResetModal, setShowResetModal] = useState(false)
   const [showTrialModal, setShowTrialModal] = useState(false)
   const [showSuspendModal, setShowSuspendModal] = useState(false)
+  const [showAddUserModal, setShowAddUserModal] = useState(false)
+  const [newUserForm, setNewUserForm] = useState({ name: '', phone: '', role: 'teacher', password: '' })
   const [showCustomizeModal, setShowCustomizeModal] = useState(false)
   const [showOnboardingModal, setShowOnboardingModal] = useState(false)
   const [showTicketModal, setShowTicketModal] = useState(false)
@@ -126,6 +128,10 @@ export default function SchoolsPage() {
     name: '', school_code: '', district: '', school_type: 'primary',
     ownership: 'private', phone: '', subscription_plan: 'starter',
   })
+  const [newAdmin, setNewAdmin] = useState({ name: '', phone: '', password: '' })
+  const [createdSchool, setCreatedSchool] = useState<{ id: string; name: string; adminPhone: string; adminPassword: string } | null>(null)
+  const [showCreatedModal, setShowCreatedModal] = useState(false)
+  const [addStep, setAddStep] = useState<1 | 2>(1)
 
   useEffect(() => {
     if (user?.role === 'super_admin') fetchSchools()
@@ -190,17 +196,60 @@ export default function SchoolsPage() {
 
   const handleAddSchool = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!newAdmin.name || !newAdmin.phone || !newAdmin.password) {
+      toast.error('Please fill in admin details (name, phone, password)')
+      return
+    }
+
     try {
-      const { error } = await supabase.from('schools').insert({
+      // Step 1: Create the school
+      const { data: schoolData, error: schoolError } = await supabase.from('schools').insert({
         ...newSchool,
         subscription_status: 'trial',
         trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+      }).select().single()
+
+      if (schoolError) throw schoolError
+
+      // Step 2: Create the admin user via Supabase Auth
+      const cleanPhone = newAdmin.phone.replace(/[^0-9]/g, '')
+      const email = `${cleanPhone}@omuto.sms`
+
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password: newAdmin.password,
+        options: {
+          data: { full_name: newAdmin.name, phone: newAdmin.phone, role: 'school_admin' },
+        },
       })
-      if (error) throw error
-      toast.success('School added successfully')
+
+      if (authError) throw authError
+
+      // Step 3: Create the user profile
+      const { error: userError } = await supabase.from('users').insert({
+        auth_id: authData.user!.id,
+        full_name: newAdmin.name,
+        phone: newAdmin.phone,
+        role: 'school_admin',
+        school_id: schoolData.id,
+        is_active: true,
+      })
+
+      if (userError) throw userError
+
+      // Show confirmation with credentials
+      setCreatedSchool({
+        id: schoolData.id,
+        name: schoolData.name,
+        adminPhone: newAdmin.phone,
+        adminPassword: newAdmin.password,
+      })
+      setShowCreatedModal(true)
       setShowAddModal(false)
+      setAddStep(1)
       fetchSchools()
       setNewSchool({ name: '', school_code: '', district: '', school_type: 'primary', ownership: 'private', phone: '', subscription_plan: 'starter' })
+      setNewAdmin({ name: '', phone: '', password: '' })
     } catch (err: any) {
       toast.error(err.message || 'Failed to add school')
     }
@@ -272,6 +321,44 @@ export default function SchoolsPage() {
       if (error) throw error
       toast.success(`User ${currentStatus ? 'deactivated' : 'activated'}`)
       if (selectedSchool) await fetchSchoolUsers(selectedSchool.id)
+    } catch (err: any) {
+      toast.error(err.message || 'Failed')
+    }
+  }
+
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedSchool || !newUserForm.name || !newUserForm.phone || !newUserForm.password) {
+      toast.error('Please fill in all fields')
+      return
+    }
+    try {
+      const cleanPhone = newUserForm.phone.replace(/[^0-9]/g, '')
+      const email = `${cleanPhone}@omuto.sms`
+
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password: newUserForm.password,
+        options: {
+          data: { full_name: newUserForm.name, phone: newUserForm.phone, role: newUserForm.role },
+        },
+      })
+      if (authError) throw authError
+
+      const { error: userError } = await supabase.from('users').insert({
+        auth_id: authData.user!.id,
+        full_name: newUserForm.name,
+        phone: newUserForm.phone,
+        role: newUserForm.role,
+        school_id: selectedSchool.id,
+        is_active: true,
+      })
+      if (userError) throw userError
+
+      toast.success(`User ${newUserForm.name} created`)
+      setShowAddUserModal(false)
+      setNewUserForm({ name: '', phone: '', role: 'teacher', password: '' })
+      await fetchSchoolUsers(selectedSchool.id)
     } catch (err: any) {
       toast.error(err.message || 'Failed')
     }
@@ -617,7 +704,12 @@ export default function SchoolsPage() {
 
               {/* Users */}
               <div>
-                <h3 className="font-semibold text-[#002045] mb-3">Users ({schoolUsers.length})</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-[#002045]">Users ({schoolUsers.length})</h3>
+                  <button onClick={() => setShowAddUserModal(true)} className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+                    <MaterialIcon icon="add" style={{ fontSize: 16 }} /> Add User
+                  </button>
+                </div>
                 {loadingUsers ? (
                   <div className="text-sm text-[#5c6670]">Loading users...</div>
                 ) : schoolUsers.length === 0 ? (
@@ -651,31 +743,102 @@ export default function SchoolsPage() {
         </div>
       )}
 
-      {/* Add School Modal */}
+      {/* Add School Modal - Step 1: School Info */}
       {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={() => { setShowAddModal(false); setAddStep(1) }}>
+          <div className="modal max-w-lg" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-100">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[#002045]">Add New School</h2>
-                <button onClick={() => setShowAddModal(false)} className="p-2 text-gray-400 hover:text-gray-600"><MaterialIcon icon="close" /></button>
+                <div>
+                  <h2 className="text-lg font-semibold text-[#002045]">Add New School</h2>
+                  <p className="text-sm text-[#5c6670]">Step {addStep} of 2</p>
+                </div>
+                <button onClick={() => { setShowAddModal(false); setAddStep(1) }} className="p-2 text-gray-400 hover:text-gray-600"><MaterialIcon icon="close" /></button>
+              </div>
+              {/* Step indicator */}
+              <div className="flex gap-2 mt-3">
+                <div className={`flex-1 h-1.5 rounded-full ${addStep >= 1 ? 'bg-blue-600' : 'bg-gray-200'}`} />
+                <div className={`flex-1 h-1.5 rounded-full ${addStep >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`} />
               </div>
             </div>
-            <form onSubmit={handleAddSchool} className="p-6 space-y-4">
-              <div><label className="label">School Name</label><input type="text" value={newSchool.name} onChange={(e) => setNewSchool({...newSchool, name: e.target.value})} className="input" required /></div>
-              <div><label className="label">School Code</label><input type="text" value={newSchool.school_code} onChange={(e) => setNewSchool({...newSchool, school_code: e.target.value})} className="input" required placeholder="e.g., STMS001" /></div>
-              <div><label className="label">District</label><input type="text" value={newSchool.district} onChange={(e) => setNewSchool({...newSchool, district: e.target.value})} className="input" required /></div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="label">School Type</label><select value={newSchool.school_type} onChange={(e) => setNewSchool({...newSchool, school_type: e.target.value})} className="input"><option value="primary">Primary</option><option value="secondary">Secondary</option><option value="combined">Combined</option></select></div>
-                <div><label className="label">Ownership</label><select value={newSchool.ownership} onChange={(e) => setNewSchool({...newSchool, ownership: e.target.value})} className="input"><option value="private">Private</option><option value="government">Government</option><option value="government_aided">Government Aided</option></select></div>
+
+            {addStep === 1 ? (
+              <div className="p-6 space-y-4">
+                <div><label className="label">School Name</label><input type="text" value={newSchool.name} onChange={(e) => setNewSchool({...newSchool, name: e.target.value})} className="input" required placeholder="e.g., St. Mary's Primary School" /></div>
+                <div><label className="label">School Code</label><input type="text" value={newSchool.school_code} onChange={(e) => setNewSchool({...newSchool, school_code: e.target.value})} className="input" required placeholder="e.g., STMS001" /></div>
+                <div><label className="label">District</label><input type="text" value={newSchool.district} onChange={(e) => setNewSchool({...newSchool, district: e.target.value})} className="input" required placeholder="e.g., Kampala" /></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><label className="label">School Type</label><select value={newSchool.school_type} onChange={(e) => setNewSchool({...newSchool, school_type: e.target.value})} className="input"><option value="primary">Primary</option><option value="secondary">Secondary</option><option value="combined">Combined</option></select></div>
+                  <div><label className="label">Ownership</label><select value={newSchool.ownership} onChange={(e) => setNewSchool({...newSchool, ownership: e.target.value})} className="input"><option value="private">Private</option><option value="government">Government</option><option value="government_aided">Government Aided</option></select></div>
+                </div>
+                <div><label className="label">School Phone</label><input type="tel" value={newSchool.phone} onChange={(e) => setNewSchool({...newSchool, phone: e.target.value})} className="input" placeholder="0700000000" /></div>
+                <div><label className="label">Starting Plan</label><select value={newSchool.subscription_plan} onChange={(e) => setNewSchool({...newSchool, subscription_plan: e.target.value})} className="input"><option value="starter">Starter (UGX 50K/student)</option><option value="standard">Standard (UGX 65K/student)</option><option value="premium">Premium (UGX 80K/student)</option></select></div>
+                <div className="flex gap-3 pt-4">
+                  <button type="button" onClick={() => { setShowAddModal(false); setAddStep(1) }} className="btn btn-secondary flex-1">Cancel</button>
+                  <button type="button" onClick={() => { if (!newSchool.name || !newSchool.school_code || !newSchool.district) { toast.error('Please fill in all required fields'); return } setAddStep(2) }} className="btn btn-primary flex-1">Next →</button>
+                </div>
               </div>
-              <div><label className="label">Phone</label><input type="tel" value={newSchool.phone} onChange={(e) => setNewSchool({...newSchool, phone: e.target.value})} className="input" placeholder="0700000000" /></div>
-              <div><label className="label">Starting Plan</label><select value={newSchool.subscription_plan} onChange={(e) => setNewSchool({...newSchool, subscription_plan: e.target.value})} className="input"><option value="starter">Starter (UGX 50K/student)</option><option value="standard">Standard (UGX 65K/student)</option><option value="premium">Premium (UGX 80K/student)</option></select></div>
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-secondary flex-1">Cancel</button>
-                <button type="submit" className="btn btn-primary flex-1">Add School</button>
+            ) : (
+              <div className="p-6 space-y-4">
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <MaterialIcon icon="person_add" className="text-amber-600" />
+                    <span className="font-semibold text-amber-800 text-sm">Create School Admin</span>
+                  </div>
+                  <p className="text-xs text-amber-700">This person will manage the school. They'll use these credentials to log in.</p>
+                </div>
+                <div><label className="label">Admin Full Name</label><input type="text" value={newAdmin.name} onChange={(e) => setNewAdmin({...newAdmin, name: e.target.value})} className="input" required placeholder="e.g., John Mukasa" /></div>
+                <div><label className="label">Admin Phone (Login ID)</label><input type="tel" value={newAdmin.phone} onChange={(e) => setNewAdmin({...newAdmin, phone: e.target.value})} className="input" required placeholder="0700000000" /></div>
+                <div><label className="label">Admin Password</label><input type="text" value={newAdmin.password} onChange={(e) => setNewAdmin({...newAdmin, password: e.target.value})} className="input" required placeholder="Min 6 characters" minLength={6} /></div>
+                <div className="flex gap-3 pt-4">
+                  <button type="button" onClick={() => setAddStep(1)} className="btn btn-secondary flex-1">← Back</button>
+                  <button type="button" onClick={handleAddSchool} className="btn btn-primary flex-1">Create School & Admin</button>
+                </div>
               </div>
-            </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Created School Confirmation Modal */}
+      {showCreatedModal && createdSchool && (
+        <div className="modal-overlay" onClick={() => setShowCreatedModal(false)}>
+          <div className="modal max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MaterialIcon icon="check_circle" className="text-green-600" style={{ fontSize: 32 }} />
+              </div>
+              <h2 className="text-xl font-bold text-[#002045] mb-1">School Created!</h2>
+              <p className="text-sm text-[#5c6670] mb-6">{createdSchool.name} has been set up with a 14-day trial.</p>
+
+              <div className="bg-[#f8f9fa] rounded-xl p-4 text-left space-y-3 mb-6">
+                <div>
+                  <div className="text-xs text-[#5c6670] uppercase tracking-wide mb-0.5">Admin Phone (Login ID)</div>
+                  <div className="font-mono text-lg font-bold text-[#002045]">{createdSchool.adminPhone}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-[#5c6670] uppercase tracking-wide mb-0.5">Admin Password</div>
+                  <div className="font-mono text-lg font-bold text-[#002045]">{createdSchool.adminPassword}</div>
+                </div>
+                <div className="pt-2 border-t border-gray-200">
+                  <div className="text-xs text-[#5c6670]">Login URL: <span className="font-mono text-sm">omuto.sms/login</span></div>
+                </div>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6 text-left">
+                <div className="flex items-start gap-2">
+                  <MaterialIcon icon="warning" className="text-amber-600 mt-0.5" style={{ fontSize: 18 }} />
+                  <div className="text-xs text-amber-800">
+                    <strong>Save these credentials!</strong> Share them with the school admin securely. They won't be shown again.
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button onClick={() => setShowCreatedModal(false)} className="btn btn-secondary flex-1">Close</button>
+                <button onClick={() => { setShowCreatedModal(false); setAddStep(1); setShowAddModal(true) }} className="btn btn-primary flex-1">Add Another</button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -810,6 +973,40 @@ export default function SchoolsPage() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add User Modal */}
+      {showAddUserModal && selectedSchool && (
+        <div className="modal-overlay" onClick={() => setShowAddUserModal(false)}>
+          <div className="modal max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-[#002045]">Add User - {selectedSchool.name}</h2>
+                <button onClick={() => setShowAddUserModal(false)} className="p-2 text-gray-400 hover:text-gray-600"><MaterialIcon icon="close" /></button>
+              </div>
+            </div>
+            <form onSubmit={handleAddUser} className="p-6 space-y-4">
+              <div><label className="label">Full Name</label><input type="text" value={newUserForm.name} onChange={(e) => setNewUserForm({...newUserForm, name: e.target.value})} className="input" required placeholder="e.g., Jane Nakato" /></div>
+              <div><label className="label">Phone (Login ID)</label><input type="tel" value={newUserForm.phone} onChange={(e) => setNewUserForm({...newUserForm, phone: e.target.value})} className="input" required placeholder="0700000000" /></div>
+              <div><label className="label">Role</label><select value={newUserForm.role} onChange={(e) => setNewUserForm({...newUserForm, role: e.target.value})} className="input">
+                <option value="teacher">Teacher</option>
+                <option value="headmaster">Headmaster</option>
+                <option value="bursar">Bursar</option>
+                <option value="dean_of_studies">Dean of Studies</option>
+                <option value="secretary">Secretary</option>
+                <option value="dorm_master">Dorm Master</option>
+              </select></div>
+              <div><label className="label">Password</label><input type="text" value={newUserForm.password} onChange={(e) => setNewUserForm({...newUserForm, password: e.target.value})} className="input" required placeholder="Min 6 characters" minLength={6} /></div>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <div className="text-xs text-amber-800"><strong>Save these credentials!</strong> Share them securely with the user.</div>
+              </div>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setShowAddUserModal(false)} className="btn btn-secondary flex-1">Cancel</button>
+                <button type="submit" className="btn btn-primary flex-1">Create User</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
