@@ -1753,10 +1753,23 @@ export default function StudentsPage() {
               </button>
               <button
                 onClick={() => {
-                  setNewStudent(
-                    newStudentDraft.savedDraft as typeof newStudent,
-                  );
-                  newStudentDraft.restoreDraft();
+                  const draft = newStudentDraft.savedDraft
+                  if (draft) {
+                    setNewStudent({
+                      first_name: draft.first_name || '',
+                      last_name: draft.last_name || '',
+                      gender: draft.gender || 'M',
+                      date_of_birth: draft.date_of_birth || '',
+                      parent_name: draft.parent_name || '',
+                      parent_phone: draft.parent_phone || '',
+                      parent_phone2: draft.parent_phone2 || '',
+                      class_id: draft.class_id || '',
+                      student_number: draft.student_number || '',
+                      ple_index_number: draft.ple_index_number || '',
+                      opening_balance: draft.opening_balance || '0',
+                    })
+                  }
+                  newStudentDraft.discardDraft()
                 }}
                 className="flex-1 py-3 bg-[var(--surface-container-lowest)] text-[var(--t1)] font-semibold rounded-xl border border-[var(--border)]"
               >
