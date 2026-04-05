@@ -107,13 +107,8 @@ export default function TermEndPage() {
         case 'send_notifications':
           success = await runStep(step.key, async () => {
             const { sendReportCardReady } = await import('@/lib/sms-automation')
-            const { data: students } = await supabase.from('students').select('id').eq('school_id', school.id).eq('status', 'active')
-            let sent = 0
-            for (const s of students || []) {
-              const result = await sendReportCardReady({ studentId: s.id, term: parseInt(currentTerm), schoolId: school.id, isDemo })
-              if (result.success) sent++
-            }
-            return `SMS sent to ${sent} parents`
+            const result = await sendReportCardReady({ schoolId: school.id, term: parseInt(currentTerm), isDemo })
+            return `SMS sent to ${result.count} parents`
           })
           break
 
