@@ -1,6 +1,8 @@
 'use client'
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useAuth } from '@/lib/auth-context'
 import MaterialIcon from '@/components/MaterialIcon'
 
 type Step = {
@@ -32,6 +34,12 @@ export function resolveActiveStep(pathname: string | null): number {
 
 export default function WorkflowGuide() {
   const pathname = usePathname()
+  const { school, isDemo } = useAuth()
+  const [dismissed, setDismissed] = useState(false)
+
+  // Hide if dismissed, demo mode, or school is already set up
+  if (dismissed || isDemo || (school as any)?.onboarding_complete) return null
+
   const activeStep = resolveActiveStep(pathname)
   const nextStep = STEPS[Math.min(activeStep + 1, STEPS.length - 1)]
 
@@ -42,13 +50,22 @@ export default function WorkflowGuide() {
           <div className="text-[12px] uppercase tracking-wider font-bold text-[var(--t4)]">Guided workflow</div>
           <div className="text-[14px] font-semibold text-[var(--t1)]">No dead ends — follow the next best step</div>
         </div>
-        <Link
-          href={nextStep.href}
-          className="inline-flex items-center gap-1.5 px-3 h-9 rounded-lg bg-[var(--navy)] text-white text-[12px] font-semibold no-underline whitespace-nowrap"
-        >
-          <MaterialIcon icon="arrow_forward" style={{ fontSize: 15 }} />
-          Next: {nextStep.label}
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href={nextStep.href}
+            className="inline-flex items-center gap-1.5 px-3 h-9 rounded-lg bg-[var(--navy)] text-white text-[12px] font-semibold no-underline whitespace-nowrap"
+          >
+            <MaterialIcon icon="arrow_forward" style={{ fontSize: 15 }} />
+            Next: {nextStep.label}
+          </Link>
+          <button
+            onClick={() => setDismissed(true)}
+            className="p-2 text-[var(--t4)] hover:text-[var(--t1)] transition-colors"
+            aria-label="Dismiss guide"
+          >
+            <MaterialIcon icon="close" style={{ fontSize: 18 }} />
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-2">

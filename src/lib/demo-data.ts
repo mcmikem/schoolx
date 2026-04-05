@@ -427,12 +427,226 @@ export const DEMO_EXPENSES: DemoExpense[] = [
   { id: '4', school_id: DEMO_SCHOOL_ID, category: 'Transport', description: 'School bus fuel - March 2025', amount: 600000, approved_by: '3', status: 'approved', date: '2025-03-20', receipt_url: null },
   { id: '5', school_id: DEMO_SCHOOL_ID, category: 'Sports', description: 'Sports equipment for inter-school competition', amount: 800000, approved_by: null, status: 'pending', date: '2025-03-22', receipt_url: null },
   { id: '6', school_id: DEMO_SCHOOL_ID, category: 'IT', description: 'Computer lab software licenses', amount: 1200000, approved_by: '1', status: 'approved', date: '2025-03-18', receipt_url: null },
-  { id: '7', school_id: DEMO_SCHOOL_ID, category: 'Staff Welfare', description: 'Staff lunch program - Term 1', amount: 3500000, approved_by: '1', status: 'approved', date: '2025-03-01', receipt_url: null },
+  { id: '7', school_id: DEMO_SCHOOL_ID, category: 'Staff Welfare', description: 'Staff lunch program - March', amount: 350000, approved_by: '1', status: 'approved', date: '2025-03-25', receipt_url: null },
+  { id: '8', school_id: DEMO_SCHOOL_ID, category: 'Supplies', description: 'Chalk and whiteboard markers', amount: 150000, approved_by: null, status: 'pending', date: '2025-03-24', receipt_url: null },
+  { id: '9', school_id: DEMO_SCHOOL_ID, category: 'UNEB', description: 'PLE registration forms', amount: 2400000, approved_by: '1', status: 'approved', date: '2025-02-15', receipt_url: null },
+  { id: '10', school_id: DEMO_SCHOOL_ID, category: 'Maintenance', description: 'Plumbing repair - girls toilet', amount: 400000, approved_by: '3', status: 'approved', date: '2025-03-12', receipt_url: null },
 ]
 
-export const DEMO_DISCIPLINE: DemoDiscipline[] = [
-  { id: '1', student_id: '24', incident_type: 'late', description: 'Repeatedly arriving late to school (3 times this week)', action_taken: 'Warning issued, parent notified', reported_by: '17', date: '2025-03-20', parent_notified: true },
-  { id: '2', student_id: '18', incident_type: 'misbehavior', description: 'Disrupting class during Mathematics lesson', action_taken: 'Detention assigned, apology letter to teacher', reported_by: '15', date: '2025-03-18', parent_notified: true },
-  { id: '3', student_id: '4', incident_type: 'uniform', description: 'Not wearing proper school uniform', action_taken: 'Sent home to change', reported_by: '8', date: '2025-03-24', parent_notified: false },
-  { id: '4', student_id: '10', incident_type: 'bullying', description: 'Bullying younger students during break time', action_taken: 'Counselling session scheduled, parent meeting', reported_by: '5', date: '2025-03-15', parent_notified: true },
+// Library data
+export interface DemoBook {
+  id: string
+  school_id: string
+  title: string
+  author: string
+  isbn: string
+  category: string
+  total_copies: number
+  available_copies: number
+  location: string
+}
+
+export interface DemoBookIssue {
+  id: string
+  book_id: string
+  student_id: string
+  issued_date: string
+  due_date: string
+  returned_date: string | null
+  status: 'issued' | 'returned' | 'overdue'
+}
+
+export const DEMO_BOOKS: DemoBook[] = [
+  { id: '1', school_id: DEMO_SCHOOL_ID, title: 'Primary English Book 7', author: 'E. Mukasa', isbn: '978-9970-001', category: 'Textbook', total_copies: 30, available_copies: 22, location: 'Shelf A1' },
+  { id: '2', school_id: DEMO_SCHOOL_ID, title: 'Primary Mathematics Book 7', author: 'J. Kato', isbn: '978-9970-002', category: 'Textbook', total_copies: 30, available_copies: 18, location: 'Shelf A2' },
+  { id: '3', school_id: DEMO_SCHOOL_ID, title: 'Integrated Science for Primary Schools', author: 'R. Nalubega', isbn: '978-9970-003', category: 'Textbook', total_copies: 25, available_copies: 15, location: 'Shelf B1' },
+  { id: '4', school_id: DEMO_SCHOOL_ID, title: 'Social Studies for P.7', author: 'M. Babirye', isbn: '978-9970-004', category: 'Textbook', total_copies: 30, available_copies: 20, location: 'Shelf B2' },
+  { id: '5', school_id: DEMO_SCHOOL_ID, title: 'The River and the Source', author: 'M. Ogutu', isbn: '978-9970-005', category: 'Novel', total_copies: 10, available_copies: 6, location: 'Shelf C1' },
+  { id: '6', school_id: DEMO_SCHOOL_ID, title: 'Blossoms of the Savannah', author: 'H. Ole Kulet', isbn: '978-9970-006', category: 'Novel', total_copies: 8, available_copies: 4, location: 'Shelf C1' },
+  { id: '7', school_id: DEMO_SCHOOL_ID, title: 'Oxford English Dictionary', author: 'Oxford', isbn: '978-9970-007', category: 'Reference', total_copies: 5, available_copies: 5, location: 'Shelf D1' },
+  { id: '8', school_id: DEMO_SCHOOL_ID, title: 'Atlas of Uganda', author: 'NEMA', isbn: '978-9970-008', category: 'Reference', total_copies: 4, available_copies: 3, location: 'Shelf D2' },
+  { id: '9', school_id: DEMO_SCHOOL_ID, title: 'Primary CRE Book 7', author: 'P. Tumusiime', isbn: '978-9970-009', category: 'Textbook', total_copies: 30, available_copies: 25, location: 'Shelf A3' },
+  { id: '10', school_id: DEMO_SCHOOL_ID, title: 'African Folktales', author: 'C. Okot', isbn: '978-9970-010', category: 'Story Book', total_copies: 15, available_copies: 12, location: 'Shelf C2' },
+]
+
+export const DEMO_BOOK_ISSUES: DemoBookIssue[] = [
+  { id: '1', book_id: '1', student_id: '23', issued_date: '2025-03-10', due_date: '2025-03-24', returned_date: null, status: 'issued' },
+  { id: '2', book_id: '2', student_id: '23', issued_date: '2025-03-10', due_date: '2025-03-24', returned_date: null, status: 'issued' },
+  { id: '3', book_id: '5', student_id: '25', issued_date: '2025-03-05', due_date: '2025-03-19', returned_date: '2025-03-18', status: 'returned' },
+  { id: '4', book_id: '3', student_id: '15', issued_date: '2025-03-12', due_date: '2025-03-26', returned_date: null, status: 'issued' },
+  { id: '5', book_id: '6', student_id: '17', issued_date: '2025-03-08', due_date: '2025-03-22', returned_date: null, status: 'overdue' },
+  { id: '6', book_id: '4', student_id: '1', issued_date: '2025-03-15', due_date: '2025-03-29', returned_date: null, status: 'issued' },
+  { id: '7', book_id: '10', student_id: '9', issued_date: '2025-03-14', due_date: '2025-03-28', returned_date: null, status: 'issued' },
+  { id: '8', book_id: '1', student_id: '24', issued_date: '2025-03-01', due_date: '2025-03-15', returned_date: '2025-03-14', status: 'returned' },
+]
+
+// Transport data
+export interface DemoTransportRoute {
+  id: string
+  school_id: string
+  route_name: string
+  vehicle_number: string
+  driver_name: string
+  driver_phone: string
+  capacity: number
+  current_students: number
+  transport_stops: Array<{ stop_name: string; arrival_time: string }>
+}
+
+export interface DemoTransportLog {
+  id: string
+  route_id: string
+  log_date: string
+  description: string
+  amount: number
+  status: 'completed' | 'pending'
+}
+
+export const DEMO_TRANSPORT_ROUTES: DemoTransportRoute[] = [
+  { id: '1', school_id: DEMO_SCHOOL_ID, route_name: 'Kampala North', vehicle_number: 'UGX 001A', driver_name: 'Moses Okello', driver_phone: '0772200001', capacity: 30, current_students: 24, transport_stops: [{ stop_name: 'Kawempe', arrival_time: '06:30' }, { stop_name: 'Kisenyi', arrival_time: '06:45' }, { stop_name: 'School', arrival_time: '07:15' }] },
+  { id: '2', school_id: DEMO_SCHOOL_ID, route_name: 'Kampala South', vehicle_number: 'UGX 002A', driver_name: 'Isaac Ssemakula', driver_phone: '0772200002', capacity: 30, current_students: 18, transport_stops: [{ stop_name: 'Nsambya', arrival_time: '06:30' }, { stop_name: 'Katwe', arrival_time: '06:50' }, { stop_name: 'School', arrival_time: '07:20' }] },
+  { id: '3', school_id: DEMO_SCHOOL_ID, route_name: 'Kampala West', vehicle_number: 'UGX 003A', driver_name: 'Peter Mugisha', driver_phone: '0772200003', capacity: 25, current_students: 20, transport_stops: [{ stop_name: 'Bwaise', arrival_time: '06:25' }, { stop_name: 'Ndeeba', arrival_time: '06:50' }, { stop_name: 'School', arrival_time: '07:20' }] },
+]
+
+export const DEMO_TRANSPORT_LOGS: DemoTransportLog[] = [
+  { id: '1', route_id: '1', log_date: '2025-03-20', description: 'Fuel refill - 50L diesel', amount: 250000, status: 'completed' },
+  { id: '2', route_id: '1', log_date: '2025-03-15', description: 'Oil change', amount: 180000, status: 'completed' },
+  { id: '3', route_id: '2', log_date: '2025-03-18', description: 'Fuel refill - 40L diesel', amount: 200000, status: 'completed' },
+  { id: '4', route_id: '3', log_date: '2025-03-22', description: 'Tire replacement (front left)', amount: 350000, status: 'completed' },
+  { id: '5', route_id: '2', log_date: '2025-03-25', description: 'Brake pad replacement', amount: 120000, status: 'pending' },
+]
+
+// Health data
+export interface DemoHealthRecord {
+  id: string
+  student_id: string
+  school_id: string
+  record_type: string
+  notes: string
+  record_date: string
+  treatment: string
+  recorded_by: string
+}
+
+export const DEMO_HEALTH_RECORDS: DemoHealthRecord[] = [
+  { id: '1', student_id: '28', school_id: DEMO_SCHOOL_ID, record_type: 'Illness', notes: 'Fever and headache', record_date: '2025-03-24', treatment: 'Given paracetamol, sent home', recorded_by: '1' },
+  { id: '2', student_id: '4', school_id: DEMO_SCHOOL_ID, record_type: 'Illness', notes: 'Stomach ache', record_date: '2025-03-24', treatment: 'Rest in sick bay, improved', recorded_by: '1' },
+  { id: '3', student_id: '16', school_id: DEMO_SCHOOL_ID, record_type: 'Injury', notes: 'Scraped knee during football', record_date: '2025-03-20', treatment: 'Cleaned and bandaged', recorded_by: '1' },
+  { id: '4', student_id: '7', school_id: DEMO_SCHOOL_ID, record_type: 'Check-up', notes: 'Routine health check', record_date: '2025-03-15', treatment: 'All clear', recorded_by: '1' },
+  { id: '5', student_id: '1', school_id: DEMO_SCHOOL_ID, record_type: 'Vaccination', notes: 'HPV vaccine dose 1', record_date: '2025-03-10', treatment: 'Administered', recorded_by: '1' },
+  { id: '6', student_id: '3', school_id: DEMO_SCHOOL_ID, record_type: 'First Aid', notes: 'Minor cut on finger', record_date: '2025-03-22', treatment: 'Cleaned and bandaged', recorded_by: '1' },
+  { id: '7', student_id: '18', school_id: DEMO_SCHOOL_ID, record_type: 'Illness', notes: 'Malaria symptoms', record_date: '2025-03-18', treatment: 'Referred to health center', recorded_by: '1' },
+  { id: '8', student_id: '11', school_id: DEMO_SCHOOL_ID, record_type: 'Eye Exam', notes: 'Difficulty reading board', record_date: '2025-03-12', treatment: 'Recommended eye test', recorded_by: '1' },
+]
+
+// Timetable data
+export interface DemoTimetableEntry {
+  id: string
+  school_id: string
+  class_id: string
+  subject_id: string
+  teacher_id: string
+  day_of_week: string
+  start_time: string
+  end_time: string
+}
+
+export const DEMO_TIMETABLE: DemoTimetableEntry[] = [
+  // P.7A Monday
+  { id: '1', school_id: DEMO_SCHOOL_ID, class_id: '13', subject_id: '1', teacher_id: '4', day_of_week: 'monday', start_time: '08:00', end_time: '08:40' },
+  { id: '2', school_id: DEMO_SCHOOL_ID, class_id: '13', subject_id: '2', teacher_id: '2', day_of_week: 'monday', start_time: '08:40', end_time: '09:20' },
+  { id: '3', school_id: DEMO_SCHOOL_ID, class_id: '13', subject_id: '3', teacher_id: '6', day_of_week: 'monday', start_time: '09:40', end_time: '10:20' },
+  { id: '4', school_id: DEMO_SCHOOL_ID, class_id: '13', subject_id: '4', teacher_id: '5', day_of_week: 'monday', start_time: '10:20', end_time: '11:00' },
+  { id: '5', school_id: DEMO_SCHOOL_ID, class_id: '13', subject_id: '5', teacher_id: '7', day_of_week: 'monday', start_time: '11:20', end_time: '12:00' },
+  { id: '6', school_id: DEMO_SCHOOL_ID, class_id: '13', subject_id: '6', teacher_id: '12', day_of_week: 'monday', start_time: '14:00', end_time: '14:40' },
+  // P.7A Tuesday
+  { id: '7', school_id: DEMO_SCHOOL_ID, class_id: '13', subject_id: '2', teacher_id: '2', day_of_week: 'tuesday', start_time: '08:00', end_time: '08:40' },
+  { id: '8', school_id: DEMO_SCHOOL_ID, class_id: '13', subject_id: '1', teacher_id: '4', day_of_week: 'tuesday', start_time: '08:40', end_time: '09:20' },
+  { id: '9', school_id: DEMO_SCHOOL_ID, class_id: '13', subject_id: '4', teacher_id: '5', day_of_week: 'tuesday', start_time: '09:40', end_time: '10:20' },
+  { id: '10', school_id: DEMO_SCHOOL_ID, class_id: '13', subject_id: '3', teacher_id: '6', day_of_week: 'tuesday', start_time: '10:20', end_time: '11:00' },
+  { id: '11', school_id: DEMO_SCHOOL_ID, class_id: '13', subject_id: '7', teacher_id: '14', day_of_week: 'tuesday', start_time: '11:20', end_time: '12:00' },
+  // P.5A Monday
+  { id: '12', school_id: DEMO_SCHOOL_ID, class_id: '9', subject_id: '1', teacher_id: '13', day_of_week: 'monday', start_time: '08:00', end_time: '08:40' },
+  { id: '13', school_id: DEMO_SCHOOL_ID, class_id: '9', subject_id: '2', teacher_id: '15', day_of_week: 'monday', start_time: '08:40', end_time: '09:20' },
+  { id: '14', school_id: DEMO_SCHOOL_ID, class_id: '9', subject_id: '3', teacher_id: '10', day_of_week: 'monday', start_time: '09:40', end_time: '10:20' },
+  { id: '15', school_id: DEMO_SCHOOL_ID, class_id: '9', subject_id: '4', teacher_id: '11', day_of_week: 'monday', start_time: '10:20', end_time: '11:00' },
+  // P.1 Monday
+  { id: '16', school_id: DEMO_SCHOOL_ID, class_id: '4', subject_id: '1', teacher_id: '8', day_of_week: 'monday', start_time: '08:00', end_time: '08:40' },
+  { id: '17', school_id: DEMO_SCHOOL_ID, class_id: '4', subject_id: '2', teacher_id: '8', day_of_week: 'monday', start_time: '08:40', end_time: '09:20' },
+  { id: '18', school_id: DEMO_SCHOOL_ID, class_id: '4', subject_id: '5', teacher_id: '9', day_of_week: 'monday', start_time: '09:40', end_time: '10:20' },
+  { id: '19', school_id: DEMO_SCHOOL_ID, class_id: '4', subject_id: '6', teacher_id: '12', day_of_week: 'monday', start_time: '10:20', end_time: '11:00' },
+]
+
+// Discipline data
+export const DEMO_DISCIPLINE_RECORDS: DemoDiscipline[] = [
+  { id: '1', student_id: '24', incident_type: 'misbehavior', description: 'Talking during exam', action_taken: 'Verbal warning', reported_by: '4', date: '2025-03-20', parent_notified: false },
+  { id: '2', student_id: '18', incident_type: 'late', description: 'Late for 3 consecutive days', action_taken: 'Detention after school', reported_by: '13', date: '2025-03-22', parent_notified: true },
+  { id: '3', student_id: '4', incident_type: 'uniform', description: 'Not wearing proper uniform', action_taken: 'Sent home to change', reported_by: '8', date: '2025-03-24', parent_notified: true },
+  { id: '4', student_id: '26', incident_type: 'bullying', description: 'Pushing younger students', action_taken: 'Suspension - 1 day', reported_by: '17', date: '2025-03-18', parent_notified: true },
+  { id: '5', student_id: '10', incident_type: 'misbehavior', description: 'Not completing homework', action_taken: 'Extra homework assigned', reported_by: '10', date: '2025-03-21', parent_notified: false },
+]
+
+// Inventory/Asset data
+export interface DemoAsset {
+  id: string
+  school_id: string
+  name: string
+  category: string
+  quantity: number
+  condition: 'good' | 'fair' | 'poor'
+  purchase_date: string
+  purchase_cost: number
+  location: string
+}
+
+export const DEMO_ASSETS: DemoAsset[] = [
+  { id: '1', school_id: DEMO_SCHOOL_ID, name: 'Desktop Computers', category: 'IT Equipment', quantity: 20, condition: 'good', purchase_date: '2022-01-15', purchase_cost: 12000000, location: 'Computer Lab' },
+  { id: '2', school_id: DEMO_SCHOOL_ID, name: 'Student Desks', category: 'Furniture', quantity: 200, condition: 'good', purchase_date: '2020-06-01', purchase_cost: 8000000, location: 'Classrooms' },
+  { id: '3', school_id: DEMO_SCHOOL_ID, name: 'Teacher Tables', category: 'Furniture', quantity: 18, condition: 'good', purchase_date: '2020-06-01', purchase_cost: 3600000, location: 'Classrooms' },
+  { id: '4', school_id: DEMO_SCHOOL_ID, name: 'School Bus', category: 'Vehicle', quantity: 1, condition: 'fair', purchase_date: '2018-03-10', purchase_cost: 45000000, location: 'Parking' },
+  { id: '5', school_id: DEMO_SCHOOL_ID, name: 'Projector', category: 'IT Equipment', quantity: 2, condition: 'good', purchase_date: '2023-06-15', purchase_cost: 3000000, location: 'Staff Room' },
+  { id: '6', school_id: DEMO_SCHOOL_ID, name: 'Science Lab Equipment', category: 'Lab Equipment', quantity: 15, condition: 'fair', purchase_date: '2021-01-20', purchase_cost: 5000000, location: 'Science Lab' },
+  { id: '7', school_id: DEMO_SCHOOL_ID, name: 'Library Books', category: 'Books', quantity: 500, condition: 'good', purchase_date: '2023-01-10', purchase_cost: 4000000, location: 'Library' },
+  { id: '8', school_id: DEMO_SCHOOL_ID, name: 'Sports Equipment', category: 'Sports', quantity: 30, condition: 'good', purchase_date: '2024-02-01', purchase_cost: 2000000, location: 'Sports Store' },
+  { id: '9', school_id: DEMO_SCHOOL_ID, name: 'Whiteboards', category: 'Teaching Aids', quantity: 14, condition: 'good', purchase_date: '2022-08-15', purchase_cost: 2800000, location: 'Classrooms' },
+  { id: '10', school_id: DEMO_SCHOOL_ID, name: 'Printer', category: 'IT Equipment', quantity: 3, condition: 'poor', purchase_date: '2019-05-20', purchase_cost: 1500000, location: 'Admin Office' },
+]
+
+// Budget data
+export interface DemoBudget {
+  id: string
+  school_id: string
+  category: string
+  allocated: number
+  spent: number
+  term: number
+  academic_year: string
+}
+
+export const DEMO_BUDGETS: DemoBudget[] = [
+  { id: '1', school_id: DEMO_SCHOOL_ID, category: 'Salaries', allocated: 45000000, spent: 30000000, term: 1, academic_year: '2025' },
+  { id: '2', school_id: DEMO_SCHOOL_ID, category: 'Supplies', allocated: 5000000, spent: 3500000, term: 1, academic_year: '2025' },
+  { id: '3', school_id: DEMO_SCHOOL_ID, category: 'Maintenance', allocated: 3000000, spent: 2200000, term: 1, academic_year: '2025' },
+  { id: '4', school_id: DEMO_SCHOOL_ID, category: 'Utilities', allocated: 2000000, spent: 1350000, term: 1, academic_year: '2025' },
+  { id: '5', school_id: DEMO_SCHOOL_ID, category: 'Transport', allocated: 4000000, spent: 2800000, term: 1, academic_year: '2025' },
+  { id: '6', school_id: DEMO_SCHOOL_ID, category: 'Sports', allocated: 1500000, spent: 800000, term: 1, academic_year: '2025' },
+  { id: '7', school_id: DEMO_SCHOOL_ID, category: 'UNEB', allocated: 3000000, spent: 2400000, term: 1, academic_year: '2025' },
+  { id: '8', school_id: DEMO_SCHOOL_ID, category: 'IT', allocated: 2000000, spent: 1200000, term: 1, academic_year: '2025' },
+]
+
+// Dorm data
+export interface DemoDorm {
+  id: string
+  school_id: string
+  name: string
+  type: 'boys' | 'girls' | 'mixed'
+  capacity: number
+  current_occupancy: number
+  dorm_master_id: string
+}
+
+export const DEMO_DORMS: DemoDorm[] = [
+  { id: '1', school_id: DEMO_SCHOOL_ID, name: 'Kampala Hall', type: 'boys', capacity: 40, current_occupancy: 32, dorm_master_id: '18' },
+  { id: '2', school_id: DEMO_SCHOOL_ID, name: 'Nile Hall', type: 'girls', capacity: 40, current_occupancy: 35, dorm_master_id: '7' },
+  { id: '3', school_id: DEMO_SCHOOL_ID, name: 'Victoria Hall', type: 'boys', capacity: 30, current_occupancy: 22, dorm_master_id: '16' },
 ]
