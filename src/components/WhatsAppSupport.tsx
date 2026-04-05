@@ -24,8 +24,8 @@ export default function WhatsAppSupport() {
               <MaterialIcon className="text-white text-sm">support_agent</MaterialIcon>
             </div>
             <div>
-              <div className="text-white font-semibold text-sm">Omuto Support</div>
-              <div className="text-white/80 text-xs">We typically reply in minutes</div>
+              <div className="text-white font-semibold text-sm">ASSEMBLE Support</div>
+              <div className="text-white/80 text-xs">Powered by Omuto Foundation</div>
             </div>
             <button onClick={() => setShow(false)} className="ml-auto text-white/80 hover:text-white">
               <MaterialIcon className="text-lg">close</MaterialIcon>
