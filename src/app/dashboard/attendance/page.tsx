@@ -373,7 +373,7 @@ export default function AttendancePage() {
                 <option value="">Select a class</option>
                 {filteredClasses.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name} ({c.level})
+                    {c.name}{c.stream ? ` ${c.stream}` : ''} ({c.level})
                   </option>
                 ))}
               </select>
@@ -414,7 +414,7 @@ export default function AttendancePage() {
       ) : (
         <>
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-3 text-center">
+            <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-3 text-center" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
               <div className="text-2xl md:text-3xl font-bold text-secondary">
                 {presentCount}
               </div>
@@ -422,7 +422,7 @@ export default function AttendancePage() {
                 Present
               </div>
             </div>
-            <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-3 text-center">
+            <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-3 text-center" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
               <div className="text-2xl md:text-3xl font-bold text-error">
                 {absentCount}
               </div>
@@ -430,7 +430,7 @@ export default function AttendancePage() {
                 Absent
               </div>
             </div>
-            <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-3 text-center">
+            <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-3 text-center" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
               <div className="text-2xl md:text-3xl font-bold text-tertiary">
                 {lateCount}
               </div>
