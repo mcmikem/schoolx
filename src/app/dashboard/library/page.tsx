@@ -80,15 +80,18 @@ export default function LibraryPage() {
         supabase.from('book_checkouts').select('*, books(title), students(first_name, last_name)').eq('school_id', school.id).not('return_date', 'is', null).order('return_date', { ascending: false }),
       ])
 
-      if (booksRes.error) throw booksRes.error
-      if (checkoutsRes.error) throw checkoutsRes.error
-      if (historyRes.error) throw historyRes.error
+      if (booksRes.error && booksRes.error.code !== '42P01') throw booksRes.error
+      if (checkoutsRes.error && checkoutsRes.error.code !== '42P01') throw checkoutsRes.error
+      if (historyRes.error && historyRes.error.code !== '42P01') throw historyRes.error
 
       setBooks(booksRes.data || [])
       setCheckouts(checkoutsRes.data || [])
       setHistory(historyRes.data || [])
     } catch (err) {
       console.error('Error:', err)
+      setBooks([])
+      setCheckouts([])
+      setHistory([])
     } finally {
       setLoading(false)
     }
@@ -114,7 +117,14 @@ export default function LibraryPage() {
         location: newBook.location || null,
       })
 
-      if (error) throw error
+      if (error) {
+        if (error.code === '42P01') {
+          toast.error('Library tables not set up. Contact your admin.')
+        } else {
+          toast.error(error.message || 'Failed to add book')
+        }
+        return
+      }
       toast.success('Book added')
       setShowAddBook(false)
       setNewBook({ title: '', author: '', isbn: '', category: '', copies: '1', location: '' })
