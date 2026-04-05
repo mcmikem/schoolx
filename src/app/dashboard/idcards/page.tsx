@@ -177,6 +177,8 @@ export default function IDCardsPage() {
             <div class="student-info">Class: ${escapeHtml(student.classes?.name || "N/A")}</div>
             <div class="student-info">Student No: ${escapeHtml(student.student_number || "N/A")}</div>
             <div class="student-info">Gender: ${student.gender === "M" ? "Male" : "Female"}</div>
+            ${(student as any).boarding_status && (student as any).boarding_status !== 'day' ? `<div class="student-info">Boarder: ${(student as any).boarding_status}</div>` : ''}
+            ${(student as any).houses?.name ? `<div class="student-info">House: ${(student as any).houses.name}</div>` : ''}
             <div class="barcode"></div>
           </div>
         </div>
