@@ -59,11 +59,18 @@ export default function HealthPage() {
         .eq('school_id', school.id)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        // Table doesn't exist - use demo data
+        if (error.code === '42P01' || error.code === 'PGRST116') {
+          setRecords([])
+          return
+        }
+        throw error
+      }
       setRecords(data || [])
     } catch (err) {
       console.error('Error fetching health records:', err)
-      toast.error('Failed to load health records')
+      setRecords([])
     } finally {
       setLoading(false)
     }
@@ -118,7 +125,14 @@ export default function HealthPage() {
           .insert(payload))
       }
 
-      if (error) throw error
+      if (error) {
+        if (error.code === '42P01') {
+          toast.error('Health records table not set up. Contact your admin.')
+        } else {
+          throw error
+        }
+        return
+      }
 
       toast.success(editingRecord ? 'Record updated' : 'Record added')
       closeModal()

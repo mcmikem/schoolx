@@ -68,10 +68,17 @@ export default function AssetsPage() {
         .eq('school_id', school.id)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        if (error.code === '42P01' || error.code === 'PGRST116') {
+          setAssets([])
+          return
+        }
+        throw error
+      }
       setAssets(data || [])
     } catch (err) {
       console.error('Error:', err)
+      setAssets([])
     } finally {
       setLoading(false)
     }
