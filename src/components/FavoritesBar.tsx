@@ -12,7 +12,7 @@ interface PinnedItem {
   icon: string;
 }
 
-const FAVORITES_KEY = "schoolx_pinned_items";
+const FAVORITES_KEY = "assemble_pinned_items";
 
 const defaultPins: PinnedItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },

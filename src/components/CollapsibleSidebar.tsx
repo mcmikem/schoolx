@@ -32,7 +32,7 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('schoolx_recent_pages')
+      const saved = localStorage.getItem('assemble_recent_pages')
       if (saved) setRecentPages(JSON.parse(saved))
     } catch {
       // Ignore localStorage parsing issues
@@ -40,6 +40,7 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
   }, [])
 
   const normalizedQuery = query.trim().toLowerCase()
+
   const filteredGroups = normalizedQuery
     ? groups
         .map(group => ({
