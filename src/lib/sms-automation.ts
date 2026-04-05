@@ -62,6 +62,20 @@ export function generateSMSTemplate(
   return message
 }
 
+async function sendSMSViaAPI(phone: string, message: string): Promise<boolean> {
+  try {
+    const response = await fetch('/api/sms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, message, schoolId: 'system', type: 'individual' }),
+    })
+    const result = await response.json()
+    return result?.success || result?.data?.status === 'sent'
+  } catch {
+    return false
+  }
+}
+
 async function logSMS(
   schoolId: string,
   entry: {
@@ -85,16 +99,21 @@ async function logSMS(
   }
 
   if (!isDemo) {
+    // Actually send the SMS via Africa's Talking API
+    const sent = await sendSMSViaAPI(entry.parent_phone, entry.message)
+
     await supabase.from("sms_logs").insert({
       school_id: schoolId,
       automation_type: entry.automation_type,
       student_id: entry.student_id,
       parent_phone: entry.parent_phone,
       message: entry.message,
-      status: entry.status,
+      status: sent ? 'sent' : 'failed',
       metadata: entry.metadata || {},
       sent_at: new Date().toISOString(),
     })
+
+    logEntry.status = sent ? 'sent' : 'failed'
   }
 
   return logEntry
