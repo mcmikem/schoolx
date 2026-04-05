@@ -8,7 +8,8 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Button } from '@/components/ui/index'
 import { EmptyState } from '@/components/EmptyState'
-import { computeSubjectTotal, generateAutoComment, getPLEGrade } from '@/lib/automation'
+import { computeSubjectTotal, generateAutoComment } from '@/lib/automation'
+import { getPLEGrade } from '@/lib/grading'
 
 interface StudentReport {
   student_id: string
@@ -189,10 +190,9 @@ export default function BatchReportsPage() {
     const { sendReportCardReady } = await import('@/lib/sms-automation')
     for (const report of reports) {
       await sendReportCardReady({
-        studentId: report.student_id,
-        term: parseInt(term),
         schoolId: school?.id,
         isDemo,
+        term: parseInt(term),
       })
     }
     toast.success('SMS notifications sent')
