@@ -142,6 +142,11 @@ export default function StudentProfilePage({
                 <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100/50">
                   {student.status}
                 </span>
+                {(student as any).boarding_status && (student as any).boarding_status !== 'day' && (
+                  <span className="px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-purple-100/50">
+                    {(student as any).boarding_status}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -155,7 +160,7 @@ export default function StudentProfilePage({
                 },
                 {
                   label: "Class",
-                  value: student.classes?.name || "N/A",
+                  value: student.classes?.name ? `${student.classes.name}${student.classes?.stream ? ` ${student.classes.stream}` : ""}` : "N/A",
                   color: "text-blue-600",
                 },
                 {
@@ -390,7 +395,7 @@ export default function StudentProfilePage({
           },
           {
             label: "Class",
-            value: student.classes?.name || "N/A",
+            value: student.classes?.name ? `${student.classes.name}${student.classes?.stream ? ` ${student.classes.stream}` : ""}` : "N/A",
             icon: GraduationCap,
             color: "bg-primary-500",
           },
