@@ -144,7 +144,7 @@ export default function FeesPage() {
         id: student.id,
         name: `${student.first_name} ${student.last_name}`,
         student_number: student.student_number || "",
-        class_name: student.classes?.name || "",
+        class_name: student.classes?.name ? `${student.classes.name}${student.classes.stream ? ` ${student.classes.stream}` : ''}` : "",
         expected: feePosition.totalExpected,
         paid: feePosition.totalPaid,
         balance: feePosition.balance,
