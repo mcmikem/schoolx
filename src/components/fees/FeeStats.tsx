@@ -21,7 +21,7 @@ const formatCurrency = (amount: number) => `UGX ${amount.toLocaleString()}`
 export default function FeeStats({ stats, paymentsCount }: FeeStatsProps) {
   return (
     <div className="stat-grid">
-      <div className="stat-card" style={{ borderTop: '4px solid var(--red)' }}>
+      <div className="stat-card" style={{ borderTop: '4px solid var(--red)', boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
         <div className="stat-inner">
           <div className="stat-meta">
             <div className="stat-label">Total Arrears</div>
@@ -35,7 +35,7 @@ export default function FeeStats({ stats, paymentsCount }: FeeStatsProps) {
           </div>
         </div>
       </div>
-      <div className="bg-surface-container-lowest p-6 rounded-xl border-t-4 border-secondary relative overflow-hidden group hover:bg-surface-bright transition-colors">
+      <div className="bg-surface-container-lowest p-6 rounded-xl border-t-4 border-secondary relative overflow-hidden group hover:bg-surface-bright transition-colors" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
         <div className="flex justify-between items-start mb-4">
           <MaterialIcon icon="payments" className="text-secondary bg-secondary-container p-2 rounded-lg" style={{ fontVariationSettings: 'FILL 1' }} />
           <span className="text-[10px] font-bold tracking-widest uppercase text-on-surface-variant opacity-60">Real-time</span>
@@ -47,7 +47,7 @@ export default function FeeStats({ stats, paymentsCount }: FeeStatsProps) {
           <span>{stats.fullyPaid} Fully Paid</span>
         </div>
       </div>
-      <div className="bg-surface-container-lowest p-6 rounded-xl border-t-4 border-tertiary-fixed-dim relative overflow-hidden group hover:bg-surface-bright transition-colors">
+      <div className="bg-surface-container-lowest p-6 rounded-xl border-t-4 border-tertiary-fixed-dim relative overflow-hidden group hover:bg-surface-bright transition-colors" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
         <div className="flex justify-between items-start mb-4">
           <MaterialIcon icon="sync" className="text-tertiary bg-tertiary-fixed p-2 rounded-lg" style={{ fontVariationSettings: 'FILL 1' }} />
           <span className="text-[10px] font-bold tracking-widest uppercase text-on-surface-variant opacity-60">Processing</span>

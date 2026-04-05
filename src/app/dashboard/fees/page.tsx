@@ -42,9 +42,7 @@ export default function FeesPage() {
   );
   const receiptRef = useRef<HTMLDivElement>(null);
 
-  const [tab, setTab] = useState<
-    "balances" | "payments" | "momo" | "structure"
-  >("balances");
+  const [tab, setTab] = useState<"balances" | "payments" | "structure">("balances");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
@@ -562,7 +560,7 @@ export default function FeesPage() {
               <option value="all">All Classes</option>
               {classes.map((c) => (
                 <option key={c.id} value={c.name}>
-                  {c.name}
+                  {c.name}{c.stream ? ` ${c.stream}` : ''}
                 </option>
               ))}
             </select>
