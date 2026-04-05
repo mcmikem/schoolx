@@ -191,8 +191,11 @@ export default function LoginPage() {
 
       console.log("Login success, user:", data.user.id);
       toast.success("Login successful!");
-      router.push("/dashboard");
-      router.refresh();
+      
+      // Wait a moment for auth to settle, then redirect
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 500);
     } catch (err: unknown) {
       console.error("Login exception:", err);
       const errorMessage =
