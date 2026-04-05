@@ -47,6 +47,12 @@ export default function LoginPage() {
 
   const demoAccounts = [
     {
+      role: "Super Admin",
+      phone: "0700000000",
+      password: DEMO_PASSWORD,
+      label: "Super Admin (System)",
+    },
+    {
       role: "Headmaster",
       phone: "0700000001",
       password: DEMO_PASSWORD,
@@ -91,6 +97,11 @@ export default function LoginPage() {
       string,
       { role: string; name: string; school_id: string }
     > = {
+      "0700000000": {
+        role: "super_admin",
+        name: "Super Admin",
+        school_id: "system-admin",
+      },
       "0700000001": {
         role: "headmaster",
         name: "John Headmaster",
@@ -146,12 +157,13 @@ export default function LoginPage() {
     // Normal login - Supabase auth
     try {
       if (!supabase) {
-        toast.error(t("auth.supabaseNotConfigured"));
+        toast.error("Supabase not configured. Please check environment variables.");
         setLoading(false);
         return;
       }
 
       const email = `${cleanPhone}@omuto.sms`;
+      console.log("Attempting login with:", email);
 
       const { data, error: authError } = await supabase.auth.signInWithPassword(
         {
@@ -161,8 +173,9 @@ export default function LoginPage() {
       );
 
       if (authError) {
+        console.error("Auth error:", authError);
         if (authError.message.includes("Invalid login credentials")) {
-          toast.error(t("auth.invalidCredentials"));
+          toast.error("Invalid phone number or password");
         } else {
           toast.error(authError.message);
         }
@@ -171,17 +184,19 @@ export default function LoginPage() {
       }
 
       if (!data.user) {
-        toast.error(t("auth.loginFailed"));
+        toast.error("Login failed - no user found");
         setLoading(false);
         return;
       }
 
-      toast.success(t("auth.welcomeBack"));
+      console.log("Login success, user:", data.user.id);
+      toast.success("Login successful!");
       router.push("/dashboard");
       router.refresh();
     } catch (err: unknown) {
+      console.error("Login exception:", err);
       const errorMessage =
-        err instanceof Error ? err.message : t("error.defaultError");
+        err instanceof Error ? err.message : "An error occurred";
       toast.error(errorMessage);
     } finally {
       setLoading(false);
