@@ -97,6 +97,20 @@ export default function SettingsPage() {
   const [storageStatus, setStorageStatus] = useState<'unknown' | 'ok' | 'error'>('unknown')
   const [selectedStage, setSelectedStage] = useState<FeatureStage>(school?.feature_stage as FeatureStage || DEFAULT_FEATURE_STAGE)
   const [savingStage, setSavingStage] = useState(false)
+  const [schoolConfig, setSchoolConfig] = useState({
+    student_id_format: (school as any)?.student_id_format || 'STU{YYYY}{####}',
+    has_boarding: (school as any)?.has_boarding || false,
+    has_houses: (school as any)?.has_houses || false,
+    has_student_council: (school as any)?.has_student_council || false,
+    has_prefects: (school as any)?.has_prefects || false,
+    location_type: (school as any)?.location_type || 'urban',
+  })
+  const [savingConfig, setSavingConfig] = useState(false)
+  const [houses, setHouses] = useState<any[]>([])
+  const [loadingHouses, setLoadingHouses] = useState(false)
+  const [showAddHouse, setShowAddHouse] = useState(false)
+  const [newHouse, setNewHouse] = useState({ name: '', color: '#3b82f6', motto: '' })
+  const sc = school as any
   const selectedRoleOption = ROLE_OPTIONS.find((option) => option.value === newUser.role)
   const missingModules = selectedRoleOption?.modules.filter((module) => !canUseModule(selectedStage, module)) || []
   const missingModuleLabels = missingModules.map((module) => MODULE_LABELS[module])
@@ -263,6 +277,76 @@ export default function SettingsPage() {
     }
   }, [school?.id])
 
+  const fetchHouses = useCallback(async () => {
+    if (!school?.id) return
+    try {
+      setLoadingHouses(true)
+      const { data } = await supabase.from('houses').select('*').eq('school_id', school.id).order('name')
+      setHouses(data || [])
+    } catch {
+      setHouses([])
+    } finally {
+      setLoadingHouses(false)
+    }
+  }, [school?.id])
+
+  useEffect(() => {
+    if (activeTab === 'config' && school?.id) {
+      fetchHouses()
+    }
+  }, [activeTab, school?.id, fetchHouses])
+
+  const saveSchoolConfig = async () => {
+    if (!school?.id) return
+    try {
+      setSavingConfig(true)
+      const { error } = await supabase.from('schools').update({
+        student_id_format: schoolConfig.student_id_format,
+        has_boarding: schoolConfig.has_boarding,
+        has_houses: schoolConfig.has_houses,
+        has_student_council: schoolConfig.has_student_council,
+        has_prefects: schoolConfig.has_prefects,
+        location_type: schoolConfig.location_type,
+      }).eq('id', school.id)
+      if (error) throw error
+      toast.success('School configuration saved')
+      await refreshSchool()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save')
+    } finally {
+      setSavingConfig(false)
+    }
+  }
+
+  const addHouse = async () => {
+    if (!school?.id || !newHouse.name) return
+    try {
+      const { error } = await supabase.from('houses').insert({
+        school_id: school.id,
+        name: newHouse.name,
+        color: newHouse.color,
+        motto: newHouse.motto || null,
+      })
+      if (error) throw error
+      toast.success('House added')
+      setShowAddHouse(false)
+      setNewHouse({ name: '', color: '#3b82f6', motto: '' })
+      fetchHouses()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed')
+    }
+  }
+
+  const deleteHouse = async (id: string) => {
+    try {
+      await supabase.from('houses').delete().eq('id', id)
+      toast.success('House deleted')
+      fetchHouses()
+    } catch {
+      toast.error('Failed to delete')
+    }
+  }
+
   useEffect(() => {
     if (activeTab === 'users' && school?.id) {
       fetchUsers()
@@ -339,6 +423,7 @@ export default function SettingsPage() {
 
   const tabs = [
     { id: 'general', label: 'School Details' },
+    { id: 'config', label: 'School Config', badge: 'New' },
     { id: 'users', label: 'Staff & Users' },
     { id: 'notifications', label: 'Notifications' },
     { id: 'backup', label: 'Backup & Export' },
@@ -368,6 +453,79 @@ export default function SettingsPage() {
             refreshSchool={refreshSchool}
           />
           <AcademicSettings />
+        </div>
+      </TabPanel>
+
+      <TabPanel activeTab={activeTab} tabId="config">
+        <div className="space-y-6">
+          {/* School Type */}
+          <Card><CardBody>
+            <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-4">School Type</h2>
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {(['urban', 'peri_urban', 'rural'] as const).map(type => (
+                <button key={type} onClick={() => setSchoolConfig({...schoolConfig, location_type: type})} className={`p-4 rounded-xl border-2 text-center transition-all ${schoolConfig.location_type === type ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                  <div className="font-medium capitalize">{type.replace('_', ' ')}</div>
+                </button>
+              ))}
+            </div>
+            <div className="space-y-3">
+              {[
+                { key: 'has_boarding', label: 'Boarding School', desc: 'Students stay overnight' },
+                { key: 'has_houses', label: 'House System', desc: 'Students belong to colored houses (e.g., Nile, Victoria)' },
+                { key: 'has_student_council', label: 'Student Council', desc: 'President, VP, Secretary, etc.' },
+                { key: 'has_prefects', label: 'Prefects', desc: 'Head Boy, Head Girl, Sports Prefect, etc.' },
+              ].map(({ key, label, desc }) => (
+                <label key={key} className="flex items-center justify-between p-3 bg-[var(--surface-container)] rounded-xl cursor-pointer">
+                  <div>
+                    <div className="font-medium text-[var(--on-surface)]">{label}</div>
+                    <div className="text-xs text-[var(--t3)]">{desc}</div>
+                  </div>
+                  <input type="checkbox" checked={(schoolConfig as any)[key]} onChange={(e) => setSchoolConfig({...schoolConfig, [key]: e.target.checked})} className="w-5 h-5 rounded border-[var(--border)] text-[var(--primary)]" />
+                </label>
+              ))}
+            </div>
+          </CardBody></Card>
+
+          {/* Student ID Format */}
+          <Card><CardBody>
+            <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-2">Student ID Format</h2>
+            <p className="text-sm text-[var(--t3)] mb-4">Customize how student numbers are generated. Tokens: <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs">{`{YYYY}`}</code> = year, <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs">{`{####}`}</code> = sequential number, <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs">{`{CLASS}`}</code> = class code, <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs">{`{GENDER}`}</code> = M/F</p>
+            <input type="text" value={schoolConfig.student_id_format} onChange={(e) => setSchoolConfig({...schoolConfig, student_id_format: e.target.value})} className="input mb-2" placeholder="STU{YYYY}{####}" />
+            <div className="text-xs text-[var(--t3)]">Example: <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded">{schoolConfig.student_id_format.replace('{YYYY}', '2026').replace('{####}', '0001').replace('{CLASS}', 'P7').replace('{GENDER}', 'M')}</code></div>
+          </CardBody></Card>
+
+          {/* Houses */}
+          {schoolConfig.has_houses && (
+            <Card><CardBody>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-[var(--on-surface)]">Houses</h2>
+                <Button size="sm" onClick={() => setShowAddHouse(true)}><MaterialIcon icon="add" className="text-sm" /> Add House</Button>
+              </div>
+              {loadingHouses ? (
+                <div className="text-sm text-[var(--t3)]">Loading houses...</div>
+              ) : houses.length === 0 ? (
+                <div className="text-sm text-[var(--t3)]">No houses configured yet</div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {houses.map(house => (
+                    <div key={house.id} className="p-4 rounded-xl border-2 text-center" style={{ borderColor: house.color }}>
+                      <div className="w-10 h-10 rounded-full mx-auto mb-2" style={{ backgroundColor: house.color }} />
+                      <div className="font-semibold text-sm">{house.name}</div>
+                      {house.motto && <div className="text-xs text-[var(--t3)] italic mt-0.5">{house.motto}</div>}
+                      <button onClick={() => deleteHouse(house.id)} className="text-xs text-red-500 mt-2 hover:underline">Remove</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardBody></Card>
+          )}
+
+          <div className="flex justify-end">
+            <Button onClick={saveSchoolConfig} disabled={savingConfig} variant="primary">
+              <MaterialIcon icon="save" className="text-sm" />
+              {savingConfig ? 'Saving...' : 'Save Configuration'}
+            </Button>
+          </div>
         </div>
       </TabPanel>
 
@@ -632,6 +790,42 @@ export default function SettingsPage() {
                   <Button type="submit" className="flex-1">Add User</Button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddHouse && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowAddHouse(false)}>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-[var(--border)]">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-[var(--on-surface)]">Add House</h2>
+                <button onClick={() => setShowAddHouse(false)} className="p-2 text-[var(--t3)] hover:text-[var(--on-surface)]">
+                  <MaterialIcon icon="close" className="text-xl" />
+                </button>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">House Name</label>
+                <input type="text" value={newHouse.name} onChange={(e) => setNewHouse({...newHouse, name: e.target.value})} className="input" placeholder="e.g., Nile" required />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Color</label>
+                <div className="flex items-center gap-3">
+                  <input type="color" value={newHouse.color} onChange={(e) => setNewHouse({...newHouse, color: e.target.value})} className="w-12 h-10 rounded border cursor-pointer" />
+                  <input type="text" value={newHouse.color} onChange={(e) => setNewHouse({...newHouse, color: e.target.value})} className="input flex-1" />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Motto (optional)</label>
+                <input type="text" value={newHouse.motto} onChange={(e) => setNewHouse({...newHouse, motto: e.target.value})} className="input" placeholder="e.g., Flowing Forward" />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowAddHouse(false)}>Cancel</Button>
+                <Button className="flex-1" onClick={addHouse}>Add House</Button>
+              </div>
             </div>
           </div>
         </div>
