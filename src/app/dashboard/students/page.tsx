@@ -491,9 +491,7 @@ export default function StudentsPage() {
         </div>
         <div className="flex flex-wrap gap-3 text-sm text-[var(--t3)]">
           <p className="flex-1 min-w-[220px]">
-            Download the structured templates, drop your data, and let the
-            AI-like parser map columns to fields. The preview lets you confirm
-            before seeding the students registry.
+            Download the structured templates, drop your data, and we'll auto-map columns to fields. Preview before confirming.
           </p>
           <div className="flex flex-wrap gap-2">
             <a
@@ -613,7 +611,7 @@ export default function StudentsPage() {
         className="grid grid-cols-1 md:grid-cols-4 gap-4"
         style={{ marginBottom: 20 }}
       >
-        <div className="card" style={{ padding: 16 }}>
+        <div className="card" style={{ padding: 16, boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
           <div
             style={{
               display: "flex",
@@ -660,7 +658,7 @@ export default function StudentsPage() {
             {students.length}
           </div>
         </div>
-        <div className="card" style={{ padding: 16 }}>
+        <div className="card" style={{ padding: 16, boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
           <div
             style={{
               display: "flex",
@@ -754,7 +752,7 @@ export default function StudentsPage() {
             {girlsCount}
           </div>
         </div>
-        <div className="card" style={{ padding: 16 }}>
+        <div className="card" style={{ padding: 16, boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
           <div
             style={{
               display: "flex",
@@ -861,7 +859,7 @@ export default function StudentsPage() {
             <option value="all">All Classes</option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name}
+                {c.name}{c.stream ? ` ${c.stream}` : ''}
               </option>
             ))}
           </select>
@@ -998,6 +996,11 @@ export default function StudentsPage() {
                         }}
                       >
                         {student.classes?.name}{student.classes?.stream ? ` ${student.classes.stream}` : ""}
+                        {(student as any).boarding_status && (student as any).boarding_status !== 'day' && (
+                          <span style={{ marginLeft: 4, fontSize: 9, padding: '1px 5px', background: 'rgba(155,89,182,0.15)', color: '#7c3aed', borderRadius: 8, fontWeight: 600 }}>
+                            {(student as any).boarding_status}
+                          </span>
+                        )}
                       </span>
                     </td>
                     <td data-label="Parent" style={{ fontSize: 13 }}>
