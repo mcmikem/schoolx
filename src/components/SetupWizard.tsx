@@ -14,8 +14,8 @@ interface Step {
 const steps: Step[] = [
   {
     id: "welcome",
-    title: "Welcome to SchoolX",
-    description: "Let's set up your school in 3 easy steps",
+    title: "Welcome to ASSEMBLE",
+    description: "Powered by Omuto Foundation. Let's set up your school in 3 easy steps",
     icon: "waving_hand",
   },
   {
