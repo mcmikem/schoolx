@@ -1,478 +1,151 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useToast } from '@/components/Toast'
-
+import { useAuth } from '@/lib/auth-context'
 import MaterialIcon from '@/components/MaterialIcon'
 
-const SQL_SCRIPT = `-- SchoolX Database Setup
--- Run this in Supabase SQL Editor
-
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- Schools table
-CREATE TABLE IF NOT EXISTS schools (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name TEXT NOT NULL,
-  school_code TEXT UNIQUE NOT NULL,
-  district TEXT NOT NULL,
-  subcounty TEXT,
-  parish TEXT,
-  village TEXT,
-  school_type TEXT DEFAULT 'primary',
-  ownership TEXT DEFAULT 'private',
-  phone TEXT,
-  email TEXT,
-  logo_url TEXT,
-  primary_color TEXT DEFAULT '#1e40af',
-  uneab_center_number TEXT,
-  subscription_plan TEXT DEFAULT 'free',
-  subscription_status TEXT DEFAULT 'trial',
-  feature_stage TEXT DEFAULT 'core',
-  trial_ends_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Users table
-CREATE TABLE IF NOT EXISTS users (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  auth_id UUID UNIQUE,
-  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-  full_name TEXT NOT NULL,
-  phone TEXT NOT NULL,
-  email TEXT,
-  role TEXT DEFAULT 'teacher',
-  avatar_url TEXT,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Students table
-CREATE TABLE IF NOT EXISTS students (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-  user_id UUID,
-  student_number TEXT,
-  first_name TEXT NOT NULL,
-  last_name TEXT NOT NULL,
-  gender TEXT CHECK (gender IN ('M', 'F')),
-  date_of_birth DATE,
-  parent_name TEXT,
-  parent_phone TEXT,
-  parent_phone2 TEXT,
-  parent_email TEXT,
-  address TEXT,
-  class_id UUID,
-  admission_date DATE DEFAULT CURRENT_DATE,
-  ple_index_number TEXT,
-  uneab_number TEXT,
-  blood_type TEXT,
-  religion TEXT,
-  nationality TEXT DEFAULT 'Ugandan',
-  photo_url TEXT,
-  status TEXT DEFAULT 'active',
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Classes table
-CREATE TABLE IF NOT EXISTS classes (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  level TEXT,
-  stream TEXT,
-  class_teacher_id UUID,
-  max_students INTEGER DEFAULT 50,
-  academic_year TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Subjects table
-CREATE TABLE IF NOT EXISTS subjects (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  code TEXT,
-  level TEXT DEFAULT 'both',
-  is_compulsory BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Attendance table
-CREATE TABLE IF NOT EXISTS attendance (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  student_id UUID REFERENCES students(id) ON DELETE CASCADE,
-  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
-  date DATE NOT NULL,
-  status TEXT CHECK (status IN ('present', 'absent', 'late', 'excused')),
-  remarks TEXT,
-  recorded_by UUID,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(student_id, date)
-);
-
--- Grades table
-CREATE TABLE IF NOT EXISTS grades (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  student_id UUID REFERENCES students(id) ON DELETE CASCADE,
-  subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
-  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
-  assessment_type TEXT CHECK (assessment_type IN ('ca1', 'ca2', 'ca3', 'ca4', 'project', 'exam')),
-  score NUMERIC DEFAULT 0,
-  max_score NUMERIC DEFAULT 100,
-  term INTEGER CHECK (term IN (1, 2, 3)),
-  academic_year TEXT,
-  recorded_by UUID,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(student_id, subject_id, assessment_type, term, academic_year)
-);
-
--- Fee structure table
-CREATE TABLE IF NOT EXISTS fee_structure (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  amount NUMERIC NOT NULL,
-  term INTEGER CHECK (term IN (1, 2, 3)),
-  academic_year TEXT,
-  due_date DATE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Fee payments table
-CREATE TABLE IF NOT EXISTS fee_payments (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  student_id UUID REFERENCES students(id) ON DELETE CASCADE,
-  fee_id UUID REFERENCES fee_structure(id) ON DELETE CASCADE,
-  amount_paid NUMERIC NOT NULL,
-  payment_method TEXT DEFAULT 'cash',
-  payment_reference TEXT,
-  paid_by TEXT,
-  notes TEXT,
-  payment_date DATE DEFAULT CURRENT_DATE,
-  recorded_by UUID,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Events table
-CREATE TABLE IF NOT EXISTS events (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  description TEXT,
-  event_type TEXT DEFAULT 'event',
-  start_date DATE NOT NULL,
-  end_date DATE,
-  created_by UUID,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Messages table
-CREATE TABLE IF NOT EXISTS messages (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-  recipient_type TEXT CHECK (recipient_type IN ('individual', 'class', 'all')),
-  recipient_id UUID,
-  phone TEXT,
-  message TEXT NOT NULL,
-  status TEXT DEFAULT 'pending',
-  sent_by UUID,
-  sent_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Timetable table
-CREATE TABLE IF NOT EXISTS timetable (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
-  subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
-  teacher_id UUID REFERENCES users(id),
-  day_of_week INTEGER CHECK (day_of_week BETWEEN 1 AND 6),
-  start_time TIME NOT NULL,
-  end_time TIME NOT NULL,
-  room TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Topic coverage table
-CREATE TABLE IF NOT EXISTS topic_coverage (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
-  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
-  topic_name TEXT NOT NULL,
-  status TEXT DEFAULT 'not_started',
-  teacher_id UUID REFERENCES users(id),
-  term INTEGER,
-  academic_year TEXT,
-  date_completed TIMESTAMPTZ,
-  notes TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Dorms table
-CREATE TABLE IF NOT EXISTS dorms (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  type TEXT CHECK (type IN ('boys', 'girls', 'mixed')) DEFAULT 'boys',
-  capacity INTEGER DEFAULT 30,
-  location TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Dorm students table
-CREATE TABLE IF NOT EXISTS dorm_students (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  dorm_id UUID REFERENCES dorms(id) ON DELETE CASCADE,
-  student_id UUID REFERENCES students(id) ON DELETE CASCADE,
-  academic_year TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(dorm_id, student_id, academic_year)
-);
-
--- Homework table
-CREATE TABLE IF NOT EXISTS homework (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
-  subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  description TEXT,
-  due_date DATE,
-  created_by UUID REFERENCES users(id),
-  academic_year TEXT,
-  term INTEGER,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Homework submissions table
-CREATE TABLE IF NOT EXISTS homework_submissions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  homework_id UUID REFERENCES homework(id) ON DELETE CASCADE,
-  student_id UUID REFERENCES students(id) ON DELETE CASCADE,
-  submitted_at TIMESTAMPTZ DEFAULT NOW(),
-  status TEXT DEFAULT 'pending',
-  notes TEXT
-);
-
--- Syllabus table
-CREATE TABLE IF NOT EXISTS syllabus (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-  subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
-  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
-  term INTEGER NOT NULL,
-  academic_year TEXT NOT NULL,
-  topic TEXT NOT NULL,
-  subtopics TEXT,
-  objectives TEXT,
-  weeks_covered TEXT,
-  resources TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Lesson plans table
-CREATE TABLE IF NOT EXISTS lesson_plans (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-  subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
-  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
-  topic TEXT,
-  lesson_title TEXT NOT NULL,
-  objectives TEXT,
-  materials TEXT,
-  procedure TEXT,
-  duration INTEGER DEFAULT 40,
-  date DATE,
-  term INTEGER,
-  academic_year TEXT,
-  created_by UUID REFERENCES users(id),
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- School settings table
-CREATE TABLE IF NOT EXISTS school_settings (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-  key TEXT NOT NULL,
-  value TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(school_id, key)
-);
-
--- Create indexes
-CREATE INDEX IF NOT EXISTS idx_users_auth_id ON users(auth_id);
-CREATE INDEX IF NOT EXISTS idx_users_school_id ON users(school_id);
-CREATE INDEX IF NOT EXISTS idx_students_school_id ON students(school_id);
-CREATE INDEX IF NOT EXISTS idx_attendance_student_id ON attendance(student_id);
-CREATE INDEX IF NOT EXISTS idx_grades_student_id ON grades(student_id);
-
--- Enable RLS
-ALTER TABLE schools ENABLE ROW LEVEL SECURITY;
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE students ENABLE ROW LEVEL SECURITY;
-ALTER TABLE classes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
-ALTER TABLE grades ENABLE ROW LEVEL SECURITY;
-ALTER TABLE fee_structure ENABLE ROW LEVEL SECURITY;
-ALTER TABLE fee_payments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE timetable ENABLE ROW LEVEL SECURITY;
-ALTER TABLE topic_coverage ENABLE ROW LEVEL SECURITY;
-ALTER TABLE dorms ENABLE ROW LEVEL SECURITY;
-ALTER TABLE dorm_students ENABLE ROW LEVEL SECURITY;
-ALTER TABLE homework ENABLE ROW LEVEL SECURITY;
-ALTER TABLE homework_submissions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE syllabus ENABLE ROW LEVEL SECURITY;
-ALTER TABLE lesson_plans ENABLE ROW LEVEL SECURITY;
-ALTER TABLE school_settings ENABLE ROW LEVEL SECURITY;
-
--- Allow authenticated users to access their data
-CREATE POLICY "Allow all for authenticated" ON schools FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON users FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON students FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON classes FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON attendance FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON grades FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON fee_structure FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON fee_payments FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON events FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON messages FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON timetable FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON topic_coverage FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON dorms FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON dorm_students FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON homework FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON homework_submissions FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON syllabus FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON lesson_plans FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON school_settings FOR ALL USING (true);`
+interface TableCheck {
+  name: string
+  exists: boolean
+  count: number
+}
 
 export default function SetupPage() {
-  const toast = useToast()
-  const [copied, setCopied] = useState(false)
-  const [testing, setTesting] = useState(false)
-  const [testResults, setTestResults] = useState<Record<string, string>>({})
+  const { user } = useAuth()
+  const [loading, setLoading] = useState(true)
+  const [tables, setTables] = useState<TableCheck[]>([])
+  const [envOk, setEnvOk] = useState(false)
 
-  const copySQL = () => {
-    navigator.clipboard.writeText(SQL_SCRIPT)
-    setCopied(true)
-    toast.success('SQL copied to clipboard')
-    setTimeout(() => setCopied(false), 2000)
+  const TABLES_TO_CHECK = [
+    'schools', 'users', 'students', 'classes', 'subjects',
+    'attendance', 'grades', 'fee_structure', 'fee_payments',
+    'messages', 'timetable', 'sms_logs', 'sms_automations',
+    'feedbacks', 'error_logs', 'student_conduct',
+  ]
+
+  useEffect(() => {
+    checkHealth()
+  }, [])
+
+  const checkHealth = async () => {
+    setLoading(true)
+    const results: TableCheck[] = []
+
+    for (const table of TABLES_TO_CHECK) {
+      try {
+        const { count, error } = await supabase
+          .from(table)
+          .select('id', { count: 'exact', head: true })
+        results.push({
+          name: table,
+          exists: !error,
+          count: count || 0,
+        })
+      } catch {
+        results.push({ name: table, exists: false, count: 0 })
+      }
+    }
+
+    setTables(results)
+    setEnvOk(results.every(t => t.exists))
+    setLoading(false)
   }
 
-  const testConnection = async () => {
-    setTesting(true)
-    setTestResults({})
+  const allOk = tables.length > 0 && tables.every(t => t.exists)
 
-    try {
-      const response = await fetch('/api/setup', { method: 'POST' })
-      const data = await response.json()
-      setTestResults(data.results || {})
-      toast.success('Setup complete')
-    } catch (error) {
-      setTestResults({ error: 'Failed to connect' })
-      toast.error('Setup failed')
-    } finally {
-      setTesting(false)
-    }
+  if (user?.role !== 'super_admin') {
+    return (
+      <div className="p-6">
+        <div className="empty-state">
+          <MaterialIcon icon="admin_panel_settings" className="text-4xl text-gray-400" />
+          <h3 className="text-lg font-semibold mt-2">Access Restricted</h3>
+          <p className="text-sm text-gray-500">Only super admins can view system health.</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002045]">Database Setup</h1>
-        <p className="text-[#5c6670] mt-1">Set up your Supabase database tables</p>
+        <h1 className="text-2xl font-bold text-[#002045]">System Health</h1>
+        <p className="text-[#5c6670] mt-1">Verify database tables and system status</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* SQL Section */}
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-          <h2 className="text-lg font-semibold text-[#002045] mb-4">SQL Schema</h2>
-          <p className="text-sm text-[#5c6670] mb-4">
-            Copy this SQL and run it in your Supabase SQL Editor to create all required tables.
-          </p>
-          
-          <div className="bg-gray-900 rounded-lg p-4 max-h-96 overflow-y-auto mb-4">
-            <pre className="text-xs text-green-400 whitespace-pre-wrap">{SQL_SCRIPT.substring(0, 1000)}...</pre>
+      {/* Overall Status */}
+      <div className={`rounded-2xl border p-6 mb-6 ${allOk ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+        <div className="flex items-center gap-3">
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${allOk ? 'bg-green-100' : 'bg-red-100'}`}>
+            <MaterialIcon icon={allOk ? 'check_circle' : 'error'} className={allOk ? 'text-green-600' : 'text-red-600'} style={{ fontSize: 28 }} />
           </div>
-          
-          <div className="flex gap-3">
-            <button onClick={copySQL} className="btn btn-primary flex-1">
-              {copied ? 'Copied!' : 'Copy Full SQL'}
-            </button>
-            <a 
-              href="https://gucxpmgwvnbqykevucbi.supabase.co/project/_/sql/new"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-secondary flex-1"
-            >
-              Open SQL Editor
-            </a>
+          <div>
+            <h2 className="text-lg font-bold text-[#002045]">{allOk ? 'All Systems Operational' : 'Issues Detected'}</h2>
+            <p className="text-sm text-[#5c6670]">
+              {allOk
+                ? `${tables.length} database tables verified. System is ready.`
+                : `${tables.filter(t => !t.exists).length} table(s) missing. Run migrations in Supabase.`}
+            </p>
           </div>
         </div>
+      </div>
 
-        {/* Actions Section */}
-        <div className="space-y-6">
-          {/* Test Connection */}
-          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-            <h2 className="text-lg font-semibold text-[#002045] mb-4">Run Setup</h2>
-            <p className="text-sm text-[#5c6670] mb-4">
-              Click the button below to create all required database tables automatically.
-            </p>
-            
-            <button 
-              onClick={testConnection} 
-              disabled={testing}
-              className="btn btn-primary w-full"
-            >
-              {testing ? 'Running Setup...' : 'Run Setup'}
-            </button>
-
-            {Object.keys(testResults).length > 0 && (
-              <div className="mt-4 space-y-2">
-                {Object.entries(testResults).map(([table, status]) => (
-                  <div key={table} className="flex items-center justify-between p-3 bg-[#f8fafb] rounded-lg">
-                    <span className="text-sm font-medium text-[#002045]">{table}</span>
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                      status === 'Created' || status === 'Exists' ? 'bg-[#e8f5e9] text-[#006e1c]' : 'bg-[#ffebee] text-[#c62828]'
-                    }`}>
-                      {status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+      {/* Environment */}
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 mb-6">
+        <h2 className="text-lg font-semibold text-[#002045] mb-4">Environment</h2>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-[#f8fafb] rounded-lg">
+            <div>
+              <div className="font-medium text-sm text-[#002045]">Supabase Connection</div>
+              <div className="text-xs text-[#5c6670]">Database URL and API keys configured</div>
+            </div>
+            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${envOk ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+              {envOk ? 'Connected' : 'Failed'}
+            </span>
           </div>
+          <div className="flex items-center justify-between p-3 bg-[#f8fafb] rounded-lg">
+            <div>
+              <div className="font-medium text-sm text-[#002045]">SMS Gateway</div>
+              <div className="text-xs text-[#5c6670]">Africa's Talking API configured</div>
+            </div>
+            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+              {process.env.NEXT_PUBLIC_AFRICAS_TALKING_API_KEY ? 'Configured' : 'Sandbox Mode'}
+            </span>
+          </div>
+        </div>
+      </div>
 
-          {/* Steps */}
-          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
-            <h2 className="text-lg font-semibold text-[#002045] mb-4">Setup Steps</h2>
-            <div className="space-y-3">
-              {[
-                { step: 'Create Supabase Project', description: 'Go to supabase.com and create a project' },
-                { step: 'Copy Environment Variables', description: 'Add URL and keys to .env.local' },
-                { step: 'Run SQL Schema', description: 'Copy SQL above and run in SQL Editor' },
-                { step: 'Run Setup', description: 'Click button above to create tables' },
-                { step: 'Register School', description: 'Go to /register to create your school' },
-              ].map((item, i) => (
-                <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-blue-600 text-xs font-bold">{i + 1}</span>
-                  </div>
+      {/* Database Tables */}
+      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-[#002045]">Database Tables</h2>
+          <button onClick={checkHealth} disabled={loading} className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+            <MaterialIcon icon="refresh" style={{ fontSize: 16 }} />
+            {loading ? 'Checking...' : 'Re-check'}
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="space-y-2">{[1,2,3,4,5].map(i => <div key={i} className="skeleton h-12 rounded-lg" />)}</div>
+        ) : (
+          <div className="space-y-2">
+            {tables.map((table) => (
+              <div key={table.name} className="flex items-center justify-between p-3 bg-[#f8fafb] rounded-lg">
+                <div className="flex items-center gap-3">
+                  <MaterialIcon icon={table.exists ? 'table_chart' : 'error_outline'} style={{ fontSize: 18, color: table.exists ? '#16a34a' : '#dc2626' }} />
                   <div>
-                    <div className="font-medium text-[#002045] text-sm">{item.step}</div>
-                    <div className="text-xs text-[#5c6670]">{item.description}</div>
+                    <div className="font-medium text-sm text-[#002045]">{table.name}</div>
+                    {table.exists && <div className="text-xs text-[#5c6670]">{table.count} records</div>}
                   </div>
                 </div>
-              ))}
-            </div>
+                <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                  table.exists ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                }`}>
+                  {table.exists ? 'OK' : 'Missing'}
+                </span>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
