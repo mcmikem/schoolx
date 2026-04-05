@@ -1,5 +1,5 @@
 'use client'
-import FeatherIcon from '@/components/FeatherIcon'
+import MaterialIcon from '@/components/MaterialIcon'
 
 interface StatCardProps {
   label: string
@@ -18,7 +18,7 @@ export default function StatCard({ label, value, subValue, icon, accentColor, lo
         <div className="stat-meta">
           <div className="stat-label">{label}</div>
           <div className={`stat-icon-box bg-${accentColor}-soft text-${accentColor}`}>
-            <FeatherIcon icon={icon} />
+            <MaterialIcon icon={icon} />
           </div>
         </div>
         <div className={`stat-val text-${accentColor}`}>{loading ? '...' : value}</div>
