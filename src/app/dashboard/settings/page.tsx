@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Button } from '@/components/ui/index'
 import { Tabs, TabPanel } from '@/components/ui/Tabs'
+import { useClasses } from '@/lib/hooks'
 
 const ROLE_OPTIONS: { value: UserRole; description: string; modules: ModuleKey[] }[] = [
   {
@@ -71,6 +72,7 @@ interface SchoolSettings {
 export default function SettingsPage() {
   const { school, user, refreshSchool } = useAuth()
   const toast = useToast()
+  const { classes, loading: loadingClasses } = useClasses(school?.id)
   const [activeTab, setActiveTab] = useState('general')
   const [saving, setSaving] = useState(false)
   const [users, setUsers] = useState<Array<{id: string, full_name: string, phone: string, role: string, is_active: boolean}>>([])
@@ -526,6 +528,44 @@ export default function SettingsPage() {
               {savingConfig ? 'Saving...' : 'Save Configuration'}
             </Button>
           </div>
+
+          {/* Class Management */}
+          <Card><CardBody>
+            <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-4">Class Teachers</h2>
+            <p className="text-sm text-[var(--t3)] mb-4">Assign class teachers to each class. Class teachers manage attendance, behavior, and communicate with parents.</p>
+            {loadingClasses ? (
+              <div className="text-sm text-[var(--t3)]">Loading classes...</div>
+            ) : (
+              <div className="space-y-2">
+                {classes.slice(0, 10).map((cls: any) => (
+                  <div key={cls.id} className="flex items-center justify-between p-3 bg-[var(--surface-container)] rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium text-[var(--on-surface)]">{cls.name}{cls.stream ? ` ${cls.stream}` : ''}</span>
+                      {cls.class_teacher_id && <span className="text-xs text-[var(--t3)]">Teacher assigned</span>}
+                    </div>
+                    <select 
+                      value={cls.class_teacher_id || ''}
+                      onChange={async (e) => {
+                        try {
+                          await supabase.from('classes').update({ class_teacher_id: e.target.value || null }).eq('id', cls.id)
+                        } catch (err) {
+                          console.error('Failed to update class teacher:', err)
+                        }
+                      }}
+                      className="input text-sm"
+                      style={{ width: 'auto', minWidth: '150px' }}
+                    >
+                      <option value="">No teacher</option>
+                      {users.filter((s: any) => s.role === 'teacher').map((s: any) => (
+                        <option key={s.id} value={s.id}>{s.full_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+                {classes.length > 10 && <div className="text-sm text-[var(--t3)]">+ {classes.length - 10} more classes</div>}
+              </div>
+            )}
+          </CardBody></Card>
         </div>
       </TabPanel>
 
