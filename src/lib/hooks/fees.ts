@@ -8,6 +8,7 @@ import {
   DEMO_FEE_PAYMENTS,
   DEMO_FEE_STRUCTURE,
   DEMO_EXPENSES,
+  DEMO_BUDGETS,
   DemoExpense,
 } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
@@ -647,6 +648,7 @@ export function useBudget(schoolId?: string) {
     async function fetchData() {
       if (isDemo || isDemoSchool(schoolId)) {
         setExpenses(DEMO_EXPENSES as unknown as DemoExpense[]);
+        setBudgets(DEMO_BUDGETS as any);
         setLoading(false);
         return;
       }

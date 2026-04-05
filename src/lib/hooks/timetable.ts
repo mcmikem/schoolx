@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context'
 import type { TimetableSlot, TimetableConstraint } from '@/types'
 import { getQuerySchoolId } from './utils'
 import { isDemoSchool } from '@/lib/demo-utils'
+import { DEMO_TIMETABLE, DEMO_SUBJECTS, DEMO_STAFF } from '@/lib/demo-data'
 
 export function useTimetable(classId?: string) {
   const [timetable, setTimetable] = useState<any[]>([])
@@ -18,11 +19,18 @@ export function useTimetable(classId?: string) {
         return
       }
 
-      if (isDemo) {
-        setTimetable([
-          { id: 'demo-tt-1', day_of_week: 'monday', start_time: '08:00', end_time: '08:40', subject_id: 'demo-sub-1', teacher_id: 'demo-1', subjects: { name: 'Mathematics', code: 'MATH' }, teachers: { full_name: 'Mr. Kato' } },
-          { id: 'demo-tt-2', day_of_week: 'monday', start_time: '08:40', end_time: '09:20', subject_id: 'demo-sub-2', teacher_id: 'demo-2', subjects: { name: 'English', code: 'ENG' }, teachers: { full_name: 'Ms. Nabukeera' } },
-        ])
+      if (isDemo || isDemoSchool(classId)) {
+        const classTimetable = DEMO_TIMETABLE.filter(t => t.class_id === classId)
+        const enriched = classTimetable.map(t => {
+          const subject = DEMO_SUBJECTS.find(s => s.id === t.subject_id)
+          const teacher = DEMO_STAFF.find(s => s.id === t.teacher_id)
+          return {
+            ...t,
+            subjects: { name: subject?.name || 'Unknown', code: subject?.code || '' },
+            teachers: { full_name: teacher?.full_name || 'Unknown' },
+          }
+        })
+        setTimetable(enriched)
         setLoading(false)
         return
       }
