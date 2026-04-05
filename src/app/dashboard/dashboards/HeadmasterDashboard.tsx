@@ -252,7 +252,7 @@ function HeadmasterDashboardContent() {
       </div>
 
       <div className="stat-grid">
-        <Link href="/dashboard/attendance" className="stat-card">
+        <Link href="/dashboard/attendance" className="stat-card" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
           <div className="stat-accent" style={{ background: "var(--green)" }} />
           <div className="stat-inner">
             <div className="stat-meta">
@@ -275,6 +275,19 @@ function HeadmasterDashboardContent() {
                 ? "..."
                 : `${stats.presentToday || 0} / ${stats.totalStudents}`}
             </div>
+            {(() => {
+              const boardingCount = students.filter((s: any) => s.boarding_status && s.boarding_status !== 'day').length;
+              if (boardingCount > 0) {
+                return (
+                  <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                    <span style={{ fontSize: 10, padding: '2px 8px', background: 'rgba(155,89,182,0.15)', color: 'var(--navy)', borderRadius: 10, fontWeight: 600 }}>
+                      {boardingCount} boarders
+                    </span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
             <div
               style={{
                 display: "flex",
@@ -332,7 +345,7 @@ function HeadmasterDashboardContent() {
           </div>
         </Link>
 
-        <Link href="/dashboard/fees" className="stat-card">
+        <Link href="/dashboard/fees" className="stat-card" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
           <div className="stat-accent" style={{ background: "var(--amber)" }} />
           <div className="stat-inner">
             <div className="stat-meta">
@@ -425,7 +438,7 @@ function HeadmasterDashboardContent() {
           </div>
         </Link>
 
-        <Link href="/dashboard/expense-approvals" className="stat-card">
+        <Link href="/dashboard/expense-approvals" className="stat-card" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
           <div
             className="stat-accent"
             style={{
@@ -504,7 +517,7 @@ function HeadmasterDashboardContent() {
           </div>
         </Link>
 
-        <Link href="/dashboard/staff-attendance" className="stat-card">
+        <Link href="/dashboard/staff-attendance" className="stat-card" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
           <div className="stat-accent" style={{ background: "var(--navy)" }} />
           <div className="stat-inner">
             <div className="stat-meta">
@@ -562,7 +575,7 @@ function HeadmasterDashboardContent() {
 
       <div className="main-grid">
         <div className="main-col">
-          <div className="card" style={{ padding: 16 }}>
+          <div className="card" style={{ padding: 16, boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
             <div className="card-header">
               <div>
                 <div className="card-title">Quick Actions</div>
@@ -633,7 +646,7 @@ function HeadmasterDashboardContent() {
             </div>
           </div>
 
-          <div className="card" style={{ padding: 16 }}>
+          <div className="card" style={{ padding: 16, boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
             <div className="card-header">
               <div>
                 <div className="card-title">Class Attendance · Today</div>
@@ -683,12 +696,12 @@ function HeadmasterDashboardContent() {
                         color,
                       }}
                     >
-                      {cls.name.substring(0, 3).toUpperCase()}
+                      {cls.name.substring(0, 3).toUpperCase()}{cls.stream ? cls.stream.toUpperCase() : ''}
                     </div>
                     <div className="att-info">
-                      <div className="att-name">{cls.name}</div>
+                      <div className="att-name">{cls.name}{cls.stream ? ` ${cls.stream}` : ''}</div>
                       <div className="att-meta">
-                        {classStudents} students · Class Teacher
+                        {classStudents} students · {cls.class_teacher_id ? staff.find(s => s.id === cls.class_teacher_id)?.full_name?.split(' ')[0] || 'Teacher' : 'No teacher'}
                       </div>
                     </div>
                     <div className="att-bar-col">
@@ -718,7 +731,7 @@ function HeadmasterDashboardContent() {
             </div>
           </div>
 
-          <div className="card" style={{ padding: 16 }}>
+          <div className="card" style={{ padding: 16, boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
             <div className="card-header">
               <div>
                 <div className="card-title">Recent Activity</div>
@@ -754,7 +767,7 @@ function HeadmasterDashboardContent() {
                       {payment.students?.last_name}
                     </div>
                     <div className="act-sub">
-                      UGX {formatCurrency(payment.amount_paid)} · MTN MoMo
+                      UGX {formatCurrency(payment.amount_paid)} · {payment.payment_method || 'Cash'}
                     </div>
                   </div>
                   <div className="act-time">
@@ -1085,7 +1098,7 @@ function HeadmasterDashboardContent() {
             </div>
           </div>
 
-          <div className="card" style={{ padding: 16 }}>
+          <div className="card" style={{ padding: 16, boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
             <div className="card-header">
               <div>
                 <div className="card-title">Academic Term</div>
