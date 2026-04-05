@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'schoolx-v3';
+const CACHE_VERSION = 'schoolx-v4';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
