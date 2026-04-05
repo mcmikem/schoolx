@@ -25,8 +25,8 @@ export default function AppLoader() {
         }}
       >
         <Image
-          src="/schoolx-icon.svg"
-          alt={t("common.schoolx")}
+          src="/assemble-icon.png"
+          alt="ASSEMBLE"
           width={80}
           height={80}
           style={{

@@ -107,7 +107,7 @@ export default function SetupWizard({
 
   const handleFinish = () => {
     // Mark setup as complete in localStorage
-    localStorage.setItem("schoolx_setup_complete", "true");
+    localStorage.setItem("assemble_setup_complete", "true");
     onComplete();
   };
 

@@ -69,8 +69,8 @@ export default function RootLayout({
           content="black-translucent"
         />
         <meta name="apple-mobile-web-app-title" content="ASSEMBLE" />
-        <link rel="apple-touch-icon" href="/schoolx-logo.svg" />
-        <link rel="icon" href="/schoolx-logo.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/assemble-icon.png" />
+        <link rel="icon" href="/assemble-icon.png" type="image/png" />
       </head>
       <body
         className="antialiased min-h-screen"
