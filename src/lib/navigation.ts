@@ -113,6 +113,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
         { href: '/dashboard/attendance', label: 'Attendance', icon: 'how_to_reg' },
         { href: '/dashboard/grades', label: 'Grades', icon: 'menu_book' },
         { href: '/dashboard/exams', label: 'Exams', icon: 'fact_check' },
+        { href: '/dashboard/batch-reports', label: 'Batch Reports', icon: 'print', badge: 'New' },
         { href: '/dashboard/timetable', label: 'Timetable', icon: 'calendar_month' },
       ]
     },
