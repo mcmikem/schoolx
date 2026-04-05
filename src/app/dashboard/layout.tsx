@@ -10,6 +10,7 @@ import SidebarShell from '@/components/dashboard/SidebarShell'
 import TopBar from '@/components/dashboard/TopBar'
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
 import WorkflowGuide from '@/components/dashboard/WorkflowGuide'
+import WhatsAppSupport from '@/components/WhatsAppSupport'
 import { useAccessControl, getPageTitle } from '@/components/dashboard/AccessControlGuard'
 import { usePathname, useRouter } from 'next/navigation'
 
@@ -78,6 +79,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
       <MobileBottomNav />
+      <WhatsAppSupport />
     </ErrorBoundary>
   )
 }
