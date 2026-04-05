@@ -18,6 +18,12 @@ import {
   TrendingUp,
   Edit,
   Printer,
+  Home,
+  Moon,
+  Trophy,
+  School,
+  Star,
+  Award,
 } from "lucide-react";
 import {
   LineChart,
@@ -340,6 +346,143 @@ export default function StudentProfilePage({
           </div>
         </div>
       </div>
+
+      {/* Additional Info - House, Origin, Leadership */}
+      {((student as any).house_id || (student as any).previous_school || (student as any).district_origin || (student as any).prefect_role || (student as any).student_council_role) && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          {(student as any).house_id && (
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+              <h3 className="font-semibold text-gray-900 mb-4">House & Boarding</h3>
+              <div className="space-y-3">
+                {(student as any).house_id && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+                      <Home className="w-4 h-4 text-purple-600" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">House</div>
+                      <div className="text-sm font-medium text-gray-900">{(student as any).house?.name || "Assigned"}</div>
+                    </div>
+                  </div>
+                )}
+                {(student as any).boarding_status && (student as any).boarding_status !== "day" && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
+                      <Moon className="w-4 h-4 text-indigo-600" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">Boarding</div>
+                      <div className="text-sm font-medium text-gray-900 capitalize">{(student as any).boarding_status}</div>
+                    </div>
+                  </div>
+                )}
+                {(student as any).games_house && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center">
+                      <Trophy className="w-4 h-4 text-orange-600" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">Games House</div>
+                      <div className="text-sm font-medium text-gray-900">{(student as any).games_house?.name || "Assigned"}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {((student as any).previous_school || (student as any).district_origin) && (
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+              <h3 className="font-semibold text-gray-900 mb-4">Origin</h3>
+              <div className="space-y-3">
+                {(student as any).previous_school && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                      <School className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">Previous School</div>
+                      <div className="text-sm font-medium text-gray-900">{(student as any).previous_school}</div>
+                    </div>
+                  </div>
+                )}
+                {(student as any).district_origin && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+                      <MapPin className="w-4 h-4 text-green-600" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">District</div>
+                      <div className="text-sm font-medium text-gray-900">{(student as any).district_origin}</div>
+                    </div>
+                  </div>
+                )}
+                {(student as any).sub_county && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-yellow-50 rounded-lg flex items-center justify-center">
+                      <MapPin className="w-4 h-4 text-yellow-600" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">Sub-county</div>
+                      <div className="text-sm font-medium text-gray-900">{(student as any).sub_county}</div>
+                    </div>
+                  </div>
+                )}
+                {(student as any).village && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center">
+                      <Home className="w-4 h-4 text-red-600" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">Village</div>
+                      <div className="text-sm font-medium text-gray-900">{(student as any).village}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {((student as any).prefect_role || (student as any).student_council_role || (student as any).is_class_monitor) && (
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+              <h3 className="font-semibold text-gray-900 mb-4">Leadership</h3>
+              <div className="space-y-3">
+                {(student as any).is_class_monitor && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+                      <Star className="w-4 h-4 text-emerald-600" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">Role</div>
+                      <div className="text-sm font-medium text-gray-900">Class Monitor</div>
+                    </div>
+                  </div>
+                )}
+                {(student as any).prefect_role && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+                      <Award className="w-4 h-4 text-amber-600" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">Prefect Role</div>
+                      <div className="text-sm font-medium text-gray-900 capitalize">{(student as any).prefect_role.replace(/_/g, " ")}</div>
+                    </div>
+                  </div>
+                )}
+                {(student as any).student_council_role && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-cyan-50 rounded-lg flex items-center justify-center">
+                      <User className="w-4 h-4 text-cyan-600" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">Council Role</div>
+                      <div className="text-sm font-medium text-gray-900 capitalize">{(student as any).student_council_role.replace(/_/g, " ")}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
