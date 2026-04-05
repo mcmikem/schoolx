@@ -995,7 +995,7 @@ export default function StudentsPage() {
                           fontWeight: 600,
                         }}
                       >
-                        {student.classes?.name || "-"}
+                        {student.classes?.name}{student.classes?.stream ? ` ${student.classes.stream}` : ""}
                       </span>
                     </td>
                     <td data-label="Parent" style={{ fontSize: 13 }}>
