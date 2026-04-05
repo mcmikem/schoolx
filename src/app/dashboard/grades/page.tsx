@@ -572,8 +572,8 @@ export default function GradesPage() {
 
   const selectedSubjectName =
     subjects.find((s) => s.id === selectedSubject)?.name || "";
-  const selectedClassName =
-    classes.find((c) => c.id === selectedClass)?.name || "";
+  const selectedClassObj = classes.find((c) => c.id === selectedClass);
+  const selectedClassName = selectedClassObj ? `${selectedClassObj.name}${selectedClassObj.stream ? ` ${selectedClassObj.stream}` : ''}` : "";
   const topics = useMemo(
     () =>
       NCDC_TOPICS[selectedSubjectName] || [
