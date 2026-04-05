@@ -30,8 +30,8 @@ export default function SchoolXLogo({ size = 'md', variant = 'default', showText
     <div className={cn("flex items-center gap-2.5", className)}>
       <div className="relative" style={{ width: s.icon, height: s.icon }}>
         <Image
-          src="/schoolx-logo.svg"
-          alt="SchoolX Logo"
+          src="/assemble-icon.png"
+          alt="ASSEMBLE Logo"
           width={s.icon}
           height={s.icon}
           className="object-contain"
@@ -45,11 +45,11 @@ export default function SchoolXLogo({ size = 'md', variant = 'default', showText
             className={cn(s.text, "font-bold leading-tight")}
             style={{ color: c.text }}
           >
-            School<span style={{ color: c.accent }}>X</span>
+            ASSEMBLE
           </span>
           {size !== 'sm' && (
             <span className="text-[10px] text-outline font-medium tracking-wider uppercase leading-tight">
-              Academic Management
+              Powered by Omuto Foundation
             </span>
           )}
         </div>

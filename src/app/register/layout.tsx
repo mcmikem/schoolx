@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Register Your School | Omuto School Management System",
+  title: "Register Your School | ASSEMBLE",
   description:
-    "Register your school for a free 30-day trial of Omuto School Management System. Set up attendance, grades, fees, and parent SMS in minutes.",
+    "Register your school for a free 30-day trial of ASSEMBLE. Powered by Omuto Foundation.",
   openGraph: {
-    title: "Register Your School | Omuto School Management System",
+    title: "Register Your School | ASSEMBLE",
     description:
       "Start your free 30-day trial. The all-in-one school management system built for Ugandan schools.",
     type: "website",

@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Sign In | Omuto School Management System",
+  title: "Sign In | ASSEMBLE",
   description:
-    "Sign in to your Omuto School Management System account. Access your dashboard for attendance, grades, fees, and parent communication.",
+    "Sign in to your ASSEMBLE account. Powered by Omuto Foundation.",
   openGraph: {
-    title: "Sign In | Omuto School Management System",
+    title: "Sign In | ASSEMBLE",
     description:
       "Access your school dashboard. Track attendance, grades, fees, and send parent SMS from one place.",
     type: "website",

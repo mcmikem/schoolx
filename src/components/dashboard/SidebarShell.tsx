@@ -57,8 +57,8 @@ export default function SidebarShell({
             />
           ) : (
             <Image
-              src="/schoolx-logo.svg"
-              alt="Logo"
+              src="/assemble-icon.png"
+              alt="ASSEMBLE Logo"
               width={36}
               height={36}
               className="w-[var(--logo-size)] h-[var(--logo-size)] object-contain"

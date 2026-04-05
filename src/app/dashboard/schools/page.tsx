@@ -512,64 +512,66 @@ export default function SchoolsPage() {
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#002045]">School Management</h1>
-          <p className="text-[#5c6670] mt-1">Manage all registered schools and subscriptions</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-[#002045]">School Management</h1>
+          <p className="text-sm text-[#5c6670] mt-1 hidden sm:block">Manage all registered schools and subscriptions</p>
         </div>
-        <button onClick={() => setShowAddModal(true)} className="btn btn-primary">
+        <button onClick={() => setShowAddModal(true)} className="btn btn-primary w-full sm:w-auto">
           <MaterialIcon icon="add" />
           Add School
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4">
-          <div className="text-2xl font-bold text-[#002045]">{stats.totalSchools}</div>
-          <div className="text-xs text-[#5c6670]">Total Schools</div>
+      {/* Stats - Mobile friendly */}
+      <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-4 mb-6">
+        <div className="bg-white rounded-xl border border-[#e8eaed] p-3 sm:p-4 text-center sm:text-left">
+          <div className="text-xl sm:text-2xl font-bold text-[#002045]">{stats.totalSchools}</div>
+          <div className="text-xs text-[#5c6670]">Total</div>
         </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4">
-          <div className="text-2xl font-bold text-green-600">{stats.active}</div>
+        <div className="bg-white rounded-xl border border-[#e8eaed] p-3 sm:p-4 text-center sm:text-left">
+          <div className="text-xl sm:text-2xl font-bold text-green-600">{stats.active}</div>
           <div className="text-xs text-[#5c6670]">Active</div>
         </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4">
-          <div className="text-2xl font-bold text-amber-600">{stats.trial}</div>
-          <div className="text-xs text-[#5c6670]">On Trial</div>
+        <div className="bg-white rounded-xl border border-[#e8eaed] p-3 sm:p-4 text-center sm:text-left">
+          <div className="text-xl sm:text-2xl font-bold text-amber-600">{stats.trial}</div>
+          <div className="text-xs text-[#5c6670]">Trial</div>
         </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4">
+        <div className="hidden md:block bg-white rounded-xl border border-[#e8eaed] p-4">
           <div className="text-2xl font-bold text-red-600">{stats.expired}</div>
           <div className="text-xs text-[#5c6670]">Expired</div>
         </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4">
+        <div className="hidden md:block bg-white rounded-xl border border-[#e8eaed] p-4">
           <div className="text-2xl font-bold text-[#002045]">{stats.totalStudents.toLocaleString()}</div>
-          <div className="text-xs text-[#5c6670]">Total Students</div>
+          <div className="text-xs text-[#5c6670]">Students</div>
         </div>
-        <div className="bg-white rounded-2xl border border-[#e8eaed] p-4">
+        <div className="hidden md:block bg-white rounded-xl border border-[#e8eaed] p-4">
           <div className="text-2xl font-bold text-green-700">{formatUGX(stats.revenue)}</div>
-          <div className="text-xs text-[#5c6670]">Annual Revenue</div>
+          <div className="text-xs text-[#5c6670]">Revenue</div>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <input type="text" placeholder="Search schools..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="input flex-1" />
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="input sm:w-40">
-          <option value="all">All Status</option>
+      {/* Filters - Stack on mobile */}
+      <div className="flex flex-col sm:flex-row gap-2 mb-4">
+        <div className="relative flex-1">
+          <MaterialIcon icon="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5c6670]" style={{ fontSize: 18 }} />
+          <input type="text" placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="input pl-10 w-full" />
+        </div>
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="input sm:w-32">
+          <option value="all">Status</option>
           <option value="active">Active</option>
           <option value="trial">Trial</option>
           <option value="expired">Expired</option>
-          <option value="suspended">Suspended</option>
         </select>
-        <select value={filterPlan} onChange={(e) => setFilterPlan(e.target.value)} className="input sm:w-40">
-          <option value="all">All Plans</option>
+        <select value={filterPlan} onChange={(e) => setFilterPlan(e.target.value)} className="input sm:w-32">
+          <option value="all">Plan</option>
           <option value="starter">Starter</option>
           <option value="standard">Standard</option>
           <option value="premium">Premium</option>
         </select>
       </div>
 
-      {/* School Cards */}
+      {/* School Cards - Responsive grid */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map(i => (
             <div key={i} className="card"><div className="skeleton h-6 w-3/4 mb-2"></div><div className="skeleton h-4 w-1/2 mb-4"></div><div className="skeleton h-8 w-full"></div></div>
           ))}
@@ -581,15 +583,15 @@ export default function SchoolsPage() {
           <p className="text-[#5c6670]">Try adjusting your filters or add a new school.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((school) => (
-            <div key={school.id} className="bg-white rounded-2xl border border-[#e8eaed] p-6 hover:shadow-md transition-shadow cursor-pointer" onClick={() => openSchoolDetail(school)}>
-              <div className="flex items-start justify-between mb-4">
+            <div key={school.id} className="bg-white rounded-xl border border-[#e8eaed] p-4 sm:p-6 hover:shadow-md transition-shadow cursor-pointer" onClick={() => openSchoolDetail(school)}>
+              <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-[#002045] truncate">{school.name}</div>
-                  <div className="text-sm text-[#5c6670]">{school.school_code} • {school.district}</div>
+                  <div className="text-xs sm:text-sm text-[#5c6670]">{school.school_code} • {school.district}</div>
                 </div>
-                <span className={`px-2.5 py-1 rounded-full text-xs font-medium ml-2 shrink-0 ${
+                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ml-2 shrink-0 ${
                   school.subscription_status === 'active' ? 'bg-[#e8f5e9] text-[#006e1c]' :
                   school.subscription_status === 'trial' ? 'bg-[#fff3e0] text-[#e65100]' :
                   school.subscription_status === 'suspended' ? 'bg-gray-100 text-gray-600' : 'bg-[#ffebee] text-[#c62828]'
@@ -597,12 +599,12 @@ export default function SchoolsPage() {
                   {school.subscription_status}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-sm text-[#5c6670] mb-3">
+              <div className="flex items-center justify-between text-xs sm:text-sm text-[#5c6670] mb-2">
                 <span className="capitalize">{school.school_type}</span>
                 <span className="capitalize">{school.ownership}</span>
               </div>
-              <div className="flex items-center justify-between text-sm mb-3">
-                <span className="px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: `${PLANS[school.subscription_plan]?.color}15`, color: PLANS[school.subscription_plan]?.color }}>
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: `${PLANS[school.subscription_plan]?.color}15`, color: PLANS[school.subscription_plan]?.color }}>
                   {PLANS[school.subscription_plan]?.label || school.subscription_plan}
                 </span>
                 <span className="text-[#5c6670]">{school.student_count || 0} students</span>

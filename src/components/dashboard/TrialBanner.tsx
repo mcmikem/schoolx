@@ -45,7 +45,7 @@ export default function TrialBanner() {
             </div>
             <div className="text-xs text-amber-600 mt-0.5">
               Powered by <a href="https://omuto.org" target="_blank" rel="noopener noreferrer" className="underline hover:text-amber-800">Omuto Foundation</a> — 
-              <a href="https://omuto.org/osx.php" target="_blank" rel="noopener noreferrer" className="underline hover:text-amber-800 ml-1">Upgrade to full SchoolXperience</a>
+              <a href="https://omuto.org/osx.php" target="_blank" rel="noopener noreferrer" className="underline hover:text-amber-800 ml-1">Upgrade to ASSEMBLE Premium</a>
             </div>
           </div>
         </div>
