@@ -1,6 +1,5 @@
 'use client'
 import Link from 'next/link'
-import FeatherIcon from "@/components/FeatherIcon"
 import { usePathname } from 'next/navigation'
 import { useMemo } from 'react'
 
@@ -14,29 +13,29 @@ export default function MobileBottomNav() {
   const pathname = usePathname()
   const isActive = (path: string) => pathname === path || pathname?.startsWith(path + '/')
   const quickStep = useMemo<QuickStep>(() => {
-    if (!pathname) return { label: 'Add Student', href: '/dashboard/students', icon: 'add' }
+    if (!pathname) return { label: 'Add Student', href: '/dashboard/students', icon: 'person_add' }
     if (pathname.startsWith('/dashboard/students')) return { label: 'Take Attendance', href: '/dashboard/attendance', icon: 'how_to_reg' }
-    if (pathname.startsWith('/dashboard/attendance')) return { label: 'Record Fees', href: '/dashboard/fees', icon: 'finance' }
+    if (pathname.startsWith('/dashboard/attendance')) return { label: 'Record Fees', href: '/dashboard/fees', icon: 'payments' }
     if (pathname.startsWith('/dashboard/fees')) return { label: 'Send Reminder', href: '/dashboard/messages', icon: 'sms' }
-    return { label: 'Add Student', href: '/dashboard/students', icon: 'add' }
+    return { label: 'Add Student', href: '/dashboard/students', icon: 'person_add' }
   }, [pathname])
 
   return (
     <div className="mobile-bottom-nav">
       <Link href="/dashboard" className={`mobile-nav-item ${pathname === '/dashboard' ? 'active' : ''}`}>
-        <FeatherIcon name="dashboard" size={20} />
+        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>dashboard</span>
         <span>Home</span>
       </Link>
       <Link href="/dashboard/students" className={`mobile-nav-item ${isActive('/dashboard/students') ? 'active' : ''}`}>
-        <FeatherIcon name="students" size={20} />
+        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>group</span>
         <span>Students</span>
       </Link>
       <Link href={quickStep.href} className="mobile-nav-item mobile-nav-item-primary">
-        <FeatherIcon name={quickStep.icon} size={20} />
+        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{quickStep.icon}</span>
         <span>{quickStep.label}</span>
       </Link>
       <Link href="/dashboard/fees" className={`mobile-nav-item ${isActive('/dashboard/fees') ? 'active' : ''}`}>
-        <FeatherIcon name="finance" size={20} />
+        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>payments</span>
         <span>Fees</span>
       </Link>
       <button
@@ -48,7 +47,7 @@ export default function MobileBottomNav() {
         }}
         aria-label="Open more pages"
       >
-        <FeatherIcon name="dashboard" size={20} />
+        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>apps</span>
         <span>More</span>
       </button>
     </div>

@@ -55,7 +55,7 @@ export default function RootLayout({
       <head>
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
-          href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700;800&family=Lato:wght@300;400;700;900&display=swap"
+          href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600;700;800&family=Lato:wght@300;400;700;900&display=swap"
           rel="stylesheet"
         />
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
@@ -77,7 +77,7 @@ export default function RootLayout({
         style={{
           backgroundColor: "var(--bg)",
           color: "var(--t1)",
-          fontFamily: "'Instrument Sans', sans-serif",
+          fontFamily: "'Lato', sans-serif",
         }}
       >
         <a
