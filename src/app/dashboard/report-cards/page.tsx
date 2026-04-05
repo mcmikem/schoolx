@@ -92,8 +92,8 @@ export default function ReportCardsPage() {
     return classStudents.filter((s) => s.class_id === selectedClass);
   }, [classStudents, selectedClass]);
 
-  const selectedClassName =
-    classes.find((c) => c.id === selectedClass)?.name || "";
+  const selectedClassObj = classes.find((c) => c.id === selectedClass);
+  const selectedClassName = selectedClassObj ? `${selectedClassObj.name}${selectedClassObj.stream ? ` ${selectedClassObj.stream}` : ''}` : "";
 
   const totalFeePerStudent = useMemo(() => {
     return feeStructure.reduce((sum, f) => sum + Number(f.amount || 0), 0);
