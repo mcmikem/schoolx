@@ -19,7 +19,7 @@ export default function ImportPage() {
   const { user } = useAuth();
   const toast = useToast();
 
-  const [activeTab, setActiveTab] = useState<"upload" | "ai_paste">("ai_paste");
+  const [activeTab, setActiveTab] = useState<"students" | "fees" | "grades" | "ai_paste">("students");
 
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -212,6 +212,51 @@ export default function ImportPage() {
         <div className="flex gap-2 min-w-max">
           <button
             onClick={() => {
+              setActiveTab("students");
+              setPreview([]);
+              setMappedData([]);
+            }}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
+              activeTab === "students"
+                ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
+                : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
+            }`}
+          >
+            <MaterialIcon icon="group" className="text-lg" />
+            Students
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("fees");
+              setPreview([]);
+              setMappedData([]);
+            }}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
+              activeTab === "fees"
+                ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
+                : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
+            }`}
+          >
+            <MaterialIcon icon="payments" className="text-lg" />
+            Fee Balances
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("grades");
+              setPreview([]);
+              setMappedData([]);
+            }}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
+              activeTab === "grades"
+                ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
+                : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
+            }`}
+          >
+            <MaterialIcon icon="menu_book" className="text-lg" />
+            Grades
+          </button>
+          <button
+            onClick={() => {
               setActiveTab("ai_paste");
               setPreview([]);
               setMappedData([]);
@@ -224,21 +269,6 @@ export default function ImportPage() {
           >
             <MaterialIcon icon="smart_toys" className="text-lg" />
             AI Smart Paste
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab("upload");
-              setPreview([]);
-              setMappedData([]);
-            }}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
-              activeTab === "upload"
-                ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
-                : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
-            }`}
-          >
-            <MaterialIcon icon="upload_file" className="text-lg" />
-            File Upload
           </button>
         </div>
       </UICard>
