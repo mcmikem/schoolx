@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context'
 import type { InventoryTransaction } from '@/types'
 import { getQuerySchoolId, withTimeout } from './utils'
 import { isDemoSchool } from '@/lib/demo-utils'
+import { DEMO_ASSETS, DEMO_BOOKS, DEMO_BOOK_ISSUES, DEMO_BUDGETS } from '@/lib/demo-data'
 
 export function useAssets(schoolId?: string) {
   const [assets, setAssets] = useState<any[]>([])
@@ -14,11 +15,7 @@ export function useAssets(schoolId?: string) {
   const fetchAssets = useCallback(async () => {
     if (!schoolId) { setLoading(false); return }
     if (isDemo || isDemoSchool(schoolId)) {
-      setAssets([
-        { id: 'demo-asset-1', name: 'School Bus', type: 'vehicle', current_stock: 1, condition: 'good', purchase_date: '2020-01-01', school_id: schoolId },
-        { id: 'demo-asset-2', name: ' Computers', type: 'equipment', current_stock: 20, condition: 'good', purchase_date: '2021-06-15', school_id: schoolId },
-        { id: 'demo-asset-3', name: 'Desks', type: 'furniture', current_stock: 150, condition: 'good', purchase_date: '2019-03-10', school_id: schoolId },
-      ])
+      setAssets(DEMO_ASSETS as any)
       setLoading(false)
       return
     }
