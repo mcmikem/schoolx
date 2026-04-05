@@ -3,7 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
-import MaterialIcon from '@/components/MaterialIcon'
+import FeatherIcon from '@/components/FeatherIcon'
 
 type Step = {
   key: string
@@ -55,7 +55,7 @@ export default function WorkflowGuide() {
             href={nextStep.href}
             className="inline-flex items-center gap-1.5 px-3 h-9 rounded-lg bg-[var(--navy)] text-white text-[12px] font-semibold no-underline whitespace-nowrap"
           >
-            <MaterialIcon icon="arrow_forward" style={{ fontSize: 15 }} />
+            <FeatherIcon name="arrow_forward" size={15} />
             Next: {nextStep.label}
           </Link>
           <button
@@ -63,7 +63,7 @@ export default function WorkflowGuide() {
             className="p-2 text-[var(--t4)] hover:text-[var(--t1)] transition-colors"
             aria-label="Dismiss guide"
           >
-            <MaterialIcon icon="close" style={{ fontSize: 18 }} />
+            <FeatherIcon name="close" size={18} />
           </button>
         </div>
       </div>
@@ -86,10 +86,10 @@ export default function WorkflowGuide() {
             >
               <div className="flex items-center justify-between">
                 <div className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--t1)]">
-                  <MaterialIcon icon={step.icon} style={{ fontSize: 16 }} />
+                  <FeatherIcon icon={step.icon} size={16} />
                   {step.label}
                 </div>
-                {isComplete && <MaterialIcon icon="check_circle" style={{ fontSize: 16, color: 'var(--green)' }} />}
+                {isComplete && <FeatherIcon name="check_circle" style={{ fontSize: 16, color: 'var(--green)' }} />}
                 {isActive && <span className="text-[10px] font-bold text-[var(--navy)] uppercase">Current</span>}
               </div>
               <div className="text-[11px] text-[var(--t3)] mt-1.5">{step.description}</div>

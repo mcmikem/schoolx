@@ -6,13 +6,13 @@ import { useAcademic } from "@/lib/academic-context";
 import { useSyncStatus } from "@/lib/useSyncStatus";
 import CollapsibleSidebar from "@/components/CollapsibleSidebar";
 import { getNavigationForRole } from "@/lib/navigation";
-import MaterialIcon from "@/components/MaterialIcon";
+import FeatherIcon from "@/components/FeatherIcon";
 
 function SyncStatus() {
   const { isOnline, pendingCount, isSyncing } = useSyncStatus();
 
   return (
-    <div className="flex items-center gap-[7px] text-[11px] font-medium text-[var(--green)]">
+    <div className="flex items-center gap-[7px] text-[11px] font-medium text-[var(--t3)]">
       <div
         className="w-[7px] h-[7px] rounded-full"
         style={{
@@ -21,7 +21,7 @@ function SyncStatus() {
             isOnline && !isSyncing ? "blink 2.5s ease-in-out infinite" : "none",
         }}
       />
-      {isOnline ? (isSyncing ? "Syncing..." : "System Active") : "Offline"}
+      {isOnline ? (isSyncing ? "Syncing..." : "Synced 2m ago") : "Offline"}
       {pendingCount > 0 && (
         <span className="ml-auto text-[10px] text-[var(--amber)] font-[DM Mono]">
           {pendingCount} pending
@@ -82,8 +82,8 @@ export default function SidebarShell({
             className="sidebar-close-btn hidden w-8 h-8 rounded-lg border-none bg-[var(--bg)] cursor-pointer items-center justify-center"
             aria-label="Close sidebar"
           >
-            <MaterialIcon
-              icon="close"
+            <FeatherIcon
+              name="close"
               style={{ fontSize: 20, color: "var(--t2)" }}
             />
           </button>

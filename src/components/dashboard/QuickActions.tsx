@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import MaterialIcon from '@/components/MaterialIcon'
+import FeatherIcon from '@/components/FeatherIcon'
 
 interface Action {
   label: string
@@ -17,7 +17,7 @@ export function QuickActions({ actions, title }: { actions: Action[], title: str
         {actions.map((action, i) => (
           <Link key={i} href={action.href} className="qa-item !flex-row !justify-start !p-4">
             <div className={`qa-icon !mb-0 !mr-3 bg-${action.color}-soft text-${action.color}`}>
-              <MaterialIcon icon={action.icon} />
+              <FeatherIcon icon={action.icon} />
             </div>
             <div className="min-w-0">
               <div className="text-[13px] font-bold text-[var(--t1)] truncate">{action.label}</div>

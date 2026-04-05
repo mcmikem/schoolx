@@ -4,76 +4,77 @@
 
 /* -- TOKENS ----------------------------------------------- */
 :root {
-  /* SchoolX Brand Colors */
-  --navy: #0056d2; /* Core Blue */
-  --navy-mid: #1a6be0;
-  --navy-soft: #e6f0ff;
+  /* SchoolX Brand Colors - Designer's Navy System */
+  --navy: #17325F;
+  --navy-mid: #1E3F76;
+  --navy-soft: #EEF2F9;
 
-  --green: #0d9488; /* Teal - WCAG compliant */
-  --green-soft: #ccfbf1;
+  --green: #2E9448;
+  --green-soft: #EAF4ED;
 
-  --amber: #b45309; /* Amber-700 - WCAG compliant */
-  --amber-soft: #fef3c7;
+  --amber: #B86B0C;
+  --amber-soft: #FDF3E7;
 
-  --red: #e74c3c;
-  --red-soft: #fdedec;
+  --red: #C0392B;
+  --red-soft: #FDECEA;
 
-  /* Light Theme - Surface & Background */
-  --sidebar-width: 240px;
-  --logo-size: 36px;
-  --bg: #f4f7f9; /* Clean subtle gray */
-  --surface: #ffffff;
-  --border: #e8ecef; /* Motif Gray relative */
-  --border2: #d9d9d9; /* Motif Gray */
+  /* Light Theme - Designer's Grey System */
+  --sidebar-width: 224px;
+  --logo-size: 34px;
+  --bg: #F3F5F8;
+  --surface: #FFFFFF;
+  --border: #E2E7EF;
+  --border2: #C8D0DC;
 
-  /* Text Colors (Depth Slate) */
-  --t1: #1b2530; /* Primary Text */
-  --t2: #3e4c59; /* Secondary */
-  --t3: #586979; /* Tertiary (Increased contrast for accessibility) */
-  --t4: #6b7785; /* Quaternary (Increased contrast for accessibility) */
+  /* Text Colors */
+  --t1: #0E1C2F;
+  --t2: #3B4C63;
+  --t3: #7A8CA3;
+  --t4: #B0BDCC;
 
   /* Tailwind-compatible theme tokens */
-  --primary: #0056d2;
-  --primary-50: #e5effa;
-  --primary-100: #b3d4f0;
-  --primary-200: #80b9e6;
-  --primary-300: #4d9ddc;
+  --primary: #17325F;
+  --primary-50: #EEF2F9;
+  --primary-100: #D1DAE8;
+  --primary-200: #A3B5CC;
+  --primary-300: #7590B0;
   --primary-400: #2688d4;
-  --primary-500: #0056d2;
-  --primary-600: #004dc2;
-  --primary-700: #0043af;
-  --primary-800: #00399d;
-  --primary-900: #00267a;
+  --primary-500: #17325F;
+  --primary-600: #1E3F76;
+  --primary-700: #14284d;
+  --primary-800: #0f1f3d;
+  --primary-900: #0a142d;
   --on-primary: #ffffff;
 
-  --surface-brightest: #ffffff;
-  --surface-bright: #f8fafb;
-  --surface-dim: #d8dadb;
-  --surface-container: #eceeef;
-  --surface-container-high: #e6e8e9;
-  --surface-container-highest: #e1e3e4;
-  --surface-container-low: #f2f4f5;
-  --surface-container-lowest: #ffffff;
-  --surface-lowest: #ffffff;
+  /* Surface system */
+  --surface-brightest: #FFFFFF;
+  --surface-bright: #F8FAFB;
+  --surface-dim: #D8DADB;
+  --surface-container: #ECEE EF;
+  --surface-container-high: #E6E8E9;
+  --surface-container-highest: #E1E3E4;
+  --surface-container-low: #F2F4F5;
+  --surface-container-lowest: #FFFFFF;
+  --surface-lowest: #FFFFFF;
 
-  --on-surface: #2c3e50;
-  --on-surface-variant: #475b6e;
-  --outline: #7d8e9e;
-  --outline-variant: #d9d9d9;
-  --background: #f4f7f9;
-  --on-background: #2c3e50;
-  --error: #e74c3c;
+  --on-surface: #0E1C2F;
+  --on-surface-variant: #3B4C63;
+  --outline: #7A8CA3;
+  --outline-variant: #E2E7EF;
+  --background: #F3F5F8;
+  --on-background: #0E1C2F;
+  --error: #C0392B;
 
-  /* Spacing & Effects (Soft UI) */
-  --r: 16px;
-  --r2: 24px;
+  /* Spacing & Effects */
+  --r: 10px;
+  --r2: 14px;
 
-  --sh1: 0 4px 12px rgba(44, 62, 80, 0.05), 0 1px 2px rgba(44, 62, 80, 0.03);
-  --sh2: 0 8px 24px rgba(44, 62, 80, 0.08), 0 2px 8px rgba(0, 86, 210, 0.04);
-  --sh3: 0 16px 32px rgba(44, 62, 80, 0.12), 0 4px 12px rgba(0, 86, 210, 0.08);
+  --sh1: 0 1px 3px rgba(14,28,47,.06), 0 1px 2px rgba(14,28,47,.04);
+  --sh2: 0 4px 12px rgba(14,28,47,.08), 0 1px 4px rgba(14,28,47,.05);
+  --sh3: 0 8px 24px rgba(14,28,47,.10), 0 2px 6px rgba(14,28,47,.06);
 
-  --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  --dur: 200ms;
+  --ease: cubic-bezier(.25,.46,.45,.94);
+  --dur: 180ms;
 }
 
 /* Base X Motif Pattern */
@@ -147,7 +148,7 @@
     color: var(--t1);
     @apply antialiased min-h-screen overflow-x-auto w-full;
     font-family:
-      "Lato",
+      "Instrument Sans",
       system-ui,
       -apple-system,
       sans-serif;
@@ -194,9 +195,10 @@
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-[var(--r)] text-[13px] font-semibold cursor-pointer border-none transition-all duration-[var(--dur)] ease-[var(--ease)] tracking-tight whitespace-nowrap active:scale-[0.97];
-    font-family: "Lato", sans-serif;
+    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-[var(--r)] text-[13px] font-semibold cursor-pointer border-none transition-all duration-[var(--dur)] ease-[var(--ease)] tracking-tight whitespace-nowrap;
+    font-family: "Instrument Sans", sans-serif;
   }
+  .btn:active { transform: scale(.97); }
 
   .btn-primary {
     @apply bg-[var(--navy)] text-white shadow-[0_1px_4px_rgba(23,50,95,0.25),0_0_0_1px_rgba(23,50,95,0.15)] hover:bg-[var(--navy-mid)] hover:shadow-[0_3px_10px_rgba(23,50,95,0.3)];
@@ -331,6 +333,17 @@
   }
   .no-scrollbar::-webkit-scrollbar {
     @apply hidden;
+  }
+
+  .hover-lift {
+    transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+  }
+  .hover-lift:hover {
+    box-shadow: var(--sh3);
+    transform: translateY(-2px);
+  }
+  .hover-lift:active {
+    transform: translateY(0) scale(.99);
   }
 
   .glass-card {
