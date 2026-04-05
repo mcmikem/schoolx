@@ -69,6 +69,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
         { href: '/dashboard/messages', label: 'Messages', icon: 'chat' },
         { href: '/dashboard/notices', label: 'Announcements', icon: 'campaign' },
         { href: '/dashboard/bulk-sms', label: 'SMS Center', icon: 'sms' },
+        { href: '/dashboard/automation', label: 'SMS Automation', icon: 'auto_awesome', badge: 'New' },
       ]
     },
     {
