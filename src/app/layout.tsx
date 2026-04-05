@@ -68,7 +68,7 @@ export default function RootLayout({
           name="apple-mobile-web-app-status-bar-style"
           content="black-translucent"
         />
-        <meta name="apple-mobile-web-app-title" content="SchoolX" />
+        <meta name="apple-mobile-web-app-title" content="ASSEMBLE" />
         <link rel="apple-touch-icon" href="/schoolx-logo.svg" />
         <link rel="icon" href="/schoolx-logo.svg" type="image/svg+xml" />
       </head>
