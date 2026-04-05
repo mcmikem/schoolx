@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
+import { useStudents } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
@@ -35,9 +36,9 @@ const INCIDENT_TYPES = ['Disruption', 'Respect', 'Bullying', 'Academic Honesty',
 
 export default function BehaviorPage() {
   const { school, user } = useAuth()
+  const { students } = useStudents(school?.id)
   const toast = useToast()
   const [logs, setLogs] = useState<BehaviorLog[]>([])
-  const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingLog, setEditingLog] = useState<BehaviorLog | null>(null)
@@ -62,36 +63,25 @@ export default function BehaviorPage() {
         .eq('school_id', school.id)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        if (error.code === '42P01' || error.code === 'PGRST116') {
+          setLogs([])
+          return
+        }
+        throw error
+      }
       setLogs(data || [])
     } catch (err) {
       console.error('Error fetching behavior logs:', err)
-      toast.error('Failed to load behavior logs')
+      setLogs([])
     } finally {
       setLoading(false)
     }
   }, [school?.id, toast])
 
-  const fetchStudents = useCallback(async () => {
-    if (!school?.id) return
-    try {
-      const { data, error } = await supabase
-        .from('students')
-        .select('id, first_name, last_name')
-        .eq('school_id', school.id)
-        .order('first_name')
-
-      if (error) throw error
-      setStudents(data || [])
-    } catch (err) {
-      console.error('Error fetching students:', err)
-    }
-  }, [school?.id])
-
   useEffect(() => {
     fetchLogs()
-    if (school?.id) fetchStudents()
-  }, [school?.id, fetchLogs, fetchStudents])
+  }, [fetchLogs])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
