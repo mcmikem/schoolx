@@ -7,9 +7,11 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 import { ToastProvider } from '@/components/Toast'
 import AppLoader from '@/components/Loader'
 import { logger } from '@/lib/logger'
+import { setupErrorLogging } from '@/lib/error-logger'
 
 function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
   useEffect(() => {
+    setupErrorLogging()
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
         .then((registration) => {
