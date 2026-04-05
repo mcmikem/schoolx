@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
+import { useStudents } from '@/lib/hooks'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -11,12 +12,6 @@ import { Tabs, TabPanel } from '@/components/ui/Tabs'
 import { TableSkeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
 
-interface Student {
-  id: string
-  first_name: string
-  last_name: string
-}
-
 interface HealthRecord {
   id: string
   student_id: string
@@ -25,17 +20,17 @@ interface HealthRecord {
   record_date: string
   treatment: string
   created_at: string
-  students: Student
+  students: { first_name: string; last_name: string }
   users: { full_name: string }
 }
 
 const RECORD_TYPES = ['Check-up', 'Illness', 'Injury', 'Vaccination', 'Dental', 'Eye Exam', 'First Aid', 'Other']
 
 export default function HealthPage() {
-  const { school, user } = useAuth()
+  const { school, user, isDemo } = useAuth()
+  const { students } = useStudents(school?.id)
   const toast = useToast()
   const [records, setRecords] = useState<HealthRecord[]>([])
-  const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingRecord, setEditingRecord] = useState<HealthRecord | null>(null)
@@ -60,7 +55,6 @@ export default function HealthPage() {
         .order('created_at', { ascending: false })
 
       if (error) {
-        // Table doesn't exist - use demo data
         if (error.code === '42P01' || error.code === 'PGRST116') {
           setRecords([])
           return
@@ -76,26 +70,9 @@ export default function HealthPage() {
     }
   }, [school?.id, toast])
 
-  const fetchStudents = useCallback(async () => {
-    if (!school?.id) return
-    try {
-      const { data, error } = await supabase
-        .from('students')
-        .select('id, first_name, last_name')
-        .eq('school_id', school.id)
-        .order('first_name')
-
-      if (error) throw error
-      setStudents(data || [])
-    } catch (err) {
-      console.error('Error fetching students:', err)
-    }
-  }, [school?.id])
-
   useEffect(() => {
     fetchRecords()
-    if (school?.id) fetchStudents()
-  }, [fetchRecords, fetchStudents, school?.id])
+  }, [fetchRecords])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
