@@ -111,7 +111,9 @@ export default function SettingsPage() {
   const [houses, setHouses] = useState<any[]>([])
   const [loadingHouses, setLoadingHouses] = useState(false)
   const [showAddHouse, setShowAddHouse] = useState(false)
+  const [showAddClass, setShowAddClass] = useState(false)
   const [newHouse, setNewHouse] = useState({ name: '', color: '#3b82f6', motto: '' })
+  const [newClass, setNewClass] = useState({ name: '', stream: '' })
   const sc = school as any
   const selectedRoleOption = ROLE_OPTIONS.find((option) => option.value === newUser.role)
   const missingModules = selectedRoleOption?.modules.filter((module) => !canUseModule(selectedStage, module)) || []
@@ -349,6 +351,35 @@ export default function SettingsPage() {
     }
   }
 
+  const handleAddClass = async () => {
+    if (!school?.id || !newClass.name) return
+    try {
+      const { error } = await supabase.from('classes').insert({
+        school_id: school.id,
+        name: newClass.name,
+        stream: newClass.stream || null,
+        level: parseInt(newClass.name.replace(/[^0-9]/g, '')) || 1,
+        academic_year: new Date().getFullYear().toString(),
+      })
+      if (error) throw error
+      toast.success('Class added')
+      setShowAddClass(false)
+      setNewClass({ name: '', stream: '' })
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to add class')
+    }
+  }
+
+  const handleDeleteClass = async (id: string) => {
+    if (!confirm('Delete this class? All students in this class will need to be reassigned.')) return
+    try {
+      await supabase.from('classes').delete().eq('id', id)
+      toast.success('Class deleted')
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete class')
+    }
+  }
+
   useEffect(() => {
     if (activeTab === 'users' && school?.id) {
       fetchUsers()
@@ -563,6 +594,41 @@ export default function SettingsPage() {
                   </div>
                 ))}
                 {classes.length > 10 && <div className="text-sm text-[var(--t3)]">+ {classes.length - 10} more classes</div>}
+              </div>
+            )}
+          </CardBody></Card>
+
+          {/* Class List Management */}
+          <Card><CardBody>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-[var(--on-surface)]">Manage Classes</h2>
+              <Button size="sm" onClick={() => setShowAddClass(true)}>
+                <MaterialIcon icon="add" className="text-sm" />
+                Add Class
+              </Button>
+            </div>
+            <p className="text-sm text-[var(--t3)] mb-4">Add or remove classes. Use streams (A, B, C) if your school has multiple classes per level.</p>
+            {loadingClasses ? (
+              <div className="text-sm text-[var(--t3)]">Loading...</div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {classes.map((cls: any) => (
+                  <div key={cls.id} className="flex items-center justify-between p-3 bg-[var(--surface-container)] rounded-lg border border-[var(--border)]">
+                    <span className="font-medium text-[var(--on-surface)]">{cls.name}{cls.stream ? ` ${cls.stream}` : ''}</span>
+                    <button 
+                      onClick={() => handleDeleteClass(cls.id)}
+                      className="text-[var(--t3)] hover:text-red-500 p-1"
+                      title="Delete class"
+                    >
+                      <MaterialIcon icon="delete" className="text-sm" />
+                    </button>
+                  </div>
+                ))}
+                {classes.length === 0 && (
+                  <div className="col-span-full text-sm text-[var(--t3)] text-center py-4">
+                    No classes yet. Add your first class above.
+                  </div>
+                )}
               </div>
             )}
           </CardBody></Card>
@@ -865,6 +931,36 @@ export default function SettingsPage() {
               <div className="flex gap-3 pt-4">
                 <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowAddHouse(false)}>Cancel</Button>
                 <Button className="flex-1" onClick={addHouse}>Add House</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddClass && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowAddClass(false)}>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-[var(--border)]">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-[var(--on-surface)]">Add Class</h2>
+                <button onClick={() => setShowAddClass(false)} className="p-2 text-[var(--t3)] hover:text-[var(--on-surface)]">
+                  <MaterialIcon icon="close" className="text-xl" />
+                </button>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Class Name</label>
+                <input type="text" value={newClass.name} onChange={(e) => setNewClass({...newClass, name: e.target.value})} className="input" placeholder="e.g., P.5 or S.1" required />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Stream (Optional)</label>
+                <input type="text" value={newClass.stream} onChange={(e) => setNewClass({...newClass, stream: e.target.value})} className="input" placeholder="e.g., A, B, or C (leave empty if none)" />
+                <p className="text-xs text-[var(--t3)] mt-1">Only use streams if you have multiple classes at the same level</p>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowAddClass(false)}>Cancel</Button>
+                <Button className="flex-1" onClick={handleAddClass}>Add Class</Button>
               </div>
             </div>
           </div>
