@@ -125,7 +125,7 @@ export function NotificationsProvider({ children, schoolId }: { children: ReactN
         generatedNotifications.push({
           id: 'welcome',
           type: 'info',
-          title: 'Welcome to SchoolX!',
+          title: 'Welcome to ASSEMBLE!',
           message: 'Start by adding students and taking attendance',
           link: '/dashboard/students',
           read: false,

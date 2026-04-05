@@ -100,7 +100,7 @@ export default function ReportsPage() {
           classes: student.classes
         },
         school: {
-          name: school?.name || 'SchoolX',
+          name: school?.name || 'ASSEMBLE',
           district: school?.district || 'Uganda',
         },
         term: currentTerm,
