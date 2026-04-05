@@ -4,34 +4,34 @@ import Providers from "./providers";
 
 export const metadata: Metadata = {
   title:
-    "Omuto School Management System | Run Your Entire School From One Dashboard",
+    "ASSEMBLE | Powered by Omuto Foundation",
   description:
     "The all-in-one school management system built for Ugandan schools. Track attendance, grades, fees, and send parent SMS — all from one dashboard. Start your free 30-day trial today.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/schoolx-logo.svg",
-    apple: "/schoolx-logo.svg",
+    icon: "/assemble-icon.png",
+    apple: "/assemble-icon.png",
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Omuto SMS",
+    title: "ASSEMBLE",
   },
   openGraph: {
     title:
-      "Omuto School Management System | Run Your Entire School From One Dashboard",
+      "ASSEMBLE | Powered by Omuto Foundation",
     description:
       "Attendance, grades, fees, and parent SMS — all in one system built for Ugandan schools. Start your free 30-day trial.",
     type: "website",
     url: "https://omuto.sms",
     images: ["/og-image.png"],
     locale: "en_UG",
-    siteName: "Omuto School Management System",
+    siteName: "ASSEMBLE",
   },
   twitter: {
     card: "summary_large_image",
     title:
-      "Omuto School Management System | School Management for Ugandan Schools",
+      "ASSEMBLE | Powered by Omuto Foundation",
     description:
       "Run your entire school from one dashboard. Attendance, grades, fees, and parent SMS.",
   },

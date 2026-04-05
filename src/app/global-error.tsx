@@ -18,12 +18,12 @@ export default function GlobalError({
   return (
     <html lang="en">
       <head>
-        <title>Omuto SMS - Error</title>
+        <title>ASSEMBLE - Error</title>
         <meta
           name="description"
-          content="An unexpected error occurred in the Omuto School Management System. Please try refreshing the page or contact support."
+          content="An unexpected error occurred in ASSEMBLE. Powered by Omuto Foundation. Please try refreshing the page or contact support."
         />
-        <meta property="og:title" content="Omuto SMS - Error" />
+        <meta property="og:title" content="ASSEMBLE - Error" />
         <meta
           property="og:description"
           content="An unexpected error occurred. Please try refreshing the page."

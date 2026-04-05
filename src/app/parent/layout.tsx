@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Parent Portal | Omuto School Management System",
+  title: "Parent Portal | ASSEMBLE",
   description:
-    "Parent portal for Omuto School Management System. View your child's attendance, grades, fee balance, and school updates in one place.",
+    "Parent portal for ASSEMBLE. Powered by Omuto Foundation. View your child's attendance, grades, fee balance, and school updates in one place.",
   openGraph: {
-    title: "Parent Portal | Omuto School Management System",
+    title: "Parent Portal | ASSEMBLE",
     description:
       "Stay connected with your child's school life. View attendance, grades, fees, and receive SMS updates.",
     type: "website",
