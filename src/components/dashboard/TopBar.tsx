@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import GlobalSearch from "@/components/GlobalSearch";
-import MaterialIcon from "@/components/MaterialIcon";
+import FeatherIcon from "@/components/FeatherIcon";
 import { useTheme } from "@/lib/theme-context";
 import { useDashboardNotifications } from "@/components/dashboard/AccessControlGuard";
 
@@ -91,7 +91,7 @@ function NotificationsPanel({
               className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
               style={{ background: `${n.color}20` }}
             >
-              <MaterialIcon
+              <FeatherIcon
                 icon={n.icon}
                 style={{ fontSize: 15, color: n.color }}
               />
@@ -113,7 +113,7 @@ function NotificationsPanel({
               className="text-[var(--t4)] hover:text-[var(--t2)] transition-colors self-start mt-1"
               aria-label="Dismiss notification"
             >
-              <MaterialIcon icon="close" style={{ fontSize: 14 }} />
+              <FeatherIcon name="close" size={14} />
             </button>
           </div>
         ))}
@@ -152,7 +152,7 @@ function UserMenu({
         onClick={onClose}
         className="flex items-center gap-2 px-4 py-[10px] text-[13px] text-[var(--t2)] no-underline hover:bg-[var(--bg)] transition-colors"
       >
-        <MaterialIcon icon="settings" style={{ fontSize: 16 }} />
+        <FeatherIcon name="settings" size={16} />
         Settings
       </Link>
       <div className="border-t border-[var(--border)]" />
@@ -160,7 +160,7 @@ function UserMenu({
         onClick={onSignOut}
         className="w-full flex items-center gap-2 px-4 py-[10px] text-[13px] text-[var(--red)] hover:bg-[var(--bg)] transition-colors cursor-pointer"
       >
-        <MaterialIcon icon="logout" style={{ fontSize: 16 }} />
+        <FeatherIcon name="logout" size={16} />
         Sign Out
       </button>
     </div>
@@ -226,8 +226,8 @@ export default function TopBar({
         className="mobile-menu-btn bg-transparent border-none cursor-pointer p-2 mr-2 w-11 h-11 flex items-center justify-center rounded-lg"
         aria-label="Toggle sidebar"
       >
-        <MaterialIcon
-          icon="menu"
+        <FeatherIcon
+          name="menu"
           style={{ fontSize: 24, color: "var(--t1)" }}
         />
       </button>
@@ -252,8 +252,26 @@ export default function TopBar({
         </div>
       </div>
 
-      <div className="search-bar flex items-center gap-[10px] bg-[var(--bg)] border border-[var(--border)] rounded-[10px] px-[14px] py-2 text-[13px] text-[var(--t3)] min-w-[240px] cursor-text">
-        <GlobalSearch />
+      <div className="search-bar flex items-center gap-[10px] bg-[var(--bg)] border border-[var(--border)] rounded-[10px] px-[14px] py-2 text-[13px] text-[var(--t3)] min-w-[240px] cursor-pointer hover:border-[var(--border2)] transition-colors"
+        onClick={() => {
+          const trigger = document.querySelector(
+            "[data-globalsearch-trigger]",
+          ) as HTMLButtonElement | null;
+          trigger?.click();
+        }}
+      >
+        <FeatherIcon name="search" style={{ fontSize: 16, color: "var(--t4)" }} />
+        <span className="flex-1 text-[var(--t4)]">Search…</span>
+        <kbd style={{
+          fontSize: "10px",
+          padding: "1px 5px",
+          borderRadius: "4px",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          color: "var(--t4)",
+          fontFamily: "DM Mono, monospace",
+          fontWeight: 500,
+        }}>⌘K</kbd>
       </div>
 
       <button
@@ -266,7 +284,7 @@ export default function TopBar({
         className="sm:hidden bg-transparent border-none cursor-pointer p-2 w-11 h-11 flex items-center justify-center rounded-lg text-[var(--t2)] hover:bg-[var(--bg)] transition-colors"
         aria-label="Search"
       >
-        <MaterialIcon icon="search" style={{ fontSize: 22 }} />
+        <FeatherIcon name="search" style={{ fontSize: 22 }} />
       </button>
 
       <div className="flex items-center gap-[10px]">
@@ -275,7 +293,7 @@ export default function TopBar({
           className="flex items-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-[10px] bg-[var(--navy)] text-white text-[12px] font-semibold no-underline shadow-[var(--sh1)]"
           aria-label={`Next step: ${nextStep.label}`}
         >
-          <MaterialIcon icon={nextStep.icon} style={{ fontSize: 15 }} />
+          <FeatherIcon icon={nextStep.icon} size={15} />
           <span className="hidden sm:inline">{nextStep.label}</span>
         </Link>
 
@@ -285,12 +303,12 @@ export default function TopBar({
             className="w-9 h-9 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center cursor-pointer shadow-[var(--sh1)] relative hover:bg-[var(--bg)] transition-colors"
             aria-label={`Notifications${visibleNotifications.length > 0 ? `, ${visibleNotifications.length} unread` : ""}`}
           >
-            <MaterialIcon
-              icon="notifications"
+            <FeatherIcon
+              name="notifications"
               style={{ fontSize: 16, color: "var(--t2)" }}
             />
             {visibleNotifications.length > 0 && (
-              <div className="absolute top-1.5 right-1.5 w-[7px] h-[7px] rounded-full bg-[var(--red)] border-[1.5px] border-[var(--surface)]" />
+              <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 border border-[var(--surface)]" />
             )}
           </button>
           <NotificationsPanel
@@ -308,28 +326,28 @@ export default function TopBar({
           className="w-9 h-9 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center cursor-pointer shadow-[var(--sh1)] hover:bg-[var(--bg)] transition-colors"
           aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
         >
-          <MaterialIcon
+          <FeatherIcon
             icon={theme === "dark" ? "light_mode" : "dark_mode"}
             style={{ fontSize: 16, color: "var(--t2)" }}
           />
         </button>
 
         <div className="relative">
-          <button
+            <button
             className="user-menu flex items-center gap-[10px] py-[5px] pr-3 pl-1 bg-[var(--surface)] border border-[var(--border)] rounded-full cursor-pointer shadow-[var(--sh1)] transition-all hover:bg-[var(--bg)]"
             onClick={() => setUserMenuOpen(!userMenuOpen)}
             aria-label="User menu"
             aria-expanded={userMenuOpen}
           >
-            <div className="w-[26px] h-[26px] rounded-full bg-[var(--navy)] flex items-center justify-center text-[10px] font-bold text-white font-['Sora']">
-              {user?.full_name?.charAt(0) || "U"}
+            <div className="w-[26px] h-[26px] rounded-full bg-[var(--navy)] flex items-center justify-center text-[10px] font-bold text-white" style={{ fontFamily: "Sora, sans-serif" }}>
+              {(user?.full_name || "U").split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase()}
             </div>
             <div className="text-left hidden sm:block">
-              <div className="text-[13px] font-semibold text-[var(--t1)]">
+              <div className="text-[13px] font-semibold text-[var(--t1)] leading-tight">
                 {user?.full_name?.split(" ")[0] || "User"}
               </div>
-              <div className="text-[11px] text-[var(--t3)]">
-                {schoolName.split(" ")[0]}
+              <div className="text-[10px] text-[var(--t3)] font-medium" style={{ textTransform: "capitalize" }}>
+                {(user?.role || "user").replace("_", " ")}
               </div>
             </div>
           </button>

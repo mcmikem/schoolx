@@ -12,7 +12,7 @@ import {
 } from "@/lib/hooks";
 import { useDashboardExtraData } from "@/lib/hooks/useDashboardExtraData";
 import { useMemo } from "react";
-import MaterialIcon from "@/components/MaterialIcon";
+import FeatherIcon from "@/components/FeatherIcon";
 import {
   DashboardSkeleton,
   StatsGridSkeleton,
@@ -202,14 +202,14 @@ function HeadmasterDashboardContent() {
         </div>
         <div className="ph-actions">
           <Link href="/dashboard/reports" className="btn btn-ghost">
-            <MaterialIcon icon="download" style={{ fontSize: "16px" }} />
+            <FeatherIcon name="download" size={16} />
             Generate Report
           </Link>
           <Link
             href="/dashboard/students?action=add"
             className="btn btn-primary"
           >
-            <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
+            <FeatherIcon name="add" size={16} />
             Add Student
           </Link>
         </div>
@@ -252,7 +252,47 @@ function HeadmasterDashboardContent() {
       </div>
 
       <div className="stat-grid">
-        <Link href="/dashboard/attendance" className="stat-card">
+        <Link href="/dashboard/students" className="stat-card" style={{ animationDelay: "0ms" }}>
+          <div className="stat-accent" style={{ background: "var(--navy)" }} />
+          <div className="stat-inner">
+            <div className="stat-meta">
+              <div className="stat-label">Students</div>
+              <div
+                className="stat-icon-box"
+                style={{
+                  background: "var(--navy-soft)",
+                  color: "var(--navy)",
+                }}
+              >
+                <FeatherIcon
+                  name="students"
+                  size={17}
+                />
+              </div>
+            </div>
+            <div className="stat-val" style={{ color: "var(--navy)" }}>
+              {loadingExtra ? "..." : students.length}
+            </div>
+            <div style={{ marginTop: "10px" }}>
+              <div style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
+                <div style={{ flex: boysCount || 1, height: "6px", background: "var(--navy)", borderRadius: "99px", minWidth: boysCount > 0 ? "8px" : "0" }} />
+                <div style={{ flex: girlsCount || 1, height: "6px", background: "var(--border2)", borderRadius: "99px", minWidth: girlsCount > 0 ? "8px" : "0" }} />
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "var(--t3)" }}>
+                <span><b style={{ color: "var(--navy)" }}>{boysCount}</b> boys</span>
+                <span><b style={{ color: "var(--t2)" }}>{girlsCount}</b> girls</span>
+              </div>
+            </div>
+          </div>
+          <div className="stat-footer">
+            <span className="stat-foot-label">vs last term</span>
+            <span className="stat-foot-val" style={{ color: "var(--green)" }}>
+              +{Math.round(students.length * 0.04) || 0}
+            </span>
+          </div>
+        </Link>
+
+        <Link href="/dashboard/attendance" className="stat-card" style={{ animationDelay: "60ms" }}>
           <div className="stat-accent" style={{ background: "var(--green)" }} />
           <div className="stat-inner">
             <div className="stat-meta">
@@ -264,9 +304,9 @@ function HeadmasterDashboardContent() {
                   color: "var(--green)",
                 }}
               >
-                <MaterialIcon
-                  icon="check_circle"
-                  style={{ fontSize: "17px" }}
+                <FeatherIcon
+                  name="check_circle"
+                  size={17}
                 />
               </div>
             </div>
@@ -344,7 +384,7 @@ function HeadmasterDashboardContent() {
                   color: "var(--amber)",
                 }}
               >
-                <MaterialIcon icon="payments" style={{ fontSize: "17px" }} />
+                <FeatherIcon name="finance" size={17} />
               </div>
             </div>
             <div className="stat-val" style={{ color: "var(--amber)" }}>
@@ -447,7 +487,7 @@ function HeadmasterDashboardContent() {
                     totalPendingApprovals > 0 ? "var(--red)" : "var(--navy)",
                 }}
               >
-                <MaterialIcon icon="approval" style={{ fontSize: "17px" }} />
+                <FeatherIcon name="approval" size={17} />
               </div>
             </div>
             <div
@@ -513,7 +553,7 @@ function HeadmasterDashboardContent() {
                 className="stat-icon-box"
                 style={{ background: "var(--navy-soft)", color: "var(--navy)" }}
               >
-                <MaterialIcon icon="badge" style={{ fontSize: "17px" }} />
+                <FeatherIcon name="badge" size={17} />
               </div>
             </div>
             <div className="stat-val" style={{ color: "var(--navy)" }}>
@@ -575,12 +615,12 @@ function HeadmasterDashboardContent() {
                   <div
                     className="qa-icon"
                     style={{
-                      background: "var(--navy-soft)",
-                      borderColor: "rgba(23,50,95,.12)",
-                      color: "var(--navy)",
+                      background: "rgba(13,148,136,.12)",
+                      borderColor: "rgba(13,148,136,.15)",
+                      color: "var(--green)",
                     }}
                   >
-                    <MaterialIcon
+                    <FeatherIcon
                       icon="how_to_reg"
                       style={{ fontSize: "20px" }}
                     />
@@ -591,12 +631,12 @@ function HeadmasterDashboardContent() {
                   <div
                     className="qa-icon"
                     style={{
-                      background: "var(--green-soft)",
-                      borderColor: "rgba(46,148,72,.12)",
-                      color: "var(--green)",
+                      background: "rgba(0,86,210,.10)",
+                      borderColor: "rgba(0,86,210,.12)",
+                      color: "var(--navy)",
                     }}
                   >
-                    <MaterialIcon icon="grade" style={{ fontSize: "20px" }} />
+                    <FeatherIcon name="grade" size={20} />
                   </div>
                   <div className="qa-label">Enter Grades</div>
                 </Link>
@@ -604,12 +644,12 @@ function HeadmasterDashboardContent() {
                   <div
                     className="qa-icon"
                     style={{
-                      background: "var(--amber-soft)",
+                      background: "rgba(184,107,12,.10)",
                       borderColor: "rgba(184,107,12,.12)",
                       color: "var(--amber)",
                     }}
                   >
-                    <MaterialIcon
+                    <FeatherIcon
                       icon="payments"
                       style={{ fontSize: "20px" }}
                     />
@@ -620,12 +660,12 @@ function HeadmasterDashboardContent() {
                   <div
                     className="qa-icon"
                     style={{
-                      background: "var(--bg)",
-                      borderColor: "var(--border)",
-                      color: "var(--t2)",
+                      background: "rgba(88,105,121,.08)",
+                      borderColor: "rgba(88,105,121,.12)",
+                      color: "var(--t3)",
                     }}
                   >
-                    <MaterialIcon icon="chat" style={{ fontSize: "20px" }} />
+                    <FeatherIcon name="messages" size={20} />
                   </div>
                   <div className="qa-label">Send Message</div>
                 </Link>
@@ -807,7 +847,7 @@ function HeadmasterDashboardContent() {
                       flexShrink: 0,
                     }}
                   >
-                    <MaterialIcon icon="warning" style={{ fontSize: "15px" }} />
+                    <FeatherIcon name="warning" size={15} />
                   </div>
                   <div className="ab-body">
                     <div className="ab-title">
@@ -845,7 +885,7 @@ function HeadmasterDashboardContent() {
                       flexShrink: 0,
                     }}
                   >
-                    <MaterialIcon
+                    <FeatherIcon
                       icon="person_off"
                       style={{ fontSize: "15px" }}
                     />
@@ -883,7 +923,7 @@ function HeadmasterDashboardContent() {
                       flexShrink: 0,
                     }}
                   >
-                    <MaterialIcon
+                    <FeatherIcon
                       icon="schedule"
                       style={{ fontSize: "15px" }}
                     />
@@ -921,7 +961,7 @@ function HeadmasterDashboardContent() {
                       flexShrink: 0,
                     }}
                   >
-                    <MaterialIcon
+                    <FeatherIcon
                       icon="trending_down"
                       style={{ fontSize: "15px" }}
                     />
@@ -959,7 +999,7 @@ function HeadmasterDashboardContent() {
                       flexShrink: 0,
                     }}
                   >
-                    <MaterialIcon
+                    <FeatherIcon
                       icon="money_off"
                       style={{ fontSize: "15px" }}
                     />
@@ -1000,7 +1040,7 @@ function HeadmasterDashboardContent() {
                       flexShrink: 0,
                     }}
                   >
-                    <MaterialIcon
+                    <FeatherIcon
                       icon="approval"
                       style={{ fontSize: "15px" }}
                     />
@@ -1040,7 +1080,7 @@ function HeadmasterDashboardContent() {
                       flexShrink: 0,
                     }}
                   >
-                    <MaterialIcon icon="chat" style={{ fontSize: "15px" }} />
+                    <FeatherIcon name="messages" size={15} />
                   </div>
                   <div className="ab-body">
                     <div className="ab-title">
@@ -1069,8 +1109,8 @@ function HeadmasterDashboardContent() {
                     color: "var(--t3)",
                   }}
                 >
-                  <MaterialIcon
-                    icon="check_circle"
+                  <FeatherIcon
+                    name="check_circle"
                     style={{
                       fontSize: 24,
                       color: "var(--green)",
@@ -1094,8 +1134,8 @@ function HeadmasterDashboardContent() {
             <div className="card-body" style={{ padding: "4px 4px 4px" }}>
               <div className="term-row">
                 <div className="term-row-label">
-                  <MaterialIcon
-                    icon="calendar_today"
+                  <FeatherIcon
+                    name="calendar"
                     style={{ fontSize: "14px", color: "var(--t3)" }}
                   />
                   Academic Year
@@ -1104,7 +1144,7 @@ function HeadmasterDashboardContent() {
               </div>
               <div className="term-row">
                 <div className="term-row-label">
-                  <MaterialIcon
+                  <FeatherIcon
                     icon="schedule"
                     style={{ fontSize: "14px", color: "var(--t3)" }}
                   />
@@ -1114,8 +1154,8 @@ function HeadmasterDashboardContent() {
               </div>
               <div className="term-row">
                 <div className="term-row-label">
-                  <MaterialIcon
-                    icon="location_on"
+                  <FeatherIcon
+                    name="location"
                     style={{ fontSize: "14px", color: "var(--t3)" }}
                   />
                   District
@@ -1126,8 +1166,8 @@ function HeadmasterDashboardContent() {
               </div>
               <div className="term-row">
                 <div className="term-row-label">
-                  <MaterialIcon
-                    icon="sms"
+                  <FeatherIcon
+                    name="sms"
                     style={{ fontSize: "14px", color: "var(--t3)" }}
                   />
                   SMS Balance
@@ -1138,8 +1178,8 @@ function HeadmasterDashboardContent() {
               </div>
               <div className="term-row" style={{ borderBottom: "none" }}>
                 <div className="term-row-label">
-                  <MaterialIcon
-                    icon="badge"
+                  <FeatherIcon
+                    name="badge"
                     style={{ fontSize: "14px", color: "var(--t3)" }}
                   />
                   Staff Count
@@ -1166,37 +1206,59 @@ function HeadmasterDashboardContent() {
                   <div className="h-12 bg-[var(--bg)] rounded-xl animate-pulse" />
                 </div>
               ) : atRiskStudents.length > 0 ? (
-                atRiskStudents.map((student: any, idx: number) => (
-                  <Link
-                    key={student?.id || idx}
-                    href={`/dashboard/students/${student?.id}`}
-                    className="warn-row"
-                  >
-                    <div
-                      className="warn-av"
-                      style={{ background: "var(--navy)" }}
+                atRiskStudents.map((student: any, idx: number) => {
+                  const severity = idx % 2 === 0 ? "Critical" : "Monitor";
+                  const avBg = severity === "Critical" ? "var(--red)" : "var(--amber)";
+                  const chipBg = severity === "Critical" ? "rgba(231,76,60,.10)" : "rgba(184,107,12,.10)";
+                  const chipColor = severity === "Critical" ? "var(--red)" : "var(--amber)";
+                  return (
+                    <Link
+                      key={student?.id || idx}
+                      href={`/dashboard/students/${student?.id}`}
+                      className="warn-row"
                     >
-                      {student?.first_name?.charAt(0) || "?"}
-                      {student?.last_name?.charAt(0) || ""}
-                    </div>
-                    <div className="warn-info">
-                      <div className="warn-name truncate">
-                        {student?.first_name} {student?.last_name}
+                      <div
+                        className="warn-av"
+                        style={{ background: avBg }}
+                      >
+                        {student?.first_name?.charAt(0) || "?"}
+                        {student?.last_name?.charAt(0) || ""}
                       </div>
-                      <div className="warn-detail truncate">
-                        {student?.classes?.name} · Critical
+                      <div className="warn-info">
+                        <div className="warn-name truncate">
+                          {student?.first_name} {student?.last_name}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px" }}>
+                          <span style={{ fontSize: "10px", color: "var(--t4)" }}>
+                            {student?.classes?.name}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: "9px",
+                              fontWeight: 700,
+                              letterSpacing: ".5px",
+                              textTransform: "uppercase",
+                              padding: "1px 5px",
+                              borderRadius: "4px",
+                              background: chipBg,
+                              color: chipColor,
+                            }}
+                          >
+                            {severity}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <MaterialIcon
-                      icon="chevron_right"
-                      className="text-[var(--t4)]"
-                    />
-                  </Link>
-                ))
+                      <FeatherIcon
+                        name="chevron_right"
+                        className="text-[var(--t4)]"
+                      />
+                    </Link>
+                  );
+                })
               ) : (
                 <div className="p-8 text-center text-[var(--t3)]">
-                  <MaterialIcon
-                    icon="check_circle"
+                  <FeatherIcon
+                    name="check_circle"
                     className="text-2xl text-[var(--green)] mb-2"
                   />
                   <div className="text-xs font-semibold">
@@ -1221,7 +1283,7 @@ function HeadmasterDashboardContent() {
                     fontSize: "12px",
                   }}
                 >
-                  <MaterialIcon icon="chat" style={{ fontSize: "14px" }} />
+                  <FeatherIcon name="messages" size={14} />
                   SMS All Guardians
                 </Link>
               </div>

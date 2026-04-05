@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
-import MaterialIcon from '@/components/MaterialIcon'
+import FeatherIcon from '@/components/FeatherIcon'
 
 export default function TrialBanner() {
   const { school, isDemo } = useAuth()
@@ -37,7 +37,7 @@ export default function TrialBanner() {
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center shrink-0">
-            <MaterialIcon icon="campaign" className="text-amber-600" style={{ fontSize: 18 }} />
+            <FeatherIcon name="campaign" className="text-amber-600" size={18} />
           </div>
           <div className="min-w-0">
             <div className="text-sm font-medium text-amber-800">
@@ -51,15 +51,15 @@ export default function TrialBanner() {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <a href="https://essentials.omuto.org" target="_blank" rel="noopener noreferrer" className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-900 px-3 py-1.5 rounded-lg bg-amber-100/50 hover:bg-amber-100 transition-colors">
-            <MaterialIcon icon="star" style={{ fontSize: 14 }} />
+            <FeatherIcon name="star" size={14} />
             Omuto Essentials
           </a>
           <a href="https://omuto.org/osx.php" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-white px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 transition-colors">
-            <MaterialIcon icon="rocket_launch" style={{ fontSize: 14 }} />
+            <FeatherIcon name="rocket_launch" size={14} />
             Upgrade Now
           </a>
           <button onClick={handleDismiss} className="p-1 text-amber-400 hover:text-amber-600 transition-colors">
-            <MaterialIcon icon="close" style={{ fontSize: 18 }} />
+            <FeatherIcon name="close" size={18} />
           </button>
         </div>
       </div>

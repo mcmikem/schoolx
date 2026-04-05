@@ -1,4 +1,5 @@
 "use client";
+import FeatherIcon from "@/components/FeatherIcon";
 import { useState, useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
