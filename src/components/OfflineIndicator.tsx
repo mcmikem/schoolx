@@ -28,7 +28,30 @@ export function OfflineIndicator() {
         const result = await offlineDB.syncToServer("/api/sync");
         if (result.success > 0) {
           setPendingSync(0);
+          await offlineDB.refreshAll([
+            "students",
+            "classes",
+            "subjects",
+            "attendance",
+            "grades",
+            "fee_payments",
+            "fee_structure",
+            "fee_adjustments",
+            "messages",
+          ]);
         }
+      } else {
+        await offlineDB.refreshAll([
+          "students",
+          "classes",
+          "subjects",
+          "attendance",
+          "grades",
+          "fee_payments",
+          "fee_structure",
+          "fee_adjustments",
+          "messages",
+        ]);
       }
     } catch {
       // Sync will retry on next online event
