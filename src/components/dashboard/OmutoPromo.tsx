@@ -1,59 +1,62 @@
-'use client'
-import { useState, useEffect } from 'react'
-import { useAuth } from '@/lib/auth-context'
-import MaterialIcon from '@/components/MaterialIcon'
+"use client";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/lib/auth-context";
+import MaterialIcon from "@/components/MaterialIcon";
 
 const OMUTO_SERVICES = [
   {
-    title: 'Omuto School Xperience',
-    description: 'Full school transformation with advanced features, custom branding, and dedicated support.',
-    url: 'https://omuto.org/osx.php',
-    icon: 'rocket_launch',
-    color: '#17325F',
-    bgColor: 'rgba(23,50,95,0.08)',
-    cta: 'Explore OSX',
+    title: "Omuto School Xperience",
+    description:
+      "Full school transformation with advanced features, custom branding, and dedicated support.",
+    url: "https://omuto.org/osx.php",
+    icon: "rocket_launch",
+    color: "#17325F",
+    bgColor: "rgba(23,50,95,0.08)",
+    cta: "Explore OSX",
   },
   {
-    title: 'Omuto Essentials',
-    description: 'Affordable school management tools for small schools. Start with the basics you need.',
-    url: 'https://essentials.omuto.org',
-    icon: 'star',
-    color: '#2E9448',
-    bgColor: 'rgba(46,148,72,0.08)',
-    cta: 'View Products',
+    title: "Omuto Essentials",
+    description:
+      "Affordable school management tools for small schools. Start with the basics you need.",
+    url: "https://essentials.omuto.org",
+    icon: "star",
+    color: "#2E9448",
+    bgColor: "rgba(46,148,72,0.08)",
+    cta: "View Products",
   },
   {
-    title: 'Omuto Youth Center',
-    description: 'Empower your students with youth programs, leadership training, and community engagement.',
-    url: 'https://omuto.org/oyc.php',
-    icon: 'groups',
-    color: '#7c3aed',
-    bgColor: 'rgba(124,58,237,0.08)',
-    cta: 'Learn More',
+    title: "Omuto Youth Center",
+    description:
+      "Empower your students with youth programs, leadership training, and community engagement.",
+    url: "https://omuto.org/oyc.php",
+    icon: "groups",
+    color: "#0d9488",
+    bgColor: "rgba(13,148,136,0.08)",
+    cta: "Learn More",
   },
-]
+];
 
 export default function OmutoPromo() {
-  const { school, isTrialExpired } = useAuth()
-  const [dismissed, setDismissed] = useState(false)
-  const [mounted, setMounted] = useState(false)
+  const { school, isTrialExpired } = useAuth();
+  const [dismissed, setDismissed] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true)
-    const saved = localStorage.getItem('assemble_promo_dismissed')
-    if (saved) setDismissed(true)
-  }, [])
+    setMounted(true);
+    const saved = localStorage.getItem("assemble_promo_dismissed");
+    if (saved) setDismissed(true);
+  }, []);
 
-  if (!mounted || dismissed) return null
+  if (!mounted || dismissed) return null;
 
   // Only show for trial or expired accounts
-  const isTrial = school?.subscription_status === 'trial' || isTrialExpired
-  if (!isTrial) return null
+  const isTrial = school?.subscription_status === "trial" || isTrialExpired;
+  if (!isTrial) return null;
 
   const handleDismiss = () => {
-    setDismissed(true)
-    localStorage.setItem('assemble_promo_dismissed', 'true')
-  }
+    setDismissed(true);
+    localStorage.setItem("assemble_promo_dismissed", "true");
+  };
 
   return (
     <div className="mx-2 sm:mx-4 mt-4">
@@ -62,11 +65,18 @@ export default function OmutoPromo() {
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-[var(--navy)] flex items-center justify-center">
-              <MaterialIcon icon="workspace_premium" className="text-white text-sm" />
+              <MaterialIcon
+                icon="workspace_premium"
+                className="text-white text-sm"
+              />
             </div>
             <div>
-              <div className="text-[12px] uppercase tracking-wider font-bold text-[var(--t4)]">Upgrade your school</div>
-              <div className="text-[14px] font-semibold text-[var(--t1)]">Explore Omuto services</div>
+              <div className="text-[12px] uppercase tracking-wider font-bold text-[var(--t4)]">
+                Upgrade your school
+              </div>
+              <div className="text-[14px] font-semibold text-[var(--t1)]">
+                Explore Omuto services
+              </div>
             </div>
           </div>
           <button
@@ -115,5 +125,5 @@ export default function OmutoPromo() {
         </div>
       </div>
     </div>
-  )
+  );
 }
