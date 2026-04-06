@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useClasses } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
@@ -13,6 +13,7 @@ import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { Modal } from "@/components/ui/Modal";
 
 const STATUS_CYCLE = ["absent", "present", "late"] as const;
 type AttendanceStatus = (typeof STATUS_CYCLE)[number];
@@ -71,6 +72,14 @@ export default function AttendancePage() {
   const [offlineCount, setOfflineCount] = useState(0);
   const [allMarked, setAllMarked] = useState(false);
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
+  const [rollCallMode, setRollCallMode] = useState(false);
+  const [showQuickAbsentModal, setShowQuickAbsentModal] = useState(false);
+  const [selectedAbsentIds, setSelectedAbsentIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [filterStatus, setFilterStatus] = useState<"all" | AttendanceStatus>(
+    "all",
+  );
 
   const isClassTeacher = user?.role === "teacher";
   const isAdmin =
@@ -170,7 +179,15 @@ export default function AttendancePage() {
           },
         );
         setStudents(studentsData || []);
-        setAttendance(attendanceMap);
+        if (rollCallMode) {
+          const defaulted: Record<string, string> = {};
+          (studentsData || []).forEach((s) => {
+            defaulted[s.id] = attendanceMap[s.id] || "present";
+          });
+          setAttendance(defaulted);
+        } else {
+          setAttendance(attendanceMap);
+        }
       } catch (err) {
         console.error("Error fetching students:", err);
       } finally {
@@ -179,7 +196,19 @@ export default function AttendancePage() {
     }
 
     fetchStudents();
-  }, [selectedClass, date, school?.id, isDemo, isOnline]);
+  }, [selectedClass, date, school?.id, isDemo, isOnline, rollCallMode]);
+
+  useEffect(() => {
+    if (rollCallMode && students.length > 0) {
+      setAttendance((prev) => {
+        const defaulted: Record<string, string> = {};
+        students.forEach((s) => {
+          defaulted[s.id] = prev[s.id] || "present";
+        });
+        return defaulted;
+      });
+    }
+  }, [rollCallMode, students]);
 
   const markAttendance = (studentId: string, status: string) => {
     setAttendance((prev) => ({ ...prev, [studentId]: status }));
@@ -214,6 +243,40 @@ export default function AttendancePage() {
       }
     }
   };
+
+  const handleQuickAbsentApply = () => {
+    if (selectedAbsentIds.size === 0) {
+      toast.warning("No students selected");
+      return;
+    }
+    setAttendance((prev) => {
+      const updated = { ...prev };
+      selectedAbsentIds.forEach((id) => {
+        updated[id] = "absent";
+      });
+      return updated;
+    });
+    toast.success(`${selectedAbsentIds.size} student(s) marked absent`);
+    setSelectedAbsentIds(new Set());
+    setShowQuickAbsentModal(false);
+  };
+
+  const toggleAbsentSelection = (studentId: string) => {
+    setSelectedAbsentIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(studentId)) {
+        next.delete(studentId);
+      } else {
+        next.add(studentId);
+      }
+      return next;
+    });
+  };
+
+  const filteredStudents = useMemo(() => {
+    if (filterStatus === "all") return students;
+    return students.filter((s) => attendance[s.id] === filterStatus);
+  }, [students, attendance, filterStatus]);
 
   const saveAttendance = async () => {
     if (!selectedClass || !user?.id) return;
@@ -319,6 +382,8 @@ export default function AttendancePage() {
     (s) => s === "late",
   ).length;
 
+  const selectedClassName = filteredClasses.find((c) => c.id === selectedClass);
+
   return (
     <div className="space-y-6 pb-24 md:pb-6">
       <PageHeader
@@ -373,7 +438,8 @@ export default function AttendancePage() {
                 <option value="">Select a class</option>
                 {filteredClasses.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name}{c.stream ? ` ${c.stream}` : ''} ({c.level})
+                    {c.name}
+                    {c.stream ? ` ${c.stream}` : ""} ({c.level})
                   </option>
                 ))}
               </select>
@@ -414,7 +480,10 @@ export default function AttendancePage() {
       ) : (
         <>
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-3 text-center" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+            <div
+              className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-3 text-center"
+              style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
+            >
               <div className="text-2xl md:text-3xl font-bold text-secondary">
                 {presentCount}
               </div>
@@ -422,7 +491,10 @@ export default function AttendancePage() {
                 Present
               </div>
             </div>
-            <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-3 text-center" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+            <div
+              className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-3 text-center"
+              style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
+            >
               <div className="text-2xl md:text-3xl font-bold text-error">
                 {absentCount}
               </div>
@@ -430,7 +502,10 @@ export default function AttendancePage() {
                 Absent
               </div>
             </div>
-            <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-3 text-center" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+            <div
+              className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-3 text-center"
+              style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
+            >
               <div className="text-2xl md:text-3xl font-bold text-tertiary">
                 {lateCount}
               </div>
@@ -440,161 +515,465 @@ export default function AttendancePage() {
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              onClick={handleMarkAllPresent}
-              icon={<MaterialIcon icon={allMarked ? "undo" : "check_circle"} />}
-            >
-              {allMarked ? "Reset All" : "Mark All Present"}
-            </Button>
-            <Tabs
-              tabs={[
-                { id: "desktop", label: "List" },
-                { id: "mobile", label: "Cards" },
-              ]}
-              activeTab={viewMode}
-              onChange={(id) => setViewMode(id as "desktop" | "mobile")}
-            />
+          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MaterialIcon icon="mic" className="text-xl text-primary" />
+                <div>
+                  <div className="font-semibold text-on-surface">
+                    Roll Call Mode
+                  </div>
+                  <div className="text-xs text-on-surface-variant">
+                    All students start as present — tap to mark absent
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setRollCallMode(!rollCallMode)}
+                className={`relative w-14 h-8 rounded-full transition-colors duration-200 min-w-[56px] ${
+                  rollCallMode ? "bg-primary" : "bg-surface-container-highest"
+                }`}
+                role="switch"
+                aria-checked={rollCallMode}
+                aria-label="Toggle Roll Call Mode"
+              >
+                <div
+                  className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow transition-transform duration-200 ${
+                    rollCallMode ? "translate-x-7" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
           </div>
 
-          <TabPanel activeTab={viewMode} tabId="desktop">
-            <div className="space-y-3">
-              {students.map((student) => {
-                const status = attendance[student.id] as
-                  | AttendanceStatus
-                  | undefined;
-                const config = status ? STATUS_CONFIG[status] : null;
-                return (
-                  <div
-                    key={student.id}
-                    className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4"
+          {rollCallMode ? (
+            <>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={handleMarkAllPresent}
+                  icon={<MaterialIcon icon="check_circle" />}
+                  size="sm"
+                >
+                  Mark All Present
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowQuickAbsentModal(true)}
+                  icon={<MaterialIcon icon="person_remove" />}
+                  size="sm"
+                >
+                  Quick Absent
+                </Button>
+                <div className="flex-1" />
+                <div className="text-sm text-on-surface-variant self-center font-medium">
+                  {presentCount} present, {absentCount} absent, {lateCount} late
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                {(["all", "present", "absent", "late"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setFilterStatus(f)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all min-h-[40px] ${
+                      filterStatus === f
+                        ? "bg-primary text-on-primary"
+                        : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                    }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary-container rounded-full flex items-center justify-center">
-                          <span className="text-on-primary-container font-bold text-sm">
+                    {f === "all"
+                      ? "All"
+                      : f.charAt(0).toUpperCase() + f.slice(1)}
+                    {f !== "all" && (
+                      <span className="ml-1 opacity-70">
+                        (
+                        {f === "present"
+                          ? presentCount
+                          : f === "absent"
+                            ? absentCount
+                            : lateCount}
+                        )
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              <div className="space-y-2">
+                {filteredStudents.map((student) => {
+                  const status = (attendance[student.id] ||
+                    "present") as AttendanceStatus;
+                  const config = STATUS_CONFIG[status];
+                  const borderColor =
+                    status === "present"
+                      ? "border-secondary/30"
+                      : status === "absent"
+                        ? "border-error/30"
+                        : "border-tertiary/30";
+                  const bgColor =
+                    status === "present"
+                      ? "bg-secondary/5"
+                      : status === "absent"
+                        ? "bg-error/5"
+                        : "bg-tertiary/5";
+                  return (
+                    <div
+                      key={student.id}
+                      onClick={() => handleTapStatus(student.id)}
+                      className={`${bgColor} rounded-xl border ${borderColor} p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none min-h-[56px]`}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${config.bg}`}
+                        >
+                          <span
+                            className={`font-bold text-sm ${status === "present" ? "text-on-secondary-container" : status === "absent" ? "text-on-error-container" : "text-on-tertiary-container"}`}
+                          >
                             {student.first_name?.charAt(0)}
                             {student.last_name?.charAt(0)}
                           </span>
                         </div>
-                        <div>
-                          <div className="font-bold text-primary">
+                        <div className="min-w-0">
+                          <div className="font-bold text-on-surface text-base truncate">
                             {student.first_name} {student.last_name}
-                            {(student as any).boarding_status && (student as any).boarding_status !== 'day' && (
-                              <span className="ml-2 px-1.5 py-0.5 bg-teal-100 text-teal-700 text-[10px] font-bold rounded uppercase">
-                                {(student as any).boarding_status}
-                              </span>
-                            )}
                           </div>
                           <div className="text-xs text-on-surface-variant">
                             {student.student_number}
                           </div>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        {STATUS_CYCLE.map((s) => {
-                          const sConfig = STATUS_CONFIG[s];
-                          const isActive = status === s;
-                          return (
-                            <button
-                              key={s}
-                              onClick={() => markAttendance(student.id, s)}
-                              className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
-                                isActive
-                                  ? `${sConfig.bg} border-${s === "absent" ? "error" : s === "present" ? "secondary" : "tertiary"}`
-                                  : "bg-surface-container-lowest text-on-surface-variant border-outline-variant/30 hover:border-outline-variant"
-                              }`}
-                            >
-                              {sConfig.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </TabPanel>
-
-          <TabPanel activeTab={viewMode} tabId="mobile">
-            <div className="space-y-2">
-              {students.map((student) => {
-                const status = attendance[student.id] as
-                  | AttendanceStatus
-                  | undefined;
-                const config = status ? STATUS_CONFIG[status] : null;
-                return (
-                  <div
-                    key={student.id}
-                    onClick={() => handleTapStatus(student.id)}
-                    className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-primary-container rounded-full flex items-center justify-center">
-                        <span className="text-on-primary-container font-bold text-sm">
-                          {student.first_name?.charAt(0)}
-                          {student.last_name?.charAt(0)}
-                        </span>
-                      </div>
-                      <div>
-                        <div className="font-bold text-primary text-sm">
-                          {student.first_name} {student.last_name}
-                        </div>
-                        <div className="text-xs text-on-surface-variant">
-                          {student.student_number}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {config && (
-                        <span className="text-xs font-medium text-on-surface-variant">
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span
+                          className={`text-xs font-semibold px-2 py-1 rounded-md ${config.bg} ${status === "present" ? "text-on-secondary-container" : status === "absent" ? "text-on-error-container" : "text-on-tertiary-container"}`}
+                        >
                           {config.label}
                         </span>
-                      )}
-                      <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                          status === "present"
-                            ? "bg-secondary"
-                            : status === "late"
-                              ? "bg-tertiary"
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                            status === "present"
+                              ? "bg-secondary"
                               : status === "absent"
                                 ? "bg-error"
-                                : "bg-surface-container border-2 border-dashed border-outline-variant"
-                        }`}
-                      >
-                        {status && (
+                                : "bg-tertiary"
+                          }`}
+                        >
                           <MaterialIcon
-                            icon={
-                              STATUS_CONFIG[status as AttendanceStatus].icon
-                            }
+                            icon={config.icon}
                             className="text-white text-lg"
                           />
-                        )}
+                        </div>
                       </div>
                     </div>
+                  );
+                })}
+                {filteredStudents.length === 0 && (
+                  <div className="text-center py-8 text-on-surface-variant">
+                    No students with this status
                   </div>
+                )}
+              </div>
+
+              <div className="fixed bottom-[80px] left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant/10 md:border-0 z-10">
+                <Button
+                  onClick={saveAttendance}
+                  disabled={saving}
+                  loading={saving}
+                  icon={<MaterialIcon icon="save" />}
+                  className="w-full"
+                  size="lg"
+                >
+                  Save: {presentCount} present, {absentCount} absent,{" "}
+                  {lateCount} late
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={handleMarkAllPresent}
+                  icon={
+                    <MaterialIcon icon={allMarked ? "undo" : "check_circle"} />
+                  }
+                >
+                  {allMarked ? "Reset All" : "Mark All Present"}
+                </Button>
+                <Tabs
+                  tabs={[
+                    { id: "desktop", label: "List" },
+                    { id: "mobile", label: "Cards" },
+                  ]}
+                  activeTab={viewMode}
+                  onChange={(id) => setViewMode(id as "desktop" | "mobile")}
+                />
+              </div>
+
+              <TabPanel activeTab={viewMode} tabId="desktop">
+                <div className="space-y-3">
+                  {students.map((student) => {
+                    const status = attendance[student.id] as
+                      | AttendanceStatus
+                      | undefined;
+                    const config = status ? STATUS_CONFIG[status] : null;
+                    return (
+                      <div
+                        key={student.id}
+                        className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-primary-container rounded-full flex items-center justify-center">
+                              <span className="text-on-primary-container font-bold text-sm">
+                                {student.first_name?.charAt(0)}
+                                {student.last_name?.charAt(0)}
+                              </span>
+                            </div>
+                            <div>
+                              <div className="font-bold text-primary">
+                                {student.first_name} {student.last_name}
+                                {(student as any).boarding_status &&
+                                  (student as any).boarding_status !==
+                                    "day" && (
+                                    <span className="ml-2 px-1.5 py-0.5 bg-teal-100 text-teal-700 text-[10px] font-bold rounded uppercase">
+                                      {(student as any).boarding_status}
+                                    </span>
+                                  )}
+                              </div>
+                              <div className="text-xs text-on-surface-variant">
+                                {student.student_number}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            {STATUS_CYCLE.map((s) => {
+                              const sConfig = STATUS_CONFIG[s];
+                              const isActive = status === s;
+                              return (
+                                <button
+                                  key={s}
+                                  onClick={() => markAttendance(student.id, s)}
+                                  className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                                    isActive
+                                      ? `${sConfig.bg} border-${s === "absent" ? "error" : s === "present" ? "secondary" : "tertiary"}`
+                                      : "bg-surface-container-lowest text-on-surface-variant border-outline-variant/30 hover:border-outline-variant"
+                                  }`}
+                                >
+                                  {sConfig.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </TabPanel>
+
+              <TabPanel activeTab={viewMode} tabId="mobile">
+                <div className="space-y-2">
+                  {students.map((student) => {
+                    const status = attendance[student.id] as
+                      | AttendanceStatus
+                      | undefined;
+                    const config = status ? STATUS_CONFIG[status] : null;
+                    return (
+                      <div
+                        key={student.id}
+                        onClick={() => handleTapStatus(student.id)}
+                        className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-primary-container rounded-full flex items-center justify-center">
+                            <span className="text-on-primary-container font-bold text-sm">
+                              {student.first_name?.charAt(0)}
+                              {student.last_name?.charAt(0)}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="font-bold text-primary text-sm">
+                              {student.first_name} {student.last_name}
+                            </div>
+                            <div className="text-xs text-on-surface-variant">
+                              {student.student_number}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {config && (
+                            <span className="text-xs font-medium text-on-surface-variant">
+                              {config.label}
+                            </span>
+                          )}
+                          <div
+                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                              status === "present"
+                                ? "bg-secondary"
+                                : status === "late"
+                                  ? "bg-tertiary"
+                                  : status === "absent"
+                                    ? "bg-error"
+                                    : "bg-surface-container border-2 border-dashed border-outline-variant"
+                            }`}
+                          >
+                            {status && (
+                              <MaterialIcon
+                                icon={
+                                  STATUS_CONFIG[status as AttendanceStatus].icon
+                                }
+                                className="text-white text-lg"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <p className="text-center text-xs text-on-surface-variant pt-2">
+                    Tap a student to cycle status
+                  </p>
+                </div>
+              </TabPanel>
+
+              <div className="fixed bottom-[80px] left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant/10 md:border-0 z-10">
+                <Button
+                  onClick={saveAttendance}
+                  disabled={saving || Object.keys(attendance).length === 0}
+                  loading={saving}
+                  icon={<MaterialIcon icon="save" />}
+                  className="w-full"
+                >
+                  {isOnline ? "Save Attendance" : "Save Offline"}
+                </Button>
+              </div>
+            </>
+          )}
+
+          <Modal
+            isOpen={showQuickAbsentModal}
+            onClose={() => {
+              setShowQuickAbsentModal(false);
+              setSelectedAbsentIds(new Set());
+            }}
+            title="Quick Mark Absent"
+            size="lg"
+          >
+            <div className="mb-4">
+              <p className="text-sm text-on-surface-variant mb-3">
+                Select students who are absent. All others remain present.
+              </p>
+              <div className="flex gap-2 mb-3">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() =>
+                    setSelectedAbsentIds(new Set(students.map((s) => s.id)))
+                  }
+                >
+                  Select All
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setSelectedAbsentIds(new Set())}
+                >
+                  Clear All
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    const alreadyAbsent = students
+                      .filter((s) => attendance[s.id] === "absent")
+                      .map((s) => s.id);
+                    setSelectedAbsentIds(new Set(alreadyAbsent));
+                  }}
+                >
+                  Select Current Absent
+                </Button>
+              </div>
+              <div className="text-sm font-medium text-on-surface mb-2">
+                {selectedAbsentIds.size} student(s) selected
+              </div>
+            </div>
+            <div className="space-y-1 max-h-80 overflow-y-auto">
+              {students.map((student) => {
+                const isSelected = selectedAbsentIds.has(student.id);
+                const currentStatus = attendance[student.id] || "present";
+                return (
+                  <button
+                    key={student.id}
+                    onClick={() => toggleAbsentSelection(student.id)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl min-h-[48px] transition-colors text-left ${
+                      isSelected
+                        ? "bg-error/10 border border-error/30"
+                        : "bg-surface-container hover:bg-surface-container-high"
+                    }`}
+                  >
+                    <div
+                      className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                        isSelected
+                          ? "bg-error border-error"
+                          : "border-outline-variant"
+                      }`}
+                    >
+                      {isSelected && (
+                        <MaterialIcon
+                          icon="check"
+                          className="text-white text-sm"
+                        />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-on-surface text-sm truncate">
+                        {student.first_name} {student.last_name}
+                      </div>
+                      <div className="text-xs text-on-surface-variant">
+                        {student.student_number}
+                      </div>
+                    </div>
+                    {currentStatus !== "present" && (
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded ${
+                          currentStatus === "absent"
+                            ? "bg-error-container text-on-error-container"
+                            : "bg-tertiary-container text-on-tertiary-container"
+                        }`}
+                      >
+                        {
+                          STATUS_CONFIG[currentStatus as AttendanceStatus]
+                            ?.label
+                        }
+                      </span>
+                    )}
+                  </button>
                 );
               })}
-              <p className="text-center text-xs text-on-surface-variant pt-2">
-                Tap a student to cycle status
-              </p>
             </div>
-          </TabPanel>
-
-          {/* Sticky save button for mobile */}
-          <div className="fixed bottom-[80px] left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant/10 md:border-0 z-10">
-            <Button
-              onClick={saveAttendance}
-              disabled={saving || Object.keys(attendance).length === 0}
-              loading={saving}
-              icon={<MaterialIcon icon="save" />}
-              className="w-full"
-            >
-              {isOnline ? "Save Attendance" : "Save Offline"}
-            </Button>
-          </div>
+            <div className="flex gap-3 mt-4 pt-4 border-t border-outline-variant/10">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShowQuickAbsentModal(false);
+                  setSelectedAbsentIds(new Set());
+                }}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleQuickAbsentApply}
+                disabled={selectedAbsentIds.size === 0}
+                icon={<MaterialIcon icon="person_remove" />}
+                className="flex-1"
+              >
+                Mark {selectedAbsentIds.size} Absent
+              </Button>
+            </div>
+          </Modal>
         </>
       )}
     </div>

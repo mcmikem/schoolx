@@ -942,199 +942,121 @@ export default function FinanceHubPage() {
         }
       />
 
-      <Tabs
-        tabs={[
-          { id: "balances", label: "Balances" },
-          { id: "payment-plans", label: "Payment Plans" },
-          { id: "invoices", label: "Invoices" },
-          { id: "cashbook", label: "Cashbook" },
-        ]}
-        activeTab={tab}
-        onChange={(id) => setTab(id as FinanceTab)}
-        className="mb-6"
-      />
+      <div className="flex gap-1 p-1 bg-[var(--surface-container-low)] rounded-xl mb-6 overflow-x-auto">
+        {[
+          { id: "balances" as const, label: "Balances" },
+          { id: "payment-plans" as const, label: "Payment Plans" },
+          { id: "invoices" as const, label: "Invoices" },
+          { id: "cashbook" as const, label: "Cashbook" },
+        ].map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
+              tab === t.id
+                ? "bg-[var(--surface)] text-[var(--t1)] shadow-sm"
+                : "text-[var(--t3)] hover:text-[var(--t2)]"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-      <TabPanel activeTab={tab} tabId="balances">
-        <FeeStats stats={stats} paymentsCount={payments.length} />
+      {tab === "balances" && (
+        <>
+          <FeeStats stats={stats} paymentsCount={payments.length} />
 
-        <div className="bg-surface-container-low rounded-xl p-6 mb-6">
-          <div className="flex flex-col lg:flex-row gap-4 items-center">
-            <div className="relative w-full lg:flex-1">
-              <MaterialIcon
-                icon="search"
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant"
-              />
-              <input
-                type="text"
-                placeholder="Search by name or student number..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-surface-container-lowest border-none rounded-xl py-3 pl-12 pr-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 transition-all"
-              />
-            </div>
-            <div className="flex gap-3 w-full lg:w-auto overflow-x-auto no-scrollbar">
-              <select
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
-                className="bg-surface-container-lowest border-none rounded-xl py-3 px-4 text-xs font-bold text-primary cursor-pointer min-w-[140px]"
-              >
-                <option value="all">All Classes</option>
-                {classes.map((c) => (
-                  <option key={c.id} value={c.name}>
-                    {c.name}
-                    {c.stream ? ` ${c.stream}` : ""}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={statusFilter}
-                onChange={(e) =>
-                  setStatusFilter(e.target.value as typeof statusFilter)
-                }
-                className="bg-surface-container-lowest border-none rounded-xl py-3 px-4 text-xs font-bold text-primary cursor-pointer min-w-[150px]"
-              >
-                <option value="all">All Statuses</option>
-                <option value="unpaid">Unpaid</option>
-                <option value="partial">Partial</option>
-                <option value="paid">Paid</option>
-                <option value="written_off">Written Off</option>
-              </select>
+          <div className="bg-surface-container-low rounded-xl p-6 mb-6">
+            <div className="flex flex-col lg:flex-row gap-4 items-center">
+              <div className="relative w-full lg:flex-1">
+                <MaterialIcon
+                  icon="search"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant"
+                />
+                <input
+                  type="text"
+                  placeholder="Search by name or student number..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-surface-container-lowest border-none rounded-xl py-3 pl-12 pr-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 transition-all"
+                />
+              </div>
+              <div className="flex gap-3 w-full lg:w-auto overflow-x-auto no-scrollbar">
+                <select
+                  value={selectedClass}
+                  onChange={(e) => setSelectedClass(e.target.value)}
+                  className="bg-surface-container-lowest border-none rounded-xl py-3 px-4 text-xs font-bold text-primary cursor-pointer min-w-[140px]"
+                >
+                  <option value="all">All Classes</option>
+                  {classes.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                      {c.stream ? ` ${c.stream}` : ""}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={statusFilter}
+                  onChange={(e) =>
+                    setStatusFilter(e.target.value as typeof statusFilter)
+                  }
+                  className="bg-surface-container-lowest border-none rounded-xl py-3 px-4 text-xs font-bold text-primary cursor-pointer min-w-[150px]"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="unpaid">Unpaid</option>
+                  <option value="partial">Partial</option>
+                  <option value="paid">Paid</option>
+                  <option value="written_off">Written Off</option>
+                </select>
+              </div>
             </div>
           </div>
-        </div>
 
-        <Tabs
-          tabs={[
-            { id: "balances", label: "Balances" },
-            { id: "payments", label: "Payments" },
-            { id: "structure", label: "Fee Structure" },
-          ]}
-          activeTab={tab === "balances" ? "balances" : "payments"}
-          onChange={(id) => {
-            if (id === "structure") {
-              setShowFeeModal(true);
-            }
-          }}
-          className="mb-6"
-        />
-
-        {filteredBalances.length === 0 ? (
-          <NoData
-            title="No student balances"
-            description="Add students and fee structures to see balances"
+          <Tabs
+            tabs={[
+              { id: "balances", label: "Balances" },
+              { id: "payments", label: "Payments" },
+              { id: "structure", label: "Fee Structure" },
+            ]}
+            activeTab={tab === "balances" ? "balances" : "payments"}
+            onChange={(id) => {
+              if (id === "structure") {
+                setShowFeeModal(true);
+              }
+            }}
+            className="mb-6"
           />
-        ) : (
-          <FeeTable
-            balances={filteredBalances}
-            onViewReceipt={handleViewReceipt}
-          />
-        )}
 
-        <PageSection className="mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-semibold text-on-surface">Payments</h3>
-              <p className="text-sm text-on-surface-variant">
-                Recent payment transactions
-              </p>
-            </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowPaymentModal(true)}
-            >
-              <MaterialIcon icon="add" />
-              Add Payment
-            </Button>
-          </div>
-          <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-surface-container-low text-left">
-                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                      Date
-                    </th>
-                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                      Student
-                    </th>
-                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                      Amount
-                    </th>
-                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                      Method
-                    </th>
-                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                      Reference
-                    </th>
-                    <th className="px-6 py-4"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-outline-variant/5">
-                  {payments.map((payment) => {
-                    const student = students.find(
-                      (s) => s.id === payment.student_id,
-                    );
-                    return (
-                      <tr key={payment.id} className="hover:bg-surface-bright">
-                        <td className="px-6 py-4 text-sm">
-                          {new Date(payment.payment_date).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4 font-medium">
-                          {student?.first_name} {student?.last_name}
-                        </td>
-                        <td className="px-6 py-4 font-bold text-secondary">
-                          {formatCurrency(Number(payment.amount_paid))}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="px-2 py-1 bg-surface-container text-on-surface-variant rounded text-xs font-bold uppercase">
-                            {payment.payment_method}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm font-mono text-on-surface-variant">
-                          {payment.payment_reference || "-"}
-                        </td>
-                        <td className="px-6 py-4">
-                          <button
-                            onClick={() => handleDeletePayment(payment.id)}
-                            className="p-2 text-error hover:bg-error-container rounded-lg"
-                          >
-                            <MaterialIcon icon="delete" className="text-lg" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </PageSection>
-
-        <PageSection className="mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-semibold text-on-surface">
-                Recent Adjustments
-              </h3>
-              <p className="text-sm text-on-surface-variant">
-                Non-cash items that affect balances
-              </p>
-            </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowAdjustmentModal(true)}
-            >
-              <MaterialIcon icon="add" />
-              Add Adjustment
-            </Button>
-          </div>
-          {adjustments.length === 0 ? (
-            <div className="p-6 text-sm text-on-surface-variant">
-              No adjustments recorded.
-            </div>
+          {filteredBalances.length === 0 ? (
+            <NoData
+              title="No student balances"
+              description="Add students and fee structures to see balances"
+            />
           ) : (
+            <FeeTable
+              balances={filteredBalances}
+              onViewReceipt={handleViewReceipt}
+            />
+          )}
+
+          <PageSection className="mt-8">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-semibold text-on-surface">Payments</h3>
+                <p className="text-sm text-on-surface-variant">
+                  Recent payment transactions
+                </p>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowPaymentModal(true)}
+              >
+                <MaterialIcon icon="add" />
+                Add Payment
+              </Button>
+            </div>
             <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
@@ -1147,53 +1069,49 @@ export default function FinanceHubPage() {
                         Student
                       </th>
                       <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                        Type
-                      </th>
-                      <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
                         Amount
                       </th>
                       <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                        Notes
+                        Method
+                      </th>
+                      <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                        Reference
                       </th>
                       <th className="px-6 py-4"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/5">
-                    {adjustments.map((adjustment) => {
+                    {payments.map((payment) => {
                       const student = students.find(
-                        (s) => s.id === adjustment.student_id,
+                        (s) => s.id === payment.student_id,
                       );
                       return (
                         <tr
-                          key={adjustment.id}
+                          key={payment.id}
                           className="hover:bg-surface-bright"
                         >
                           <td className="px-6 py-4 text-sm">
                             {new Date(
-                              adjustment.created_at,
+                              payment.payment_date,
                             ).toLocaleDateString()}
                           </td>
                           <td className="px-6 py-4 font-medium">
                             {student?.first_name} {student?.last_name}
                           </td>
+                          <td className="px-6 py-4 font-bold text-secondary">
+                            {formatCurrency(Number(payment.amount_paid))}
+                          </td>
                           <td className="px-6 py-4">
                             <span className="px-2 py-1 bg-surface-container text-on-surface-variant rounded text-xs font-bold uppercase">
-                              {adjustment.adjustment_type.replace("_", " ")}
+                              {payment.payment_method}
                             </span>
                           </td>
-                          <td
-                            className={`px-6 py-4 font-bold ${adjustment.adjustment_type === "penalty" ? "text-error" : "text-primary"}`}
-                          >
-                            {formatCurrency(Number(adjustment.amount))}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-on-surface-variant">
-                            {adjustment.description || adjustment.notes || "-"}
+                          <td className="px-6 py-4 text-sm font-mono text-on-surface-variant">
+                            {payment.payment_reference || "-"}
                           </td>
                           <td className="px-6 py-4">
                             <button
-                              onClick={() =>
-                                handleDeleteAdjustment(adjustment.id)
-                              }
+                              onClick={() => handleDeletePayment(payment.id)}
                               className="p-2 text-error hover:bg-error-container rounded-lg"
                             >
                               <MaterialIcon icon="delete" className="text-lg" />
@@ -1206,697 +1124,810 @@ export default function FinanceHubPage() {
                 </table>
               </div>
             </div>
-          )}
-        </PageSection>
+          </PageSection>
 
-        <PageSection className="mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-semibold text-on-surface">Fee Structure</h3>
-              <p className="text-sm text-on-surface-variant">
-                Fee items and amounts
-              </p>
+          <PageSection className="mt-8">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-semibold text-on-surface">
+                  Recent Adjustments
+                </h3>
+                <p className="text-sm text-on-surface-variant">
+                  Non-cash items that affect balances
+                </p>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowAdjustmentModal(true)}
+              >
+                <MaterialIcon icon="add" />
+                Add Adjustment
+              </Button>
             </div>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setShowFeeModal(true)}
-            >
-              <MaterialIcon icon="add" />
-              Add Fee
-            </Button>
-          </div>
-          {feeStructure.length === 0 ? (
-            <NoData
-              title="No fee structure"
-              description="Create fee items to start collecting payments"
-            />
-          ) : (
-            <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
-              <div className="overflow-x-auto table-responsive">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-surface-container-low text-left">
-                      <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                        Fee Name
-                      </th>
-                      <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                        Class
-                      </th>
-                      <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                        Amount
-                      </th>
-                      <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                        Term
-                      </th>
-                      <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-outline-variant/5">
-                    {feeStructure.map((fee) => (
-                      <tr key={fee.id} className="hover:bg-surface-bright">
-                        <td className="px-6 py-4 font-medium">{fee.name}</td>
-                        <td className="px-6 py-4">
-                          {fee.classes?.name || "All Classes"}
-                        </td>
-                        <td className="px-6 py-4 font-bold text-primary">
-                          {formatCurrency(Number(fee.amount))}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-on-surface-variant">
-                          Term {fee.term}
-                        </td>
-                        <td className="px-6 py-4">
-                          <button
-                            onClick={() => handleDeleteFee(fee.id)}
-                            className="text-error hover:underline text-sm"
-                          >
-                            Delete
-                          </button>
-                        </td>
+            {adjustments.length === 0 ? (
+              <div className="p-6 text-sm text-on-surface-variant">
+                No adjustments recorded.
+              </div>
+            ) : (
+              <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-surface-container-low text-left">
+                        <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                          Date
+                        </th>
+                        <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                          Student
+                        </th>
+                        <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                          Type
+                        </th>
+                        <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                          Amount
+                        </th>
+                        <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                          Notes
+                        </th>
+                        <th className="px-6 py-4"></th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/5">
+                      {adjustments.map((adjustment) => {
+                        const student = students.find(
+                          (s) => s.id === adjustment.student_id,
+                        );
+                        return (
+                          <tr
+                            key={adjustment.id}
+                            className="hover:bg-surface-bright"
+                          >
+                            <td className="px-6 py-4 text-sm">
+                              {new Date(
+                                adjustment.created_at,
+                              ).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 font-medium">
+                              {student?.first_name} {student?.last_name}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="px-2 py-1 bg-surface-container text-on-surface-variant rounded text-xs font-bold uppercase">
+                                {adjustment.adjustment_type.replace("_", " ")}
+                              </span>
+                            </td>
+                            <td
+                              className={`px-6 py-4 font-bold ${adjustment.adjustment_type === "penalty" ? "text-error" : "text-primary"}`}
+                            >
+                              {formatCurrency(Number(adjustment.amount))}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-on-surface-variant">
+                              {adjustment.description ||
+                                adjustment.notes ||
+                                "-"}
+                            </td>
+                            <td className="px-6 py-4">
+                              <button
+                                onClick={() =>
+                                  handleDeleteAdjustment(adjustment.id)
+                                }
+                                className="p-2 text-error hover:bg-error-container rounded-lg"
+                              >
+                                <MaterialIcon
+                                  icon="delete"
+                                  className="text-lg"
+                                />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
+            )}
+          </PageSection>
+
+          <PageSection className="mt-8">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-semibold text-on-surface">Fee Structure</h3>
+                <p className="text-sm text-on-surface-variant">
+                  Fee items and amounts
+                </p>
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setShowFeeModal(true)}
+              >
+                <MaterialIcon icon="add" />
+                Add Fee
+              </Button>
             </div>
-          )}
-        </PageSection>
-      </TabPanel>
+            {feeStructure.length === 0 ? (
+              <NoData
+                title="No fee structure"
+                description="Create fee items to start collecting payments"
+              />
+            ) : (
+              <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
+                <div className="overflow-x-auto table-responsive">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-surface-container-low text-left">
+                        <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                          Fee Name
+                        </th>
+                        <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                          Class
+                        </th>
+                        <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                          Amount
+                        </th>
+                        <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                          Term
+                        </th>
+                        <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/5">
+                      {feeStructure.map((fee) => (
+                        <tr key={fee.id} className="hover:bg-surface-bright">
+                          <td className="px-6 py-4 font-medium">{fee.name}</td>
+                          <td className="px-6 py-4">
+                            {fee.classes?.name || "All Classes"}
+                          </td>
+                          <td className="px-6 py-4 font-bold text-primary">
+                            {formatCurrency(Number(fee.amount))}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-on-surface-variant">
+                            Term {fee.term}
+                          </td>
+                          <td className="px-6 py-4">
+                            <button
+                              onClick={() => handleDeleteFee(fee.id)}
+                              className="text-error hover:underline text-sm"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </PageSection>
+        </>
+      )}
 
-      <TabPanel activeTab={tab} tabId="payment-plans">
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-          <Card>
-            <CardBody className="text-center">
-              <div className="text-2xl font-bold text-[var(--t1)]">
-                {plans.length}
-              </div>
-              <div className="text-sm text-[var(--t3)] mt-1">Total Plans</div>
-            </CardBody>
-          </Card>
-          <Card>
-            <CardBody className="text-center">
-              <div className="text-2xl font-bold text-[var(--primary)]">
-                {activePlanCount}
-              </div>
-              <div className="text-sm text-[var(--t3)] mt-1">Active</div>
-            </CardBody>
-          </Card>
-          <Card>
-            <CardBody className="text-center">
-              <div className="text-2xl font-bold text-[var(--green)]">
-                {completedPlanCount}
-              </div>
-              <div className="text-sm text-[var(--t3)] mt-1">Completed</div>
-            </CardBody>
-          </Card>
-          <Card>
-            <CardBody className="text-center">
-              <div className="text-2xl font-bold text-[var(--amber)]">
-                {formatCurrency(totalOutstanding)}
-              </div>
-              <div className="text-sm text-[var(--t3)] mt-1">Outstanding</div>
-            </CardBody>
-          </Card>
-        </div>
+      {tab === "payment-plans" && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+            <Card>
+              <CardBody className="text-center">
+                <div className="text-2xl font-bold text-[var(--t1)]">
+                  {plans.length}
+                </div>
+                <div className="text-sm text-[var(--t3)] mt-1">Total Plans</div>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody className="text-center">
+                <div className="text-2xl font-bold text-[var(--primary)]">
+                  {activePlanCount}
+                </div>
+                <div className="text-sm text-[var(--t3)] mt-1">Active</div>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody className="text-center">
+                <div className="text-2xl font-bold text-[var(--green)]">
+                  {completedPlanCount}
+                </div>
+                <div className="text-sm text-[var(--t3)] mt-1">Completed</div>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody className="text-center">
+                <div className="text-2xl font-bold text-[var(--amber)]">
+                  {formatCurrency(totalOutstanding)}
+                </div>
+                <div className="text-sm text-[var(--t3)] mt-1">Outstanding</div>
+              </CardBody>
+            </Card>
+          </div>
 
-        <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-outline-variant/10 flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-on-surface">Payment Plans</h3>
-              <p className="text-sm text-on-surface-variant">
-                Installment plans for parents
-              </p>
+          <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-outline-variant/10 flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-on-surface">Payment Plans</h3>
+                <p className="text-sm text-on-surface-variant">
+                  Installment plans for parents
+                </p>
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setShowCreatePlan(true)}
+              >
+                <MaterialIcon icon="add" />
+                Create Plan
+              </Button>
             </div>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setShowCreatePlan(true)}
-            >
-              <MaterialIcon icon="add" />
-              Create Plan
-            </Button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-surface-container-low text-left">
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                    Student
-                  </th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                    Class
-                  </th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                    Total
-                  </th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                    Installments
-                  </th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                    Start Date
-                  </th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                    Status
-                  </th>
-                  <th className="px-6 py-4"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/5">
-                {plans.map((plan) => (
-                  <tr key={plan.id} className="hover:bg-surface-bright">
-                    <td className="px-6 py-4 font-medium">
-                      {plan.students?.first_name} {plan.students?.last_name}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-on-surface-variant">
-                      {plan.students?.classes?.name}
-                    </td>
-                    <td className="px-6 py-4 font-bold text-secondary">
-                      {formatCurrency(Number(plan.total_amount))}
-                    </td>
-                    <td className="px-6 py-4 text-sm">{plan.installments}</td>
-                    <td className="px-6 py-4 text-sm text-on-surface-variant">
-                      {new Date(plan.start_date).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-bold uppercase ${
-                          plan.status === "completed"
-                            ? "bg-green-100 text-green-800"
-                            : plan.status === "active"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {plan.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setSelectedPlan(plan)}
-                      >
-                        View
-                      </Button>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-surface-container-low text-left">
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                      Student
+                    </th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                      Class
+                    </th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                      Total
+                    </th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                      Installments
+                    </th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                      Start Date
+                    </th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                      Status
+                    </th>
+                    <th className="px-6 py-4"></th>
                   </tr>
-                ))}
-                {plans.length === 0 && !plansLoading && (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="text-center py-8 text-on-surface-variant"
-                    >
-                      No payment plans
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/5">
+                  {plans.map((plan) => (
+                    <tr key={plan.id} className="hover:bg-surface-bright">
+                      <td className="px-6 py-4 font-medium">
+                        {plan.students?.first_name} {plan.students?.last_name}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-on-surface-variant">
+                        {plan.students?.classes?.name}
+                      </td>
+                      <td className="px-6 py-4 font-bold text-secondary">
+                        {formatCurrency(Number(plan.total_amount))}
+                      </td>
+                      <td className="px-6 py-4 text-sm">{plan.installments}</td>
+                      <td className="px-6 py-4 text-sm text-on-surface-variant">
+                        {new Date(plan.start_date).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-bold uppercase ${
+                            plan.status === "completed"
+                              ? "bg-green-100 text-green-800"
+                              : plan.status === "active"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {plan.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setSelectedPlan(plan)}
+                        >
+                          View
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                  {plans.length === 0 && !plansLoading && (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="text-center py-8 text-on-surface-variant"
+                      >
+                        No payment plans
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
 
-        {showCreatePlan && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-md">
-              <h2 className="text-xl font-bold text-on-surface mb-4">
-                Create Payment Plan
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-on-surface mb-1">
-                    Student
-                  </label>
-                  {planStudents.length === 0 ? (
-                    <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
-                      No students available
-                    </div>
-                  ) : (
-                    <select
-                      value={newPlan.student_id}
+          {showCreatePlan && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-md">
+                <h2 className="text-xl font-bold text-on-surface mb-4">
+                  Create Payment Plan
+                </h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-on-surface mb-1">
+                      Student
+                    </label>
+                    {planStudents.length === 0 ? (
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
+                        No students available
+                      </div>
+                    ) : (
+                      <select
+                        value={newPlan.student_id}
+                        onChange={(e) =>
+                          setNewPlan({ ...newPlan, student_id: e.target.value })
+                        }
+                        className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-3 px-4 text-sm"
+                      >
+                        <option value="">Select student...</option>
+                        {planStudents.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.first_name} {s.last_name} - {s.classes?.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-on-surface mb-1">
+                      Total Amount (UGX)
+                    </label>
+                    <input
+                      type="number"
+                      value={newPlan.total_amount}
                       onChange={(e) =>
-                        setNewPlan({ ...newPlan, student_id: e.target.value })
+                        setNewPlan({
+                          ...newPlan,
+                          total_amount: Number(e.target.value),
+                        })
+                      }
+                      className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-3 px-4 text-sm"
+                      placeholder="Enter total amount"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-on-surface mb-1">
+                      Number of Installments
+                    </label>
+                    <select
+                      value={newPlan.installments}
+                      onChange={(e) =>
+                        setNewPlan({
+                          ...newPlan,
+                          installments: Number(e.target.value),
+                        })
                       }
                       className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-3 px-4 text-sm"
                     >
-                      <option value="">Select student...</option>
-                      {planStudents.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.first_name} {s.last_name} - {s.classes?.name}
-                        </option>
-                      ))}
+                      <option value={2}>2 Installments</option>
+                      <option value={3}>3 Installments</option>
+                      <option value={4}>4 Installments</option>
+                      <option value={5}>5 Installments</option>
                     </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-on-surface mb-1">
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      value={newPlan.start_date}
+                      onChange={(e) =>
+                        setNewPlan({ ...newPlan, start_date: e.target.value })
+                      }
+                      className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-3 px-4 text-sm"
+                    />
+                  </div>
+                  {newPlan.total_amount > 0 && newPlan.installments > 0 && (
+                    <div className="p-3 bg-primary/10 rounded-lg">
+                      <div className="text-sm text-primary">
+                        Each installment:{" "}
+                        <strong>
+                          {formatCurrency(
+                            Math.round(
+                              newPlan.total_amount / newPlan.installments,
+                            ),
+                          )}
+                        </strong>
+                      </div>
+                    </div>
                   )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-on-surface mb-1">
-                    Total Amount (UGX)
-                  </label>
-                  <input
-                    type="number"
-                    value={newPlan.total_amount}
-                    onChange={(e) =>
-                      setNewPlan({
-                        ...newPlan,
-                        total_amount: Number(e.target.value),
-                      })
-                    }
-                    className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-3 px-4 text-sm"
-                    placeholder="Enter total amount"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-on-surface mb-1">
-                    Number of Installments
-                  </label>
-                  <select
-                    value={newPlan.installments}
-                    onChange={(e) =>
-                      setNewPlan({
-                        ...newPlan,
-                        installments: Number(e.target.value),
-                      })
-                    }
-                    className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-3 px-4 text-sm"
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => setShowCreatePlan(false)}
+                    className="flex-1 py-3 bg-surface-container font-semibold rounded-xl text-on-surface-variant"
                   >
-                    <option value={2}>2 Installments</option>
-                    <option value={3}>3 Installments</option>
-                    <option value={4}>4 Installments</option>
-                    <option value={5}>5 Installments</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-on-surface mb-1">
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={newPlan.start_date}
-                    onChange={(e) =>
-                      setNewPlan({ ...newPlan, start_date: e.target.value })
-                    }
-                    className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-3 px-4 text-sm"
-                  />
-                </div>
-                {newPlan.total_amount > 0 && newPlan.installments > 0 && (
-                  <div className="p-3 bg-primary/10 rounded-lg">
-                    <div className="text-sm text-primary">
-                      Each installment:{" "}
-                      <strong>
-                        {formatCurrency(
-                          Math.round(
-                            newPlan.total_amount / newPlan.installments,
-                          ),
-                        )}
-                      </strong>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setShowCreatePlan(false)}
-                  className="flex-1 py-3 bg-surface-container font-semibold rounded-xl text-on-surface-variant"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={createPlan}
-                  className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl"
-                >
-                  Create Plan
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {selectedPlan && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-md">
-              <h2 className="text-xl font-bold text-on-surface mb-2">
-                Payment Details
-              </h2>
-              <p className="text-sm text-on-surface-variant mb-4">
-                {selectedPlan.students?.first_name}{" "}
-                {selectedPlan.students?.last_name} -{" "}
-                {selectedPlan.students?.classes?.name}
-              </p>
-              <div className="space-y-3">
-                {installments.map((inst, idx) => (
-                  <div
-                    key={inst.id}
-                    className="flex items-center justify-between p-3 border border-outline-variant/20 rounded-lg"
+                    Cancel
+                  </button>
+                  <button
+                    onClick={createPlan}
+                    className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl"
                   >
-                    <div>
-                      <div className="font-medium text-on-surface">
-                        Installment {idx + 1}
-                      </div>
-                      <div className="text-sm text-on-surface-variant">
-                        Due: {new Date(inst.due_date).toLocaleDateString()}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-on-surface">
-                        {formatCurrency(inst.amount)}
-                      </div>
-                      {inst.paid ? (
-                        <span className="text-sm text-green-600">Paid</span>
-                      ) : (
-                        <button
-                          onClick={() => markInstallmentPaid(inst.id)}
-                          className="text-sm bg-green-600 text-white px-3 py-1 rounded-lg"
-                        >
-                          Mark Paid
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                    Create Plan
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={() => setSelectedPlan(null)}
-                className="w-full mt-4 py-3 bg-surface-container font-semibold rounded-xl text-on-surface-variant"
-              >
-                Close
-              </button>
             </div>
-          </div>
-        )}
-      </TabPanel>
-
-      <TabPanel activeTab={tab} tabId="invoices">
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <Card>
-            <CardBody>
-              <div className="text-2xl font-bold text-[var(--t1)]">
-                {formatCurrency(invoiceStats.totalInvoiced)}
-              </div>
-              <div className="text-sm text-[var(--t3)] mt-1">
-                Total Invoiced
-              </div>
-            </CardBody>
-          </Card>
-          <Card>
-            <CardBody>
-              <div className="text-2xl font-bold text-green-600">
-                {formatCurrency(invoiceStats.totalCollected)}
-              </div>
-              <div className="text-sm text-[var(--t3)] mt-1">Collected</div>
-            </CardBody>
-          </Card>
-          <Card>
-            <CardBody>
-              <div className="text-2xl font-bold text-red-600">
-                {formatCurrency(invoiceStats.totalBalance)}
-              </div>
-              <div className="text-sm text-[var(--t3)] mt-1">Outstanding</div>
-            </CardBody>
-          </Card>
-          <Card>
-            <CardBody>
-              <div className="text-2xl font-bold text-green-600">
-                {invoiceStats.fullyPaid}
-              </div>
-              <div className="text-sm text-[var(--t3)] mt-1">Fully Paid</div>
-            </CardBody>
-          </Card>
-          <Card>
-            <CardBody>
-              <div className="text-2xl font-bold text-yellow-600">
-                {invoiceStats.hasBalance}
-              </div>
-              <div className="text-sm text-[var(--t3)] mt-1">Has Balance</div>
-            </CardBody>
-          </Card>
-        </div>
-
-        <div className="mb-6">
-          {classes.length === 0 ? (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
-              No classes available
-            </div>
-          ) : (
-            <select
-              value={invoiceClassFilter}
-              onChange={(e) => setInvoiceClassFilter(e.target.value)}
-              className="bg-surface-container-lowest border border-outline-variant rounded-xl py-3 px-4 text-sm sm:w-48"
-              aria-label="Filter by class"
-            >
-              <option value="all">All Classes</option>
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
           )}
-        </div>
 
-        <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-surface-container-low text-left">
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                    Student
-                  </th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                    Class
-                  </th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                    Total
-                  </th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                    Paid
-                  </th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                    Balance
-                  </th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/5">
-                {filteredInvoices.map((invoice) => (
-                  <tr
-                    key={invoice.student_id}
-                    className="hover:bg-surface-bright"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-on-surface">
-                        {invoice.student_name}
-                      </div>
-                      <div className="text-xs text-on-surface-variant">
-                        {invoice.student_number}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-on-surface-variant">
-                      {invoice.class_name}
-                    </td>
-                    <td className="px-6 py-4 font-medium">
-                      {formatCurrency(invoice.total_amount)}
-                    </td>
-                    <td className="px-6 py-4 text-green-600">
-                      {formatCurrency(invoice.amount_paid)}
-                    </td>
-                    <td
-                      className={`px-6 py-4 font-medium ${invoice.balance > 0 ? "text-red-600" : "text-green-600"}`}
+          {selectedPlan && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-md">
+                <h2 className="text-xl font-bold text-on-surface mb-2">
+                  Payment Details
+                </h2>
+                <p className="text-sm text-on-surface-variant mb-4">
+                  {selectedPlan.students?.first_name}{" "}
+                  {selectedPlan.students?.last_name} -{" "}
+                  {selectedPlan.students?.classes?.name}
+                </p>
+                <div className="space-y-3">
+                  {installments.map((inst, idx) => (
+                    <div
+                      key={inst.id}
+                      className="flex items-center justify-between p-3 border border-outline-variant/20 rounded-lg"
                     >
-                      {formatCurrency(invoice.balance)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-xs font-medium ${invoice.balance === 0 ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}`}
-                      >
-                        {invoice.balance === 0 ? "Paid" : "Pending"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => printInvoice(invoice)}
-                          className="p-2 text-on-surface-variant hover:text-primary rounded-lg hover:bg-primary/10"
-                          title="Print Invoice"
-                        >
-                          <MaterialIcon icon="print" />
-                        </button>
-                        {invoice.balance > 0 && (
+                      <div>
+                        <div className="font-medium text-on-surface">
+                          Installment {idx + 1}
+                        </div>
+                        <div className="text-sm text-on-surface-variant">
+                          Due: {new Date(inst.due_date).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-on-surface">
+                          {formatCurrency(inst.amount)}
+                        </div>
+                        {inst.paid ? (
+                          <span className="text-sm text-green-600">Paid</span>
+                        ) : (
                           <button
-                            onClick={() => sendInvoiceSMS(invoice)}
-                            className="p-2 text-on-surface-variant hover:text-green-600 rounded-lg hover:bg-green-100"
-                            title="Send via SMS"
+                            onClick={() => markInstallmentPaid(inst.id)}
+                            className="text-sm bg-green-600 text-white px-3 py-1 rounded-lg"
                           >
-                            <MaterialIcon icon="sms" />
+                            Mark Paid
                           </button>
                         )}
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </TabPanel>
-
-      <TabPanel activeTab={tab} tabId="cashbook">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <Card>
-            <CardBody>
-              <div className="text-xl font-bold text-[var(--t1)]">
-                {formatCurrency(cashbookSummary.total)}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setSelectedPlan(null)}
+                  className="w-full mt-4 py-3 bg-surface-container font-semibold rounded-xl text-on-surface-variant"
+                >
+                  Close
+                </button>
               </div>
-              <div className="text-sm text-[var(--t3)]">Total Collected</div>
-            </CardBody>
-          </Card>
-          <Card>
-            <CardBody>
-              <div className="text-xl font-bold text-[var(--green)]">
-                {formatCurrency(cashbookSummary.cash)}
-              </div>
-              <div className="text-sm text-[var(--t3)]">Cash</div>
-            </CardBody>
-          </Card>
-          <Card>
-            <CardBody>
-              <div className="text-xl font-bold text-[var(--amber)]">
-                {formatCurrency(cashbookSummary.momo)}
-              </div>
-              <div className="text-sm text-[var(--t3)]">Mobile Money</div>
-            </CardBody>
-          </Card>
-          <Card>
-            <CardBody>
-              <div className="text-xl font-bold text-[var(--navy)]">
-                {formatCurrency(cashbookSummary.bank)}
-              </div>
-              <div className="text-sm text-[var(--t3)]">Bank</div>
-            </CardBody>
-          </Card>
-        </div>
-
-        <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-outline-variant/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <h3 className="font-semibold text-on-surface">Transactions</h3>
-              <p className="text-sm text-on-surface-variant">
-                {cashbookSummary.count} transactions •{" "}
-                {cashbookDateFilter === "today"
-                  ? "Today"
-                  : cashbookDateFilter === "week"
-                    ? "This Week"
-                    : "This Month"}
-              </p>
             </div>
-            <div className="flex gap-3">
+          )}
+        </>
+      )}
+
+      {tab === "invoices" && (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            <Card>
+              <CardBody>
+                <div className="text-2xl font-bold text-[var(--t1)]">
+                  {formatCurrency(invoiceStats.totalInvoiced)}
+                </div>
+                <div className="text-sm text-[var(--t3)] mt-1">
+                  Total Invoiced
+                </div>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody>
+                <div className="text-2xl font-bold text-green-600">
+                  {formatCurrency(invoiceStats.totalCollected)}
+                </div>
+                <div className="text-sm text-[var(--t3)] mt-1">Collected</div>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody>
+                <div className="text-2xl font-bold text-red-600">
+                  {formatCurrency(invoiceStats.totalBalance)}
+                </div>
+                <div className="text-sm text-[var(--t3)] mt-1">Outstanding</div>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody>
+                <div className="text-2xl font-bold text-green-600">
+                  {invoiceStats.fullyPaid}
+                </div>
+                <div className="text-sm text-[var(--t3)] mt-1">Fully Paid</div>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody>
+                <div className="text-2xl font-bold text-yellow-600">
+                  {invoiceStats.hasBalance}
+                </div>
+                <div className="text-sm text-[var(--t3)] mt-1">Has Balance</div>
+              </CardBody>
+            </Card>
+          </div>
+
+          <div className="mb-6">
+            {classes.length === 0 ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
+                No classes available
+              </div>
+            ) : (
               <select
-                value={cashbookDateFilter}
-                onChange={(e) => setCashbookDateFilter(e.target.value)}
-                className="bg-surface-container-lowest border border-outline-variant rounded-xl py-2 px-4 text-sm"
-                aria-label="Date range filter"
+                value={invoiceClassFilter}
+                onChange={(e) => setInvoiceClassFilter(e.target.value)}
+                className="bg-surface-container-lowest border border-outline-variant rounded-xl py-3 px-4 text-sm sm:w-48"
+                aria-label="Filter by class"
               >
-                <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
+                <option value="all">All Classes</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
               </select>
-              <Button variant="secondary" size="sm" onClick={exportCashbookCSV}>
-                <MaterialIcon icon="download" />
-                Export CSV
-              </Button>
-            </div>
+            )}
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-surface-container-low text-left">
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                    Date
-                  </th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                    Student
-                  </th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-right">
-                    Amount
-                  </th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                    Method
-                  </th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                    Reference
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/5">
-                {filteredCashbookPayments.length === 0 ? (
-                  <tr>
-                    <td colSpan={5}>
-                      <EmptyState
-                        icon="receipt_long"
-                        title="No transactions found"
-                        description="There are no payments recorded for the selected period"
-                      />
-                    </td>
+
+          <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-surface-container-low text-left">
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                      Student
+                    </th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                      Class
+                    </th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                      Total
+                    </th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                      Paid
+                    </th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                      Balance
+                    </th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                      Status
+                    </th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                      Actions
+                    </th>
                   </tr>
-                ) : (
-                  filteredCashbookPayments.map((payment) => (
-                    <tr key={payment.id} className="hover:bg-surface-bright">
-                      <td className="px-6 py-4 text-sm text-on-surface">
-                        {new Date(payment.payment_date).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 font-medium text-on-surface">
-                        {
-                          (
-                            payment as {
-                              students?: {
-                                first_name?: string;
-                                last_name?: string;
-                              };
-                            }
-                          ).students?.first_name
-                        }{" "}
-                        {
-                          (
-                            payment as {
-                              students?: {
-                                first_name?: string;
-                                last_name?: string;
-                              };
-                            }
-                          ).students?.last_name
-                        }
-                      </td>
-                      <td className="px-6 py-4 text-right text-green-600 font-medium">
-                        {formatCurrency(Number(payment.amount_paid))}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                          {payment.payment_method === "mobile_money"
-                            ? "MoMo"
-                            : payment.payment_method === "cash"
-                              ? "Cash"
-                              : payment.payment_method === "bank"
-                                ? "Bank"
-                                : "Other"}
-                        </span>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/5">
+                  {filteredInvoices.map((invoice) => (
+                    <tr
+                      key={invoice.student_id}
+                      className="hover:bg-surface-bright"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="font-medium text-on-surface">
+                          {invoice.student_name}
+                        </div>
+                        <div className="text-xs text-on-surface-variant">
+                          {invoice.student_number}
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-on-surface-variant">
-                        {payment.payment_reference || "-"}
+                        {invoice.class_name}
+                      </td>
+                      <td className="px-6 py-4 font-medium">
+                        {formatCurrency(invoice.total_amount)}
+                      </td>
+                      <td className="px-6 py-4 text-green-600">
+                        {formatCurrency(invoice.amount_paid)}
+                      </td>
+                      <td
+                        className={`px-6 py-4 font-medium ${invoice.balance > 0 ? "text-red-600" : "text-green-600"}`}
+                      >
+                        {formatCurrency(invoice.balance)}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-xs font-medium ${invoice.balance === 0 ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}`}
+                        >
+                          {invoice.balance === 0 ? "Paid" : "Pending"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => printInvoice(invoice)}
+                            className="p-2 text-on-surface-variant hover:text-primary rounded-lg hover:bg-primary/10"
+                            title="Print Invoice"
+                          >
+                            <MaterialIcon icon="print" />
+                          </button>
+                          {invoice.balance > 0 && (
+                            <button
+                              onClick={() => sendInvoiceSMS(invoice)}
+                              className="p-2 text-on-surface-variant hover:text-green-600 rounded-lg hover:bg-green-100"
+                              title="Send via SMS"
+                            >
+                              <MaterialIcon icon="sms" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      </TabPanel>
+        </>
+      )}
+
+      {tab === "cashbook" && (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <Card>
+              <CardBody>
+                <div className="text-xl font-bold text-[var(--t1)]">
+                  {formatCurrency(cashbookSummary.total)}
+                </div>
+                <div className="text-sm text-[var(--t3)]">Total Collected</div>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody>
+                <div className="text-xl font-bold text-[var(--green)]">
+                  {formatCurrency(cashbookSummary.cash)}
+                </div>
+                <div className="text-sm text-[var(--t3)]">Cash</div>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody>
+                <div className="text-xl font-bold text-[var(--amber)]">
+                  {formatCurrency(cashbookSummary.momo)}
+                </div>
+                <div className="text-sm text-[var(--t3)]">Mobile Money</div>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody>
+                <div className="text-xl font-bold text-[var(--navy)]">
+                  {formatCurrency(cashbookSummary.bank)}
+                </div>
+                <div className="text-sm text-[var(--t3)]">Bank</div>
+              </CardBody>
+            </Card>
+          </div>
+
+          <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-outline-variant/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-on-surface">Transactions</h3>
+                <p className="text-sm text-on-surface-variant">
+                  {cashbookSummary.count} transactions •{" "}
+                  {cashbookDateFilter === "today"
+                    ? "Today"
+                    : cashbookDateFilter === "week"
+                      ? "This Week"
+                      : "This Month"}
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <select
+                  value={cashbookDateFilter}
+                  onChange={(e) => setCashbookDateFilter(e.target.value)}
+                  className="bg-surface-container-lowest border border-outline-variant rounded-xl py-2 px-4 text-sm"
+                  aria-label="Date range filter"
+                >
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                </select>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={exportCashbookCSV}
+                >
+                  <MaterialIcon icon="download" />
+                  Export CSV
+                </Button>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-surface-container-low text-left">
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                      Date
+                    </th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                      Student
+                    </th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-right">
+                      Amount
+                    </th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                      Method
+                    </th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                      Reference
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/5">
+                  {filteredCashbookPayments.length === 0 ? (
+                    <tr>
+                      <td colSpan={5}>
+                        <EmptyState
+                          icon="receipt_long"
+                          title="No transactions found"
+                          description="There are no payments recorded for the selected period"
+                        />
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredCashbookPayments.map((payment) => (
+                      <tr key={payment.id} className="hover:bg-surface-bright">
+                        <td className="px-6 py-4 text-sm text-on-surface">
+                          {new Date(payment.payment_date).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 font-medium text-on-surface">
+                          {
+                            (
+                              payment as {
+                                students?: {
+                                  first_name?: string;
+                                  last_name?: string;
+                                };
+                              }
+                            ).students?.first_name
+                          }{" "}
+                          {
+                            (
+                              payment as {
+                                students?: {
+                                  first_name?: string;
+                                  last_name?: string;
+                                };
+                              }
+                            ).students?.last_name
+                          }
+                        </td>
+                        <td className="px-6 py-4 text-right text-green-600 font-medium">
+                          {formatCurrency(Number(payment.amount_paid))}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                            {payment.payment_method === "mobile_money"
+                              ? "MoMo"
+                              : payment.payment_method === "cash"
+                                ? "Cash"
+                                : payment.payment_method === "bank"
+                                  ? "Bank"
+                                  : "Other"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-on-surface-variant">
+                          {payment.payment_reference || "-"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
 
       <PaymentModal
         isOpen={showPaymentModal}

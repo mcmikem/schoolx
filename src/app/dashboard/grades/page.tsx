@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import {
@@ -91,6 +91,8 @@ function getGrade(score: number) {
 
 type StudentMarks = Record<string, number | null>;
 
+type SaveStatus = "idle" | "dirty" | "saving" | "saved";
+
 export default function GradesPage() {
   const { school, user } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
@@ -123,6 +125,22 @@ export default function GradesPage() {
     currentTerm,
     academicYear,
   );
+
+  const [inlineEntryMode, setInlineEntryMode] = useState(true);
+  const [saveStatuses, setSaveStatuses] = useState<Record<string, SaveStatus>>(
+    {},
+  );
+  const [mobileStudentIndex, setMobileStudentIndex] = useState(0);
+  const [quickFillModal, setQuickFillModal] = useState<{
+    open: boolean;
+    type: string;
+    value: string;
+  }>({ open: false, type: "", value: "" });
+  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>(
+    {},
+  );
+  const touchStartX = useRef(0);
+  const mobileCardRef = useRef<HTMLDivElement>(null);
 
   const filteredStudents = useMemo(() => {
     if (!selectedClass) return [];
@@ -304,6 +322,194 @@ export default function GradesPage() {
       );
     },
     [marks],
+  );
+
+  const debouncedAutoSave = useCallback(
+    (studentId: string, type: string) => {
+      const key = `${studentId}_${type}`;
+      if (debounceTimers.current[key]) {
+        clearTimeout(debounceTimers.current[key]);
+      }
+      setSaveStatuses((prev) => ({ ...prev, [key]: "dirty" }));
+      debounceTimers.current[key] = setTimeout(async () => {
+        const score = marks[key];
+        if (score === null || score === undefined) {
+          setSaveStatuses((prev) => ({ ...prev, [key]: "idle" }));
+          return;
+        }
+        setSaveStatuses((prev) => ({ ...prev, [key]: "saving" }));
+        try {
+          await saveGrade({
+            student_id: studentId,
+            subject_id: selectedSubject,
+            class_id: selectedClass,
+            assessment_type: type,
+            score,
+            term: currentTerm,
+            academic_year: academicYear,
+            recorded_by: user?.id,
+            status: "draft",
+          });
+          setSaveStatuses((prev) => ({ ...prev, [key]: "saved" }));
+          setTimeout(() => {
+            setSaveStatuses((prev) => {
+              const next = { ...prev };
+              if (next[key] === "saved") next[key] = "idle";
+              return next;
+            });
+          }, 2000);
+        } catch {
+          setSaveStatuses((prev) => ({ ...prev, [key]: "idle" }));
+          toast.error(`Failed to auto-save ${type.toUpperCase()} for student`);
+        }
+      }, 500);
+    },
+    [
+      marks,
+      saveGrade,
+      selectedSubject,
+      selectedClass,
+      currentTerm,
+      academicYear,
+      user?.id,
+      toast,
+    ],
+  );
+
+  useEffect(() => {
+    const currentTimers = debounceTimers.current;
+    return () => {
+      Object.values(currentTimers).forEach(clearTimeout);
+    };
+  }, []);
+
+  const handleInlineBlur = useCallback(
+    (studentId: string, type: string) => {
+      debouncedAutoSave(studentId, type);
+    },
+    [debouncedAutoSave],
+  );
+
+  const handleQuickFill = useCallback(
+    (type: string, value: number) => {
+      if (caLocked && type.startsWith("ca")) {
+        toast.error("CA marks are locked. Contact DOS to unlock.");
+        return;
+      }
+      setMarks((prev) => {
+        const next = { ...prev };
+        filteredStudents.forEach((s) => {
+          next[`${s.id}_${type}`] = Math.min(
+            ASSESSMENT_MAX[type] || 100,
+            Math.max(0, value),
+          );
+        });
+        return next;
+      });
+      toast.success(`All ${type.toUpperCase()} set to ${value}`);
+    },
+    [filteredStudents, caLocked, toast],
+  );
+
+  const handleClearAll = useCallback(() => {
+    if (
+      !confirm("Clear all marks for this class/subject? This cannot be undone.")
+    )
+      return;
+    setMarks({});
+    setSaveStatuses({});
+    toast.success("All marks cleared");
+  }, [toast]);
+
+  const handleCopyFromPreviousTerm = useCallback(async () => {
+    if (!selectedClass || !selectedSubject || !user?.id) return;
+    const prevTerm = currentTerm > 1 ? currentTerm - 1 : 3;
+    const prevYear =
+      currentTerm === 1 ? String(Number(academicYear) - 1) : academicYear;
+    try {
+      setLoading(true);
+      const { data: prevGrades, error } = await supabase
+        .from("grades")
+        .select("*")
+        .eq("class_id", selectedClass)
+        .eq("subject_id", selectedSubject)
+        .eq("term", prevTerm)
+        .eq("academic_year", prevYear)
+        .is("deleted_at", null);
+      if (error) throw error;
+      if (!prevGrades || prevGrades.length === 0) {
+        toast.info("No grades found from previous term");
+        return;
+      }
+      setMarks((prev) => {
+        const next = { ...prev };
+        prevGrades.forEach((g: any) => {
+          next[`${g.student_id}_${g.assessment_type}`] = g.score ?? null;
+        });
+        return next;
+      });
+      toast.success(`Copied ${prevGrades.length} grades from Term ${prevTerm}`);
+    } catch {
+      toast.error("Failed to copy grades from previous term");
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    selectedClass,
+    selectedSubject,
+    user?.id,
+    currentTerm,
+    academicYear,
+    toast,
+  ]);
+
+  const handleMobileTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleMobileTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      const diff = touchStartX.current - e.changedTouches[0].clientX;
+      if (Math.abs(diff) > 50) {
+        if (diff > 0) {
+          setMobileStudentIndex((prev) =>
+            Math.min(prev + 1, filteredStudents.length - 1),
+          );
+        } else {
+          setMobileStudentIndex((prev) => Math.max(prev - 1, 0));
+        }
+      }
+    },
+    [filteredStudents.length],
+  );
+
+  const navigateMobileStudent = useCallback(
+    (direction: "prev" | "next") => {
+      setMobileStudentIndex((prev) => {
+        if (direction === "prev") return Math.max(prev - 1, 0);
+        return Math.min(prev + 1, filteredStudents.length - 1);
+      });
+    },
+    [filteredStudents.length],
+  );
+
+  const getSaveStatusForInput = useCallback(
+    (studentId: string, type: string): SaveStatus => {
+      return saveStatuses[`${studentId}_${type}`] || "idle";
+    },
+    [saveStatuses],
+  );
+
+  const getInputBorderClass = useCallback(
+    (studentId: string, type: string): string => {
+      const status = getSaveStatusForInput(studentId, type);
+      if (status === "dirty") return "ring-2 ring-amber-400 bg-amber-50/30";
+      if (status === "saving")
+        return "ring-2 ring-blue-400 bg-blue-50/30 animate-pulse";
+      if (status === "saved") return "ring-2 ring-green-400 bg-green-50/30";
+      return "";
+    },
+    [getSaveStatusForInput],
   );
 
   // Completion stats
@@ -573,7 +779,9 @@ export default function GradesPage() {
   const selectedSubjectName =
     subjects.find((s) => s.id === selectedSubject)?.name || "";
   const selectedClassObj = classes.find((c) => c.id === selectedClass);
-  const selectedClassName = selectedClassObj ? `${selectedClassObj.name}${selectedClassObj.stream ? ` ${selectedClassObj.stream}` : ''}` : "";
+  const selectedClassName = selectedClassObj
+    ? `${selectedClassObj.name}${selectedClassObj.stream ? ` ${selectedClassObj.stream}` : ""}`
+    : "";
   const topics = useMemo(
     () =>
       NCDC_TOPICS[selectedSubjectName] || [
@@ -771,7 +979,8 @@ export default function GradesPage() {
                   <option value="">Select Class</option>
                   {classes.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name}{c.stream ? ` ${c.stream}` : ''}
+                      {c.name}
+                      {c.stream ? ` ${c.stream}` : ""}
                     </option>
                   ))}
                 </select>
@@ -904,121 +1113,484 @@ export default function GradesPage() {
         onChange={(id) => setTab(id as "marks" | "coverage")}
       />
 
-      {/* Marks Entry Table */}
-      {tab === "marks" && selectedClass && (
-        <div className="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm">
-          <div className="overflow-x-auto table-responsive">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-surface-container-low/50 text-left">
-                  <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                    Student Identity
-                  </th>
-                  <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                    CA1 (10)
-                  </th>
-                  <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                    CA2 (10)
-                  </th>
-                  <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                    CA3 (10)
-                  </th>
-                  <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                    Exam (70)
-                  </th>
-                  <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                    Total (100)
-                  </th>
-                  <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-right">
-                    Grade
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-surface-container">
-                {studentsLoading ? (
-                  <tr>
-                    <td colSpan={7} className="px-8 py-12">
-                      <TableSkeleton rows={5} />
-                    </td>
-                  </tr>
-                ) : filteredStudents.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-8 py-12">
-                      <NoData title="No students in this class" />
-                    </td>
-                  </tr>
-                ) : (
-                  filteredStudents.map((student) => {
-                    const ca1 = getMark(student.id, "ca1");
-                    const ca2 = getMark(student.id, "ca2");
-                    const ca3 = getMark(student.id, "ca3");
-                    const exam = getMark(student.id, "exam");
-                    const total = getStudentTotal(student.id);
+      {/* Inline Entry Controls */}
+      {tab === "marks" &&
+        selectedClass &&
+        selectedSubject &&
+        filteredStudents.length > 0 && (
+          <div className="space-y-4">
+            {/* View Mode Toggle & Quick Actions */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setInlineEntryMode(true)}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                    inlineEntryMode
+                      ? "bg-primary text-on-primary shadow-sm"
+                      : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <MaterialIcon icon="grid_view" className="text-lg" />
+                    Table View
+                  </span>
+                </button>
+                <button
+                  onClick={() => setInlineEntryMode(false)}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all md:hidden ${
+                    !inlineEntryMode
+                      ? "bg-primary text-on-primary shadow-sm"
+                      : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <MaterialIcon icon="smartphone" className="text-lg" />
+                    Mobile View
+                  </span>
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative group">
+                  <button
+                    className="px-3 py-2 rounded-xl text-sm font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all flex items-center gap-1.5"
+                    onClick={() =>
+                      setQuickFillModal({ open: true, type: "ca1", value: "" })
+                    }
+                  >
+                    <MaterialIcon icon="playlist_add" className="text-base" />
+                    Quick Fill
+                  </button>
+                  <div className="absolute right-0 top-full mt-1 w-64 bg-surface-container-lowest rounded-2xl shadow-xl border border-outline-variant/10 p-4 hidden group-hover:block z-30">
+                    <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
+                      Set All Students
+                    </p>
+                    {(["ca1", "ca2", "ca3", "exam"] as const).map((type) => (
+                      <div key={type} className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-semibold text-on-surface-variant w-10">
+                          {type.toUpperCase()}
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={ASSESSMENT_MAX[type]}
+                          placeholder={`Max ${ASSESSMENT_MAX[type]}`}
+                          className="flex-1 bg-surface-container border-none rounded-lg text-sm py-1.5 px-2 focus:ring-2 focus:ring-primary"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              const val = parseInt(
+                                (e.target as HTMLInputElement).value,
+                              );
+                              if (!isNaN(val)) handleQuickFill(type, val);
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const val = parseInt(e.target.value);
+                            if (!isNaN(val)) handleQuickFill(type, val);
+                          }}
+                        />
+                      </div>
+                    ))}
+                    <div className="border-t border-outline-variant/10 mt-3 pt-3 flex gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleCopyFromPreviousTerm}
+                        loading={loading}
+                        className="flex-1 text-xs"
+                      >
+                        Copy Prev Term
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={handleClearAll}
+                        className="flex-1 text-xs"
+                      >
+                        Clear All
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="bg-surface-container-low rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm ${
+                      completionStats.percentage === 100
+                        ? "bg-[var(--green)] text-white"
+                        : completionStats.percentage >= 50
+                          ? "bg-[var(--amber)] text-white"
+                          : "bg-[var(--red)] text-white"
+                    }`}
+                  >
+                    {completionStats.percentage}%
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm">
+                      {completionStats.graded}/{completionStats.total} students
+                      graded
+                    </p>
+                    <p className="text-xs text-on-surface-variant">
+                      {completionStats.notGraded > 0
+                        ? `${completionStats.notGraded} student${completionStats.notGraded > 1 ? "s" : ""} remaining`
+                        : "All students graded!"}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-medium text-on-surface-variant">
+                    {Object.keys(marks).filter((k) => marks[k] !== null).length}{" "}
+                    scores entered
+                  </span>
+                </div>
+              </div>
+              <div className="w-full bg-[var(--surface)]/60 h-2.5 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    completionStats.percentage === 100
+                      ? "bg-[var(--green)]"
+                      : completionStats.percentage >= 50
+                        ? "bg-[var(--amber)]"
+                        : "bg-[var(--red)]"
+                  }`}
+                  style={{ width: `${completionStats.percentage}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Desktop: Inline Table View */}
+            {inlineEntryMode && (
+              <div className="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm">
+                <div className="overflow-x-auto table-responsive">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-surface-container-low/50 text-left">
+                        <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                          Student Identity
+                        </th>
+                        <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                          CA1 (10)
+                        </th>
+                        <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                          CA2 (10)
+                        </th>
+                        <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                          CA3 (10)
+                        </th>
+                        <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                          Exam (70)
+                        </th>
+                        <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                          Total (100)
+                        </th>
+                        <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-right">
+                          Grade
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-surface-container">
+                      {studentsLoading ? (
+                        <tr>
+                          <td colSpan={7} className="px-8 py-12">
+                            <TableSkeleton rows={5} />
+                          </td>
+                        </tr>
+                      ) : filteredStudents.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="px-8 py-12">
+                            <NoData title="No students in this class" />
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredStudents.map((student) => {
+                          const ca1 = getMark(student.id, "ca1");
+                          const ca2 = getMark(student.id, "ca2");
+                          const ca3 = getMark(student.id, "ca3");
+                          const exam = getMark(student.id, "exam");
+                          const total = getStudentTotal(student.id);
+                          const gradeInfo =
+                            total !== null ? getGrade(total) : null;
+                          const graded = isStudentGraded(student.id);
+                          return (
+                            <tr
+                              key={student.id}
+                              className={`hover:bg-surface-bright transition-colors ${
+                                !graded &&
+                                completionStats.graded < completionStats.total
+                                  ? "bg-orange-50/20 dark:bg-orange-900/5"
+                                  : ""
+                              }`}
+                            >
+                              <td className="px-8 py-5">
+                                <div className="flex items-center gap-4">
+                                  <div
+                                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${
+                                      graded
+                                        ? "bg-primary-container text-on-primary-container"
+                                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                    }`}
+                                  >
+                                    {student.first_name?.charAt(0)}
+                                    {student.last_name?.charAt(0)}
+                                  </div>
+                                  <div>
+                                    <p className="font-bold text-primary">
+                                      {student.first_name} {student.last_name}
+                                    </p>
+                                    <p className="text-xs text-on-surface-variant">
+                                      {student.student_number || "-"}
+                                    </p>
+                                  </div>
+                                  {graded && (
+                                    <MaterialIcon
+                                      icon="check_circle"
+                                      className="text-green-500 text-lg"
+                                    />
+                                  )}
+                                </div>
+                              </td>
+                              {["ca1", "ca2", "ca3", "exam"].map((type) => (
+                                <td key={type} className="px-4 py-5">
+                                  <div className="relative">
+                                    <input
+                                      className={`w-16 mx-auto block text-center font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${getInputBorderClass(student.id, type)}`}
+                                      type="number"
+                                      min={0}
+                                      max={ASSESSMENT_MAX[type]}
+                                      placeholder="—"
+                                      value={
+                                        marks[`${student.id}_${type}`] !==
+                                          null &&
+                                        marks[`${student.id}_${type}`] !==
+                                          undefined
+                                          ? String(
+                                              marks[`${student.id}_${type}`],
+                                            )
+                                          : ""
+                                      }
+                                      onChange={(e) =>
+                                        handleMarkChange(
+                                          student.id,
+                                          type,
+                                          e.target.value,
+                                        )
+                                      }
+                                      onBlur={() =>
+                                        handleInlineBlur(student.id, type)
+                                      }
+                                      disabled={
+                                        isSubmitted ||
+                                        (caLocked && type.startsWith("ca"))
+                                      }
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                          e.currentTarget.blur();
+                                        }
+                                      }}
+                                    />
+                                    {getSaveStatusForInput(student.id, type) ===
+                                      "saved" && (
+                                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
+                                    )}
+                                  </div>
+                                </td>
+                              ))}
+                              <td className="px-4 py-5 text-center">
+                                <span
+                                  className={`font-black text-xl ${total !== null ? "text-primary" : "text-on-surface-variant"}`}
+                                >
+                                  {total !== null ? total : "—"}
+                                </span>
+                              </td>
+                              <td className="px-8 py-5 text-right">
+                                <span
+                                  className={`px-4 py-1.5 rounded-full text-xs font-black ${gradeInfo ? "bg-surface-container" : "bg-surface-bright text-on-surface-variant"} ${gradeInfo?.color || ""}`}
+                                >
+                                  {gradeInfo ? gradeInfo.grade : "-"}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Mobile: Card View with Swipe */}
+            {!inlineEntryMode && filteredStudents.length > 0 && (
+              <div className="md:hidden">
+                <div
+                  ref={mobileCardRef}
+                  onTouchStart={handleMobileTouchStart}
+                  onTouchEnd={handleMobileTouchEnd}
+                  className="bg-surface-container-lowest rounded-2xl shadow-sm p-6 space-y-6"
+                >
+                  {/* Student Header */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-12 h-12 rounded-full flex items-center justify-center font-bold ${
+                          isStudentGraded(
+                            filteredStudents[mobileStudentIndex]?.id,
+                          )
+                            ? "bg-primary-container text-on-primary-container"
+                            : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {filteredStudents[
+                          mobileStudentIndex
+                        ]?.first_name?.charAt(0)}
+                        {filteredStudents[
+                          mobileStudentIndex
+                        ]?.last_name?.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-bold text-primary text-lg">
+                          {filteredStudents[mobileStudentIndex]?.first_name}{" "}
+                          {filteredStudents[mobileStudentIndex]?.last_name}
+                        </p>
+                        <p className="text-xs text-on-surface-variant">
+                          {filteredStudents[mobileStudentIndex]
+                            ?.student_number || "-"}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-sm font-medium text-on-surface-variant">
+                      {mobileStudentIndex + 1} / {filteredStudents.length}
+                    </span>
+                  </div>
+
+                  {/* Score Inputs */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {(["ca1", "ca2", "ca3", "exam"] as const).map((type) => {
+                      const studentId =
+                        filteredStudents[mobileStudentIndex]?.id;
+                      if (!studentId) return null;
+                      const val = getMark(studentId, type);
+                      const total = getStudentTotal(studentId);
+                      const gradeInfo = total !== null ? getGrade(total) : null;
+                      return (
+                        <div key={type} className="space-y-2">
+                          <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+                            {type.toUpperCase()} ({ASSESSMENT_MAX[type]})
+                          </label>
+                          <input
+                            className={`w-full text-center text-2xl font-bold py-4 rounded-xl border-none focus:outline-none transition-all ${getInputBorderClass(studentId, type)}`}
+                            type="number"
+                            min={0}
+                            max={ASSESSMENT_MAX[type]}
+                            placeholder="—"
+                            value={val !== null ? String(val) : ""}
+                            onChange={(e) =>
+                              handleMarkChange(studentId, type, e.target.value)
+                            }
+                            onBlur={() => handleInlineBlur(studentId, type)}
+                            disabled={
+                              isSubmitted || (caLocked && type.startsWith("ca"))
+                            }
+                            inputMode="numeric"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Total & Grade */}
+                  {(() => {
+                    const studentId = filteredStudents[mobileStudentIndex]?.id;
+                    if (!studentId) return null;
+                    const total = getStudentTotal(studentId);
                     const gradeInfo = total !== null ? getGrade(total) : null;
                     return (
-                      <tr key={student.id} className="hover:bg-surface-bright">
-                        <td className="px-8 py-5">
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center font-bold text-sm text-on-primary-container">
-                              {student.first_name?.charAt(0)}
-                              {student.last_name?.charAt(0)}
-                            </div>
-                            <div>
-                              <p className="font-bold text-primary">
-                                {student.first_name} {student.last_name}
-                              </p>
-                              <p className="text-xs text-on-surface-variant">
-                                {student.student_number || "-"}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        {["ca1", "ca2", "ca3", "exam"].map((type) => (
-                          <td key={type} className="px-4 py-5">
-                            <input
-                              className="w-14 mx-auto block bg-surface-container rounded-lg border-none text-center font-bold focus:ring-2 focus:ring-primary py-2 px-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                              type="number"
-                              min={0}
-                              max={ASSESSMENT_MAX[type]}
-                              placeholder="\u2014"
-                              value={
-                                marks[`${student.id}_${type}`] !== null &&
-                                marks[`${student.id}_${type}`] !== undefined
-                                  ? String(marks[`${student.id}_${type}`])
-                                  : ""
-                              }
-                              onChange={(e) =>
-                                handleMarkChange(
-                                  student.id,
-                                  type,
-                                  e.target.value,
-                                )
-                              }
-                              disabled={isSubmitted}
-                            />
-                          </td>
-                        ))}
-                        <td className="px-4 py-5 text-center">
-                          <span className="font-black text-xl text-primary">
-                            {total !== null ? total : "\u2014"}
-                          </span>
-                        </td>
-                        <td className="px-8 py-5 text-right">
-                          <span
-                            className={`px-4 py-1.5 rounded-full text-xs font-black ${gradeInfo ? "bg-surface-container" : "bg-surface-bright text-on-surface-variant"} ${gradeInfo?.color || ""}`}
+                      <div className="flex items-center justify-center gap-6 py-4 bg-surface-container rounded-2xl">
+                        <div className="text-center">
+                          <p className="text-xs text-on-surface-variant uppercase tracking-wider">
+                            Total
+                          </p>
+                          <p className="text-3xl font-black text-primary">
+                            {total !== null ? total : "—"}
+                          </p>
+                        </div>
+                        <div className="w-px h-12 bg-outline-variant/20" />
+                        <div className="text-center">
+                          <p className="text-xs text-on-surface-variant uppercase tracking-wider">
+                            Grade
+                          </p>
+                          <p
+                            className={`text-3xl font-black ${gradeInfo?.color || "text-on-surface-variant"}`}
                           >
-                            {gradeInfo ? gradeInfo.grade : "-"}
-                          </span>
-                        </td>
-                      </tr>
+                            {gradeInfo ? gradeInfo.grade : "—"}
+                          </p>
+                        </div>
+                      </div>
                     );
-                  })
-                )}
-              </tbody>
-            </table>
+                  })()}
+
+                  {/* Navigation */}
+                  <div className="flex items-center justify-between gap-4">
+                    <Button
+                      variant="secondary"
+                      onClick={() => navigateMobileStudent("prev")}
+                      disabled={mobileStudentIndex === 0}
+                      className="flex-1"
+                      icon={
+                        <MaterialIcon icon="chevron_left" className="text-xl" />
+                      }
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="primary"
+                      onClick={() => navigateMobileStudent("next")}
+                      disabled={
+                        mobileStudentIndex === filteredStudents.length - 1
+                      }
+                      className="flex-1"
+                    >
+                      Next
+                      <MaterialIcon icon="chevron_right" className="text-xl" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Student List Quick Nav */}
+                <div className="mt-4 bg-surface-container-lowest rounded-2xl p-4">
+                  <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
+                    All Students
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {filteredStudents.map((student, idx) => {
+                      const graded = isStudentGraded(student.id);
+                      return (
+                        <button
+                          key={student.id}
+                          onClick={() => setMobileStudentIndex(idx)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                            idx === mobileStudentIndex
+                              ? "bg-primary text-on-primary"
+                              : graded
+                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                : "bg-surface-container text-on-surface-variant"
+                          }`}
+                        >
+                          {student.first_name?.charAt(0)}
+                          {student.last_name?.charAt(0)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
 
       {/* Topic Coverage */}
       {tab === "coverage" && selectedSubject && (
