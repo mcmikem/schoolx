@@ -24,7 +24,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       defaultOpen: true,
       items: [
         { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-        { href: '/dashboard/analytics', label: 'Analytics', icon: 'analytics', badge: 'New' },
+        { href: '/dashboard/analytics', label: 'Analytics', icon: 'analytics', badge: 'New' }
       ]
     },
     {
@@ -32,11 +32,10 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       icon: 'group',
       defaultOpen: true,
       items: [
-        { href: '/dashboard/students', label: 'Student Registry', icon: 'group' },
+        { href: '/dashboard/students', label: 'Student Hub', icon: 'group' },
         { href: '/dashboard/attendance', label: 'Attendance', icon: 'how_to_reg' },
         { href: '/dashboard/grades', label: 'Grades & Reports', icon: 'menu_book' },
-        { href: '/dashboard/exams', label: 'Exams', icon: 'fact_check' },
-        { href: '/dashboard/promotion', label: 'Promotion', icon: 'trending_up' },
+        { href: '/dashboard/exams', label: 'Exams', icon: 'fact_check' }
       ]
     },
     {
@@ -44,10 +43,10 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       icon: 'person',
       defaultOpen: false,
       items: [
-        { href: '/dashboard/staff', label: 'Staff Directory', icon: 'person' },
+        { href: '/dashboard/staff', label: 'Staff Hub', icon: 'person' },
         { href: '/dashboard/staff-attendance', label: 'Staff Attendance', icon: 'how_to_reg' },
-        { href: '/dashboard/leave', label: 'Leave Requests', icon: 'event_busy' },
-        { href: '/dashboard/payroll', label: 'Payroll', icon: 'payments', badge: 'New' },
+        
+        { href: '/dashboard/payroll', label: 'Payroll', icon: 'payments', badge: 'New' }
       ]
     },
     {
@@ -55,10 +54,10 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       icon: 'payments',
       defaultOpen: false,
       items: [
-        { href: '/dashboard/fees', label: 'Fee Collection', icon: 'payments' },
+        { href: '/dashboard/fees', label: 'Finance Hub', icon: 'payments' },
         { href: '/dashboard/budget', label: 'Budget', icon: 'account_balance_wallet' },
-        { href: '/dashboard/cashbook', label: 'Cashbook & Expenses', icon: 'receipt_long' },
-        { href: '/dashboard/reports', label: 'Financial Reports', icon: 'analytics' },
+        
+        { href: '/dashboard/reports', label: 'Financial Reports', icon: 'analytics' }
       ]
     },
     {
@@ -66,10 +65,10 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       icon: 'chat',
       defaultOpen: false,
       items: [
-        { href: '/dashboard/messages', label: 'Messages', icon: 'chat' },
-        { href: '/dashboard/notices', label: 'Announcements', icon: 'campaign' },
-        { href: '/dashboard/bulk-sms', label: 'SMS Center', icon: 'sms' },
-        { href: '/dashboard/automation', label: 'SMS Automation', icon: 'auto_awesome', badge: 'New' },
+        { href: '/dashboard/messages', label: 'Communication Hub', icon: 'chat' },
+        
+        
+        { href: '/dashboard/automation', label: 'SMS Automation', icon: 'auto_awesome', badge: 'New' }
       ]
     },
     {
@@ -79,7 +78,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       items: [
         { href: '/dashboard/timetable', label: 'Timetable', icon: 'calendar_month' },
         { href: '/dashboard/settings', label: 'School Settings', icon: 'settings' },
-        { href: '/dashboard/audit', label: 'Audit Log', icon: 'history' },
+        { href: '/dashboard/audit', label: 'Audit Log', icon: 'history' }
       ]
     },
     {
@@ -91,17 +90,17 @@ export const navigationByRole: Record<string, NavGroup[]> = {
         { href: '/dashboard/transport', label: 'Transport', icon: 'directions_bus' },
         { href: '/dashboard/library', label: 'Library', icon: 'local_library' },
         { href: '/dashboard/assets', label: 'Asset Register', icon: 'inventory_2' },
-        { href: '/dashboard/dorm', label: 'Dormitory', icon: 'bed' },
+        { href: '/dashboard/dorm', label: 'Dormitory', icon: 'bed' }
       ]
-    },
-  ],
+    }
+      ],
   
   dean_of_studies: [
     {
       label: 'Overview',
       defaultOpen: true,
       items: [
-        { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+        { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' }
       ]
     },
     {
@@ -115,7 +114,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
         { href: '/dashboard/batch-reports', label: 'Batch Reports', icon: 'print', badge: 'New' },
         { href: '/dashboard/comments', label: 'Auto Comments', icon: 'comment', badge: 'New' },
         { href: '/dashboard/term-end', label: 'End of Term', icon: 'event_repeat' },
-        { href: '/dashboard/timetable', label: 'Timetable', icon: 'calendar_month' },
+        { href: '/dashboard/timetable', label: 'Timetable', icon: 'calendar_month' }
       ]
     },
     {
@@ -124,8 +123,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       items: [
         { href: '/dashboard/syllabus', label: 'Syllabus Tracking', icon: 'track_changes' },
         { href: '/dashboard/scheme-of-work', label: 'Scheme of Work', icon: 'list_alt' },
-        { href: '/dashboard/lesson-plans', label: 'Lesson Plans', icon: 'menu_book' },
-        { href: '/dashboard/promotion', label: 'Promotion', icon: 'trending_up' },
+        { href: '/dashboard/lesson-plans', label: 'Lesson Plans', icon: 'menu_book' }
       ]
     },
     {
@@ -133,17 +131,17 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       defaultOpen: false,
       items: [
         { href: '/dashboard/reports', label: 'Reports', icon: 'description' },
-        { href: '/dashboard/uneb', label: 'UNEB', icon: 'workspace_premium' },
+        { href: '/dashboard/uneb', label: 'UNEB', icon: 'workspace_premium' }
       ]
-    },
-  ],
+    }
+      ],
   
   bursar: [
     {
       label: 'Overview',
       defaultOpen: true,
       items: [
-        { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+        { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' }
       ]
     },
     {
@@ -152,7 +150,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       items: [
         { href: '/dashboard/fees', label: 'Collect Fees', icon: 'payments' },
         { href: '/dashboard/students', label: 'Students', icon: 'group' },
-        { href: '/dashboard/payment-plans', label: 'Payment Plans', icon: 'calendar_month' },
+        { href: '/dashboard/payment-plans', label: 'Payment Plans', icon: 'calendar_month' }
       ]
     },
     {
@@ -160,19 +158,19 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       defaultOpen: false,
       items: [
         { href: '/dashboard/budget', label: 'Budget', icon: 'account_balance_wallet' },
-        { href: '/dashboard/cashbook', label: 'Cashbook & Expenses', icon: 'receipt_long' },
+        
         { href: '/dashboard/payroll', label: 'Payroll', icon: 'payments' },
-        { href: '/dashboard/reports', label: 'Reports', icon: 'analytics' },
+        { href: '/dashboard/reports', label: 'Reports', icon: 'analytics' }
       ]
     },
     {
       label: 'Communication',
       defaultOpen: false,
       items: [
-        { href: '/dashboard/messages', label: 'Messages', icon: 'chat' },
+        { href: '/dashboard/messages', label: 'Communication Hub', icon: 'chat' }
       ]
-    },
-  ],
+    }
+      ],
   
   teacher: [
     {
@@ -182,7 +180,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
         { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
         { href: '/dashboard/attendance', label: 'Take Attendance', icon: 'how_to_reg' },
         { href: '/dashboard/grades', label: 'Enter Grades', icon: 'menu_book' },
-        { href: '/dashboard/homework', label: 'Homework', icon: 'assignment' },
+        { href: '/dashboard/homework', label: 'Homework', icon: 'assignment' }
       ]
     },
     {
@@ -192,24 +190,23 @@ export const navigationByRole: Record<string, NavGroup[]> = {
         { href: '/dashboard/syllabus', label: 'Syllabus Tracking', icon: 'track_changes' },
         { href: '/dashboard/scheme-of-work', label: 'Scheme of Work', icon: 'list_alt' },
         { href: '/dashboard/lesson-plans', label: 'Lesson Plans', icon: 'menu_book' },
-        { href: '/dashboard/timetable', label: 'Timetable', icon: 'calendar_month' },
+        { href: '/dashboard/timetable', label: 'Timetable', icon: 'calendar_month' }
       ]
     },
     {
       label: 'Support',
       defaultOpen: false,
-      items: [
-      ]
+      items: []
     },
     {
       label: 'Optional',
       defaultOpen: false,
       items: [
         { href: '/dashboard/health', label: 'Health', icon: 'local_hospital' },
-        { href: '/dashboard/library', label: 'Library', icon: 'local_library' },
+        { href: '/dashboard/library', label: 'Library', icon: 'local_library' }
       ]
-    },
-  ],
+    }
+      ],
 
   admin: [
     {
@@ -218,7 +215,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       defaultOpen: true,
       items: [
         { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-        { href: '/dashboard/analytics', label: 'Analytics', icon: 'analytics', badge: 'New' },
+        { href: '/dashboard/analytics', label: 'Analytics', icon: 'analytics', badge: 'New' }
       ]
     },
     {
@@ -226,11 +223,10 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       icon: 'group',
       defaultOpen: true,
       items: [
-        { href: '/dashboard/students', label: 'Student Registry', icon: 'group' },
+        { href: '/dashboard/students', label: 'Student Hub', icon: 'group' },
         { href: '/dashboard/attendance', label: 'Attendance', icon: 'how_to_reg' },
         { href: '/dashboard/grades', label: 'Grades & Reports', icon: 'menu_book' },
-        { href: '/dashboard/exams', label: 'Exams', icon: 'fact_check' },
-        { href: '/dashboard/promotion', label: 'Promotion', icon: 'trending_up' },
+        { href: '/dashboard/exams', label: 'Exams', icon: 'fact_check' }
       ]
     },
     {
@@ -238,10 +234,10 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       icon: 'person',
       defaultOpen: false,
       items: [
-        { href: '/dashboard/staff', label: 'Staff Directory', icon: 'person' },
+        { href: '/dashboard/staff', label: 'Staff Hub', icon: 'person' },
         { href: '/dashboard/staff-attendance', label: 'Staff Attendance', icon: 'how_to_reg' },
-        { href: '/dashboard/leave', label: 'Leave Requests', icon: 'event_busy' },
-        { href: '/dashboard/payroll', label: 'Payroll', icon: 'payments', badge: 'New' },
+        
+        { href: '/dashboard/payroll', label: 'Payroll', icon: 'payments', badge: 'New' }
       ]
     },
     {
@@ -249,10 +245,10 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       icon: 'payments',
       defaultOpen: false,
       items: [
-        { href: '/dashboard/fees', label: 'Fee Collection', icon: 'payments' },
+        { href: '/dashboard/fees', label: 'Finance Hub', icon: 'payments' },
         { href: '/dashboard/budget', label: 'Budget', icon: 'account_balance_wallet' },
-        { href: '/dashboard/cashbook', label: 'Cashbook & Expenses', icon: 'receipt_long' },
-        { href: '/dashboard/reports', label: 'Financial Reports', icon: 'analytics' },
+        
+        { href: '/dashboard/reports', label: 'Financial Reports', icon: 'analytics' }
       ]
     },
     {
@@ -260,9 +256,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       icon: 'chat',
       defaultOpen: false,
       items: [
-        { href: '/dashboard/messages', label: 'Messages', icon: 'chat' },
-        { href: '/dashboard/notices', label: 'Announcements', icon: 'campaign' },
-        { href: '/dashboard/bulk-sms', label: 'SMS Center', icon: 'sms' },
+        { href: '/dashboard/messages', label: 'Communication Hub', icon: 'chat' }
       ]
     },
     {
@@ -272,7 +266,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       items: [
         { href: '/dashboard/timetable', label: 'Timetable', icon: 'calendar_month' },
         { href: '/dashboard/settings', label: 'School Settings', icon: 'settings' },
-        { href: '/dashboard/audit', label: 'Audit Log', icon: 'history' },
+        { href: '/dashboard/audit', label: 'Audit Log', icon: 'history' }
       ]
     },
     {
@@ -284,10 +278,10 @@ export const navigationByRole: Record<string, NavGroup[]> = {
         { href: '/dashboard/transport', label: 'Transport', icon: 'directions_bus' },
         { href: '/dashboard/library', label: 'Library', icon: 'local_library' },
         { href: '/dashboard/assets', label: 'Asset Register', icon: 'inventory_2' },
-        { href: '/dashboard/dorm', label: 'Dormitory', icon: 'bed' },
+        { href: '/dashboard/dorm', label: 'Dormitory', icon: 'bed' }
       ]
-    },
-  ],
+    }
+      ],
 
   school_admin: [
     {
@@ -296,7 +290,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       defaultOpen: true,
       items: [
         { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-        { href: '/dashboard/analytics', label: 'Analytics', icon: 'analytics', badge: 'New' },
+        { href: '/dashboard/analytics', label: 'Analytics', icon: 'analytics', badge: 'New' }
       ]
     },
     {
@@ -304,11 +298,10 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       icon: 'group',
       defaultOpen: true,
       items: [
-        { href: '/dashboard/students', label: 'Student Registry', icon: 'group' },
+        { href: '/dashboard/students', label: 'Student Hub', icon: 'group' },
         { href: '/dashboard/attendance', label: 'Attendance', icon: 'how_to_reg' },
         { href: '/dashboard/grades', label: 'Grades & Reports', icon: 'menu_book' },
-        { href: '/dashboard/exams', label: 'Exams', icon: 'fact_check' },
-        { href: '/dashboard/promotion', label: 'Promotion', icon: 'trending_up' },
+        { href: '/dashboard/exams', label: 'Exams', icon: 'fact_check' }
       ]
     },
     {
@@ -316,10 +309,10 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       icon: 'person',
       defaultOpen: false,
       items: [
-        { href: '/dashboard/staff', label: 'Staff Directory', icon: 'person' },
+        { href: '/dashboard/staff', label: 'Staff Hub', icon: 'person' },
         { href: '/dashboard/staff-attendance', label: 'Staff Attendance', icon: 'how_to_reg' },
-        { href: '/dashboard/leave', label: 'Leave Requests', icon: 'event_busy' },
-        { href: '/dashboard/payroll', label: 'Payroll', icon: 'payments', badge: 'New' },
+        
+        { href: '/dashboard/payroll', label: 'Payroll', icon: 'payments', badge: 'New' }
       ]
     },
     {
@@ -327,10 +320,10 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       icon: 'payments',
       defaultOpen: false,
       items: [
-        { href: '/dashboard/fees', label: 'Fee Collection', icon: 'payments' },
+        { href: '/dashboard/fees', label: 'Finance Hub', icon: 'payments' },
         { href: '/dashboard/budget', label: 'Budget', icon: 'account_balance_wallet' },
-        { href: '/dashboard/cashbook', label: 'Cashbook & Expenses', icon: 'receipt_long' },
-        { href: '/dashboard/reports', label: 'Financial Reports', icon: 'analytics' },
+        
+        { href: '/dashboard/reports', label: 'Financial Reports', icon: 'analytics' }
       ]
     },
     {
@@ -338,9 +331,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       icon: 'chat',
       defaultOpen: false,
       items: [
-        { href: '/dashboard/messages', label: 'Messages', icon: 'chat' },
-        { href: '/dashboard/notices', label: 'Announcements', icon: 'campaign' },
-        { href: '/dashboard/bulk-sms', label: 'SMS Center', icon: 'sms' },
+        { href: '/dashboard/messages', label: 'Communication Hub', icon: 'chat' }
       ]
     },
     {
@@ -350,10 +341,10 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       items: [
         { href: '/dashboard/timetable', label: 'Timetable', icon: 'calendar_month' },
         { href: '/dashboard/settings', label: 'School Settings', icon: 'settings' },
-        { href: '/dashboard/audit', label: 'Audit Log', icon: 'history' },
+        { href: '/dashboard/audit', label: 'Audit Log', icon: 'history' }
       ]
-    },
-  ],
+    }
+      ],
   
   secretary: [
     {
@@ -361,18 +352,18 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       defaultOpen: true,
       items: [
         { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-        { href: '/dashboard/notices', label: 'Notices', icon: 'campaign' },
+        { href: '/dashboard/notices', label: 'Notices', icon: 'campaign' }
       ]
     },
     {
       label: 'Communication',
       defaultOpen: false,
       items: [
-        { href: '/dashboard/messages', label: 'Messages', icon: 'chat' },
-        { href: '/dashboard/notices', label: 'Notices', icon: 'campaign' },
+        { href: '/dashboard/messages', label: 'Communication Hub', icon: 'chat' },
+        { href: '/dashboard/notices', label: 'Notices', icon: 'campaign' }
       ]
-    },
-  ],
+    }
+      ],
   
   dorm_master: [
     {
@@ -381,7 +372,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       items: [
         { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
         { href: '/dashboard/dorm', label: 'Dorm Management', icon: 'bed' },
-        { href: '/dashboard/dorm-attendance', label: 'Dorm Attendance', icon: 'nightlight' },
+        { href: '/dashboard/dorm-attendance', label: 'Dorm Attendance', icon: 'nightlight' }
       ]
     },
     {
@@ -390,10 +381,10 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       items: [
         { href: '/dashboard/students', label: 'Students', icon: 'group' },
         { href: '/dashboard/health', label: 'Health Records', icon: 'medical_services' },
-        { href: '/dashboard/discipline', label: 'Discipline', icon: 'warning' },
+        { href: '/dashboard/discipline', label: 'Discipline', icon: 'warning' }
       ]
-    },
-  ],
+    }
+      ],
 }
 
 export function getNavigationForRole(role: string): NavGroup[] {
