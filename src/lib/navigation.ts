@@ -58,6 +58,12 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       items: [
         { href: "/dashboard/staff", label: "Staff Hub", icon: "person" },
         {
+          href: "/dashboard/teacher-performance",
+          label: "Performance",
+          icon: "trending_up",
+          badge: "New",
+        },
+        {
           href: "/dashboard/staff-attendance",
           label: "Staff Attendance",
           icon: "how_to_reg",
@@ -155,6 +161,12 @@ export const navigationByRole: Record<string, NavGroup[]> = {
           icon: "inventory_2",
         },
         { href: "/dashboard/dorm", label: "Dormitory", icon: "bed" },
+        {
+          href: "/dashboard/canteen",
+          label: "Canteen",
+          icon: "restaurant",
+          badge: "New",
+        },
       ],
     },
   ],
@@ -375,6 +387,12 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       items: [
         { href: "/dashboard/staff", label: "Staff Hub", icon: "person" },
         {
+          href: "/dashboard/teacher-performance",
+          label: "Performance",
+          icon: "trending_up",
+          badge: "New",
+        },
+        {
           href: "/dashboard/staff-attendance",
           label: "Staff Attendance",
           icon: "how_to_reg",
@@ -503,6 +521,12 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       defaultOpen: false,
       items: [
         { href: "/dashboard/staff", label: "Staff Hub", icon: "person" },
+        {
+          href: "/dashboard/teacher-performance",
+          label: "Performance",
+          icon: "trending_up",
+          badge: "New",
+        },
         {
           href: "/dashboard/staff-attendance",
           label: "Staff Attendance",
