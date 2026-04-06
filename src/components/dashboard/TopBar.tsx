@@ -204,14 +204,42 @@ export default function TopBar({
 
   const schoolName = school?.name || "My School";
   const currentDate = new Date();
-  const crumbs = pathname?.split("/").filter(Boolean) || [];
-  const crumbTrail =
-    crumbs.length > 1
-      ? crumbs
-          .slice(1)
-          .map((c) => c.replace(/-/g, " "))
-          .join(" / ")
-      : "overview";
+
+  const routeLabels: Record<string, string> = {
+    dashboard: "Dashboard",
+    students: "Students",
+    fees: "Fees",
+    grades: "Grades",
+    staff: "Staff",
+    attendance: "Attendance",
+    messages: "Messages",
+    settings: "Settings",
+    reports: "Reports",
+    notices: "Notices",
+    timetable: "Timetable",
+    warnings: "Warnings",
+    "bulk-sms": "Bulk SMS",
+    "expense-approvals": "Expense Approvals",
+    "leave-approvals": "Leave Approvals",
+    "dropout-tracking": "Dropout Tracking",
+  };
+
+  const buildBreadcrumbs = () => {
+    if (!pathname) return [{ label: "Dashboard", href: "/dashboard" }];
+    const segments = pathname.split("/").filter(Boolean);
+    const crumbs: { label: string; href: string }[] = [];
+    let href = "";
+    for (const segment of segments) {
+      href += `/${segment}`;
+      const label = routeLabels[segment] || segment.replace(/-/g, " ");
+      crumbs.push({ label, href });
+    }
+    if (crumbs.length === 0)
+      return [{ label: "Dashboard", href: "/dashboard" }];
+    return crumbs;
+  };
+
+  const breadcrumbs = buildBreadcrumbs();
   const nextStep = getNextStep(pathname || "/dashboard");
 
   return (
@@ -246,8 +274,24 @@ export default function TopBar({
             })}
           </span>
           <span aria-hidden>•</span>
-          <span className="uppercase tracking-wide text-[10px] truncate">
-            {crumbTrail}
+          <span className="uppercase tracking-wide text-[10px] truncate flex items-center gap-1.5">
+            {breadcrumbs.map((crumb, i) => (
+              <span key={crumb.href} className="flex items-center gap-1.5">
+                {i > 0 && <span className="text-[var(--t4)]">/</span>}
+                {i === breadcrumbs.length - 1 ? (
+                  <span className="text-[var(--t1)] font-medium">
+                    {crumb.label}
+                  </span>
+                ) : (
+                  <Link
+                    href={crumb.href}
+                    className="text-[var(--navy)] hover:underline transition-colors"
+                  >
+                    {crumb.label}
+                  </Link>
+                )}
+              </span>
+            ))}
           </span>
         </div>
       </div>

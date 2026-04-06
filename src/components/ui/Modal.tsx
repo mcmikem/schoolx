@@ -88,7 +88,7 @@ export function Modal({
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? "modal-title" : undefined}
@@ -101,11 +101,19 @@ export function Modal({
       <div
         ref={modalRef}
         className={cn(
-          "relative w-full bg-[var(--surface)] rounded-2xl shadow-2xl border border-[var(--border)] overflow-hidden",
+          "relative w-full bg-[var(--surface)] shadow-2xl border border-[var(--border)] overflow-hidden",
+          "sm:rounded-2xl",
+          "rounded-t-3xl rounded-b-none max-h-[90vh] sm:max-h-[90vh]",
+          "fixed bottom-0 left-0 right-0 sm:relative sm:max-w-none",
+          "sm:bottom-auto sm:left-auto sm:right-auto sm:mx-auto",
           sizes[size],
+          "animate-slideUpBottomSheet sm:animate-none",
           className,
         )}
       >
+        <div className="sm:hidden flex justify-center pt-2 pb-1">
+          <div className="w-10 h-1 rounded-full bg-[var(--t4)]" />
+        </div>
         {(title || showClose) && (
           <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
             {title && (

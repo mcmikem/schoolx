@@ -1,9 +1,10 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import type { FeePayment, FeeStructure, CreatePaymentInput } from "@/types";
 import { getQuerySchoolId, withTimeout } from "./utils";
+import { getCachedData, setCachedData, invalidateCache } from "./queryCache";
 import {
   DEMO_FEE_PAYMENTS,
   DEMO_FEE_STRUCTURE,
@@ -21,6 +22,9 @@ export function useFeePayments(schoolId?: string) {
   const [error, setError] = useState<string | null>(null);
   const { isDemo, user, school } = useAuth();
   const isOnline = useOnlineStatus();
+  const hasInitialized = useRef(false);
+
+  const cacheKey = `fee_payments:${schoolId}`;
 
   const fetchPayments = useCallback(async () => {
     // Demo mode - check for demo school UUID
@@ -34,6 +38,14 @@ export function useFeePayments(schoolId?: string) {
       setLoading(false);
       return;
     }
+
+    const cached = getCachedData<FeePayment[]>(cacheKey);
+    if (cached && hasInitialized.current) {
+      setPayments(cached);
+      setLoading(false);
+      return;
+    }
+
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
       setLoading(true);
@@ -84,7 +96,9 @@ export function useFeePayments(schoolId?: string) {
           }[];
         }[],
       );
-      setPayments((data as unknown as FeePayment[]) || []);
+      const result = (data as unknown as FeePayment[]) || [];
+      setPayments(result);
+      setCachedData(cacheKey, result);
       await offlineDB.cacheFromServer(
         "fee_payments",
         (data as unknown as Record<string, unknown>[]) || [],
@@ -94,7 +108,7 @@ export function useFeePayments(schoolId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [schoolId, isDemo, isOnline]);
+  }, [schoolId, isDemo, isOnline, cacheKey]);
 
   const createPayment = async (payment: CreatePaymentInput) => {
     if (isDemo || isDemoSchool(schoolId)) {
@@ -163,6 +177,7 @@ export function useFeePayments(schoolId?: string) {
       await offlineDB.cacheFromServer("fee_payments", [
         data as unknown as Record<string, unknown>,
       ]);
+      invalidateCache(cacheKey);
       if (school?.id && user?.id) {
         await logAuditEventWithOfflineSupport(
           true,
@@ -200,6 +215,7 @@ export function useFeePayments(schoolId?: string) {
         .eq("id", id);
       if (deleteError) throw deleteError;
       setPayments((prev) => prev.filter((p) => p.id !== id));
+      invalidateCache(cacheKey);
       if (school?.id && user?.id && existing) {
         await logAuditEventWithOfflineSupport(
           true,
@@ -237,6 +253,9 @@ export function useFeeStructure(schoolId?: string) {
   const [loading, setLoading] = useState(true);
   const { isDemo } = useAuth();
   const isOnline = useOnlineStatus();
+  const hasInitialized = useRef(false);
+
+  const cacheKey = `fee_structure:${schoolId}`;
 
   const fetchFeeStructure = useCallback(async () => {
     // Demo mode - check for demo school UUID
@@ -250,6 +269,14 @@ export function useFeeStructure(schoolId?: string) {
       setLoading(false);
       return;
     }
+
+    const cached = getCachedData<FeeStructure[]>(cacheKey);
+    if (cached && hasInitialized.current) {
+      setFeeStructure(cached);
+      setLoading(false);
+      return;
+    }
+
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
       setLoading(true);
@@ -289,7 +316,9 @@ export function useFeeStructure(schoolId?: string) {
           classes: { name: string }[];
         }[],
       );
-      setFeeStructure((data as unknown as FeeStructure[]) || []);
+      const result = (data as unknown as FeeStructure[]) || [];
+      setFeeStructure(result);
+      setCachedData(cacheKey, result);
       await offlineDB.cacheFromServer(
         "fee_structure",
         (data as unknown as Record<string, unknown>[]) || [],
@@ -299,7 +328,7 @@ export function useFeeStructure(schoolId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [schoolId, isDemo, isOnline]);
+  }, [schoolId, isDemo, isOnline, cacheKey]);
 
   const createFeeStructure = async (fee: {
     name: string;
@@ -338,6 +367,7 @@ export function useFeeStructure(schoolId?: string) {
         .single();
       if (error) throw error;
       setFeeStructure((prev) => [...prev, data]);
+      invalidateCache(cacheKey);
       return data;
     } catch (err: any) {
       throw new Error(err.message);
@@ -347,6 +377,7 @@ export function useFeeStructure(schoolId?: string) {
   const deleteFeeStructure = async (id: string) => {
     if (isDemo || isDemoSchool(schoolId)) {
       setFeeStructure((prev) => prev.filter((f) => f.id !== id));
+      invalidateCache(cacheKey);
       return;
     }
     try {
@@ -356,6 +387,7 @@ export function useFeeStructure(schoolId?: string) {
         .eq("id", id);
       if (deleteError) throw deleteError;
       setFeeStructure((prev) => prev.filter((f) => f.id !== id));
+      invalidateCache(cacheKey);
     } catch (err: any) {
       throw new Error(err.message);
     }
@@ -363,6 +395,7 @@ export function useFeeStructure(schoolId?: string) {
 
   useEffect(() => {
     fetchFeeStructure();
+    hasInitialized.current = true;
   }, [fetchFeeStructure]);
   return {
     feeStructure,
@@ -378,6 +411,9 @@ export function useFeeAdjustments(schoolId?: string) {
   const [loading, setLoading] = useState(true);
   const { isDemo, user, school } = useAuth();
   const isOnline = useOnlineStatus();
+  const hasInitialized = useRef(false);
+
+  const cacheKey = `fee_adjustments:${schoolId}`;
 
   const fetchAdjustments = useCallback(async () => {
     if (isDemo || isDemoSchool(schoolId)) {
@@ -389,6 +425,14 @@ export function useFeeAdjustments(schoolId?: string) {
       setLoading(false);
       return;
     }
+
+    const cached = getCachedData<any[]>(cacheKey);
+    if (cached && hasInitialized.current) {
+      setAdjustments(cached);
+      setLoading(false);
+      return;
+    }
+
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
       setLoading(true);
@@ -414,7 +458,9 @@ export function useFeeAdjustments(schoolId?: string) {
         5000,
         [] as unknown as Record<string, unknown>[],
       );
-      setAdjustments(data || []);
+      const result = data || [];
+      setAdjustments(result);
+      setCachedData(cacheKey, result);
       await offlineDB.cacheFromServer(
         "fee_adjustments",
         (data || []) as Record<string, unknown>[],
@@ -424,7 +470,7 @@ export function useFeeAdjustments(schoolId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [schoolId, isDemo, isOnline]);
+  }, [schoolId, isDemo, isOnline, cacheKey]);
 
   const createAdjustment = async (adj: {
     student_id: string;
@@ -448,6 +494,7 @@ export function useFeeAdjustments(schoolId?: string) {
         created_at: new Date().toISOString(),
       };
       setAdjustments((prev) => [newAdj, ...prev]);
+      invalidateCache(cacheKey);
       return newAdj;
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
@@ -495,6 +542,7 @@ export function useFeeAdjustments(schoolId?: string) {
         .single();
       if (error) throw error;
       setAdjustments((prev) => [data, ...prev]);
+      invalidateCache(cacheKey);
       if (school?.id && user?.id) {
         await logAuditEventWithOfflineSupport(
           true,
@@ -532,6 +580,7 @@ export function useFeeAdjustments(schoolId?: string) {
         .eq("id", id);
       if (deleteError) throw deleteError;
       setAdjustments((prev) => prev.filter((a) => a.id !== id));
+      invalidateCache(cacheKey);
       if (school?.id && user?.id && existing) {
         await logAuditEventWithOfflineSupport(
           true,
@@ -553,6 +602,7 @@ export function useFeeAdjustments(schoolId?: string) {
 
   useEffect(() => {
     fetchAdjustments();
+    hasInitialized.current = true;
   }, [fetchAdjustments]);
   return {
     adjustments,

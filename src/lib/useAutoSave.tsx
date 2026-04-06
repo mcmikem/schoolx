@@ -136,3 +136,24 @@ export function useFormDraft(formKey: string) {
     discardDraft,
   }
 }
+
+export function AutoSaveIndicator({ lastSaved, isDirty }: { lastSaved: Date | null; isDirty: boolean }) {
+  if (isDirty) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-700">
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+        Unsaved changes
+      </span>
+    )
+  }
+  if (lastSaved) {
+    const time = lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-100 text-green-700">
+        <span className="material-symbols-outlined text-[12px]">check_circle</span>
+        Draft saved at {time}
+      </span>
+    )
+  }
+  return null
+}
