@@ -10,7 +10,7 @@ import {
   useFeeAdjustments,
 } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
-import { useFormDraft } from "@/lib/useAutoSave";
+import { useFormDraft, AutoSaveIndicator } from "@/lib/useAutoSave";
 import { PAYMENT_METHODS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -29,6 +29,8 @@ import { Button } from "@/components/ui/index";
 import { TableSkeleton, FullPageLoader } from "@/components/ui/Skeleton";
 import { EmptyState, NoData } from "@/components/EmptyState";
 import { calculateStudentFeePosition } from "@/lib/operations";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { useUndo, UndoNotification } from "@/lib/useUndo";
 
 interface PaymentPlan {
   id: string;
@@ -76,6 +78,12 @@ export default function FinanceHubPage() {
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [showFeeModal, setShowFeeModal] = useState(false);
   const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{
+    type: "payment" | "fee" | "adjustment";
+    id: string;
+  } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const undo = useUndo();
   const [selectedStudent, setSelectedStudent] = useState<StudentBalance | null>(
     null,
   );
@@ -197,18 +205,43 @@ export default function FinanceHubPage() {
     }
   }, [selectedPlan, fetchInstallments]);
 
-  const studentBalances: StudentBalance[] = useMemo(() => {
-    return students.map((student) => {
+  const paymentsByStudent = useMemo(() => {
+    const map = new Map<string, typeof payments>();
+    payments.forEach((p) => {
+      if (!map.has(p.student_id)) map.set(p.student_id, []);
+      map.get(p.student_id)!.push(p);
+    });
+    return map;
+  }, [payments]);
+
+  const adjustmentsByStudent = useMemo(() => {
+    const map = new Map<string, typeof adjustments>();
+    adjustments.forEach((a) => {
+      if (!map.has(a.student_id)) map.set(a.student_id, []);
+      map.get(a.student_id)!.push(a);
+    });
+    return map;
+  }, [adjustments]);
+
+  const feesByClass = useMemo(() => {
+    const map = new Map<string | null | undefined, typeof feeStructure>();
+    feeStructure.forEach((f) => {
+      const key = f.class_id;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(f);
+    });
+    return map;
+  }, [feeStructure]);
+
+  const computeStudentBalance = useCallback(
+    (student: (typeof students)[number]) => {
       const studentClassId = student.class_id;
-      const studentPayments = payments.filter(
-        (p) => p.student_id === student.id,
-      );
-      const applicableFees = feeStructure.filter(
-        (f) => f.class_id === null || f.class_id === studentClassId,
-      );
-      const studentAdjustments = adjustments.filter(
-        (a) => a.student_id === student.id,
-      );
+      const studentPayments = paymentsByStudent.get(student.id) || [];
+      const applicableFees = [
+        ...(feesByClass.get(null) || []),
+        ...(feesByClass.get(studentClassId ?? null) || []),
+      ];
+      const studentAdjustments = adjustmentsByStudent.get(student.id) || [];
       const feePosition = calculateStudentFeePosition({
         feeTotal: applicableFees.reduce(
           (sum, f) => sum + Number(f.amount || 0),
@@ -244,8 +277,21 @@ export default function FinanceHubPage() {
           description: a.description || a.notes || "",
         })),
       };
+    },
+    [paymentsByStudent, adjustmentsByStudent, feesByClass],
+  );
+
+  const studentBalanceMap = useMemo(() => {
+    const map = new Map<string, StudentBalance>();
+    students.forEach((s) => {
+      map.set(s.id, computeStudentBalance(s));
     });
-  }, [students, payments, feeStructure, adjustments]);
+    return map;
+  }, [students, computeStudentBalance]);
+
+  const studentBalances: StudentBalance[] = useMemo(() => {
+    return students.map((s) => studentBalanceMap.get(s.id)!);
+  }, [students, studentBalanceMap]);
 
   const filteredBalances = useMemo(() => {
     return studentBalances
@@ -473,14 +519,33 @@ export default function FinanceHubPage() {
   };
 
   const handleDeletePayment = async (paymentId: string) => {
-    if (!confirm("Are you sure you want to delete this payment?")) return;
+    setConfirmDelete({ type: "payment", id: paymentId });
+  };
+
+  const executeDeletePayment = async (paymentId: string) => {
+    setDeleting(true);
     try {
-      await deletePayment(paymentId);
-      toast.success("Payment deleted");
+      await undo.executeWithUndo(
+        async () => {
+          await deletePayment(paymentId);
+        },
+        async () => {
+          toast.error("Undo not available after page refresh");
+        },
+        {
+          description: "Payment deleted",
+          undoDelay: 5000,
+          successMessage: "Payment deleted",
+          undoMessage: "Payment restored",
+        },
+      );
     } catch (err: unknown) {
       toast.error(
         err instanceof Error ? err.message : "Failed to delete payment",
       );
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(null);
     }
   };
 
@@ -518,12 +583,31 @@ export default function FinanceHubPage() {
   };
 
   const handleDeleteFee = async (feeId: string) => {
-    if (!confirm("Delete this fee structure?")) return;
+    setConfirmDelete({ type: "fee", id: feeId });
+  };
+
+  const executeDeleteFee = async (feeId: string) => {
+    setDeleting(true);
     try {
-      await deleteFeeStructure(feeId);
-      toast.success("Fee deleted");
+      await undo.executeWithUndo(
+        async () => {
+          await deleteFeeStructure(feeId);
+        },
+        async () => {
+          toast.error("Undo not available after page refresh");
+        },
+        {
+          description: "Fee structure deleted",
+          undoDelay: 5000,
+          successMessage: "Fee deleted",
+          undoMessage: "Fee restored",
+        },
+      );
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to delete fee");
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(null);
     }
   };
 
@@ -534,7 +618,6 @@ export default function FinanceHubPage() {
 
   const handlePrintInvoice = () => {
     if (!selectedStudent) return;
-    const printWindow = window.open("", "_blank");
     const logoUrl = school?.logo_url || "";
     const schoolName = school?.name || "School";
     const schoolColor = school?.primary_color || "#002045";
@@ -549,9 +632,8 @@ export default function FinanceHubPage() {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 
-    if (printWindow) {
-      printWindow.document.write(
-        `<html><head><title>Invoice</title><style>
+    const html = `
+        <html><head><title>Invoice</title><style>
         body{font-family:Arial,sans-serif;padding:20px;max-width:600px;margin:0 auto}
         .header{text-align:center;border-bottom:2px solid ${schoolColor};padding-bottom:15px;margin-bottom:15px}
         .logo{max-width:80px;max-height:60px;margin-bottom:10px}
@@ -581,17 +663,33 @@ export default function FinanceHubPage() {
         <div class="footer">
           <div>This invoice is generated by Omuto SMS</div>
         </div>
-      </body></html>`,
-      );
-      printWindow.document.close();
-      printWindow.print();
+      </body></html>`;
+
+    let iframe = document.getElementById("print-iframe") as HTMLIFrameElement;
+    if (!iframe) {
+      iframe = document.createElement("iframe");
+      iframe.id = "print-iframe";
+      iframe.style.cssText =
+        "position:absolute;width:0;height:0;border:none;overflow:hidden;";
+      document.body.appendChild(iframe);
     }
+
+    const onLoad = () => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch {
+        toast.error("Printing failed. Please use Ctrl+P/Cmd+P instead.");
+      }
+      iframe.removeEventListener("load", onLoad);
+    };
+    iframe.addEventListener("load", onLoad);
+    iframe.srcdoc = html;
   };
 
   const handlePrintReceipt = () => {
     if (receiptRef.current) {
       const printContent = receiptRef.current.innerHTML;
-      const printWindow = window.open("", "_blank");
       const logoUrl = school?.logo_url || "";
       const schoolName = school?.name || "School";
       const schoolColor = school?.primary_color || "#002045";
@@ -603,9 +701,8 @@ export default function FinanceHubPage() {
           .replace(/"/g, "&quot;")
           .replace(/'/g, "&#039;");
 
-      if (printWindow) {
-        printWindow.document.write(
-          `<html><head><title>Fee Receipt</title><style>
+      const html = `
+          <html><head><title>Fee Receipt</title><style>
           body{font-family:Arial,sans-serif;padding:20px;max-width:400px;margin:0 auto}
           .header{text-align:center;border-bottom:2px solid ${schoolColor};padding-bottom:15px;margin-bottom:15px}
           .logo{max-width:80px;max-height:60px;margin-bottom:10px}
@@ -630,11 +727,28 @@ export default function FinanceHubPage() {
             <div class="thank-you">Thank you for your payment!</div>
             <div>Powered by Omuto SMS</div>
           </div>
-        </body></html>`,
-        );
-        printWindow.document.close();
-        printWindow.print();
+        </body></html>`;
+
+      let iframe = document.getElementById("print-iframe") as HTMLIFrameElement;
+      if (!iframe) {
+        iframe = document.createElement("iframe");
+        iframe.id = "print-iframe";
+        iframe.style.cssText =
+          "position:absolute;width:0;height:0;border:none;overflow:hidden;";
+        document.body.appendChild(iframe);
       }
+
+      const onLoad = () => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch {
+          toast.error("Printing failed. Please use Ctrl+P/Cmd+P instead.");
+        }
+        iframe.removeEventListener("load", onLoad);
+      };
+      iframe.addEventListener("load", onLoad);
+      iframe.srcdoc = html;
     }
   };
 
@@ -687,14 +801,33 @@ export default function FinanceHubPage() {
   };
 
   const handleDeleteAdjustment = async (adjustmentId: string) => {
-    if (!confirm("Delete this fee adjustment?")) return;
+    setConfirmDelete({ type: "adjustment", id: adjustmentId });
+  };
+
+  const executeDeleteAdjustment = async (adjustmentId: string) => {
+    setDeleting(true);
     try {
-      await deleteAdjustment(adjustmentId);
-      toast.success("Adjustment deleted");
+      await undo.executeWithUndo(
+        async () => {
+          await deleteAdjustment(adjustmentId);
+        },
+        async () => {
+          toast.error("Undo not available after page refresh");
+        },
+        {
+          description: "Adjustment deleted",
+          undoDelay: 5000,
+          successMessage: "Adjustment deleted",
+          undoMessage: "Adjustment restored",
+        },
+      );
     } catch (err: unknown) {
       toast.error(
         err instanceof Error ? err.message : "Failed to delete adjustment",
       );
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(null);
     }
   };
 
@@ -771,8 +904,6 @@ export default function FinanceHubPage() {
   };
 
   const printInvoice = (invoice: (typeof invoices)[number]) => {
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
     const escapeHtml = (s: string) =>
       String(s)
         .replace(/&/g, "&amp;")
@@ -780,7 +911,7 @@ export default function FinanceHubPage() {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
-    printWindow.document.write(`
+    const html = `
       <html>
         <head>
           <title>Invoice - ${escapeHtml(invoice.student_name)}</title>
@@ -831,9 +962,28 @@ export default function FinanceHubPage() {
           </div>
         </body>
       </html>
-    `);
-    printWindow.document.close();
-    printWindow.print();
+    `;
+
+    let iframe = document.getElementById("print-iframe") as HTMLIFrameElement;
+    if (!iframe) {
+      iframe = document.createElement("iframe");
+      iframe.id = "print-iframe";
+      iframe.style.cssText =
+        "position:absolute;width:0;height:0;border:none;overflow:hidden;";
+      document.body.appendChild(iframe);
+    }
+
+    const onLoad = () => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch {
+        toast.error("Printing failed. Please use Ctrl+P/Cmd+P instead.");
+      }
+      iframe.removeEventListener("load", onLoad);
+    };
+    iframe.addEventListener("load", onLoad);
+    iframe.srcdoc = html;
   };
 
   const sendInvoiceSMS = async (invoice: (typeof invoices)[number]) => {
@@ -1959,6 +2109,8 @@ export default function FinanceHubPage() {
         newFee={newFee}
         onFeeChange={handleNewFeeChange}
         saving={saving}
+        draftLastSaved={feeDraft.lastSaved}
+        draftIsDirty={feeDraft.isDirty}
       />
 
       <AdjustmentModal
@@ -2032,6 +2184,51 @@ export default function FinanceHubPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmDelete?.type === "payment"}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() =>
+          confirmDelete && executeDeletePayment(confirmDelete.id)
+        }
+        title="Delete Payment"
+        message="Are you sure you want to delete this payment? This action can be undone."
+        confirmLabel="Delete"
+        loading={deleting}
+        variant="danger"
+      />
+
+      <ConfirmDialog
+        isOpen={confirmDelete?.type === "fee"}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() => confirmDelete && executeDeleteFee(confirmDelete.id)}
+        title="Delete Fee Structure"
+        message="Are you sure you want to delete this fee structure? This action can be undone."
+        confirmLabel="Delete"
+        loading={deleting}
+        variant="danger"
+      />
+
+      <ConfirmDialog
+        isOpen={confirmDelete?.type === "adjustment"}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() =>
+          confirmDelete && executeDeleteAdjustment(confirmDelete.id)
+        }
+        title="Delete Adjustment"
+        message="Are you sure you want to delete this fee adjustment? This action can be undone."
+        confirmLabel="Delete"
+        loading={deleting}
+        variant="danger"
+      />
+
+      <UndoNotification
+        actions={undo.pendingActions}
+        onUndo={(id) => {
+          const action = undo.pendingActions.find((a) => a.id === id);
+          if (action) action.undo();
+        }}
+      />
     </div>
   );
 }

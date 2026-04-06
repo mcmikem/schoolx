@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 
 interface FeeStatsProps {
@@ -14,11 +15,22 @@ interface FeeStatsProps {
     bankTotal: number;
   };
   paymentsCount: number;
+  onFilter?: (status: "all" | "paid" | "partial" | "unpaid") => void;
+  activeFilter?: "all" | "paid" | "partial" | "unpaid";
 }
 
 const formatCurrency = (amount: number) => `UGX ${amount.toLocaleString()}`;
 
-function CollectionDonut({ stats }: { stats: FeeStatsProps["stats"] }) {
+function CollectionDonut({
+  stats,
+  onFilter,
+  activeFilter,
+}: {
+  stats: FeeStatsProps["stats"];
+  onFilter?: (status: "all" | "paid" | "partial" | "unpaid") => void;
+  activeFilter?: string;
+}) {
+  const [hoveredSegment, setHoveredSegment] = useState<string | null>(null);
   const total = stats.totalExpected || 1;
   const paidPercent = Math.round((stats.totalPaid / total) * 100);
   const partialPercent =
@@ -46,6 +58,9 @@ function CollectionDonut({ stats }: { stats: FeeStatsProps["stats"] }) {
   const partialOffset = -paidDash;
   const unpaidOffset = -(paidDash + partialDash);
 
+  const segmentClass = (type: string) =>
+    `transition-all duration-700 cursor-pointer ${hoveredSegment === type ? "opacity-100" : hoveredSegment ? "opacity-50" : "opacity-100"} ${activeFilter === type ? "stroke-[14]" : ""}`;
+
   return (
     <div className="flex items-center gap-6">
       <div className="relative w-32 h-32 flex-shrink-0">
@@ -68,7 +83,13 @@ function CollectionDonut({ stats }: { stats: FeeStatsProps["stats"] }) {
               strokeWidth="12"
               strokeDasharray={`${paidDash} ${circumference - paidDash}`}
               strokeLinecap="round"
-              className="transition-all duration-700"
+              className={segmentClass("paid")}
+              style={{
+                filter: hoveredSegment === "paid" ? "brightness(1.2)" : "none",
+              }}
+              onClick={() => onFilter?.("paid")}
+              onMouseEnter={() => setHoveredSegment("paid")}
+              onMouseLeave={() => setHoveredSegment(null)}
             />
           )}
           {stats.partialPaid > 0 && (
@@ -82,7 +103,14 @@ function CollectionDonut({ stats }: { stats: FeeStatsProps["stats"] }) {
               strokeDasharray={`${partialDash} ${circumference - partialDash}`}
               strokeDashoffset={partialOffset}
               strokeLinecap="round"
-              className="transition-all duration-700"
+              className={segmentClass("partial")}
+              style={{
+                filter:
+                  hoveredSegment === "partial" ? "brightness(1.2)" : "none",
+              }}
+              onClick={() => onFilter?.("partial")}
+              onMouseEnter={() => setHoveredSegment("partial")}
+              onMouseLeave={() => setHoveredSegment(null)}
             />
           )}
           {stats.notPaid > 0 && (
@@ -96,11 +124,18 @@ function CollectionDonut({ stats }: { stats: FeeStatsProps["stats"] }) {
               strokeDasharray={`${unpaidDash} ${circumference - unpaidDash}`}
               strokeDashoffset={unpaidOffset}
               strokeLinecap="round"
-              className="transition-all duration-700"
+              className={segmentClass("unpaid")}
+              style={{
+                filter:
+                  hoveredSegment === "unpaid" ? "brightness(1.2)" : "none",
+              }}
+              onClick={() => onFilter?.("unpaid")}
+              onMouseEnter={() => setHoveredSegment("unpaid")}
+              onMouseLeave={() => setHoveredSegment(null)}
             />
           )}
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <span className="text-2xl font-bold text-on-surface">
             {paidPercent}%
           </span>
@@ -108,33 +143,53 @@ function CollectionDonut({ stats }: { stats: FeeStatsProps["stats"] }) {
         </div>
       </div>
       <div className="flex flex-col gap-2 text-sm">
-        <div className="flex items-center gap-2">
+        <button
+          onClick={() => onFilter?.("paid")}
+          className={`flex items-center gap-2 w-full text-left px-2 py-1 rounded-lg transition-colors ${activeFilter === "paid" ? "bg-green-50" : "hover:bg-surface-container"}`}
+          onMouseEnter={() => setHoveredSegment("paid")}
+          onMouseLeave={() => setHoveredSegment(null)}
+        >
           <span className="w-3 h-3 rounded-full bg-green-500" />
           <span className="text-on-surface-variant">Fully Paid</span>
           <span className="font-bold text-on-surface ml-auto">
             {stats.fullyPaid}
           </span>
-        </div>
-        <div className="flex items-center gap-2">
+        </button>
+        <button
+          onClick={() => onFilter?.("partial")}
+          className={`flex items-center gap-2 w-full text-left px-2 py-1 rounded-lg transition-colors ${activeFilter === "partial" ? "bg-amber-50" : "hover:bg-surface-container"}`}
+          onMouseEnter={() => setHoveredSegment("partial")}
+          onMouseLeave={() => setHoveredSegment(null)}
+        >
           <span className="w-3 h-3 rounded-full bg-amber-500" />
           <span className="text-on-surface-variant">Partial</span>
           <span className="font-bold text-on-surface ml-auto">
             {stats.partialPaid}
           </span>
-        </div>
-        <div className="flex items-center gap-2">
+        </button>
+        <button
+          onClick={() => onFilter?.("unpaid")}
+          className={`flex items-center gap-2 w-full text-left px-2 py-1 rounded-lg transition-colors ${activeFilter === "unpaid" ? "bg-red-50" : "hover:bg-surface-container"}`}
+          onMouseEnter={() => setHoveredSegment("unpaid")}
+          onMouseLeave={() => setHoveredSegment(null)}
+        >
           <span className="w-3 h-3 rounded-full bg-red-500" />
           <span className="text-on-surface-variant">Unpaid</span>
           <span className="font-bold text-on-surface ml-auto">
             {stats.notPaid}
           </span>
-        </div>
+        </button>
       </div>
     </div>
   );
 }
 
-export default function FeeStats({ stats, paymentsCount }: FeeStatsProps) {
+export default function FeeStats({
+  stats,
+  paymentsCount,
+  onFilter,
+  activeFilter = "all",
+}: FeeStatsProps) {
   const totalStudents = stats.fullyPaid + stats.partialPaid + stats.notPaid;
   const collectionRate =
     totalStudents > 0 ? Math.round((stats.fullyPaid / totalStudents) * 100) : 0;
@@ -151,25 +206,35 @@ export default function FeeStats({ stats, paymentsCount }: FeeStatsProps) {
               {formatCurrency(stats.totalPaid)} collected of{" "}
               {formatCurrency(stats.totalExpected)} expected
             </p>
-            <CollectionDonut stats={stats} />
+            <CollectionDonut
+              stats={stats}
+              onFilter={onFilter}
+              activeFilter={activeFilter}
+            />
           </div>
           <div className="grid grid-cols-2 gap-4 w-full lg:w-auto">
-            <div className="bg-green-50 rounded-xl p-4 text-center">
+            <button
+              onClick={() => onFilter?.("paid")}
+              className={`bg-green-50 rounded-xl p-4 text-center transition-colors ${activeFilter === "paid" ? "ring-2 ring-green-500" : "hover:bg-green-100"}`}
+            >
               <div className="text-2xl font-bold text-green-600">
                 {collectionRate}%
               </div>
               <div className="text-xs text-green-700 font-medium">
                 Collection Rate
               </div>
-            </div>
-            <div className="bg-red-50 rounded-xl p-4 text-center">
+            </button>
+            <button
+              onClick={() => onFilter?.("unpaid")}
+              className={`bg-red-50 rounded-xl p-4 text-center transition-colors ${activeFilter === "unpaid" ? "ring-2 ring-red-500" : "hover:bg-red-100"}`}
+            >
               <div className="text-2xl font-bold text-red-600">
                 {formatCurrency(stats.totalBalance)}
               </div>
               <div className="text-xs text-red-700 font-medium">
                 Outstanding
               </div>
-            </div>
+            </button>
             <div className="bg-blue-50 rounded-xl p-4 text-center">
               <div className="text-2xl font-bold text-blue-600">
                 {stats.fullyPaid}

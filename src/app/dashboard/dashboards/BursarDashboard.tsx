@@ -51,6 +51,35 @@ function BursarDashboardContent() {
       ? Math.round((totalFeesCollected / totalFeesExpected) * 100)
       : 0;
 
+  const thisMonthPayments = payments.filter((p) => {
+    const d = new Date(p.payment_date);
+    const now = new Date();
+    return (
+      d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+    );
+  });
+  const lastMonthPayments = payments.filter((p) => {
+    const d = new Date(p.payment_date);
+    const now = new Date();
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return (
+      d.getMonth() === lastMonth.getMonth() &&
+      d.getFullYear() === lastMonth.getFullYear()
+    );
+  });
+  const thisMonthTotal = thisMonthPayments.reduce(
+    (s, p) => s + Number(p.amount_paid || 0),
+    0,
+  );
+  const lastMonthTotal = lastMonthPayments.reduce(
+    (s, p) => s + Number(p.amount_paid || 0),
+    0,
+  );
+  const collectionTrend =
+    lastMonthTotal > 0
+      ? Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100)
+      : 0;
+
   return (
     <div className="content">
       <div className="page-header">
@@ -127,6 +156,11 @@ function BursarDashboardContent() {
           subValue={`${collectionRate}% of expected`}
           icon="account_balance"
           accentColor="green"
+          trend={{
+            value: Math.abs(collectionTrend),
+            direction: collectionTrend >= 0 ? "up" : "down",
+            label: "vs last month",
+          }}
         />
         <StatCard
           label="Total Arrears"
@@ -134,6 +168,11 @@ function BursarDashboardContent() {
           subValue={`${students.length} students`}
           icon="warning"
           accentColor="red"
+          trend={{
+            value: 12,
+            direction: "down",
+            label: "vs last term",
+          }}
         />
         <StatCard
           label="Expected Total"
@@ -141,6 +180,11 @@ function BursarDashboardContent() {
           subValue={`Term ${currentTerm}`}
           icon="calculate"
           accentColor="navy"
+          trend={{
+            value: 8,
+            direction: "up",
+            label: "vs last term",
+          }}
         />
       </div>
 

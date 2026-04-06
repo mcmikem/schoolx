@@ -5,8 +5,11 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 
+const RECENT_SEARCHES_KEY = "omuto_recent_searches";
+const MAX_RECENT_SEARCHES = 8;
+
 interface SearchResult {
-  type: "student" | "staff" | "page";
+  type: "student" | "staff" | "page" | "payment" | "message";
   id: string;
   title: string;
   subtitle?: string;
@@ -18,6 +21,34 @@ interface GlobalSearchProps {
   trigger?: React.ReactNode;
 }
 
+function getRecentSearches(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_SEARCHES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentSearch(query: string) {
+  try {
+    const existing = getRecentSearches();
+    const filtered = existing.filter((s) => s !== query);
+    const updated = [query, ...filtered].slice(0, MAX_RECENT_SEARCHES);
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+  } catch {
+    // ignore
+  }
+}
+
+function clearRecentSearches() {
+  try {
+    localStorage.removeItem(RECENT_SEARCHES_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export default function GlobalSearch({ trigger }: GlobalSearchProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -27,8 +58,15 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setRecentSearches(getRecentSearches());
+    }
+  }, [isOpen]);
 
   const pages: SearchResult[] = useMemo(
     () => [
@@ -157,24 +195,41 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
 
       setLoading(true);
       const searchTerm = `%${searchQuery}%`;
-      const [studentsRes, staffRes] = await Promise.all([
-        supabase
-          .from("students")
-          .select("id, first_name, last_name, student_number, class_id")
-          .eq("school_id", schoolId)
-          .or(
-            `first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},student_number.ilike.${searchTerm}`,
-          )
-          .limit(5),
-        supabase
-          .from("staff")
-          .select("id, first_name, last_name, employee_number, role")
-          .eq("school_id", schoolId)
-          .or(
-            `first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},employee_number.ilike.${searchTerm}`,
-          )
-          .limit(5),
-      ]);
+      const [studentsRes, staffRes, paymentsRes, messagesRes] =
+        await Promise.all([
+          supabase
+            .from("students")
+            .select("id, first_name, last_name, student_number, class_id")
+            .eq("school_id", schoolId)
+            .or(
+              `first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},student_number.ilike.${searchTerm}`,
+            )
+            .limit(5),
+          supabase
+            .from("staff")
+            .select("id, first_name, last_name, employee_number, role")
+            .eq("school_id", schoolId)
+            .or(
+              `first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},employee_number.ilike.${searchTerm}`,
+            )
+            .limit(5),
+          supabase
+            .from("fee_payments")
+            .select(
+              "id, payment_reference, amount_paid, payment_date, student_id, students(first_name, last_name)",
+            )
+            .eq("school_id", schoolId)
+            .ilike("payment_reference", searchTerm)
+            .order("payment_date", { ascending: false })
+            .limit(3),
+          supabase
+            .from("messages")
+            .select("id, message, phone, created_at")
+            .eq("school_id", schoolId)
+            .ilike("message", searchTerm)
+            .order("created_at", { ascending: false })
+            .limit(3),
+        ]);
 
       const studentResults: SearchResult[] = (studentsRes.data || []).map(
         (s) => ({
@@ -196,13 +251,46 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
         href: `/dashboard/staff`,
       }));
 
+      const paymentResults: SearchResult[] = (paymentsRes.data || []).map(
+        (p) => {
+          const student = Array.isArray(p.students)
+            ? p.students[0]
+            : p.students;
+          return {
+            type: "payment",
+            id: p.id,
+            title: `Payment ${p.payment_reference || p.id.slice(0, 8)}`,
+            subtitle: `${student?.first_name || "Unknown"} ${student?.last_name || ""} - UGX ${Number(p.amount_paid).toLocaleString()}`,
+            icon: "receipt_long",
+            href: `/dashboard/fees`,
+          };
+        },
+      );
+
+      const messageResults: SearchResult[] = (messagesRes.data || []).map(
+        (m) => ({
+          type: "message",
+          id: m.id,
+          title: m.message.slice(0, 60) + (m.message.length > 60 ? "..." : ""),
+          subtitle: `To: ${m.phone}`,
+          icon: "chat",
+          href: `/dashboard/messages`,
+        }),
+      );
+
       const pageResults = pages
         .filter((p) =>
           p.title.toLowerCase().includes(searchQuery.toLowerCase()),
         )
         .slice(0, 5);
 
-      setResults([...studentResults, ...staffResults, ...pageResults]);
+      setResults([
+        ...studentResults,
+        ...staffResults,
+        ...paymentResults,
+        ...messageResults,
+        ...pageResults,
+      ]);
       setLoading(false);
     },
     [schoolId, pages],
@@ -210,7 +298,12 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      searchDatabase(query);
+      if (query.length >= 2) {
+        searchDatabase(query);
+        saveRecentSearch(query);
+      } else {
+        setResults([]);
+      }
     }, 300);
     return () => clearTimeout(timer);
   }, [query, searchDatabase]);
@@ -239,6 +332,13 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
     router.push(result.href);
     setIsOpen(false);
     setQuery("");
+  };
+
+  const handleRecentSearchClick = (search: string) => {
+    setQuery(search);
+    saveRecentSearch(search);
+    setSelectedIndex(0);
+    inputRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -363,13 +463,48 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
               )}
 
               {query.length < 2 && (
-                <div className="px-4 py-6 text-center text-onSurface-variant">
-                  <MaterialIcon icon="keyboard" className="text-3xl mb-2" />
-                  <p>Type at least 2 characters to search</p>
-                  <p className="text-sm mt-1">
-                    Search students by name or number, staff, or navigate to
-                    pages
-                  </p>
+                <div className="px-4 py-6">
+                  {recentSearches.length > 0 ? (
+                    <>
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-onSurface">
+                          Recent Searches
+                        </h3>
+                        <button
+                          onClick={clearRecentSearches}
+                          className="text-xs text-onSurface-variant hover:text-primary transition-colors"
+                        >
+                          Clear all
+                        </button>
+                      </div>
+                      <div className="space-y-1">
+                        {recentSearches.map((search, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => handleRecentSearchClick(search)}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left hover:bg-surface-container-low transition-colors"
+                          >
+                            <MaterialIcon
+                              icon="history"
+                              className="text-onSurface-variant"
+                            />
+                            <span className="text-sm text-onSurface truncate">
+                              {search}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center text-onSurface-variant">
+                      <MaterialIcon icon="keyboard" className="text-3xl mb-2" />
+                      <p>Type at least 2 characters to search</p>
+                      <p className="text-sm mt-1">
+                        Search students by name or number, staff, or navigate to
+                        pages
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -395,6 +530,11 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
                   Close
                 </span>
               </div>
+              {recentSearches.length > 0 && (
+                <span className="text-[11px]">
+                  {recentSearches.length} recent
+                </span>
+              )}
             </div>
           </div>
         </div>

@@ -1,9 +1,10 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import type { Student, CreateStudentInput, Class } from "@/types";
 import { getQuerySchoolId, withTimeout } from "./utils";
+import { getCachedData, setCachedData, invalidateCache } from "./queryCache";
 
 import { DEMO_STUDENTS, DEMO_CLASSES, DemoStudent } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
@@ -28,6 +29,9 @@ export function useStudents(
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const { isDemo, school } = useAuth();
+  const hasInitialized = useRef(false);
+
+  const cacheKey = `students:${schoolId}:${limit}:${offset}`;
 
   const fetchStudents = useCallback(async () => {
     // Demo mode - check for demo school UUID
@@ -42,6 +46,14 @@ export function useStudents(
       setLoading(false);
       return;
     }
+
+    const cached = getCachedData<StudentWithClass[]>(cacheKey);
+    if (cached && hasInitialized.current) {
+      setStudents(cached);
+      setLoading(false);
+      return;
+    }
+
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
       setLoading(true);
@@ -66,13 +78,15 @@ export function useStudents(
         8000,
         null,
       );
-      setStudents((data as unknown as StudentWithClass[]) || []);
+      const result = (data as unknown as StudentWithClass[]) || [];
+      setStudents(result);
+      setCachedData(cacheKey, result);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
     }
-  }, [schoolId, isDemo, limit, offset]);
+  }, [schoolId, isDemo, limit, offset, cacheKey]);
 
   const createStudent = async (student: CreateStudentInput) => {
     // Check plan limit for non-demo schools
@@ -103,6 +117,7 @@ export function useStudents(
       };
       setStudents((prev) => [newStudentData, ...prev]);
       setTotalCount((prev) => prev + 1);
+      invalidateCache(`students:${schoolId}`);
       return newStudentData;
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
@@ -121,6 +136,7 @@ export function useStudents(
       if (insertError) throw insertError;
       setStudents((prev) => [data as unknown as StudentWithClass, ...prev]);
       setTotalCount((prev) => prev + 1);
+      invalidateCache(`students:${schoolId}`);
       return data as unknown as StudentWithClass;
     } catch (err: unknown) {
       throw new Error(err instanceof Error ? err.message : "Unknown error");
@@ -156,6 +172,7 @@ export function useStudents(
           s.id === id ? (data as unknown as StudentWithClass) : s,
         ),
       );
+      invalidateCache(`students:${schoolId}`);
       return data as unknown as StudentWithClass;
     } catch (err: unknown) {
       throw new Error(err instanceof Error ? err.message : "Unknown error");
@@ -176,6 +193,7 @@ export function useStudents(
       if (deleteError) throw deleteError;
       setStudents((prev) => prev.filter((s) => s.id !== id));
       setTotalCount((prev) => prev - 1);
+      invalidateCache(`students:${schoolId}`);
     } catch (err: unknown) {
       throw new Error(err instanceof Error ? err.message : "Unknown error");
     }
@@ -183,6 +201,7 @@ export function useStudents(
 
   useEffect(() => {
     fetchStudents();
+    hasInitialized.current = true;
   }, [fetchStudents]);
   return {
     students,

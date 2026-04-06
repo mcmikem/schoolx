@@ -516,24 +516,49 @@
 
   /* Mobile Navigation */
   .mobile-bottom-nav {
-    @apply fixed bottom-0 left-0 w-full h-[74px] bg-[var(--surface)] border-t border-[var(--border)] flex items-center justify-around px-2 z-50 sm:hidden shadow-[0_-4px_12px_rgba(0,0,0,0.05)];
+    @apply fixed bottom-0 left-0 w-full bg-[var(--surface)] border-t border-[var(--border)] flex items-end justify-around px-1 z-50 sm:hidden shadow-[0_-4px_12px_rgba(0,0,0,0.05)];
     padding-bottom: max(8px, env(safe-area-inset-bottom));
+    height: auto;
+    min-height: 64px;
   }
   .mobile-nav-item {
-    @apply flex flex-col items-center justify-center gap-1 text-[var(--t3)] transition-colors rounded-xl px-2 py-1 min-w-[58px];
+    @apply flex flex-col items-center justify-center gap-0.5 text-[var(--t3)] transition-all rounded-xl min-w-[64px] min-h-[48px] flex-1 max-w-[80px] py-1.5 px-1;
     text-decoration: none;
     border: none;
     background: transparent;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-nav-item:active {
+    transform: scale(0.92);
+    background: var(--bg);
   }
   .mobile-nav-item.active {
     @apply text-[var(--navy)] bg-[var(--navy-soft)];
   }
   .mobile-nav-item-primary {
-    @apply text-white bg-[var(--navy)] px-3;
+    @apply text-white bg-[var(--navy)] px-2;
     box-shadow: 0 8px 18px rgba(23, 50, 95, 0.28);
   }
+  .mobile-nav-item-primary:active {
+    transform: scale(0.92);
+    opacity: 0.85;
+  }
   .mobile-nav-item span {
-    @apply text-[12px] font-bold uppercase tracking-wider;
+    @apply text-[11px] font-bold uppercase tracking-wider truncate w-full text-center;
+  }
+
+  /* -- BOTTOM SHEET ANIMATION -- */
+  @keyframes slideUpBottomSheet {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  .animate-slideUpBottomSheet {
+    animation: slideUpBottomSheet 0.3s ease-out;
   }
 
   /* -- FORM INPUTS -- */
@@ -726,11 +751,11 @@
 
 @media (max-width: 480px) {
   .topbar {
-    padding: 0 8px !important;
+    padding: 0 12px !important;
     gap: 4px !important;
   }
   .main-content {
-    padding: 0 8px !important;
+    padding: 0 12px !important;
   }
 }
 

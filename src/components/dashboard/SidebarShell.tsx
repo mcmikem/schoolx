@@ -7,6 +7,7 @@ import { useSyncStatus } from "@/lib/useSyncStatus";
 import CollapsibleSidebar from "@/components/CollapsibleSidebar";
 import { getNavigationForRole } from "@/lib/navigation";
 import MaterialIcon from "@/components/MaterialIcon";
+import { useSidebar } from "@/contexts/SidebarContext";
 
 function SyncStatus() {
   const { isOnline, pendingCount, isSyncing } = useSyncStatus();
@@ -38,13 +39,16 @@ export default function SidebarShell({
 }) {
   const { user, school } = useAuth();
   const { currentTerm } = useAcademic();
+  const { isOpen, close } = useSidebar();
   const navigationGroups = user?.role ? getNavigationForRole(user.role) : [];
 
   const schoolName = school?.name || "My School";
   const schoolInitial = schoolName.charAt(0).toUpperCase();
 
+  const sidebarClasses = `sidebar bg-[var(--surface)] border-r border-[var(--border)] w-[var(--sidebar-width)] min-w-[var(--sidebar-width)] flex flex-col fixed top-0 left-0 bottom-0 z-100 shadow-[var(--sh2)] ${isOpen ? "open" : ""}`;
+
   return (
-    <aside className="sidebar bg-[var(--surface)] border-r border-[var(--border)] w-[var(--sidebar-width)] min-w-[var(--sidebar-width)] flex flex-col fixed top-0 left-0 bottom-0 z-100 shadow-[var(--sh2)]">
+    <aside className={sidebarClasses}>
       <div className="px-[18px] pt-[22px] pb-4 border-b border-[var(--border)]">
         <div className="flex items-center gap-[10px] mb-4">
           {school?.logo_url ? (
@@ -73,12 +77,7 @@ export default function SidebarShell({
             </div>
           </div>
           <button
-            onClick={() => {
-              document.querySelector(".sidebar")?.classList.remove("open");
-              document
-                .querySelector(".sidebar-overlay")
-                ?.classList.remove("visible");
-            }}
+            onClick={() => close()}
             className="sidebar-close-btn hidden w-8 h-8 rounded-lg border-none bg-[var(--bg)] cursor-pointer items-center justify-center"
             aria-label="Close sidebar"
           >
