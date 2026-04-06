@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
-import SchoolXLogo from "@/components/SchoolXLogo";
+import SkoolMateLogo from "@/components/SkoolMateLogo";
 
 function MaterialIcon({
   icon,
@@ -107,7 +107,7 @@ const stories = [
     eyebrow: "Academic control",
     title:
       "From marks entry to printable report cards without spreadsheet chaos.",
-    body: "Teachers enter assessments once, SchoolX calculates the grade, and admin teams can print clean report cards or prepare UNEB-facing exports from the same workflow.",
+    body: "Teachers enter assessments once, SkoolMate OS calculates the grade, and admin teams can print clean report cards or prepare UNEB-facing exports from the same workflow.",
     bullets: [
       "CA, BOT, Mid Term, Saturday Test, and EOT workflows",
       "Class comparison, grading rules, marks completion, and comments",
@@ -165,7 +165,8 @@ const plans = [
     name: "Standard",
     price: "UGX 65,000",
     cadence: "per student/year",
-    description: "For growing schools that need full automation and parent engagement.",
+    description:
+      "For growing schools that need full automation and parent engagement.",
     features: [
       "All modules (fees, payroll, budgets, timetable)",
       "1,000 SMS messages/month",
@@ -180,7 +181,8 @@ const plans = [
     name: "Premium",
     price: "UGX 80,000",
     cadence: "per student/year",
-    description: "For large schools that want everything plus dedicated support.",
+    description:
+      "For large schools that want everything plus dedicated support.",
     features: [
       "Everything in Standard",
       "Unlimited SMS",
@@ -241,15 +243,15 @@ const storyPrinciples = [
 ];
 
 const osxLinks = [
-  "When student leaders track attendance or activities through OSX, SchoolX makes that data visible and usable.",
-  "When schools are working to improve academic performance, SchoolX helps identify where students are struggling early.",
-  "When leadership needs to act, SchoolX replaces guesswork with a clean, current picture of the school.",
+  "When student leaders track attendance or activities through OSX, SkoolMate OS makes that data visible and usable.",
+  "When schools are working to improve academic performance, SkoolMate OS helps identify where students are struggling early.",
+  "When leadership needs to act, SkoolMate OS replaces guesswork with a clean, current picture of the school.",
 ];
 
 const faqItems = [
   {
-    q: "Do I need internet to use SchoolX?",
-    a: "SchoolX works best with internet, but the Premium and Max plans include offline mode. Teachers can mark attendance and enter grades without connection, and everything syncs automatically when internet returns.",
+    q: "Do I need internet to use SkoolMate OS?",
+    a: "SkoolMate OS works best with internet, but the Premium and Max plans include offline mode. Teachers can mark attendance and enter grades without connection, and everything syncs automatically when internet returns.",
   },
   {
     q: "Can I import my existing student data?",
@@ -261,7 +263,7 @@ const faqItems = [
   },
   {
     q: "Will it work on my phone?",
-    a: "Yes. SchoolX is fully responsive and works on any smartphone, tablet, or computer. The mobile experience is optimised for teachers marking attendance on the go.",
+    a: "Yes. SkoolMate OS is fully responsive and works on any smartphone, tablet, or computer. The mobile experience is optimised for teachers marking attendance on the go.",
   },
   {
     q: "How long does setup take?",
@@ -451,7 +453,7 @@ function DesktopMockup() {
                 <MaterialIcon icon="school" className="text-[20px]" />
               </div>
               <div>
-                <p className="text-sm font-semibold">SchoolX</p>
+                <p className="text-sm font-semibold">SkoolMate OS</p>
                 <p className="text-xs text-white/65">Head teacher workspace</p>
               </div>
             </div>
@@ -625,7 +627,7 @@ function DesktopMockup() {
 /* ─── Interactive Phone Mockup ─── */
 const smsMessages = [
   {
-    from: "SchoolX",
+    from: "SkoolMate OS",
     text: "Dear parent, your child was absent today and current Term II fee balance is UGX 185,000. Please contact the office if you need a statement.",
     type: "incoming",
   },
@@ -677,7 +679,7 @@ function PhoneMockup() {
         <div className="flex items-center justify-between bg-[#17325F] px-4 pb-3 pt-4 text-white">
           <div>
             <p className="text-[11px] uppercase tracking-[0.2em] text-white/65">
-              SchoolX parent portal
+              SkoolMate OS parent portal
             </p>
             <p className="text-sm font-semibold">Fee &amp; attendance update</p>
           </div>
@@ -832,7 +834,7 @@ export default function HomePage() {
         <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-5 sm:px-6 lg:px-8 lg:pb-24">
           {/* Nav */}
           <nav className="flex items-center justify-between rounded-full border border-white/70 bg-white/80 px-4 py-3 shadow-[0_8px_30px_rgba(15,23,42,0.06)] backdrop-blur sm:px-6">
-            <SchoolXLogo size="md" />
+            <SkoolMateLogo size="md" variant="default" />
             <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
               <button
                 onClick={() => smoothScroll("#features")}
@@ -1144,7 +1146,7 @@ export default function HomePage() {
           <FadeIn>
             <div className="rounded-[34px] bg-[#0f1f3d] p-7 text-white shadow-[0_24px_60px_rgba(15,23,42,0.16)] lg:p-8">
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/60">
-                The story behind SchoolX
+                The story behind SkoolMate OS
               </p>
               <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl">
                 It did not start as an idea. It started with what schools kept
@@ -1179,7 +1181,7 @@ export default function HomePage() {
                   Schools do not need more pressure. They need better tools.
                 </h3>
                 <p className="mt-4 text-base leading-7 text-slate-600">
-                  SchoolX was built to match the real flow of school life:
+                  SkoolMate OS was built to match the real flow of school life:
                   attendance, marks, fees, communication, and decision-making in
                   one place. Not another generic system. A calmer operating
                   layer for schools that are already working hard.
@@ -1211,9 +1213,9 @@ export default function HomePage() {
                   Teachers get more time to focus on students. Leaders can see
                   what is working and what is not. Parents stay informed.
                   Students are noticed early instead of slipping through the
-                  cracks. The X in SchoolX stands for Xperience, because this
-                  system comes from what has been seen, learned, and asked for
-                  in the field.
+                  cracks. The X in SkoolMate OS stands for Xperience, because
+                  this system comes from what has been seen, learned, and asked
+                  for in the field.
                 </p>
               </div>
             </FadeIn>
@@ -1233,10 +1235,10 @@ export default function HomePage() {
                 Every major school unit connected in one system.
               </h2>
               <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
-                From academics to administration, SchoolX is designed to reduce
-                duplicate work. Enter data once, then reuse it across report
-                cards, parent communication, financial follow-up, UNEB prep, and
-                board reporting.
+                From academics to administration, SkoolMate OS is designed to
+                reduce duplicate work. Enter data once, then reuse it across
+                report cards, parent communication, financial follow-up, UNEB
+                prep, and board reporting.
               </p>
             </div>
 
@@ -1270,17 +1272,17 @@ export default function HomePage() {
             <div className="grid gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-start">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
-                  SchoolX and OSX
+                  SkoolMate OS and OSX
                 </p>
                 <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
-                  SchoolX is the system layer inside the wider Omuto School
+                  SkoolMate OS is the system layer inside the wider Omuto School
                   Xperience.
                 </h2>
                 <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
-                  OSX is the broader transformation model. SchoolX is the layer
-                  that helps that transformation hold, because progress is hard
-                  to sustain when the underlying school systems stay scattered
-                  and manual.
+                  OSX is the broader transformation model. SkoolMate OS is the
+                  layer that helps that transformation hold, because progress is
+                  hard to sustain when the underlying school systems stay
+                  scattered and manual.
                 </p>
               </div>
 
@@ -1301,7 +1303,7 @@ export default function HomePage() {
                     </div>
                     <div className="rounded-[24px] bg-[#17325F] p-5 text-white hover:shadow-lg transition-shadow">
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/60">
-                        SchoolX
+                        SkoolMate OS
                       </p>
                       <p className="mt-3 text-xl font-semibold tracking-tight">
                         Sustains it daily
@@ -1334,10 +1336,11 @@ export default function HomePage() {
                     The result
                   </p>
                   <p className="mt-4 text-base leading-7 text-slate-700">
-                    Together, OSX drives the transformation and SchoolX makes it
-                    visible, usable, and measurable. That is the complete school
-                    experience: organised systems, informed decisions, earlier
-                    support, and progress that leaders can actually track.
+                    Together, OSX drives the transformation and SkoolMate OS
+                    makes it visible, usable, and measurable. That is the
+                    complete school experience: organised systems, informed
+                    decisions, earlier support, and progress that leaders can
+                    actually track.
                   </p>
                 </div>
               </div>
@@ -1532,7 +1535,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <SchoolXLogo size="md" />
+              <SkoolMateLogo size="md" variant="default" />
               <p className="mt-4 text-sm leading-6 text-slate-500">
                 The school operating system built from real experience in
                 Ugandan schools.
