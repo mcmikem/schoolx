@@ -19,7 +19,9 @@ export default function ImportPage() {
   const { user } = useAuth();
   const toast = useToast();
 
-  const [activeTab, setActiveTab] = useState<"students" | "fees" | "grades" | "ai_paste">("students");
+  const [activeTab, setActiveTab] = useState<
+    "students" | "fees" | "grades" | "ai_paste"
+  >("students");
 
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -195,7 +197,7 @@ export default function ImportPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "ASSEMBLE_Student_Template.xlsx";
+    a.download = "SkulMateOS_Student_Template.xlsx";
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Template downloaded");

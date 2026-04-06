@@ -3,8 +3,7 @@ import "./globals.css";
 import Providers from "./providers";
 
 export const metadata: Metadata = {
-  title:
-    "ASSEMBLE | Powered by Omuto Foundation",
+  title: "SkulMate OS | Your Digital School Partner",
   description:
     "The all-in-one school management system built for Ugandan schools. Track attendance, grades, fees, and send parent SMS — all from one dashboard. Start your free 30-day trial today.",
   manifest: "/manifest.json",
@@ -15,23 +14,21 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "ASSEMBLE",
+    title: "SkulMate OS",
   },
   openGraph: {
-    title:
-      "ASSEMBLE | Powered by Omuto Foundation",
+    title: "SkulMate OS | Your Digital School Partner",
     description:
       "Attendance, grades, fees, and parent SMS — all in one system built for Ugandan schools. Start your free 30-day trial.",
     type: "website",
     url: "https://omuto.sms",
     images: ["/og-image.png"],
     locale: "en_UG",
-    siteName: "ASSEMBLE",
+    siteName: "SkulMate OS",
   },
   twitter: {
     card: "summary_large_image",
-    title:
-      "ASSEMBLE | Powered by Omuto Foundation",
+    title: "SkulMate OS | Your Digital School Partner",
     description:
       "Run your entire school from one dashboard. Attendance, grades, fees, and parent SMS.",
   },
@@ -68,7 +65,7 @@ export default function RootLayout({
           name="apple-mobile-web-app-status-bar-style"
           content="black-translucent"
         />
-        <meta name="apple-mobile-web-app-title" content="ASSEMBLE" />
+        <meta name="apple-mobile-web-app-title" content="SkulMate OS" />
         <link rel="apple-touch-icon" href="/assemble-icon.png" />
         <link rel="icon" href="/assemble-icon.png" type="image/png" />
       </head>

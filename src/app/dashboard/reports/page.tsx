@@ -1,136 +1,162 @@
-'use client'
-import { useState, useCallback } from 'react'
-import { useAuth } from '@/lib/auth-context'
-import { useAcademic } from '@/lib/academic-context'
-import { useStudents, useClasses } from '@/lib/hooks'
-import { getUNEBGrade, getUNEBDivision } from '@/lib/grading'
-import ReportCard from '@/components/reports/ReportCard'
-import type { ReportCard as ReportCardType } from '@/types'
-import { supabase } from '@/lib/supabase'
-import { PageHeader } from '@/components/ui/PageHeader'
-import { Button } from '@/components/ui/index'
-import { TableSkeleton } from '@/components/ui/Skeleton'
-import { EmptyState } from '@/components/EmptyState'
-import { Card } from '@/components/ui/Card'
+"use client";
+import { useState, useCallback } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { useAcademic } from "@/lib/academic-context";
+import { useStudents, useClasses } from "@/lib/hooks";
+import { getUNEBGrade, getUNEBDivision } from "@/lib/grading";
+import ReportCard from "@/components/reports/ReportCard";
+import type { ReportCard as ReportCardType } from "@/types";
+import { supabase } from "@/lib/supabase";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Button } from "@/components/ui/index";
+import { TableSkeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/EmptyState";
+import { Card } from "@/components/ui/Card";
 
 export default function ReportsPage() {
-  const { school } = useAuth()
-  const { academicYear, currentTerm } = useAcademic()
-  const { students, loading: studentsLoading } = useStudents(school?.id)
-  const { classes } = useClasses(school?.id)
-  
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedClass, setSelectedClass] = useState('')
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
-  const [reportData, setReportData] = useState<ReportCardType | null>(null)
-  const [loadingReport, setLoadingReport] = useState(false)
+  const { school } = useAuth();
+  const { academicYear, currentTerm } = useAcademic();
+  const { students, loading: studentsLoading } = useStudents(school?.id);
+  const { classes } = useClasses(school?.id);
 
-  const filteredStudents = students.filter(s => {
-    const matchesSearch = `${s.first_name} ${s.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         s.student_number?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesClass = selectedClass === '' || s.class_id === selectedClass
-    return matchesSearch && matchesClass
-  })
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
+    null,
+  );
+  const [reportData, setReportData] = useState<ReportCardType | null>(null);
+  const [loadingReport, setLoadingReport] = useState(false);
 
-  const fetchStudentReport = useCallback(async (studentId: string) => {
-    try {
-      setLoadingReport(true)
-      const student = students.find(s => s.id === studentId)
-      if (!student) return
+  const filteredStudents = students.filter((s) => {
+    const matchesSearch =
+      `${s.first_name} ${s.last_name}`
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      s.student_number?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesClass = selectedClass === "" || s.class_id === selectedClass;
+    return matchesSearch && matchesClass;
+  });
 
-      const { data: grades } = await supabase
-        .from('grades')
-        .select('*, subjects(name, code)')
-        .eq('student_id', studentId)
-        .eq('term', currentTerm)
-        .eq('academic_year', academicYear)
+  const fetchStudentReport = useCallback(
+    async (studentId: string) => {
+      try {
+        setLoadingReport(true);
+        const student = students.find((s) => s.id === studentId);
+        if (!student) return;
 
-      const { data: attendance } = await supabase
-        .from('attendance')
-        .select('status')
-        .eq('student_id', studentId)
+        const { data: grades } = await supabase
+          .from("grades")
+          .select("*, subjects(name, code)")
+          .eq("student_id", studentId)
+          .eq("term", currentTerm)
+          .eq("academic_year", academicYear);
 
-      const subjectGrades: Record<string, {name: string, code: string, scores: Record<string, number>}> = {}
-      grades?.forEach(g => {
-        const subjectName = (g.subjects as {name: string, code: string})?.name || 'Unknown'
-        const subjectCode = (g.subjects as {name: string, code: string})?.code || ''
-        if (!subjectGrades[subjectName]) {
-          subjectGrades[subjectName] = { name: subjectName, code: subjectCode, scores: {} }
-        }
-        subjectGrades[subjectName].scores[g.assessment_type] = Number(g.score || 0)
-      })
+        const { data: attendance } = await supabase
+          .from("attendance")
+          .select("status")
+          .eq("student_id", studentId);
 
-      const subjects = Object.values(subjectGrades).map(sg => {
-        const ca1 = sg.scores['ca1'] || 0
-        const ca2 = sg.scores['ca2'] || 0
-        const ca3 = sg.scores['ca3'] || 0
-        const ca4 = sg.scores['ca4'] || 0
-        const project = sg.scores['project'] || 0
-        const exam = sg.scores['exam'] || 0
-        const caAvg = (ca1 + ca2 + ca3 + ca4 + project) / 5
-        const final = (caAvg * 0.8) + (exam * 0.2)
-        return {
-          name: sg.name,
-          code: sg.code,
-          ca1,
-          ca2,
-          ca3,
-          ca4,
-          project,
-          exam,
-          totalCA: caAvg,
-          finalScore: final,
-          grade: getUNEBGrade(final)
-        }
-      })
+        const subjectGrades: Record<
+          string,
+          { name: string; code: string; scores: Record<string, number> }
+        > = {};
+        grades?.forEach((g) => {
+          const subjectName =
+            (g.subjects as { name: string; code: string })?.name || "Unknown";
+          const subjectCode =
+            (g.subjects as { name: string; code: string })?.code || "";
+          if (!subjectGrades[subjectName]) {
+            subjectGrades[subjectName] = {
+              name: subjectName,
+              code: subjectCode,
+              scores: {},
+            };
+          }
+          subjectGrades[subjectName].scores[g.assessment_type] = Number(
+            g.score || 0,
+          );
+        });
 
-      const avgScore = subjects.length > 0 ? subjects.reduce((acc, s) => acc + s.finalScore, 0) / subjects.length : 0
+        const subjects = Object.values(subjectGrades).map((sg) => {
+          const ca1 = sg.scores["ca1"] || 0;
+          const ca2 = sg.scores["ca2"] || 0;
+          const ca3 = sg.scores["ca3"] || 0;
+          const ca4 = sg.scores["ca4"] || 0;
+          const project = sg.scores["project"] || 0;
+          const exam = sg.scores["exam"] || 0;
+          const caAvg = (ca1 + ca2 + ca3 + ca4 + project) / 5;
+          const final = caAvg * 0.8 + exam * 0.2;
+          return {
+            name: sg.name,
+            code: sg.code,
+            ca1,
+            ca2,
+            ca3,
+            ca4,
+            project,
+            exam,
+            totalCA: caAvg,
+            finalScore: final,
+            grade: getUNEBGrade(final),
+          };
+        });
 
-      const totalAttendanceDays = attendance?.length || 0
-      const presentDays = attendance?.filter(a => a.status === 'present').length || 0
-      const absentDays = attendance?.filter(a => a.status === 'absent').length || 0
-      const lateDays = attendance?.filter(a => a.status === 'late').length || 0
+        const avgScore =
+          subjects.length > 0
+            ? subjects.reduce((acc, s) => acc + s.finalScore, 0) /
+              subjects.length
+            : 0;
 
-      setReportData({
-        student: {
-          first_name: student.first_name,
-          last_name: student.last_name,
-          student_number: student.student_number || 'N/A',
-          gender: student.gender,
-          classes: student.classes
-        },
-        school: {
-          name: school?.name || 'ASSEMBLE',
-          district: school?.district || 'Uganda',
-        },
-        term: currentTerm,
-        academicYear: academicYear,
-        subjects,
-        attendance: {
-          total: totalAttendanceDays || 90,
-          present: presentDays,
-          absent: absentDays,
-          late: lateDays,
-        },
-        overall: {
-          average: Math.round(avgScore),
-          grade: getUNEBGrade(avgScore),
-          division: getUNEBDivision(avgScore)
-        }
-      })
+        const totalAttendanceDays = attendance?.length || 0;
+        const presentDays =
+          attendance?.filter((a) => a.status === "present").length || 0;
+        const absentDays =
+          attendance?.filter((a) => a.status === "absent").length || 0;
+        const lateDays =
+          attendance?.filter((a) => a.status === "late").length || 0;
 
-      setSelectedStudentId(studentId)
-    } catch (err) {
-      console.error('Error:', err)
-    } finally {
-      setLoadingReport(false)
-    }
-  }, [students, currentTerm, academicYear, school])
+        setReportData({
+          student: {
+            first_name: student.first_name,
+            last_name: student.last_name,
+            student_number: student.student_number || "N/A",
+            gender: student.gender,
+            classes: student.classes,
+          },
+          school: {
+            name: school?.name || "SkulMate OS",
+            district: school?.district || "Uganda",
+          },
+          term: currentTerm,
+          academicYear: academicYear,
+          subjects,
+          attendance: {
+            total: totalAttendanceDays || 90,
+            present: presentDays,
+            absent: absentDays,
+            late: lateDays,
+          },
+          overall: {
+            average: Math.round(avgScore),
+            grade: getUNEBGrade(avgScore),
+            division: getUNEBDivision(avgScore),
+          },
+        });
+
+        setSelectedStudentId(studentId);
+      } catch (err) {
+        console.error("Error:", err);
+      } finally {
+        setLoadingReport(false);
+      }
+    },
+    [students, currentTerm, academicYear, school],
+  );
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <PageHeader 
-        title="Reports" 
+      <PageHeader
+        title="Reports"
         subtitle="Generate and view student report cards"
       />
 
@@ -145,16 +171,30 @@ export default function ReportsPage() {
               className="input"
             />
           </div>
-          <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input sm:w-48">
+          <select
+            value={selectedClass}
+            onChange={(e) => setSelectedClass(e.target.value)}
+            className="input sm:w-48"
+          >
             <option value="">All Classes</option>
-            {classes.length > 0 ? classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>) : <option disabled>No classes</option>}
+            {classes.length > 0 ? (
+              classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))
+            ) : (
+              <option disabled>No classes</option>
+            )}
           </select>
         </div>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="p-6">
-          <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">Select Student</h2>
+          <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">
+            Select Student
+          </h2>
           {studentsLoading ? (
             <div className="space-y-3">
               {[1, 2, 3, 4].map((i) => (
@@ -180,19 +220,24 @@ export default function ReportsPage() {
                   key={student.id}
                   onClick={() => fetchStudentReport(student.id)}
                   className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all ${
-                    selectedStudentId === student.id 
-                      ? 'bg-[var(--surface-container)] border border-[var(--primary)]' 
-                      : 'hover:bg-[var(--surface-container)] border border-transparent'
+                    selectedStudentId === student.id
+                      ? "bg-[var(--surface-container)] border border-[var(--primary)]"
+                      : "hover:bg-[var(--surface-container)] border border-transparent"
                   }`}
                 >
                   <div className="w-10 h-10 bg-[var(--surface-container)] rounded-full flex items-center justify-center">
                     <span className="text-[var(--primary)] font-semibold text-sm">
-                      {student.first_name?.charAt(0)}{student.last_name?.charAt(0)}
+                      {student.first_name?.charAt(0)}
+                      {student.last_name?.charAt(0)}
                     </span>
                   </div>
                   <div className="flex-1">
-                    <div className="font-medium text-[var(--t1)]">{student.first_name} {student.last_name}</div>
-                    <div className="text-xs text-[var(--t3)]">{student.student_number || student.classes?.name}</div>
+                    <div className="font-medium text-[var(--t1)]">
+                      {student.first_name} {student.last_name}
+                    </div>
+                    <div className="text-xs text-[var(--t3)]">
+                      {student.student_number || student.classes?.name}
+                    </div>
                   </div>
                 </button>
               ))}
@@ -219,5 +264,5 @@ export default function ReportsPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -26,7 +26,7 @@ export default function AppLoader() {
       >
         <Image
           src="/assemble-icon.png"
-          alt="ASSEMBLE"
+          alt="SkulMate OS"
           width={80}
           height={80}
           style={{
