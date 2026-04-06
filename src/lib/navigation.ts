@@ -646,7 +646,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
 };
 
 export function getNavigationForRole(role: string): NavGroup[] {
-  // Admin and school_admin get full headmaster access
+  // Super admin, admin, school_admin and board get full headmaster access
   if (
     role === "admin" ||
     role === "school_admin" ||
