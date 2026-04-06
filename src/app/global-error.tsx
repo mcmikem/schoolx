@@ -18,12 +18,12 @@ export default function GlobalError({
   return (
     <html lang="en">
       <head>
-        <title>ASSEMBLE - Error</title>
+        <title>SkulMate OS - Error</title>
         <meta
           name="description"
-          content="An unexpected error occurred in ASSEMBLE. Powered by Omuto Foundation. Please try refreshing the page or contact support."
+          content="An unexpected error occurred in SkulMate OS. Your Digital School Partner. Please try refreshing the page or contact support."
         />
-        <meta property="og:title" content="ASSEMBLE - Error" />
+        <meta property="og:title" content="SkulMate OS - Error" />
         <meta
           property="og:description"
           content="An unexpected error occurred. Please try refreshing the page."
