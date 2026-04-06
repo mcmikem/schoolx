@@ -23,9 +23,9 @@ export default function SchoolXLogo({
   };
 
   const colors = {
-    default: { primary: "#17325F", accent: "#2E9448", text: "#17325F" },
-    white: { primary: "#ffffff", accent: "#2E9448", text: "#ffffff" },
-    dark: { primary: "#17325F", accent: "#2E9448", text: "#17325F" },
+    default: { primary: "#001F3F", accent: "#D4AF37", text: "#001F3F" },
+    white: { primary: "#ffffff", accent: "#D4AF37", text: "#ffffff" },
+    dark: { primary: "#001F3F", accent: "#D4AF37", text: "#001F3F" },
   };
 
   const s = sizes[size];

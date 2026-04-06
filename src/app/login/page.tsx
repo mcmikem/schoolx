@@ -139,7 +139,7 @@ export default function LoginPage() {
         district: "Kampala",
         school_type: "primary",
         ownership: "private",
-        primary_color: "#17325F",
+        primary_color: "#001F3F",
         subscription_plan: "premium",
         subscription_status: "active",
       };
