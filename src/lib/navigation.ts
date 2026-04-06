@@ -57,7 +57,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       items: [
         { href: '/dashboard/fees', label: 'Fee Collection', icon: 'payments' },
         { href: '/dashboard/budget', label: 'Budget', icon: 'account_balance_wallet' },
-        { href: '/dashboard/expense-approvals', label: 'Expenses', icon: 'receipt_long' },
+        { href: '/dashboard/cashbook', label: 'Cashbook & Expenses', icon: 'receipt_long' },
         { href: '/dashboard/reports', label: 'Financial Reports', icon: 'analytics' },
       ]
     },
@@ -80,7 +80,6 @@ export const navigationByRole: Record<string, NavGroup[]> = {
         { href: '/dashboard/timetable', label: 'Timetable', icon: 'calendar_month' },
         { href: '/dashboard/settings', label: 'School Settings', icon: 'settings' },
         { href: '/dashboard/audit', label: 'Audit Log', icon: 'history' },
-        { href: '/dashboard/feedback', label: 'Feedback & Support', icon: 'feedback' },
       ]
     },
     {
@@ -161,7 +160,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       defaultOpen: false,
       items: [
         { href: '/dashboard/budget', label: 'Budget', icon: 'account_balance_wallet' },
-        { href: '/dashboard/expense-approvals', label: 'Expenses', icon: 'receipt_long' },
+        { href: '/dashboard/cashbook', label: 'Cashbook & Expenses', icon: 'receipt_long' },
         { href: '/dashboard/payroll', label: 'Payroll', icon: 'payments' },
         { href: '/dashboard/reports', label: 'Reports', icon: 'analytics' },
       ]
@@ -200,7 +199,6 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       label: 'Support',
       defaultOpen: false,
       items: [
-        { href: '/dashboard/feedback', label: 'Feedback & Support', icon: 'feedback' },
       ]
     },
     {
@@ -253,7 +251,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       items: [
         { href: '/dashboard/fees', label: 'Fee Collection', icon: 'payments' },
         { href: '/dashboard/budget', label: 'Budget', icon: 'account_balance_wallet' },
-        { href: '/dashboard/expense-approvals', label: 'Expenses', icon: 'receipt_long' },
+        { href: '/dashboard/cashbook', label: 'Cashbook & Expenses', icon: 'receipt_long' },
         { href: '/dashboard/reports', label: 'Financial Reports', icon: 'analytics' },
       ]
     },
@@ -275,7 +273,6 @@ export const navigationByRole: Record<string, NavGroup[]> = {
         { href: '/dashboard/timetable', label: 'Timetable', icon: 'calendar_month' },
         { href: '/dashboard/settings', label: 'School Settings', icon: 'settings' },
         { href: '/dashboard/audit', label: 'Audit Log', icon: 'history' },
-        { href: '/dashboard/feedback', label: 'Feedback & Support', icon: 'feedback' },
       ]
     },
     {
@@ -332,7 +329,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       items: [
         { href: '/dashboard/fees', label: 'Fee Collection', icon: 'payments' },
         { href: '/dashboard/budget', label: 'Budget', icon: 'account_balance_wallet' },
-        { href: '/dashboard/expense-approvals', label: 'Expenses', icon: 'receipt_long' },
+        { href: '/dashboard/cashbook', label: 'Cashbook & Expenses', icon: 'receipt_long' },
         { href: '/dashboard/reports', label: 'Financial Reports', icon: 'analytics' },
       ]
     },
@@ -364,7 +361,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       defaultOpen: true,
       items: [
         { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-        { href: '/dashboard/visitors', label: 'Visitors Log', icon: 'badge' },
+        { href: '/dashboard/notices', label: 'Notices', icon: 'campaign' },
       ]
     },
     {
@@ -373,7 +370,6 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       items: [
         { href: '/dashboard/messages', label: 'Messages', icon: 'chat' },
         { href: '/dashboard/notices', label: 'Notices', icon: 'campaign' },
-        { href: '/dashboard/feedback', label: 'Feedback & Support', icon: 'feedback' },
       ]
     },
   ],
