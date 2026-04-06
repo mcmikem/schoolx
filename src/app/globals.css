@@ -32,19 +32,31 @@
   --t3: #586979; /* Tertiary (Increased contrast for accessibility) */
   --t4: #6b7785; /* Quaternary (Increased contrast for accessibility) */
 
-  /* Tailwind-compatible theme tokens */
-  --primary: #0056d2;
-  --primary-50: #e5effa;
-  --primary-100: #b3d4f0;
-  --primary-200: #80b9e6;
-  --primary-300: #4d9ddc;
-  --primary-400: #2688d4;
-  --primary-500: #0056d2;
-  --primary-600: #004dc2;
-  --primary-700: #0043af;
-  --primary-800: #00399d;
-  --primary-900: #00267a;
+  /* New color palette: Navy (#001F3F) and Gold (#D4AF37) */
+  --primary: #001f3f;
+  --primary-50: #e6e9ed;
+  --primary-100: #c0c8d4;
+  --primary-200: #99a5ba;
+  --primary-300: #73829f;
+  --primary-400: #526688;
+  --primary-500: #001f3f;
+  --primary-600: #001a35;
+  --primary-700: #00142c;
+  --primary-800: #000f22;
+  --primary-900: #000919;
+  --secondary: #d4af37;
+  --secondary-50: #faf6e8;
+  --secondary-100: #f2e9c5;
+  --secondary-200: #eadba0;
+  --secondary-300: #e2cd7b;
+  --secondary-400: #d9bf56;
+  --secondary-500: #d4af37;
+  --secondary-600: #c99c2f;
+  --secondary-700: #be8927;
+  --secondary-800: #b3761f;
+  --secondary-900: #a16317;
   --on-primary: #ffffff;
+  --on-secondary: #001f3f;
 
   --surface-brightest: #ffffff;
   --surface-bright: #f8fafb;
