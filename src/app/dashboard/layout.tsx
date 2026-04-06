@@ -11,6 +11,7 @@ import TopBar from '@/components/dashboard/TopBar'
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
 import WorkflowGuide from '@/components/dashboard/WorkflowGuide'
 import WhatsAppSupport from '@/components/WhatsAppSupport'
+import OmutoPromo from '@/components/dashboard/OmutoPromo'
 import { useAccessControl, getPageTitle } from '@/components/dashboard/AccessControlGuard'
 import { usePathname, useRouter } from 'next/navigation'
 
@@ -73,6 +74,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <main className="main-content mobile-container ml-[var(--sidebar-width)] flex-1 flex flex-col min-h-screen w-[calc(100%-var(--sidebar-width))] overflow-hidden">
           <TopBar pageTitle={pageTitle} onSignOut={handleSignOut} />
           <TrialBanner />
+          <OmutoPromo />
           <WorkflowGuide />
           {children}
         </main>
