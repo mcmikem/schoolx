@@ -67,7 +67,7 @@ export default function TrialBanner() {
                 rel="noopener noreferrer"
                 className="underline hover:text-amber-800 ml-1"
               >
-                Upgrade to SkulMate OS Premium
+                Upgrade to SkoolMate OS Premium
               </a>
             </div>
           </div>

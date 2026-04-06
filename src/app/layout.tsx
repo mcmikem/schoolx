@@ -3,32 +3,32 @@ import "./globals.css";
 import Providers from "./providers";
 
 export const metadata: Metadata = {
-  title: "SkulMate OS | Your Digital School Partner",
+  title: "SkoolMate OS | Your Digital School Partner",
   description:
     "The all-in-one school management system built for Ugandan schools. Track attendance, grades, fees, and send parent SMS — all from one dashboard. Start your free 30-day trial today.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/assemble-icon.png",
-    apple: "/assemble-icon.png",
+    icon: "/SkoolMate logos/SchoolMate icon.svg",
+    apple: "/SkoolMate logos/SchoolMate icon.svg",
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "SkulMate OS",
+    title: "SkoolMate OS",
   },
   openGraph: {
-    title: "SkulMate OS | Your Digital School Partner",
+    title: "SkoolMate OS | Your Digital School Partner",
     description:
       "Attendance, grades, fees, and parent SMS — all in one system built for Ugandan schools. Start your free 30-day trial.",
     type: "website",
     url: "https://omuto.sms",
     images: ["/og-image.png"],
     locale: "en_UG",
-    siteName: "SkulMate OS",
+    siteName: "SkoolMate OS",
   },
   twitter: {
     card: "summary_large_image",
-    title: "SkulMate OS | Your Digital School Partner",
+    title: "SkoolMate OS | Your Digital School Partner",
     description:
       "Run your entire school from one dashboard. Attendance, grades, fees, and parent SMS.",
   },
@@ -65,9 +65,16 @@ export default function RootLayout({
           name="apple-mobile-web-app-status-bar-style"
           content="black-translucent"
         />
-        <meta name="apple-mobile-web-app-title" content="SkulMate OS" />
-        <link rel="apple-touch-icon" href="/assemble-icon.png" />
-        <link rel="icon" href="/assemble-icon.png" type="image/png" />
+        <meta name="apple-mobile-web-app-title" content="SkoolMate OS" />
+        <link
+          rel="apple-touch-icon"
+          href="/SkoolMate logos/SchoolMate icon.svg"
+        />
+        <link
+          rel="icon"
+          href="/SkoolMate logos/SchoolMate icon.svg"
+          type="image/svg+xml"
+        />
       </head>
       <body
         className="antialiased min-h-screen"

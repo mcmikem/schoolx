@@ -365,7 +365,7 @@ export default function SuperAdminDashboard() {
     <div className="content">
       <PageHeader
         title="Super Admin Dashboard"
-        subtitle="System-wide control center for SkulMate OS"
+        subtitle="System-wide control center for SkoolMate OS"
       />
 
       <div className="flex gap-2 mb-6 overflow-x-auto">

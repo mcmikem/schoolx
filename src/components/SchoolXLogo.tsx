@@ -2,7 +2,7 @@
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
-interface OmutoLogoProps {
+interface SkoolMateLogoProps {
   size?: "sm" | "md" | "lg" | "xl";
   variant?: "default" | "white" | "dark";
   showText?: boolean;
@@ -14,7 +14,7 @@ export default function SchoolXLogo({
   variant = "default",
   showText = true,
   className,
-}: OmutoLogoProps) {
+}: SkoolMateLogoProps) {
   const sizes = {
     sm: { icon: 32, text: "text-lg" },
     md: { icon: 40, text: "text-xl" },
@@ -22,27 +22,24 @@ export default function SchoolXLogo({
     xl: { icon: 80, text: "text-4xl" },
   };
 
-  const colors = {
-    default: { primary: "#001F3F", accent: "#D4AF37", text: "#001F3F" },
-    white: { primary: "#ffffff", accent: "#D4AF37", text: "#ffffff" },
-    dark: { primary: "#001F3F", accent: "#D4AF37", text: "#001F3F" },
+  const logoFiles = {
+    default: "SchoolMate logo official.svg",
+    white: "SchoolMate White.svg",
+    dark: "SchoolMate black.svg",
   };
 
   const s = sizes[size];
-  const c = colors[variant];
+  const logoFile = logoFiles[variant];
 
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
       <div className="relative" style={{ width: s.icon, height: s.icon }}>
         <Image
-          src="/assemble-icon.png"
-          alt="SkulMate OS Logo"
+          src={`/SkoolMate logos/${logoFile}`}
+          alt="SkoolMate OS Logo"
           width={s.icon}
           height={s.icon}
           className="object-contain"
-          style={{
-            filter: variant === "white" ? "brightness(0) invert(1)" : undefined,
-          }}
         />
       </div>
 
@@ -50,9 +47,18 @@ export default function SchoolXLogo({
         <div className="flex flex-col">
           <span
             className={cn(s.text, "font-bold leading-tight")}
-            style={{ color: c.text }}
+            style={{
+              color:
+                variant === "white"
+                  ? "#ffffff"
+                  : variant === "dark"
+                    ? "#000000"
+                    : "#001F3F",
+              fontFamily: "Montserrat, sans-serif",
+              letterSpacing: "0.05em",
+            }}
           >
-            SkulMate OS
+            SKOOLMATE OS
           </span>
           {size !== "sm" && (
             <span className="text-[10px] text-outline font-medium tracking-wider uppercase leading-tight">

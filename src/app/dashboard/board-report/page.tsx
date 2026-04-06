@@ -143,7 +143,7 @@ export default function BoardReportPage() {
         { align: "center" },
       );
       doc.text(
-        `${school?.name || "SkulMate OS"} | Generated ${new Date().toLocaleDateString()}`,
+        `${school?.name || "SkoolMate OS"} | Generated ${new Date().toLocaleDateString()}`,
         105,
         290,
         { align: "center" },
