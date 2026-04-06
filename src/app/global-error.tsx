@@ -18,12 +18,12 @@ export default function GlobalError({
   return (
     <html lang="en">
       <head>
-        <title>SkulMate OS - Error</title>
+        <title>SkoolMate OS - Error</title>
         <meta
           name="description"
-          content="An unexpected error occurred in SkulMate OS. Your Digital School Partner. Please try refreshing the page or contact support."
+          content="An unexpected error occurred in SkoolMate OS. Your Digital School Partner. Please try refreshing the page or contact support."
         />
-        <meta property="og:title" content="SkulMate OS - Error" />
+        <meta property="og:title" content="SkoolMate OS - Error" />
         <meta
           property="og:description"
           content="An unexpected error occurred. Please try refreshing the page."

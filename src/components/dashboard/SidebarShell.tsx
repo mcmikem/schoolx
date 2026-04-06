@@ -61,8 +61,8 @@ export default function SidebarShell({
             />
           ) : (
             <Image
-              src="/assemble-icon.png"
-              alt="SkulMate OS Logo"
+              src="/SkoolMate logos/SchoolMate logo official.svg"
+              alt="SkoolMate OS Logo"
               width={36}
               height={36}
               className="w-[var(--logo-size)] h-[var(--logo-size)] object-contain"

@@ -14,7 +14,7 @@ interface Step {
 const steps: Step[] = [
   {
     id: "welcome",
-    title: "Welcome to SkulMate OS",
+    title: "Welcome to SkoolMate OS",
     description:
       "Your digital school partner. Let's set up your school in 3 easy steps",
     icon: "waving_hand",

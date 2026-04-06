@@ -124,7 +124,7 @@ export default function ReportsPage() {
             classes: student.classes,
           },
           school: {
-            name: school?.name || "SkulMate OS",
+            name: school?.name || "SkoolMate OS",
             district: school?.district || "Uganda",
           },
           term: currentTerm,

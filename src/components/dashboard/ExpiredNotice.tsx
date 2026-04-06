@@ -137,7 +137,7 @@ export default function ExpiredNotice() {
             className="mt-3 flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold text-sm transition-all active:scale-[0.98]"
           >
             <MaterialIcon icon="rocket_launch" style={{ fontSize: 18 }} />
-            Join SkulMate OS
+            Join SkoolMate OS
           </a>
         </div>
       </div>

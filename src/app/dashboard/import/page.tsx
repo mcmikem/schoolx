@@ -197,7 +197,7 @@ export default function ImportPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "SkulMateOS_Student_Template.xlsx";
+    a.download = "SkoolMateOS_Student_Template.xlsx";
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Template downloaded");

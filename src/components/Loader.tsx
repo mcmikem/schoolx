@@ -25,8 +25,8 @@ export default function AppLoader() {
         }}
       >
         <Image
-          src="/assemble-icon.png"
-          alt="SkulMate OS"
+          src="/SkoolMate logos/SchoolMate logo official.svg"
+          alt="SkoolMate OS"
           width={80}
           height={80}
           style={{
