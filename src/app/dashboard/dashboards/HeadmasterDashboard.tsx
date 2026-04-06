@@ -133,7 +133,11 @@ function HeadmasterDashboardContent() {
     0,
   );
   const attendanceRate =
-    totalInClass > 0 ? Math.round((totalPresent / totalInClass) * 100) : (stats.presentToday > 0 && stats.totalStudents > 0 ? Math.round((stats.presentToday / stats.totalStudents) * 100) : 0);
+    totalInClass > 0
+      ? Math.round((totalPresent / totalInClass) * 100)
+      : stats.presentToday > 0 && stats.totalStudents > 0
+        ? Math.round((stats.presentToday / stats.totalStudents) * 100)
+        : 0;
   const absentCount = students.length - stats.presentToday;
 
   const classesNotMarked = classes.filter(
@@ -189,6 +193,116 @@ function HeadmasterDashboardContent() {
     ],
   );
 
+  const todayDayName = currentDate.toLocaleDateString("en-UG", {
+    weekday: "long",
+  });
+  const todayFormatted = currentDate.toLocaleDateString("en-UG", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  const dayOfWeekNum = currentDate.getDay();
+  const dayMap = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ];
+  const todayDayKey = dayMap[dayOfWeekNum];
+
+  const classesToday = useMemo(() => {
+    if (!classes.length) return [];
+    return classes
+      .filter((c: any) => {
+        const timetableEntries = (c as any).timetable_entries || [];
+        return timetableEntries.some((e: any) => e.day_of_week === todayDayKey);
+      })
+      .slice(0, 6);
+  }, [classes, todayDayKey]);
+
+  const upcomingDeadlines = useMemo(() => {
+    const deadlines: {
+      label: string;
+      date: string;
+      type: string;
+      link: string;
+    }[] = [];
+    if (overdueFeeCount > 0) {
+      deadlines.push({
+        label: `${overdueFeeCount} students with overdue fees`,
+        date: "Overdue",
+        type: "fee",
+        link: "/dashboard/fees",
+      });
+    }
+    if (classesNotMarked > 0) {
+      deadlines.push({
+        label: `${classesNotMarked} classes pending attendance`,
+        date: "Today",
+        type: "attendance",
+        link: "/dashboard/attendance",
+      });
+    }
+    if (pendingExpenses > 0) {
+      deadlines.push({
+        label: `${pendingExpenses} expenses awaiting approval`,
+        date: "Pending",
+        type: "approval",
+        link: "/dashboard/expense-approvals",
+      });
+    }
+    if (pendingLeave > 0) {
+      deadlines.push({
+        label: `${pendingLeave} leave requests pending`,
+        date: "Pending",
+        type: "approval",
+        link: "/dashboard/leave-approvals",
+      });
+    }
+    return deadlines.slice(0, 5);
+  }, [overdueFeeCount, classesNotMarked, pendingExpenses, pendingLeave]);
+
+  const recentAuditEvents = useMemo(() => {
+    const events: {
+      action: string;
+      detail: string;
+      time: string;
+      icon: string;
+      color: string;
+    }[] = [];
+    payments.slice(0, 3).forEach((payment: any) => {
+      events.push({
+        action: "Payment received",
+        detail: `${payment.students?.first_name || "Student"} ${payment.students?.last_name || ""} · UGX ${formatCurrency(payment.amount_paid)}`,
+        time: payment.payment_date || "Today",
+        icon: "payments",
+        color: "var(--green)",
+      });
+    });
+    if (smsStats.sentToday > 0) {
+      events.push({
+        action: "SMS sent",
+        detail: `${smsStats.sentToday} messages delivered`,
+        time: "Today",
+        icon: "sms",
+        color: "#2563eb",
+      });
+    }
+    if (pendingLeave > 0) {
+      events.push({
+        action: "Leave request submitted",
+        detail: `${pendingLeave} pending review`,
+        time: "Recent",
+        icon: "event_busy",
+        color: "var(--amber)",
+      });
+    }
+    return events.slice(0, 5);
+  }, [payments, smsStats, pendingLeave]);
+
   return (
     <div className="content">
       <div className="page-header">
@@ -196,22 +310,187 @@ function HeadmasterDashboardContent() {
           <div className="ph-title truncate">
             {greeting}, {user?.full_name?.split(" ")[0]}
           </div>
-            <div className="ph-sub truncate">
-              {school?.name} • {academicYear} Term {currentTerm} • {currentDate.toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
-            </div>
+          <div className="ph-sub truncate">
+            {school?.name} • {academicYear} Term {currentTerm} • {todayDayName},{" "}
+            {todayFormatted}
+          </div>
         </div>
         <div className="ph-actions">
           <Link href="/dashboard/reports" className="btn btn-ghost">
             <MaterialIcon icon="download" style={{ fontSize: "16px" }} />
-            Generate Report
+            <span className="hidden sm:inline">Generate Report</span>
           </Link>
           <Link
             href="/dashboard/students?action=add"
             className="btn btn-primary"
           >
             <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
-            Add Student
+            <span className="hidden sm:inline">Add Student</span>
           </Link>
+        </div>
+      </div>
+
+      {/* Quick Actions Bar - Top of Dashboard */}
+      <div className="quick-actions-bar">
+        <Link href="/dashboard/attendance" className="qa-large">
+          <div
+            className="qa-large-icon"
+            style={{ background: "var(--green-soft)", color: "var(--green)" }}
+          >
+            <MaterialIcon icon="how_to_reg" style={{ fontSize: "24px" }} />
+          </div>
+          <span className="qa-large-label">Take Attendance</span>
+        </Link>
+        <Link href="/dashboard/grades" className="qa-large">
+          <div
+            className="qa-large-icon"
+            style={{ background: "var(--navy-soft)", color: "var(--navy)" }}
+          >
+            <MaterialIcon icon="edit_note" style={{ fontSize: "24px" }} />
+          </div>
+          <span className="qa-large-label">Enter Grades</span>
+        </Link>
+        <Link href="/dashboard/fees" className="qa-large">
+          <div
+            className="qa-large-icon"
+            style={{ background: "var(--amber-soft)", color: "var(--amber)" }}
+          >
+            <MaterialIcon icon="payments" style={{ fontSize: "24px" }} />
+          </div>
+          <span className="qa-large-label">Record Payment</span>
+        </Link>
+        <Link href="/dashboard/bulk-sms" className="qa-large">
+          <div
+            className="qa-large-icon"
+            style={{ background: "rgba(37,99,235,0.1)", color: "#2563eb" }}
+          >
+            <MaterialIcon icon="sms" style={{ fontSize: "24px" }} />
+          </div>
+          <span className="qa-large-label">Send SMS</span>
+        </Link>
+      </div>
+
+      {/* Today's Overview */}
+      <div className="today-overview">
+        <div className="today-overview-header">
+          <MaterialIcon
+            icon="today"
+            style={{ fontSize: "18px", color: "var(--navy)" }}
+          />
+          <span>Today's Overview</span>
+          {(() => {
+            const overviewCount =
+              classesToday.length +
+              totalPendingApprovals +
+              upcomingDeadlines.length;
+            return overviewCount > 0 ? (
+              <span className="today-overview-badge">
+                {overviewCount} items
+              </span>
+            ) : null;
+          })()}
+        </div>
+        <div className="today-overview-grid">
+          <div className="today-overview-card">
+            <div
+              className="today-overview-card-icon"
+              style={{ background: "var(--green-soft)", color: "var(--green)" }}
+            >
+              <MaterialIcon
+                icon="calendar_month"
+                style={{ fontSize: "16px" }}
+              />
+            </div>
+            <div className="today-overview-card-body">
+              <div className="today-overview-card-value">
+                {loadingExtra ? "..." : classesToday.length || classes.length}
+              </div>
+              <div className="today-overview-card-label">
+                Classes {classesToday.length > 0 ? "scheduled" : "total"}
+              </div>
+            </div>
+            <Link
+              href="/dashboard/timetable"
+              className="today-overview-card-link"
+            >
+              <MaterialIcon icon="arrow_forward" style={{ fontSize: "16px" }} />
+            </Link>
+          </div>
+          <div className="today-overview-card">
+            <div
+              className="today-overview-card-icon"
+              style={{
+                background:
+                  totalPendingApprovals > 0
+                    ? "var(--red-soft)"
+                    : "var(--navy-soft)",
+                color: totalPendingApprovals > 0 ? "var(--red)" : "var(--navy)",
+              }}
+            >
+              <MaterialIcon icon="approval" style={{ fontSize: "16px" }} />
+            </div>
+            <div className="today-overview-card-body">
+              <div
+                className="today-overview-card-value"
+                style={{
+                  color:
+                    totalPendingApprovals > 0 ? "var(--red)" : "var(--green)",
+                }}
+              >
+                {loadingExtra ? "..." : totalPendingApprovals}
+              </div>
+              <div className="today-overview-card-label">Pending approvals</div>
+            </div>
+            <Link
+              href={
+                pendingExpenses > 0
+                  ? "/dashboard/expense-approvals"
+                  : "/dashboard/leave-approvals"
+              }
+              className="today-overview-card-link"
+            >
+              <MaterialIcon icon="arrow_forward" style={{ fontSize: "16px" }} />
+            </Link>
+          </div>
+          <div className="today-overview-card">
+            <div
+              className="today-overview-card-icon"
+              style={{
+                background:
+                  upcomingDeadlines.length > 0
+                    ? "var(--amber-soft)"
+                    : "var(--green-soft)",
+                color:
+                  upcomingDeadlines.length > 0
+                    ? "var(--amber)"
+                    : "var(--green)",
+              }}
+            >
+              <MaterialIcon icon="flag" style={{ fontSize: "16px" }} />
+            </div>
+            <div className="today-overview-card-body">
+              <div
+                className="today-overview-card-value"
+                style={{
+                  color:
+                    upcomingDeadlines.length > 0
+                      ? "var(--amber)"
+                      : "var(--green)",
+                }}
+              >
+                {upcomingDeadlines.length}
+              </div>
+              <div className="today-overview-card-label">
+                Upcoming deadlines
+              </div>
+            </div>
+            <Link
+              href={upcomingDeadlines[0]?.link || "/dashboard/fees"}
+              className="today-overview-card-link"
+            >
+              <MaterialIcon icon="arrow_forward" style={{ fontSize: "16px" }} />
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -219,7 +498,7 @@ function HeadmasterDashboardContent() {
         <OnboardingTips schoolId={school?.id} />
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="focus-grid">
         {focusItems.map((item) => (
           <Link
             key={item.id}
@@ -229,14 +508,21 @@ function HeadmasterDashboardContent() {
                 ? "border-amber/30 bg-amber-soft/50"
                 : "border-outline-variant bg-surface-lowest"
             }`}
-            style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}
+            style={{
+              boxShadow:
+                "0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
+            }}
           >
-            <div className="stat-accent" style={{ background: item.status === "alert" ? "var(--amber)" : "var(--navy)" }} />
+            <div
+              className="stat-accent"
+              style={{
+                background:
+                  item.status === "alert" ? "var(--amber)" : "var(--navy)",
+              }}
+            />
             <div className="stat-inner">
               <div className="flex items-center justify-between">
-                <p className="stat-label">
-                  {item.label}
-                </p>
+                <p className="stat-label">{item.label}</p>
                 {item.status === "alert" && (
                   <span
                     className="flex h-2 w-2 rounded-full bg-amber animate-pulse"
@@ -256,7 +542,14 @@ function HeadmasterDashboardContent() {
       </div>
 
       <div className="stat-grid">
-        <Link href="/dashboard/attendance" className="stat-card" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
+        <Link
+          href="/dashboard/attendance"
+          className="stat-card"
+          style={{
+            boxShadow:
+              "0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
+          }}
+        >
           <div className="stat-accent" style={{ background: "var(--green)" }} />
           <div className="stat-inner">
             <div className="stat-meta">
@@ -280,11 +573,22 @@ function HeadmasterDashboardContent() {
                 : `${stats.presentToday || 0} / ${stats.totalStudents}`}
             </div>
             {(() => {
-              const boardingCount = students.filter((s: any) => s.boarding_status && s.boarding_status !== 'day').length;
+              const boardingCount = students.filter(
+                (s: any) => s.boarding_status && s.boarding_status !== "day",
+              ).length;
               if (boardingCount > 0) {
                 return (
-                  <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-                    <span style={{ fontSize: 10, padding: '2px 8px', background: 'rgba(155,89,182,0.15)', color: 'var(--navy)', borderRadius: 10, fontWeight: 600 }}>
+                  <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        padding: "2px 8px",
+                        background: "rgba(155,89,182,0.15)",
+                        color: "var(--navy)",
+                        borderRadius: 10,
+                        fontWeight: 600,
+                      }}
+                    >
                       {boardingCount} boarders
                     </span>
                   </div>
@@ -349,7 +653,14 @@ function HeadmasterDashboardContent() {
           </div>
         </Link>
 
-        <Link href="/dashboard/fees" className="stat-card" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
+        <Link
+          href="/dashboard/fees"
+          className="stat-card"
+          style={{
+            boxShadow:
+              "0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
+          }}
+        >
           <div className="stat-accent" style={{ background: "var(--amber)" }} />
           <div className="stat-inner">
             <div className="stat-meta">
@@ -442,7 +753,14 @@ function HeadmasterDashboardContent() {
           </div>
         </Link>
 
-        <Link href="/dashboard/expense-approvals" className="stat-card" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
+        <Link
+          href="/dashboard/expense-approvals"
+          className="stat-card"
+          style={{
+            boxShadow:
+              "0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
+          }}
+        >
           <div
             className="stat-accent"
             style={{
@@ -521,7 +839,14 @@ function HeadmasterDashboardContent() {
           </div>
         </Link>
 
-        <Link href="/dashboard/staff-attendance" className="stat-card" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
+        <Link
+          href="/dashboard/staff-attendance"
+          className="stat-card"
+          style={{
+            boxShadow:
+              "0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
+          }}
+        >
           <div className="stat-accent" style={{ background: "var(--navy)" }} />
           <div className="stat-inner">
             <div className="stat-meta">
@@ -579,7 +904,14 @@ function HeadmasterDashboardContent() {
 
       <div className="main-grid">
         <div className="main-col">
-          <div className="card" style={{ padding: 16, boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
+          <div
+            className="card"
+            style={{
+              padding: 16,
+              boxShadow:
+                "0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
+            }}
+          >
             <div className="card-header">
               <div>
                 <div className="card-title">Quick Actions</div>
@@ -663,7 +995,14 @@ function HeadmasterDashboardContent() {
             </div>
           </div>
 
-          <div className="card" style={{ padding: 16, boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
+          <div
+            className="card"
+            style={{
+              padding: 16,
+              boxShadow:
+                "0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
+            }}
+          >
             <div className="card-header">
               <div>
                 <div className="card-title">Class Attendance · Today</div>
@@ -713,12 +1052,21 @@ function HeadmasterDashboardContent() {
                         color,
                       }}
                     >
-                      {cls.name.substring(0, 3).toUpperCase()}{cls.stream ? cls.stream.toUpperCase() : ''}
+                      {cls.name.substring(0, 3).toUpperCase()}
+                      {cls.stream ? cls.stream.toUpperCase() : ""}
                     </div>
                     <div className="att-info">
-                      <div className="att-name">{cls.name}{cls.stream ? ` ${cls.stream}` : ''}</div>
+                      <div className="att-name">
+                        {cls.name}
+                        {cls.stream ? ` ${cls.stream}` : ""}
+                      </div>
                       <div className="att-meta">
-                        {classStudents} students · {cls.class_teacher_id ? staff.find(s => s.id === cls.class_teacher_id)?.full_name?.split(' ')[0] || 'Teacher' : 'No teacher'}
+                        {classStudents} students ·{" "}
+                        {cls.class_teacher_id
+                          ? staff
+                              .find((s) => s.id === cls.class_teacher_id)
+                              ?.full_name?.split(" ")[0] || "Teacher"
+                          : "No teacher"}
                       </div>
                     </div>
                     <div className="att-bar-col">
@@ -748,7 +1096,14 @@ function HeadmasterDashboardContent() {
             </div>
           </div>
 
-          <div className="card" style={{ padding: 16, boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
+          <div
+            className="card"
+            style={{
+              padding: 16,
+              boxShadow:
+                "0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
+            }}
+          >
             <div className="card-header">
               <div>
                 <div className="card-title">Recent Activity</div>
@@ -784,7 +1139,8 @@ function HeadmasterDashboardContent() {
                       {payment.students?.last_name}
                     </div>
                     <div className="act-sub">
-                      UGX {formatCurrency(payment.amount_paid)} · {payment.payment_method || 'Cash'}
+                      UGX {formatCurrency(payment.amount_paid)} ·{" "}
+                      {payment.payment_method || "Cash"}
                     </div>
                   </div>
                   <div className="act-time">
@@ -801,9 +1157,13 @@ function HeadmasterDashboardContent() {
                 </div>
                 <div className="act-body">
                   <div className="act-title">Fee payment recorded</div>
-                  <div className="act-sub">From {payments[0]?.students?.first_name || 'Student'}</div>
+                  <div className="act-sub">
+                    From {payments[0]?.students?.first_name || "Student"}
+                  </div>
                 </div>
-                <div className="act-time">{payments[0]?.payment_date || "Today"}</div>
+                <div className="act-time">
+                  {payments[0]?.payment_date || "Today"}
+                </div>
               </div>
             </div>
           </div>
@@ -1115,7 +1475,14 @@ function HeadmasterDashboardContent() {
             </div>
           </div>
 
-          <div className="card" style={{ padding: 16, boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)' }}>
+          <div
+            className="card"
+            style={{
+              padding: 16,
+              boxShadow:
+                "0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
+            }}
+          >
             <div className="card-header">
               <div>
                 <div className="card-title">Academic Term</div>

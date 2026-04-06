@@ -325,6 +325,69 @@
   }
 
   /* -- UTILITIES -- */
+
+  /* Quick Actions Bar - Large top-of-dashboard buttons */
+  .quick-actions-bar {
+    @apply grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6;
+  }
+  .qa-large {
+    @apply flex flex-col items-center justify-center gap-2 p-4 sm:p-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] transition-all hover:bg-[var(--bg)] hover:border-[var(--border2)] hover:shadow-[var(--sh3)] active:scale-[0.96] cursor-pointer;
+    text-decoration: none;
+    min-height: 88px;
+  }
+  .qa-large-icon {
+    @apply w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center;
+  }
+  .qa-large-label {
+    @apply text-[12px] sm:text-[13px] font-bold text-[var(--t1)] text-center tracking-tight;
+  }
+
+  /* Today's Overview Section */
+  .today-overview {
+    @apply mb-6;
+  }
+  .today-overview-header {
+    @apply flex items-center gap-2 mb-3;
+    font-family: "Sora", sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--t1);
+  }
+  .today-overview-badge {
+    @apply ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold;
+    background: var(--navy-soft);
+    color: var(--navy);
+  }
+  .today-overview-grid {
+    @apply grid grid-cols-1 sm:grid-cols-3 gap-3;
+  }
+  .today-overview-card {
+    @apply flex items-center gap-3 p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] transition-all hover:bg-[var(--bg)] active:scale-[0.98];
+  }
+  .today-overview-card-icon {
+    @apply w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0;
+  }
+  .today-overview-card-body {
+    @apply flex-1 min-w-0;
+  }
+  .today-overview-card-value {
+    @apply text-xl font-extrabold text-[var(--t1)] tracking-tight leading-none;
+    font-family: "Sora", sans-serif;
+  }
+  .today-overview-card-label {
+    @apply text-[11px] text-[var(--t3)] font-medium mt-1 truncate;
+  }
+  .today-overview-card-link {
+    @apply flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-[var(--t4)] transition-colors hover:bg-[var(--bg)] hover:text-[var(--t2)];
+    text-decoration: none;
+  }
+
+  /* Focus Items Grid (replaces grid-cols-1 md:grid-cols-3) */
+  .focus-grid {
+    @apply grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6;
+  }
+
+  /* -- UTILITIES -- */
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
