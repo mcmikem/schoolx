@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import {
@@ -12,6 +12,7 @@ import {
 import { useToast } from "@/components/Toast";
 import { useFormDraft } from "@/lib/useAutoSave";
 import { PAYMENT_METHODS } from "@/lib/constants";
+import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import FeeStats from "@/components/fees/FeeStats";
 import { StudentBalance } from "@/components/fees/FeeTable";
@@ -23,15 +24,42 @@ import InvoiceModal from "@/components/fees/InvoiceModal";
 import AdjustmentModal from "@/components/fees/AdjustmentModal";
 import { PageHeader, PageSection } from "@/components/ui/PageHeader";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
+import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { TableSkeleton, FullPageLoader } from "@/components/ui/Skeleton";
 import { EmptyState, NoData } from "@/components/EmptyState";
 import { calculateStudentFeePosition } from "@/lib/operations";
 
-export default function FeesPage() {
+interface PaymentPlan {
+  id: string;
+  student_id: string;
+  total_amount: number;
+  installments: number;
+  start_date: string;
+  status: "active" | "completed" | "defaulted";
+  students?: {
+    first_name: string;
+    last_name: string;
+    classes: { name: string };
+  };
+}
+
+interface Installment {
+  id: string;
+  plan_id: string;
+  due_date: string;
+  amount: number;
+  paid: boolean;
+  paid_date?: string;
+}
+
+type FinanceTab = "balances" | "payment-plans" | "invoices" | "cashbook";
+
+export default function FinanceHubPage() {
   const { school } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
+
   const { students } = useStudents(school?.id);
   const { classes } = useClasses(school?.id);
   const { payments, createPayment, deletePayment } = useFeePayments(school?.id);
@@ -42,7 +70,7 @@ export default function FeesPage() {
   );
   const receiptRef = useRef<HTMLDivElement>(null);
 
-  const [tab, setTab] = useState<"balances" | "payments" | "structure">("balances");
+  const [tab, setTab] = useState<FinanceTab>("balances");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
@@ -57,6 +85,7 @@ export default function FeesPage() {
   >("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [saving, setSaving] = useState(false);
+  const [sendingReminders, setSendingReminders] = useState(false);
 
   const feeDraft = useFormDraft("fee_add_form");
   const [newFee, setNewFee] = useState({
@@ -67,13 +96,6 @@ export default function FeesPage() {
     due_date: "",
   });
 
-  const handleNewFeeChange = (updates: Partial<typeof newFee>) => {
-    setNewFee((prev) => {
-      const newState = { ...prev, ...updates };
-      feeDraft.updateData(newState);
-      return newState;
-    });
-  };
   const [newPayment, setNewPayment] = useState<{
     student_id: string;
     amount_paid: string;
@@ -93,6 +115,7 @@ export default function FeesPage() {
     paid_by: "",
     notes: "",
   });
+
   const [newAdjustment, setNewAdjustment] = useState<{
     student_id: string;
     adjustment_type:
@@ -111,7 +134,68 @@ export default function FeesPage() {
     description: "",
   });
 
+  const [plans, setPlans] = useState<PaymentPlan[]>([]);
+  const [planStudents, setPlanStudents] = useState<any[]>([]);
+  const [plansLoading, setPlansLoading] = useState(true);
+  const [selectedPlan, setSelectedPlan] = useState<PaymentPlan | null>(null);
+  const [installments, setInstallments] = useState<Installment[]>([]);
+  const [showCreatePlan, setShowCreatePlan] = useState(false);
+  const [newPlan, setNewPlan] = useState({
+    student_id: "",
+    total_amount: 0,
+    installments: 3,
+    start_date: new Date().toISOString().split("T")[0],
+  });
+
+  const [invoiceClassFilter, setInvoiceClassFilter] = useState("all");
+  const [cashbookDateFilter, setCashbookDateFilter] = useState("today");
+
   const formatCurrency = (amount: number) => `UGX ${amount.toLocaleString()}`;
+
+  const fetchPlans = useCallback(async () => {
+    if (!school?.id) return;
+    setPlansLoading(true);
+    const { data } = await supabase
+      .from("payment_plans")
+      .select("*, students(first_name, last_name, classes(name))")
+      .eq("school_id", school.id)
+      .order("created_at", { ascending: false });
+    setPlans(data || []);
+    setPlansLoading(false);
+  }, [school?.id]);
+
+  const fetchPlanStudents = useCallback(async () => {
+    if (!school?.id) return;
+    const { data } = await supabase
+      .from("students")
+      .select("id, first_name, last_name, classes(name)")
+      .eq("school_id", school.id)
+      .eq("status", "active");
+    setPlanStudents(data || []);
+  }, [school?.id]);
+
+  const fetchInstallments = useCallback(async () => {
+    if (!selectedPlan) return;
+    const { data } = await supabase
+      .from("payment_plan_installments")
+      .select("*")
+      .eq("plan_id", selectedPlan.id)
+      .order("due_date");
+    setInstallments(data || []);
+  }, [selectedPlan]);
+
+  useEffect(() => {
+    if (school?.id) {
+      fetchPlans();
+      fetchPlanStudents();
+    }
+  }, [school?.id, fetchPlans, fetchPlanStudents]);
+
+  useEffect(() => {
+    if (selectedPlan) {
+      fetchInstallments();
+    }
+  }, [selectedPlan, fetchInstallments]);
 
   const studentBalances: StudentBalance[] = useMemo(() => {
     return students.map((student) => {
@@ -119,12 +203,9 @@ export default function FeesPage() {
       const studentPayments = payments.filter(
         (p) => p.student_id === student.id,
       );
-
-      // Filter fees by class_id (null = applies to all) or no class filter exists
       const applicableFees = feeStructure.filter(
         (f) => f.class_id === null || f.class_id === studentClassId,
       );
-
       const studentAdjustments = adjustments.filter(
         (a) => a.student_id === student.id,
       );
@@ -142,7 +223,9 @@ export default function FeesPage() {
         id: student.id,
         name: `${student.first_name} ${student.last_name}`,
         student_number: student.student_number || "",
-        class_name: student.classes?.name ? `${student.classes.name}${student.classes.stream ? ` ${student.classes.stream}` : ''}` : "",
+        class_name: student.classes?.name
+          ? `${student.classes.name}${student.classes.stream ? ` ${student.classes.stream}` : ""}`
+          : "",
         expected: feePosition.totalExpected,
         paid: feePosition.totalPaid,
         balance: feePosition.balance,
@@ -216,6 +299,120 @@ export default function FeesPage() {
       bankTotal,
     };
   }, [studentBalances, payments]);
+
+  const invoices = useMemo(() => {
+    return students.map((student) => {
+      const studentFeeItems = feeStructure.filter(
+        (f) => !f.class_id || f.class_id === student.class_id,
+      );
+      const feeItems = studentFeeItems.map((f) => ({
+        name: f.name,
+        amount: Number(f.amount),
+      }));
+      const totalAmount = feeItems.reduce((sum, f) => sum + f.amount, 0);
+      const amountPaid = payments
+        .filter((p) => p.student_id === student.id)
+        .reduce((sum, p) => sum + Number(p.amount_paid), 0);
+      return {
+        student_id: student.id,
+        student_name: `${student.first_name} ${student.last_name}`,
+        student_number: student.student_number || "",
+        class_name: student.classes?.name || "",
+        fee_items: feeItems,
+        total_amount: totalAmount,
+        amount_paid: amountPaid,
+        balance: Math.max(0, totalAmount - amountPaid),
+        class_id: student.class_id,
+      };
+    });
+  }, [students, feeStructure, payments]);
+
+  const filteredInvoices = useMemo(() => {
+    if (invoiceClassFilter === "all") return invoices;
+    return invoices.filter((i) => i.class_id === invoiceClassFilter);
+  }, [invoices, invoiceClassFilter]);
+
+  const invoiceStats = useMemo(
+    () => ({
+      totalInvoiced: filteredInvoices.reduce(
+        (sum, i) => sum + i.total_amount,
+        0,
+      ),
+      totalCollected: filteredInvoices.reduce(
+        (sum, i) => sum + i.amount_paid,
+        0,
+      ),
+      totalBalance: filteredInvoices.reduce((sum, i) => sum + i.balance, 0),
+      fullyPaid: filteredInvoices.filter((i) => i.balance === 0).length,
+      hasBalance: filteredInvoices.filter((i) => i.balance > 0).length,
+    }),
+    [filteredInvoices],
+  );
+
+  const filteredCashbookPayments = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return payments.filter((p) => {
+      const paymentDate = new Date(p.payment_date);
+      paymentDate.setHours(0, 0, 0, 0);
+      if (cashbookDateFilter === "today") {
+        return paymentDate.getTime() === today.getTime();
+      } else if (cashbookDateFilter === "week") {
+        const weekAgo = new Date(today);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        return paymentDate >= weekAgo;
+      } else if (cashbookDateFilter === "month") {
+        return (
+          paymentDate.getMonth() === today.getMonth() &&
+          paymentDate.getFullYear() === today.getFullYear()
+        );
+      }
+      return true;
+    });
+  }, [payments, cashbookDateFilter]);
+
+  const cashbookSummary = useMemo(() => {
+    const cash = filteredCashbookPayments.filter(
+      (p) => p.payment_method === "cash",
+    );
+    const momo = filteredCashbookPayments.filter(
+      (p) => p.payment_method === "mobile_money",
+    );
+    const bank = filteredCashbookPayments.filter(
+      (p) => p.payment_method === "bank",
+    );
+    return {
+      total: filteredCashbookPayments.reduce(
+        (sum, p) => sum + Number(p.amount_paid),
+        0,
+      ),
+      cash: cash.reduce((sum, p) => sum + Number(p.amount_paid), 0),
+      momo: momo.reduce((sum, p) => sum + Number(p.amount_paid), 0),
+      bank: bank.reduce((sum, p) => sum + Number(p.amount_paid), 0),
+      count: filteredCashbookPayments.length,
+    };
+  }, [filteredCashbookPayments]);
+
+  const activePlanCount = plans.filter((p) => p.status === "active").length;
+  const completedPlanCount = plans.filter(
+    (p) => p.status === "completed",
+  ).length;
+  const totalOutstanding = plans
+    .filter((p) => p.status === "active")
+    .reduce((sum, p) => {
+      const planInstallments = installments.filter(
+        (i) => i.plan_id === p.id && !i.paid,
+      );
+      return sum + planInstallments.reduce((s, i) => s + i.amount, 0);
+    }, 0);
+
+  const handleNewFeeChange = (updates: Partial<typeof newFee>) => {
+    setNewFee((prev) => {
+      const newState = { ...prev, ...updates };
+      feeDraft.updateData(newState);
+      return newState;
+    });
+  };
 
   const handleRecordPayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -353,7 +550,8 @@ export default function FeesPage() {
         .replace(/'/g, "&#039;");
 
     if (printWindow) {
-      printWindow.document.write(`<html><head><title>Invoice</title><style>
+      printWindow.document.write(
+        `<html><head><title>Invoice</title><style>
         body{font-family:Arial,sans-serif;padding:20px;max-width:600px;margin:0 auto}
         .header{text-align:center;border-bottom:2px solid ${schoolColor};padding-bottom:15px;margin-bottom:15px}
         .logo{max-width:80px;max-height:60px;margin-bottom:10px}
@@ -383,7 +581,8 @@ export default function FeesPage() {
         <div class="footer">
           <div>This invoice is generated by Omuto SMS</div>
         </div>
-      </body></html>`);
+      </body></html>`,
+      );
       printWindow.document.close();
       printWindow.print();
     }
@@ -405,8 +604,8 @@ export default function FeesPage() {
           .replace(/'/g, "&#039;");
 
       if (printWindow) {
-        printWindow.document
-          .write(`<html><head><title>Fee Receipt</title><style>
+        printWindow.document.write(
+          `<html><head><title>Fee Receipt</title><style>
           body{font-family:Arial,sans-serif;padding:20px;max-width:400px;margin:0 auto}
           .header{text-align:center;border-bottom:2px solid ${schoolColor};padding-bottom:15px;margin-bottom:15px}
           .logo{max-width:80px;max-height:60px;margin-bottom:10px}
@@ -431,7 +630,8 @@ export default function FeesPage() {
             <div class="thank-you">Thank you for your payment!</div>
             <div>Powered by Omuto SMS</div>
           </div>
-        </body></html>`);
+        </body></html>`,
+        );
         printWindow.document.close();
         printWindow.print();
       }
@@ -461,7 +661,6 @@ export default function FeesPage() {
       toast.error("Please complete all adjustment fields");
       return;
     }
-
     try {
       setSaving(true);
       await createAdjustment({
@@ -499,20 +698,229 @@ export default function FeesPage() {
     }
   };
 
+  const createPlan = async () => {
+    if (!newPlan.student_id || newPlan.total_amount <= 0) {
+      toast.error("Please fill all fields");
+      return;
+    }
+    const installmentAmount = Math.round(
+      newPlan.total_amount / newPlan.installments,
+    );
+    const planData = {
+      school_id: school?.id,
+      student_id: newPlan.student_id,
+      total_amount: newPlan.total_amount,
+      installments: newPlan.installments,
+      start_date: newPlan.start_date,
+      status: "active",
+      academic_year: academicYear,
+    };
+    try {
+      const { data: plan, error } = await supabase
+        .from("payment_plans")
+        .insert(planData)
+        .select()
+        .single();
+      if (error) throw error;
+      const installmentData = [];
+      for (let i = 0; i < newPlan.installments; i++) {
+        const dueDate = new Date(newPlan.start_date);
+        dueDate.setMonth(dueDate.getMonth() + i);
+        installmentData.push({
+          plan_id: plan.id,
+          due_date: dueDate.toISOString().split("T")[0],
+          amount: installmentAmount,
+          paid: false,
+        });
+      }
+      await supabase.from("payment_plan_installments").insert(installmentData);
+      toast.success("Payment plan created");
+      setShowCreatePlan(false);
+      setNewPlan({
+        student_id: "",
+        total_amount: 0,
+        installments: 3,
+        start_date: new Date().toISOString().split("T")[0],
+      });
+      fetchPlans();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create plan");
+    }
+  };
+
+  const markInstallmentPaid = async (installmentId: string) => {
+    try {
+      await supabase
+        .from("payment_plan_installments")
+        .update({ paid: true, paid_date: new Date().toISOString() })
+        .eq("id", installmentId);
+      const updated = installments.map((i) =>
+        i.id === installmentId ? { ...i, paid: true } : i,
+      );
+      setInstallments(updated);
+      if (updated.every((i) => i.paid)) {
+        await supabase
+          .from("payment_plans")
+          .update({ status: "completed" })
+          .eq("id", selectedPlan?.id);
+      }
+      toast.success("Payment recorded");
+    } catch {
+      toast.error("Failed to record payment");
+    }
+  };
+
+  const printInvoice = (invoice: (typeof invoices)[number]) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    const escapeHtml = (s: string) =>
+      String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Invoice - ${escapeHtml(invoice.student_name)}</title>
+          <style>
+            * { font-family: Arial, sans-serif; margin: 0; padding: 0; box-sizing: border-box; }
+            body { padding: 20px; }
+            .invoice { max-width: 600px; margin: 0 auto; }
+            .header { background: #1e3a5f; color: white; padding: 20px; text-align: center; }
+            .school-name { font-size: 20px; font-weight: bold; }
+            .subtitle { font-size: 12px; margin-top: 4px; }
+            .info { padding: 15px; background: #f5f5f5; margin-bottom: 15px; }
+            .info-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; }
+            .info-label { color: #666; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+            th { background: #1e3a5f; color: white; padding: 10px; text-align: left; }
+            td { padding: 10px; border-bottom: 1px solid #eee; }
+            .total-row { font-weight: bold; background: #f0f9ff; }
+            .balance { text-align: right; padding: 15px; }
+            .balance-amount { font-size: 18px; font-weight: bold; color: ${invoice.balance > 0 ? "#dc2626" : "#16a34a"}; }
+            .footer { text-align: center; padding: 15px; font-size: 11px; color: #999; border-top: 1px solid #eee; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="invoice">
+            <div class="header">
+              <div class="school-name">${escapeHtml(school?.name || "School Name")}</div>
+              <div class="subtitle">Fee Invoice - Term ${currentTerm}, ${academicYear}</div>
+            </div>
+            <div class="info">
+              <div class="info-row"><span class="info-label">Student Name:</span><span>${escapeHtml(invoice.student_name)}</span></div>
+              <div class="info-row"><span class="info-label">Student Number:</span><span>${escapeHtml(invoice.student_number)}</span></div>
+              <div class="info-row"><span class="info-label">Class:</span><span>${escapeHtml(invoice.class_name)}</span></div>
+              <div class="info-row"><span class="info-label">Date:</span><span>${new Date().toLocaleDateString()}</span></div>
+            </div>
+            <table>
+              <thead><tr><th>Fee Item</th><th style="text-align: right;">Amount (UGX)</th></tr></thead>
+              <tbody>
+                ${invoice.fee_items.map((item) => `<tr><td>${escapeHtml(item.name)}</td><td style="text-align: right;">${item.amount.toLocaleString()}</td></tr>`).join("")}
+                <tr class="total-row"><td>Total</td><td style="text-align: right;">${invoice.total_amount.toLocaleString()}</td></tr>
+                <tr><td>Paid</td><td style="text-align: right; color: green;">${invoice.amount_paid.toLocaleString()}</td></tr>
+              </tbody>
+            </table>
+            <div class="balance">
+              <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Balance Due</div>
+              <div class="balance-amount">${formatCurrency(invoice.balance)}</div>
+            </div>
+            <div class="footer">Thank you for your payment. Please present this invoice when making payments.</div>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  const sendInvoiceSMS = async (invoice: (typeof invoices)[number]) => {
+    try {
+      const student = students.find((s) => s.id === invoice.student_id);
+      if (!student?.parent_phone) {
+        toast.error("No parent phone number");
+        return;
+      }
+      const message = `Dear Parent, ${invoice.student_name} (${invoice.student_number}) fee invoice: Total ${formatCurrency(invoice.total_amount)}, Paid ${formatCurrency(invoice.amount_paid)}, Balance ${formatCurrency(invoice.balance)}. ${school?.name}`;
+      await fetch("/api/sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: student.parent_phone,
+          message,
+          schoolId: school?.id,
+        }),
+      });
+      toast.success("Invoice sent via SMS");
+    } catch {
+      toast.error("Failed to send SMS");
+    }
+  };
+
+  const exportCashbookCSV = () => {
+    const headers = ["Date", "Student", "Amount", "Method", "Reference"];
+    const rows = filteredCashbookPayments.map((p) => [
+      p.payment_date,
+      `${(p as { students?: { first_name?: string; last_name?: string } }).students?.first_name || ""} ${(p as { students?: { first_name?: string; last_name?: string } }).students?.last_name || ""}`,
+      String(p.amount_paid),
+      p.payment_method,
+      p.payment_reference || "",
+    ]);
+    const csv = [headers, ...rows]
+      .map((r) => r.map((c) => `"${c}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `cashbook_${cashbookDateFilter}.csv`;
+    a.click();
+  };
+
+  const handleAutoFeeReminders = async () => {
+    if (!school?.id) {
+      toast.error("School not found");
+      return;
+    }
+    setSendingReminders(true);
+    try {
+      const res = await fetch("/api/automation/auto-fee-reminder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ schoolId: school.id }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(
+          `Reminders sent: ${data.summary.remindersSent} sent, ${data.summary.skipped} skipped, ${data.summary.errors} errors`,
+        );
+      } else {
+        toast.error(data.error || "Failed to send reminders");
+      }
+    } catch {
+      toast.error("Failed to send fee reminders");
+    } finally {
+      setSendingReminders(false);
+    }
+  };
+
   return (
     <div className="content">
       <PageHeader
-        title="Fee Management"
-        subtitle={`${students.length} students • Term ${currentTerm}, ${academicYear}`}
+        title="Finance Hub"
+        subtitle={`Term ${currentTerm}, ${academicYear}`}
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowInvoiceModal(true)}
+              onClick={handleAutoFeeReminders}
+              disabled={sendingReminders}
             >
-              <MaterialIcon icon="receipt_long" />
-              Generate Invoice
+              <MaterialIcon icon="notifications_active" />
+              {sendingReminders ? "Sending..." : "Auto Fee Reminders"}
             </Button>
             <Button
               variant="ghost"
@@ -534,65 +942,82 @@ export default function FeesPage() {
         }
       />
 
-      <FeeStats stats={stats} paymentsCount={payments.length} />
-
-      <div className="bg-surface-container-low rounded-xl p-6">
-        <div className="flex flex-col lg:flex-row gap-4 items-center">
-          <div className="relative w-full lg:flex-1">
-            <MaterialIcon
-              icon="search"
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant"
-            />
-            <input
-              type="text"
-              placeholder="Search by name or student number..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-surface-container-lowest border-none rounded-xl py-3 pl-12 pr-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 transition-all"
-            />
-          </div>
-          <div className="flex gap-3 w-full lg:w-auto overflow-x-auto no-scrollbar">
-            <select
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-              className="bg-surface-container-lowest border-none rounded-xl py-3 px-4 text-xs font-bold text-primary cursor-pointer min-w-[140px]"
-            >
-              <option value="all">All Classes</option>
-              {classes.map((c) => (
-                <option key={c.id} value={c.name}>
-                  {c.name}{c.stream ? ` ${c.stream}` : ''}
-                </option>
-              ))}
-            </select>
-            <select
-              value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(e.target.value as typeof statusFilter)
-              }
-              className="bg-surface-container-lowest border-none rounded-xl py-3 px-4 text-xs font-bold text-primary cursor-pointer min-w-[150px]"
-            >
-              <option value="all">All Statuses</option>
-              <option value="unpaid">Unpaid</option>
-              <option value="partial">Partial</option>
-              <option value="paid">Paid</option>
-              <option value="written_off">Written Off</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
       <Tabs
         tabs={[
           { id: "balances", label: "Balances" },
-          { id: "payments", label: "Payments" },
-          { id: "structure", label: "Fee Structure" },
+          { id: "payment-plans", label: "Payment Plans" },
+          { id: "invoices", label: "Invoices" },
+          { id: "cashbook", label: "Cashbook" },
         ]}
         activeTab={tab}
-        onChange={(id) => setTab(id as typeof tab)}
+        onChange={(id) => setTab(id as FinanceTab)}
         className="mb-6"
       />
 
       <TabPanel activeTab={tab} tabId="balances">
+        <FeeStats stats={stats} paymentsCount={payments.length} />
+
+        <div className="bg-surface-container-low rounded-xl p-6 mb-6">
+          <div className="flex flex-col lg:flex-row gap-4 items-center">
+            <div className="relative w-full lg:flex-1">
+              <MaterialIcon
+                icon="search"
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant"
+              />
+              <input
+                type="text"
+                placeholder="Search by name or student number..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-surface-container-lowest border-none rounded-xl py-3 pl-12 pr-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 transition-all"
+              />
+            </div>
+            <div className="flex gap-3 w-full lg:w-auto overflow-x-auto no-scrollbar">
+              <select
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
+                className="bg-surface-container-lowest border-none rounded-xl py-3 px-4 text-xs font-bold text-primary cursor-pointer min-w-[140px]"
+              >
+                <option value="all">All Classes</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                    {c.stream ? ` ${c.stream}` : ""}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={statusFilter}
+                onChange={(e) =>
+                  setStatusFilter(e.target.value as typeof statusFilter)
+                }
+                className="bg-surface-container-lowest border-none rounded-xl py-3 px-4 text-xs font-bold text-primary cursor-pointer min-w-[150px]"
+              >
+                <option value="all">All Statuses</option>
+                <option value="unpaid">Unpaid</option>
+                <option value="partial">Partial</option>
+                <option value="paid">Paid</option>
+                <option value="written_off">Written Off</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <Tabs
+          tabs={[
+            { id: "balances", label: "Balances" },
+            { id: "payments", label: "Payments" },
+            { id: "structure", label: "Fee Structure" },
+          ]}
+          activeTab={tab === "balances" ? "balances" : "payments"}
+          onChange={(id) => {
+            if (id === "structure") {
+              setShowFeeModal(true);
+            }
+          }}
+          className="mb-6"
+        />
+
         {filteredBalances.length === 0 ? (
           <NoData
             title="No student balances"
@@ -604,10 +1029,24 @@ export default function FeesPage() {
             onViewReceipt={handleViewReceipt}
           />
         )}
-      </TabPanel>
 
-      <TabPanel activeTab={tab} tabId="payments">
-        <div className="space-y-6">
+        <PageSection className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-semibold text-on-surface">Payments</h3>
+              <p className="text-sm text-on-surface-variant">
+                Recent payment transactions
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowPaymentModal(true)}
+            >
+              <MaterialIcon icon="add" />
+              Add Payment
+            </Button>
+          </div>
           <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
@@ -670,30 +1109,33 @@ export default function FeesPage() {
               </table>
             </div>
           </div>
-          <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-outline-variant/10 flex items-center justify-between">
-              <div>
-                <div className="font-semibold text-on-surface">
-                  Recent Adjustments
-                </div>
-                <div className="text-sm text-on-surface-variant">
-                  Non-cash items that affect balances and revenue projections
-                </div>
-              </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setShowAdjustmentModal(true)}
-              >
-                <MaterialIcon icon="add" />
-                Add Adjustment
-              </Button>
+        </PageSection>
+
+        <PageSection className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-semibold text-on-surface">
+                Recent Adjustments
+              </h3>
+              <p className="text-sm text-on-surface-variant">
+                Non-cash items that affect balances
+              </p>
             </div>
-            {adjustments.length === 0 ? (
-              <div className="p-6 text-sm text-on-surface-variant">
-                No adjustments recorded.
-              </div>
-            ) : (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowAdjustmentModal(true)}
+            >
+              <MaterialIcon icon="add" />
+              Add Adjustment
+            </Button>
+          </div>
+          {adjustments.length === 0 ? (
+            <div className="p-6 text-sm text-on-surface-variant">
+              No adjustments recorded.
+            </div>
+          ) : (
+            <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
                   <thead>
@@ -763,14 +1205,18 @@ export default function FeesPage() {
                   </tbody>
                 </table>
               </div>
-            )}
-          </div>
-        </div>
-      </TabPanel>
+            </div>
+          )}
+        </PageSection>
 
-      <TabPanel activeTab={tab} tabId="structure">
-        <div>
-          <div className="flex justify-end mb-4">
+        <PageSection className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-semibold text-on-surface">Fee Structure</h3>
+              <p className="text-sm text-on-surface-variant">
+                Fee items and amounts
+              </p>
+            </div>
             <Button
               variant="primary"
               size="sm"
@@ -836,6 +1282,619 @@ export default function FeesPage() {
               </div>
             </div>
           )}
+        </PageSection>
+      </TabPanel>
+
+      <TabPanel activeTab={tab} tabId="payment-plans">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardBody className="text-center">
+              <div className="text-2xl font-bold text-[var(--t1)]">
+                {plans.length}
+              </div>
+              <div className="text-sm text-[var(--t3)] mt-1">Total Plans</div>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody className="text-center">
+              <div className="text-2xl font-bold text-[var(--primary)]">
+                {activePlanCount}
+              </div>
+              <div className="text-sm text-[var(--t3)] mt-1">Active</div>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody className="text-center">
+              <div className="text-2xl font-bold text-[var(--green)]">
+                {completedPlanCount}
+              </div>
+              <div className="text-sm text-[var(--t3)] mt-1">Completed</div>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody className="text-center">
+              <div className="text-2xl font-bold text-[var(--amber)]">
+                {formatCurrency(totalOutstanding)}
+              </div>
+              <div className="text-sm text-[var(--t3)] mt-1">Outstanding</div>
+            </CardBody>
+          </Card>
+        </div>
+
+        <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-outline-variant/10 flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-on-surface">Payment Plans</h3>
+              <p className="text-sm text-on-surface-variant">
+                Installment plans for parents
+              </p>
+            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setShowCreatePlan(true)}
+            >
+              <MaterialIcon icon="add" />
+              Create Plan
+            </Button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-surface-container-low text-left">
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                    Student
+                  </th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                    Class
+                  </th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                    Total
+                  </th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                    Installments
+                  </th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                    Start Date
+                  </th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                    Status
+                  </th>
+                  <th className="px-6 py-4"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/5">
+                {plans.map((plan) => (
+                  <tr key={plan.id} className="hover:bg-surface-bright">
+                    <td className="px-6 py-4 font-medium">
+                      {plan.students?.first_name} {plan.students?.last_name}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-on-surface-variant">
+                      {plan.students?.classes?.name}
+                    </td>
+                    <td className="px-6 py-4 font-bold text-secondary">
+                      {formatCurrency(Number(plan.total_amount))}
+                    </td>
+                    <td className="px-6 py-4 text-sm">{plan.installments}</td>
+                    <td className="px-6 py-4 text-sm text-on-surface-variant">
+                      {new Date(plan.start_date).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-bold uppercase ${
+                          plan.status === "completed"
+                            ? "bg-green-100 text-green-800"
+                            : plan.status === "active"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {plan.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setSelectedPlan(plan)}
+                      >
+                        View
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+                {plans.length === 0 && !plansLoading && (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="text-center py-8 text-on-surface-variant"
+                    >
+                      No payment plans
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {showCreatePlan && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-md">
+              <h2 className="text-xl font-bold text-on-surface mb-4">
+                Create Payment Plan
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-on-surface mb-1">
+                    Student
+                  </label>
+                  {planStudents.length === 0 ? (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
+                      No students available
+                    </div>
+                  ) : (
+                    <select
+                      value={newPlan.student_id}
+                      onChange={(e) =>
+                        setNewPlan({ ...newPlan, student_id: e.target.value })
+                      }
+                      className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-3 px-4 text-sm"
+                    >
+                      <option value="">Select student...</option>
+                      {planStudents.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.first_name} {s.last_name} - {s.classes?.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-on-surface mb-1">
+                    Total Amount (UGX)
+                  </label>
+                  <input
+                    type="number"
+                    value={newPlan.total_amount}
+                    onChange={(e) =>
+                      setNewPlan({
+                        ...newPlan,
+                        total_amount: Number(e.target.value),
+                      })
+                    }
+                    className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-3 px-4 text-sm"
+                    placeholder="Enter total amount"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-on-surface mb-1">
+                    Number of Installments
+                  </label>
+                  <select
+                    value={newPlan.installments}
+                    onChange={(e) =>
+                      setNewPlan({
+                        ...newPlan,
+                        installments: Number(e.target.value),
+                      })
+                    }
+                    className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-3 px-4 text-sm"
+                  >
+                    <option value={2}>2 Installments</option>
+                    <option value={3}>3 Installments</option>
+                    <option value={4}>4 Installments</option>
+                    <option value={5}>5 Installments</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-on-surface mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={newPlan.start_date}
+                    onChange={(e) =>
+                      setNewPlan({ ...newPlan, start_date: e.target.value })
+                    }
+                    className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-3 px-4 text-sm"
+                  />
+                </div>
+                {newPlan.total_amount > 0 && newPlan.installments > 0 && (
+                  <div className="p-3 bg-primary/10 rounded-lg">
+                    <div className="text-sm text-primary">
+                      Each installment:{" "}
+                      <strong>
+                        {formatCurrency(
+                          Math.round(
+                            newPlan.total_amount / newPlan.installments,
+                          ),
+                        )}
+                      </strong>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowCreatePlan(false)}
+                  className="flex-1 py-3 bg-surface-container font-semibold rounded-xl text-on-surface-variant"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={createPlan}
+                  className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl"
+                >
+                  Create Plan
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {selectedPlan && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-md">
+              <h2 className="text-xl font-bold text-on-surface mb-2">
+                Payment Details
+              </h2>
+              <p className="text-sm text-on-surface-variant mb-4">
+                {selectedPlan.students?.first_name}{" "}
+                {selectedPlan.students?.last_name} -{" "}
+                {selectedPlan.students?.classes?.name}
+              </p>
+              <div className="space-y-3">
+                {installments.map((inst, idx) => (
+                  <div
+                    key={inst.id}
+                    className="flex items-center justify-between p-3 border border-outline-variant/20 rounded-lg"
+                  >
+                    <div>
+                      <div className="font-medium text-on-surface">
+                        Installment {idx + 1}
+                      </div>
+                      <div className="text-sm text-on-surface-variant">
+                        Due: {new Date(inst.due_date).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-on-surface">
+                        {formatCurrency(inst.amount)}
+                      </div>
+                      {inst.paid ? (
+                        <span className="text-sm text-green-600">Paid</span>
+                      ) : (
+                        <button
+                          onClick={() => markInstallmentPaid(inst.id)}
+                          className="text-sm bg-green-600 text-white px-3 py-1 rounded-lg"
+                        >
+                          Mark Paid
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => setSelectedPlan(null)}
+                className="w-full mt-4 py-3 bg-surface-container font-semibold rounded-xl text-on-surface-variant"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+      </TabPanel>
+
+      <TabPanel activeTab={tab} tabId="invoices">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <Card>
+            <CardBody>
+              <div className="text-2xl font-bold text-[var(--t1)]">
+                {formatCurrency(invoiceStats.totalInvoiced)}
+              </div>
+              <div className="text-sm text-[var(--t3)] mt-1">
+                Total Invoiced
+              </div>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              <div className="text-2xl font-bold text-green-600">
+                {formatCurrency(invoiceStats.totalCollected)}
+              </div>
+              <div className="text-sm text-[var(--t3)] mt-1">Collected</div>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              <div className="text-2xl font-bold text-red-600">
+                {formatCurrency(invoiceStats.totalBalance)}
+              </div>
+              <div className="text-sm text-[var(--t3)] mt-1">Outstanding</div>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              <div className="text-2xl font-bold text-green-600">
+                {invoiceStats.fullyPaid}
+              </div>
+              <div className="text-sm text-[var(--t3)] mt-1">Fully Paid</div>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              <div className="text-2xl font-bold text-yellow-600">
+                {invoiceStats.hasBalance}
+              </div>
+              <div className="text-sm text-[var(--t3)] mt-1">Has Balance</div>
+            </CardBody>
+          </Card>
+        </div>
+
+        <div className="mb-6">
+          {classes.length === 0 ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
+              No classes available
+            </div>
+          ) : (
+            <select
+              value={invoiceClassFilter}
+              onChange={(e) => setInvoiceClassFilter(e.target.value)}
+              className="bg-surface-container-lowest border border-outline-variant rounded-xl py-3 px-4 text-sm sm:w-48"
+              aria-label="Filter by class"
+            >
+              <option value="all">All Classes</option>
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-surface-container-low text-left">
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                    Student
+                  </th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                    Class
+                  </th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                    Total
+                  </th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                    Paid
+                  </th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                    Balance
+                  </th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                    Status
+                  </th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/5">
+                {filteredInvoices.map((invoice) => (
+                  <tr
+                    key={invoice.student_id}
+                    className="hover:bg-surface-bright"
+                  >
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-on-surface">
+                        {invoice.student_name}
+                      </div>
+                      <div className="text-xs text-on-surface-variant">
+                        {invoice.student_number}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-on-surface-variant">
+                      {invoice.class_name}
+                    </td>
+                    <td className="px-6 py-4 font-medium">
+                      {formatCurrency(invoice.total_amount)}
+                    </td>
+                    <td className="px-6 py-4 text-green-600">
+                      {formatCurrency(invoice.amount_paid)}
+                    </td>
+                    <td
+                      className={`px-6 py-4 font-medium ${invoice.balance > 0 ? "text-red-600" : "text-green-600"}`}
+                    >
+                      {formatCurrency(invoice.balance)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium ${invoice.balance === 0 ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}`}
+                      >
+                        {invoice.balance === 0 ? "Paid" : "Pending"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => printInvoice(invoice)}
+                          className="p-2 text-on-surface-variant hover:text-primary rounded-lg hover:bg-primary/10"
+                          title="Print Invoice"
+                        >
+                          <MaterialIcon icon="print" />
+                        </button>
+                        {invoice.balance > 0 && (
+                          <button
+                            onClick={() => sendInvoiceSMS(invoice)}
+                            className="p-2 text-on-surface-variant hover:text-green-600 rounded-lg hover:bg-green-100"
+                            title="Send via SMS"
+                          >
+                            <MaterialIcon icon="sms" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </TabPanel>
+
+      <TabPanel activeTab={tab} tabId="cashbook">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardBody>
+              <div className="text-xl font-bold text-[var(--t1)]">
+                {formatCurrency(cashbookSummary.total)}
+              </div>
+              <div className="text-sm text-[var(--t3)]">Total Collected</div>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              <div className="text-xl font-bold text-[var(--green)]">
+                {formatCurrency(cashbookSummary.cash)}
+              </div>
+              <div className="text-sm text-[var(--t3)]">Cash</div>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              <div className="text-xl font-bold text-[var(--amber)]">
+                {formatCurrency(cashbookSummary.momo)}
+              </div>
+              <div className="text-sm text-[var(--t3)]">Mobile Money</div>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              <div className="text-xl font-bold text-[var(--navy)]">
+                {formatCurrency(cashbookSummary.bank)}
+              </div>
+              <div className="text-sm text-[var(--t3)]">Bank</div>
+            </CardBody>
+          </Card>
+        </div>
+
+        <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-outline-variant/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-on-surface">Transactions</h3>
+              <p className="text-sm text-on-surface-variant">
+                {cashbookSummary.count} transactions •{" "}
+                {cashbookDateFilter === "today"
+                  ? "Today"
+                  : cashbookDateFilter === "week"
+                    ? "This Week"
+                    : "This Month"}
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <select
+                value={cashbookDateFilter}
+                onChange={(e) => setCashbookDateFilter(e.target.value)}
+                className="bg-surface-container-lowest border border-outline-variant rounded-xl py-2 px-4 text-sm"
+                aria-label="Date range filter"
+              >
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+              </select>
+              <Button variant="secondary" size="sm" onClick={exportCashbookCSV}>
+                <MaterialIcon icon="download" />
+                Export CSV
+              </Button>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-surface-container-low text-left">
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                    Date
+                  </th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                    Student
+                  </th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-right">
+                    Amount
+                  </th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                    Method
+                  </th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                    Reference
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/5">
+                {filteredCashbookPayments.length === 0 ? (
+                  <tr>
+                    <td colSpan={5}>
+                      <EmptyState
+                        icon="receipt_long"
+                        title="No transactions found"
+                        description="There are no payments recorded for the selected period"
+                      />
+                    </td>
+                  </tr>
+                ) : (
+                  filteredCashbookPayments.map((payment) => (
+                    <tr key={payment.id} className="hover:bg-surface-bright">
+                      <td className="px-6 py-4 text-sm text-on-surface">
+                        {new Date(payment.payment_date).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 font-medium text-on-surface">
+                        {
+                          (
+                            payment as {
+                              students?: {
+                                first_name?: string;
+                                last_name?: string;
+                              };
+                            }
+                          ).students?.first_name
+                        }{" "}
+                        {
+                          (
+                            payment as {
+                              students?: {
+                                first_name?: string;
+                                last_name?: string;
+                              };
+                            }
+                          ).students?.last_name
+                        }
+                      </td>
+                      <td className="px-6 py-4 text-right text-green-600 font-medium">
+                        {formatCurrency(Number(payment.amount_paid))}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                          {payment.payment_method === "mobile_money"
+                            ? "MoMo"
+                            : payment.payment_method === "cash"
+                              ? "Cash"
+                              : payment.payment_method === "bank"
+                                ? "Bank"
+                                : "Other"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-on-surface-variant">
+                        {payment.payment_reference || "-"}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </TabPanel>
 
