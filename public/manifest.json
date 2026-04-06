@@ -1,29 +1,29 @@
 {
-  "name": "SchoolX - School Management System",
-  "short_name": "SchoolX",
-  "description": "Complete school management for Ugandan schools - attendance, fees, grades, SMS & more",
+  "name": "SkoolMate OS - School Management",
+  "short_name": "SkoolMate OS",
+  "description": "Your Digital School Partner - Complete school management for Ugandan schools",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f9fafb",
-  "theme_color": "#17325F",
+  "background_color": "#001F3F",
+  "theme_color": "#001F3F",
   "orientation": "portrait-primary",
   "scope": "/",
   "categories": ["education", "productivity"],
   "icons": [
     {
-      "src": "/icons/icon-192x192.svg",
+      "src": "/SkoolMate logos/SchoolMate icon.svg",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512x512.svg",
+      "src": "/SkoolMate logos/SchoolMate icon.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512x512.svg",
+      "src": "/SkoolMate logos/SchoolMate icon.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "maskable"
@@ -34,31 +34,41 @@
       "name": "Dashboard",
       "short_name": "Dashboard",
       "url": "/dashboard",
-      "icons": [{ "src": "/icons/icon-192x192.svg", "sizes": "192x192" }]
+      "icons": [
+        { "src": "/SkoolMate logos/SchoolMate icon.svg", "sizes": "192x192" }
+      ]
     },
     {
       "name": "Attendance",
       "short_name": "Attendance",
       "url": "/dashboard/attendance",
-      "icons": [{ "src": "/icons/icon-192x192.svg", "sizes": "192x192" }]
+      "icons": [
+        { "src": "/SkoolMate logos/SchoolMate icon.svg", "sizes": "192x192" }
+      ]
     },
     {
       "name": "Students",
       "short_name": "Students",
       "url": "/dashboard/students",
-      "icons": [{ "src": "/icons/icon-192x192.svg", "sizes": "192x192" }]
+      "icons": [
+        { "src": "/SkoolMate logos/SchoolMate icon.svg", "sizes": "192x192" }
+      ]
     },
     {
       "name": "Fees",
       "short_name": "Fees",
       "url": "/dashboard/fees",
-      "icons": [{ "src": "/icons/icon-192x192.svg", "sizes": "192x192" }]
+      "icons": [
+        { "src": "/SkoolMate logos/SchoolMate icon.svg", "sizes": "192x192" }
+      ]
     },
     {
       "name": "Messages",
       "short_name": "Messages",
       "url": "/dashboard/messages",
-      "icons": [{ "src": "/icons/icon-192x192.svg", "sizes": "192x192" }]
+      "icons": [
+        { "src": "/SkoolMate logos/SchoolMate icon.svg", "sizes": "192x192" }
+      ]
     }
   ],
   "screenshots": [],

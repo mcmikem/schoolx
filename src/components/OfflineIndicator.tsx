@@ -212,7 +212,7 @@ export function OfflineIndicator() {
           }}
         >
           <MaterialIcon icon="install_desktop" style={{ fontSize: 18 }} />
-          Install SkulMate OS app
+          Install SkoolMate OS app
           <button
             onClick={handleInstall}
             style={{
