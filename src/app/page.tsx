@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import SkoolMateLogo from "@/components/SkoolMateLogo";
+import LaptopMockup from "@/components/LaptopMockup";
 
 function MaterialIcon({
   icon,
@@ -984,7 +985,7 @@ export default function HomePage() {
                 <PhoneMockup />
               </div>
               <div className="desktop-stage relative z-0 lg:ml-16">
-                <DesktopMockup />
+                <LaptopMockup />
               </div>
               {/* Floating callout — visible on all sizes now */}
               <div className="floating-callout absolute bottom-5 left-3 z-20 rounded-[24px] border border-[#d7e4fb] bg-white/92 px-4 py-3 shadow-[0_22px_55px_rgba(15,23,42,0.12)] backdrop-blur md:block hidden">
