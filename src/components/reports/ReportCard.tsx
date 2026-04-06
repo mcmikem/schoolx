@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
+import Image from "next/image";
 import { Printer, Download, Settings } from "lucide-react";
 
 interface ReportCardProps {
@@ -119,7 +120,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
       const printWindow = window.open("", "_blank");
       if (printWindow) {
         const studentName = sanitizeHTML(
-          `${report.student.first_name} ${report.student.last_name}`
+          `${report.student.first_name} ${report.student.last_name}`,
         );
         printWindow.document.write(`
           <html>
@@ -193,7 +194,9 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
     doc.rect(0, 0, 210, 40, "F");
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(18);
-    doc.text(report.school?.name || "School Name", 105, 15, { align: "center" });
+    doc.text(report.school?.name || "School Name", 105, 15, {
+      align: "center",
+    });
 
     if (school.school_motto) {
       doc.setFontSize(9);
@@ -207,21 +210,34 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
       `${report.school?.district || ""} District${report.school?.uneab_center_number ? ` | Center: ${report.school.uneab_center_number}` : ""}`,
       105,
       30,
-      { align: "center" }
+      { align: "center" },
     );
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.text(`TERM ${report.term} REPORT CARD — ${report.academicYear}`, 105, 37, { align: "center" });
+    doc.text(
+      `TERM ${report.term} REPORT CARD — ${report.academicYear}`,
+      105,
+      37,
+      { align: "center" },
+    );
     doc.setFont("helvetica", "normal");
 
     // Student Info
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(10);
     const studentY = 50;
-    doc.text(`Name: ${report.student.first_name} ${report.student.last_name}`, 14, studentY);
+    doc.text(
+      `Name: ${report.student.first_name} ${report.student.last_name}`,
+      14,
+      studentY,
+    );
     doc.text(`Class: ${report.student.classes?.name || "N/A"}`, 120, studentY);
     doc.text(`Student No: ${report.student.student_number}`, 14, studentY + 7);
-    doc.text(`Gender: ${report.student.gender === "M" ? "Male" : "Female"}`, 120, studentY + 7);
+    doc.text(
+      `Gender: ${report.student.gender === "M" ? "Male" : "Female"}`,
+      120,
+      studentY + 7,
+    );
 
     // Grades Table
     const tableData = report.subjects.map((s) => [
@@ -239,12 +255,28 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
 
     autoTable(doc, {
       startY: 65,
-      head: [["Subject", "CA1", "CA2", "CA3", "CA4", "Proj", "CA Avg", "Exam", "Total", "Grade"]],
+      head: [
+        [
+          "Subject",
+          "CA1",
+          "CA2",
+          "CA3",
+          "CA4",
+          "Proj",
+          "CA Avg",
+          "Exam",
+          "Total",
+          "Grade",
+        ],
+      ],
       body: tableData,
       styles: { fontSize: 8, cellPadding: 2 },
       headStyles: { fillColor: [pc.r, pc.g, pc.b], textColor: 255 },
       alternateRowStyles: { fillColor: [250, 251, 252] },
-      columnStyles: { 0: { cellWidth: 45, halign: "left" }, 9: { fontStyle: "bold" } },
+      columnStyles: {
+        0: { cellWidth: 45, halign: "left" },
+        9: { fontStyle: "bold" },
+      },
     });
 
     // Conduct Section
@@ -267,7 +299,10 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
         body: conductData,
         styles: { fontSize: 8, cellPadding: 3 },
         headStyles: { fillColor: [ac.r, ac.g, ac.b], textColor: 255 },
-        columnStyles: { 0: { cellWidth: 70, halign: "left" }, 2: { fontStyle: "italic" } },
+        columnStyles: {
+          0: { cellWidth: 70, halign: "left" },
+          2: { fontStyle: "italic" },
+        },
       });
     }
 
@@ -290,7 +325,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
       doc.text(
         `Attendance: ${report.attendance.present} present, ${report.attendance.absent} absent, ${report.attendance.late} late`,
         14,
-        summaryY + (showPosition ? 14 : 7)
+        summaryY + (showPosition ? 14 : 7),
       );
     }
 
@@ -306,10 +341,18 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
       doc.setFontSize(9);
       doc.setTextColor(0, 0, 0);
       if (report.class_teacher_remark) {
-        doc.text(`Class Teacher: ${report.class_teacher_remark}`, 14, remarksY + 8);
+        doc.text(
+          `Class Teacher: ${report.class_teacher_remark}`,
+          14,
+          remarksY + 8,
+        );
       }
       if (report.head_teacher_remark) {
-        doc.text(`Head Teacher: ${report.head_teacher_remark}`, 14, remarksY + 16);
+        doc.text(
+          `Head Teacher: ${report.head_teacher_remark}`,
+          14,
+          remarksY + 16,
+        );
       }
     }
 
@@ -329,18 +372,24 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
       doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(pc.r, pc.g, pc.b);
-      doc.text(`Next Term Opens: ${report.next_term_opens}`, 105, sigY + 30, { align: "center" });
+      doc.text(`Next Term Opens: ${report.next_term_opens}`, 105, sigY + 30, {
+        align: "center",
+      });
     }
 
     doc.save(
-      `Report_${report.student.first_name}_${report.student.last_name}_T${report.term}.pdf`
+      `Report_${report.student.first_name}_${report.student.last_name}_T${report.term}.pdf`,
     );
   };
 
   function hexToRgb(hex: string) {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result
-      ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) }
+      ? {
+          r: parseInt(result[1], 16),
+          g: parseInt(result[2], 16),
+          b: parseInt(result[3], 16),
+        }
       : { r: 0, g: 32, b: 69 };
   }
 
@@ -383,40 +432,76 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
         style={{ border: `2px solid ${primaryColor}` }}
       >
         {/* Header */}
-        <div className="text-white p-5 text-center" style={{ backgroundColor: primaryColor }}>
+        <div
+          className="text-white p-5 text-center"
+          style={{ backgroundColor: primaryColor }}
+        >
           {school.logo_url && (
-            <img src={school.logo_url} alt="School Logo" className="w-14 h-14 mx-auto mb-2 rounded-lg object-cover bg-white/20" />
+            <Image
+              src={school.logo_url}
+              alt="School Logo"
+              width={56}
+              height={56}
+              className="mx-auto mb-2 rounded-lg object-cover bg-white/20"
+            />
           )}
-          <div className="text-xl font-bold tracking-wide">{report.school?.name || "School Name"}</div>
+          <div className="text-xl font-bold tracking-wide">
+            {report.school?.name || "School Name"}
+          </div>
           {school.school_motto && (
-            <div className="text-xs italic mt-1 opacity-90">"{school.school_motto}"</div>
+            <div className="text-xs italic mt-1 opacity-90">
+              "{school.school_motto}"
+            </div>
           )}
           <div className="text-sm opacity-90 mt-1.5">
             {report.school?.district || ""} District
-            {report.school?.uneab_center_number && ` | Center: ${report.school.uneab_center_number}`}
+            {report.school?.uneab_center_number &&
+              ` | Center: ${report.school.uneab_center_number}`}
           </div>
-          <div className="text-sm font-semibold mt-2 pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.3)" }}>
+          <div
+            className="text-sm font-semibold mt-2 pt-2"
+            style={{ borderTop: "1px solid rgba(255,255,255,0.3)" }}
+          >
             TERM {report.term} REPORT CARD — {report.academicYear}
           </div>
         </div>
 
         {/* Student Info */}
-        <div className="p-4 grid grid-cols-4 gap-4 border-b-2" style={{ borderColor: primaryColor, backgroundColor: "#fafbfc" }}>
+        <div
+          className="p-4 grid grid-cols-4 gap-4 border-b-2"
+          style={{ borderColor: primaryColor, backgroundColor: "#fafbfc" }}
+        >
           <div>
-            <div className="text-xs text-gray-500 uppercase tracking-wide">Student Name</div>
-            <div className="font-semibold text-sm text-gray-900">{report.student.first_name} {report.student.last_name}</div>
+            <div className="text-xs text-gray-500 uppercase tracking-wide">
+              Student Name
+            </div>
+            <div className="font-semibold text-sm text-gray-900">
+              {report.student.first_name} {report.student.last_name}
+            </div>
           </div>
           <div>
-            <div className="text-xs text-gray-500 uppercase tracking-wide">Class</div>
-            <div className="font-semibold text-sm text-gray-900">{report.student.classes?.name || "N/A"}</div>
+            <div className="text-xs text-gray-500 uppercase tracking-wide">
+              Class
+            </div>
+            <div className="font-semibold text-sm text-gray-900">
+              {report.student.classes?.name || "N/A"}
+            </div>
           </div>
           <div>
-            <div className="text-xs text-gray-500 uppercase tracking-wide">Student No.</div>
-            <div className="font-semibold text-sm text-gray-900">{report.student.student_number}</div>
+            <div className="text-xs text-gray-500 uppercase tracking-wide">
+              Student No.
+            </div>
+            <div className="font-semibold text-sm text-gray-900">
+              {report.student.student_number}
+            </div>
           </div>
           <div>
-            <div className="text-xs text-gray-500 uppercase tracking-wide">Gender</div>
-            <div className="font-semibold text-sm text-gray-900">{report.student.gender === "M" ? "Male" : "Female"}</div>
+            <div className="text-xs text-gray-500 uppercase tracking-wide">
+              Gender
+            </div>
+            <div className="font-semibold text-sm text-gray-900">
+              {report.student.gender === "M" ? "Male" : "Female"}
+            </div>
           </div>
         </div>
 
@@ -425,31 +510,99 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ backgroundColor: primaryColor }}>
-                <th className="text-left px-3 py-2 text-white font-semibold" style={{ borderColor: primaryColor }}>Subject</th>
-                <th className="text-center px-2 py-2 text-white font-semibold" style={{ borderColor: primaryColor }}>CA1</th>
-                <th className="text-center px-2 py-2 text-white font-semibold" style={{ borderColor: primaryColor }}>CA2</th>
-                <th className="text-center px-2 py-2 text-white font-semibold" style={{ borderColor: primaryColor }}>CA3</th>
-                <th className="text-center px-2 py-2 text-white font-semibold" style={{ borderColor: primaryColor }}>CA4</th>
-                <th className="text-center px-2 py-2 text-white font-semibold" style={{ borderColor: primaryColor }}>Proj</th>
-                <th className="text-center px-2 py-2 text-white font-semibold" style={{ borderColor: primaryColor }}>CA Avg</th>
-                <th className="text-center px-2 py-2 text-white font-semibold" style={{ borderColor: primaryColor }}>Exam</th>
-                <th className="text-center px-2 py-2 text-white font-semibold" style={{ borderColor: primaryColor }}>Total</th>
-                <th className="text-center px-2 py-2 text-white font-semibold" style={{ borderColor: primaryColor }}>Grade</th>
+                <th
+                  className="text-left px-3 py-2 text-white font-semibold"
+                  style={{ borderColor: primaryColor }}
+                >
+                  Subject
+                </th>
+                <th
+                  className="text-center px-2 py-2 text-white font-semibold"
+                  style={{ borderColor: primaryColor }}
+                >
+                  CA1
+                </th>
+                <th
+                  className="text-center px-2 py-2 text-white font-semibold"
+                  style={{ borderColor: primaryColor }}
+                >
+                  CA2
+                </th>
+                <th
+                  className="text-center px-2 py-2 text-white font-semibold"
+                  style={{ borderColor: primaryColor }}
+                >
+                  CA3
+                </th>
+                <th
+                  className="text-center px-2 py-2 text-white font-semibold"
+                  style={{ borderColor: primaryColor }}
+                >
+                  CA4
+                </th>
+                <th
+                  className="text-center px-2 py-2 text-white font-semibold"
+                  style={{ borderColor: primaryColor }}
+                >
+                  Proj
+                </th>
+                <th
+                  className="text-center px-2 py-2 text-white font-semibold"
+                  style={{ borderColor: primaryColor }}
+                >
+                  CA Avg
+                </th>
+                <th
+                  className="text-center px-2 py-2 text-white font-semibold"
+                  style={{ borderColor: primaryColor }}
+                >
+                  Exam
+                </th>
+                <th
+                  className="text-center px-2 py-2 text-white font-semibold"
+                  style={{ borderColor: primaryColor }}
+                >
+                  Total
+                </th>
+                <th
+                  className="text-center px-2 py-2 text-white font-semibold"
+                  style={{ borderColor: primaryColor }}
+                >
+                  Grade
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {report.subjects.map((subject, i) => (
-                <tr key={i} className="hover:bg-gray-50" style={i % 2 === 1 ? { backgroundColor: "#fafbfc" } : {}}>
-                  <td className="px-3 py-2 text-gray-900 font-medium">{subject.name}</td>
+                <tr
+                  key={i}
+                  className="hover:bg-gray-50"
+                  style={i % 2 === 1 ? { backgroundColor: "#fafbfc" } : {}}
+                >
+                  <td className="px-3 py-2 text-gray-900 font-medium">
+                    {subject.name}
+                  </td>
                   <td className="text-center px-2 py-2">{subject.ca1}</td>
                   <td className="text-center px-2 py-2">{subject.ca2}</td>
                   <td className="text-center px-2 py-2">{subject.ca3}</td>
                   <td className="text-center px-2 py-2">{subject.ca4}</td>
                   <td className="text-center px-2 py-2">{subject.project}</td>
-                  <td className="text-center px-2 py-2 font-medium" style={{ backgroundColor: `${accentColor}10` }}>{Math.round(subject.totalCA)}</td>
+                  <td
+                    className="text-center px-2 py-2 font-medium"
+                    style={{ backgroundColor: `${accentColor}10` }}
+                  >
+                    {Math.round(subject.totalCA)}
+                  </td>
                   <td className="text-center px-2 py-2">{subject.exam}</td>
-                  <td className="text-center px-2 py-2 font-bold" style={{ backgroundColor: `${accentColor}10` }}>{Math.round(subject.finalScore)}</td>
-                  <td className="text-center px-2 py-2 font-bold">{subject.grade}</td>
+                  <td
+                    className="text-center px-2 py-2 font-bold"
+                    style={{ backgroundColor: `${accentColor}10` }}
+                  >
+                    {Math.round(subject.finalScore)}
+                  </td>
+                  <td className="text-center px-2 py-2 font-bold">
+                    {subject.grade}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -458,14 +611,32 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
 
         {/* Conduct Section */}
         {showConduct && report.conduct && (
-          <div className="p-4 border-t" style={{ borderColor: `${primaryColor}20` }}>
-            <div className="text-sm font-bold uppercase tracking-wide mb-3" style={{ color: primaryColor }}>Conduct & Behavior</div>
+          <div
+            className="p-4 border-t"
+            style={{ borderColor: `${primaryColor}20` }}
+          >
+            <div
+              className="text-sm font-bold uppercase tracking-wide mb-3"
+              style={{ color: primaryColor }}
+            >
+              Conduct & Behavior
+            </div>
             <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
               {CONDUCT_LABELS.map((c) => (
-                <div key={c.key} className="text-center p-2 rounded-lg border border-gray-100 bg-gray-50">
+                <div
+                  key={c.key}
+                  className="text-center p-2 rounded-lg border border-gray-100 bg-gray-50"
+                >
                   <div className="text-xs text-gray-500">{c.label}</div>
-                  <div className="text-lg font-bold" style={{ color: primaryColor }}>{(report.conduct as any)[c.key]}</div>
-                  <div className="text-xs text-gray-400">{CONDUCT_RATINGS[(report.conduct as any)[c.key]] || ""}</div>
+                  <div
+                    className="text-lg font-bold"
+                    style={{ color: primaryColor }}
+                  >
+                    {(report.conduct as any)[c.key]}
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {CONDUCT_RATINGS[(report.conduct as any)[c.key]] || ""}
+                  </div>
                 </div>
               ))}
             </div>
@@ -474,36 +645,87 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
 
         {/* Summary */}
         <div className="p-4 border-t-2" style={{ borderColor: primaryColor }}>
-          <div className={`grid gap-3 mb-4 ${showPosition ? "grid-cols-4" : "grid-cols-3"}`}>
-            <div className="text-center p-3 rounded-lg" style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}>
-              <div className="text-xs text-gray-500 uppercase tracking-wide">Overall Average</div>
-              <div className="text-2xl font-black" style={{ color: primaryColor }}>{report.overall.average}%</div>
+          <div
+            className={`grid gap-3 mb-4 ${showPosition ? "grid-cols-4" : "grid-cols-3"}`}
+          >
+            <div
+              className="text-center p-3 rounded-lg"
+              style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}
+            >
+              <div className="text-xs text-gray-500 uppercase tracking-wide">
+                Overall Average
+              </div>
+              <div
+                className="text-2xl font-black"
+                style={{ color: primaryColor }}
+              >
+                {report.overall.average}%
+              </div>
             </div>
-            <div className="text-center p-3 rounded-lg" style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}>
-              <div className="text-xs text-gray-500 uppercase tracking-wide">Grade</div>
-              <div className="text-2xl font-black" style={{ color: primaryColor }}>{report.overall.grade}</div>
+            <div
+              className="text-center p-3 rounded-lg"
+              style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}
+            >
+              <div className="text-xs text-gray-500 uppercase tracking-wide">
+                Grade
+              </div>
+              <div
+                className="text-2xl font-black"
+                style={{ color: primaryColor }}
+              >
+                {report.overall.grade}
+              </div>
             </div>
-            <div className="text-center p-3 rounded-lg" style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}>
-              <div className="text-xs text-gray-500 uppercase tracking-wide">Division</div>
-              <div className={`text-xl font-black ${
-                report.overall.division === "Division I" ? "text-green-600" :
-                report.overall.division === "Division II" ? "text-blue-600" :
-                report.overall.division === "Division III" ? "text-yellow-600" : "text-red-600"
-              }`}>{report.overall.division}</div>
+            <div
+              className="text-center p-3 rounded-lg"
+              style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}
+            >
+              <div className="text-xs text-gray-500 uppercase tracking-wide">
+                Division
+              </div>
+              <div
+                className={`text-xl font-black ${
+                  report.overall.division === "Division I"
+                    ? "text-green-600"
+                    : report.overall.division === "Division II"
+                      ? "text-blue-600"
+                      : report.overall.division === "Division III"
+                        ? "text-yellow-600"
+                        : "text-red-600"
+                }`}
+              >
+                {report.overall.division}
+              </div>
             </div>
             {showPosition && report.overall.position && (
-              <div className="text-center p-3 rounded-lg" style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}>
-                <div className="text-xs text-gray-500 uppercase tracking-wide">Position</div>
-                <div className="text-2xl font-black" style={{ color: primaryColor }}>{report.overall.position}</div>
+              <div
+                className="text-center p-3 rounded-lg"
+                style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}
+              >
+                <div className="text-xs text-gray-500 uppercase tracking-wide">
+                  Position
+                </div>
+                <div
+                  className="text-2xl font-black"
+                  style={{ color: primaryColor }}
+                >
+                  {report.overall.position}
+                </div>
               </div>
             )}
           </div>
 
           {showAttendance && (
-            <div className="text-center p-3 rounded-lg mb-4" style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}>
-              <div className="text-xs text-gray-500 uppercase tracking-wide">Attendance</div>
+            <div
+              className="text-center p-3 rounded-lg mb-4"
+              style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}
+            >
+              <div className="text-xs text-gray-500 uppercase tracking-wide">
+                Attendance
+              </div>
               <div className="text-lg font-bold text-gray-900">
-                {report.attendance.present}/{report.attendance.total} days present
+                {report.attendance.present}/{report.attendance.total} days
+                present
               </div>
               <div className="text-xs text-gray-500">
                 {report.attendance.absent} absent, {report.attendance.late} late
@@ -512,36 +734,70 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
           )}
 
           {/* Remarks */}
-          {showRemarks && (report.class_teacher_remark || report.head_teacher_remark) && (
-            <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: "#fafbfc", border: `1px solid ${primaryColor}20` }}>
-              <div className="text-sm font-bold uppercase tracking-wide mb-2" style={{ color: primaryColor }}>Remarks</div>
-              {report.class_teacher_remark && (
-                <div className="mb-2">
-                  <div className="text-xs text-gray-500 font-semibold uppercase">Class Teacher</div>
-                  <div className="text-sm text-gray-700 italic mt-0.5">"{report.class_teacher_remark}"</div>
+          {showRemarks &&
+            (report.class_teacher_remark || report.head_teacher_remark) && (
+              <div
+                className="mb-4 p-4 rounded-lg"
+                style={{
+                  backgroundColor: "#fafbfc",
+                  border: `1px solid ${primaryColor}20`,
+                }}
+              >
+                <div
+                  className="text-sm font-bold uppercase tracking-wide mb-2"
+                  style={{ color: primaryColor }}
+                >
+                  Remarks
                 </div>
-              )}
-              {report.head_teacher_remark && (
-                <div>
-                  <div className="text-xs text-gray-500 font-semibold uppercase">Head Teacher</div>
-                  <div className="text-sm text-gray-700 italic mt-0.5">"{report.head_teacher_remark}"</div>
-                </div>
-              )}
-            </div>
-          )}
+                {report.class_teacher_remark && (
+                  <div className="mb-2">
+                    <div className="text-xs text-gray-500 font-semibold uppercase">
+                      Class Teacher
+                    </div>
+                    <div className="text-sm text-gray-700 italic mt-0.5">
+                      "{report.class_teacher_remark}"
+                    </div>
+                  </div>
+                )}
+                {report.head_teacher_remark && (
+                  <div>
+                    <div className="text-xs text-gray-500 font-semibold uppercase">
+                      Head Teacher
+                    </div>
+                    <div className="text-sm text-gray-700 italic mt-0.5">
+                      "{report.head_teacher_remark}"
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
           {/* Next Term */}
           {report.next_term_opens && (
-            <div className="text-center py-2 border-t" style={{ borderColor: `${primaryColor}20`, color: primaryColor }}>
-              <span className="text-sm font-semibold">Next Term Opens: {report.next_term_opens}</span>
+            <div
+              className="text-center py-2 border-t"
+              style={{ borderColor: `${primaryColor}20`, color: primaryColor }}
+            >
+              <span className="text-sm font-semibold">
+                Next Term Opens: {report.next_term_opens}
+              </span>
             </div>
           )}
 
           {/* Signatures — teachers only, parent acknowledgment */}
-          <div className="grid grid-cols-3 gap-6 pt-4 border-t-2" style={{ borderColor: primaryColor }}>
+          <div
+            className="grid grid-cols-3 gap-6 pt-4 border-t-2"
+            style={{ borderColor: primaryColor }}
+          >
             <div className="text-center">
               {school.signature_class_teacher_url ? (
-                <img src={school.signature_class_teacher_url} alt="Class Teacher Signature" className="mx-auto h-10 mb-1 object-contain" />
+                <Image
+                  src={school.signature_class_teacher_url}
+                  alt="Class Teacher Signature"
+                  width={120}
+                  height={40}
+                  className="mx-auto mb-1 object-contain"
+                />
               ) : (
                 <div className="h-10" />
               )}
@@ -551,7 +807,13 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
             </div>
             <div className="text-center">
               {school.signature_headteacher_url ? (
-                <img src={school.signature_headteacher_url} alt="Head Teacher Signature" className="mx-auto h-10 mb-1 object-contain" />
+                <Image
+                  src={school.signature_headteacher_url}
+                  alt="Head Teacher Signature"
+                  width={120}
+                  height={40}
+                  className="mx-auto mb-1 object-contain"
+                />
               ) : (
                 <div className="h-10" />
               )}
@@ -561,9 +823,22 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
             </div>
             <div className="text-center">
               <div className="h-10" />
-              <div className="border border-dashed rounded-lg p-2 mt-1" style={{ borderColor: `${primaryColor}40`, backgroundColor: `${primaryColor}05` }}>
-                <div className="text-xs font-medium" style={{ color: primaryColor }}>Parent Acknowledgment</div>
-                <div className="text-xs text-gray-400 mt-0.5">Report viewed via parent portal</div>
+              <div
+                className="border border-dashed rounded-lg p-2 mt-1"
+                style={{
+                  borderColor: `${primaryColor}40`,
+                  backgroundColor: `${primaryColor}05`,
+                }}
+              >
+                <div
+                  className="text-xs font-medium"
+                  style={{ color: primaryColor }}
+                >
+                  Parent Acknowledgment
+                </div>
+                <div className="text-xs text-gray-400 mt-0.5">
+                  Report viewed via parent portal
+                </div>
               </div>
             </div>
           </div>

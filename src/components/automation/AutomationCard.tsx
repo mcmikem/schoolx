@@ -47,12 +47,6 @@ export default function AutomationCard({
       icon: "bg-amber-100 text-amber-700",
       toggle: "bg-amber-600",
     },
-    purple: {
-      bg: "bg-purple-100",
-      text: "text-purple-700",
-      icon: "bg-purple-100 text-purple-700",
-      toggle: "bg-purple-600",
-    },
   }
 
   const colors = colorMap[color] || colorMap.blue

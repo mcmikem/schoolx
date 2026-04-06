@@ -149,7 +149,7 @@ export default function StudentProfilePage({
                   {student.status}
                 </span>
                 {(student as any).boarding_status && (student as any).boarding_status !== 'day' && (
-                  <span className="px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-purple-100/50">
+                  <span className="px-3 py-1 bg-teal-50 text-teal-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-teal-100/50">
                     {(student as any).boarding_status}
                   </span>
                 )}
@@ -356,8 +356,8 @@ export default function StudentProfilePage({
               <div className="space-y-3">
                 {(student as any).house_id && (
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
-                      <Home className="w-4 h-4 text-purple-600" />
+                    <div className="w-8 h-8 bg-teal-50 rounded-lg flex items-center justify-center">
+                      <Home className="w-4 h-4 text-teal-600" />
                     </div>
                     <div>
                       <div className="text-xs text-gray-500">House</div>

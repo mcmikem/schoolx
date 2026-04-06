@@ -52,7 +52,7 @@ interface SupportTicket {
 
 const PLANS: Record<string, { monthly: number; annual: number; perStudent: number; label: string; color: string }> = {
   starter: { monthly: 350_000, annual: 3_800_000, perStudent: 50_000, label: 'Starter', color: '#3b82f6' },
-  standard: { monthly: 550_000, annual: 6_000_000, perStudent: 65_000, label: 'Standard', color: '#8b5cf6' },
+  standard: { monthly: 550_000, annual: 6_000_000, perStudent: 65_000, label: 'Standard', color: '#0d9488' },
   premium: { monthly: 850_000, annual: 9_500_000, perStudent: 80_000, label: 'Premium', color: '#f59e0b' },
 }
 
@@ -693,8 +693,8 @@ export default function SchoolsPage() {
                     <MaterialIcon icon="rocket_launch" className="text-green-600" />
                     <span className="text-xs font-medium">Onboarding</span>
                   </button>
-                  <button onClick={() => openFeaturesModal(selectedSchool)} className="flex flex-col items-center gap-1 p-3 rounded-xl border border-[#e8eaed] hover:border-purple-300 hover:bg-purple-50 transition-all">
-                    <MaterialIcon icon="extension" className="text-purple-600" />
+                  <button onClick={() => openFeaturesModal(selectedSchool)} className="flex flex-col items-center gap-1 p-3 rounded-xl border border-[#e8eaed] hover:border-teal-300 hover:bg-teal-50 transition-all">
+                    <MaterialIcon icon="extension" className="text-teal-600" />
                     <span className="text-xs font-medium">Features</span>
                   </button>
                   <button onClick={() => openTicketModal(selectedSchool)} className="flex flex-col items-center gap-1 p-3 rounded-xl border border-[#e8eaed] hover:border-amber-300 hover:bg-amber-50 transition-all">
@@ -726,7 +726,7 @@ export default function SchoolsPage() {
                         </div>
                         <div className="flex items-center gap-2 ml-4">
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                            u.role === 'headmaster' ? 'bg-purple-100 text-purple-700' :
+                            u.role === 'headmaster' ? 'bg-teal-100 text-teal-700' :
                             u.role === 'school_admin' ? 'bg-blue-100 text-blue-700' :
                             u.role === 'bursar' ? 'bg-green-100 text-green-700' :
                             'bg-gray-100 text-gray-700'

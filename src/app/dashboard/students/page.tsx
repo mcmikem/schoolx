@@ -997,7 +997,7 @@ export default function StudentsPage() {
                       >
                         {student.classes?.name}{student.classes?.stream ? ` ${student.classes.stream}` : ""}
                         {(student as any).boarding_status && (student as any).boarding_status !== 'day' && (
-                          <span style={{ marginLeft: 4, fontSize: 9, padding: '1px 5px', background: 'rgba(155,89,182,0.15)', color: '#7c3aed', borderRadius: 8, fontWeight: 600 }}>
+                          <span style={{ marginLeft: 4, fontSize: 9, padding: '1px 5px', background: 'rgba(155,89,182,0.15)', color: '#0d9488', borderRadius: 8, fontWeight: 600 }}>
                             {(student as any).boarding_status}
                           </span>
                         )}
