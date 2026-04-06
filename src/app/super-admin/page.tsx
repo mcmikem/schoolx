@@ -95,8 +95,8 @@ export default function SuperAdminDashboard() {
   const loadSystemData = async () => {
     setLoading(true);
 
-    // Try loading demo data first for testing
-    const useDemo = true; // Set to false when database is ready
+    // Use demo data only if NEXT_PUBLIC_DEMO_ENABLED is true
+    const useDemo = process.env.NEXT_PUBLIC_DEMO_ENABLED === "true";
 
     if (useDemo) {
       loadDemoData();
