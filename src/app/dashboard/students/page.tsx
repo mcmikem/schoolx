@@ -1365,10 +1365,25 @@ export default function StudentHubPage() {
                   className="btn btn-primary btn-sm"
                   disabled={importingTemplate}
                 >
-                  {importingTemplate
-                    ? "Seeding..."
-                    : "Seed students from template"}
+                  {importingTemplate ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Seeding {templateRows.length} students...
+                    </span>
+                  ) : (
+                    "Seed students from template"
+                  )}
                 </button>
+              )}
+              {importingTemplate && (
+                <div className="w-full bg-surface-container rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-[var(--primary)] h-full transition-all duration-300"
+                    style={{
+                      width: `${((importSummary?.success || 0) / templateRows.length) * 100}%`,
+                    }}
+                  />
+                </div>
               )}
               {importSummary && (
                 <p className="text-xs text-[var(--navy)]">
