@@ -149,15 +149,19 @@ export default function LoginPage() {
       });
       localStorage.setItem(DEMO_KEY, demoData);
       toast.success(tWithParams("auth.welcomeDemo", { name: demoUser.name }));
-      // Use window.location for a full page reload to ensure auth context picks up the new demo data
-      window.location.href = "/dashboard";
+      // Super admin goes to super-admin page, others go to dashboard
+      const redirectPath =
+        demoUser.role === "super_admin" ? "/super-admin" : "/dashboard";
+      window.location.href = redirectPath;
       return;
     }
 
     // Normal login - Supabase auth
     try {
       if (!supabase) {
-        toast.error("Supabase not configured. Please check environment variables.");
+        toast.error(
+          "Supabase not configured. Please check environment variables.",
+        );
         setLoading(false);
         return;
       }
@@ -191,7 +195,7 @@ export default function LoginPage() {
 
       console.log("Login success, user:", data.user.id);
       toast.success("Login successful!");
-      
+
       // Wait a moment for auth to settle, then redirect
       setTimeout(() => {
         window.location.href = "/dashboard";
