@@ -482,7 +482,7 @@ export default function AttendancePage() {
                           <div className="font-bold text-primary">
                             {student.first_name} {student.last_name}
                             {(student as any).boarding_status && (student as any).boarding_status !== 'day' && (
-                              <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold rounded uppercase">
+                              <span className="ml-2 px-1.5 py-0.5 bg-teal-100 text-teal-700 text-[10px] font-bold rounded uppercase">
                                 {(student as any).boarding_status}
                               </span>
                             )}
