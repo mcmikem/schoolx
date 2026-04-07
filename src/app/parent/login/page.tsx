@@ -141,6 +141,43 @@ export default function ParentLoginPage() {
                   {loading ? "Signing in..." : "Sign In"}
                 </button>
               </form>
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="bg-white px-3 text-gray-500">or</span>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  localStorage.setItem(
+                    "parent_session",
+                    JSON.stringify({
+                      user: { id: "demo-parent-1" },
+                      parent: {
+                        id: "demo-parent-1",
+                        name: "Nakamya Grace",
+                        phone: "0700287030",
+                        children: [
+                          {
+                            id: "demo-child-1",
+                            name: "Nakamya Amina",
+                            class: "Primary 6",
+                            student_id: "P6-001",
+                            school_id: "demo-school",
+                          },
+                        ],
+                        school_id: "demo-school",
+                      },
+                    }),
+                  );
+                  router.push("/parent/dashboard");
+                }}
+                className="w-full py-3 px-4 bg-[#D4AF37] text-[#001F3F] font-semibold rounded-xl hover:bg-[#c9a432] transition-colors"
+              >
+                Try Demo Account
+              </button>
               <p className="text-center text-sm text-gray-500 mt-4">
                 New parent? Contact your school to get access.
               </p>
