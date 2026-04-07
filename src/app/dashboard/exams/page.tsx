@@ -59,6 +59,9 @@ export default function ExamsPage() {
   const [showAddExam, setShowAddExam] = useState(false);
   const [examTypeTab, setExamTypeTab] = useState("secondary");
   const [saving, setSaving] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showWeights, setShowWeights] = useState(false);
+  const [examToDelete, setExamToDelete] = useState<string | null>(null);
   const [newExam, setNewExam] = useState({
     name: "",
     exam_type: "eot",
@@ -73,9 +76,15 @@ export default function ExamsPage() {
 
   const filteredStudents = useMemo(() => {
     return students.filter(
-      (s) => !selectedClass || s.class_id === selectedClass,
+      (s) =>
+        (!selectedClass || s.class_id === selectedClass) &&
+        (!searchQuery ||
+          `${s.first_name} ${s.last_name}`
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          s.student_number?.toLowerCase().includes(searchQuery.toLowerCase())),
     );
-  }, [students, selectedClass]);
+  }, [students, selectedClass, searchQuery]);
 
   const studentExamScores = useMemo(() => {
     if (!selectedClass || !selectedSubject) return {};
@@ -187,94 +196,119 @@ export default function ExamsPage() {
       </div>
 
       <Card className="mb-5 p-4">
-        <div className="text-xs font-semibold text-[var(--t2)] mb-3">
-          Grade Weighting
-        </div>
-        <div className="flex flex-wrap gap-3">
-          {examConfigs.map((config: ExamConfig) => (
-            <div
-              key={config.id}
-              className="flex items-center gap-2 px-3 py-2 bg-[var(--surface-container)] rounded-lg"
-            >
+        <button
+          onClick={() => setShowWeights(!showWeights)}
+          className="flex items-center gap-2 w-full bg-transparent border-none cursor-pointer text-left"
+        >
+          <div className="text-xs font-semibold text-[var(--t2)]">
+            Grade Weighting
+          </div>
+          <MaterialIcon
+            className={`text-lg text-[var(--t3)] transition-transform ${showWeights ? "rotate-180" : ""}`}
+          >
+            expand_more
+          </MaterialIcon>
+        </button>
+        {showWeights && (
+          <div className="flex flex-wrap gap-3 mt-3">
+            {examConfigs.map((config: ExamConfig) => (
               <div
-                className="w-2.5 h-2.5 rounded-sm"
-                style={{ background: getExamColor(config.type) }}
-              />
-              <span className="text-xs font-semibold text-[var(--t1)]">
-                {config.shortName}
-              </span>
-              <span className="text-xs text-[var(--t3)]">
-                {config.name} ({config.weight}%)
-              </span>
-            </div>
-          ))}
-        </div>
+                key={config.id}
+                className="flex items-center gap-2 px-3 py-2 bg-[var(--surface-container)] rounded-lg"
+              >
+                <div
+                  className="w-2.5 h-2.5 rounded-sm"
+                  style={{ background: getExamColor(config.type) }}
+                />
+                <span className="text-xs font-semibold text-[var(--t1)]">
+                  {config.shortName}
+                </span>
+                <span className="text-xs text-[var(--t3)]">
+                  {config.name} ({config.weight}%)
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
 
       <Card className="mb-5 overflow-hidden">
-        <div className="p-3.5 border-b border-[var(--border)] flex gap-3 flex-wrap items-center">
-          <div className="min-w-[150px]">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)] mb-1 block">
-              Class
-            </label>
-            {classes.length === 0 ? (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
-                No classes
-              </div>
-            ) : (
+        <div className="p-3.5 border-b border-[var(--border)]">
+          <div className="flex gap-3 flex-wrap items-end">
+            <div className="min-w-[150px] flex-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)] mb-1 block">
+                Class
+              </label>
+              {classes.length === 0 ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
+                  No classes
+                </div>
+              ) : (
+                <select
+                  value={selectedClass}
+                  onChange={(e) => setSelectedClass(e.target.value)}
+                  className="input h-9 text-sm"
+                >
+                  <option value="">Select class</option>
+                  {classes.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div className="min-w-[150px] flex-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)] mb-1 block">
+                Subject
+              </label>
+              {subjects.length === 0 ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
+                  No subjects
+                </div>
+              ) : (
+                <select
+                  value={selectedSubject}
+                  onChange={(e) => setSelectedSubject(e.target.value)}
+                  className="input h-9 text-sm"
+                >
+                  <option value="">Select subject</option>
+                  {subjects.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div className="min-w-[150px] flex-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)] mb-1 block">
+                Exam Type
+              </label>
               <select
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
+                value={selectedExamType}
+                onChange={(e) => setSelectedExamType(e.target.value)}
                 className="input h-9 text-sm"
               >
-                <option value="">Select class</option>
-                {classes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
+                {examConfigs.map((config: ExamConfig) => (
+                  <option key={config.id} value={config.type}>
+                    {config.name}
                   </option>
                 ))}
               </select>
-            )}
+            </div>
           </div>
-          <div className="min-w-[150px]">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)] mb-1 block">
-              Subject
-            </label>
-            {subjects.length === 0 ? (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
-                No subjects
-              </div>
-            ) : (
-              <select
-                value={selectedSubject}
-                onChange={(e) => setSelectedSubject(e.target.value)}
+          {selectedClass && selectedSubject && (
+            <div className="mt-3">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search student by name or number..."
                 className="input h-9 text-sm"
-              >
-                <option value="">Select subject</option>
-                {subjects.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-          <div className="min-w-[150px]">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)] mb-1 block">
-              Exam Type
-            </label>
-            <select
-              value={selectedExamType}
-              onChange={(e) => setSelectedExamType(e.target.value)}
-              className="input h-9 text-sm"
-            >
-              {examConfigs.map((config: ExamConfig) => (
-                <option key={config.id} value={config.type}>
-                  {config.name}
-                </option>
-              ))}
-            </select>
-          </div>
+              />
+            </div>
+          )}
         </div>
 
         {selectedClass && selectedSubject ? (
@@ -342,7 +376,7 @@ export default function ExamsPage() {
                                 }
                                 disabled={termLocked}
                                 placeholder="-"
-                                className="w-12 text-center px-1.5 py-1 border border-[var(--border)] rounded-md text-xs font-mono disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-16 sm:w-12 text-center px-2 py-2 border border-[var(--border)] rounded-md text-sm font-mono disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
                                 style={{
                                   background:
                                     score >= 0
@@ -391,9 +425,56 @@ export default function ExamsPage() {
             </div>
           )
         ) : (
-          <div className="p-10 text-center text-[var(--t3)]">
-            <MaterialIcon className="text-3xl mb-2">school</MaterialIcon>
-            <div>Select class and subject to enter scores</div>
+          <div className="p-12 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--surface-container)] flex items-center justify-center">
+              <MaterialIcon className="text-3xl text-[var(--t3)]">
+                assignment
+              </MaterialIcon>
+            </div>
+            <div className="text-lg font-semibold text-[var(--t1)] mb-2">
+              Enter Exam Scores
+            </div>
+            <div className="text-sm text-[var(--t3)] mb-6 max-w-md mx-auto">
+              Follow these steps to record student scores:
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center text-sm">
+              <div
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+                  selectedClass
+                    ? "bg-green-soft text-green"
+                    : "bg-[var(--surface-container)] text-[var(--t3)]"
+                }`}
+              >
+                <span className="w-6 h-6 rounded-full bg-current/10 flex items-center justify-center text-xs font-bold">
+                  1
+                </span>
+                Select Class
+              </div>
+              <MaterialIcon className="text-[var(--t3)]">
+                arrow_forward
+              </MaterialIcon>
+              <div
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+                  selectedSubject
+                    ? "bg-green-soft text-green"
+                    : "bg-[var(--surface-container)] text-[var(--t3)]"
+                }`}
+              >
+                <span className="w-6 h-6 rounded-full bg-current/10 flex items-center justify-center text-xs font-bold">
+                  2
+                </span>
+                Select Subject
+              </div>
+              <MaterialIcon className="text-[var(--t3)]">
+                arrow_forward
+              </MaterialIcon>
+              <div className="flex items-center gap-2 px-4 py-2 bg-[var(--surface-container)] text-[var(--t3)] rounded-lg">
+                <span className="w-6 h-6 rounded-full bg-current/10 flex items-center justify-center text-xs font-bold">
+                  3
+                </span>
+                Enter Scores
+              </div>
+            </div>
           </div>
         )}
       </Card>
@@ -430,10 +511,10 @@ export default function ExamsPage() {
                 </div>
                 <div className="text-xs text-[var(--t3)]">{exam.exam_date}</div>
                 <button
-                  onClick={() => deleteExam(exam.id)}
-                  className="bg-transparent border-none p-1 cursor-pointer"
+                  onClick={() => setExamToDelete(exam.id)}
+                  className="bg-transparent border-none p-1 cursor-pointer hover:bg-error/10 rounded"
                 >
-                  <MaterialIcon className="text-base text-[var(--t3)]">
+                  <MaterialIcon className="text-base text-error">
                     delete
                   </MaterialIcon>
                 </button>
@@ -584,6 +665,55 @@ export default function ExamsPage() {
                 Cancel
               </Button>
               <Button onClick={handleAddExam}>Create Exam</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {examToDelete && (
+        <div className="modal-overlay" onClick={() => setExamToDelete(null)}>
+          <div className="modal max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="font-['Sora'] text-base font-bold text-error">
+                Delete Exam
+              </div>
+              <button
+                onClick={() => setExamToDelete(null)}
+                className="bg-transparent border-none p-1 cursor-pointer"
+              >
+                <MaterialIcon className="text-lg text-[var(--t3)]">
+                  close
+                </MaterialIcon>
+              </button>
+            </div>
+            <div className="modal-body p-5 text-center">
+              <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-error/10 flex items-center justify-center">
+                <MaterialIcon className="text-2xl text-error">
+                  warning
+                </MaterialIcon>
+              </div>
+              <div className="font-semibold text-[var(--t1)] mb-2">
+                Are you sure?
+              </div>
+              <div className="text-sm text-[var(--t3)]">
+                This will permanently delete this exam and all associated
+                scores. This action cannot be undone.
+              </div>
+            </div>
+            <div className="modal-footer">
+              <Button variant="ghost" onClick={() => setExamToDelete(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={async () => {
+                  await deleteExam(examToDelete);
+                  setExamToDelete(null);
+                  toast.success("Exam deleted");
+                }}
+              >
+                Delete Exam
+              </Button>
             </div>
           </div>
         </div>
