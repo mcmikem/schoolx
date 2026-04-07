@@ -5,8 +5,7 @@ const config: CapacitorConfig = {
   appName: 'SkoolMate OS',
   webDir: 'out',
   server: {
-    // For dev: point to your local dev server
-    // url: 'http://192.168.1.100:3000',
+    url: 'https://omuto-school-management.vercel.app',
     androidScheme: 'https',
     cleartext: true,
   },
