@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Providers from "./providers";
+import MobileInit from "./mobile-init";
 
 export const metadata: Metadata = {
   title: "SkoolMate OS | Your Digital School Partner",
@@ -91,6 +92,7 @@ export default function RootLayout({
           Skip to main content
         </a>
         <Providers>{children}</Providers>
+        <MobileInit />
         <script>{`
             (function() {
               if ('serviceWorker' in navigator) {

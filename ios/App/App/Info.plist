@@ -47,5 +47,15 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>SkoolMate OS uses the camera to capture student photos and scan documents.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>SkoolMate OS needs access to your photo library to upload student photos and documents.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>SkoolMate OS needs to save report cards and receipts to your photo library.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>
