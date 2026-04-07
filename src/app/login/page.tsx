@@ -47,12 +47,6 @@ export default function LoginPage() {
 
   const demoAccounts = [
     {
-      role: "Super Admin",
-      phone: "0700000000",
-      password: DEMO_PASSWORD,
-      label: "Super Admin (System)",
-    },
-    {
       role: "Headmaster",
       phone: "0700000001",
       password: DEMO_PASSWORD,
@@ -97,11 +91,6 @@ export default function LoginPage() {
       string,
       { role: string; name: string; school_id: string }
     > = {
-      "0700000000": {
-        role: "super_admin",
-        name: "Super Admin",
-        school_id: "system-admin",
-      },
       "0700000001": {
         role: "headmaster",
         name: "John Headmaster",
@@ -118,7 +107,7 @@ export default function LoginPage() {
         school_id: "demo-school",
       },
       "0700000004": {
-        role: "dean_of_studies",
+        role: "dean_of_students",
         name: "Sarah Dean",
         school_id: "demo-school",
       },

@@ -40,6 +40,19 @@ export default function ParentLoginPage() {
   const [linkStudentId, setLinkStudentId] = useState("");
   const [linkedChildPhone, setLinkedChildPhone] = useState("");
 
+  const DEMO_PASSWORD = "demo1234";
+
+  const demoParent = {
+    phone: "0770000001",
+    password: DEMO_PASSWORD,
+    name: "Jane Parent",
+  };
+
+  const handleDemoLogin = () => {
+    setPhone(demoParent.phone);
+    setPassword(demoParent.password);
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone.trim() || !password.trim()) {
@@ -50,6 +63,34 @@ export default function ParentLoginPage() {
     setLoading(true);
     try {
       const cleanPhone = phone.replace(/[^0-9]/g, "");
+
+      // DEMO LOGIN
+      if (password === DEMO_PASSWORD && cleanPhone === demoParent.phone) {
+        const demoData = {
+          parent: {
+            id: "demo-parent-1",
+            phone: demoParent.phone,
+            name: demoParent.name,
+            school_id: "00000000-0000-0000-0000-000000000001",
+            children: [
+              {
+                id: "demo-child-1",
+                name: "John Student",
+                class: "P.5A",
+                student_id: "demo-student-1",
+              },
+            ],
+          },
+        };
+        localStorage.setItem(
+          "omuto_parent_demo",
+          JSON.stringify(demoData.parent),
+        );
+        router.push("/parent/dashboard");
+        setLoading(false);
+        return;
+      }
+
       const email = `parent_${cleanPhone}@skoolmate.os`;
 
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -150,33 +191,11 @@ export default function ParentLoginPage() {
                 </div>
               </div>
               <button
-                onClick={() => {
-                  localStorage.setItem(
-                    "parent_session",
-                    JSON.stringify({
-                      user: { id: "demo-parent-1" },
-                      parent: {
-                        id: "demo-parent-1",
-                        name: "Nakamya Grace",
-                        phone: "0700287030",
-                        children: [
-                          {
-                            id: "demo-child-1",
-                            name: "Nakamya Amina",
-                            class: "Primary 6",
-                            student_id: "P6-001",
-                            school_id: "demo-school",
-                          },
-                        ],
-                        school_id: "demo-school",
-                      },
-                    }),
-                  );
-                  router.push("/parent/dashboard");
-                }}
-                className="w-full py-3 px-4 bg-[#D4AF37] text-[#001F3F] font-semibold rounded-xl hover:bg-[#c9a432] transition-colors"
+                onClick={handleDemoLogin}
+                className="w-full py-3 px-4 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors"
               >
-                Try Demo Account
+                <MaterialIcon icon="school" className="inline mr-2" />
+                Try Demo
               </button>
               <p className="text-center text-sm text-gray-500 mt-4">
                 New parent? Contact your school to get access.
