@@ -100,10 +100,18 @@ export default function ParentDashboard() {
   const toast = useToast();
   const [data, setData] = useState<DashboardData | null>(demoData);
   const [loading, setLoading] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "overview" | "academics" | "fees" | "messages"
   >("overview");
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    const demoStr = localStorage.getItem("omuto_parent_demo");
+    if (demoStr) {
+      setIsDemo(true);
+    }
+  }, []);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-UG", {

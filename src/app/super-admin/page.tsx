@@ -95,32 +95,19 @@ export default function SuperAdminDashboard() {
   const loadSystemData = async () => {
     setLoading(true);
 
-    // Use demo data only if NEXT_PUBLIC_DEMO_ENABLED is true
-    const useDemo = process.env.NEXT_PUBLIC_DEMO_ENABLED === "true";
-
-    if (useDemo) {
-      loadDemoData();
-      setLoading(false);
-      return;
-    }
-
     try {
       // Get all schools
       const { data: schoolsData, error: schoolsError } = await supabase
         .from("schools")
         .select(
           `id, name, district, ownership, subscription_plan, subscription_status, 
-          created_at, primary_color, contact_phone, contact_email, expires_at`,
+          created_at, primary_color, phone, email, trial_ends_at`,
         )
         .order("created_at", { ascending: false });
 
       if (schoolsError) {
-        console.warn(
-          "Schools query failed, using demo data:",
-          schoolsError.message,
-        );
-        // Fallback to demo data if query fails
-        loadDemoData();
+        console.error("Schools query failed:", schoolsError.message);
+        setLoading(false);
         return;
       }
 
@@ -129,18 +116,10 @@ export default function SuperAdminDashboard() {
         .from("students")
         .select("school_id");
 
-      const { data: staffData } = await supabase
-        .from("staff")
-        .select("school_id");
-
       // Count students per school
       const studentCounts: Record<string, number> = {};
-      const staffCounts: Record<string, number> = {};
       studentsData?.forEach((s) => {
         studentCounts[s.school_id] = (studentCounts[s.school_id] || 0) + 1;
-      });
-      staffData?.forEach((s) => {
-        staffCounts[s.school_id] = (staffCounts[s.school_id] || 0) + 1;
       });
 
       const activeSchools =
@@ -156,11 +135,11 @@ export default function SuperAdminDashboard() {
       setStats({
         totalSchools: schoolsData?.length || 0,
         totalStudents: studentsData?.length || 0,
-        totalStaff: staffData?.length || 0,
+        totalStaff: 0,
         activeSubscriptions: activeSchools,
         trialSchools,
         expiredSchools,
-        monthlyRevenue: activeSchools * 800000, // Estimate
+        monthlyRevenue: activeSchools * 800000,
       });
 
       // Map schools with counts
@@ -186,16 +165,15 @@ export default function SuperAdminDashboard() {
           health: false,
         },
         student_count: studentCounts[s.id] || 0,
-        staff_count: staffCounts[s.id] || 0,
-        contact_phone: s.contact_phone || "",
-        contact_email: s.contact_email || "",
-        expires_at: s.expires_at,
+        staff_count: 0,
+        contact_phone: s.phone || "",
+        contact_email: s.email || "",
+        expires_at: s.trial_ends_at,
       }));
 
       setSchools(mappedSchools);
     } catch (err) {
       console.error("Error loading system data:", err);
-      loadDemoData();
     } finally {
       setLoading(false);
     }
