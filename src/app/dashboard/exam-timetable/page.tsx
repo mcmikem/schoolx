@@ -40,6 +40,7 @@ export default function ExamTimetablePage() {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [conflicts, setConflicts] = useState<string[]>([]);
+  const [examToDelete, setExamToDelete] = useState<string | null>(null);
 
   const [newExam, setNewExam] = useState({
     exam_date: "",
