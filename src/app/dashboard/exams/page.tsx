@@ -317,18 +317,27 @@ export default function ExamsPage() {
               <TableSkeleton rows={8} />
             </div>
           ) : (
-            <div className="tbl-wrap">
-              <table className="exam-scores-table">
+            <div className="tbl-wrap overflow-x-auto">
+              <table className="exam-scores-table w-full">
                 <thead>
                   <tr>
-                    <th className="min-w-[200px]">Student</th>
+                    <th className="min-w-[180px] sticky left-0 bg-[var(--bg)] z-10">
+                      Student
+                    </th>
                     {examConfigs.map((config) => (
-                      <th key={config.id} className="text-center w-20">
+                      <th
+                        key={config.id}
+                        className="text-center w-16 whitespace-nowrap"
+                      >
                         {config.shortName}
                       </th>
                     ))}
-                    <th className="text-center w-20">Total</th>
-                    <th className="text-center w-16">Grade</th>
+                    <th className="text-center w-16 whitespace-nowrap">
+                      Total
+                    </th>
+                    <th className="text-center w-14 whitespace-nowrap">
+                      Grade
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -339,20 +348,18 @@ export default function ExamsPage() {
 
                     return (
                       <tr key={student.id}>
-                        <td>
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[var(--navy)] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                        <td className="sticky left-0 bg-[var(--surface)] z-10">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-[var(--navy)] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
                               {student.first_name?.[0] || "?"}
                               {student.last_name?.[0] || ""}
                             </div>
                             <div className="min-w-0">
-                              <div className="font-semibold text-[var(--t1)] text-sm truncate">
+                              <div className="font-medium text-[var(--t1)] text-sm truncate max-w-[140px]">
                                 {student.first_name} {student.last_name}
                               </div>
-                              <div className="text-xs text-[var(--t3)]">
-                                {student.student_number ||
-                                  student.classes?.name ||
-                                  "-"}
+                              <div className="text-xs text-[var(--t3)] truncate max-w-[140px]">
+                                {student.student_number || "-"}
                               </div>
                             </div>
                           </div>
@@ -360,7 +367,7 @@ export default function ExamsPage() {
                         {examConfigs.map((config: ExamConfig) => {
                           const score = scores[config.type] ?? -1;
                           return (
-                            <td key={config.id} className="text-center">
+                            <td key={config.id} className="text-center p-1">
                               <input
                                 type="number"
                                 min={0}
@@ -374,7 +381,7 @@ export default function ExamsPage() {
                                 }
                                 disabled={termLocked}
                                 placeholder="-"
-                                className="w-14 sm:w-12 text-center px-1 py-1.5 border border-[var(--border)] rounded text-sm font-mono disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+                                className="w-full max-w-[60px] text-center px-1 py-1.5 border border-[var(--border)] rounded text-xs font-mono disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
                                 style={{
                                   background:
                                     score >= 0
@@ -387,12 +394,12 @@ export default function ExamsPage() {
                             </td>
                           );
                         })}
-                        <td className="text-center font-mono font-bold text-sm">
+                        <td className="text-center font-mono font-bold text-sm p-2">
                           {total > 0 ? total.toFixed(1) : "-"}
                         </td>
-                        <td className="text-center">
+                        <td className="text-center p-2">
                           <span
-                            className="inline-block px-2 py-0.5 rounded text-xs font-bold"
+                            className="inline-block px-1.5 py-0.5 rounded text-xs font-bold min-w-[24px]"
                             style={{
                               background:
                                 total >= 80
