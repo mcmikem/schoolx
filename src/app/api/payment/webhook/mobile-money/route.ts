@@ -17,7 +17,9 @@ export async function POST(request: NextRequest) {
 
     const isValidSignature = flutterwave.verifyWebhookSignature(body, signature)
 
-    if (!isValidSignature && process.env.NODE_ENV === 'production') {
+    // Always enforce signature verification unless explicitly disabled for local dev.
+    const allowInsecure = process.env.ALLOW_INSECURE_WEBHOOKS === 'true'
+    if (!isValidSignature && !allowInsecure) {
       console.error('Invalid webhook signature')
       return NextResponse.json(
         { error: 'Invalid signature' },

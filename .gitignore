@@ -17,6 +17,9 @@ build/
 
 # Debug
 npm-debug.log*
+serveo.log
+ws.log
+antigravity_phone_chat/
 
 # OS
 .DS_Store

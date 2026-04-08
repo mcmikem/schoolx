@@ -42,6 +42,7 @@ const ALL_VALID_ROLES: string[] = [
   "dorm_master",
 ];
 
+// Demo sessions must never be able to assume elevated roles.
 const DEMO_ALLOWED_ROLES: string[] = [
   "headmaster",
   "dean_of_studies",
@@ -49,20 +50,13 @@ const DEMO_ALLOWED_ROLES: string[] = [
   "teacher",
   "secretary",
   "dorm_master",
-  "admin",
-  "school_admin",
-  "super_admin",
 ];
 
 function sanitizeDemoRole(raw: unknown): User["role"] {
   if (typeof raw === "string" && DEMO_ALLOWED_ROLES.includes(raw)) {
     return raw as User["role"];
   }
-  // Default to headmaster — admins and school_admins should get full access
-  if (typeof raw === "string" && (raw === "admin" || raw === "school_admin")) {
-    return "headmaster";
-  }
-  // Default to headmaster for any other role
+  // Default to headmaster for any other/unknown role
   return "headmaster";
 }
 
@@ -216,24 +210,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const checkUser = useCallback(async () => {
-    console.debug("[Auth] checkUser called");
-
     // Safety timeout - always set loading to false after 5 seconds
     const timeoutId = setTimeout(() => {
-      console.log("[Auth] Safety timeout reached, forcing loading=false");
       setLoading(false);
     }, 5000);
 
     try {
       const demoUserStr = localStorage.getItem(DEMO_KEY);
-      console.debug("[Auth] demoUserStr:", !!demoUserStr);
 
       if (demoUserStr) {
         try {
           const decrypted = decryptDemoData(demoUserStr);
           if (decrypted) {
             const { demoUser, demoSchool } = JSON.parse(decrypted);
-            console.debug("[Auth] Demo user loaded:", demoUser.name);
 
             setUser({
               id: "demo-user",
@@ -273,20 +262,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Check for real auth session
-      console.debug("[Auth] No demo data, checking supabase auth");
       if (supabase?.auth) {
         try {
           const {
             data: { session },
           } = await supabase!.auth.getSession();
-          console.debug("[Auth] Session:", !!session);
           if (session && session.user) {
             await fetchUserData(session.user.id);
             setIsDemo(false);
             setLoading(false);
           } else {
             setIsDemo(false);
-            console.debug("[Auth] No session, setting loading=false");
             setLoading(false);
           }
         } catch (sessionError) {
@@ -297,7 +283,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearTimeout(timeoutId);
         setLoading(false);
       } else {
-        console.debug("[Auth] No supabase, setting loading=false");
         setIsDemo(false);
         clearTimeout(timeoutId);
         setLoading(false);

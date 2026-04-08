@@ -1,11 +1,20 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { apiError } from '@/lib/api-utils'
+import { requireCronSecretOrDeny } from '@/lib/api-utils'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 export async function POST(request: NextRequest) {
   try {
+    const cron = requireCronSecretOrDeny(request)
+    if (!cron.ok) return cron.response
+
+    if (!supabaseServiceKey) {
+      return apiError('Server configuration error', 500)
+    }
+
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     })
@@ -39,8 +48,15 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const cron = requireCronSecretOrDeny(request)
+    if (!cron.ok) return cron.response
+
+    if (!supabaseServiceKey) {
+      return apiError('Server configuration error', 500)
+    }
+
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     })

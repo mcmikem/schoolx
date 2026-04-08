@@ -1089,7 +1089,7 @@ export default function FinanceHubPage() {
               <MaterialIcon icon="event_note" />
               Payment Plan
             </Button>
-            <Button variant="primary" onClick={() => setShowFeeFormModal(true)}>
+            <Button variant="primary" onClick={() => setShowFeeModal(true)}>
               <MaterialIcon icon="add" />
               Create Fee
             </Button>

@@ -5,8 +5,17 @@ import { apiSuccess, apiError, handleApiError } from '@/lib/api-utils'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    // This endpoint performs privileged schema operations; protect it.
+    // Use `x-cron-secret` header or `?cron_secret=` query param.
+    // Note: `Request` doesn't expose `nextUrl`, so enforce header-only here.
+    const expected = process.env.CRON_SECRET
+    const provided = (request as any).headers?.get?.('x-cron-secret') || ''
+    if (!expected || provided !== expected) {
+      return apiError('Unauthorized', 401)
+    }
+
     if (!supabaseServiceKey) {
       return apiError('SUPABASE_SERVICE_ROLE_KEY not set. Add it to .env.local', 400)
     }

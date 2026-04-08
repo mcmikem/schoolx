@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { User } from "@/types";
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -250,4 +251,114 @@ export async function requireAuthenticatedUser(
       authUserId: data.user.id,
     },
   };
+}
+
+export interface UserWithSchoolContext extends AuthenticatedUserContext {
+  user: User;
+  schoolId: string | null;
+}
+
+export async function requireUserWithSchool(
+  request: NextRequest,
+): Promise<
+  | { ok: true; context: UserWithSchoolContext }
+  | { ok: false; response: NextResponse }
+> {
+  const auth = await requireAuthenticatedUser(request);
+  if (!auth.ok) return auth;
+
+  const supabase = await createSupabaseServerClient();
+  const { data: userRow, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("auth_id", auth.context.authUserId)
+    .maybeSingle();
+
+  if (error || !userRow) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, error: "User profile not found" },
+        { status: 403 },
+      ),
+    };
+  }
+
+  return {
+    ok: true,
+    context: {
+      authUserId: auth.context.authUserId,
+      user: userRow as User,
+      schoolId: (userRow as any).school_id ?? null,
+    },
+  };
+}
+
+export function assertSchoolScopeOrDeny(params: {
+  userSchoolId: string | null;
+  requestedSchoolId: unknown;
+}): { ok: true; schoolId: string } | { ok: false; response: NextResponse } {
+  const { userSchoolId, requestedSchoolId } = params;
+
+  if (!userSchoolId) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, error: "School context required" },
+        { status: 403 },
+      ),
+    };
+  }
+
+  if (typeof requestedSchoolId !== "string" || requestedSchoolId.length === 0) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, error: "School ID is required" },
+        { status: 400 },
+      ),
+    };
+  }
+
+  if (requestedSchoolId !== userSchoolId) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
+      ),
+    };
+  }
+
+  return { ok: true, schoolId: requestedSchoolId };
+}
+
+export function requireCronSecretOrDeny(request: NextRequest): { ok: true } | { ok: false; response: NextResponse } {
+  const expected = process.env.CRON_SECRET;
+  if (!expected) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, error: "Server configuration error" },
+        { status: 500 },
+      ),
+    };
+  }
+
+  const provided =
+    request.headers.get("x-cron-secret") ||
+    request.nextUrl.searchParams.get("cron_secret") ||
+    "";
+
+  if (provided !== expected) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      ),
+    };
+  }
+
+  return { ok: true };
 }

@@ -1,12 +1,16 @@
 import { createClient } from "@supabase/supabase-js";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { requireCronSecretOrDeny } from "@/lib/api-utils";
 
 // Auto Fee Reminder SMS Scheduler
 // Automatically sends SMS reminders to parents with outstanding fees
 // based on configurable triggers (7, 14, 30 days overdue)
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const cron = requireCronSecretOrDeny(request);
+    if (!cron.ok) return cron.response;
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenAI } from '@google/genai'
-import { apiError, apiSuccess, handleApiError, withSecurity } from '@/lib/api-utils'
+import { apiError, apiSuccess, handleApiError, withSecurity, requireAuthenticatedUser } from '@/lib/api-utils'
 
 const promptTemplate = `
 You are a robust data extraction parser for a School Management System. 
@@ -23,6 +23,9 @@ Raw Text to Parse:
 
 async function handlePost(request: NextRequest) {
   try {
+    const auth = await requireAuthenticatedUser(request)
+    if (!auth.ok) return auth.response
+
     const { rawText } = await request.json()
 
     if (!rawText || rawText.trim() === '') {
