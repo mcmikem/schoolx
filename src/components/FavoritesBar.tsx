@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useToast } from "@/components/Toast";
 import { t } from "@/i18n";
+import { cn } from "@/lib/utils";
 
 interface PinnedItem {
   href: string;
@@ -81,8 +82,8 @@ export default function FavoritesBar() {
   };
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+    <div className="relative flex items-center gap-1">
+      <div className="flex items-center gap-0.5">
         {pinnedItems.slice(0, 5).map((item) => {
           const isActive =
             path === item.href || path.startsWith(item.href + "/");
@@ -90,27 +91,24 @@ export default function FavoritesBar() {
             <Link
               key={item.href}
               href={item.href}
-              className="fav-item"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "8px 12px",
-                borderRadius: 8,
-                fontSize: 13,
-                fontWeight: 500,
-                color: isActive ? "var(--navy)" : "var(--t2)",
-                background: isActive ? "var(--navy)" : "transparent",
-                textDecoration: "none",
-                transition: "all 0.15s ease",
-              }}
+              className={cn(
+                "fav-item flex items-center gap-1.5 rounded-lg px-3 py-2 text-[13px] font-medium no-underline transition-colors duration-150",
+                isActive
+                  ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-[var(--sh1)]"
+                  : "text-[var(--t2)] hover:bg-[var(--surface-container)]",
+              )}
               title={item.label}
             >
               <MaterialIcon
                 icon={item.icon}
-                style={{ fontSize: 16, color: isActive ? "#fff" : "var(--t3)" }}
+                className={
+                  isActive
+                    ? "text-[var(--on-primary)]"
+                    : "text-[var(--t3)]"
+                }
+                style={{ fontSize: 16 }}
               />
-              <span style={{ display: path ? "inline" : "none" }}>
+              <span className="hidden sm:inline max-w-[120px] truncate">
                 {item.label}
               </span>
             </Link>
@@ -119,19 +117,14 @@ export default function FavoritesBar() {
       </div>
 
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 32,
-          height: 32,
-          borderRadius: 8,
-          border: "1px solid var(--border)",
-          background: "var(--surface)",
-          cursor: "pointer",
-          color: "var(--t3)",
-        }}
+        className={cn(
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--t3)] shadow-[var(--sh1)] transition-colors",
+          "hover:bg-[var(--bg)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/25",
+        )}
+        aria-expanded={isOpen}
+        aria-label={t("favorites.managePins")}
         title={t("favorites.managePins")}
       >
         <MaterialIcon
@@ -142,82 +135,47 @@ export default function FavoritesBar() {
 
       {isOpen && (
         <div
-          style={{
-            position: "absolute",
-            top: "100%",
-            right: 0,
-            marginTop: 8,
-            background: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--r)",
-            boxShadow: "var(--sh3)",
-            width: 280,
-            zIndex: 100,
-            maxHeight: 320,
-            overflowY: "auto",
-          }}
+          className="absolute right-0 top-[calc(100%+8px)] z-[100] max-h-[min(320px,70vh)] w-[280px] overflow-y-auto rounded-[var(--r)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--sh3)]"
+          role="dialog"
+          aria-label={t("favorites.pinnedItems")}
         >
-          <div
-            style={{
-              padding: "12px 14px",
-              borderBottom: "1px solid var(--border)",
-            }}
-          >
-            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)" }}>
+          <div className="border-b border-[var(--border)] px-3.5 py-3">
+            <div className="text-[13px] font-semibold text-[var(--t1)]">
               {t("favorites.pinnedItems")}
             </div>
-            <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>
+            <div className="mt-0.5 text-[11px] text-[var(--t3)]">
               {t("favorites.clickToPin")}
             </div>
           </div>
 
-          <div style={{ padding: 8 }}>
+          <div className="p-2">
             {pinnedItems.map((item) => (
-              <div
+              <button
                 key={item.href}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "8px 10px",
-                  borderRadius: 6,
-                  cursor: "pointer",
-                }}
+                type="button"
+                className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-[var(--surface-container)]"
                 onClick={() => unpinItem(item.href)}
-                className="hover:bg-surface-container"
               >
                 <MaterialIcon
                   icon={item.icon}
                   style={{ fontSize: 16, color: "var(--t3)" }}
                 />
-                <span style={{ flex: 1, fontSize: 13, color: "var(--t1)" }}>
+                <span className="flex-1 text-[13px] text-[var(--t1)]">
                   {item.label}
                 </span>
                 <MaterialIcon
                   icon="close"
                   style={{ fontSize: 14, color: "var(--t4)" }}
                 />
-              </div>
+              </button>
             ))}
           </div>
 
-          <div
-            style={{
-              padding: "8px 14px",
-              borderTop: "1px solid var(--border)",
-            }}
-          >
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: "var(--t3)",
-                marginBottom: 6,
-              }}
-            >
+          <div className="border-t border-[var(--border)] px-3.5 py-2">
+            <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--t3)]">
               {t("favorites.availableToPin")}
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+            <div className="flex flex-wrap gap-1">
               {availableItems
                 .filter(
                   (item) => !pinnedItems.find((p) => p.href === item.href),
@@ -225,19 +183,9 @@ export default function FavoritesBar() {
                 .map((item) => (
                   <button
                     key={item.href}
+                    type="button"
                     onClick={() => pinItem(item)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                      padding: "4px 8px",
-                      borderRadius: 6,
-                      border: "1px solid var(--border)",
-                      background: "var(--surface)",
-                      fontSize: 11,
-                      color: "var(--t2)",
-                      cursor: "pointer",
-                    }}
+                    className="flex cursor-pointer items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-[11px] text-[var(--t2)] transition-colors hover:bg-[var(--surface-container)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/25"
                   >
                     <MaterialIcon icon="add" style={{ fontSize: 12 }} />
                     {item.label}

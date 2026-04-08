@@ -19,32 +19,32 @@ type DashboardNotification = {
   href: string;
 };
 
-function getNextStep(pathname: string): {
+function getNextStep(path: string): {
   label: string;
   href: string;
   icon: string;
 } {
-  if (pathname === "/dashboard")
+  if (path === "/dashboard")
     return {
       label: "Add students",
       href: "/dashboard/students",
       icon: "person_add",
     };
-  if (pathname.startsWith("/dashboard/students"))
+  if (path.startsWith("/dashboard/students"))
     return {
       label: "Take attendance",
       href: "/dashboard/attendance",
       icon: "how_to_reg",
     };
-  if (pathname.startsWith("/dashboard/attendance"))
+  if (path.startsWith("/dashboard/attendance"))
     return { label: "Record fees", href: "/dashboard/fees", icon: "payments" };
-  if (pathname.startsWith("/dashboard/fees"))
+  if (path.startsWith("/dashboard/fees"))
     return {
       label: "Send reminders",
       href: "/dashboard/messages",
       icon: "sms",
     };
-  if (pathname.startsWith("/dashboard/messages"))
+  if (path.startsWith("/dashboard/messages"))
     return {
       label: "View notices",
       href: "/dashboard/notices",
@@ -122,7 +122,7 @@ function NotificationsPanel({
         <Link
           href={notifications[0]?.href || "/dashboard/notices"}
           onClick={onClose}
-          className="block px-4 py-[10px] text-center text-[12px] text-[var(--navy)] border-t border-[var(--border)] no-underline hover:bg-[var(--bg)] transition-colors"
+          className="block px-4 py-[10px] text-center text-[12px] text-[var(--primary)] font-medium border-t border-[var(--border)] no-underline hover:bg-[var(--bg)] transition-colors"
         >
           Open priority queue
         </Link>
@@ -178,6 +178,7 @@ export default function TopBar({
   const { theme, toggleTheme } = useTheme();
   const { currentTerm } = useAcademic();
   const pathname = usePathname();
+  const path = pathname ?? "";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [dismissedNotifs, setDismissedNotifs] = useState<Set<string>>(
@@ -225,8 +226,8 @@ export default function TopBar({
   };
 
   const buildBreadcrumbs = () => {
-    if (!pathname) return [{ label: "Dashboard", href: "/dashboard" }];
-    const segments = pathname.split("/").filter(Boolean);
+    if (!path) return [{ label: "Dashboard", href: "/dashboard" }];
+    const segments = path.split("/").filter(Boolean);
     const crumbs: { label: string; href: string }[] = [];
     let href = "";
     for (const segment of segments) {
@@ -240,7 +241,7 @@ export default function TopBar({
   };
 
   const breadcrumbs = buildBreadcrumbs();
-  const nextStep = getNextStep(pathname || "/dashboard");
+  const nextStep = getNextStep(path || "/dashboard");
 
   return (
     <header className="topbar bg-[var(--surface)] border-b border-[var(--border)] h-[60px] flex items-center px-8 gap-[18px] sticky top-0 z-50 shadow-[var(--sh1)] flex-shrink-0">
@@ -285,7 +286,7 @@ export default function TopBar({
                 ) : (
                   <Link
                     href={crumb.href}
-                    className="text-[var(--navy)] hover:underline transition-colors"
+                    className="text-[var(--primary)] hover:underline transition-colors"
                   >
                     {crumb.label}
                   </Link>
@@ -316,10 +317,14 @@ export default function TopBar({
       <div className="flex items-center gap-[10px]">
         <Link
           href={nextStep.href}
-          className="flex items-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-[10px] bg-[var(--navy)] text-white text-[12px] font-semibold no-underline shadow-[var(--sh1)]"
+          className="flex items-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-[10px] bg-[var(--primary)] text-[var(--on-primary)] text-[12px] font-semibold no-underline shadow-[var(--sh1)] hover:opacity-90 transition-opacity"
           aria-label={`Next step: ${nextStep.label}`}
         >
-          <MaterialIcon icon={nextStep.icon} style={{ fontSize: 15 }} />
+          <MaterialIcon
+            icon={nextStep.icon}
+            className="text-[var(--on-primary)]"
+            style={{ fontSize: 15 }}
+          />
           <span className="hidden sm:inline">{nextStep.label}</span>
         </Link>
 
@@ -365,7 +370,7 @@ export default function TopBar({
             aria-label="User menu"
             aria-expanded={userMenuOpen}
           >
-            <div className="w-[26px] h-[26px] rounded-full bg-[var(--navy)] flex items-center justify-center text-[10px] font-bold text-white font-['Sora']">
+            <div className="w-[26px] h-[26px] rounded-full bg-[var(--primary)] flex items-center justify-center text-[10px] font-bold text-[var(--on-primary)] font-['Sora']">
               {user?.full_name?.charAt(0) || "U"}
             </div>
             <div className="text-left hidden sm:block">
