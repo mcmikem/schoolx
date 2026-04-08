@@ -13,6 +13,7 @@ interface CollapsibleSidebarProps {
 
 export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSidebarProps) {
   const pathname = usePathname()
+  const path = pathname ?? ''
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
   const [query, setQuery] = useState('')
   const [recentPages, setRecentPages] = useState<Array<{ href: string; label: string; icon: string }>>([])
@@ -20,11 +21,11 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
   useEffect(() => {
     const initial: Record<string, boolean> = {}
     groups.forEach((group) => {
-      const hasActive = group.items.some(item => pathname === item.href || pathname.startsWith(item.href + '/'))
+      const hasActive = group.items.some(item => path === item.href || path.startsWith(item.href + '/'))
       initial[group.label] = hasActive || group.defaultOpen || false
     })
     setOpenGroups(initial)
-  }, [groups, pathname])
+  }, [groups, path])
 
   const toggleGroup = (label: string) => {
     setOpenGroups(prev => ({ ...prev, [label]: !prev[label] }))
@@ -96,7 +97,7 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
       <div className="space-y-1">
         {filteredGroups.map((group) => {
           const isOpen = openGroups[group.label]
-          const hasActive = group.items.some(item => pathname === item.href || pathname.startsWith(item.href + '/'))
+          const hasActive = group.items.some(item => path === item.href || path.startsWith(item.href + '/'))
 
           return (
             <div key={group.label} className="sidebar-group">
@@ -123,7 +124,7 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
               {isOpen && (
                 <div className="mt-1 ml-2 space-y-0.5 border-l border-[var(--border)] pl-2">
                   {group.items.map((item) => {
-                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+                    const isActive = path === item.href || path.startsWith(item.href + '/')
                     return (
                       <Link
                         key={item.href}

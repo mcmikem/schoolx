@@ -57,25 +57,43 @@ export function Button({
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  /** Renders inside the field on the right (e.g. password visibility toggle). */
+  endAdornment?: React.ReactNode;
 }
 
-export function Input({ label, error, className = "", ...props }: InputProps) {
-  const id = useId();
+export function Input({
+  label,
+  error,
+  className = "",
+  endAdornment,
+  id: idProp,
+  ...props
+}: InputProps) {
+  const generatedId = useId();
+  const inputId = idProp ?? generatedId;
+  const paddingRight = endAdornment ? "pr-12" : "";
+  const fieldClass = `w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] placeholder-[var(--t4)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors ${error ? "border-[var(--error)]" : ""} ${paddingRight} ${className}`;
+
   return (
     <div className="space-y-1">
       {label && (
         <label
-          htmlFor={id}
+          htmlFor={inputId}
           className="block text-sm font-medium text-[var(--on-surface)]"
         >
           {label}
         </label>
       )}
-      <input
-        id={id}
-        className={`w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] placeholder-[var(--t4)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors ${error ? "border-[var(--error)]" : ""} ${className}`}
-        {...props}
-      />
+      {endAdornment ? (
+        <div className="relative">
+          <input id={inputId} className={fieldClass} {...props} />
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+            <div className="pointer-events-auto">{endAdornment}</div>
+          </div>
+        </div>
+      ) : (
+        <input id={inputId} className={fieldClass} {...props} />
+      )}
       {error && <p className="text-sm text-[var(--error)]">{error}</p>}
     </div>
   );
