@@ -5,7 +5,12 @@ export async function POST(request: Request) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
 
     const { schoolId, academicYear, criteria } = await request.json();
 
@@ -22,11 +27,12 @@ export async function POST(request: Request) {
       maxFailedSubjects: 2,
     };
 
+    // Use service role to bypass RLS
     const { data: students, error: studentsError } = await supabase
       .from("students")
       .select(
         `
-        id, first_name, last_name, class_id, student_number,
+        id, first_name, last_name, class_id, student_number, school_id,
         classes (id, name, level),
         student_grades (subject_id, ca1, ca2, ca3, exam_score, subjects (name)),
         student_attendance (status)
@@ -39,6 +45,16 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Failed to fetch students", details: studentsError.message },
         { status: 500 },
+      );
+    }
+
+    if (!students || students.length === 0) {
+      return NextResponse.json(
+        {
+          error: "No students found for this school",
+          summary: { promoted: 0, retained: 0, errors: 0 },
+        },
+        { status: 400 },
       );
     }
 

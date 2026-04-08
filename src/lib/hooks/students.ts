@@ -219,10 +219,24 @@ export function useStudent(id: string) {
   const [student, setStudent] = useState<StudentWithClass | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isDemo } = useAuth();
 
   useEffect(() => {
     async function fetchStudent() {
       if (!id) return;
+
+      // Demo mode - use demo data
+      if (isDemo) {
+        const demoStudent =
+          DEMO_STUDENTS.find((s) => s.id === id) || DEMO_STUDENTS[0];
+        setStudent({
+          ...demoStudent,
+          classes: { id: "demo-class", name: "P.5", level: "P.5" },
+        } as unknown as StudentWithClass);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         const { data, error } = await supabase
@@ -245,7 +259,7 @@ export function useStudent(id: string) {
       }
     }
     fetchStudent();
-  }, [id]);
+  }, [id, isDemo]);
 
   return { student, loading, error };
 }
