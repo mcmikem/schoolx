@@ -1,6 +1,22 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {},
+  images: {
+    remotePatterns: [
+      // Supabase Storage (project-specific hostname)
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+        pathname: '/storage/v1/object/**',
+      },
+      // Some Supabase setups use supabase.in
+      {
+        protocol: 'https',
+        hostname: '*.supabase.in',
+        pathname: '/storage/v1/object/**',
+      },
+    ],
+  },
   async headers() {
     return [
       {

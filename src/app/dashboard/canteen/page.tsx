@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -45,26 +45,30 @@ export default function CanteenPage() {
     unit: "pieces",
   });
 
-  useEffect(() => {
-    if (school?.id) loadData();
-  }, [school?.id]);
-
-  const loadData = async () => {
-    if (!school?.id) return;
+  const loadData = useCallback(async () => {
+    if (!school?.id) {
+      // #region agent log
+      fetch("/api/debug/log",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"9e14f3",runId:"pre-fix",hypothesisId:"H7",location:"src/app/dashboard/canteen/page.tsx:loadData:guard",message:"skipped canteen loadData due to missing school.id",data:{hasSchool:!!school,schoolId:school?.id??null},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      return;
+    }
     setLoading(true);
     try {
-      const { data: itemsData } = await supabase
+      const { data: itemsData, error: itemsError } = await supabase
         .from("canteen_items")
         .select("*")
         .eq("school_id", school.id)
         .order("category", { ascending: true });
 
-      const { data: ordersData } = await supabase
+      const { data: ordersData, error: ordersError } = await supabase
         .from("canteen_orders")
         .select("*")
         .eq("school_id", school.id)
         .order("created_at", { ascending: false })
         .limit(50);
+      // #region agent log
+      fetch("/api/debug/log",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"9e14f3",runId:"pre-fix",hypothesisId:"H7",location:"src/app/dashboard/canteen/page.tsx:loadData",message:"loaded canteen items/orders",data:{schoolId:school.id,itemsLen:itemsData?.length??null,ordersLen:ordersData?.length??null,hasItemsError:!!itemsError,itemsError:itemsError?String(itemsError.message||itemsError):null,hasOrdersError:!!ordersError,ordersError:ordersError?String(ordersError.message||ordersError):null},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
 
       setItems(itemsData || []);
       setOrders(ordersData || []);
@@ -73,7 +77,11 @@ export default function CanteenPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [school?.id]);
+
+  useEffect(() => {
+    if (school?.id) loadData();
+  }, [school?.id, loadData]);
 
   const handleAddItem = async () => {
     if (!school?.id || !newItem.name || !newItem.price) {

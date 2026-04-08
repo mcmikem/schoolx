@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 interface AnimatedLogoProps {
   type?: "opening" | "logo_white";
   className?: string;
@@ -15,14 +17,16 @@ export default function AnimatedLogo({
 
   return (
     <div className={`relative ${className}`}>
-      <img
+      <Image
         src={src}
         alt="SkoolMate Animation"
-        className="w-full h-full object-contain"
-        style={{
-          animation: autoplay ? "none" : "paused",
-          contentVisibility: "auto",
-        }}
+        fill
+        sizes="(max-width: 768px) 256px, 512px"
+        className="object-contain"
+        priority
+        // Keep animated WebP behavior consistent by serving the original file.
+        unoptimized
+        style={{ contentVisibility: "auto" }}
       />
     </div>
   );

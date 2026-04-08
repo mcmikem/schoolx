@@ -2,8 +2,11 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Providers from "./providers";
 import MobileInit from "./mobile-init";
+import DebugPing from "@/components/DebugPing";
+import Script from "next/script";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://omuto.sms"),
   title: "SkoolMate OS | Your Digital School Partner",
   description:
     "The all-in-one school management system built for Ugandan schools. Track attendance, grades, fees, and send parent SMS — all from one dashboard. Start your free 30-day trial today.",
@@ -92,30 +95,31 @@ export default function RootLayout({
           Skip to main content
         </a>
         <Providers>{children}</Providers>
+        <DebugPing />
         <MobileInit />
-        <script>{`
-            (function() {
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').then(function(reg) {
-                    reg.addEventListener('updatefound', function() {
-                      var newWorker = reg.installing;
-                      if (newWorker) {
-                        newWorker.addEventListener('statechange', function() {
-                          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            var evt = new CustomEvent('sw-update-available', { detail: { registration: reg } });
-                            window.dispatchEvent(evt);
-                          }
-                        });
-                      }
-                    });
-                  }).catch(function(err) {
-                    console.warn('SW registration failed:', err);
+        <Script id="sw-register" strategy="afterInteractive">{`
+          (function() {
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                  reg.addEventListener('updatefound', function() {
+                    var newWorker = reg.installing;
+                    if (newWorker) {
+                      newWorker.addEventListener('statechange', function() {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                          var evt = new CustomEvent('sw-update-available', { detail: { registration: reg } });
+                          window.dispatchEvent(evt);
+                        }
+                      });
+                    }
                   });
+                }).catch(function(err) {
+                  console.warn('SW registration failed:', err);
                 });
-              }
-            })();
-          `}</script>
+              });
+            }
+          })();
+        `}</Script>
       </body>
     </html>
   );

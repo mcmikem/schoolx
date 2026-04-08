@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { supabase } from "@/lib/supabase";
@@ -45,18 +45,18 @@ export default function TeacherPerformancePage() {
     "lessonPlans" | "syllabus" | "grades" | "attendance"
   >("lessonPlans");
 
-  useEffect(() => {
-    if (!school?.id) return;
-    loadData();
-  }, [school?.id, currentTerm]);
-
-  const loadData = async () => {
-    if (!school?.id) return;
+  const loadData = useCallback(async () => {
+    if (!school?.id) {
+      // #region agent log
+      fetch("/api/debug/log",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"9e14f3",runId:"pre-fix",hypothesisId:"H8",location:"src/app/dashboard/teacher-performance/page.tsx:loadData:guard",message:"skipped teacher loadData due to missing school.id",data:{hasSchool:!!school,schoolId:school?.id??null,term:currentTerm},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      return;
+    }
     setLoading(true);
 
     try {
       // Get all teachers
-      const { data: staffData } = await supabase
+      const { data: staffData, error: staffError } = await supabase
         .from("staff")
         .select(
           "id, first_name, last_name, position, subjects(id, name), staff_subjects(subject_id)",
@@ -73,7 +73,7 @@ export default function TeacherPerformancePage() {
       const teacherList = staffData || [];
 
       // Get lesson plans count per teacher
-      const { data: lessonPlans } = await supabase
+      const { data: lessonPlans, error: lessonPlansError } = await supabase
         .from("lesson_plans")
         .select("created_by, id")
         .eq("school_id", school.id)
@@ -86,7 +86,7 @@ export default function TeacherPerformancePage() {
       });
 
       // Get grades entered per teacher
-      const { data: gradesData } = await supabase
+      const { data: gradesData, error: gradesError } = await supabase
         .from("grades")
         .select("created_by, id, score")
         .eq("school_id", school.id)
@@ -105,11 +105,14 @@ export default function TeacherPerformancePage() {
       });
 
       // Get attendance marked per teacher
-      const { data: attendanceData } = await supabase
+      const { data: attendanceData, error: attendanceError } = await supabase
         .from("attendance")
         .select("marked_by, id")
         .eq("school_id", school.id)
         .eq("term", currentTerm);
+      // #region agent log
+      fetch("/api/debug/log",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"9e14f3",runId:"pre-fix",hypothesisId:"H8",location:"src/app/dashboard/teacher-performance/page.tsx:loadData",message:"loaded teacher performance datasets",data:{schoolId:school.id,term:currentTerm,staffLen:teacherList.length,hasStaffError:!!staffError,staffError:staffError?String(staffError.message||staffError):null,lessonPlansLen:lessonPlans?.length??null,hasLessonPlansError:!!lessonPlansError,lessonPlansError:lessonPlansError?String(lessonPlansError.message||lessonPlansError):null,gradesLen:gradesData?.length??null,hasGradesError:!!gradesError,gradesError:gradesError?String(gradesError.message||gradesError):null,attendanceLen:attendanceData?.length??null,hasAttendanceError:!!attendanceError,attendanceError:attendanceError?String(attendanceError.message||attendanceError):null},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
 
       const attendanceCounts: Record<string, number> = {};
       attendanceData?.forEach((a) => {
@@ -148,7 +151,21 @@ export default function TeacherPerformancePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [school?.id, currentTerm]);
+
+  useEffect(() => {
+    if (!school?.id) return;
+    loadData();
+  }, [school?.id, currentTerm, loadData]);
+
+  const getBadges = useCallback((t: TeacherStats, m: string): string[] => {
+    const badges: string[] = [];
+    // We'll compute "top" in the leaderboard derivation to avoid circular deps.
+    if (t.lessonPlansCount > 20) badges.push("prolific");
+    if (t.syllabusCoverage > 90) badges.push("completes");
+    if (t.gradesEntered > 100) badges.push("graded");
+    return badges;
+  }, []);
 
   const leaderboard = useMemo(() => {
     const sorted = [...stats].sort((a, b) => {
@@ -166,7 +183,7 @@ export default function TeacherPerformancePage() {
       }
     });
 
-    return sorted.slice(0, 10).map((t, idx) => ({
+    const top10 = sorted.slice(0, 10).map((t, idx) => ({
       rank: idx + 1,
       teacherId: t.teacherId,
       name: t.teacherName,
@@ -181,19 +198,14 @@ export default function TeacherPerformancePage() {
       badges: getBadges(t, metric),
       metric: metric,
     }));
-  }, [stats, metric]);
-
-  const getBadges = (t: TeacherStats, m: string): string[] => {
-    const badges: string[] = [];
-    const top3 = leaderboard.slice(0, 3);
-    const isTop3 = top3.some((l) => l.teacherId === t.teacherId);
-
-    if (isTop3) badges.push("top");
-    if (t.lessonPlansCount > 20) badges.push("prolific");
-    if (t.syllabusCoverage > 90) badges.push("completes");
-    if (t.gradesEntered > 100) badges.push("graded");
-    return badges;
-  };
+    const top3Ids = new Set(top10.slice(0, 3).map((entry) => entry.teacherId));
+    return top10.map((entry) => ({
+      ...entry,
+      badges: top3Ids.has(entry.teacherId)
+        ? Array.from(new Set(["top", ...entry.badges]))
+        : entry.badges,
+    }));
+  }, [stats, metric, getBadges]);
 
   const getMetricLabel = (m: string) => {
     switch (m) {
