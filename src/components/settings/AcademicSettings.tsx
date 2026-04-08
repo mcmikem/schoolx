@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAcademic } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -83,20 +83,22 @@ export default function AcademicSettings() {
   const [savingWeights, setSavingWeights] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
-  useEffect(() => {
-    if (school?.id) {
-      loadExamWeights();
+  const loadExamWeights = useCallback(async () => {
+    if (!school?.id) {
+      // #region agent log
+      fetch("/api/debug/log",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"9e14f3",runId:"pre-fix",hypothesisId:"H5",location:"src/components/settings/AcademicSettings.tsx:loadExamWeights:guard",message:"skipped loadExamWeights due to missing school.id",data:{hasSchool:!!school,schoolId:school?.id??null},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      return;
     }
-  }, [school?.id]);
-
-  async function loadExamWeights() {
-    if (!school?.id) return;
     setLoadingWeights(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("school_settings")
       .select("exam_weights")
       .eq("school_id", school.id)
       .single();
+    // #region agent log
+    fetch("/api/debug/log",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"9e14f3",runId:"pre-fix",hypothesisId:"H5",location:"src/components/settings/AcademicSettings.tsx:loadExamWeights",message:"loaded settings exam_weights",data:{schoolId:school.id,hasError:!!error,error:error?String(error.message||error):null,weightsType:typeof (data as any)?.exam_weights,weightsLen:Array.isArray((data as any)?.exam_weights)?(data as any).exam_weights.length:null},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
 
     if (data?.exam_weights) {
       const saved = data.exam_weights as ExamWeight[];
@@ -107,7 +109,13 @@ export default function AcademicSettings() {
       setExamWeights(merged);
     }
     setLoadingWeights(false);
-  }
+  }, [school?.id]);
+
+  useEffect(() => {
+    if (school?.id) {
+      loadExamWeights();
+    }
+  }, [school?.id, loadExamWeights]);
 
   async function saveExamWeights() {
     if (!school?.id) return;
@@ -122,6 +130,9 @@ export default function AcademicSettings() {
       },
       { onConflict: "school_id" },
     );
+    // #region agent log
+    fetch("/api/debug/log",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"9e14f3",runId:"pre-fix",hypothesisId:"H6",location:"src/components/settings/AcademicSettings.tsx:saveExamWeights",message:"saved exam_weights",data:{schoolId:school.id,totalWeight,hasError:!!error,error:error?String(error.message||error):null,activeCount:activeWeights.length},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
 
     setSavingWeights(false);
     setShowSettings(false);

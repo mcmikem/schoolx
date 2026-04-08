@@ -1,20 +1,17 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { apiSuccess, apiError, handleApiError } from '@/lib/api-utils'
+import { apiSuccess, apiError, handleApiError, requireCronSecretOrDeny } from '@/lib/api-utils'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    // This endpoint performs privileged schema operations; protect it.
-    // Use `x-cron-secret` header or `?cron_secret=` query param.
-    // Note: `Request` doesn't expose `nextUrl`, so enforce header-only here.
-    const expected = process.env.CRON_SECRET
-    const provided = (request as any).headers?.get?.('x-cron-secret') || ''
-    if (!expected || provided !== expected) {
-      return apiError('Unauthorized', 401)
-    }
+    const cron = requireCronSecretOrDeny(request)
+    // #region agent log
+    fetch('http://127.0.0.1:7705/ingest/3abb6116-9e7c-43c2-8376-b2438c7d299e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9e14f3'},body:JSON.stringify({sessionId:'9e14f3',runId:'pre-fix',hypothesisId:'H1',location:'src/app/api/setup/route.ts:POST:cron',message:'setup POST entry',data:{cronOk:cron.ok,hasSupabaseUrl:!!process.env.NEXT_PUBLIC_SUPABASE_URL,hasServiceKey:!!process.env.SUPABASE_SERVICE_ROLE_KEY,nodeEnv:process.env.NODE_ENV},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    if (!cron.ok) return cron.response
 
     if (!supabaseServiceKey) {
       return apiError('SUPABASE_SERVICE_ROLE_KEY not set. Add it to .env.local', 400)
@@ -250,6 +247,9 @@ export async function POST(request: Request) {
     for (const table of tables) {
       try {
         const { error } = await supabase.rpc('exec_sql', { sql: table.sql })
+        // #region agent log
+        fetch('http://127.0.0.1:7705/ingest/3abb6116-9e7c-43c2-8376-b2438c7d299e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9e14f3'},body:JSON.stringify({sessionId:'9e14f3',runId:'pre-fix',hypothesisId:'H2',location:'src/app/api/setup/route.ts:loop:exec_sql',message:'exec_sql result',data:{table:table.name,hasRpcError:!!error,rpcError: error ? String(error.message||error) : null},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         if (error) {
           const { error: directError } = await supabase.from(table.name).select('id').limit(1)
           if (directError) {
@@ -278,6 +278,9 @@ export async function POST(request: Request) {
     // New: Seed demo data after tables are set up
     const { seedDemoData } = await import('@/lib/seed-demo')
     const seedResult = await seedDemoData()
+    // #region agent log
+    fetch('http://127.0.0.1:7705/ingest/3abb6116-9e7c-43c2-8376-b2438c7d299e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9e14f3'},body:JSON.stringify({sessionId:'9e14f3',runId:'pre-fix',hypothesisId:'H3',location:'src/app/api/setup/route.ts:seed',message:'seedDemoData result',data:{hasError:!!seedResult?.error,error: seedResult?.error ? String(seedResult.error) : null},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     if (seedResult.error) {
       results['demo_seeding'] = `Error: ${seedResult.error}`
     } else {
