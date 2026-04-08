@@ -184,6 +184,39 @@ export default function ExamsPage() {
         }
       />
 
+      <Card className="mb-5 p-4">
+        <div className="flex items-start gap-3">
+          <div className="bg-blue-soft text-blue p-2 rounded-lg flex-shrink-0">
+            <MaterialIcon className="text-xl">help_outline</MaterialIcon>
+          </div>
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-[var(--t1)] mb-2">
+              How to Enter Scores
+            </div>
+            <div className="text-xs text-[var(--t3)] space-y-1">
+              <p>
+                • Enter the <span className="font-semibold">actual score</span>{" "}
+                (e.g., 85, not 85%)
+              </p>
+              <p>
+                • Each exam type has different{" "}
+                <span className="font-semibold">weight</span> - they combine to
+                make the Total
+              </p>
+              <p>
+                • <span className="font-semibold">Pass mark is 50%</span> -
+                scores below 50 show in red
+              </p>
+              <p>
+                • The <span className="font-semibold">Grade</span> is
+                auto-calculated (A, B, C, D, F9)
+              </p>
+              <p>• Scores are saved automatically as you type</p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
       <div className="mb-6">
         <Tabs
           tabs={[
@@ -241,12 +274,15 @@ export default function ExamsPage() {
               </label>
               {classes.length === 0 ? (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
-                  No classes
+                  No classes - Add classes first
                 </div>
               ) : (
                 <select
                   value={selectedClass}
-                  onChange={(e) => setSelectedClass(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedClass(e.target.value);
+                    setSelectedSubject("");
+                  }}
                   className="input h-9 text-sm"
                 >
                   <option value="">Select class</option>
@@ -264,13 +300,14 @@ export default function ExamsPage() {
               </label>
               {subjects.length === 0 ? (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
-                  No subjects
+                  No subjects - Add subjects first
                 </div>
               ) : (
                 <select
                   value={selectedSubject}
                   onChange={(e) => setSelectedSubject(e.target.value)}
                   className="input h-9 text-sm"
+                  disabled={!selectedClass}
                 >
                   <option value="">Select subject</option>
                   {subjects.map((s) => (
