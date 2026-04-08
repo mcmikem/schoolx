@@ -46,6 +46,7 @@ const availableItems: PinnedItem[] = [
 
 export default function FavoritesBar() {
   const pathname = usePathname();
+  const path = pathname ?? "";
   const toast = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [pinnedItems, setPinnedItems] = useState<PinnedItem[]>(defaultPins);
@@ -84,7 +85,7 @@ export default function FavoritesBar() {
       <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
         {pinnedItems.slice(0, 5).map((item) => {
           const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/");
+            path === item.href || path.startsWith(item.href + "/");
           return (
             <Link
               key={item.href}
@@ -109,7 +110,7 @@ export default function FavoritesBar() {
                 icon={item.icon}
                 style={{ fontSize: 16, color: isActive ? "#fff" : "var(--t3)" }}
               />
-              <span style={{ display: pathname ? "inline" : "none" }}>
+              <span style={{ display: path ? "inline" : "none" }}>
                 {item.label}
               </span>
             </Link>

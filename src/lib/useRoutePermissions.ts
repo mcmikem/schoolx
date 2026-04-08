@@ -29,16 +29,17 @@ export function useRoutePermissions() {
   const { user, loading: authLoading, school } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
+  const path = pathname ?? ''
 
   useEffect(() => {
     if (authLoading) return
 
-    if (!user && !publicRoutes.includes(pathname)) {
+    if (!user && !publicRoutes.includes(path)) {
       router.push('/login')
       return
     }
 
-    if (pathname === '/login' && user) {
+    if (path === '/login' && user) {
       router.push('/dashboard')
       return
     }
@@ -46,7 +47,7 @@ export function useRoutePermissions() {
     if (!user) return
 
     const routeKey = Object.keys(roleBasedRoutes).find(key => 
-      pathname.startsWith(key)
+      path.startsWith(key)
     )
 
     if (routeKey) {
@@ -55,7 +56,7 @@ export function useRoutePermissions() {
         router.push('/dashboard')
       }
     }
-  }, [user, authLoading, pathname, router])
+  }, [user, authLoading, path, router])
 
   return { user, loading: authLoading }
 }

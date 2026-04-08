@@ -6,6 +6,7 @@ import { useToast } from "@/components/Toast";
 import Link from "next/link";
 import AnimatedLogo from "@/components/AnimatedLogo";
 import { t, tWithParams } from "@/i18n";
+import { Button, Input } from "@/components/ui";
 
 const DEMO_KEY = "omuto_demo_v1";
 
@@ -198,98 +199,79 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafb] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[var(--surface-bright)] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center mb-6">
           <AnimatedLogo type="opening" className="w-48 h-48" />
         </div>
 
-        <h2 className="text-center text-2xl font-bold text-[#002045]">
+        <h2 className="text-center text-2xl font-bold text-[var(--primary)] tracking-tight">
           {t("auth.signInToAccount")}
         </h2>
-        <p className="mt-2 text-center text-sm text-[#5c6670]">
+        <p className="mt-2 text-center text-sm text-[var(--t3)]">
           {t("auth.enterPhoneAndPassword")}
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white rounded-2xl border border-[#e8eaed] py-8 px-6 sm:px-10 shadow-sm">
+        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] py-8 px-6 sm:px-10 shadow-[var(--sh1)]">
           <form onSubmit={handleLogin} className="space-y-5">
-            <div>
-              <label
-                htmlFor="phone"
-                className="text-sm font-medium text-[#191c1d] mb-2 block"
-              >
-                {t("auth.phoneNumber")}
-              </label>
-              <input
-                id="phone"
-                type="tel"
-                placeholder={t("auth.phonePlaceholder")}
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="input"
-                required
-              />
-            </div>
+            <Input
+              label={t("auth.phoneNumber")}
+              id="phone"
+              type="tel"
+              placeholder={t("auth.phonePlaceholder")}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+              autoComplete="tel"
+            />
 
-            <div>
-              <label
-                htmlFor="password"
-                className="text-sm font-medium text-[#191c1d] mb-2 block"
-              >
-                {t("auth.password")}
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder={t("auth.passwordPlaceholder")}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input pr-12"
-                  required
-                />
+            <Input
+              label={t("auth.password")}
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder={t("auth.passwordPlaceholder")}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              endAdornment={
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5c6670] hover:text-[#002045]"
+                  className="rounded-lg p-1.5 text-[var(--t3)] hover:bg-[var(--surface-container)] hover:text-[var(--primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/30"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  title={showPassword ? "Hide password" : "Show password"}
                 >
                   <MaterialIcon
                     icon={showPassword ? "visibility_off" : "visibility"}
                     className="text-xl"
                   />
                 </button>
-              </div>
-            </div>
+              }
+            />
 
-            <button
+            <Button
               type="submit"
-              disabled={loading}
-              className="btn btn-primary w-full"
-            >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <MaterialIcon
-                    icon="progress_activity"
-                    className="animate-spin"
-                  />
-                  {t("auth.signingIn")}
-                </span>
-              ) : (
-                <>
+              variant="primary"
+              className="w-full"
+              loading={loading}
+              icon={
+                !loading ? (
                   <MaterialIcon icon="login" className="text-lg" />
-                  {t("auth.signIn")}
-                </>
-              )}
-            </button>
+                ) : undefined
+              }
+            >
+              {loading ? t("auth.signingIn") : t("auth.signIn")}
+            </Button>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[#e8eaed]" />
+                <div className="w-full border-t border-[var(--border)]" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-3 bg-white text-[#5c6670]">
+                <span className="px-3 bg-[var(--surface)] text-[var(--t3)]">
                   {t("auth.demoAccounts")}
                 </span>
               </div>
@@ -297,24 +279,26 @@ export default function LoginPage() {
 
             <div className="grid grid-cols-2 gap-2">
               {demoAccounts.map((demo) => (
-                <button
+                <Button
                   key={demo.phone}
                   type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="w-full justify-center text-xs py-2"
                   onClick={() => handleDemoLogin(demo)}
-                  className="btn btn-secondary text-xs py-2"
                 >
                   {demo.role}
-                </button>
+                </Button>
               ))}
             </div>
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-[#5c6670]">
+            <p className="text-sm text-[var(--t3)]">
               {t("auth.noAccount")}{" "}
               <Link
                 href="/register"
-                className="font-semibold text-[#002045] hover:text-[#006e1c]"
+                className="font-semibold text-[var(--primary)] hover:text-[var(--green)] transition-colors"
               >
                 {t("auth.registerSchool")}
               </Link>

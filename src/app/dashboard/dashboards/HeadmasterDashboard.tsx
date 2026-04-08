@@ -288,7 +288,7 @@ function HeadmasterDashboardContent() {
         detail: `${smsStats.sentToday} messages delivered`,
         time: "Today",
         icon: "sms",
-        color: "#2563eb",
+        color: "var(--navy)",
       });
     }
     if (pendingLeave > 0) {
@@ -362,7 +362,7 @@ function HeadmasterDashboardContent() {
         <Link href="/dashboard/bulk-sms" className="qa-large">
           <div
             className="qa-large-icon"
-            style={{ background: "rgba(37,99,235,0.1)", color: "#2563eb" }}
+            style={{ background: "var(--navy-soft)", color: "var(--navy)" }}
           >
             <MaterialIcon icon="sms" style={{ fontSize: "24px" }} />
           </div>
