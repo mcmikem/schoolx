@@ -211,7 +211,15 @@
   }
 
   .btn-primary {
-    @apply bg-[var(--navy)] text-white shadow-[0_1px_4px_rgba(23,50,95,0.25),0_0_0_1px_rgba(23,50,95,0.15)] hover:bg-[var(--navy-mid)] hover:shadow-[0_3px_10px_rgba(23,50,95,0.3)];
+    @apply bg-[var(--primary)] text-[var(--on-primary)] shadow-[var(--sh1)] hover:opacity-90;
+  }
+
+  .btn-secondary {
+    @apply bg-[var(--surface)] text-[var(--t2)] border border-[var(--border)] shadow-[var(--sh1)] hover:bg-[var(--bg)] hover:text-[var(--t1)];
+  }
+
+  .btn-sm {
+    @apply px-3 py-2 text-xs rounded-[10px];
   }
 
   .btn-ghost {

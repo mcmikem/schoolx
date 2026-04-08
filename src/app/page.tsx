@@ -818,18 +818,18 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 export default function HomePage() {
   return (
     <main
-      className="min-h-screen bg-[#f4f7fb] text-slate-900"
+      className="min-h-screen bg-[var(--bg)] text-[var(--t1)]"
       id="main-content"
     >
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-[#17325F] focus:text-white focus:rounded-lg"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:rounded-lg focus:bg-[var(--primary)] focus:px-4 focus:py-2 focus:text-[var(--on-primary)]"
       >
         Skip to main content
       </a>
       {/* ===== HERO ===== */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-x-0 top-0 h-[620px] bg-[radial-gradient(circle_at_top_left,_rgba(23,50,95,0.13),_transparent_42%),radial-gradient(circle_at_top_right,_rgba(46,148,72,0.10),_transparent_38%),linear-gradient(180deg,_#ffffff_0%,_#f4f7fb_72%)]" />
+        <div className="absolute inset-x-0 top-0 h-[620px] bg-[radial-gradient(circle_at_top_left,_rgba(23,50,95,0.13),_transparent_42%),radial-gradient(circle_at_top_right,_rgba(46,148,72,0.10),_transparent_38%),linear-gradient(180deg,_#ffffff_0%,_var(--bg)_72%)]" />
         <div className="absolute left-[8%] top-24 h-40 w-40 rounded-full bg-[#d6e4ff] blur-3xl" />
         <div className="absolute right-[10%] top-40 h-48 w-48 rounded-full bg-[#dff3e5] blur-3xl" />
 
@@ -878,11 +878,11 @@ export default function HomePage() {
           </nav>
 
           {/* Role strip */}
-          <div className="mt-5 overflow-hidden rounded-full border border-[#d9e4f4] bg-white/70 shadow-sm backdrop-blur">
-            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500 sm:text-xs">
+          <div className="mt-5 overflow-hidden rounded-full border border-[var(--border)] bg-white/70 shadow-sm backdrop-blur">
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--t3)] sm:text-xs">
               {roleStrip.map((role) => (
                 <span key={role} className="inline-flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#2E9448]" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--green)]" />
                   {role}
                 </span>
               ))}
@@ -896,16 +896,16 @@ export default function HomePage() {
                 type="opening"
                 className="w-64 h-64 lg:w-80 lg:h-80 -mb-4"
               />
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#d7e4fb] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-[#17325F] shadow-sm">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--primary)] shadow-sm">
                 <MaterialIcon icon="bolt" className="text-[18px]" />
                 Built from experience on the ground in schools
               </div>
-              <h1 className="mt-6 font-['Sora'] text-5xl font-semibold leading-[0.95] tracking-[-0.05em] text-slate-950 sm:text-6xl lg:text-7xl">
+              <h1 className="mt-6 font-['Sora'] text-5xl font-semibold leading-[0.95] tracking-[-0.05em] text-[var(--t1)] sm:text-6xl lg:text-7xl">
                 Run your entire school
                 <br />
-                from one <span className="text-[#2E9448]">dashboard</span>.
+                from one <span className="text-[var(--green)]">dashboard</span>.
               </h1>
-              <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600 sm:text-xl">
+              <p className="mt-6 max-w-xl text-lg leading-8 text-[var(--t2)] sm:text-xl">
                 Attendance, grades, fees, and parent SMS — all in one system
                 built for Ugandan schools. Stop juggling notebooks and
                 spreadsheets.
@@ -931,11 +931,11 @@ export default function HomePage() {
                 {trustBadges.map((badge) => (
                   <div
                     key={badge.label}
-                    className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500"
+                    className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--t3)]"
                   >
                     <MaterialIcon
                       icon={badge.icon}
-                      className="text-[14px] text-[#2E9448]"
+                      className="text-[14px] text-[var(--green)]"
                     />
                     {badge.label}
                   </div>
@@ -946,12 +946,12 @@ export default function HomePage() {
                 {heroStats.map((item) => (
                   <div
                     key={item.label}
-                    className="story-card rounded-[24px] border border-slate-200 bg-white/90 p-4 shadow-sm"
+                    className="story-card rounded-[24px] border border-[var(--border)] bg-white/90 p-4 shadow-sm"
                   >
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--t3)]">
                       {item.label}
                     </p>
-                    <p className="mt-2 text-sm font-semibold text-slate-900">
+                    <p className="mt-2 text-sm font-semibold text-[var(--t1)]">
                       {item.value}
                     </p>
                   </div>
@@ -994,10 +994,10 @@ export default function HomePage() {
               </div>
               {/* Floating callout — visible on all sizes now */}
               <div className="floating-callout absolute bottom-5 left-3 z-20 rounded-[24px] border border-[#d7e4fb] bg-white/92 px-4 py-3 shadow-[0_22px_55px_rgba(15,23,42,0.12)] backdrop-blur md:block hidden">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#17325F]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--primary)]">
                   From registers to reports
                 </p>
-                <p className="mt-1 text-sm font-semibold text-slate-900">
+                <p className="mt-1 text-sm font-semibold text-[var(--t1)]">
                   One flow, one view, one calmer morning.
                 </p>
               </div>
@@ -1470,8 +1470,8 @@ export default function HomePage() {
                     href="/register"
                     className={`mt-8 inline-flex w-full items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold transition ${
                       plan.featured
-                        ? "bg-[#17325F] text-white hover:bg-[#1d3c6d]"
-                        : "bg-white text-slate-950 hover:bg-slate-100"
+                        ? "bg-[var(--primary)] text-[var(--on-primary)] hover:opacity-90"
+                        : "bg-white text-[var(--t1)] hover:bg-[var(--surface-container)]"
                     }`}
                   >
                     Start with {plan.name}
@@ -1507,15 +1507,15 @@ export default function HomePage() {
       {/* ===== FINAL CTA ===== */}
       <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <FadeIn>
-          <div className="rounded-[36px] border border-slate-200 bg-white px-6 py-8 shadow-sm sm:px-8 lg:flex lg:items-center lg:justify-between">
+          <div className="rounded-[36px] border border-[var(--border)] bg-[var(--surface)] px-6 py-8 shadow-[var(--sh1)] sm:px-8 lg:flex lg:items-center lg:justify-between">
             <div className="max-w-2xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--primary)]">
                 Ready to launch
               </p>
-              <h2 className="mt-3 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950">
+              <h2 className="mt-3 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-[var(--t1)]">
                 Give your school one place to run the term.
               </h2>
-              <p className="mt-4 text-base leading-7 text-slate-600">
+              <p className="mt-4 text-base leading-7 text-[var(--t2)]">
                 Register your school, set up classes and subjects, and start
                 using attendance, grading, fees, and parent communication in a
                 single workspace.

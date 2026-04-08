@@ -328,6 +328,21 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    setSelectedIndex((idx) =>
+      results.length === 0 ? 0 : Math.min(idx, results.length - 1),
+    );
+  }, [results]);
+
   const handleSelect = (result: SearchResult) => {
     router.push(result.href);
     setIsOpen(false);
@@ -344,11 +359,17 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
+      if (results.length === 0) return;
       setSelectedIndex((i) => Math.min(i + 1, results.length - 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
+      if (results.length === 0) return;
       setSelectedIndex((i) => Math.max(i - 1, 0));
-    } else if (e.key === "Enter" && results[selectedIndex]) {
+    } else if (
+      e.key === "Enter" &&
+      results.length > 0 &&
+      results[selectedIndex]
+    ) {
       handleSelect(results[selectedIndex]);
     }
   };
@@ -365,15 +386,16 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
   return (
     <>
       <button
+        type="button"
         data-globalsearch-trigger
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-container-low text-onSurface-variant hover:bg-surface-container hover:text-onSurface transition-colors"
+        className="flex items-center gap-2 rounded-lg border border-transparent bg-[var(--surface-container-low)] px-3 py-2 text-[var(--on-surface-variant)] transition-colors hover:border-[var(--border)] hover:bg-[var(--surface-container)] hover:text-[var(--on-surface)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/25"
       >
         {trigger || (
           <>
             <MaterialIcon icon="search" className="text-lg" />
-            <span className="text-sm hidden md:inline">Search...</span>
-            <kbd className="hidden md:inline px-1.5 py-0.5 text-xs bg-surface-container rounded border border-outline">
+            <span className="hidden text-sm md:inline">Search...</span>
+            <kbd className="hidden rounded border border-[var(--border)] bg-[var(--surface-container)] px-1.5 py-0.5 font-sans text-xs text-[var(--t3)] md:inline">
               ⌘K
             </kbd>
           </>
@@ -384,14 +406,21 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh]">
           <div
             className="absolute inset-0 bg-black/50"
+            aria-hidden="true"
             onClick={() => setIsOpen(false)}
+            role="presentation"
           />
 
-          <div className="relative w-full max-w-xl bg-surface-container-high rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-outline">
+          <div
+            className="relative mx-4 w-full max-w-xl overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--sh3)] animate-in fade-in zoom-in-95 duration-200"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Search"
+          >
+            <div className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-3">
               <MaterialIcon
                 icon="search"
-                className="text-xl text-onSurface-variant"
+                className="text-xl text-[var(--t3)]"
               />
               <input
                 ref={inputRef}
@@ -403,17 +432,19 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
                 }}
                 onKeyDown={handleKeyDown}
                 placeholder="Search students, staff, or pages..."
-                className="flex-1 bg-transparent text-onSurface outline-none text-base"
+                className="flex-1 border-0 bg-transparent text-base text-[var(--on-surface)] outline-none placeholder:text-[var(--t4)]"
               />
               {loading && (
                 <MaterialIcon
                   icon="hourglass_empty"
-                  className="animate-spin text-onSurface-variant"
+                  className="animate-spin text-[var(--t3)]"
                 />
               )}
               <button
+                type="button"
                 onClick={() => setIsOpen(false)}
-                className="p-1 hover:bg-surface-container rounded"
+                className="rounded-lg p-1.5 text-[var(--t3)] transition-colors hover:bg-[var(--surface-container)] hover:text-[var(--t1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/25"
+                aria-label="Close"
               >
                 <MaterialIcon icon="close" />
               </button>
@@ -421,7 +452,7 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
 
             <div ref={resultsRef} className="max-h-[60vh] overflow-y-auto">
               {results.length === 0 && query.length >= 2 && !loading && (
-                <div className="px-4 py-8 text-center text-onSurface-variant">
+                <div className="px-4 py-8 text-center text-[var(--t3)]">
                   No results found for &quot;{query}&quot;
                 </div>
               )}
@@ -430,32 +461,33 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
                 <div className="py-2">
                   {results.map((result, index) => (
                     <button
+                      type="button"
                       key={`${result.type}-${result.id}`}
                       data-index={index}
                       onClick={() => handleSelect(result)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                      className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
                         index === selectedIndex
-                          ? "bg-primary-50 text-primary"
-                          : "hover:bg-surface-container-low"
+                          ? "bg-[var(--primary-50)] text-[var(--primary)]"
+                          : "hover:bg-[var(--surface-container-low)]"
                       }`}
                     >
                       <MaterialIcon
                         icon={result.icon}
-                        className={`text-xl ${index === selectedIndex ? "text-primary" : "text-onSurface-variant"}`}
+                        className={`text-xl ${index === selectedIndex ? "text-[var(--primary)]" : "text-[var(--t3)]"}`}
                       />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-medium">
                           {result.title}
                         </div>
                         {result.subtitle && (
-                          <div className="text-sm text-onSurface-variant truncate">
+                          <div className="truncate text-sm text-[var(--t3)]">
                             {result.subtitle}
                           </div>
                         )}
                       </div>
                       <MaterialIcon
                         icon="arrow_forward"
-                        className="text-onSurface-variant text-lg"
+                        className="text-lg text-[var(--t3)]"
                       />
                     </button>
                   ))}
@@ -466,13 +498,14 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
                 <div className="px-4 py-6">
                   {recentSearches.length > 0 ? (
                     <>
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-sm font-semibold text-onSurface">
+                      <div className="mb-3 flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-[var(--t1)]">
                           Recent Searches
                         </h3>
                         <button
+                          type="button"
                           onClick={clearRecentSearches}
-                          className="text-xs text-onSurface-variant hover:text-primary transition-colors"
+                          className="text-xs text-[var(--t3)] transition-colors hover:text-[var(--primary)]"
                         >
                           Clear all
                         </button>
@@ -480,15 +513,16 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
                       <div className="space-y-1">
                         {recentSearches.map((search, idx) => (
                           <button
+                            type="button"
                             key={idx}
                             onClick={() => handleRecentSearchClick(search)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left hover:bg-surface-container-low transition-colors"
+                            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-container-low)] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--primary)]/20"
                           >
                             <MaterialIcon
                               icon="history"
-                              className="text-onSurface-variant"
+                              className="text-[var(--t3)]"
                             />
-                            <span className="text-sm text-onSurface truncate">
+                            <span className="truncate text-sm text-[var(--t1)]">
                               {search}
                             </span>
                           </button>
@@ -496,10 +530,10 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
                       </div>
                     </>
                   ) : (
-                    <div className="text-center text-onSurface-variant">
-                      <MaterialIcon icon="keyboard" className="text-3xl mb-2" />
+                    <div className="text-center text-[var(--t3)]">
+                      <MaterialIcon icon="keyboard" className="mb-2 text-3xl" />
                       <p>Type at least 2 characters to search</p>
-                      <p className="text-sm mt-1">
+                      <p className="mt-1 text-sm">
                         Search students by name or number, staff, or navigate to
                         pages
                       </p>
@@ -509,29 +543,29 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
               )}
             </div>
 
-            <div className="flex items-center justify-between px-4 py-2 border-t border-outline text-xs text-onSurface-variant">
-              <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between border-t border-[var(--border)] px-4 py-2 text-xs text-[var(--t3)]">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 bg-surface-container rounded">
+                  <kbd className="rounded border border-[var(--border)] bg-[var(--surface-container)] px-1.5 py-0.5 font-sans">
                     ↑↓
                   </kbd>{" "}
                   Navigate
                 </span>
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 bg-surface-container rounded">
+                  <kbd className="rounded border border-[var(--border)] bg-[var(--surface-container)] px-1.5 py-0.5 font-sans">
                     ↵
                   </kbd>{" "}
                   Select
                 </span>
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 bg-surface-container rounded">
+                  <kbd className="rounded border border-[var(--border)] bg-[var(--surface-container)] px-1.5 py-0.5 font-sans">
                     esc
                   </kbd>{" "}
                   Close
                 </span>
               </div>
               {recentSearches.length > 0 && (
-                <span className="text-[11px]">
+                <span className="text-[11px] text-[var(--t4)]">
                   {recentSearches.length} recent
                 </span>
               )}
