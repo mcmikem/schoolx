@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import Link from "next/link";
-import OmutoLogo from "@/components/OmutoLogo";
+import AnimatedLogo from "@/components/AnimatedLogo";
 import { t, tWithParams } from "@/i18n";
 
 const DEMO_KEY = "omuto_demo_v1";
@@ -107,7 +107,7 @@ export default function LoginPage() {
         school_id: "demo-school",
       },
       "0700000004": {
-        role: "dean_of_students",
+        role: "dean_of_studies",
         name: "Sarah Dean",
         school_id: "demo-school",
       },
@@ -156,7 +156,6 @@ export default function LoginPage() {
       }
 
       const email = `${cleanPhone}@omuto.sms`;
-      console.log("Attempting login with:", email);
 
       const { data, error: authError } = await supabase.auth.signInWithPassword(
         {
@@ -182,7 +181,6 @@ export default function LoginPage() {
         return;
       }
 
-      console.log("Login success, user:", data.user.id);
       toast.success("Login successful!");
 
       // Wait a moment for auth to settle, then redirect
@@ -202,11 +200,11 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#f8fafb] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <OmutoLogo size="lg" />
+        <div className="flex justify-center mb-6">
+          <AnimatedLogo type="opening" className="w-48 h-48" />
         </div>
 
-        <h2 className="mt-6 text-center text-2xl font-bold text-[#002045]">
+        <h2 className="text-center text-2xl font-bold text-[#002045]">
           {t("auth.signInToAccount")}
         </h2>
         <p className="mt-2 text-center text-sm text-[#5c6670]">

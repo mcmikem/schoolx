@@ -1,6 +1,13 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { apiSuccess, apiError, handleApiError, validateRequiredFields } from '@/lib/api-utils'
+import {
+  apiSuccess,
+  apiError,
+  handleApiError,
+  validateRequiredFields,
+  requireUserWithSchool,
+  assertSchoolScopeOrDeny,
+} from '@/lib/api-utils'
 import { sanitizeString, sanitizePhone } from '@/lib/validation'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -25,8 +32,21 @@ export async function POST(request: NextRequest) {
       return apiError('Server configuration error', 500)
     }
 
+    const auth = await requireUserWithSchool(request)
+    if (!auth.ok) return auth.response
+
     const body: AddUserRequest = await request.json()
     const { schoolId, fullName, phone, password, role } = body
+
+    const scope = assertSchoolScopeOrDeny({
+      userSchoolId: auth.context.schoolId,
+      requestedSchoolId: schoolId,
+    })
+    if (!scope.ok) return scope.response
+
+    if (!['school_admin', 'super_admin'].includes(auth.context.user.role)) {
+      return apiError('Forbidden', 403)
+    }
     
     const validationError = validateRequiredFields(body as unknown as Record<string, unknown>, ['schoolId', 'fullName', 'phone', 'password', 'role'])
     if (validationError) {

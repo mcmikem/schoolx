@@ -1,9 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { computeNetSalary, computeNSSF, computePAYE } from "@/lib/automation";
+import { requireCronSecretOrDeny } from "@/lib/api-utils";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const cron = requireCronSecretOrDeny(request);
+    if (!cron.ok) return cron.response;
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);

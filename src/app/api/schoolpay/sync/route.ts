@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { SchoolPayService } from "@/lib/payments/schoolpay";
+import { requireCronSecretOrDeny } from "@/lib/api-utils";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -8,6 +9,9 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function POST(request: NextRequest) {
   try {
+    const cron = requireCronSecretOrDeny(request);
+    if (!cron.ok) return cron.response;
+
     const body = await request.json();
     const { schoolCode, apiPassword, date, fromDate, toDate } = body;
 

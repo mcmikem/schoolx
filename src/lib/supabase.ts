@@ -2,6 +2,8 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const isProd = process.env.NODE_ENV === 'production'
+const isNonProd = !isProd
 const isDev = process.env.NODE_ENV === 'development'
 const debugLog = (...args: unknown[]) => {
   if (isDev) console.log(...args)
@@ -98,19 +100,23 @@ const createMockClient = (): SupabaseClient => {
   return mock as unknown as SupabaseClient
 }
 
+if (!hasUsableSupabaseConfig && isProd) {
+  // Fail fast in production builds/runtimes — mock clients hide incidents.
+  throw new Error(
+    "Supabase configuration missing/invalid. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.",
+  );
+}
+
 const realClient = hasUsableSupabaseConfig
   ? createClient(supabaseUrl as string, supabaseAnonKey as string)
-  : (() => {
-      console.warn("Supabase configuration missing or invalid. Falling back to mock client.");
-      return null;
-    })();
+  : null;
 
 // Debug output
 debugLog('[Supabase] hasUsableSupabaseConfig:', hasUsableSupabaseConfig);
 debugLog('[Supabase] realClient:', realClient ? 'created' : 'null');
 debugLog('[Supabase] final supabase:', !!(realClient || createMockClient()) ? 'real/mock' : 'null');
 
-export const supabase = realClient || createMockClient()
+export const supabase = realClient || (isNonProd ? createMockClient() : (null as unknown as SupabaseClient))
 
 
 export type Database = {

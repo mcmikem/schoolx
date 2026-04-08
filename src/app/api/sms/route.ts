@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { apiSuccess, apiError, handleApiError, withSecurity } from '@/lib/api-utils'
+import {
+  apiSuccess,
+  apiError,
+  handleApiError,
+  withSecurity,
+  requireUserWithSchool,
+  assertSchoolScopeOrDeny,
+} from '@/lib/api-utils'
 
 const AFRICAS_TALKING_API_KEY = process.env.AFRICAS_TALKING_API_KEY || ''
 const AFRICAS_TALKING_USERNAME = process.env.AFRICAS_TALKING_USERNAME || 'sandbox'
@@ -87,6 +94,9 @@ async function sendSMS(to: string, message: string): Promise<{ success: boolean;
 
 async function handlePost(request: NextRequest) {
   try {
+    const auth = await requireUserWithSchool(request)
+    if (!auth.ok) return auth.response
+
     const body: SMSRequest = await request.json()
     const { phone, message, schoolId } = body
 
@@ -94,9 +104,11 @@ async function handlePost(request: NextRequest) {
       return apiError('Phone and message are required', 400)
     }
 
-    if (!schoolId) {
-      return apiError('School ID is required', 400)
-    }
+    const scope = assertSchoolScopeOrDeny({
+      userSchoolId: auth.context.schoolId,
+      requestedSchoolId: schoolId,
+    })
+    if (!scope.ok) return scope.response
 
     if (typeof phone !== 'string' || phone.length < 10 || phone.length > 15) {
       return apiError('Invalid phone number format', 400)
@@ -126,6 +138,9 @@ async function handlePost(request: NextRequest) {
 
 async function handlePut(request: NextRequest) {
   try {
+    const auth = await requireUserWithSchool(request)
+    if (!auth.ok) return auth.response
+
     const body = await request.json()
     const { phones, message, schoolId } = body
 
@@ -133,9 +148,11 @@ async function handlePut(request: NextRequest) {
       return apiError('Phone list and message are required', 400)
     }
 
-    if (!schoolId) {
-      return apiError('School ID is required', 400)
-    }
+    const scope = assertSchoolScopeOrDeny({
+      userSchoolId: auth.context.schoolId,
+      requestedSchoolId: schoolId,
+    })
+    if (!scope.ok) return scope.response
 
     if (!Array.isArray(phones) || phones.length > 100) {
       return apiError('Phone list must be an array with maximum 100 recipients', 400)
@@ -177,6 +194,15 @@ async function handlePut(request: NextRequest) {
 // Africa's Talking delivery report callback
 export async function PATCH(request: NextRequest) {
   try {
+    // Require a shared secret for delivery callbacks to prevent spoofing.
+    const expected = process.env.AFRICAS_TALKING_DELIVERY_SECRET
+    if (expected) {
+      const provided = request.headers.get('x-delivery-secret')
+      if (provided !== expected) {
+        return apiError('Unauthorized', 401)
+      }
+    }
+
     // This endpoint receives delivery reports from Africa's Talking
     const body = await request.json()
     const { id, status, phoneNumber, failureReason } = body

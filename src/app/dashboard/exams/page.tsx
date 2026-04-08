@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import {
@@ -20,6 +20,7 @@ import {
   ExamConfig,
 } from "@/lib/exams";
 import { getUNEBGrade, getUNEBDivision } from "@/lib/grading";
+import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -62,6 +63,8 @@ export default function ExamsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showWeights, setShowWeights] = useState(false);
   const [examToDelete, setExamToDelete] = useState<string | null>(null);
+  const [customExamWeights, setCustomExamWeights] = useState<ExamConfig[]>([]);
+  const [loadingWeights, setLoadingWeights] = useState(true);
   const [newExam, setNewExam] = useState({
     name: "",
     exam_type: "eot",
@@ -72,7 +75,49 @@ export default function ExamsPage() {
     weight: 50,
   });
 
+  useEffect(() => {
+    loadCustomWeights();
+  }, [school?.id]);
+
+  async function loadCustomWeights() {
+    if (!school?.id) {
+      setLoadingWeights(false);
+      return;
+    }
+    setLoadingWeights(true);
+    const { data } = await supabase
+      .from("school_settings")
+      .select("exam_weights")
+      .eq("school_id", school.id)
+      .single();
+
+    if (data?.exam_weights) {
+      const saved = data.exam_weights as any[];
+      const configs: ExamConfig[] = saved
+        .filter((e: any) => e.isActive)
+        .map((e: any) => ({
+          id: e.id,
+          name: e.name,
+          shortName: e.shortName,
+          type: e.id,
+          weight: e.weight,
+          maxScore: 100,
+          isActive: e.isActive,
+        }));
+      setCustomExamWeights(configs);
+    }
+    setLoadingWeights(false);
+  }
+
   const isSecondary = examTypeTab === "secondary";
+
+  const examConfigs = isSecondary
+    ? customExamWeights.length > 0
+      ? customExamWeights
+      : SECONDARY_EXAM_TYPES
+    : customExamWeights.length > 0
+      ? customExamWeights
+      : PRIMARY_EXAM_TYPES;
 
   const filteredStudents = useMemo(() => {
     return students.filter(
@@ -151,8 +196,6 @@ export default function ExamsPage() {
       toast.error("Failed to create exam");
     }
   };
-
-  const examConfigs = isSecondary ? SECONDARY_EXAM_TYPES : PRIMARY_EXAM_TYPES;
 
   const getStudentTotal = (studentId: string) => {
     const scores = studentExamScores[studentId] || {};

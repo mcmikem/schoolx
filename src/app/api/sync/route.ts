@@ -1,6 +1,12 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { apiSuccess, apiError, handleApiError } from '@/lib/api-utils'
+import {
+  apiSuccess,
+  apiError,
+  handleApiError,
+  requireUserWithSchool,
+  assertSchoolScopeOrDeny,
+} from '@/lib/api-utils'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -31,6 +37,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const items: SyncItem[] = body.items
+    const schoolId = body.schoolId as unknown
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return apiError('No sync items provided', 400)
@@ -40,10 +47,18 @@ export async function POST(request: NextRequest) {
       return apiError('Too many items in a single sync request (max 100)', 400)
     }
 
+    const auth = await requireUserWithSchool(request)
+    if (!auth.ok) return auth.response
+
+    const scope = assertSchoolScopeOrDeny({
+      userSchoolId: auth.context.schoolId,
+      requestedSchoolId: schoolId,
+    })
+    if (!scope.ok) return scope.response
+
+    // Use service role to support background sync for offline clients, but enforce tenancy checks below.
     const key = supabaseServiceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    if (!key) {
-      return apiError('Server configuration error', 500)
-    }
+    if (!key) return apiError('Server configuration error', 500)
 
     const supabase = createClient(supabaseUrl, key, {
       auth: {
@@ -70,6 +85,18 @@ export async function POST(request: NextRequest) {
           continue
         }
 
+        // Basic tenancy enforcement: require school_id to match on all scoped tables.
+        // If a table doesn't have school_id, reject unless it is explicitly whitelisted.
+        const dataSchoolId = (item.data as any).school_id
+        const tablesWithoutSchoolId = new Set(['attendance', 'grades', 'fee_payments', 'fee_structure', 'fee_adjustments', 'messages', 'events'])
+        if (!tablesWithoutSchoolId.has(item.table)) {
+          if (dataSchoolId !== scope.schoolId) {
+            failedCount++
+            errors.push(`Forbidden: school scope mismatch for ${item.table}`)
+            continue
+          }
+        }
+
         switch (item.action) {
           case 'create': {
             const { error } = await supabase.from(item.table).insert(item.data)
@@ -90,10 +117,10 @@ export async function POST(request: NextRequest) {
               continue
             }
             const { id, ...updateData } = item.data
-            const { error } = await supabase
-              .from(item.table)
-              .update(updateData)
-              .eq('id', recordId)
+            const query = supabase.from(item.table).update(updateData).eq('id', recordId)
+            const { error } = !tablesWithoutSchoolId.has(item.table)
+              ? await query.eq('school_id', scope.schoolId)
+              : await query
             if (error) {
               failedCount++
               errors.push(`Update failed for ${item.table}: ${error.message}`)
@@ -112,8 +139,12 @@ export async function POST(request: NextRequest) {
             }
             const query = supabase.from(item.table)
             const { error } = SOFT_DELETE_TABLES.has(item.table)
-              ? await query.update({ deleted_at: new Date().toISOString() }).eq('id', deleteId)
-              : await query.delete().eq('id', deleteId)
+              ? await (tablesWithoutSchoolId.has(item.table)
+                  ? query.update({ deleted_at: new Date().toISOString() }).eq('id', deleteId)
+                  : query.update({ deleted_at: new Date().toISOString() }).eq('id', deleteId).eq('school_id', scope.schoolId))
+              : await (tablesWithoutSchoolId.has(item.table)
+                  ? query.delete().eq('id', deleteId)
+                  : query.delete().eq('id', deleteId).eq('school_id', scope.schoolId))
             if (error) {
               failedCount++
               errors.push(`Delete failed for ${item.table}: ${error.message}`)

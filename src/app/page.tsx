@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import SkoolMateLogo from "@/components/SkoolMateLogo";
+import AnimatedLogo from "@/components/AnimatedLogo";
 import LaptopMockup from "@/components/LaptopMockup";
 
 function MaterialIcon({
@@ -835,7 +836,7 @@ export default function HomePage() {
         <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-5 sm:px-6 lg:px-8 lg:pb-24">
           {/* Nav */}
           <nav className="flex items-center justify-between rounded-full border border-white/70 bg-white/80 px-4 py-3 shadow-[0_8px_30px_rgba(15,23,42,0.06)] backdrop-blur sm:px-6">
-            <SkoolMateLogo size="md" variant="default" />
+            <SkoolMateLogo size="md" variant="white" />
             <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
               <button
                 onClick={() => smoothScroll("#features")}
@@ -891,6 +892,10 @@ export default function HomePage() {
           {/* Hero grid */}
           <div className="grid gap-14 pt-12 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:pt-20">
             <div className="max-w-2xl">
+              <AnimatedLogo
+                type="opening"
+                className="w-64 h-64 lg:w-80 lg:h-80 -mb-4"
+              />
               <div className="inline-flex items-center gap-2 rounded-full border border-[#d7e4fb] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-[#17325F] shadow-sm">
                 <MaterialIcon icon="bolt" className="text-[18px]" />
                 Built from experience on the ground in schools
@@ -1391,6 +1396,9 @@ export default function HomePage() {
 
       {/* ===== PRICING ===== */}
       <section id="pricing" className="bg-[#0d1930] py-18 text-white lg:py-24">
+        <div className="absolute top-8 left-8 opacity-30">
+          <AnimatedLogo type="logo_white" className="w-16 h-16" />
+        </div>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <FadeIn>
             <div className="max-w-2xl">
