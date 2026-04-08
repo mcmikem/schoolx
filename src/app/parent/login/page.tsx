@@ -5,36 +5,14 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import SkoolMateLogo from "@/components/SkoolMateLogo";
-
-interface ParentUser {
-  id: string;
-  phone: string;
-  name: string;
-  children: { id: string; name: string; class: string; student_id: string }[];
-  school_id: string;
-}
-
-interface DashboardData {
-  student: { name: string; class: string; student_id: string; photo?: string };
-  school: { name: string; logo?: string };
-  stats: {
-    attendance: { present: number; total: number; percentage: number };
-    balance: number;
-    next_term: string;
-  };
-  recent_grades: {
-    subject: string;
-    score: number;
-    grade: string;
-    term: string;
-  }[];
-}
+import { Button, Input } from "@/components/ui";
 
 export default function ParentLoginPage() {
   const router = useRouter();
   const toast = useToast();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [linking, setLinking] = useState(false);
   const [linkStudentId, setLinkStudentId] = useState("");
@@ -64,7 +42,6 @@ export default function ParentLoginPage() {
     try {
       const cleanPhone = phone.replace(/[^0-9]/g, "");
 
-      // DEMO LOGIN
       if (password === DEMO_PASSWORD && cleanPhone === demoParent.phone) {
         const demoData = {
           parent: {
@@ -91,6 +68,14 @@ export default function ParentLoginPage() {
         return;
       }
 
+      if (!supabase?.auth) {
+        toast.error(
+          "Supabase not configured. Please check environment variables.",
+        );
+        setLoading(false);
+        return;
+      }
+
       const email = `parent_${cleanPhone}@skoolmate.os`;
 
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -100,7 +85,6 @@ export default function ParentLoginPage() {
 
       if (error) throw error;
 
-      // Get parent profile
       const { data: parentData } = await supabase
         .from("parent_profiles")
         .select("*")
@@ -117,10 +101,9 @@ export default function ParentLoginPage() {
         );
         router.push("/parent/dashboard");
       } else {
-        // New parent - need to link to student
         setLinking(true);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Login error:", err);
       toast.error("Invalid phone or password");
     } finally {
@@ -138,114 +121,127 @@ export default function ParentLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#001F3F] to-[#0a2d5a] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[var(--primary)] to-[var(--primary-700)] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <SkoolMateLogo size="lg" variant="white" className="justify-center" />
-          <p className="text-white/70 mt-2">Parent Portal</p>
+          <p className="text-white/80 mt-2 text-sm font-medium">Parent Portal</p>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-2xl">
+        <div className="bg-[var(--surface)] rounded-2xl p-6 sm:p-8 shadow-[var(--sh2)] border border-[var(--border)]">
           {!linking ? (
             <>
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Sign In</h2>
+              <h2 className="text-xl font-bold text-[var(--t1)] mb-6">
+                Sign In
+              </h2>
               <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="07X XXX XXXX"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#001F3F] focus:ring-2 focus:ring-[#001F3F]/20 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#001F3F] focus:ring-2 focus:ring-[#001F3F]/20 outline-none"
-                  />
-                </div>
-                <button
+                <Input
+                  label="Phone Number"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="07X XXX XXXX"
+                  autoComplete="tel"
+                />
+                <Input
+                  label="Password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  endAdornment={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="rounded-lg p-1.5 text-[var(--t3)] hover:bg-[var(--surface-container)] hover:text-[var(--primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/30"
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                      title={showPassword ? "Hide password" : "Show password"}
+                    >
+                      <MaterialIcon
+                        icon={
+                          showPassword ? "visibility_off" : "visibility"
+                        }
+                        className="text-xl"
+                      />
+                    </button>
+                  }
+                />
+                <Button
                   type="submit"
-                  disabled={loading}
-                  className="w-full py-3 px-4 bg-[#001F3F] text-white font-semibold rounded-xl hover:bg-[#001a35] transition-colors disabled:opacity-50"
+                  variant="primary"
+                  className="w-full"
+                  loading={loading}
                 >
                   {loading ? "Signing in..." : "Sign In"}
-                </button>
+                </Button>
               </form>
               <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200" />
+                  <div className="w-full border-t border-[var(--border)]" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="bg-white px-3 text-gray-500">or</span>
+                  <span className="bg-[var(--surface)] px-3 text-[var(--t3)]">
+                    or
+                  </span>
                 </div>
               </div>
-              <button
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full"
+                icon={<MaterialIcon icon="school" className="text-lg" />}
                 onClick={handleDemoLogin}
-                className="w-full py-3 px-4 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors"
               >
-                <MaterialIcon icon="school" className="inline mr-2" />
                 Try Demo
-              </button>
-              <p className="text-center text-sm text-gray-500 mt-4">
+              </Button>
+              <p className="text-center text-sm text-[var(--t3)] mt-4">
                 New parent? Contact your school to get access.
               </p>
             </>
           ) : (
             <>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">
+              <h2 className="text-xl font-bold text-[var(--t1)] mb-2">
                 Link Your Child
               </h2>
-              <p className="text-sm text-gray-600 mb-6">
-                Enter your child's student ID to link your account.
+              <p className="text-sm text-[var(--t3)] mb-6">
+                Enter your child&apos;s student ID to link your account.
               </p>
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Student ID
-                  </label>
-                  <input
-                    type="text"
-                    value={linkStudentId}
-                    onChange={(e) => setLinkStudentId(e.target.value)}
-                    placeholder="e.g., STD-001"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#001F3F] focus:ring-2 focus:ring-[#001F3F]/20 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Parent Phone (on file)
-                  </label>
-                  <input
-                    type="tel"
-                    value={linkedChildPhone}
-                    onChange={(e) => setLinkedChildPhone(e.target.value)}
-                    placeholder="07X XXX XXXX"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#001F3F] focus:ring-2 focus:ring-[#001F3F]/20 outline-none"
-                  />
-                </div>
-                <button
+                <Input
+                  label="Student ID"
+                  type="text"
+                  value={linkStudentId}
+                  onChange={(e) => setLinkStudentId(e.target.value)}
+                  placeholder="e.g., STD-001"
+                  autoComplete="off"
+                />
+                <Input
+                  label="Parent Phone (on file)"
+                  type="tel"
+                  value={linkedChildPhone}
+                  onChange={(e) => setLinkedChildPhone(e.target.value)}
+                  placeholder="07X XXX XXXX"
+                  autoComplete="tel"
+                />
+                <Button
+                  type="button"
+                  variant="primary"
+                  className="w-full"
                   onClick={handleLinkStudent}
-                  className="w-full py-3 px-4 bg-[#001F3F] text-white font-semibold rounded-xl hover:bg-[#001a35] transition-colors"
                 >
                   Link Student
-                </button>
-                <button
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full text-sm"
                   onClick={() => setLinking(false)}
-                  className="w-full py-2 text-gray-500 text-sm"
                 >
                   Back to login
-                </button>
+                </Button>
               </div>
             </>
           )}
