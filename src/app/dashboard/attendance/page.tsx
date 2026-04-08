@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { Modal } from "@/components/ui/Modal";
+import { PageGuidance } from "@/components/PageGuidance";
 
 const STATUS_CYCLE = ["absent", "present", "late"] as const;
 type AttendanceStatus = (typeof STATUS_CYCLE)[number];
@@ -514,6 +515,29 @@ export default function AttendancePage() {
               </div>
             </div>
           </div>
+
+          <PageGuidance
+            title="How to Use Attendance"
+            tips={[
+              {
+                icon: "school",
+                text: "Select a class from the dropdown above",
+              },
+              { icon: "event", text: "Choose the date (defaults to today)" },
+              {
+                icon: "touch_app",
+                text: "Tap a student to cycle: Present → Absent → Late",
+              },
+              {
+                icon: "toggle_on",
+                text: "Roll Call Mode: starts all as Present, tap to mark absent",
+              },
+              {
+                icon: "save",
+                text: "Click Save when done - attendance is recorded for that date",
+              },
+            ]}
+          />
 
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4">
             <div className="flex items-center justify-between">

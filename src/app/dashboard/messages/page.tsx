@@ -21,6 +21,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { Card, CardHeader, CardTitle, CardBody } from "@/components/ui/Card";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import Image from "next/image";
+import { PageGuidance } from "@/components/PageGuidance";
 
 const communicationTabs = [
   { id: "messages", label: "Messages" },
@@ -509,18 +510,16 @@ export default function CommunicationHubPage() {
       });
       const result = await response.json();
       if (result.success) {
-        await supabase
-          .from("messages")
-          .insert({
-            school_id: user.school_id,
-            recipient_type: messageType,
-            recipient_id: messageType === "class" ? selectedClass : null,
-            phone: messageType === "individual" ? phone : null,
-            message,
-            status: "sent",
-            sent_by: user.id,
-            sent_at: new Date().toISOString(),
-          });
+        await supabase.from("messages").insert({
+          school_id: user.school_id,
+          recipient_type: messageType,
+          recipient_id: messageType === "class" ? selectedClass : null,
+          phone: messageType === "individual" ? phone : null,
+          message,
+          status: "sent",
+          sent_by: user.id,
+          sent_at: new Date().toISOString(),
+        });
         toast.success(
           `Sent to ${phones.length} recipient${phones.length > 1 ? "s" : ""}`,
         );
@@ -597,23 +596,21 @@ export default function CommunicationHubPage() {
       });
       const result = await response.json();
       if (result.success) {
-        await supabase
-          .from("messages")
-          .insert({
-            school_id: school.id,
-            recipient_type:
-              audience === "all"
-                ? "all"
-                : audience === "class"
-                  ? "class"
-                  : "bulk",
-            recipient_id: audience === "class" ? bulkSelectedClass : null,
-            message: bulkMessage,
-            status: "sent",
-            sent_by: user.id,
-            sent_at: new Date().toISOString(),
-            recipient_count: bulkRecipients.phoneCount,
-          });
+        await supabase.from("messages").insert({
+          school_id: school.id,
+          recipient_type:
+            audience === "all"
+              ? "all"
+              : audience === "class"
+                ? "class"
+                : "bulk",
+          recipient_id: audience === "class" ? bulkSelectedClass : null,
+          message: bulkMessage,
+          status: "sent",
+          sent_by: user.id,
+          sent_at: new Date().toISOString(),
+          recipient_count: bulkRecipients.phoneCount,
+        });
         toast.success(
           `SMS sent to ${bulkRecipients.phoneCount} parent${bulkRecipients.phoneCount > 1 ? "s" : ""}`,
         );
@@ -705,16 +702,14 @@ export default function CommunicationHubPage() {
       return;
     }
     try {
-      await supabase
-        .from("sms_templates")
-        .insert({
-          school_id: school?.id,
-          name: newTemplate.name,
-          category: newTemplate.category,
-          message: newTemplate.message,
-          is_active: true,
-          created_by: user?.id,
-        });
+      await supabase.from("sms_templates").insert({
+        school_id: school?.id,
+        name: newTemplate.name,
+        category: newTemplate.category,
+        message: newTemplate.message,
+        is_active: true,
+        created_by: user?.id,
+      });
       toast.success("Template created");
       setShowCreateTemplate(false);
       setNewTemplate({ name: "", category: "general", message: "" });
@@ -799,17 +794,15 @@ export default function CommunicationHubPage() {
           schoolId: school.id,
         }),
       });
-      await supabase
-        .from("messages")
-        .insert({
-          school_id: school.id,
-          recipient_type: "staff",
-          message: smsMessage,
-          status: "sent",
-          sent_by: user?.id,
-          sent_at: new Date().toISOString(),
-          recipient_count: phones.length,
-        });
+      await supabase.from("messages").insert({
+        school_id: school.id,
+        recipient_type: "staff",
+        message: smsMessage,
+        status: "sent",
+        sent_by: user?.id,
+        sent_at: new Date().toISOString(),
+        recipient_count: phones.length,
+      });
     } catch (err) {
       console.error("Failed to send notice SMS:", err);
     }
@@ -862,21 +855,19 @@ export default function CommunicationHubPage() {
         });
         return;
       }
-      const { error } = await supabase
-        .from("notices")
-        .insert({
-          school_id: school.id,
-          title: newNotice.title,
-          content: newNotice.content,
-          type: newNotice.category,
-          priority:
-            isEmergency && newNotice.category !== "Emergency"
-              ? "high"
-              : newNotice.priority,
-          created_by: user.id,
-          expiry_date: newNotice.expires_at || null,
-          image_url: newNotice.image_url || null,
-        });
+      const { error } = await supabase.from("notices").insert({
+        school_id: school.id,
+        title: newNotice.title,
+        content: newNotice.content,
+        type: newNotice.category,
+        priority:
+          isEmergency && newNotice.category !== "Emergency"
+            ? "high"
+            : newNotice.priority,
+        created_by: user.id,
+        expiry_date: newNotice.expires_at || null,
+        image_url: newNotice.image_url || null,
+      });
       if (error) throw error;
       if (shouldSendSMS)
         await sendNoticeSMS(
@@ -966,16 +957,14 @@ export default function CommunicationHubPage() {
       return;
     }
     try {
-      const { error } = await supabase
-        .from("notice_acknowledgments")
-        .upsert(
-          {
-            notice_id: noticeId,
-            user_id: user.id,
-            acknowledged_at: new Date().toISOString(),
-          },
-          { onConflict: "notice_id,user_id" },
-        );
+      const { error } = await supabase.from("notice_acknowledgments").upsert(
+        {
+          notice_id: noticeId,
+          user_id: user.id,
+          acknowledged_at: new Date().toISOString(),
+        },
+        { onConflict: "notice_id,user_id" },
+      );
       if (error) {
         if (error.code === "42P01") {
           toast.error("Acknowledgment feature not yet configured");
@@ -1055,6 +1044,32 @@ export default function CommunicationHubPage() {
       <PageHeader
         title="Communication Hub"
         subtitle="Manage all school communications in one place"
+      />
+
+      <PageGuidance
+        title="How to Use Communication"
+        tips={[
+          {
+            icon: "sms",
+            text: "Send SMS: Choose individual, class, or all parents",
+          },
+          {
+            icon: "campaign",
+            text: "Notices: Post announcements visible to selected groups",
+          },
+          {
+            icon: "automation",
+            text: "Automation: Set auto-SMS for attendance, fees, results",
+          },
+          {
+            icon: "drafts",
+            text: "Templates: Save frequent messages for quick sending",
+          },
+          {
+            icon: "analytics",
+            text: "Check 'SMS Logs' tab to see delivery status",
+          },
+        ]}
       />
 
       <Tabs

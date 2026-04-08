@@ -13,6 +13,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { DEMO_STAFF, DEMO_SCHOOL_ID } from "@/lib/demo-data";
 import { useStaffReviews } from "@/lib/hooks";
 import { StaffReview } from "@/types";
+import { PageGuidance } from "@/components/PageGuidance";
 
 interface StaffMember {
   id: string;
@@ -469,6 +470,32 @@ function DirectoryTab({
           Add Staff
         </Button>
       </div>
+
+      <PageGuidance
+        title="How to Manage Staff"
+        tips={[
+          {
+            icon: "person_add",
+            text: "Add Staff: Register teachers and non-teaching staff",
+          },
+          {
+            icon: "school",
+            text: "Assign Subjects: Link teachers to subjects they teach",
+          },
+          {
+            icon: "assignment_ind",
+            text: "Class Teacher: Assign a teacher to lead each class",
+          },
+          {
+            icon: "event_note",
+            text: "Leave Requests: Staff can request time off here",
+          },
+          {
+            icon: "rate_review",
+            text: "Performance: Use Reviews tab to track teacher performance",
+          },
+        ]}
+      />
 
       <Tabs
         tabs={tabs}

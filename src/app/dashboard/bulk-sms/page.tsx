@@ -7,6 +7,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
+import { PageGuidance } from "@/components/PageGuidance";
 
 type AudienceType = "all" | "class" | "outstanding_fees" | "custom";
 
@@ -256,6 +257,32 @@ export default function BulkSMSPage() {
       <PageHeader
         title="Bulk SMS"
         subtitle="Send bulk messages to parents at scale"
+      />
+
+      <PageGuidance
+        title="How to Send Bulk SMS"
+        tips={[
+          {
+            icon: "groups",
+            text: "Audience: Select all parents, a specific class, or those with outstanding fees",
+          },
+          {
+            icon: "edit",
+            text: "Compose: Type your message (standard SMS is 160 chars)",
+          },
+          {
+            icon: "preview",
+            text: "Preview: See how many segments and cost before sending",
+          },
+          {
+            icon: "send",
+            text: "Send: Click 'Send SMS' - you'll see delivery status",
+          },
+          {
+            icon: "sms",
+            text: "Cost: UGX 25 per SMS segment (longer messages cost more)",
+          },
+        ]}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
