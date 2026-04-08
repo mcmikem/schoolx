@@ -20,6 +20,7 @@ import { EmptyState, NoData, SearchEmpty } from "@/components/EmptyState";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { DEMO_CLASSES, DEMO_ATTENDANCE } from "@/lib/demo-data";
+import { PageGuidance } from "@/components/PageGuidance";
 
 const STUDENT_TEMPLATE_COLUMNS = [
   "student_number",
@@ -1244,6 +1245,32 @@ export default function StudentHubPage() {
       <PageHeader
         title="Student Hub"
         subtitle="Manage student registry, transfers, dropouts, and promotions"
+      />
+
+      <PageGuidance
+        title="How to Manage Students"
+        tips={[
+          {
+            icon: "person_add",
+            text: "Add Student: Click 'Add Student' to register new students",
+          },
+          {
+            icon: "upload",
+            text: "Bulk Import: Use CSV import for multiple students at once",
+          },
+          {
+            icon: "search",
+            text: "Search: Use filters to find students by name, class, or status",
+          },
+          {
+            icon: "edit",
+            text: "Edit: Click a student row to view/edit details, marks, attendance",
+          },
+          {
+            icon: "trending_up",
+            text: "Promote: Use Promotion tab to move students to next class",
+          },
+        ]}
       />
 
       <Tabs

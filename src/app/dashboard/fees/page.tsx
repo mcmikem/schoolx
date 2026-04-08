@@ -31,6 +31,7 @@ import { EmptyState, NoData } from "@/components/EmptyState";
 import { calculateStudentFeePosition } from "@/lib/operations";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useUndo, UndoNotification } from "@/lib/useUndo";
+import { PageGuidance } from "@/components/PageGuidance";
 
 interface PaymentPlan {
   id: string;
@@ -1081,15 +1082,45 @@ export default function FinanceHubPage() {
               Add Adjustment
             </Button>
             <Button
-              variant="primary"
+              variant="ghost"
               size="sm"
-              onClick={() => setShowPaymentModal(true)}
+              onClick={() => setShowCreatePlan(true)}
             >
+              <MaterialIcon icon="event_note" />
+              Payment Plan
+            </Button>
+            <Button variant="primary" onClick={() => setShowFeeFormModal(true)}>
               <MaterialIcon icon="add" />
-              Add Payment
+              Create Fee
             </Button>
           </div>
         }
+      />
+
+      <PageGuidance
+        title="How to Manage Fees"
+        tips={[
+          {
+            icon: "account_balance",
+            text: "Create Fee: Set up fee items (Tuition, Development, etc.) per class",
+          },
+          {
+            icon: "payments",
+            text: "Record Payment: Click a student's row to record payment received",
+          },
+          {
+            icon: "receipt",
+            text: "Get Receipt: After recording payment, click to print receipt",
+          },
+          {
+            icon: "sms",
+            text: "Send Reminders: Click 'Auto Fee Reminders' to SMS parents with balances",
+          },
+          {
+            icon: "tune",
+            text: "Adjustments: Use to add scholarships, fines, or corrections",
+          },
+        ]}
       />
 
       <div className="flex gap-1 p-1 bg-[var(--surface-container-low)] rounded-xl mb-6 overflow-x-auto">
