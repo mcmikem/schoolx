@@ -7,8 +7,8 @@ export function DashboardSkeleton() {
     <div className="animate-pulse space-y-6 p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="h-8 bg-[var(--surface-container)] rounded w-48"></div>
-        <div className="h-10 bg-[var(--surface-container)] rounded w-32"></div>
+        <div className="h-8 bg-[var(--surface-container)] rounded w-48 overflow-hidden shimmer"></div>
+        <div className="h-10 bg-[var(--surface-container)] rounded w-32 overflow-hidden shimmer"></div>
       </div>
       
       {/* Stats Cards */}
@@ -16,10 +16,10 @@ export function DashboardSkeleton() {
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="bg-[var(--surface)] rounded-xl p-4 border border-[var(--border)]">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 bg-[var(--surface-container)] rounded-lg"></div>
+              <div className="h-12 w-12 bg-[var(--surface-container)] rounded-lg overflow-hidden shimmer"></div>
               <div className="space-y-2">
-                <div className="h-4 bg-[var(--surface-container)] rounded w-24"></div>
-                <div className="h-6 bg-[var(--surface-container)] rounded w-16"></div>
+                <div className="h-4 bg-[var(--surface-container)] rounded w-24 overflow-hidden shimmer"></div>
+                <div className="h-6 bg-[var(--surface-container)] rounded w-16 overflow-hidden shimmer"></div>
               </div>
             </div>
           </div>
@@ -69,10 +69,10 @@ export function CardSkeleton() {
   return (
     <div className="animate-pulse bg-[var(--surface)] rounded-xl p-4 border border-[var(--border)]">
       <div className="flex items-center gap-3">
-        <div className="h-12 w-12 bg-[var(--surface-container)] rounded-lg"></div>
+        <div className="h-12 w-12 bg-[var(--surface-container)] rounded-lg overflow-hidden shimmer"></div>
         <div className="space-y-2">
-          <div className="h-4 bg-[var(--surface-container)] rounded w-24"></div>
-          <div className="h-6 bg-[var(--surface-container)] rounded w-16"></div>
+          <div className="h-4 bg-[var(--surface-container)] rounded w-24 overflow-hidden shimmer"></div>
+          <div className="h-6 bg-[var(--surface-container)] rounded w-16 overflow-hidden shimmer"></div>
         </div>
       </div>
     </div>
@@ -83,7 +83,7 @@ export function FormSkeleton() {
   return (
     <div className="animate-pulse space-y-4">
       <div className="space-y-2">
-        <div className="h-4 bg-[var(--surface-container)] rounded w-24"></div>
+        <div className="h-4 bg-[var(--surface-container)] rounded w-24 overflow-hidden shimmer"></div>
         <div className="h-10 bg-[var(--surface-container)] rounded w-full"></div>
       </div>
       <div className="space-y-2">
@@ -94,7 +94,7 @@ export function FormSkeleton() {
         <div className="h-4 bg-[var(--surface-container)] rounded w-20"></div>
         <div className="h-10 bg-[var(--surface-container)] rounded w-full"></div>
       </div>
-      <div className="h-10 bg-[var(--surface-container)] rounded w-32 mt-4"></div>
+      <div className="h-10 bg-[var(--surface-container)] rounded w-32 overflow-hidden shimmer mt-4"></div>
     </div>
   )
 }
@@ -106,10 +106,10 @@ export function StatsGridSkeleton({ cols = 4 }: { cols?: number }) {
       {Array.from({ length: cols }).map((_, i) => (
         <div key={i} className="bg-[var(--surface)] rounded-xl p-4 border border-[var(--border)] animate-pulse">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 bg-[var(--surface-container)] rounded-lg"></div>
+            <div className="h-12 w-12 bg-[var(--surface-container)] rounded-lg overflow-hidden shimmer"></div>
             <div className="space-y-2">
-              <div className="h-4 bg-[var(--surface-container)] rounded w-24"></div>
-              <div className="h-6 bg-[var(--surface-container)] rounded w-16"></div>
+              <div className="h-4 bg-[var(--surface-container)] rounded w-24 overflow-hidden shimmer"></div>
+              <div className="h-6 bg-[var(--surface-container)] rounded w-16 overflow-hidden shimmer"></div>
             </div>
           </div>
         </div>

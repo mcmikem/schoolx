@@ -134,13 +134,16 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
                           onNavigate?.()
                         }}
                         className={cn(
-                          "flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] transition-all min-h-[36px] group",
+                          "flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] transition-all min-h-[36px] group relative tap-effect",
                           isActive 
                             ? "bg-[var(--primary)] text-white font-semibold shadow-[var(--sh1)]" 
                             : "text-[var(--t2)] hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)]"
                         )}
                         aria-current={isActive ? 'page' : undefined}
                       >
+                        {isActive && (
+                           <div className="absolute left-0 w-1 h-4 bg-white rounded-r-full" />
+                        )}
                         <MaterialIcon 
                           icon={item.icon} 
                           className={cn(

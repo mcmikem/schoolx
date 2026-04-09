@@ -36,6 +36,7 @@ interface DataTableProps<T> {
   onExport?: () => void;
   enableBulkSelect?: boolean;
   bulkActions?: BulkAction<T>[];
+  premium?: boolean;
 }
 
 type SortDirection = "asc" | "desc" | null;
@@ -60,6 +61,7 @@ export default function DataTable<T extends Record<string, any>>({
   onExport,
   enableBulkSelect = false,
   bulkActions,
+  premium = true,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("");
   const [sortColumn, setSortColumn] = useState<string | null>(null);
@@ -314,10 +316,9 @@ export default function DataTable<T extends Record<string, any>>({
               key={row[idField] || index}
               onClick={() => onRowClick?.(row)}
               className={cn(
-                "group transition-colors",
-                onRowClick
-                  ? "cursor-pointer hover:bg-surface-container-low"
-                  : "hover:bg-surface-container-lowest",
+                "group transition-all duration-200",
+                onRowClick ? "cursor-pointer" : "",
+                premium ? "table-hover-premium" : "hover:bg-surface-container-low"
               )}
             >
               {enableBulkSelect && (
