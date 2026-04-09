@@ -12,6 +12,7 @@ import StatCard from "@/components/dashboard/StatCard";
 import DashboardInsights from "@/components/dashboard/DashboardInsights";
 import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
 import ActionCenter from "@/components/dashboard/ActionCenter";
+import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
 
 function DeanDashboardContent() {
   const router = useRouter()
@@ -65,6 +66,13 @@ function DeanDashboardContent() {
             </div>
           </div>
         </div>
+
+      <SmartAdvisor 
+        stats={stats} 
+        collectionRate={0} 
+        attendanceRate={attendanceRate} 
+        role="dean" 
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
         <div className="xl:col-span-3">

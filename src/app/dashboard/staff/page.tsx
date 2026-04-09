@@ -14,6 +14,7 @@ import { DEMO_STAFF, DEMO_SCHOOL_ID } from "@/lib/demo-data";
 import { useStaffReviews } from "@/lib/hooks";
 import { StaffReview } from "@/types";
 import { PageGuidance } from "@/components/PageGuidance";
+import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
 
 interface StaffMember {
   id: string;
@@ -93,11 +94,35 @@ export default function StaffHubPage() {
   ];
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <PageHeader
-        title="Staff Hub"
-        subtitle="Manage staff, performance, and leave"
-      />
+    <div className="content">
+      <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="ph-title truncate !text-3xl">Staff Hub</div>
+            <div className="ph-sub truncate !text-sm">
+              {school?.name} • Personnel Management & Academic Supervision
+            </div>
+          </div>
+          <div className="ph-actions">
+            <button
+               onClick={() => setActiveMainTab("directory")}
+               className="btn btn-ghost shadow-sm"
+            >
+              <MaterialIcon icon="groups" style={{ fontSize: "16px" }} />
+              <span>Staff Directory</span>
+            </button>
+            <button
+              onClick={() => setActiveMainTab("leave")}
+              className="btn btn-primary shadow-md"
+            >
+              <MaterialIcon icon="event_busy" style={{ fontSize: "16px" }} />
+              <span>Leave Requests</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <SmartAdvisor stats={{}} collectionRate={0} attendanceRate={92} role="dean" />
 
       <Tabs
         tabs={mainTabs}

@@ -111,7 +111,6 @@ export default function StudentHubPage() {
   const { classes } = useClasses(school?.id);
 
   const [activeTab, setActiveTab] = useState("registry");
-  const [houses, setHouses] = useState<any[]>([]);
 
   // ===== REGISTRY STATE =====
   const [searchTerm, setSearchTerm] = useState("");
@@ -120,6 +119,7 @@ export default function StudentHubPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  const [houses, setHouses] = useState<any[]>([]);
 
   const newStudentDraft: any = {
     showRestoreDialog: false,
@@ -282,9 +282,7 @@ export default function StudentHubPage() {
             transfer_to: student.transfer_to || "Unknown",
             reason: student.transfer_reason || "",
             transfer_date:
-              student.dropout_date ||
-              student.created_at?.split("T")[0] ||
-              "",
+              student.dropout_date || student.created_at?.split("T")[0] || "",
             student_name: `${student.first_name} ${student.last_name}`,
             class_name:
               student.classes?.name ||
@@ -1242,10 +1240,31 @@ export default function StudentHubPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <PageHeader
-        title="Student Hub"
-        subtitle="Manage student registry, transfers, dropouts, and promotions"
-      />
+      <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="ph-title truncate !text-3xl">Student Hub</div>
+            <div className="ph-sub truncate !text-sm">
+              {school?.name} • {students.length} Registered Students •{" "}
+              {students.filter((s) => s.gender === "M").length} Boys /{" "}
+              {students.filter((s) => s.gender === "F").length} Girls
+            </div>
+          </div>
+          <div className="ph-actions flex gap-2">
+            <button onClick={handleExport} className="btn btn-ghost shadow-sm">
+              <MaterialIcon icon="download" style={{ fontSize: "16px" }} />
+              <span>Export CSV</span>
+            </button>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="btn btn-primary shadow-md"
+            >
+              <MaterialIcon icon="person_add" style={{ fontSize: "16px" }} />
+              <span>Enroll Student</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
       <PageGuidance
         title="How to Manage Students"
