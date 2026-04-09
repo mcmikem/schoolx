@@ -283,7 +283,7 @@ export default function StudentHubPage() {
             reason: student.transfer_reason || "",
             transfer_date:
               student.dropout_date ||
-              (student as { updated_at?: string }).updated_at?.split("T")[0] ||
+              student.created_at?.split("T")[0] ||
               "",
             student_name: `${student.first_name} ${student.last_name}`,
             class_name:
@@ -303,14 +303,14 @@ export default function StudentHubPage() {
         .select("*, classes(name)")
         .eq("school_id", school.id)
         .eq("status", "transferred")
-        .order("updated_at", { ascending: false });
+        .order("created_at", { ascending: false });
       if (error) throw error;
       const records: TransferOutRecord[] = (data || []).map((s: any) => ({
         id: s.id,
         student_id: s.id,
         transfer_to: s.transfer_to || "Unknown",
         reason: s.transfer_reason || "",
-        transfer_date: s.dropout_date || s.updated_at?.split("T")[0] || "",
+        transfer_date: s.dropout_date || s.created_at?.split("T")[0] || "",
         student_name: `${s.first_name} ${s.last_name}`,
         class_name: s.classes?.name || "-",
         student_number: s.student_number || "",

@@ -48,7 +48,24 @@ export default function TeacherPerformancePage() {
   const loadData = useCallback(async () => {
     if (!school?.id) {
       // #region agent log
-      fetch("/api/debug/log",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"9e14f3",runId:"pre-fix",hypothesisId:"H8",location:"src/app/dashboard/teacher-performance/page.tsx:loadData:guard",message:"skipped teacher loadData due to missing school.id",data:{hasSchool:!!school,schoolId:school?.id??null,term:currentTerm},timestamp:Date.now()})}).catch(()=>{});
+      fetch("/api/debug/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: "9e14f3",
+          runId: "pre-fix",
+          hypothesisId: "H8",
+          location:
+            "src/app/dashboard/teacher-performance/page.tsx:loadData:guard",
+          message: "skipped teacher loadData due to missing school.id",
+          data: {
+            hasSchool: !!school,
+            schoolId: school?.id ?? null,
+            term: currentTerm,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
       // #endregion
       return;
     }
@@ -111,7 +128,42 @@ export default function TeacherPerformancePage() {
         .eq("school_id", school.id)
         .eq("term", currentTerm);
       // #region agent log
-      fetch("/api/debug/log",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"9e14f3",runId:"pre-fix",hypothesisId:"H8",location:"src/app/dashboard/teacher-performance/page.tsx:loadData",message:"loaded teacher performance datasets",data:{schoolId:school.id,term:currentTerm,staffLen:teacherList.length,hasStaffError:!!staffError,staffError:staffError?String(staffError.message||staffError):null,lessonPlansLen:lessonPlans?.length??null,hasLessonPlansError:!!lessonPlansError,lessonPlansError:lessonPlansError?String(lessonPlansError.message||lessonPlansError):null,gradesLen:gradesData?.length??null,hasGradesError:!!gradesError,gradesError:gradesError?String(gradesError.message||gradesError):null,attendanceLen:attendanceData?.length??null,hasAttendanceError:!!attendanceError,attendanceError:attendanceError?String(attendanceError.message||attendanceError):null},timestamp:Date.now()})}).catch(()=>{});
+      fetch("/api/debug/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: "9e14f3",
+          runId: "pre-fix",
+          hypothesisId: "H8",
+          location: "src/app/dashboard/teacher-performance/page.tsx:loadData",
+          message: "loaded teacher performance datasets",
+          data: {
+            schoolId: school.id,
+            term: currentTerm,
+            staffLen: teacherList.length,
+            hasStaffError: !!staffError,
+            staffError: staffError
+              ? String(staffError.message || staffError)
+              : null,
+            lessonPlansLen: lessonPlans?.length ?? null,
+            hasLessonPlansError: !!lessonPlansError,
+            lessonPlansError: lessonPlansError
+              ? String(lessonPlansError.message || lessonPlansError)
+              : null,
+            gradesLen: gradesData?.length ?? null,
+            hasGradesError: !!gradesError,
+            gradesError: gradesError
+              ? String(gradesError.message || gradesError)
+              : null,
+            attendanceLen: attendanceData?.length ?? null,
+            hasAttendanceError: !!attendanceError,
+            attendanceError: attendanceError
+              ? String(attendanceError.message || attendanceError)
+              : null,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
       // #endregion
 
       const attendanceCounts: Record<string, number> = {};
@@ -151,7 +203,7 @@ export default function TeacherPerformancePage() {
     } finally {
       setLoading(false);
     }
-  }, [school?.id, currentTerm]);
+  }, [school, currentTerm]);
 
   useEffect(() => {
     if (!school?.id) return;

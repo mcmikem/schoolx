@@ -86,7 +86,20 @@ export default function AcademicSettings() {
   const loadExamWeights = useCallback(async () => {
     if (!school?.id) {
       // #region agent log
-      fetch("/api/debug/log",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"9e14f3",runId:"pre-fix",hypothesisId:"H5",location:"src/components/settings/AcademicSettings.tsx:loadExamWeights:guard",message:"skipped loadExamWeights due to missing school.id",data:{hasSchool:!!school,schoolId:school?.id??null},timestamp:Date.now()})}).catch(()=>{});
+      fetch("/api/debug/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: "9e14f3",
+          runId: "pre-fix",
+          hypothesisId: "H5",
+          location:
+            "src/components/settings/AcademicSettings.tsx:loadExamWeights:guard",
+          message: "skipped loadExamWeights due to missing school.id",
+          data: { hasSchool: !!school, schoolId: school?.id ?? null },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
       // #endregion
       return;
     }
@@ -97,7 +110,28 @@ export default function AcademicSettings() {
       .eq("school_id", school.id)
       .single();
     // #region agent log
-    fetch("/api/debug/log",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"9e14f3",runId:"pre-fix",hypothesisId:"H5",location:"src/components/settings/AcademicSettings.tsx:loadExamWeights",message:"loaded settings exam_weights",data:{schoolId:school.id,hasError:!!error,error:error?String(error.message||error):null,weightsType:typeof (data as any)?.exam_weights,weightsLen:Array.isArray((data as any)?.exam_weights)?(data as any).exam_weights.length:null},timestamp:Date.now()})}).catch(()=>{});
+    fetch("/api/debug/log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: "9e14f3",
+        runId: "pre-fix",
+        hypothesisId: "H5",
+        location:
+          "src/components/settings/AcademicSettings.tsx:loadExamWeights",
+        message: "loaded settings exam_weights",
+        data: {
+          schoolId: school.id,
+          hasError: !!error,
+          error: error ? String(error.message || error) : null,
+          weightsType: typeof (data as any)?.exam_weights,
+          weightsLen: Array.isArray((data as any)?.exam_weights)
+            ? (data as any).exam_weights.length
+            : null,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
     // #endregion
 
     if (data?.exam_weights) {
@@ -109,7 +143,7 @@ export default function AcademicSettings() {
       setExamWeights(merged);
     }
     setLoadingWeights(false);
-  }, [school?.id]);
+  }, [school]);
 
   useEffect(() => {
     if (school?.id) {
@@ -131,7 +165,26 @@ export default function AcademicSettings() {
       { onConflict: "school_id" },
     );
     // #region agent log
-    fetch("/api/debug/log",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"9e14f3",runId:"pre-fix",hypothesisId:"H6",location:"src/components/settings/AcademicSettings.tsx:saveExamWeights",message:"saved exam_weights",data:{schoolId:school.id,totalWeight,hasError:!!error,error:error?String(error.message||error):null,activeCount:activeWeights.length},timestamp:Date.now()})}).catch(()=>{});
+    fetch("/api/debug/log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: "9e14f3",
+        runId: "pre-fix",
+        hypothesisId: "H6",
+        location:
+          "src/components/settings/AcademicSettings.tsx:saveExamWeights",
+        message: "saved exam_weights",
+        data: {
+          schoolId: school.id,
+          totalWeight,
+          hasError: !!error,
+          error: error ? String(error.message || error) : null,
+          activeCount: activeWeights.length,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
     // #endregion
 
     setSavingWeights(false);

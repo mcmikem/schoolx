@@ -21,6 +21,9 @@ import {
 import OnboardingTips from "@/components/OnboardingTips";
 import { useToast } from "@/components/Toast";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import DashboardInsights from "@/components/dashboard/DashboardInsights";
+import ActionCenter from "@/components/dashboard/ActionCenter";
+import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
 
 function ProgressRing({
   progress,
@@ -305,30 +308,61 @@ function HeadmasterDashboardContent() {
 
   return (
     <div className="content">
-      <div className="page-header">
-        <div>
-          <div className="ph-title truncate">
-            {greeting}, {user?.full_name?.split(" ")[0]}
-          </div>
-          <div className="ph-sub truncate">
-            {school?.name} • {academicYear} Term {currentTerm} • {todayDayName},{" "}
-            {todayFormatted}
+        <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="ph-title truncate !text-3xl">
+                {greeting}, {user?.full_name?.split(" ")[0]}
+              </div>
+              <div className="ph-sub truncate !text-sm">
+                {school?.name} • {academicYear} Term {currentTerm} • {todayDayName},{" "}
+                {todayFormatted}
+              </div>
+            </div>
+            <div className="ph-actions">
+              <Link href="/dashboard/reports" className="btn btn-ghost shadow-sm">
+                <MaterialIcon icon="download" style={{ fontSize: "16px" }} />
+                <span className="hidden sm:inline">Analytics</span>
+              </Link>
+              <Link
+                href="/dashboard/students?action=add"
+                className="btn btn-primary shadow-md"
+              >
+                <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
+                <span className="hidden sm:inline">Enroll Student</span>
+              </Link>
+            </div>
           </div>
         </div>
-        <div className="ph-actions">
-          <Link href="/dashboard/reports" className="btn btn-ghost">
-            <MaterialIcon icon="download" style={{ fontSize: "16px" }} />
-            <span className="hidden sm:inline">Generate Report</span>
-          </Link>
-          <Link
-            href="/dashboard/students?action=add"
-            className="btn btn-primary"
-          >
-            <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
-            <span className="hidden sm:inline">Add Student</span>
-          </Link>
+
+      {/* Premium Dashboard Insights Section */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
+        <div className="xl:col-span-3">
+          <DashboardInsights
+            stats={stats}
+            attendanceRate={attendanceRate}
+            collectionRate={collectionRate}
+            students={students}
+            payments={payments}
+            loading={loadingExtra}
+          />
+        </div>
+        <div className="xl:col-span-1">
+          <EcosystemPulse 
+            payments={payments} 
+            smsStats={smsStats} 
+            loading={loadingExtra} 
+          />
         </div>
       </div>
+
+      <ActionCenter 
+        items={focusItems.map(item => ({
+          ...item,
+          priority: item.status === "alert" ? "high" : "medium"
+        })) as any} 
+        loading={loadingExtra} 
+      />
 
       {/* Quick Actions Bar - Top of Dashboard */}
       <div className="quick-actions-bar">
@@ -498,67 +532,25 @@ function HeadmasterDashboardContent() {
         <OnboardingTips schoolId={school?.id} />
       )}
 
-      <div className="focus-grid">
-        {focusItems.map((item) => (
-          <Link
-            key={item.id}
-            href={item.link}
-            className={`stat-card ${
-              item.status === "alert"
-                ? "border-amber/30 bg-amber-soft/50"
-                : "border-outline-variant bg-surface-lowest"
-            }`}
-            style={{
-              boxShadow:
-                "0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
-            }}
-          >
-            <div
-              className="stat-accent"
-              style={{
-                background:
-                  item.status === "alert" ? "var(--amber)" : "var(--navy)",
-              }}
-            />
-            <div className="stat-inner">
-              <div className="flex items-center justify-between">
-                <p className="stat-label">{item.label}</p>
-                {item.status === "alert" && (
-                  <span
-                    className="flex h-2 w-2 rounded-full bg-amber animate-pulse"
-                    title="Urgent"
-                  />
-                )}
-              </div>
-              <div className="mt-4 text-3xl font-bold text-on-surface tracking-tight">
-                {item.value === null ? "…" : item.value}
-              </div>
-              <p className="text-xs text-on-surface-variant/80 mt-3 font-medium">
-                {item.description}
-              </p>
-            </div>
-          </Link>
-        ))}
-      </div>
+      {/* Legacy focus items removed - replaced by ActionCenter above */}
 
       <div className="stat-grid">
         <Link
           href="/dashboard/attendance"
-          className="stat-card"
+          className="stat-card card-gradient-teal animate-float-gentle"
           style={{
             boxShadow:
-              "0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
+              "0 20px 40px rgba(13, 148, 136, 0.2), 0 1px 4px rgba(0,0,0,0.04)",
           }}
         >
-          <div className="stat-accent" style={{ background: "var(--green)" }} />
-          <div className="stat-inner">
+          <div className="stat-inner !p-6">
             <div className="stat-meta">
-              <div className="stat-label">Present Today</div>
+              <div className="stat-label !text-white/80">Present Today</div>
               <div
                 className="stat-icon-box"
                 style={{
-                  background: "var(--green-soft)",
-                  color: "var(--green)",
+                  background: "rgba(255,255,255,0.2)",
+                  color: "white",
                 }}
               >
                 <MaterialIcon
@@ -567,7 +559,7 @@ function HeadmasterDashboardContent() {
                 />
               </div>
             </div>
-            <div className="stat-val" style={{ color: "var(--green)" }}>
+            <div className="stat-val !text-white">
               {loadingExtra
                 ? "..."
                 : `${stats.presentToday || 0} / ${stats.totalStudents}`}
@@ -583,8 +575,8 @@ function HeadmasterDashboardContent() {
                       style={{
                         fontSize: 10,
                         padding: "2px 8px",
-                        background: "rgba(155,89,182,0.15)",
-                        color: "var(--navy)",
+                        background: "rgba(255,255,255,0.2)",
+                        color: "white",
                         borderRadius: 10,
                         fontWeight: 600,
                       }}
@@ -597,21 +589,16 @@ function HeadmasterDashboardContent() {
               return null;
             })()}
             <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "14px",
-                marginTop: "6px",
-              }}
+              className="mt-6 flex items-center gap-4 bg-white/10 p-4 rounded-2xl backdrop-blur-md border border-white/10"
             >
-              <ProgressRing progress={attendanceRate} color="var(--green)" />
+              <ProgressRing progress={attendanceRate} color="white" />
               <div>
                 <div
                   style={{
                     fontFamily: "Sora",
                     fontSize: "20px",
                     fontWeight: 800,
-                    color: "var(--green)",
+                    color: "white",
                     lineHeight: 1,
                   }}
                 >
@@ -620,32 +607,23 @@ function HeadmasterDashboardContent() {
                 <div
                   style={{
                     fontSize: "11px",
-                    color: "var(--t3)",
+                    color: "white/70",
                     marginTop: "3px",
                   }}
                 >
                   Attendance rate
                 </div>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--red)",
-                    marginTop: "4px",
-                  }}
-                >
-                  {absentCount} absent
-                </div>
               </div>
             </div>
           </div>
-          <div className="stat-footer">
-            <span className="stat-foot-label">
-              {classesNotMarked} classes not marked
+          <div className="stat-footer !bg-black/5 !border-white/10">
+            <span className="stat-foot-label !text-white/80">
+              {classesNotMarked} classes pending
             </span>
             <span
               className="stat-foot-val"
               style={{
-                color: classesNotMarked > 0 ? "var(--amber)" : "var(--green)",
+                color: classesNotMarked > 0 ? "#FFD700" : "white",
               }}
             >
               {classesNotMarked > 0 ? "Action needed" : "All marked"}
@@ -655,44 +633,46 @@ function HeadmasterDashboardContent() {
 
         <Link
           href="/dashboard/fees"
-          className="stat-card"
+          className="stat-card card-gradient-navy animate-float-gentle"
           style={{
+            animationDelay: "0.2s",
             boxShadow:
-              "0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
+              "0 20px 40px rgba(0, 31, 63, 0.2), 0 1px 4px rgba(0,0,0,0.04)",
           }}
         >
-          <div className="stat-accent" style={{ background: "var(--amber)" }} />
-          <div className="stat-inner">
+          <div className="stat-inner !p-6">
             <div className="stat-meta">
-              <div className="stat-label">Fees Collected</div>
+              <div className="stat-label !text-white/80">Fees Collected</div>
               <div
                 className="stat-icon-box"
                 style={{
-                  background: "var(--amber-soft)",
-                  color: "var(--amber)",
+                  background: "rgba(255,255,255,0.2)",
+                  color: "white",
                 }}
               >
                 <MaterialIcon icon="payments" style={{ fontSize: "17px" }} />
               </div>
             </div>
-            <div className="stat-val" style={{ color: "var(--amber)" }}>
+            <div className="stat-val !text-white">
               UGX <span>{formatCurrency(totalFeesCollected)}</span>
             </div>
             <div style={{ marginTop: "10px" }}>
               <div
                 style={{
-                  height: "6px",
-                  background: "var(--border)",
+                  height: "8px",
+                  background: "rgba(255,255,255,0.1)",
                   borderRadius: "99px",
                   overflow: "hidden",
+                  border: "1px solid rgba(255,255,255,0.1)"
                 }}
               >
                 <div
                   style={{
                     width: `${Math.min(collectionRate, 100)}%`,
                     height: "100%",
-                    background: "var(--green)",
+                    background: "white",
                     borderRadius: "99px",
+                    boxShadow: "0 0 12px rgba(255,255,255,0.5)"
                   }}
                 />
               </div>
@@ -700,155 +680,119 @@ function HeadmasterDashboardContent() {
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
-                  marginTop: "6px",
+                  marginTop: "8px",
                   fontSize: "11px",
-                  color: "var(--t3)",
+                  color: "white/70",
                 }}
               >
-                <span>Target: UGX {formatCurrency(totalFeesExpected)}</span>
+                <span className="font-medium">Target: {formatCurrency(totalFeesExpected)}</span>
                 <span>
-                  <b style={{ color: "var(--green)" }}>{collectionRate}%</b>
+                  <b style={{ color: "white" }}>{collectionRate}%</b>
                 </span>
               </div>
             </div>
-            <div className="flex gap-2 mt-2">
-              <div className="flex-1 bg-[var(--bg)] rounded-md p-1.5 min-w-0">
-                <div className="text-[10px] text-[var(--t3)] font-bold uppercase truncate">
+            <div className="flex gap-2 mt-4">
+              <div className="flex-1 bg-white/10 rounded-xl p-2 min-w-0 border border-white/5">
+                <div className="text-[9px] text-white/60 font-bold uppercase truncate">
                   Today
                 </div>
-                <div className="text-xs font-bold text-[var(--t1)] truncate">
+                <div className="text-xs font-extrabold text-white truncate">
                   {formatCurrency(feesToday)}
                 </div>
               </div>
-              <div className="flex-1 bg-[var(--bg)] rounded-md p-1.5 min-w-0">
-                <div className="text-[10px] text-[var(--t3)] font-bold uppercase truncate">
+              <div className="flex-1 bg-white/10 rounded-xl p-2 min-w-0 border border-white/5">
+                <div className="text-[9px] text-white/60 font-bold uppercase truncate">
                   Week
                 </div>
-                <div className="text-xs font-bold text-[var(--t1)] truncate">
+                <div className="text-xs font-extrabold text-white truncate">
                   {formatCurrency(feesThisWeek)}
-                </div>
-              </div>
-              <div className="flex-1 bg-[var(--bg)] rounded-md p-1.5 min-w-0">
-                <div className="text-[10px] text-[var(--t3)] font-bold uppercase truncate">
-                  Term
-                </div>
-                <div className="text-xs font-bold text-[var(--t1)] truncate">
-                  {formatCurrency(feesThisTerm)}
                 </div>
               </div>
             </div>
           </div>
-          <div className="stat-footer">
-            <span className="stat-foot-label truncate max-w-[120px]">
-              Cash + MTN + Airtel
+          <div className="stat-footer !bg-black/5 !border-white/10">
+            <span className="stat-foot-label !text-white/80 truncate max-w-[120px]">
+              Cash + Mobile Money
             </span>
             <span
               className="stat-foot-val"
               style={{
-                color: collectionRate >= 80 ? "var(--green)" : "var(--amber)",
+                color: collectionRate >= 80 ? "#2dd4bf" : "#FFD700",
               }}
             >
-              {collectionRate >= 80 ? "On target" : "Below"}
+              {collectionRate >= 80 ? "On target" : "Review needed"}
             </span>
           </div>
         </Link>
 
         <Link
           href="/dashboard/expense-approvals"
-          className="stat-card"
+          className="stat-card glass-premium animate-float-gentle border-l-4 border-l-[var(--red)]"
           style={{
+            animationDelay: "0.4s",
             boxShadow:
-              "0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
+              "0 20px 40px rgba(0,0,0,0.05), 0 1px 4px rgba(0,0,0,0.04)",
           }}
         >
-          <div
-            className="stat-accent"
-            style={{
-              background:
-                totalPendingApprovals > 0 ? "var(--red)" : "var(--navy)",
-            }}
-          />
-          <div className="stat-inner">
+          <div className="stat-inner !p-6">
             <div className="stat-meta">
               <div className="stat-label">Pending Approvals</div>
               <div
                 className="stat-icon-box"
                 style={{
-                  background:
-                    totalPendingApprovals > 0
-                      ? "rgba(192,57,43,.1)"
-                      : "var(--navy-soft)",
-                  color:
-                    totalPendingApprovals > 0 ? "var(--red)" : "var(--navy)",
+                  background: totalPendingApprovals > 0 ? "var(--red-soft)" : "var(--navy-soft)",
+                  color: totalPendingApprovals > 0 ? "var(--red)" : "var(--navy)",
                 }}
               >
                 <MaterialIcon icon="approval" style={{ fontSize: "17px" }} />
               </div>
             </div>
             <div
-              className="stat-val"
+              className="stat-val font-heading"
               style={{
-                color:
-                  totalPendingApprovals > 0 ? "var(--red)" : "var(--green)",
+                color: totalPendingApprovals > 0 ? "var(--red)" : "var(--green)",
               }}
             >
               {loadingExtra ? "..." : totalPendingApprovals}
             </div>
-            <div style={{ display: "flex", gap: "12px", marginTop: "10px" }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: "11px", color: "var(--t3)" }}>
-                  Expenses
-                </div>
-                <div
-                  style={{
-                    fontWeight: 700,
-                    fontSize: "16px",
-                    color: pendingExpenses > 0 ? "var(--amber)" : "var(--t3)",
-                  }}
-                >
+            <div className="flex gap-4 mt-6">
+              <div className="flex-1 bg-[var(--bg)] rounded-xl p-3 border border-[var(--border)]">
+                <div className="text-[10px] text-[var(--t3)] font-bold uppercase tracking-wider">Expenses</div>
+                <div className="text-lg font-extrabold text-[var(--t1)] mt-1">
                   {loadingExtra ? "..." : pendingExpenses}
                 </div>
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: "11px", color: "var(--t3)" }}>
-                  Leave
-                </div>
-                <div
-                  style={{
-                    fontWeight: 700,
-                    fontSize: "16px",
-                    color: pendingLeave > 0 ? "var(--amber)" : "var(--t3)",
-                  }}
-                >
+              <div className="flex-1 bg-[var(--bg)] rounded-xl p-3 border border-[var(--border)]">
+                <div className="text-[10px] text-[var(--t3)] font-bold uppercase tracking-wider">Leave</div>
+                <div className="text-lg font-extrabold text-[var(--t1)] mt-1">
                   {loadingExtra ? "..." : pendingLeave}
                 </div>
               </div>
             </div>
           </div>
           <div className="stat-footer">
-            <span className="stat-foot-label">Expenses + Leave requests</span>
+            <span className="stat-foot-label">Required Actions</span>
             <span
               className="stat-foot-val"
               style={{
-                color:
-                  totalPendingApprovals > 0 ? "var(--red)" : "var(--green)",
+                color: totalPendingApprovals > 0 ? "var(--red)" : "var(--green)",
               }}
             >
-              {totalPendingApprovals > 0 ? "Review now" : "All clear"}
+              {totalPendingApprovals > 0 ? "Review Now" : "Systems Nominal"}
             </span>
           </div>
         </Link>
 
         <Link
           href="/dashboard/staff-attendance"
-          className="stat-card"
+          className="stat-card glass-premium animate-float-gentle border-l-4 border-l-[var(--navy)]"
           style={{
+            animationDelay: "0.6s",
             boxShadow:
-              "0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
+              "0 20px 40px rgba(0,0,0,0.05), 0 1px 4px rgba(0,0,0,0.04)",
           }}
         >
-          <div className="stat-accent" style={{ background: "var(--navy)" }} />
-          <div className="stat-inner">
+          <div className="stat-inner !p-6">
             <div className="stat-meta">
               <div className="stat-label">Staff on Duty</div>
               <div
@@ -858,45 +802,34 @@ function HeadmasterDashboardContent() {
                 <MaterialIcon icon="badge" style={{ fontSize: "17px" }} />
               </div>
             </div>
-            <div className="stat-val" style={{ color: "var(--navy)" }}>
-              {loadingExtra ? "..." : `${staffOnDuty} / ${staff?.length || 0}`}
+            <div className="stat-val text-[var(--navy)] font-heading">
+              {loadingExtra ? "..." : staffOnDuty} / {stats?.totalStaff || staff?.length || 0}
             </div>
-            <div style={{ marginTop: "10px" }}>
-              <div
-                style={{
-                  height: "6px",
-                  background: "var(--border)",
-                  borderRadius: "99px",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    width: `${staff?.length ? Math.min((staffOnDuty / staff.length) * 100, 100) : 0}%`,
-                    height: "100%",
-                    background: "var(--navy)",
-                    borderRadius: "99px",
-                  }}
-                />
+            
+            <div className="mt-8">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold text-[var(--t3)] uppercase">Coverage</span>
+                <span className="text-xs font-bold text-[var(--navy)]">
+                   {Number(stats?.totalStaff || staff?.length || 0) > 0 ? Math.round((staffOnDuty / (stats?.totalStaff || staff?.length)) * 100) : 0}%
+                </span>
               </div>
-              <div
-                style={{
-                  fontSize: "11px",
-                  color: "var(--t3)",
-                  marginTop: "4px",
-                }}
-              >
-                {staff?.length
-                  ? Math.round((staffOnDuty / staff.length) * 100)
-                  : 0}
-                % attendance
+              <div className="h-2 bg-[var(--bg)] rounded-full overflow-hidden border border-[var(--border)]">
+                <div 
+                  className="h-full bg-[var(--navy)] rounded-full transition-all duration-1000"
+                  style={{ width: `${Number(stats?.totalStaff || staff?.length || 0) > 0 ? (staffOnDuty / (stats?.totalStaff || staff?.length)) * 100 : 0}%` }}
+                />
               </div>
             </div>
           </div>
           <div className="stat-footer">
             <span className="stat-foot-label">Teachers + Admin</span>
-            <span className="stat-foot-val" style={{ color: "var(--navy)" }}>
-              Today
+            <span
+              className="stat-foot-val"
+              style={{
+                color: staffOnDuty >= ((stats?.totalStaff || staff?.length || 1) * 0.8) ? "var(--green)" : "var(--amber)",
+              }}
+            >
+              {staffOnDuty >= ((stats?.totalStaff || staff?.length || 1) * 0.8) ? "Full Team" : "On Duty"}
             </span>
           </div>
         </Link>

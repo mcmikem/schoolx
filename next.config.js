@@ -1,15 +1,32 @@
 /** @type {import('next').NextConfig} */
+function supabaseImageHosts() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!url) return []
+  try {
+    const host = new URL(url).hostname
+    if (!host) return []
+    return [
+      {
+        protocol: 'https',
+        hostname: host,
+        pathname: '/storage/v1/object/**',
+      },
+    ]
+  } catch {
+    return []
+  }
+}
+
 const nextConfig = {
   experimental: {},
   images: {
     remotePatterns: [
-      // Supabase Storage (project-specific hostname)
+      ...supabaseImageHosts(),
       {
         protocol: 'https',
         hostname: '*.supabase.co',
         pathname: '/storage/v1/object/**',
       },
-      // Some Supabase setups use supabase.in
       {
         protocol: 'https',
         hostname: '*.supabase.in',

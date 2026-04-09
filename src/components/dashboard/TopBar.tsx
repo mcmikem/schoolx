@@ -8,6 +8,7 @@ import GlobalSearch from "@/components/GlobalSearch";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useTheme } from "@/lib/theme-context";
 import { useDashboardNotifications } from "@/components/dashboard/AccessControlGuard";
+import { useSidebar } from "@/contexts/SidebarContext";
 
 type DashboardNotification = {
   id: string;
@@ -184,6 +185,7 @@ export default function TopBar({
   const [dismissedNotifs, setDismissedNotifs] = useState<Set<string>>(
     new Set(),
   );
+  const { isOpen, open: openSidebar, close: closeSidebar } = useSidebar();
 
   const { notifications } = useDashboardNotifications();
   const visibleNotifications = notifications.filter(
@@ -247,10 +249,8 @@ export default function TopBar({
     <header className="topbar bg-[var(--surface)] border-b border-[var(--border)] h-[60px] flex items-center px-8 gap-[18px] sticky top-0 z-50 shadow-[var(--sh1)] flex-shrink-0">
       <button
         onClick={() => {
-          const sidebar = document.querySelector(".sidebar");
-          const overlay = document.querySelector(".sidebar-overlay");
-          sidebar?.classList.toggle("open");
-          overlay?.classList.toggle("visible");
+          if (isOpen) closeSidebar();
+          else openSidebar();
         }}
         className="mobile-menu-btn bg-transparent border-none cursor-pointer p-2 mr-2 w-11 h-11 flex items-center justify-center rounded-lg"
         aria-label="Toggle sidebar"

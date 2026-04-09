@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 import { useSidebar } from "@/contexts/SidebarContext";
+import MaterialIcon from "@/components/MaterialIcon";
 
 type QuickStep = {
   label: string;
@@ -53,36 +54,28 @@ export default function MobileBottomNav() {
         href="/dashboard"
         className={`mobile-nav-item ${pathname === "/dashboard" ? "active" : ""}`}
       >
-        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-          dashboard
-        </span>
+        <MaterialIcon icon="dashboard" size={20} />
         <span>Home</span>
       </Link>
       <Link
         href="/dashboard/students"
         className={`mobile-nav-item ${isActive("/dashboard/students") ? "active" : ""}`}
       >
-        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-          group
-        </span>
+        <MaterialIcon icon="group" size={20} />
         <span>Students</span>
       </Link>
       <Link
         href={quickStep.href}
         className="mobile-nav-item mobile-nav-item-primary"
       >
-        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-          {quickStep.icon}
-        </span>
+        <MaterialIcon icon={quickStep.icon} size={20} />
         <span>{quickStep.label}</span>
       </Link>
       <Link
         href="/dashboard/fees"
         className={`mobile-nav-item ${isActive("/dashboard/fees") ? "active" : ""}`}
       >
-        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-          payments
-        </span>
+        <MaterialIcon icon="payments" size={20} />
         <span>Fees</span>
       </Link>
       <button
@@ -91,9 +84,7 @@ export default function MobileBottomNav() {
         onClick={() => openSidebar()}
         aria-label="Open more pages"
       >
-        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-          apps
-        </span>
+        <MaterialIcon icon="apps" size={20} />
         <span>More</span>
       </button>
     </div>
