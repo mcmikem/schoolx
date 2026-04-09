@@ -24,6 +24,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import DashboardInsights from "@/components/dashboard/DashboardInsights";
 import ActionCenter from "@/components/dashboard/ActionCenter";
 import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
+import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
 
 function ProgressRing({
   progress,
@@ -308,32 +309,39 @@ function HeadmasterDashboardContent() {
 
   return (
     <div className="content">
-        <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="ph-title truncate !text-3xl">
-                {greeting}, {user?.full_name?.split(" ")[0]}
-              </div>
-              <div className="ph-sub truncate !text-sm">
-                {school?.name} • {academicYear} Term {currentTerm} • {todayDayName},{" "}
-                {todayFormatted}
-              </div>
+      <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="ph-title truncate !text-3xl">
+              {greeting}, {user?.full_name?.split(" ")[0]}
             </div>
-            <div className="ph-actions">
-              <Link href="/dashboard/reports" className="btn btn-ghost shadow-sm">
-                <MaterialIcon icon="download" style={{ fontSize: "16px" }} />
-                <span className="hidden sm:inline">Analytics</span>
-              </Link>
-              <Link
-                href="/dashboard/students?action=add"
-                className="btn btn-primary shadow-md"
-              >
-                <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
-                <span className="hidden sm:inline">Enroll Student</span>
-              </Link>
+            <div className="ph-sub truncate !text-sm">
+              {school?.name} • {academicYear} Term {currentTerm} •{" "}
+              {todayDayName}, {todayFormatted}
             </div>
           </div>
+          <div className="ph-actions">
+            <Link href="/dashboard/reports" className="btn btn-ghost shadow-sm">
+              <MaterialIcon icon="download" style={{ fontSize: "16px" }} />
+              <span className="hidden sm:inline">Analytics</span>
+            </Link>
+            <Link
+              href="/dashboard/students?action=add"
+              className="btn btn-primary shadow-md"
+            >
+              <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
+              <span className="hidden sm:inline">Enroll Student</span>
+            </Link>
+          </div>
         </div>
+      </div>
+
+      <SmartAdvisor
+        stats={stats}
+        collectionRate={collectionRate}
+        attendanceRate={attendanceRate}
+        role="headmaster"
+      />
 
       {/* Premium Dashboard Insights Section */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
@@ -348,20 +356,22 @@ function HeadmasterDashboardContent() {
           />
         </div>
         <div className="xl:col-span-1">
-          <EcosystemPulse 
-            payments={payments} 
-            smsStats={smsStats} 
-            loading={loadingExtra} 
+          <EcosystemPulse
+            payments={payments}
+            smsStats={smsStats}
+            loading={loadingExtra}
           />
         </div>
       </div>
 
-      <ActionCenter 
-        items={focusItems.map(item => ({
-          ...item,
-          priority: item.status === "alert" ? "high" : "medium"
-        })) as any} 
-        loading={loadingExtra} 
+      <ActionCenter
+        items={
+          focusItems.map((item) => ({
+            ...item,
+            priority: item.status === "alert" ? "high" : "medium",
+          })) as any
+        }
+        loading={loadingExtra}
       />
 
       {/* Quick Actions Bar - Top of Dashboard */}
@@ -588,9 +598,7 @@ function HeadmasterDashboardContent() {
               }
               return null;
             })()}
-            <div
-              className="mt-6 flex items-center gap-4 bg-white/10 p-4 rounded-2xl backdrop-blur-md border border-white/10"
-            >
+            <div className="mt-6 flex items-center gap-4 bg-white/10 p-4 rounded-2xl backdrop-blur-md border border-white/10">
               <ProgressRing progress={attendanceRate} color="white" />
               <div>
                 <div
@@ -663,7 +671,7 @@ function HeadmasterDashboardContent() {
                   background: "rgba(255,255,255,0.1)",
                   borderRadius: "99px",
                   overflow: "hidden",
-                  border: "1px solid rgba(255,255,255,0.1)"
+                  border: "1px solid rgba(255,255,255,0.1)",
                 }}
               >
                 <div
@@ -672,7 +680,7 @@ function HeadmasterDashboardContent() {
                     height: "100%",
                     background: "white",
                     borderRadius: "99px",
-                    boxShadow: "0 0 12px rgba(255,255,255,0.5)"
+                    boxShadow: "0 0 12px rgba(255,255,255,0.5)",
                   }}
                 />
               </div>
@@ -685,7 +693,9 @@ function HeadmasterDashboardContent() {
                   color: "white/70",
                 }}
               >
-                <span className="font-medium">Target: {formatCurrency(totalFeesExpected)}</span>
+                <span className="font-medium">
+                  Target: {formatCurrency(totalFeesExpected)}
+                </span>
                 <span>
                   <b style={{ color: "white" }}>{collectionRate}%</b>
                 </span>
@@ -740,8 +750,12 @@ function HeadmasterDashboardContent() {
               <div
                 className="stat-icon-box"
                 style={{
-                  background: totalPendingApprovals > 0 ? "var(--red-soft)" : "var(--navy-soft)",
-                  color: totalPendingApprovals > 0 ? "var(--red)" : "var(--navy)",
+                  background:
+                    totalPendingApprovals > 0
+                      ? "var(--red-soft)"
+                      : "var(--navy-soft)",
+                  color:
+                    totalPendingApprovals > 0 ? "var(--red)" : "var(--navy)",
                 }}
               >
                 <MaterialIcon icon="approval" style={{ fontSize: "17px" }} />
@@ -750,20 +764,25 @@ function HeadmasterDashboardContent() {
             <div
               className="stat-val font-heading"
               style={{
-                color: totalPendingApprovals > 0 ? "var(--red)" : "var(--green)",
+                color:
+                  totalPendingApprovals > 0 ? "var(--red)" : "var(--green)",
               }}
             >
               {loadingExtra ? "..." : totalPendingApprovals}
             </div>
             <div className="flex gap-4 mt-6">
               <div className="flex-1 bg-[var(--bg)] rounded-xl p-3 border border-[var(--border)]">
-                <div className="text-[10px] text-[var(--t3)] font-bold uppercase tracking-wider">Expenses</div>
+                <div className="text-[10px] text-[var(--t3)] font-bold uppercase tracking-wider">
+                  Expenses
+                </div>
                 <div className="text-lg font-extrabold text-[var(--t1)] mt-1">
                   {loadingExtra ? "..." : pendingExpenses}
                 </div>
               </div>
               <div className="flex-1 bg-[var(--bg)] rounded-xl p-3 border border-[var(--border)]">
-                <div className="text-[10px] text-[var(--t3)] font-bold uppercase tracking-wider">Leave</div>
+                <div className="text-[10px] text-[var(--t3)] font-bold uppercase tracking-wider">
+                  Leave
+                </div>
                 <div className="text-lg font-extrabold text-[var(--t1)] mt-1">
                   {loadingExtra ? "..." : pendingLeave}
                 </div>
@@ -775,7 +794,8 @@ function HeadmasterDashboardContent() {
             <span
               className="stat-foot-val"
               style={{
-                color: totalPendingApprovals > 0 ? "var(--red)" : "var(--green)",
+                color:
+                  totalPendingApprovals > 0 ? "var(--red)" : "var(--green)",
               }}
             >
               {totalPendingApprovals > 0 ? "Review Now" : "Systems Nominal"}
@@ -803,20 +823,32 @@ function HeadmasterDashboardContent() {
               </div>
             </div>
             <div className="stat-val text-[var(--navy)] font-heading">
-              {loadingExtra ? "..." : staffOnDuty} / {stats?.totalStaff || staff?.length || 0}
+              {loadingExtra ? "..." : staffOnDuty} /{" "}
+              {stats?.totalTeachers || staff?.length || 0}
             </div>
-            
+
             <div className="mt-8">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-bold text-[var(--t3)] uppercase">Coverage</span>
+                <span className="text-[10px] font-bold text-[var(--t3)] uppercase">
+                  Coverage
+                </span>
                 <span className="text-xs font-bold text-[var(--navy)]">
-                   {Number(stats?.totalStaff || staff?.length || 0) > 0 ? Math.round((staffOnDuty / (stats?.totalStaff || staff?.length)) * 100) : 0}%
+                  {Number(stats?.totalTeachers || staff?.length || 0) > 0
+                    ? Math.round(
+                        (staffOnDuty /
+                          (stats?.totalTeachers || staff?.length)) *
+                          100,
+                      )
+                    : 0}
+                  %
                 </span>
               </div>
               <div className="h-2 bg-[var(--bg)] rounded-full overflow-hidden border border-[var(--border)]">
-                <div 
+                <div
                   className="h-full bg-[var(--navy)] rounded-full transition-all duration-1000"
-                  style={{ width: `${Number(stats?.totalStaff || staff?.length || 0) > 0 ? (staffOnDuty / (stats?.totalStaff || staff?.length)) * 100 : 0}%` }}
+                  style={{
+                    width: `${Number(stats?.totalTeachers || staff?.length || 0) > 0 ? (staffOnDuty / (stats?.totalTeachers || staff?.length)) * 100 : 0}%`,
+                  }}
                 />
               </div>
             </div>
@@ -826,10 +858,16 @@ function HeadmasterDashboardContent() {
             <span
               className="stat-foot-val"
               style={{
-                color: staffOnDuty >= ((stats?.totalStaff || staff?.length || 1) * 0.8) ? "var(--green)" : "var(--amber)",
+                color:
+                  staffOnDuty >=
+                  (stats?.totalTeachers || staff?.length || 1) * 0.8
+                    ? "var(--green)"
+                    : "var(--amber)",
               }}
             >
-              {staffOnDuty >= ((stats?.totalStaff || staff?.length || 1) * 0.8) ? "Full Team" : "On Duty"}
+              {staffOnDuty >= (stats?.totalTeachers || staff?.length || 1) * 0.8
+                ? "Full Team"
+                : "On Duty"}
             </span>
           </div>
         </Link>
