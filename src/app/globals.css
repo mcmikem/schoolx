@@ -115,6 +115,20 @@
   background-size: 24px 24px;
 }
 
+.bg-motif-fade {
+  background: radial-gradient(circle at top right, var(--navy-soft) 0%, transparent 70%), 
+              radial-gradient(circle at bottom left, var(--surface) 0%, transparent 70%);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
 @media (max-width: 640px) {
   .content {
     padding: var(--ms) !important;
@@ -148,6 +162,60 @@
   --t4: #4a5568;
 
   --primary: #adc7f7;
+  
+  /* Dark Mode Premium Overrides */
+  .glass-premium {
+    background: rgba(15, 20, 25, 0.7) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+  }
+
+  .bg-motif {
+    background-color: #0f1419 !important;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 0.5px, transparent 0.5px) !important;
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, 
+    rgba(255, 255, 255, 0) 0%, 
+    rgba(255, 255, 255, 0.4) 50%, 
+    rgba(255, 255, 255, 0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+[data-theme="dark"] .shimmer {
+    background: linear-gradient(90deg, 
+    rgba(255, 255, 255, 0) 0%, 
+    rgba(255, 255, 255, 0.05) 50%, 
+    rgba(255, 255, 255, 0) 100%);
+}
+
+/* Page Atmospheric Transitions */
+main#main-content {
+  animation: pageEnter 0.5s var(--ease) forwards;
+}
+
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(8px); filter: blur(4px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+/* Premium Table UX */
+table tr {
+  transition: all 0.2s var(--ease);
+}
+
+.table-hover-premium tr:hover {
+  background: var(--surface-container-low) !important;
+  transform: translateX(4px);
+}
   
   /* Dark Mode Premium Overrides */
   .glass-premium {

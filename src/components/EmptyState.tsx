@@ -20,29 +20,38 @@ interface EmptyStateProps {
 export function EmptyState({ icon, title, description, action, secondaryAction, className = '' }: EmptyStateProps) {
   return (
     <div 
-      className={`flex flex-col items-center justify-center py-10 px-4 text-center ${className}`}
+      className={`flex flex-col items-center justify-center py-20 px-8 text-center rounded-[var(--r2)] bg-motif-fade border border-dashed border-[var(--border)] transition-all animate-fade-in ${className}`}
       role="status"
       aria-label={title}
     >
       {icon && (
-        <div className="mb-4 p-4 bg-[var(--surface-container)] rounded-2xl">
-          <MaterialIcon icon={icon} className="text-3xl text-[var(--t3)]" />
+        <div className="relative mb-6">
+          <div className="absolute -inset-4 bg-[var(--navy-soft)] rounded-full blur-2xl opacity-50 animate-pulse" />
+          <div className="relative w-20 h-20 bg-white rounded-3xl shadow-xl flex items-center justify-center border border-[var(--border)] group hover:scale-110 transition-transform">
+             <MaterialIcon icon={icon} className="text-4xl text-[var(--navy)] group-hover:rotate-12 transition-transform" />
+          </div>
         </div>
       )}
-      <h3 className="text-base font-semibold text-[var(--t1)] mb-2">{title}</h3>
+      <h3 className="text-xl font-heading text-[var(--t1)] mb-3 tracking-tight">{title}</h3>
       {description && (
-        <p className="text-sm text-[var(--t3)] max-w-sm mb-6">{description}</p>
+        <p className="text-[13px] text-[var(--t3)] font-medium max-w-sm mb-8 leading-relaxed">{description}</p>
       )}
-      <div className="flex gap-3">
+      <div className="flex gap-4">
         {action && (
-          <Button variant="primary" size="sm" onClick={action.onClick}>
+          <button
+            onClick={action.onClick}
+            className="btn btn-primary shadow-lg shadow-navy/20 tap-effect"
+          >
             {action.label}
-          </Button>
+          </button>
         )}
         {secondaryAction && (
-          <Button variant="secondary" size="sm" onClick={secondaryAction.onClick}>
+          <button
+            onClick={secondaryAction.onClick}
+            className="btn btn-ghost hover:bg-[var(--bg)] tap-effect"
+          >
             {secondaryAction.label}
-          </Button>
+          </button>
         )}
       </div>
     </div>
