@@ -8,6 +8,9 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { StatsGridSkeleton } from "@/components/Skeletons";
 
 import StatCard from "@/components/dashboard/StatCard";
+import DashboardInsights from "@/components/dashboard/DashboardInsights";
+import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
+import ActionCenter from "@/components/dashboard/ActionCenter";
 
 function BursarDashboardContent() {
   const { school, user } = useAuth();
@@ -82,30 +85,42 @@ function BursarDashboardContent() {
 
   return (
     <div className="content">
-      <div className="page-header">
-        <div>
-          <div className="ph-title">
-            {greeting}, {user?.full_name?.split(" ")[0]}
-          </div>
-          <div className="ph-sub">
-            {school?.name} •{" "}
-            {currentDate.toLocaleDateString("en-UG", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
+        <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="ph-title truncate !text-3xl">
+                {greeting}, {user?.full_name?.split(" ")[0]}
+              </div>
+              <div className="ph-sub truncate !text-sm">
+                Bursar · {school?.name} • {academicYear} Term {currentTerm}
+              </div>
+            </div>
+            <div className="ph-actions">
+              <Link href="/dashboard/reports" className="btn btn-ghost shadow-sm">
+                <MaterialIcon icon="download" style={{ fontSize: "16px" }} />
+                <span>Financial Report</span>
+              </Link>
+              <Link href="/dashboard/fees" className="btn btn-primary shadow-md">
+                <MaterialIcon icon="add_card" style={{ fontSize: "16px" }} />
+                <span>Record Payment</span>
+              </Link>
+            </div>
           </div>
         </div>
-        <div className="ph-actions">
-          <Link href="/dashboard/reports" className="btn btn-ghost">
-            <MaterialIcon icon="download" />
-            Export
-          </Link>
-          <Link href="/dashboard/fees" className="btn btn-primary">
-            <MaterialIcon icon="add_card" />
-            Record Payment
-          </Link>
+
+      {/* Visual Insights & Pulse */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
+        <div className="xl:col-span-3">
+          <DashboardInsights
+            stats={{}}
+            attendanceRate={0}
+            collectionRate={collectionRate}
+            students={students}
+            payments={payments}
+          />
+        </div>
+        <div className="xl:col-span-1">
+          <EcosystemPulse payments={payments} />
         </div>
       </div>
 
@@ -149,13 +164,14 @@ function BursarDashboardContent() {
         </Link>
       </div>
 
-      <div className="stat-grid sm:grid-cols-3">
+      <div className="stat-grid sm:grid-cols-3 !mb-8">
         <StatCard
           label="Total Collected"
           value={`UGX ${formatCurrency(totalFeesCollected)}`}
-          subValue={`${collectionRate}% of expected`}
+          subValue={`${collectionRate}% Collection Rate`}
           icon="account_balance"
           accentColor="green"
+          variant="premium-navy"
           trend={{
             value: Math.abs(collectionTrend),
             direction: collectionTrend >= 0 ? "up" : "down",
@@ -165,26 +181,17 @@ function BursarDashboardContent() {
         <StatCard
           label="Total Arrears"
           value={`UGX ${formatCurrency(totalArrears)}`}
-          subValue={`${students.length} students`}
+          subValue={`${students.length} students pending`}
           icon="warning"
           accentColor="red"
-          trend={{
-            value: 12,
-            direction: "down",
-            label: "vs last term",
-          }}
+          variant="premium-amber"
         />
         <StatCard
-          label="Expected Total"
+          label="Target"
           value={`UGX ${formatCurrency(totalFeesExpected)}`}
-          subValue={`Term ${currentTerm}`}
+          subValue={`Term ${currentTerm} goal`}
           icon="calculate"
           accentColor="navy"
-          trend={{
-            value: 8,
-            direction: "up",
-            label: "vs last term",
-          }}
         />
       </div>
 

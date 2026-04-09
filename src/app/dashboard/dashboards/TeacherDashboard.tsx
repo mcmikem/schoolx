@@ -12,6 +12,9 @@ import { useToast } from "@/components/Toast";
 import { StatsGridSkeleton } from "@/components/Skeletons";
 
 import StatCard from "@/components/dashboard/StatCard";
+import DashboardInsights from "@/components/dashboard/DashboardInsights";
+import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
+import ActionCenter from "@/components/dashboard/ActionCenter";
 
 function TeacherDashboardContent() {
   const router = useRouter();
@@ -146,24 +149,41 @@ function TeacherDashboardContent() {
 
   return (
     <div className="content">
-      <div className="page-header">
-        <div>
-          <div className="ph-title">
-            {greeting}, {user?.full_name?.split(" ")[0]}
-          </div>
-          <div className="ph-sub">
-            {school?.name} • {academicYear} Term {currentTerm}
+        <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="ph-title truncate !text-3xl">
+                {greeting}, {user?.full_name?.split(" ")[0]}
+              </div>
+              <div className="ph-sub truncate !text-sm">
+                Teacher · {school?.name} • Term {currentTerm}
+              </div>
+            </div>
+            <div className="ph-actions">
+              <Link href="/dashboard/timetable" className="btn btn-ghost shadow-sm">
+                <MaterialIcon icon="calendar_month" style={{ fontSize: "16px" }} />
+                <span>My Schedule</span>
+              </Link>
+              <Link href="/dashboard/grades" className="btn btn-primary shadow-md">
+                <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
+                <span>Quick Entry</span>
+              </Link>
+            </div>
           </div>
         </div>
-        <div className="ph-actions">
-          <Link href="/dashboard/timetable" className="btn btn-ghost">
-            <MaterialIcon icon="calendar_month" />
-            My Schedule
-          </Link>
-          <Link href="/dashboard/grades" className="btn btn-primary">
-            <MaterialIcon icon="add" />
-            Quick Entry
-          </Link>
+
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
+        <div className="xl:col-span-3">
+          <DashboardInsights
+            stats={{}}
+            attendanceRate={92}
+            collectionRate={0}
+            students={students}
+            payments={[]}
+          />
+        </div>
+        <div className="xl:col-span-1">
+          <EcosystemPulse payments={[]} />
         </div>
       </div>
 
@@ -207,26 +227,28 @@ function TeacherDashboardContent() {
         </Link>
       </div>
 
-      <div className="stat-grid">
+      <div className="stat-grid sm:grid-cols-3 !mb-8">
         <StatCard
           label="My Classes"
           value={myClasses.length}
           subValue="Classes assigned"
           icon="school"
           accentColor="amber"
-        />
-        <StatCard
-          label="My Subjects"
-          value={mySubjects.length}
-          subValue="Subjects teaching"
-          icon="menu_book"
-          accentColor="navy"
+          variant="premium-teal"
         />
         <StatCard
           label="Total Students"
           value={students.length}
           subValue="In my classes"
           icon="group"
+          accentColor="navy"
+          variant="premium-navy"
+        />
+        <StatCard
+          label="My Subjects"
+          value={mySubjects.length}
+          subValue="Subjects teaching"
+          icon="menu_book"
           accentColor="navy"
         />
       </div>

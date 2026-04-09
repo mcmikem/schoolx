@@ -283,14 +283,18 @@ test.describe("Authenticated dashboard flows", () => {
     await seedDemoSession(page, "headmaster");
 
     await page.goto("/dashboard/staff");
-    await expect(page.getByRole("heading", { name: /staff/i })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Staff Directory" }),
+    ).toBeVisible();
   });
 
   test("headmaster can view fee structure tab", async ({ page }) => {
     await seedDemoSession(page, "headmaster");
 
     await page.goto("/dashboard/fees");
-    await expect(page.getByRole("heading", { name: /fee/i })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Fee Collection Overview" }),
+    ).toBeVisible();
   });
 
   test("headmaster can view student registry with demo data", async ({
@@ -314,16 +318,15 @@ test.describe("Authenticated dashboard flows", () => {
 
     await page.goto("/dashboard");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
-    // Check we're still on dashboard (not redirected to login)
     expect(page.url()).toContain("/dashboard");
-    await expect(page.locator("h1, h2, h3").first()).toBeVisible({
+    await expect(
+      page.getByText(/good (morning|afternoon|evening), mary/i),
+    ).toBeVisible({
       timeout: 10000,
     });
 
     await page.goto("/dashboard/homework");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(2000);
     expect(page.url()).toContain("/dashboard/homework");
     await expect(page.locator("h1, h2, h3").first()).toBeVisible({
       timeout: 10000,
@@ -331,7 +334,6 @@ test.describe("Authenticated dashboard flows", () => {
 
     await page.goto("/dashboard/lesson-plans");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(2000);
     expect(page.url()).toContain("/dashboard/lesson-plans");
     await expect(page.locator("h1, h2, h3").first()).toBeVisible({
       timeout: 10000,
@@ -529,7 +531,9 @@ test.describe("Authenticated dashboard flows", () => {
 
     await page.goto("/dashboard");
     await page.waitForTimeout(2000);
-    await expect(page.locator("h1, h2, h3").first()).toBeVisible();
+    await expect(
+      page.getByText(/good (morning|afternoon|evening), mary/i),
+    ).toBeVisible();
 
     await page.goto("/dashboard/homework");
     await page.waitForTimeout(1000);

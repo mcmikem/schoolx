@@ -8,7 +8,10 @@ import MaterialIcon from '@/components/MaterialIcon'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { StatsGridSkeleton } from '@/components/Skeletons'
 
-import StatCard from '@/components/dashboard/StatCard'
+import StatCard from "@/components/dashboard/StatCard";
+import DashboardInsights from "@/components/dashboard/DashboardInsights";
+import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
+import ActionCenter from "@/components/dashboard/ActionCenter";
 
 function DeanDashboardContent() {
   const router = useRouter()
@@ -40,26 +43,48 @@ function DeanDashboardContent() {
 
   return (
     <div className="content">
-      <div className="page-header">
-        <div>
-          <div className="ph-title">{greeting}, {user?.full_name?.split(' ')[0]}</div>
-          <div className="ph-sub">{school?.name} • {currentDate.toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
+        <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="ph-title truncate !text-3xl">
+                {greeting}, {user?.full_name?.split(" ")[0]}
+              </div>
+              <div className="ph-sub truncate !text-sm">
+                Dean of Academics · {school?.name} • Term {currentTerm}
+              </div>
+            </div>
+            <div className="ph-actions">
+              <Link href="/dashboard/reports" className="btn btn-ghost shadow-sm">
+                <MaterialIcon icon="download" style={{ fontSize: "16px" }} />
+                <span>Analytics</span>
+              </Link>
+              <Link href="/dashboard/grades" className="btn btn-primary shadow-md">
+                <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
+                <span>Quick Entry</span>
+              </Link>
+            </div>
+          </div>
         </div>
-        <div className="ph-actions">
-          <button className="btn btn-ghost" onClick={() => router.push('/dashboard/grades')}>
-            <MaterialIcon icon="filter_list" />
-            Filter
-          </button>
-          <button className="btn btn-primary" onClick={() => router.push('/dashboard/grades')}>
-            <MaterialIcon icon="add" />
-            Quick Entry
-          </button>
+
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
+        <div className="xl:col-span-3">
+          <DashboardInsights
+            stats={stats}
+            attendanceRate={attendanceRate}
+            collectionRate={0}
+            students={students}
+            payments={[]}
+            loading={statsLoading}
+          />
+        </div>
+        <div className="xl:col-span-1">
+          <EcosystemPulse payments={[]} loading={statsLoading} />
         </div>
       </div>
 
-      <div className="stat-grid sm:grid-cols-3">
-        <StatCard label="Students" value={students.length} subValue={`${classes.length} Classes enrolled`} icon="group" accentColor="navy" />
-        <StatCard label="Attendance" value={`${attendanceRate}%`} subValue="Average rate today" icon="how_to_reg" accentColor="green" />
+      <div className="stat-grid sm:grid-cols-3 !mb-8">
+        <StatCard label="Students" value={students.length} subValue={`${classes.length} Classes enrolled`} icon="group" accentColor="navy" variant="premium-navy" />
+        <StatCard label="Attendance" value={`${attendanceRate}%`} subValue="School-wide rate" icon="how_to_reg" accentColor="green" variant="premium-teal" />
         <StatCard label="Subjects" value={subjects.length} subValue={`Across ${classes.length} classes`} icon="school" accentColor="amber" />
       </div>
 

@@ -48,7 +48,19 @@ export default function CanteenPage() {
   const loadData = useCallback(async () => {
     if (!school?.id) {
       // #region agent log
-      fetch("/api/debug/log",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"9e14f3",runId:"pre-fix",hypothesisId:"H7",location:"src/app/dashboard/canteen/page.tsx:loadData:guard",message:"skipped canteen loadData due to missing school.id",data:{hasSchool:!!school,schoolId:school?.id??null},timestamp:Date.now()})}).catch(()=>{});
+      fetch("/api/debug/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: "9e14f3",
+          runId: "pre-fix",
+          hypothesisId: "H7",
+          location: "src/app/dashboard/canteen/page.tsx:loadData:guard",
+          message: "skipped canteen loadData due to missing school.id",
+          data: { hasSchool: !!school, schoolId: school?.id ?? null },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
       // #endregion
       return;
     }
@@ -67,7 +79,31 @@ export default function CanteenPage() {
         .order("created_at", { ascending: false })
         .limit(50);
       // #region agent log
-      fetch("/api/debug/log",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"9e14f3",runId:"pre-fix",hypothesisId:"H7",location:"src/app/dashboard/canteen/page.tsx:loadData",message:"loaded canteen items/orders",data:{schoolId:school.id,itemsLen:itemsData?.length??null,ordersLen:ordersData?.length??null,hasItemsError:!!itemsError,itemsError:itemsError?String(itemsError.message||itemsError):null,hasOrdersError:!!ordersError,ordersError:ordersError?String(ordersError.message||ordersError):null},timestamp:Date.now()})}).catch(()=>{});
+      fetch("/api/debug/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: "9e14f3",
+          runId: "pre-fix",
+          hypothesisId: "H7",
+          location: "src/app/dashboard/canteen/page.tsx:loadData",
+          message: "loaded canteen items/orders",
+          data: {
+            schoolId: school.id,
+            itemsLen: itemsData?.length ?? null,
+            ordersLen: ordersData?.length ?? null,
+            hasItemsError: !!itemsError,
+            itemsError: itemsError
+              ? String(itemsError.message || itemsError)
+              : null,
+            hasOrdersError: !!ordersError,
+            ordersError: ordersError
+              ? String(ordersError.message || ordersError)
+              : null,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
       // #endregion
 
       setItems(itemsData || []);
@@ -77,7 +113,7 @@ export default function CanteenPage() {
     } finally {
       setLoading(false);
     }
-  }, [school?.id]);
+  }, [school]);
 
   useEffect(() => {
     if (school?.id) loadData();
