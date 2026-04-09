@@ -386,34 +386,35 @@ export default function AttendancePage() {
   const selectedClassName = filteredClasses.find((c) => c.id === selectedClass);
 
   return (
+    <>
       <PageHeader
         title="Attendance Center"
-        subtitle={`Marking records for ${selectedClassName?.name || 'Academic Classes'}`}
+        subtitle={`Marking records for ${selectedClassName?.name || "Academic Classes"}`}
         variant="premium"
         actions={
           <div className="flex items-center gap-3">
             {offlineCount > 0 && (
-               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--amber-soft)] text-[var(--amber)] text-[10px] font-bold uppercase tracking-wider">
-                  <MaterialIcon icon="cloud_off" className="text-sm" />
-                  {offlineCount} Pending Sync
-               </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--amber-soft)] text-[var(--amber)] text-[10px] font-bold uppercase tracking-wider">
+                <MaterialIcon icon="cloud_off" className="text-sm" />
+                {offlineCount} Pending Sync
+              </div>
             )}
             <Button
-               onClick={saveAttendance}
-               disabled={saving || !selectedClass}
-               loading={saving}
-               variant="primary"
-               size="sm"
-               icon={<MaterialIcon icon="save" />}
-               className="shadow-md shadow-navy/20"
+              onClick={saveAttendance}
+              disabled={saving || !selectedClass}
+              loading={saving}
+              variant="primary"
+              size="sm"
+              icon={<MaterialIcon icon="save" />}
+              className="shadow-md shadow-navy/20"
             >
-               Save Changes
+              Save Changes
             </Button>
           </div>
         }
       />
 
-      <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4">
+      <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 block">
@@ -486,7 +487,7 @@ export default function AttendancePage() {
         <>
           <div className="grid grid-cols-3 gap-3">
             <div
-              className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-3 text-center"
+              className="bg-surface-container-lowest rounded-xl border border-outline-variant p-3 text-center"
               style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
             >
               <div className="text-2xl md:text-3xl font-bold text-secondary">
@@ -497,7 +498,7 @@ export default function AttendancePage() {
               </div>
             </div>
             <div
-              className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-3 text-center"
+              className="bg-surface-container-lowest rounded-xl border border-outline-variant p-3 text-center"
               style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
             >
               <div className="text-2xl md:text-3xl font-bold text-error">
@@ -508,7 +509,7 @@ export default function AttendancePage() {
               </div>
             </div>
             <div
-              className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-3 text-center"
+              className="bg-surface-container-lowest rounded-xl border border-outline-variant p-3 text-center"
               style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
             >
               <div className="text-2xl md:text-3xl font-bold text-tertiary">
@@ -543,7 +544,7 @@ export default function AttendancePage() {
             ]}
           />
 
-          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4">
+          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <MaterialIcon icon="mic" className="text-xl text-primary" />
@@ -702,7 +703,7 @@ export default function AttendancePage() {
                 )}
               </div>
 
-              <div className="fixed bottom-[80px] left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant/10 md:border-0 z-10">
+              <div className="fixed bottom-[80px] left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant md:border-0 z-10">
                 <Button
                   onClick={saveAttendance}
                   disabled={saving}
@@ -748,7 +749,7 @@ export default function AttendancePage() {
                     return (
                       <div
                         key={student.id}
-                        className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4"
+                        className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
@@ -811,7 +812,7 @@ export default function AttendancePage() {
                       <div
                         key={student.id}
                         onClick={() => handleTapStatus(student.id)}
-                        className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none"
+                        className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none"
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-primary-container rounded-full flex items-center justify-center">
@@ -865,7 +866,7 @@ export default function AttendancePage() {
                 </div>
               </TabPanel>
 
-              <div className="fixed bottom-[80px] left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant/10 md:border-0 z-10">
+              <div className="fixed bottom-[80px] left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant md:border-0 z-10">
                 <Button
                   onClick={saveAttendance}
                   disabled={saving || Object.keys(attendance).length === 0}
@@ -980,7 +981,7 @@ export default function AttendancePage() {
                 );
               })}
             </div>
-            <div className="flex gap-3 mt-4 pt-4 border-t border-outline-variant/10">
+            <div className="flex gap-3 mt-4 pt-4 border-t border-outline-variant">
               <Button
                 variant="secondary"
                 onClick={() => {
@@ -1004,6 +1005,6 @@ export default function AttendancePage() {
           </Modal>
         </>
       )}
-    </div>
+    </>
   );
 }

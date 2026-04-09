@@ -8,6 +8,7 @@ import ReportCard from "@/components/reports/ReportCard";
 import type { ReportCard as ReportCardType } from "@/types";
 import { supabase } from "@/lib/supabase";
 import { PageHeader } from "@/components/ui/PageHeader";
+import MaterialIcon from "@/components/MaterialIcon";
 import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
