@@ -1058,44 +1058,62 @@ export default function FinanceHubPage() {
   };
 
   return (
-    <div className="content">
+    <div className="space-y-6 pb-24 md:pb-6">
       <PageHeader
-        title="Finance Hub"
+        title="Finance Command Center"
         subtitle={`Term ${currentTerm}, ${academicYear}`}
+        variant="premium"
         actions={
           <div className="flex items-center gap-3 flex-wrap">
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleAutoFeeReminders}
-              disabled={sendingReminders}
-            >
-              <MaterialIcon icon="notifications_active" />
-              {sendingReminders ? "Sending..." : "Auto Fee Reminders"}
-            </Button>
-            <Button
-              variant="ghost"
+              variant="secondary"
               size="sm"
               onClick={() => setShowAdjustmentModal(true)}
             >
               <MaterialIcon icon="tune" />
-              Add Adjustment
+              Adjustment
             </Button>
-            <Button
-              variant="ghost"
+             <Button
+              variant="secondary"
               size="sm"
               onClick={() => setShowCreatePlan(true)}
             >
               <MaterialIcon icon="event_note" />
-              Payment Plan
+              Plan
             </Button>
-            <Button variant="primary" onClick={() => setShowFeeModal(true)}>
+            <Button 
+               variant="primary" 
+               size="sm"
+               onClick={() => setShowFeeModal(true)}
+               className="shadow-md shadow-navy/20"
+            >
               <MaterialIcon icon="add" />
               Create Fee
             </Button>
           </div>
         }
-      />
+      >
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 animate-fade-in">
+           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+              <div className="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1">Total Expected</div>
+              <div className="text-xl font-extrabold text-white">{formatCurrency(stats.totalExpected).split(' ').pop()}</div>
+           </div>
+           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+              <div className="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1">Collections</div>
+              <div className="text-xl font-extrabold text-white">{formatCurrency(stats.totalPaid).split(' ').pop()}</div>
+           </div>
+           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+              <div className="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1">Outstanding</div>
+              <div className="text-xl font-extrabold text-[var(--amber)]">{formatCurrency(stats.totalBalance).split(' ').pop()}</div>
+           </div>
+           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+              <div className="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1">Realization</div>
+              <div className="text-xl font-extrabold text-[var(--green)]">
+                {stats.totalExpected > 0 ? Math.round((stats.totalPaid / stats.totalExpected) * 100) : 0}%
+              </div>
+           </div>
+        </div>
+      </PageHeader>
 
       <PageGuidance
         title="How to Manage Fees"
