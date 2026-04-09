@@ -154,10 +154,21 @@ export default function ReportsPage() {
   );
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
+    <div className="space-y-6 pb-24 md:pb-6">
       <PageHeader
-        title="Reports"
-        subtitle="Generate and view student report cards"
+        title="Reporting Analytics"
+        subtitle={`Term ${currentTerm}, ${academicYear} Academic Cycle`}
+        variant="premium"
+        actions={
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => window.print()}
+            icon={<MaterialIcon icon="print" />}
+          >
+            Bulk Print
+          </Button>
+        }
       />
 
       <Card className="p-4 mb-6">

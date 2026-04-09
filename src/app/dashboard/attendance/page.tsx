@@ -386,25 +386,29 @@ export default function AttendancePage() {
   const selectedClassName = filteredClasses.find((c) => c.id === selectedClass);
 
   return (
-    <div className="space-y-6 pb-24 md:pb-6">
       <PageHeader
-        title="Attendance"
-        subtitle={`Mark daily student attendance`}
+        title="Attendance Center"
+        subtitle={`Marking records for ${selectedClassName?.name || 'Academic Classes'}`}
+        variant="premium"
         actions={
           <div className="flex items-center gap-3">
             {offlineCount > 0 && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-tertiary-container text-on-tertiary-container text-xs font-semibold">
-                <MaterialIcon icon="cloud_off" className="text-sm" />
-                {offlineCount} record{offlineCount !== 1 ? "s" : ""} saved
-                offline
-              </div>
+               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--amber-soft)] text-[var(--amber)] text-[10px] font-bold uppercase tracking-wider">
+                  <MaterialIcon icon="cloud_off" className="text-sm" />
+                  {offlineCount} Pending Sync
+               </div>
             )}
-            {!isOnline && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-error-container text-on-error-container text-xs font-semibold">
-                <MaterialIcon icon="wifi_off" className="text-sm" />
-                Offline
-              </div>
-            )}
+            <Button
+               onClick={saveAttendance}
+               disabled={saving || !selectedClass}
+               loading={saving}
+               variant="primary"
+               size="sm"
+               icon={<MaterialIcon icon="save" />}
+               className="shadow-md shadow-navy/20"
+            >
+               Save Changes
+            </Button>
           </div>
         }
       />
