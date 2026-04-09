@@ -11,6 +11,7 @@ import StatCard from "@/components/dashboard/StatCard";
 import DashboardInsights from "@/components/dashboard/DashboardInsights";
 import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
 import ActionCenter from "@/components/dashboard/ActionCenter";
+import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
 
 function BursarDashboardContent() {
   const { school, user } = useAuth();
@@ -107,6 +108,13 @@ function BursarDashboardContent() {
             </div>
           </div>
         </div>
+
+      <SmartAdvisor 
+        stats={{}} 
+        collectionRate={collectionRate} 
+        attendanceRate={0} 
+        role="bursar" 
+      />
 
       {/* Visual Insights & Pulse */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">

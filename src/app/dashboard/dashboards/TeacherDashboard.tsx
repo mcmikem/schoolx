@@ -15,6 +15,7 @@ import StatCard from "@/components/dashboard/StatCard";
 import DashboardInsights from "@/components/dashboard/DashboardInsights";
 import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
 import ActionCenter from "@/components/dashboard/ActionCenter";
+import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
 
 function TeacherDashboardContent() {
   const router = useRouter();
@@ -171,6 +172,8 @@ function TeacherDashboardContent() {
             </div>
           </div>
         </div>
+
+      <SmartAdvisor stats={{}} collectionRate={0} attendanceRate={92} role="teacher" />
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
         <div className="xl:col-span-3">

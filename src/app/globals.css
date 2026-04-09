@@ -79,6 +79,12 @@
   /* Spacing & Effects (Soft UI) */
   --r: 16px;
   --r2: 24px;
+  --r3: 32px;
+  
+  /* Mobile Spacing Tokens */
+  --ms: 16px;
+  --mm: 24px;
+  --ml: 32px;
 
   --sh1: 0 4px 12px rgba(44, 62, 80, 0.05), 0 1px 2px rgba(44, 62, 80, 0.03);
   --sh2: 0 12px 32px rgba(44, 62, 80, 0.12), 0 4px 12px rgba(0, 86, 210, 0.06);
@@ -94,11 +100,39 @@
   --grad-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%);
 }
 
+.glass-premium {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+}
+
 /* Base X Motif Pattern */
 .bg-motif {
-  background-image: radial-gradient(var(--border) 1px, transparent 0);
+  background-color: #f8fafc;
+  background-image: radial-gradient(var(--navy-soft) 0.5px, transparent 0.5px);
   background-size: 24px 24px;
-  background-position: -12px -12px;
+}
+
+@media (max-width: 640px) {
+  .content {
+    padding: var(--ms) !important;
+  }
+  .stat-grid {
+    gap: var(--ms) !important;
+  }
+  .ph-title {
+    font-size: 1.5rem !important;
+  }
+}
+
+.tap-effect {
+  transition: transform 0.1s ease;
+}
+
+.tap-effect:active {
+  transform: scale(0.97);
 }
 
 /* Dark Theme */
