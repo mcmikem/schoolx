@@ -37,7 +37,7 @@ export default function SmartAdvisor({ stats, collectionRate, attendanceRate, ro
       list.push(`Action Required: ${stats.classesNotMarked} classes haven't marked attendance today.`);
     }
 
-    if (role === "bursar" && collectionRate > 0 && collectionRate < 100) {
+    if (role === "bursar" && collectionRate > 0 && collectionRate < 100 && stats?.totalFeesExpected) {
        list.push(`Financial Goal: You are UGX ${(stats.totalFeesExpected - stats.totalFeesCollected).toLocaleString()} away from your term target.`);
     }
 
@@ -55,7 +55,7 @@ export default function SmartAdvisor({ stats, collectionRate, attendanceRate, ro
 
   return (
     <div className="card-gradient-amber rounded-[var(--r2)] p-1 mb-8 shadow-xl shadow-amber/10 animate-float-gentle">
-      <div className="bg-white/95 backdrop-blur-md rounded-[calc(var(--r2)-4px)] p-4 flex gap-4 items-start">
+      <div className="bg-surface backdrop-blur-md rounded-[calc(var(--r2)-4px)] p-4 flex gap-4 items-start">
         <div className="w-12 h-12 rounded-2xl bg-amber-soft flex items-center justify-center flex-shrink-0 border border-amber/20 shadow-inner">
           <MaterialIcon icon="auto_awesome" className="text-amber text-2xl animate-pulse" />
         </div>

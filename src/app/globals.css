@@ -148,6 +148,19 @@
   --t4: #4a5568;
 
   --primary: #adc7f7;
+  
+  /* Dark Mode Premium Overrides */
+  .glass-premium {
+    background: rgba(15, 20, 25, 0.7) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+  }
+
+  .bg-motif {
+    background-color: #0f1419 !important;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 0.5px, transparent 0.5px) !important;
+  }
+
   --primary-50: #1a365d;
   --primary-100: #2d476f;
   --primary-200: #455f88;
