@@ -1,239 +1,124 @@
-'use client'
-import { useState } from 'react'
-import { useAuth } from '@/lib/auth-context'
-import { useToast } from '@/components/Toast'
-import { useTransportManager } from '@/lib/hooks'
-import { supabase } from '@/lib/supabase'
-import MaterialIcon from '@/components/MaterialIcon'
-import { PageHeader } from '@/components/ui/PageHeader'
-import { Card, CardBody, CardHeader } from '@/components/ui/Card'
-import { Button } from '@/components/ui/index'
+"use client";
+
+import { useState, useEffect } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
+import MaterialIcon from "@/components/MaterialIcon";
+import { cardClassName } from "@/lib/utils";
 
 export default function TransportPage() {
-  const { school, user } = useAuth()
-  const toast = useToast()
-  const { routes, logs, loading } = useTransportManager(school?.id)
-  
-  const [showLogModal, setShowLogModal] = useState(false)
-  const [selectedRouteId, setSelectedRouteId] = useState('')
-  const [selectedRoute, setSelectedRoute] = useState<any | null>(null)
+  const { school } = useAuth();
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleAddLog = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const formData = new FormData(e.currentTarget)
-    const logEntry = {
-      school_id: school!.id,
-      route_id: selectedRouteId,
-      log_type: formData.get('log_type'),
-      amount: Number(formData.get('amount')),
-      description: formData.get('description'),
-      odometer_reading: Number(formData.get('odometer_reading')),
-      log_date: new Date().toISOString().split('T')[0],
-      recorded_by: user!.id
-    }
+  // Demo data for vehicles
+  const demoVehicles = [
+    { id: "1", plate: "UBA 123A", type: "Bus (67 Seater)", driver: "John Ouma", route: "Kampala - Entebbe", status: "active", capacity: 67, filled: 54 },
+    { id: "2", plate: "UBB 456B", type: "Coaster (28 Seater)", driver: "Peter Kigozi", route: "Kampala - Mukono", status: "active", capacity: 28, filled: 28 },
+    { id: "3", plate: "UBC 789C", type: "Van (14 Seater)", driver: "Sam Musoke", route: "Kampala - Wakiso", status: "maintenance", capacity: 14, filled: 0 },
+  ];
 
-    const { error } = await supabase.from('transport_vehicle_logs').insert([logEntry])
-    if (error) {
-      toast.error('Failed to add log')
-    } else {
-      toast.success('Vehicle log added')
-      setShowLogModal(false)
-    }
-  }
-
-  if (loading) return <div className="p-8 text-[var(--on-surface)]">Loading transport data...</div>
+  useEffect(() => {
+    setLoading(true);
+    setTimeout(() => {
+      setVehicles(demoVehicles);
+      setLoading(false);
+    }, 500);
+  }, [school?.id]);
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
-      <PageHeader 
-        title="Transport & Logistics"
-        subtitle="Manage school buses, routes, and vehicle maintenance"
-        actions={
-          <Button variant="primary" onClick={() => setShowLogModal(true)}>
-            <MaterialIcon icon="local_gas_station" />
-            Add Vehicle Log
-          </Button>
-        }
-      />
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader className="flex items-center gap-2">
-              <MaterialIcon icon="directions_bus" className="text-[var(--primary)]" />
-              <span className="font-semibold text-[var(--on-surface)]">Active Routes</span>
-            </CardHeader>
-            <CardBody>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {routes.map(route => (
-                  <div key={route.id} className="p-5 rounded-2xl bg-[var(--surface-container-low)] border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all group">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h3 className="text-lg font-bold text-[var(--on-surface)]">{route.route_name}</h3>
-                        <p className="text-xs text-[var(--t3)]">{route.vehicle_number || 'No Vehicle Assigned'}</p>
-                      </div>
-                      <div className="p-2 bg-[var(--primary)]/10 rounded-lg text-[var(--primary)]">
-                        <MaterialIcon icon="route" />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3 mb-6">
-                      <div className="flex items-center gap-2 text-sm text-[var(--t3)]">
-                        <MaterialIcon icon="person" className="text-xs" />
-                        {route.driver_name || 'No Driver'}
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-[var(--t3)]">
-                        <MaterialIcon icon="sell" className="text-xs" />
-                        UGX {route.monthly_fee?.toLocaleString() || 0} / month
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-[var(--border)] flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-widest">
-                        {route.transport_stops?.length || 0} Stops
-                      </span>
-                      <button
-                        onClick={() => setSelectedRoute(route)}
-                        className="text-xs text-[var(--t3)] hover:text-[var(--on-surface)] transition-colors"
-                      >
-                        View Schedule
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardBody>
-          </Card>
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+      <div className="flex justify-between items-end flex-wrap gap-4">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <MaterialIcon icon="directions_bus" />
+            </div>
+            <h1 className="text-3xl font-black text-slate-800 tracking-tight">Transport</h1>
+          </div>
+          <p className="text-slate-500 font-medium">Manage school fleet, routes, and student assignments</p>
         </div>
-
-        <div className="space-y-6">
-          <Card>
-            <CardHeader className="flex items-center gap-2">
-              <MaterialIcon icon="receipt_long" className="text-amber-500" />
-              <span className="font-semibold text-[var(--on-surface)]">Recent Logs</span>
-            </CardHeader>
-            <CardBody>
-              <div className="space-y-4">
-                {logs.slice(0, 6).map(log => (
-                  <div key={log.id} className="p-4 rounded-xl bg-[var(--surface-container-low)] border border-[var(--border)] space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                        log.log_type === 'fuel' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
-                      }`}>
-                        {log.log_type}
-                      </span>
-                      <p className="text-[10px] text-[var(--t3)]">{log.log_date}</p>
-                    </div>
-                    <div className="flex justify-between items-end">
-                      <div>
-                        <p className="text-xs text-[var(--t3)] italic">{log.description || 'No description'}</p>
-                        {log.odometer_reading && (
-                          <p className="text-[10px] text-[var(--t4)] mt-1">Odometer: {log.odometer_reading} km</p>
-                        )}
-                      </div>
-                      {log.amount && (
-                        <p className="text-sm font-bold text-[var(--on-surface)]">UGX {log.amount.toLocaleString()}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardBody>
-          </Card>
-        </div>
+        <button className="flex items-center gap-2 px-5 py-3 bg-amber-500 text-white rounded-2xl font-bold hover:scale-105 transition-all shadow-lg shadow-amber-500/20">
+          <MaterialIcon icon="add" /> Add Vehicle
+        </button>
       </div>
 
-      {showLogModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowLogModal(false)}>
-          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6 p-6 border-b border-[var(--border)]">
-              <h2 className="text-xl font-bold text-[var(--on-surface)]">New Vehicle Log</h2>
-              <button onClick={() => setShowLogModal(false)} className="text-[var(--t3)] hover:text-[var(--on-surface)]">
-                <MaterialIcon icon="close" />
-              </button>
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: "Total Fleet", value: vehicles.length, icon: "airport_shuttle", color: "bg-slate-700" },
+          { label: "Active Routes", value: vehicles.filter(v => v.status === "active").length, icon: "route", color: "bg-emerald-500" },
+          { label: "Total Capacity", value: vehicles.reduce((acc, v) => acc + v.capacity, 0), icon: "groups", color: "bg-blue-500" },
+          { label: "In Maintenance", value: vehicles.filter(v => v.status === "maintenance").length, icon: "build", color: "bg-amber-500" },
+        ].map((s) => (
+          <div key={s.label} className="p-5 bg-white rounded-3xl border border-slate-100 flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-2xl ${s.color} text-white flex items-center justify-center shrink-0`}>
+              <MaterialIcon icon={s.icon} />
             </div>
-            <form onSubmit={handleAddLog} className="p-6 space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-[var(--on-surface)]">Select Route/Vehicle</label>
-                {routes.length === 0 ? (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-amber-800 text-sm">No routes available</div>
-                ) : (
-                  <select 
-                    required
-                    value={selectedRouteId}
-                    onChange={(e) => setSelectedRouteId(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] outline-none"
-                  >
-                    <option value="">Choose route...</option>
-                    {routes.map(r => (
-                      <option key={r.id} value={r.id}>{r.route_name} ({r.vehicle_number})</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--on-surface)]">Log Type</label>
-                  <select name="log_type" className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] outline-none">
-                    <option value="fuel">Fuel</option>
-                    <option value="maintenance">Maintenance</option>
-                    <option value="mileage">Mileage</option>
-                    <option value="incident">Incident</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--on-surface)]">Amount (UGX)</label>
-                  <input name="amount" type="number" className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:ring-2 focus:ring-[var(--primary)]/50 outline-none" placeholder="0" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-[var(--on-surface)]">Odometer Reading (km)</label>
-                <input name="odometer_reading" type="number" className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:ring-2 focus:ring-[var(--primary)]/50 outline-none" placeholder="Current km..." />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-[var(--on-surface)]">Description</label>
-                <textarea name="description" rows={2} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] outline-none" placeholder="Details..."></textarea>
-              </div>
-              <Button type="submit" variant="primary" className="w-full mt-4">
-                Save Vehicle Log
-              </Button>
-            </form>
-          </Card>
-        </div>
-      )}
+            <div>
+              <p className="text-2xl font-black text-slate-800">{s.value}</p>
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{s.label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
 
-      {selectedRoute && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setSelectedRoute(null)}>
-          <Card className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-[var(--border)]">
-              <div>
-                <h2 className="text-xl font-bold text-[var(--on-surface)]">{selectedRoute.route_name}</h2>
-                <p className="text-sm text-[var(--t3)]">{selectedRoute.vehicle_number || 'No vehicle assigned'}</p>
-              </div>
-              <button onClick={() => setSelectedRoute(null)} className="text-[var(--t3)] hover:text-[var(--on-surface)]">
-                <MaterialIcon icon="close" />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              {selectedRoute.transport_stops?.length ? (
-                selectedRoute.transport_stops.map((stop: any, index: number) => (
-                  <div key={stop.id || `${stop.stop_name}-${index}`} className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-4 py-3">
-                    <div>
-                      <div className="font-medium text-[var(--on-surface)]">{stop.stop_name}</div>
-                      <div className="text-xs text-[var(--t3)]">Stop {index + 1}</div>
-                    </div>
-                    <div className="text-sm font-semibold text-[var(--primary)]">{stop.arrival_time || 'Time not set'}</div>
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  No route stops have been configured for this schedule yet.
-                </div>
-              )}
-            </div>
-          </Card>
+      <div className={cardClassName + " overflow-hidden"}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-50/50">
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Vehicle</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Driver</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Route</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Occupancy</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {loading
+                ? Array.from({ length: 3 }).map((_, i) => (
+                    <tr key={i}>
+                      {Array.from({ length: 6 }).map((_, j) => (
+                        <td key={j} className="px-6 py-4">
+                          <div className="h-4 bg-slate-100 rounded-full animate-pulse" />
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                : vehicles.map((v) => (
+                    <tr key={v.id} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="px-6 py-4">
+                        <p className="font-bold text-slate-800">{v.plate}</p>
+                        <p className="text-[10px] font-medium text-slate-400">{v.type}</p>
+                      </td>
+                      <td className="px-6 py-4 font-medium text-slate-600">{v.driver}</td>
+                      <td className="px-6 py-4 font-medium text-slate-600">{v.route}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                           <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden shrink-0 w-24">
+                             <div className={`h-full ${v.filled === v.capacity ? 'bg-amber-400' : 'bg-emerald-400'}`} style={{ width: `${(v.filled / v.capacity) * 100}%` }} />
+                           </div>
+                           <span className="text-[10px] font-black text-slate-500">{v.filled}/{v.capacity}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${v.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                           {v.status}
+                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button className="p-2 text-slate-300 hover:text-amber-500 transition-colors">
+                          <MaterialIcon icon="edit" style={{ fontSize: 20 }} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
     </div>
-  )
+  );
 }

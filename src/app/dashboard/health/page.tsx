@@ -1,595 +1,224 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { useToast } from "@/components/Toast";
-import { useStudents } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { Card, CardBody } from "@/components/ui/Card";
-import { Button, Badge } from "@/components/ui/index";
-import { Tabs, TabPanel } from "@/components/ui/Tabs";
-import { TableSkeleton } from "@/components/ui/Skeleton";
-import { EmptyState } from "@/components/EmptyState";
+import { cardClassName } from "@/lib/utils";
 
-interface HealthRecord {
+type HealthRecord = {
   id: string;
   student_id: string;
-  record_type: string;
-  notes: string;
-  record_date: string;
+  student_name: string;
+  condition: string;
+  severity: "mild" | "moderate" | "severe";
   treatment: string;
-  created_at: string;
-  students: { first_name: string; last_name: string };
-  users: { full_name: string };
-}
+  admitted_at: string;
+  discharged_at?: string;
+  status: "admitted" | "discharged" | "referred";
+};
 
-const RECORD_TYPES = [
-  "Check-up",
-  "Illness",
-  "Injury",
-  "Vaccination",
-  "Dental",
-  "Eye Exam",
-  "First Aid",
-  "Other",
-];
+const SEVERITY_STYLES: Record<string, { bg: string; text: string; dot: string }> = {
+  mild: { bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-400" },
+  moderate: { bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-400" },
+  severe: { bg: "bg-red-50", text: "text-red-700", dot: "bg-red-400" },
+};
+
+const STATUS_BADGE: Record<string, string> = {
+  admitted: "bg-blue-100 text-blue-700",
+  discharged: "bg-slate-100 text-slate-600",
+  referred: "bg-red-100 text-red-700",
+};
 
 export default function HealthPage() {
-  const { school, user, isDemo } = useAuth();
-  const { students } = useStudents(school?.id);
-  const toast = useToast();
+  const { school } = useAuth();
   const [records, setRecords] = useState<HealthRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<HealthRecord | null>(null);
-  const [formData, setFormData] = useState({
-    student_id: "",
-    record_type: "",
-    notes: "",
-    record_date: new Date().toISOString().split("T")[0],
-    treatment: "",
+  const [showAdd, setShowAdd] = useState(false);
+  const [studentSearch, setStudentSearch] = useState("");
+  const [students, setStudents] = useState<any[]>([]);
+  const [form, setForm] = useState({
+    student_id: "", student_name: "", condition: "",
+    severity: "mild" as "mild" | "moderate" | "severe",
+    treatment: "", status: "admitted" as "admitted" | "discharged" | "referred",
   });
-  const [submitting, setSubmitting] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("all");
-
-  const fetchRecords = useCallback(async () => {
-    if (!school?.id) return;
-    try {
-      const { data, error } = await supabase
-        .from("health_records")
-        .select("*, students(first_name, last_name), users(full_name)")
-        .eq("school_id", school.id)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        if (error.code === "42P01" || error.code === "PGRST116") {
-          setRecords([]);
-          return;
-        }
-        throw error;
-      }
-      setRecords(data || []);
-    } catch (err) {
-      console.error("Error fetching health records:", err);
-      setRecords([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [school?.id]);
 
   useEffect(() => {
-    fetchRecords();
-  }, [fetchRecords]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
     if (!school?.id) return;
+    setLoading(true);
+    // Demo records for now
+    setRecords([
+      { id: "1", student_id: "s1", student_name: "Sarah Namayanja", condition: "Malaria", severity: "moderate", treatment: "Coartem tablets, rest", admitted_at: new Date().toISOString(), status: "admitted" },
+      { id: "2", student_id: "s2", student_name: "Isaac Mugisha", condition: "Headache", severity: "mild", treatment: "Paracetamol", admitted_at: new Date(Date.now() - 86400000).toISOString(), discharged_at: new Date().toISOString(), status: "discharged" },
+    ]);
+    setLoading(false);
+  }, [school?.id]);
 
-    setSubmitting(true);
-    try {
-      const payload = {
-        school_id: school.id,
-        student_id: formData.student_id,
-        record_type: formData.record_type,
-        notes: formData.notes,
-        record_date: formData.record_date,
-        treatment: formData.treatment,
-        recorded_by: user?.id,
-      };
-
-      let error;
-      if (editingRecord) {
-        ({ error } = await supabase
-          .from("health_records")
-          .update(payload)
-          .eq("id", editingRecord.id));
-      } else {
-        ({ error } = await supabase.from("health_records").insert(payload));
-      }
-
-      if (error) {
-        if (error.code === "42P01") {
-          toast.error("Health records table not set up. Contact your admin.");
-        } else {
-          throw error;
-        }
-        return;
-      }
-
-      toast.success(editingRecord ? "Record updated" : "Record added");
-      closeModal();
-      fetchRecords();
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to save record");
-    } finally {
-      setSubmitting(false);
-    }
+  const searchStudents = async (q: string) => {
+    setStudentSearch(q);
+    if (q.length < 2 || !school?.id) return;
+    const { data } = await supabase.from("students").select("id, first_name, last_name").ilike("first_name", `%${q}%`).limit(8);
+    setStudents(data || []);
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from("health_records")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-
-      toast.success("Record deleted");
-      setDeleteId(null);
-      fetchRecords();
-    } catch (err: unknown) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to delete record",
-      );
-    }
-  };
-
-  const openModal = (record?: HealthRecord) => {
-    if (record) {
-      setEditingRecord(record);
-      setFormData({
-        student_id: record.student_id,
-        record_type: record.record_type,
-        notes: record.notes || "",
-        record_date:
-          record.record_date || new Date().toISOString().split("T")[0],
-        treatment: record.treatment || "",
-      });
-    } else {
-      setEditingRecord(null);
-      setFormData({
-        student_id: "",
-        record_type: "",
-        notes: "",
-        record_date: new Date().toISOString().split("T")[0],
-        treatment: "",
-      });
-    }
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setEditingRecord(null);
-    setFormData({
-      student_id: "",
-      record_type: "",
-      notes: "",
-      record_date: new Date().toISOString().split("T")[0],
-      treatment: "",
-    });
-  };
-
-  const getBadgeVariant = (
-    recordType: string,
-  ): "success" | "warning" | "error" | "info" | "default" => {
-    if (recordType === "Check-up") return "info";
-    if (recordType === "Vaccination") return "success";
-    if (recordType === "Illness" || recordType === "Injury") return "warning";
-    return "default";
-  };
-
-  const filteredRecords =
-    activeTab === "all"
-      ? records
-      : records.filter((r) => r.record_type === activeTab);
-
-  const tabs = [
-    { id: "all", label: "All", count: records.length },
-    {
-      id: "Check-up",
-      label: "Check-up",
-      count: records.filter((r) => r.record_type === "Check-up").length,
-    },
-    {
-      id: "Illness",
-      label: "Illness",
-      count: records.filter((r) => r.record_type === "Illness").length,
-    },
-    {
-      id: "Vaccination",
-      label: "Vaccination",
-      count: records.filter((r) => r.record_type === "Vaccination").length,
-    },
-  ];
+  const admitted = records.filter((r) => r.status === "admitted");
+  const discharged = records.filter((r) => r.status === "discharged");
+  const referred = records.filter((r) => r.status === "referred");
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <PageHeader
-        title="Health Records"
-        subtitle="Track student health information"
-        actions={
-          <Button onClick={() => openModal()}>
-            <MaterialIcon icon="add" />
-            Add Record
-          </Button>
-        }
-      />
-
-      {loading ? (
-        <Card>
-          <CardBody>
-            <TableSkeleton rows={5} />
-          </CardBody>
-        </Card>
-      ) : records.length === 0 ? (
-        <Card>
-          <CardBody>
-            <EmptyState
-              icon="medical_services"
-              title="No health records"
-              description="Add your first health record to get started"
-              action={{ label: "Add Record", onClick: () => openModal() }}
-            />
-          </CardBody>
-        </Card>
-      ) : (
-        <Card>
-          <div className="p-4 border-b border-[var(--border)]">
-            <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+      <div className="flex justify-between items-end">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center">
+              <MaterialIcon icon="medical_services" />
+            </div>
+            <h1 className="text-3xl font-black text-slate-800 tracking-tight">Health & Sick Bay</h1>
           </div>
-          <CardBody>
-            <TabPanel activeTab={activeTab} tabId="all">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-[var(--border)]">
-                      <th className="text-left py-3 px-4 text-sm font-medium text-[var(--t2)]">
-                        Student
-                      </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-[var(--t2)]">
-                        Type
-                      </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-[var(--t2)]">
-                        Notes
-                      </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-[var(--t2)]">
-                        Date
-                      </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-[var(--t2)]">
-                        Treatment
-                      </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-[var(--t2)]">
-                        Recorded By
-                      </th>
-                      <th className="text-right py-3 px-4 text-sm font-medium text-[var(--t2)]"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredRecords.map((record) => (
-                      <tr
-                        key={record.id}
-                        className="border-b border-[var(--border)] hover:bg-[var(--surface-container)]"
-                      >
-                        <td className="py-3 px-4 text-sm font-medium text-[var(--on-surface)]">
-                          {record.students?.first_name}{" "}
-                          {record.students?.last_name}
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge variant={getBadgeVariant(record.record_type)}>
-                            {record.record_type}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4 text-sm text-[var(--t3)] max-w-xs truncate">
-                          {record.notes || "-"}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-[var(--t3)]">
-                          {record.record_date
-                            ? new Date(record.record_date).toLocaleDateString()
-                            : "-"}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-[var(--t3)] max-w-xs truncate">
-                          {record.treatment || "-"}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-[var(--t3)]">
-                          {record.users?.full_name || "-"}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex gap-2 justify-end">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openModal(record)}
-                            >
-                              <MaterialIcon icon="edit" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setDeleteId(record.id)}
-                              className="text-[var(--error)]"
-                            >
-                              <MaterialIcon icon="delete" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </TabPanel>
-            {tabs.slice(1).map((tab) => (
-              <TabPanel key={tab.id} activeTab={activeTab} tabId={tab.id}>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-[var(--border)]">
-                        <th className="text-left py-3 px-4 text-sm font-medium text-[var(--t2)]">
-                          Student
-                        </th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-[var(--t2)]">
-                          Notes
-                        </th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-[var(--t2)]">
-                          Date
-                        </th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-[var(--t2)]">
-                          Treatment
-                        </th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-[var(--t2)]">
-                          Recorded By
-                        </th>
-                        <th className="text-right py-3 px-4 text-sm font-medium text-[var(--t2)]"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredRecords.map((record) => (
-                        <tr
-                          key={record.id}
-                          className="border-b border-[var(--border)] hover:bg-[var(--surface-container)]"
-                        >
-                          <td className="py-3 px-4 text-sm font-medium text-[var(--on-surface)]">
-                            {record.students?.first_name}{" "}
-                            {record.students?.last_name}
-                          </td>
-                          <td className="py-3 px-4 text-sm text-[var(--t3)] max-w-xs truncate">
-                            {record.notes || "-"}
-                          </td>
-                          <td className="py-3 px-4 text-sm text-[var(--t3)]">
-                            {record.record_date
-                              ? new Date(
-                                  record.record_date,
-                                ).toLocaleDateString()
-                              : "-"}
-                          </td>
-                          <td className="py-3 px-4 text-sm text-[var(--t3)] max-w-xs truncate">
-                            {record.treatment || "-"}
-                          </td>
-                          <td className="py-3 px-4 text-sm text-[var(--t3)]">
-                            {record.users?.full_name || "-"}
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex gap-2 justify-end">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openModal(record)}
-                              >
-                                <MaterialIcon icon="edit" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setDeleteId(record.id)}
-                                className="text-[var(--error)]"
-                              >
-                                <MaterialIcon icon="delete" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </TabPanel>
-            ))}
-          </CardBody>
-        </Card>
-      )}
-
-      {showModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
-          onClick={closeModal}
-        >
-          <Card
-            className="w-full max-w-md"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-4 border-b border-[var(--border)]">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[var(--on-surface)]">
-                  {editingRecord ? "Edit Record" : "Add Record"}
-                </h2>
-                <Button variant="ghost" size="sm" onClick={closeModal}>
-                  <MaterialIcon icon="close" />
-                </Button>
-              </div>
-            </div>
-            <form onSubmit={handleSubmit} className="p-4 space-y-4">
-              <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
-                  Student
-                </label>
-                {students.length === 0 ? (
-                  <div className="bg-[var(--amber-soft)] text-[var(--amber)] border border-[var(--amber)]/30 rounded-xl px-3 py-2 text-sm font-medium">
-                    No students available
-                  </div>
-                ) : (
-                  <select
-                    value={formData.student_id}
-                    onChange={(e) =>
-                      setFormData({ ...formData, student_id: e.target.value })
-                    }
-                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                    required
-                  >
-                    <option value="">Select student</option>
-                    {students.map((student) => (
-                      <option key={student.id} value={student.id}>
-                        {student.first_name} {student.last_name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
-                  Record Type
-                </label>
-                <select
-                  value={formData.record_type}
-                  onChange={(e) =>
-                    setFormData({ ...formData, record_type: e.target.value })
-                  }
-                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                  required
-                >
-                  <option value="">Select type</option>
-                  {RECORD_TYPES.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  value={formData.record_date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, record_date: e.target.value })
-                  }
-                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
-                  Treatment
-                </label>
-                <input
-                  type="text"
-                  value={formData.treatment}
-                  onChange={(e) =>
-                    setFormData({ ...formData, treatment: e.target.value })
-                  }
-                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] placeholder-[var(--t4)]"
-                  placeholder="Treatment given"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
-                  Notes
-                </label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) =>
-                    setFormData({ ...formData, notes: e.target.value })
-                  }
-                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] placeholder-[var(--t4)]"
-                  placeholder="Additional notes"
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="flex-1"
-                  onClick={closeModal}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  className="flex-1"
-                  disabled={submitting}
-                >
-                  {submitting
-                    ? "Saving..."
-                    : editingRecord
-                      ? "Update"
-                      : "Add Record"}
-                </Button>
-              </div>
-            </form>
-          </Card>
+          <p className="text-slate-500 font-medium">Student welfare and medical management</p>
         </div>
-      )}
-
-      {deleteId && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
-          onClick={() => setDeleteId(null)}
+        <button
+          onClick={() => setShowAdd(true)}
+          className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-2xl font-bold shadow-lg shadow-red-500/20 hover:scale-105 transition-all"
         >
-          <Card
-            className="w-full max-w-sm p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-center">
-              <div className="w-12 h-12 bg-[var(--red-soft)] rounded-full flex items-center justify-center mx-auto mb-4">
-                <MaterialIcon
-                  icon="delete"
-                  className="text-2xl text-[var(--red)]"
-                />
+          <MaterialIcon icon="add" />
+          Admit Student
+        </button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { label: "Currently Admitted", value: admitted.length, color: "bg-blue-600", icon: "bed" },
+          { label: "Discharged Today", value: discharged.length, color: "bg-emerald-500", icon: "check_circle" },
+          { label: "Referred to Hospital", value: referred.length, color: "bg-red-500", icon: "local_hospital" },
+        ].map((s) => (
+          <div key={s.label} className="p-5 bg-white rounded-3xl border border-slate-100 flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-2xl ${s.color} text-white flex items-center justify-center shrink-0`}>
+              <MaterialIcon icon={s.icon} />
+            </div>
+            <div>
+              <p className="text-2xl font-black text-slate-800">{s.value}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{s.label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Records Table */}
+      <div className={cardClassName + " overflow-hidden"}>
+        <div className="p-5 border-b border-slate-50 bg-slate-50/50">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Sick Bay Records</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-slate-50">
+                <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Student</th>
+                <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Condition</th>
+                <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Severity</th>
+                <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Treatment</th>
+                <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
+                <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Admitted</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {records.map((r) => (
+                <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="px-6 py-4 font-bold text-slate-800 text-sm">{r.student_name}</td>
+                  <td className="px-6 py-4 text-sm text-slate-600">{r.condition}</td>
+                  <td className="px-6 py-4">
+                    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${SEVERITY_STYLES[r.severity].bg} ${SEVERITY_STYLES[r.severity].text}`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${SEVERITY_STYLES[r.severity].dot}`} />
+                      {r.severity}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-xs text-slate-500 max-w-[200px] truncate">{r.treatment}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${STATUS_BADGE[r.status]}`}>
+                      {r.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-xs text-slate-400 font-mono">
+                    {new Date(r.admitted_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Admit Modal */}
+      {showAdd && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl overflow-hidden">
+            <div className="p-8">
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-800">Admit Student</h2>
+                  <p className="text-sm text-slate-400 font-medium">Log a new sick bay admission</p>
+                </div>
+                <button onClick={() => setShowAdd(false)} className="p-2 hover:bg-slate-100 rounded-xl">
+                  <MaterialIcon icon="close" className="text-slate-400" />
+                </button>
               </div>
-              <h3 className="text-lg font-semibold text-[var(--on-surface)] mb-2">
-                Delete Record?
-              </h3>
-              <p className="text-[var(--t3)]">This action cannot be undone.</p>
+
+              <div className="space-y-5">
+                <div className="relative">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Student</label>
+                  <input
+                    value={studentSearch}
+                    onChange={(e) => searchStudents(e.target.value)}
+                    placeholder="Search student name..."
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                  />
+                  {students.length > 0 && (
+                    <div className="absolute top-full mt-1 left-0 right-0 bg-white rounded-2xl border border-slate-100 shadow-xl z-10 overflow-hidden">
+                      {students.map((s) => (
+                        <button
+                          key={s.id}
+                          onClick={() => { setForm({ ...form, student_id: s.id, student_name: `${s.first_name} ${s.last_name}` }); setStudentSearch(`${s.first_name} ${s.last_name}`); setStudents([]); }}
+                          className="w-full text-left px-4 py-3 hover:bg-slate-50 text-sm font-bold text-slate-800"
+                        >
+                          {s.first_name} {s.last_name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Condition</label>
+                    <input value={form.condition} onChange={(e) => setForm({ ...form, condition: e.target.value })} placeholder="e.g. Malaria" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Severity</label>
+                    <select value={form.severity} onChange={(e) => setForm({ ...form, severity: e.target.value as any })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none">
+                      <option value="mild">Mild</option>
+                      <option value="moderate">Moderate</option>
+                      <option value="severe">Severe</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Treatment Given</label>
+                  <textarea value={form.treatment} onChange={(e) => setForm({ ...form, treatment: e.target.value })} rows={2} placeholder="e.g. Paracetamol, rest..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none resize-none" />
+                </div>
+
+                <button
+                  onClick={() => { setRecords([{ id: Date.now().toString(), student_id: form.student_id, student_name: form.student_name || studentSearch, condition: form.condition, severity: form.severity, treatment: form.treatment, admitted_at: new Date().toISOString(), status: "admitted" }, ...records]); setShowAdd(false); }}
+                  disabled={!form.condition}
+                  className="w-full py-4 bg-red-500 text-white rounded-[28px] font-black uppercase tracking-widest hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <MaterialIcon icon="emergency" />
+                  Admit to Sick Bay
+                </button>
+              </div>
             </div>
-            <div className="flex gap-3 mt-6">
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={() => setDeleteId(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                className="flex-1"
-                onClick={() => handleDelete(deleteId)}
-              >
-                Delete
-              </Button>
-            </div>
-          </Card>
+          </div>
         </div>
       )}
     </div>

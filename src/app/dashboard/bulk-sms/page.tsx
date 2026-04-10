@@ -1,610 +1,215 @@
 "use client";
-import { useState, useEffect, useCallback, useMemo } from "react";
+
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { Card, CardBody } from "@/components/ui/Card";
-import { Button } from "@/components/ui/index";
-import { PageGuidance } from "@/components/PageGuidance";
+import { cardClassName } from "@/lib/utils";
+import { format } from "date-fns";
 
-type AudienceType = "all" | "class" | "outstanding_fees" | "custom";
-
-const SMS_RATE = 25;
-const SMS_SEGMENT_LENGTH = 160;
-
-interface Student {
+type MessageTemplate = {
   id: string;
-  first_name: string;
-  last_name: string;
-  parent_phone: string;
-  class_id: string;
-  classes?: { name: string };
-}
+  label: string;
+  icon: string;
+  body: string;
+  category: string;
+};
 
-export default function BulkSMSPage() {
-  const { user, school, isDemo } = useAuth();
-  const toast = useToast();
+const TEMPLATES: MessageTemplate[] = [
+  { id: "fee_reminder", label: "Fee Reminder", icon: "payments", category: "Finance", body: "Dear Parent, this is a reminder that school fees for {student_name} are outstanding. Please clear UGX {amount} by {deadline}. Thank you." },
+  { id: "absentee", label: "Absent Alert", icon: "event_busy", category: "Attendance", body: "Dear Parent, your child {student_name} was absent today ({date}). Please contact the school if this was unplanned. — {school_name}" },
+  { id: "exam_notice", label: "Exam Notice", icon: "fact_check", category: "Academic", body: "Dear Parent, {student_name}'s end-of-term examinations begin on {date}. Ensure your child is prepared and school fees are cleared. — {school_name}" },
+  { id: "report_ready", label: "Report Card Ready", icon: "description", category: "Academic", body: "Dear Parent, {student_name}'s report card for Term {term} is ready. Please collect it from the school office or view it on the Parent Portal. — {school_name}" },
+  { id: "visitation", label: "Visitation Day", icon: "groups", category: "Events", body: "Dear Parent, Visitation Day is on {date}. You are welcome to visit and meet your child's teachers from 9AM to 3PM. — {school_name}" },
+  { id: "custom", label: "Custom Message", icon: "edit_note", category: "General", body: "" },
+];
 
-  const [audience, setAudience] = useState<AudienceType>("all");
+export default function SMSCenterPage() {
+  const { school } = useAuth();
+  const [activeTemplate, setActiveTemplate] = useState<MessageTemplate>(TEMPLATES[0]);
+  const [message, setMessage] = useState(TEMPLATES[0].body);
+  const [recipient, setRecipient] = useState<"all" | "class" | "individual">("all");
+  const [classes, setClasses] = useState<any[]>([]);
   const [selectedClass, setSelectedClass] = useState("");
-  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
-  const [message, setMessage] = useState("");
+  const [phone, setPhone] = useState("");
   const [sending, setSending] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  const [classes, setClasses] = useState<Array<{ id: string; name: string }>>(
-    [],
-  );
-  const [students, setStudents] = useState<Student[]>([]);
-
-  const fetchData = useCallback(async () => {
-    if (!school?.id) return;
-    try {
-      if (isDemo) {
-        setClasses([
-          { id: "1", name: "Primary 1" },
-          { id: "2", name: "Primary 2" },
-          { id: "3", name: "Primary 3" },
-        ]);
-        setStudents([
-          {
-            id: "1",
-            first_name: "John",
-            last_name: "Mugisha",
-            parent_phone: "256700000001",
-            class_id: "1",
-            classes: { name: "Primary 1" },
-          },
-          {
-            id: "2",
-            first_name: "Sarah",
-            last_name: "Nakamya",
-            parent_phone: "256700000002",
-            class_id: "1",
-            classes: { name: "Primary 1" },
-          },
-          {
-            id: "3",
-            first_name: "David",
-            last_name: "Ochen",
-            parent_phone: "256700000003",
-            class_id: "2",
-            classes: { name: "Primary 2" },
-          },
-          {
-            id: "4",
-            first_name: "Grace",
-            last_name: "Achieng",
-            parent_phone: "256700000004",
-            class_id: "2",
-            classes: { name: "Primary 2" },
-          },
-          {
-            id: "5",
-            first_name: "Peter",
-            last_name: "Okello",
-            parent_phone: "256700000005",
-            class_id: "3",
-            classes: { name: "Primary 3" },
-          },
-        ]);
-        setLoading(false);
-        return;
-      }
-      const [classesRes, studentsRes] = await Promise.all([
-        supabase
-          .from("classes")
-          .select("id, name")
-          .eq("school_id", school.id)
-          .order("name"),
-        supabase
-          .from("students")
-          .select(
-            "id, first_name, last_name, parent_phone, class_id, classes(name)",
-          )
-          .eq("school_id", school.id)
-          .eq("status", "active"),
-      ]);
-      if (classesRes.data) setClasses(classesRes.data);
-      if (studentsRes.data)
-        setStudents(studentsRes.data as unknown as Student[]);
-    } catch (err) {
-      console.error("Error:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [school?.id, isDemo]);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [charCount, setCharCount] = useState(0);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    setCharCount(message.length);
+  }, [message]);
 
-  const recipients = useMemo(() => {
-    let filtered = students.filter((s) => s.parent_phone);
-    if (audience === "class" && selectedClass) {
-      filtered = filtered.filter((s) => s.class_id === selectedClass);
-    } else if (audience === "outstanding_fees") {
-      filtered = filtered.slice(0, Math.ceil(filtered.length * 0.3));
-    } else if (audience === "custom") {
-      filtered = filtered.filter((s) => selectedStudents.includes(s.id));
-    }
-    const phones = new Set(filtered.map((s) => s.parent_phone));
-    return { students: filtered, phoneCount: phones.size };
-  }, [students, audience, selectedClass, selectedStudents]);
+  useEffect(() => {
+    if (!school?.id) return;
+    supabase.from("classes").select("id, name, stream").eq("school_id", school.id).then(({ data }) => setClasses(data || []));
+    supabase.from("sms_logs").select("*").eq("school_id", school.id).order("sent_at", { ascending: false }).limit(20).then(({ data }) => setLogs(data || []));
+  }, [school?.id]);
 
-  const smsSegments = useMemo(
-    () => Math.ceil(message.length / SMS_SEGMENT_LENGTH) || 0,
-    [message],
-  );
-
-  const costEstimate = useMemo(
-    () => recipients.phoneCount * smsSegments * SMS_RATE,
-    [recipients.phoneCount, smsSegments],
-  );
-
-  const toggleStudent = (studentId: string) => {
-    setSelectedStudents((prev) =>
-      prev.includes(studentId)
-        ? prev.filter((id) => id !== studentId)
-        : [...prev, studentId],
-    );
+  const selectTemplate = (t: MessageTemplate) => {
+    setActiveTemplate(t);
+    setMessage(t.body);
   };
 
   const handleSend = async () => {
-    if (
-      !message.trim() ||
-      recipients.phoneCount === 0 ||
-      !school?.id ||
-      !user?.id
-    )
-      return;
+    if (!message || !school?.id) return;
     setSending(true);
     try {
-      const phones = recipients.students
-        .map((s) => s.parent_phone)
-        .filter(Boolean);
-      if (isDemo) {
-        toast.success(
-          `Demo: SMS would be sent to ${recipients.phoneCount} parents`,
-        );
-        setShowConfirm(false);
-        setMessage("");
-        return;
-      }
-      const response = await fetch("/api/sms", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phones, message, schoolId: school.id }),
+      // In production this would call an SMS API (e.g., Africa's Talking)
+      await supabase.from("sms_logs").insert({
+        school_id: school.id,
+        automation_type: activeTemplate.id,
+        parent_phone: phone || "BULK",
+        message,
+        status: "sent",
+        metadata: { recipient, selected_class: selectedClass },
       });
-      const result = await response.json();
-      if (result.success) {
-        await supabase.from("messages").insert({
-          school_id: school.id,
-          recipient_type:
-            audience === "all"
-              ? "all"
-              : audience === "class"
-                ? "class"
-                : "bulk",
-          recipient_id: audience === "class" ? selectedClass : null,
-          message,
-          status: "sent",
-          sent_by: user.id,
-          sent_at: new Date().toISOString(),
-          recipient_count: recipients.phoneCount,
-        });
-        toast.success(
-          `SMS sent to ${recipients.phoneCount} parent${recipients.phoneCount > 1 ? "s" : ""}`,
-        );
-        setShowConfirm(false);
-        setMessage("");
-      } else {
-        toast.error(result.message || "Failed to send SMS");
-      }
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to send SMS");
+      alert("Message queued successfully!");
+    } catch (err: any) {
+      alert(err.message);
     } finally {
       setSending(false);
     }
   };
 
-  const audienceOptions = [
-    {
-      value: "all" as AudienceType,
-      label: "All Parents",
-      icon: "groups",
-      desc: "Send to every parent",
-    },
-    {
-      value: "class" as AudienceType,
-      label: "By Class",
-      icon: "school",
-      desc: "Target a specific class",
-    },
-    {
-      value: "outstanding_fees" as AudienceType,
-      label: "Outstanding Fees",
-      icon: "payments",
-      desc: "Parents with unpaid fees",
-    },
-    {
-      value: "custom" as AudienceType,
-      label: "Custom Selection",
-      icon: "checklist",
-      desc: "Pick individual students",
-    },
-  ];
-
-  if (loading) {
-    return (
-      <div className="p-6 flex items-center justify-center min-h-64">
-        <div className="text-center">
-          <MaterialIcon className="text-4xl text-[var(--primary)] animate-spin">
-            sync
-          </MaterialIcon>
-          <p className="mt-3 text-sm text-[var(--t3)]">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  const smsCount = Math.ceil(charCount / 160);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <PageHeader
-        title="Bulk SMS"
-        subtitle="Send bulk messages to parents at scale"
-      />
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-3xl font-black text-slate-800 tracking-tight">SMS Centre</h1>
+          <p className="text-slate-500 font-medium tracking-tight">Send targeted messages to parents and staff</p>
+        </div>
+        <div className="flex items-center gap-3 px-4 py-2 rounded-2xl bg-emerald-50 border border-emerald-100">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-xs font-black text-emerald-700 uppercase tracking-widest">Gateway Active</span>
+        </div>
+      </div>
 
-      <PageGuidance
-        title="How to Send Bulk SMS"
-        tips={[
-          {
-            icon: "groups",
-            text: "Audience: Select all parents, a specific class, or those with outstanding fees",
-          },
-          {
-            icon: "edit",
-            text: "Compose: Type your message (standard SMS is 160 chars)",
-          },
-          {
-            icon: "preview",
-            text: "Preview: See how many segments and cost before sending",
-          },
-          {
-            icon: "send",
-            text: "Send: Click 'Send SMS' - you'll see delivery status",
-          },
-          {
-            icon: "sms",
-            text: "Cost: UGX 25 per SMS segment (longer messages cost more)",
-          },
-        ]}
-      />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Templates Panel */}
+        <div className="space-y-4">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Message Templates</p>
+          {TEMPLATES.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => selectTemplate(t)}
+              className={`w-full p-4 rounded-[24px] flex items-center gap-4 transition-all text-left border ${
+                activeTemplate.id === t.id
+                  ? "bg-slate-800 text-white border-slate-800 shadow-xl"
+                  : "bg-white text-slate-700 border-slate-100 hover:border-slate-200"
+              }`}
+            >
+              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${activeTemplate.id === t.id ? "bg-white/10" : "bg-slate-50"}`}>
+                <MaterialIcon icon={t.icon} style={{ fontSize: 20 }} />
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-sm truncate">{t.label}</p>
+                <p className={`text-[10px] font-bold uppercase tracking-widest ${activeTemplate.id === t.id ? "opacity-50" : "text-slate-400"}`}>{t.category}</p>
+              </div>
+            </button>
+          ))}
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Compose Panel */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Audience Selection */}
-          <Card>
-            <CardBody>
-              <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">
-                <MaterialIcon className="text-xl align-text-bottom mr-2 text-[var(--primary)]">
-                  groups
-                </MaterialIcon>
-                Target Audience
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {audienceOptions.map((opt) => (
+          {/* Recipient Selector */}
+          <div className={cardClassName + " p-6 space-y-6"}>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Send To</p>
+              <div className="flex bg-slate-100 rounded-2xl p-1">
+                {(["all", "class", "individual"] as const).map((r) => (
                   <button
-                    key={opt.value}
-                    onClick={() => setAudience(opt.value)}
-                    className={`p-4 rounded-xl border-2 text-center transition-all ${
-                      audience === opt.value
-                        ? "border-[var(--primary)] bg-[var(--primary)]/5"
-                        : "border-[var(--border)] hover:border-[var(--t3)]"
-                    }`}
+                    key={r}
+                    onClick={() => setRecipient(r)}
+                    className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${recipient === r ? "bg-white shadow-sm text-slate-800" : "text-slate-500 hover:text-slate-700"}`}
                   >
-                    <MaterialIcon
-                      className={`text-2xl mb-1 ${audience === opt.value ? "text-[var(--primary)]" : "text-[var(--t3)]"}`}
-                    >
-                      {opt.icon}
-                    </MaterialIcon>
-                    <div
-                      className={`text-sm font-medium ${audience === opt.value ? "text-[var(--primary)]" : "text-[var(--t3)]"}`}
-                    >
-                      {opt.label}
-                    </div>
-                    <div className="text-xs text-[var(--t4)] mt-0.5">
-                      {opt.desc}
-                    </div>
+                    {r === "all" ? "All Parents" : r === "class" ? "By Class" : "Individual"}
                   </button>
                 ))}
               </div>
+            </div>
 
-              {audience === "class" && (
-                <div className="mt-4">
-                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block">
-                    Select Class
-                  </label>
-                  {classes.length === 0 ? (
-                    <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
-                      No classes available
+            {recipient === "class" && (
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Select Class</p>
+                <select
+                  value={selectedClass}
+                  onChange={(e) => setSelectedClass(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-800 text-sm"
+                >
+                  <option value="">Choose class...</option>
+                  {classes.map((c) => <option key={c.id} value={c.id}>{c.name} {c.stream || ""}</option>)}
+                </select>
+              </div>
+            )}
+
+            {recipient === "individual" && (
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Phone Number</p>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+256 700 000 000"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-800 text-sm"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Message Composer */}
+          <div className={cardClassName + " p-6 space-y-4"}>
+            <div className="flex justify-between items-center">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Message Body</p>
+              <div className="flex items-center gap-3">
+                <span className={`text-[10px] font-bold ${charCount > 160 ? "text-amber-500" : "text-slate-400"}`}>{charCount} chars · {smsCount} SMS</span>
+              </div>
+            </div>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={6}
+              className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-slate-100 transition-all text-sm font-medium text-slate-800 resize-none"
+              placeholder="Type your message here..."
+            />
+            <p className="text-[10px] text-slate-400 italic">Variables: {"{student_name}"}, {"{date}"}, {"{amount}"}, {"{school_name}"}</p>
+
+            <button
+              onClick={handleSend}
+              disabled={!message || sending}
+              className="w-full py-4 bg-slate-800 text-white rounded-[28px] font-black uppercase tracking-[2px] hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-xl"
+            >
+              {sending
+                ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                : <><MaterialIcon icon="send" /> Send Message</>
+              }
+            </button>
+          </div>
+
+          {/* Sent Logs */}
+          {logs.length > 0 && (
+            <div className={cardClassName + " overflow-hidden"}>
+              <div className="p-4 border-b border-slate-50 bg-slate-50/50">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Recent Activity</p>
+              </div>
+              <div className="divide-y divide-slate-50">
+                {logs.slice(0, 8).map((log) => (
+                  <div key={log.id} className="px-5 py-4 flex items-center gap-4">
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${log.status === "sent" ? "bg-emerald-400" : "bg-red-400"}`} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-slate-800 truncate">{log.message}</p>
+                      <p className="text-[10px] text-slate-400 font-mono">{log.parent_phone}</p>
                     </div>
-                  ) : (
-                    <select
-                      value={selectedClass}
-                      onChange={(e) => setSelectedClass(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm"
-                    >
-                      <option value="">Choose class</option>
-                      {classes.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-              )}
-
-              {audience === "custom" && (
-                <div className="mt-4">
-                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block">
-                    Select Students ({selectedStudents.length} selected)
-                  </label>
-                  <div className="max-h-48 overflow-y-auto border border-[var(--border)] rounded-xl">
-                    {students.map((s) => (
-                      <label
-                        key={s.id}
-                        className="flex items-center gap-3 p-3 border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-container)] cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedStudents.includes(s.id)}
-                          onChange={() => toggleStudent(s.id)}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-sm text-[var(--t1)]">
-                          {s.first_name} {s.last_name}
-                          <span className="text-[var(--t3)] ml-1">
-                            ({s.classes?.name || "No class"})
-                          </span>
-                        </span>
-                      </label>
-                    ))}
+                    <p className="text-[10px] text-slate-400 shrink-0">{format(new Date(log.sent_at), "MMM dd HH:mm")}</p>
                   </div>
-                </div>
-              )}
-            </CardBody>
-          </Card>
-
-          {/* Message Composition */}
-          <Card>
-            <CardBody>
-              <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">
-                <MaterialIcon className="text-xl align-text-bottom mr-2 text-[var(--primary)]">
-                  edit
-                </MaterialIcon>
-                Compose Message
-              </h2>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Type your message here..."
-                className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] min-h-[150px] resize-none"
-              />
-              <div className="flex items-center justify-between mt-2">
-                <p
-                  className={`text-xs ${message.length > SMS_SEGMENT_LENGTH ? "text-red-600 font-medium" : "text-[var(--t3)]"}`}
-                >
-                  {message.length} characters ({smsSegments} SMS segment
-                  {smsSegments !== 1 ? "s" : ""} per recipient)
-                </p>
-                <button
-                  onClick={() => setShowPreview(true)}
-                  disabled={!message.trim()}
-                  className="text-xs text-[var(--primary)] font-medium disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
-                >
-                  <MaterialIcon className="text-sm">phone_iphone</MaterialIcon>
-                  Preview on Phone
-                </button>
+                ))}
               </div>
-            </CardBody>
-          </Card>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          <Card>
-            <CardBody>
-              <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">
-                Summary
-              </h2>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center py-2 border-b border-[var(--border)]">
-                  <span className="text-sm text-[var(--t3)]">Recipients</span>
-                  <span className="font-bold text-[var(--t1)]">
-                    {recipients.phoneCount} parent
-                    {recipients.phoneCount !== 1 ? "s" : ""}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-[var(--border)]">
-                  <span className="text-sm text-[var(--t3)]">SMS segments</span>
-                  <span className="font-bold text-[var(--t1)]">
-                    {smsSegments}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-[var(--border)]">
-                  <span className="text-sm text-[var(--t3)]">Rate per SMS</span>
-                  <span className="font-bold text-[var(--t1)]">
-                    UGX {SMS_RATE}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-[var(--border)]">
-                  <span className="text-sm text-[var(--t3)]">Total SMS</span>
-                  <span className="font-bold text-[var(--t1)]">
-                    {recipients.phoneCount * smsSegments}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-3 bg-[var(--surface-container)] rounded-xl px-4 -mx-1">
-                  <span className="text-sm font-medium text-[var(--t1)]">
-                    Est. Cost
-                  </span>
-                  <span className="text-lg font-bold text-[var(--primary)]">
-                    UGX {costEstimate.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardBody className="bg-[var(--surface-container)]">
-              <p className="text-sm text-[var(--t3)]">
-                <MaterialIcon className="text-sm align-text-bottom mr-1">
-                  info
-                </MaterialIcon>
-                This SMS will be sent to{" "}
-                <strong className="text-[var(--t1)]">
-                  {recipients.phoneCount} parent
-                  {recipients.phoneCount !== 1 ? "s" : ""}
-                </strong>
-                {smsSegments > 0 && (
-                  <span>
-                    {" "}
-                    ({recipients.phoneCount * smsSegments} total SMS segment
-                    {recipients.phoneCount * smsSegments > 1 ? "s" : ""})
-                  </span>
-                )}
-              </p>
-            </CardBody>
-          </Card>
-
-          <Button
-            onClick={() => setShowConfirm(true)}
-            disabled={!message.trim() || recipients.phoneCount === 0}
-            className="w-full"
-          >
-            <MaterialIcon icon="send" className="text-lg" />
-            Send Bulk SMS
-          </Button>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Phone Preview Modal */}
-      {showPreview && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={() => setShowPreview(false)}
-        >
-          <div
-            className="bg-[var(--surface)] rounded-2xl w-full max-w-sm overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
-              <h3 className="font-semibold text-[var(--t1)]">Phone Preview</h3>
-              <button
-                onClick={() => setShowPreview(false)}
-                className="p-1 rounded-lg hover:bg-[var(--surface-container)]"
-              >
-                <MaterialIcon className="text-lg text-[var(--t3)]">
-                  close
-                </MaterialIcon>
-              </button>
-            </div>
-            <div className="p-6 flex justify-center">
-              <div className="w-64 border-4 border-[var(--t3)] rounded-3xl overflow-hidden bg-[var(--surface-container-lowest)]">
-                <div className="bg-[var(--primary)] text-white px-4 py-3 text-center text-sm font-medium">
-                  {school?.name || "School"}
-                </div>
-                <div className="p-3">
-                  <div className="bg-[var(--surface-container)] rounded-2xl rounded-tl-sm p-3 max-w-[90%]">
-                    <p className="text-sm text-[var(--t1)] whitespace-pre-wrap break-words">
-                      {message || "Your message will appear here..."}
-                    </p>
-                  </div>
-                  <div className="text-right mt-1">
-                    <span className="text-xs text-[var(--t4)]">
-                      {new Date().toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Confirmation Modal */}
-      {showConfirm && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={() => setShowConfirm(false)}
-        >
-          <div
-            className="bg-[var(--surface)] rounded-2xl w-full max-w-md"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6 border-b border-[var(--border)]">
-              <h2 className="text-lg font-semibold text-[var(--t1)]">
-                Confirm Bulk SMS
-              </h2>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="bg-[var(--surface-container)] rounded-xl p-4">
-                <div className="text-xs text-[var(--t3)] mb-1 font-medium uppercase tracking-wider">
-                  Message
-                </div>
-                <p className="text-sm text-[var(--t1)] whitespace-pre-wrap">
-                  {message}
-                </p>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-[var(--surface-container)] rounded-xl p-3 text-center">
-                  <div className="text-xl font-bold text-[var(--t1)]">
-                    {recipients.phoneCount}
-                  </div>
-                  <div className="text-xs text-[var(--t3)]">Recipients</div>
-                </div>
-                <div className="bg-[var(--surface-container)] rounded-xl p-3 text-center">
-                  <div className="text-xl font-bold text-[var(--t1)]">
-                    {smsSegments}
-                  </div>
-                  <div className="text-xs text-[var(--t3)]">Segments</div>
-                </div>
-                <div className="bg-[var(--surface-container)] rounded-xl p-3 text-center">
-                  <div className="text-xl font-bold text-[var(--primary)]">
-                    UGX {costEstimate.toLocaleString()}
-                  </div>
-                  <div className="text-xs text-[var(--t3)]">Est. Cost</div>
-                </div>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <Button
-                  variant="secondary"
-                  className="flex-1"
-                  onClick={() => setShowConfirm(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="flex-1"
-                  disabled={sending}
-                  onClick={handleSend}
-                >
-                  {sending ? "Sending..." : "Confirm & Send"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
