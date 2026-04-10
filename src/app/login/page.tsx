@@ -351,7 +351,7 @@ export default function LoginPage() {
               {[1,2,3,4,5].map(i => <MaterialIcon key={i} icon="star" className="text-amber-400 text-sm" />)}
             </div>
             <p className="text-lg font-medium leading-relaxed mb-6 italic text-white/90">
-              "SkoolMate transformed how we operate. We collected 40% more fees on time and our parents love the real-time academic updates via the portal."
+              &quot;SkoolMate transformed how we operate. We collected 40% more fees on time and our parents love the real-time academic updates via the portal.&quot;
             </p>
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-blue-900 flex items-center justify-center font-bold border-2 border-white/20 shadow-lg">
