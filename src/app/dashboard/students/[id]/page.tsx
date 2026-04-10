@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -43,6 +43,9 @@ import {
 
 import { useStudent } from "@/lib/hooks";
 import { SendSMSModal } from "@/components/SendSMSModal";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth-context";
+
 
 function useStudentData(studentId: string, isDemo: boolean) {
   const [attendancePct, setAttendancePct] = useState(0);
