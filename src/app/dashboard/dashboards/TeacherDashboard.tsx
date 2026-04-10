@@ -173,25 +173,8 @@ function TeacherDashboardContent() {
           </div>
         </div>
 
-      <SmartAdvisor stats={{}} collectionRate={0} attendanceRate={92} role="teacher" />
-
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
-        <div className="xl:col-span-3">
-          <DashboardInsights
-            stats={{}}
-            attendanceRate={92}
-            collectionRate={0}
-            students={students}
-            payments={[]}
-          />
-        </div>
-        <div className="xl:col-span-1">
-          <EcosystemPulse payments={[]} />
-        </div>
-      </div>
-
-      {/* Quick Actions Bar */}
-      <div className="quick-actions-bar">
+      {/* Quick Actions Bar - Top priority for teachers on mobile */}
+      <div className="quick-actions-bar !mb-8">
         <Link href="/dashboard/attendance" className="qa-large">
           <div
             className="qa-large-icon"
@@ -229,6 +212,25 @@ function TeacherDashboardContent() {
           <span className="qa-large-label">Lesson Plans</span>
         </Link>
       </div>
+
+      <SmartAdvisor stats={{}} attendanceRate={92} collectionRate={0} role="teacher" />
+
+      {/* Analytics Section - secondary on mobile */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8 mt-8">
+        <div className="xl:col-span-3">
+          <DashboardInsights
+            stats={{}}
+            attendanceRate={92}
+            collectionRate={0}
+            students={students}
+            payments={[]}
+          />
+        </div>
+        <div className="xl:col-span-1">
+          <EcosystemPulse payments={[]} />
+        </div>
+      </div>
+
 
       <div className="stat-grid sm:grid-cols-3 !mb-8">
         <StatCard

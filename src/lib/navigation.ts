@@ -19,11 +19,12 @@ export interface NavGroup {
 export const navigationByRole: Record<string, NavGroup[]> = {
   headmaster: [
     {
-      label: "Main",
+      label: "Main Hub",
       icon: "dashboard",
       defaultOpen: true,
       items: [
-        { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
+        { href: "/dashboard", label: "Dashboard Home", icon: "dashboard" },
+
         {
           href: "/dashboard/analytics/dna",
           label: "Performance DNA",
@@ -43,9 +44,10 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       ],
     },
     {
-      label: "Management",
+      label: "Students & Staff",
       icon: "group",
       defaultOpen: true,
+
       items: [
         { href: "/dashboard/students", label: "Student Hub", icon: "group" },
         { href: "/dashboard/students/id-cards", label: "Identity Center", icon: "id_card" },
@@ -64,8 +66,9 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       ],
     },
     {
-      label: "Academics",
+      label: "School Academics",
       icon: "menu_book",
+
       defaultOpen: false,
       items: [
         {
@@ -82,8 +85,9 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       ],
     },
     {
-      label: "Finance",
+      label: "Financial Hub",
       icon: "payments",
+
       defaultOpen: false,
       items: [
         { href: "/dashboard/fees", label: "Finance Hub", icon: "payments" },
@@ -105,8 +109,9 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       ],
     },
     {
-      label: "Commercial Suite",
+      label: "Canteen & Shop",
       icon: "shopping_cart",
+
       defaultOpen: false,
       items: [
         { href: "/dashboard/store/pos", label: "Canteen POS", icon: "shopping_cart" },

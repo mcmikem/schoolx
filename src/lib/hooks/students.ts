@@ -306,8 +306,58 @@ export function useClasses(schoolId?: string) {
     }
   }, [schoolId, isDemo]);
 
+  const createClass = async (newClass: Partial<Class>) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      const demoClass: Class = {
+        id: `demo-class-${Date.now()}`,
+        name: newClass.name || "Unknown Class",
+        level: newClass.level || "Primary",
+        school_id: schoolId || "00000000-0000-0000-0000-000000000001",
+        created_at: new Date().toISOString(),
+      };
+      setClasses((prev) => [...prev, demoClass]);
+      return demoClass;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("classes")
+        .insert({ ...newClass, school_id: schoolId })
+        .select()
+        .single();
+      if (error) throw error;
+      setClasses((prev) => [...prev, data as Class]);
+      return data as Class;
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const updateClass = async (id: string, updates: Partial<Class>) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      setClasses((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+      );
+      return { id, ...updates } as Class;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("classes")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      setClasses((prev) => prev.map((c) => (c.id === id ? (data as Class) : c)));
+      return data as Class;
+    } catch (err) {
+      throw err;
+    }
+  };
+
   useEffect(() => {
     fetchClasses();
   }, [fetchClasses]);
-  return { classes, loading };
+  return { classes, loading, createClass, updateClass, refetch: fetchClasses };
 }

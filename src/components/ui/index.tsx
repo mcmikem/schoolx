@@ -72,7 +72,7 @@ export function Input({
   const generatedId = useId();
   const inputId = idProp ?? generatedId;
   const paddingRight = endAdornment ? "pr-12" : "";
-  const fieldClass = `w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] placeholder-[var(--t4)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors ${error ? "border-[var(--error)]" : ""} ${paddingRight} ${className}`;
+  const fieldClass = `w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] placeholder-[var(--t4)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors ${error ? "border-[var(--error)]" : ""} ${paddingRight} ${className} text-base`;
 
   return (
     <div className="space-y-1">
@@ -123,7 +123,7 @@ export function Select({
       )}
       <select
         id={id}
-        className={`w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors ${className}`}
+        className={`w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors ${className} text-base`}
         {...props}
       >
         {options.map((opt) => (

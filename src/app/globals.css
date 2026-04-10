@@ -707,7 +707,7 @@ table tr {
 
   /* -- FORM INPUTS -- */
   .input {
-    @apply w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] text-[var(--on-surface)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] transition-colors;
+    @apply w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] text-[var(--on-surface)] text-base focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] transition-colors;
   }
 
   .input::placeholder,
