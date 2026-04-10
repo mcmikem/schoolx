@@ -183,7 +183,7 @@ export default function AutoSMSPage() {
       <PageHeader
         title="Smart SMS Triggers"
         subtitle="Automate parent notifications for fees, attendance, and reports"
-        action={
+        actions={
           <Button onClick={() => setShowCreateModal(true)}>
             <MaterialIcon icon="add" /> New Automation Rule
           </Button>
@@ -389,7 +389,7 @@ export default function AutoSMSPage() {
             </div>
             <div className="flex gap-3 mt-6">
               <Button
-                variant="outline"
+                variant="ghost"
                 className="flex-1"
                 onClick={() => setShowCreateModal(false)}
               >
