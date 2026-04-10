@@ -340,7 +340,7 @@ function HeadmasterDashboardContent() {
       <div className="stat-grid !mb-8">
         <StatCard
           label="Total Students"
-          value={stats.active_students || students.length || 0}
+          value={stats.totalStudents || students.length || 0}
           subValue={`${stats.totalStudents || 0} enrolled this year`}
           icon="groups"
           accentColor="navy"
@@ -353,13 +353,13 @@ function HeadmasterDashboardContent() {
           subValue={`${stats.presentToday || 0} present today`}
           icon="how_to_reg"
           accentColor="green"
-          variant="premium-green"
+          variant="premium-teal"
           loading={loadingExtra}
         />
         <StatCard
           label="Fee Collection"
           value={`${collectionRate}%`}
-          subValue={`UGX ${((stats.total_collected || 0) / 1000000).toFixed(1)}M collected`}
+          subValue={`UGX ${((stats.feesCollected || 0) / 1000000).toFixed(1)}M collected`}
           icon="payments"
           accentColor="amber"
           variant="premium-amber"
@@ -398,7 +398,7 @@ function HeadmasterDashboardContent() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
         <div className="lg:col-span-2">
-           <ActionCenter
+          <ActionCenter
             items={
               focusItems.map((item) => ({
                 ...item,
@@ -408,11 +408,7 @@ function HeadmasterDashboardContent() {
             loading={loadingExtra}
           />
         </div>
-        <div className="lg:col-span-1">
-          <TodayOverview stats={stats} loading={loadingExtra} />
-        </div>
       </div>
-
     </div>
   );
 }
