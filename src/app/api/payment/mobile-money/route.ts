@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       provider,
       amount,
       phone: phoneNumber,
-      email: school.email || user.email || "payments@omuto.org",
+      email: school.email || user.email || "pay@omuto.org",
       name: school.name,
       schoolId: school.id,
       plan,

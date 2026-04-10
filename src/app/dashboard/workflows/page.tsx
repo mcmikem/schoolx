@@ -127,7 +127,7 @@ export default function WorkflowsBuilder() {
       <div className="flex-1 overflow-y-auto p-4 sm:p-8 w-full max-w-6xl mx-auto space-y-8 animate-fade-in custom-scrollbar">
         {/* Header Section */}
         <div className="glass-premium rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 border-l-4 border-[var(--primary)] relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-full -mr-32 -mt-32 blur-3xl z-0 pointer-events-none" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-500/20 to-blue-500/20 rounded-full -mr-32 -mt-32 blur-3xl z-0 pointer-events-none" />
           <div className="relative z-10 flex-1">
             <h1 className="text-3xl font-black tracking-tight text-[var(--t1)] flex items-center gap-3">
               <MaterialIcon

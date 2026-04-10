@@ -58,11 +58,11 @@ export default function TrialBanner() {
                 rel="noopener noreferrer"
                 className="underline hover:text-amber-800"
               >
-                Omuto Foundation
+                SkoolMate Foundation
               </a>{" "}
               —
               <a
-                href="https://omuto.org/osx.php"
+                href="https://omuto.org/osx"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline hover:text-amber-800 ml-1"
@@ -80,10 +80,10 @@ export default function TrialBanner() {
             className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-900 px-3 py-1.5 rounded-lg bg-amber-100/50 hover:bg-amber-100 transition-colors"
           >
             <MaterialIcon icon="star" style={{ fontSize: 14 }} />
-            Omuto Essentials
+            SkoolMate Essentials
           </a>
           <a
-            href="https://omuto.org/osx.php"
+            href="https://omuto.org/osx"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-xs font-semibold text-white px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 transition-colors"

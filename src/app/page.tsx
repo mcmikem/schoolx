@@ -445,7 +445,7 @@ function DesktopMockup() {
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
           </div>
           <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-medium text-slate-500">
-            schoolx.app/dashboard
+            omuto.org/dashboard
           </div>
         </div>
 
@@ -1168,7 +1168,7 @@ export default function HomePage() {
                 carrying every day.
               </h2>
               <p className="mt-5 text-base leading-7 text-white/76">
-                At Omuto Foundation, the work has been close enough to schools
+                At SkoolMate Foundation, the work has been close enough to schools
                 to see the real picture, not an abstract one. The issue was
                 never that people were not trying. The issue was that the system
                 around them kept slowing the work down.
@@ -1290,7 +1290,7 @@ export default function HomePage() {
                   SkoolMate OS and OSX
                 </p>
                 <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
-                  SkoolMate OS is the system layer inside the wider Omuto School
+                  SkoolMate OS is the system layer inside the wider SkoolMate School
                   Xperience.
                 </h2>
                 <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
@@ -1632,10 +1632,10 @@ export default function HomePage() {
                     className="text-[16px] text-[#17325F]"
                   />
                   <a
-                    href="mailto:sms@omuto.org"
+                    href="mailto:os@omuto.org"
                     className="hover:text-slate-900 transition"
                   >
-                    sms@omuto.org
+                    os@omuto.org
                   </a>
                 </li>
                 <li className="flex items-center gap-2 text-sm text-slate-600">
@@ -1669,7 +1669,7 @@ export default function HomePage() {
           </div>
           <div className="mt-10 border-t border-slate-200 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-slate-400">
-              &copy; {new Date().getFullYear()} Omuto Foundation. All rights
+              &copy; {new Date().getFullYear()} SkoolMate Foundation. All rights
               reserved.
             </p>
             <div className="flex items-center gap-2 text-sm text-slate-400">

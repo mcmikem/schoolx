@@ -203,7 +203,7 @@ export default function SettingsPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `omuto_backup_${school.name}_${new Date().toISOString().split('T')[0]}.json`
+      a.download = `skoolmate_backup_${school.name}_${new Date().toISOString().split('T')[0]}.json`
       a.click()
       URL.revokeObjectURL(url)
       toast.success('Data exported successfully')
@@ -238,7 +238,7 @@ export default function SettingsPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `omuto_student_photos_${school.name}_${new Date().toISOString().split('T')[0]}.json`
+      a.download = `skoolmate_photos_${school.name}_${new Date().toISOString().split('T')[0]}.json`
       a.click()
       URL.revokeObjectURL(url)
 
@@ -460,6 +460,7 @@ export default function SettingsPage() {
     { id: 'users', label: 'Staff & Users' },
     { id: 'notifications', label: 'Notifications' },
     { id: 'backup', label: 'Backup & Export' },
+    { id: 'subscription', label: 'Billing & Plans', badge: 'Active' },
   ]
 
   return (
@@ -793,6 +794,86 @@ export default function SettingsPage() {
                     className="w-32 px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
                     min={0}
                   />
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+        </div>
+      </TabPanel>
+
+      <TabPanel activeTab={activeTab} tabId="subscription">
+        <div className="space-y-6">
+          <Card>
+            <CardBody>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--on-surface)]">SkoolMate Subscription</h2>
+                  <p className="text-sm text-[var(--t3)]">Your account is currently active</p>
+                </div>
+                <div className="px-4 py-2 bg-[var(--green-soft)] text-[var(--green)] rounded-full text-sm font-semibold">
+                  PREMIUM PLAN
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="p-6 rounded-2xl border-2 border-[var(--border)] bg-[var(--surface-container-low)]">
+                  <div className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-2">Starter</div>
+                  <div className="text-2xl font-bold mb-4">UGX 250k <span className="text-sm font-normal text-[var(--t3)]">/ term</span></div>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Up to 100 Students</li>
+                    <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Basic Attendance</li>
+                    <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Fee Management</li>
+                  </ul>
+                  <Button variant="secondary" className="w-full" disabled>Active</Button>
+                </div>
+
+                <div className="p-6 rounded-2xl border-2 border-[var(--primary)] bg-[var(--primary-soft)] relative">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[var(--primary)] text-white text-[10px] font-bold rounded-full uppercase">Most Popular</div>
+                  <div className="text-sm font-bold text-[var(--primary)] uppercase tracking-wider mb-2">Standard</div>
+                  <div className="text-2xl font-bold mb-4">UGX 600k <span className="text-sm font-normal text-[var(--t3)]">/ term</span></div>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Up to 500 Students</li>
+                    <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> SMS Notifications</li>
+                    <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Report Card Printing</li>
+                  </ul>
+                  <Button className="w-full">Current Choice</Button>
+                </div>
+
+                <div className="p-6 rounded-2xl border-2 border-[var(--border)] bg-[var(--surface-container-low)]">
+                  <div className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-2">Premium</div>
+                  <div className="text-2xl font-bold mb-4">UGX 1.2M <span className="text-sm font-normal text-[var(--t3)]">/ term</span></div>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Unlimited Students</li>
+                    <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> AI Smart Advisor</li>
+                    <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Full Payroll & Assets</li>
+                  </ul>
+                  <Button variant="secondary" className="w-full">Contact Sales</Button>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardBody>
+              <h3 className="text-lg font-semibold mb-4 text-[var(--on-surface)]">Why Upgrade to Premium?</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex gap-4 p-4 rounded-xl bg-[var(--surface-container)]">
+                  <div className="w-10 h-10 rounded-full bg-[var(--primary-soft)] flex items-center justify-center shrink-0">
+                    <MaterialIcon icon="smart_toy" className="text-[var(--primary)]" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-sm">AI Smart Advisor</div>
+                    <div className="text-xs text-[var(--t3)]">Get proactive alerts about performance drops, fee deficits, and staff workload optimization.</div>
+                  </div>
+                </div>
+                <div className="flex gap-4 p-4 rounded-xl bg-[var(--surface-container)]">
+                  <div className="w-10 h-10 rounded-full bg-[var(--primary-soft)] flex items-center justify-center shrink-0">
+                    <MaterialIcon icon="notifications_active" className="text-[var(--primary)]" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-sm">Auto-SMS Reminders</div>
+                    <div className="text-xs text-[var(--t3)]">Recover fees 3.5x faster with automatic, personalized SMS nudges to parents.</div>
+                  </div>
                 </div>
               </div>
             </CardBody>

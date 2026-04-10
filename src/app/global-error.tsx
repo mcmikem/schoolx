@@ -31,7 +31,13 @@ export default function GlobalError({
         <meta property="og:type" content="website" />
       </head>
       <body>
-        <div className="min-h-screen flex items-center justify-center p-8 bg-gray-50">
+        <a 
+          href="#error-content" 
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-50 bg-gray-900 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
+        >
+          Skip to main content
+        </a>
+        <div id="error-content" tabIndex={-1} className="min-h-screen flex items-center justify-center p-8 bg-gray-50 focus:outline-none">
           <div className="text-center max-w-md">
             <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <AlertTriangle className="w-8 h-8 text-red-600" />
@@ -50,6 +56,12 @@ export default function GlobalError({
             <div className="flex gap-3 justify-center">
               <button
                 onClick={reset}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    reset();
+                  }
+                }}
                 className="px-4 py-2 bg-gray-900 text-white rounded-lg font-medium text-sm flex items-center gap-2 hover:bg-gray-800 transition-colors"
               >
                 <RefreshCw className="w-4 h-4" /> {t("error.tryAgain")}

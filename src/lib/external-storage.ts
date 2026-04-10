@@ -46,7 +46,7 @@ export async function uploadToExternalStorage(
     // return { success: true, url: data.url };
 
     // Simulated response for demo
-    const simulatedUrl = `https://storage.skoolmate.os/${folder}/${Date.now()}-${filename}`;
+    const simulatedUrl = `https://storage.omuto.org/${folder}/${Date.now()}-${filename}`;
     return {
       success: true,
       url: simulatedUrl,

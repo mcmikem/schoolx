@@ -35,7 +35,7 @@ export async function createPayPalOrder(
       reference_id: subscriptionId,
     }],
     application_context: {
-      brand_name: 'Omuto School Management System',
+      brand_name: 'SkoolMate OS',
       landing_page: 'LOGIN',
       user_action: 'PAY_NOW',
       return_url: returnUrl,

@@ -491,3 +491,53 @@ export function detectInstallmentReminders(input: {
       };
     });
 }
+
+export interface PayrollTaxResult {
+  nssf: number;
+  paye: number;
+  totalDeductions: number;
+  netPay: number;
+}
+
+/**
+ * Calculates Uganda Payroll Taxes (PAYE and NSSF) 
+ * Values based on 2024-2025 standard rates.
+ * @param grossPay Total salary before deductions
+ * @returns Object with specific tax breakdowns
+ */
+export function calculateUgandaPayrollTaxes(grossPay: number): PayrollTaxResult {
+  // 1. NSSF (Employee Contribution is 5% of gross pay)
+  const nssf = Math.round(grossPay * 0.05);
+
+  // 2. Taxable Income (Gross Pay - NSSF)
+  const taxableIncome = grossPay - nssf;
+
+  // 3. PAYE (Pay As You Earn) - Standard Tiered Rates
+  let paye = 0;
+
+  if (taxableIncome <= 235000) {
+    paye = 0;
+  } else if (taxableIncome <= 335000) {
+    paye = (taxableIncome - 235000) * 0.1;
+  } else if (taxableIncome <= 410000) {
+    paye = 10000 + (taxableIncome - 335000) * 0.2;
+  } else {
+    // Above 410,000
+    paye = 25000 + (taxableIncome - 410000) * 0.3;
+    
+    // Additional 10% on income exceeding UGX 10,000,000
+    if (taxableIncome > 10000000) {
+      paye += (taxableIncome - 10000000) * 0.1;
+    }
+  }
+
+  const totalDeductions = Math.round(nssf + paye);
+  const netPay = grossPay - totalDeductions;
+
+  return {
+    nssf,
+    paye: Math.round(paye),
+    totalDeductions,
+    netPay
+  };
+}

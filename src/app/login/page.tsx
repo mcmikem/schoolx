@@ -8,7 +8,7 @@ import AnimatedLogo from "@/components/AnimatedLogo";
 import { t, tWithParams } from "@/i18n";
 import { Button, Input } from "@/components/ui";
 
-const DEMO_KEY = "omuto_demo_v1";
+const DEMO_KEY = "skoolmate_demo_v1";
 
 // WARNING: This is a DEMO-ONLY password for local testing.
 // Never use this value in production. Remove or gate demo mode behind a feature flag.
@@ -171,7 +171,7 @@ export default function LoginPage() {
         return;
       }
 
-      const email = `${cleanPhone}@omuto.sms`;
+      const email = `${cleanPhone}@omuto.org`;
 
       const { data, error: authError } = await supabase.auth.signInWithPassword(
         {

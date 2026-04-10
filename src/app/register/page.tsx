@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
-import OmutoLogo from "@/components/OmutoLogo";
+import SkoolMateLogo from "@/components/SkoolMateLogo";
 import { logger } from "@/lib/logger";
 import { Button, Input, Select } from "@/components/ui";
 
@@ -73,7 +73,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const DEMO_KEY = "omuto_demo_v1";
+  const DEMO_KEY = "skoolmate_demo_v1";
 
   useEffect(() => {
     localStorage.removeItem(DEMO_KEY);
@@ -153,7 +153,7 @@ export default function RegisterPage() {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const normalizedPhone = form.adminPhone.replace(/[^0-9]/g, "");
-      const email = `${normalizedPhone}@omuto.sms`;
+      const email = `${normalizedPhone}@omuto.org`;
 
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
@@ -202,7 +202,7 @@ export default function RegisterPage() {
       <div className="relative z-10 w-full max-w-lg mx-auto px-4">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-[24px] bg-white shadow-xl mb-6 ring-1 ring-slate-100">
-             <OmutoLogo size="md" />
+             <SkoolMateLogo size="md" />
           </div>
           <h2 className="text-3xl font-extrabold text-[var(--t1)] tracking-tight">
              Start Your School Account

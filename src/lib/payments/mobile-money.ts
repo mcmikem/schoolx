@@ -121,7 +121,7 @@ export class FlutterwaveMobileMoney {
         name: request.name,
       },
       customizations: {
-        title: 'Omuto School Management',
+        title: 'SkoolMate OS',
         logo: `${process.env.NEXT_PUBLIC_APP_URL}/logo.png`,
       },
       meta: {
@@ -166,7 +166,7 @@ export class FlutterwaveMobileMoney {
         name: request.name,
       },
       customizations: {
-        title: 'Omuto School Management',
+        title: 'SkoolMate OS',
         logo: `${process.env.NEXT_PUBLIC_APP_URL}/logo.png`,
       },
       meta: {

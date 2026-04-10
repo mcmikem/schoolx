@@ -497,7 +497,7 @@ export default function ParentPortal() {
             <h2 className="text-lg font-black text-[var(--t1)] flex items-center gap-2 mb-6">
               <MaterialIcon
                 icon="event_available"
-                className="text-purple-500"
+                className="text-blue-500"
               />
               14-Day Attendance
             </h2>

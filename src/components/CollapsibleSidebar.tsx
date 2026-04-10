@@ -57,7 +57,7 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
   const trackRecentPage = (href: string, label: string, icon: string) => {
     const updated = [{ href, label, icon }, ...recentPages.filter(p => p.href !== href)].slice(0, 4)
     setRecentPages(updated)
-    localStorage.setItem('schoolx_recent_pages', JSON.stringify(updated))
+    localStorage.setItem('skoolmate_recent_pages', JSON.stringify(updated))
   }
 
   return (

@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (teacher?.phone) {
-        const message = `Friendly Nudge: Attendance for ${cls.name} hasn't been marked yet. Please update the system as soon as possible. - Omuto Admin`;
+        const message = `Friendly Nudge: Attendance for ${cls.name} hasn't been marked yet. Please update the system as soon as possible. - SkoolMate Admin`;
         
         try {
           const smsRes = await sendSMS(teacher.phone, message);

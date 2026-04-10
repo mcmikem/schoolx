@@ -9,6 +9,7 @@ import { ToastProvider } from '@/components/Toast'
 import AppLoader from '@/components/Loader'
 import { logger } from '@/lib/logger'
 import { setupErrorLogging } from '@/lib/error-logger'
+import BrandProvider from '@/components/BrandProvider'
 
 function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -53,9 +54,11 @@ export default function Providers({ children }: { children: ReactNode }) {
             <AuthProvider>
               <LoadingChecker>
                 <AcademicProvider>
-                  <NotificationsProvider>
-                    {children}
-                  </NotificationsProvider>
+                  <BrandProvider>
+                    <NotificationsProvider>
+                      {children}
+                    </NotificationsProvider>
+                  </BrandProvider>
                 </AcademicProvider>
               </LoadingChecker>
             </AuthProvider>

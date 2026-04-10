@@ -570,7 +570,7 @@ async function sendReportCardEmail(
       Authorization: `Bearer ${resendApiKey}`,
     },
     body: JSON.stringify({
-      from: process.env.EMAIL_FROM || "noreply@schoolx.com",
+      from: process.env.EMAIL_FROM || "noreply@omuto.org",
       to: [email],
       subject: `Report Card - ${studentName} | ${academicYear} Term ${term}`,
       html,
@@ -617,7 +617,7 @@ async function sendTermEndNoticeEmail(
       Authorization: `Bearer ${resendApiKey}`,
     },
     body: JSON.stringify({
-      from: process.env.EMAIL_FROM || "noreply@schoolx.com",
+      from: process.env.EMAIL_FROM || "noreply@omuto.org",
       to: [email],
       subject: `Term ${term} ${academicYear} Ended - ${studentName}`,
       html,

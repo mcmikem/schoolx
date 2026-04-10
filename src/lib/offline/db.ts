@@ -1,7 +1,7 @@
 // Offline-first IndexedDB storage for rural Uganda
 // Stores data locally and syncs when online
 
-const DB_NAME = 'omuto_sms_offline'
+const DB_NAME = 'omuto.org_offline'
 const DB_VERSION = 1
 
 interface OfflineRecord {

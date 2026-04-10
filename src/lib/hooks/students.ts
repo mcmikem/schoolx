@@ -16,6 +16,9 @@ import {
 
 type StudentWithClass = Student & {
   classes?: { id: string; name: string; level: string } | Class;
+  houses?: { id: string; name: string; color: string } | null;
+  prefect_role?: string;
+  student_council_role?: string;
 };
 
 export function useStudents(
@@ -66,7 +69,8 @@ export function useStudents(
         supabase
           .from("students")
           .select(
-            `id, school_id, student_number, first_name, last_name, gender, class_id, status, classes (id, name, level)`,
+            `id, school_id, student_number, first_name, last_name, gender, class_id, status, 
+            classes(id, name, level), houses(id, name, color), prefect_role, student_council_role`,
           )
           .eq("school_id", querySchoolId)
           .order("created_at", { ascending: false })
@@ -129,7 +133,7 @@ export function useStudents(
           `
           id, school_id, student_number, first_name, last_name, gender, 
           date_of_birth, parent_name, parent_phone, class_id, admission_date, status, created_at,
-          classes (id, name, level)
+          classes(id, name, level), houses(id, name, color), prefect_role, student_council_role
         `,
         )
         .single();
@@ -162,7 +166,7 @@ export function useStudents(
           `
           id, school_id, student_number, first_name, last_name, gender, 
           date_of_birth, parent_name, parent_phone, class_id, admission_date, status, created_at,
-          classes (id, name, level)
+          classes(id, name, level), houses(id, name, color), prefect_role, student_council_role
         `,
         )
         .single();
@@ -245,7 +249,7 @@ export function useStudent(id: string) {
             `
             id, school_id, student_number, first_name, last_name, gender, 
             date_of_birth, parent_name, parent_phone, class_id, admission_date, status, created_at,
-            classes(id, name, level)
+            classes(id, name, level), houses(id, name, color), prefect_role, student_council_role
           `,
           )
           .eq("id", id)

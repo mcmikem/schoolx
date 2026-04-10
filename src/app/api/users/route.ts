@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create auth user
-    const email = `${sanitizedPhone}@omuto.sms`
+    const email = `${sanitizedPhone}@omuto.org`
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,

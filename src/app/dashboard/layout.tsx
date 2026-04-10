@@ -11,7 +11,7 @@ import TopBar from "@/components/dashboard/TopBar";
 import MobileBottomNav from "@/components/dashboard/MobileBottomNav";
 import WorkflowGuide from "@/components/dashboard/WorkflowGuide";
 import WhatsAppSupport from "@/components/WhatsAppSupport";
-import OmutoPromo from "@/components/dashboard/OmutoPromo";
+import SkoolMatePromo from "@/components/dashboard/SkoolMatePromo";
 import {
   useAccessControl,
   getPageTitle,
@@ -75,7 +75,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         >
           <TopBar pageTitle={pageTitle} onSignOut={handleSignOut} />
           <TrialBanner />
-          <OmutoPromo />
+          <SkoolMatePromo />
           <WorkflowGuide />
           {children}
         </main>

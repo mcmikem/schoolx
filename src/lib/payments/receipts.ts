@@ -26,8 +26,8 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Buffer> {
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text("Omuto School Management System", 105, 32, { align: "center" });
-  doc.text("www.omuto.org | info@omuto.org", 105, 37, { align: "center" });
+  doc.text("SkoolMate OS", 105, 32, { align: "center" });
+  doc.text("www.omuto.org | os@omuto.org", 105, 37, { align: "center" });
 
   doc.setLineWidth(0.5);
   doc.line(20, 42, 190, 42);
@@ -135,7 +135,7 @@ export async function sendEmailReceipt(
         <div class="container">
           <div class="header">
             <h1>Payment Receipt</h1>
-            <p>Omuto School Management System</p>
+            <p>SkoolMate OS</p>
           </div>
           <div class="content">
             <p>Dear ${receiptData.schoolName},</p>
@@ -171,8 +171,8 @@ export async function sendEmailReceipt(
             <p>Your subscription is now active and you can access all features of your plan.</p>
           </div>
           <div class="footer">
-            <p>Omuto School Management System</p>
-            <p>www.omuto.org | info@omuto.org</p>
+            <p>SkoolMate OS</p>
+            <p>www.omuto.org | os@omuto.org</p>
             <p>This is an electronically generated receipt.</p>
           </div>
         </div>
@@ -187,8 +187,8 @@ export async function sendEmailReceipt(
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: process.env.EMAIL_FROM || "Omuto <payments@omuto.org>",
-        to: receiptData.schoolEmail || "sms@omuto.org",
+        from: process.env.EMAIL_FROM || "SkoolMate OS <pay@omuto.org>",
+        to: receiptData.schoolEmail || "os@omuto.org",
         subject: `Payment Receipt - ${receiptData.schoolName}`,
         html: emailHtml,
       }),
@@ -231,7 +231,7 @@ export async function sendSMSReceipt(
       return { success: false, message: "School phone number not found" };
     }
 
-    const message = `OMUTO: Payment of UGX ${receiptData.amount.toLocaleString()} for ${receiptData.plan.toUpperCase()} plan received. Receipt: ${receiptData.receiptNumber}. Thank you!`;
+    const message = `SKOOLMATE: Payment of UGX ${receiptData.amount.toLocaleString()} for ${receiptData.plan.toUpperCase()} plan received. Receipt: ${receiptData.receiptNumber}. Thank you!`;
 
     const response = await fetch(
       `https://api.africastalking.com/version1/messaging`,

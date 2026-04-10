@@ -1,4 +1,4 @@
-import OmutoLogo from '@/components/OmutoLogo'
+import SkoolMateLogo from '@/components/SkoolMateLogo'
 
 export default function AuthShell({ 
   children, 
@@ -14,7 +14,7 @@ export default function AuthShell({
       <div className="w-full max-w-[440px]">
         <div className="mb-10 text-center">
           <div className="inline-block mb-6">
-            <OmutoLogo size="lg" />
+            <SkoolMateLogo size="lg" />
           </div>
           <h1 className="text-2xl font-bold text-[var(--t1)] mb-2">{title}</h1>
           {subtitle && <p className="text-[var(--t3)]">{subtitle}</p>}
@@ -25,7 +25,7 @@ export default function AuthShell({
         </div>
         
         <div className="mt-8 text-center text-xs text-[var(--t4)]">
-          © {new Date().getFullYear()} Omuto Foundation. All rights reserved.
+          © {new Date().getFullYear()} SkoolMate Foundation. All rights reserved.
         </div>
       </div>
     </div>

@@ -3,19 +3,19 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import MaterialIcon from "@/components/MaterialIcon";
 
-const OMUTO_SERVICES = [
+const SKOOLMATE_SERVICES = [
   {
-    title: "Omuto School Xperience",
+    title: "SkoolMate School Xperience",
     description:
       "Full school transformation with advanced features, custom branding, and dedicated support.",
-    url: "https://omuto.org/osx.php",
+    url: "https://omuto.org/osx",
     icon: "rocket_launch",
     color: "#17325F",
     bgColor: "rgba(23,50,95,0.08)",
     cta: "Explore OSX",
   },
   {
-    title: "Omuto Essentials",
+    title: "SkoolMate Essentials",
     description:
       "Affordable school management tools for small schools. Start with the basics you need.",
     url: "https://essentials.omuto.org",
@@ -25,10 +25,10 @@ const OMUTO_SERVICES = [
     cta: "View Products",
   },
   {
-    title: "Omuto Youth Center",
+    title: "SkoolMate Foundation",
     description:
       "Empower your students with youth programs, leadership training, and community engagement.",
-    url: "https://omuto.org/oyc.php",
+    url: "https://omuto.org/foundation",
     icon: "groups",
     color: "#0d9488",
     bgColor: "rgba(13,148,136,0.08)",
@@ -36,14 +36,14 @@ const OMUTO_SERVICES = [
   },
 ];
 
-export default function OmutoPromo() {
+export default function SkoolMatePromo() {
   const { school, isTrialExpired } = useAuth();
   const [dismissed, setDismissed] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    const saved = localStorage.getItem("assemble_promo_dismissed");
+    const saved = localStorage.getItem("skoolmate_promo_dismissed");
     if (saved) setDismissed(true);
   }, []);
 
@@ -55,7 +55,7 @@ export default function OmutoPromo() {
 
   const handleDismiss = () => {
     setDismissed(true);
-    localStorage.setItem("assemble_promo_dismissed", "true");
+    localStorage.setItem("skoolmate_promo_dismissed", "true");
   };
 
   return (
@@ -75,7 +75,7 @@ export default function OmutoPromo() {
                 Upgrade your school
               </div>
               <div className="text-[14px] font-semibold text-[var(--t1)]">
-                Explore Omuto services
+                Explore SkoolMate services
               </div>
             </div>
           </div>
@@ -89,7 +89,7 @@ export default function OmutoPromo() {
 
         {/* Service Cards */}
         <div className="p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {OMUTO_SERVICES.map((service) => (
+          {SKOOLMATE_SERVICES.map((service) => (
             <a
               key={service.title}
               href={service.url}

@@ -12,7 +12,7 @@ export async function seedDemoData() {
       .upsert(
         {
           id: DEMO_SCHOOL_ID,
-          name: "Omuto Demo Academy",
+          name: "SkoolMate Demo Academy",
           school_code: "DEMO-001",
           district: "Wakiso",
           school_type: "primary",
