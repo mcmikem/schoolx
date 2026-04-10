@@ -92,15 +92,35 @@ export interface SubstituteSuggestion {
 }
 
 export interface AttendanceAlert {
-  studentId: string
-  studentName: string
-  parentPhone?: string
-  consecutiveAbsentDays: number
-  shouldSendSms: boolean
-  smsMessage: string
+  studentId: string;
+  studentName: string;
+  parentPhone?: string;
+  consecutiveAbsentDays: number;
+  shouldSendSms: boolean;
+  smsMessage: string;
 }
 
-export type GradeWorkflowStatus = 'draft' | 'submitted' | 'approved' | 'published'
+export interface PerformanceVelocityAlert {
+  studentId: string;
+  studentName: string;
+  previousScore: number;
+  currentScore: number;
+  dropPercentage: number;
+  subjectName: string;
+  shouldNotify: boolean;
+}
+
+export interface InstallmentReminder {
+  planId: string;
+  studentId: string;
+  studentName: string;
+  parentPhone?: string;
+  amount: number;
+  dueDate: string;
+  smsMessage: string;
+}
+
+export type GradeWorkflowStatus = "draft" | "submitted" | "approved" | "published";
 
 export interface AutomatedAlertLogLike {
   trigger_id?: string | null
@@ -397,5 +417,77 @@ export function buildAuditDiff<T extends Record<string, unknown>>(before: T, aft
       field,
       before: before?.[field],
       after: after?.[field],
-    }))
+    }));
+}
+
+export function calculatePerformanceVelocity(input: {
+  studentId: string;
+  studentName: string;
+  grades: Array<{ score: number; subject_name: string; date: string }>;
+  threshold?: number;
+}): PerformanceVelocityAlert[] {
+  const threshold = input.threshold || 15;
+  const subjectGrades = new Map<string, Array<{ score: number; date: string }>>();
+
+  input.grades.forEach((g) => {
+    const current = subjectGrades.get(g.subject_name) || [];
+    current.push({ score: g.score, date: g.date });
+    subjectGrades.set(g.subject_name, current);
+  });
+
+  const alerts: PerformanceVelocityAlert[] = [];
+
+  subjectGrades.forEach((records, subject) => {
+    const sorted = records.sort((a, b) => b.date.localeCompare(a.date));
+    if (sorted.length < 2) return;
+
+    const current = sorted[0].score;
+    const previous = sorted[1].score;
+    const drop = previous - current;
+    const dropPct = previous > 0 ? (drop / previous) * 100 : 0;
+
+    if (dropPct >= threshold) {
+      alerts.push({
+        studentId: input.studentId,
+        studentName: input.studentName,
+        previousScore: previous,
+        currentScore: current,
+        dropPercentage: Math.round(dropPct),
+        subjectName: subject,
+        shouldNotify: true,
+      });
+    }
+  });
+
+  return alerts;
+}
+
+export function detectInstallmentReminders(input: {
+  plans: any[];
+  installments: any[];
+  students: any[];
+  daysNotice?: number;
+}): InstallmentReminder[] {
+  const daysNotice = input.daysNotice || 1;
+  const targetDate = new Date();
+  targetDate.setDate(targetDate.getDate() + daysNotice);
+  const targetDateStr = targetDate.toISOString().split("T")[0];
+
+  return input.installments
+    .filter((inst) => inst.due_date === targetDateStr && !inst.paid)
+    .map((inst) => {
+      const plan = input.plans.find((p) => p.id === inst.plan_id);
+      const student = input.students.find((s) => s.id === plan?.student_id);
+      const studentName = student ? `${student.first_name} ${student.last_name}` : "Student";
+
+      return {
+        planId: inst.plan_id,
+        studentId: plan?.student_id,
+        studentName,
+        parentPhone: student?.parent_phone,
+        amount: inst.amount,
+        dueDate: inst.due_date,
+        smsMessage: `Reminder: Installment of UGX ${inst.amount.toLocaleString()} for ${studentName} is due tomorrow (${inst.due_date}). Please clear at the school office.`,
+      };
+    });
 }

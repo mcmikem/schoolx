@@ -20,7 +20,7 @@ export default function ImportPage() {
   const toast = useToast();
 
   const [activeTab, setActiveTab] = useState<
-    "students" | "fees" | "grades" | "ai_paste"
+    "students" | "fees" | "grades" | "ai_paste" | "magic"
   >("students");
 
   const [file, setFile] = useState<File | null>(null);
@@ -257,23 +257,77 @@ export default function ImportPage() {
             <MaterialIcon icon="menu_book" className="text-lg" />
             Grades
           </button>
+            <MaterialIcon icon="smart_toys" className="text-lg" />
+            AI Smart Paste
+          </button>
           <button
             onClick={() => {
-              setActiveTab("ai_paste");
+              setActiveTab("magic");
               setPreview([]);
               setMappedData([]);
             }}
             className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
-              activeTab === "ai_paste"
+              activeTab === "magic"
                 ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
                 : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
             }`}
           >
-            <MaterialIcon icon="smart_toys" className="text-lg" />
-            AI Smart Paste
+            <MaterialIcon icon="auto_awesome" className="text-lg" />
+            Magic Photo (AI)
           </button>
         </div>
       </UICard>
+
+      {activeTab === "magic" && (
+        <UICard className="p-8 text-center border-dashed border-2 border-[var(--primary)] bg-[var(--surface-container-low)] mb-6">
+          <div className="max-w-md mx-auto">
+            <div className="w-20 h-20 rounded-full bg-[var(--primary-soft)] flex items-center justify-center mx-auto mb-6">
+              <MaterialIcon
+                icon="auto_awesome"
+                className="text-4xl text-[var(--primary)] animate-pulse"
+              />
+            </div>
+            <h3 className="text-xl font-bold text-[var(--t1)] mb-2">
+              Magic Student Upload
+            </h3>
+            <p className="text-sm text-[var(--t3)] mb-8">
+              No time to type? Take a clear photo of your handwritten student
+              register. Our AI will read the names and clean them up for you.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Button
+                variant="secondary"
+                className="h-16 flex flex-col gap-1 items-center justify-center"
+              >
+                <MaterialIcon icon="photo_camera" />
+                <span className="text-xs">Take Photo</span>
+              </Button>
+              <Button
+                variant="secondary"
+                className="h-16 flex flex-col gap-1 items-center justify-center"
+              >
+                <MaterialIcon icon="image" />
+                <span className="text-xs">Choose Gallery</span>
+              </Button>
+            </div>
+
+            <div className="mt-8 p-4 bg-[var(--surface)] rounded-xl border border-[var(--border)] text-left">
+              <div className="flex items-center gap-2 mb-2">
+                <MaterialIcon icon="info" className="text-blue-500 text-sm" />
+                <span className="text-xs font-bold text-[var(--t2)] lowercase">
+                  How it works:
+                </span>
+              </div>
+              <ul className="text-[11px] text-[var(--t4)] space-y-1.5 list-disc pl-4">
+                <li>AI will fix typos like &quot;mUKASA jOHN&quot; to &quot;John Mukasa&quot;.</li>
+                <li>It detects genders and classes from headers automatically.</li>
+                <li>Works best with clear daylight photos of handwritten lists.</li>
+              </ul>
+            </div>
+          </div>
+        </UICard>
+      )}
 
       {activeTab === "ai_paste" ? (
         <UICard className="mb-6 p-6">
