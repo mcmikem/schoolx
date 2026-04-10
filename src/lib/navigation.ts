@@ -295,11 +295,19 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       items: [
         { href: "/dashboard/grades", label: "Grades", icon: "menu_book" },
         { href: "/dashboard/exams", label: "Exams", icon: "fact_check" },
-        { href: "/dashboard/timetable", label: "Global Timetable", icon: "calendar_month" },
+        { href: "/dashboard/calendar", label: "School Calendar", icon: "calendar_today" },
       ],
     },
     {
-      label: "Finance",
+      title: "Commercial Suite",
+      items: [
+        { href: "/dashboard/store/pos", label: "Canteen POS", icon: "shopping_cart" },
+        { href: "/dashboard/store/inventory", label: "Inventory", icon: "inventory" },
+        { href: "/dashboard/store/wallets", label: "Student Wallets", icon: "account_balance_wallet" },
+      ],
+    },
+    {
+      title: "Finances",
       defaultOpen: false,
       items: [
         { href: "/dashboard/fees", label: "Finance Hub", icon: "payments" },
