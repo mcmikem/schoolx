@@ -13,14 +13,14 @@ export default function AdmissionPackagePage() {
   const { school } = useAuth();
   const { academicYear } = useAcademic();
   const searchParams = useSearchParams();
-  const studentId = searchParams.get("studentId");
+  const studentId = searchParams?.get("studentId") || null;
 
   const [loading, setLoading] = useState(false);
   const [student, setStudent] = useState<any>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,
   });
 
   useEffect(() => {
