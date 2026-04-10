@@ -14,6 +14,7 @@ import OnboardingTips from "@/components/OnboardingTips";
 import { PageHeader, PageSection } from "@/components/ui/PageHeader";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import { Modal, ModalFooter } from "@/components/ui/Modal";
+import BulkImport from "@/components/BulkImport";
 import { Card, CardHeader, CardBody, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { EmptyState, NoData, SearchEmpty } from "@/components/EmptyState";
@@ -118,6 +119,7 @@ export default function StudentHubPage() {
   const [selectedClass, setSelectedClass] = useState("all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [houses, setHouses] = useState<any[]>([]);
@@ -1248,8 +1250,8 @@ export default function StudentHubPage() {
         actions={
           <div className="flex gap-2">
             <button
-               onClick={() => setShowImportModal(true)}
-               className="btn btn-navy btn-sm"
+              onClick={() => setShowBulkImportModal(true)}
+              className="btn btn-navy btn-sm"
             >
               <MaterialIcon icon="cloud_upload" />
               Import
@@ -4534,6 +4536,16 @@ export default function StudentHubPage() {
               </div>
             </div>
           </div>
+        )}
+        {showBulkImportModal && (
+          <Modal
+            isOpen={showBulkImportModal}
+            onClose={() => setShowBulkImportModal(false)}
+            title="Bulk Import Students"
+            size="xl"
+          >
+            <BulkImport onComplete={() => setShowBulkImportModal(false)} />
+          </Modal>
         )}
       </TabPanel>
     </div>
