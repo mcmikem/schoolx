@@ -3,6 +3,7 @@ import { ReactNode, useEffect, useState } from 'react'
 import { AuthProvider, useAuth } from '@/lib/auth-context'
 import { AcademicProvider } from '@/lib/academic-context'
 import { ThemeProvider } from '@/lib/theme-context'
+import { NotificationsProvider } from '@/lib/notifications'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { ToastProvider } from '@/components/Toast'
 import AppLoader from '@/components/Loader'
@@ -51,7 +52,11 @@ export default function Providers({ children }: { children: ReactNode }) {
           <ServiceWorkerRegistration>
             <AuthProvider>
               <LoadingChecker>
-                <AcademicProvider>{children}</AcademicProvider>
+                <AcademicProvider>
+                  <NotificationsProvider>
+                    {children}
+                  </NotificationsProvider>
+                </AcademicProvider>
               </LoadingChecker>
             </AuthProvider>
           </ServiceWorkerRegistration>

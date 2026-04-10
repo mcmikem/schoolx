@@ -8,6 +8,7 @@ import {
   ReactNode,
 } from "react";
 import { supabase } from "./supabase";
+import { useAuth } from "./auth-context";
 
 interface Notification {
   id: string;
@@ -46,11 +47,14 @@ const NotificationsContext = createContext<
 
 export function NotificationsProvider({
   children,
-  schoolId,
+  schoolId: propSchoolId,
 }: {
   children: ReactNode;
   schoolId?: string;
 }) {
+  const { school } = useAuth();
+  const schoolId = propSchoolId || school?.id;
+  
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
