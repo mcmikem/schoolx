@@ -9,12 +9,13 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/ui/index'
 import { Card, CardHeader, CardBody } from '@/components/ui/Card'
 import { EmptyState } from '@/components/EmptyState'
+import TermTimeline from '@/components/dashboard/TermTimeline'
 
 interface SchoolEvent {
   id: string
   title: string
   description: string | null
-  event_type: typeof EVENT_TYPES[keyof typeof EVENT_TYPES]
+  event_type: 'exam' | 'meeting' | 'holiday' | 'event' | 'academic'
   start_date: string
   end_date: string | null
 }
@@ -37,6 +38,7 @@ export default function CalendarPage() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [view, setView] = useState<'grid' | 'timeline'>('grid')
   const [newEvent, setNewEvent] = useState({
     title: '',
     description: '',
@@ -149,28 +151,57 @@ export default function CalendarPage() {
         title="Calendar"
         subtitle="Manage school events and schedules"
         actions={
-          <Button onClick={() => setShowModal(true)}>
-            <MaterialIcon icon="add" />
-            Add Event
-          </Button>
+          <div className="flex gap-3">
+             <div className="flex bg-slate-100 rounded-xl p-1 mr-2">
+                <button 
+                  onClick={() => setView('grid')}
+                  className={`px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs font-bold transition-all ${view === 'grid' ? "bg-white shadow text-slate-800" : "text-slate-500 hover:text-slate-700"}`}
+                >
+                  <MaterialIcon icon="calendar_view_month" style={{ fontSize: 18 }} />
+                  Grid
+                </button>
+                <button 
+                  onClick={() => setView('timeline')}
+                  className={`px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs font-bold transition-all ${view === 'timeline' ? "bg-white shadow text-slate-800" : "text-slate-500 hover:text-slate-700"}`}
+                >
+                  <MaterialIcon icon="timeline" style={{ fontSize: 18 }} />
+                  Term Rhythm
+                </button>
+             </div>
+             <Button onClick={() => setShowModal(true)}>
+               <MaterialIcon icon="add" />
+               Add Event
+             </Button>
+          </div>
         }
       />
 
       <div className="flex items-center justify-between mb-6">
         <div className="flex gap-2">
-          <Button variant="secondary" size="sm" onClick={goPrevMonth}>
-            <MaterialIcon icon="chevron_left" />
-          </Button>
-          <Button variant="secondary" size="sm" onClick={goToday}>Today</Button>
-          <Button variant="secondary" size="sm" onClick={goNextMonth}>
-            <MaterialIcon icon="chevron_right" />
-          </Button>
+          {view === 'grid' && (
+            <>
+              <Button variant="secondary" size="sm" onClick={goPrevMonth}>
+                <MaterialIcon icon="chevron_left" />
+              </Button>
+              <Button variant="secondary" size="sm" onClick={goToday}>Today</Button>
+              <Button variant="secondary" size="sm" onClick={goNextMonth}>
+                <MaterialIcon icon="chevron_right" />
+              </Button>
+            </>
+          )}
         </div>
-        <h2 className="text-xl font-bold text-[#191c1d]">{months[currentMonth]} {currentYear}</h2>
+        <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">
+          {view === 'grid' ? `${months[currentMonth]} ${currentYear}` : "Term Journey"}
+        </h2>
         <div className="w-32" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {view === 'timeline' ? (
+        <Card className="p-4 min-h-[500px] flex flex-col justify-center">
+           <TermTimeline events={events} />
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 p-4">
           <div className="grid grid-cols-7 gap-1 mb-2">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (

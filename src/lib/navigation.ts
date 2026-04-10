@@ -43,6 +43,8 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       defaultOpen: true,
       items: [
         { href: "/dashboard/students", label: "Student Hub", icon: "group" },
+        { href: "/dashboard/students/id-cards", label: "Identity Center", icon: "id_card" },
+        { href: "/dashboard/students/conduct", label: "Conduct & Merits", icon: "military_tech" },
         { href: "/dashboard/staff", label: "Staff Hub", icon: "person" },
         {
           href: "/dashboard/attendance",
