@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
@@ -12,6 +12,7 @@ import MobileBottomNav from "@/components/dashboard/MobileBottomNav";
 import WorkflowGuide from "@/components/dashboard/WorkflowGuide";
 import WhatsAppSupport from "@/components/WhatsAppSupport";
 import SkoolMatePromo from "@/components/dashboard/SkoolMatePromo";
+import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import {
   useAccessControl,
   getPageTitle,
@@ -51,6 +52,16 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   const pageTitle = getPageTitle(pathname || "/dashboard");
 
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (school && school.feature_stage !== 'full' && user?.role === 'school_admin') {
+      setShowOnboarding(true);
+    } else {
+      setShowOnboarding(false);
+    }
+  }, [school, user]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[var(--bg)]">
@@ -65,6 +76,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     <ErrorBoundary>
       <OfflineIndicator />
       {isTrialExpired && <ExpiredNotice />}
+      {showOnboarding && (
+        <OnboardingFlow onComplete={() => setShowOnboarding(false)} />
+      )}
       <div className="bg-motif flex min-h-screen bg-[var(--bg)]">
         <SidebarShell onNavigate={handleNavigate} />
         <SidebarOverlay />
