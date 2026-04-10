@@ -1,4 +1,4 @@
-'use client'
+"use client"
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
