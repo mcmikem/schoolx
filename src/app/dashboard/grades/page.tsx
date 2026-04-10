@@ -37,7 +37,7 @@ interface TopicCoverage {
   teacher_id: string;
 }
 
-const NCDC_TOPICS: Record<string, string[]> = {
+const STANDARD_TOPICS: Record<string, string[]> = {
   Mathematics: [
     "Number operations",
     "Fractions and decimals",
@@ -103,6 +103,7 @@ export default function GradesPage() {
   const { staff } = useStaff(school?.id);
 
   const [tab, setTab] = useState<"marks" | "coverage">("marks");
+  const tabLabels = { marks: "Enter Marks", coverage: "What we Taught" };
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [coverage, setCoverage] = useState<TopicCoverage[]>([]);
@@ -116,6 +117,12 @@ export default function GradesPage() {
   >({});
   const [submissionStatus, setSubmissionStatus] =
     useState<GradeWorkflowStatus>("draft");
+  const statusLabels: Record<GradeWorkflowStatus, string> = {
+    draft: "Still Writing",
+    submitted: "Sent to Boss",
+    approved: "Boss Approved",
+    published: "Ready for Parents",
+  };
   const { students: classStudents, loading: studentsLoading } = useStudents(
     school?.id,
   );
@@ -139,6 +146,12 @@ export default function GradesPage() {
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>(
     {},
   );
+  const assessmentLabels: Record<string, string> = {
+    ca1: "Test 1",
+    ca2: "Test 2",
+    ca3: "Test 3",
+    exam: "Final Exam",
+  };
   const touchStartX = useRef(0);
   const mobileCardRef = useRef<HTMLDivElement>(null);
 
@@ -232,10 +245,10 @@ export default function GradesPage() {
 
       setCaLocked(true);
       setLockedByName(staff.find((s) => s.id === user.id)?.full_name || "You");
-      toast.success("CA marks have been locked");
+      toast.success("Tests have been closed for edits");
     } catch (err) {
-      console.error("Error locking CA:", err);
-      toast.error("Failed to lock CA marks");
+      console.error("Error locking tests:", err);
+      toast.error("Failed to close tests for edits");
     } finally {
       setSaving(false);
     }
@@ -278,10 +291,10 @@ export default function GradesPage() {
 
       setCaLocked(false);
       setLockedByName("");
-      toast.success("CA marks have been unlocked");
+      toast.success("Tests have been opened for edits again");
     } catch (err) {
-      console.error("Error unlocking CA:", err);
-      toast.error("Failed to unlock CA marks");
+      console.error("Error opening tests:", err);
+      toast.error("Failed to open tests");
     } finally {
       setSaving(false);
     }
@@ -548,12 +561,12 @@ export default function GradesPage() {
       setSubmissionStatus(status);
       const successMessage =
         status === "submitted"
-          ? "Grades submitted to Dean"
+          ? "Grades sent to Boss for review"
           : status === "approved"
-            ? "Grades approved for publication"
+            ? "Grades approved by Boss"
             : status === "published"
-              ? "Grades published for parent/report access"
-              : "Draft saved successfully";
+              ? "Grades are now ready for Parents"
+              : "Draft saved (Still Writing)";
       toast.success(successMessage);
     } catch {
       toast.error("Failed to save grades");
@@ -641,8 +654,8 @@ export default function GradesPage() {
       nextStatus === "approved"
         ? "approve"
         : nextStatus === "published"
-          ? "publish"
-          : "submit";
+          ? "make ready for parents"
+          : "send to boss";
 
     if (!window.confirm(`Are you sure you want to ${actorLabel} these grades?`))
       return;
@@ -784,7 +797,7 @@ export default function GradesPage() {
     : "";
   const topics = useMemo(
     () =>
-      NCDC_TOPICS[selectedSubjectName] || [
+      STANDARD_TOPICS[selectedSubjectName] || [
         "Topic 1",
         "Topic 2",
         "Topic 3",
@@ -845,7 +858,7 @@ export default function GradesPage() {
                   disabled={saving}
                   icon={<MaterialIcon icon="lock_open" className="text-lg" />}
                 >
-                  Unlock CA ({lockedByName})
+                  Open for Edits ({lockedByName})
                 </Button>
               ) : (
                 <Button
@@ -854,7 +867,7 @@ export default function GradesPage() {
                   disabled={saving || !selectedClass || !selectedSubject}
                   icon={<MaterialIcon icon="lock" className="text-lg" />}
                 >
-                  Lock CA
+                  Close for Edits (Lock)
                 </Button>
               ))}
             <Button
@@ -891,7 +904,7 @@ export default function GradesPage() {
             className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${statusTone}`}
           >
             <MaterialIcon icon="task_alt" className="text-sm" />
-            <span>Workflow: {submissionStatus}</span>
+            <span>Work Status: {statusLabels[submissionStatus]}</span>
           </div>
           {Object.values(marksBy).some((m) =>
             ["ca1", "ca2", "ca3"].includes(m.type),

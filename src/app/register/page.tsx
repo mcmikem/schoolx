@@ -205,7 +205,7 @@ export default function RegisterPage() {
              <OmutoLogo size="md" />
           </div>
           <h2 className="text-3xl font-extrabold text-[var(--t1)] tracking-tight">
-             Register Your School
+             Start Your School Account
           </h2>
           <p className="mt-2 text-[var(--t3)] font-medium">
              Join Uganda&apos;s leading school operating system
@@ -274,7 +274,7 @@ export default function RegisterPage() {
                   icon={<MaterialIcon icon="arrow_forward" className="text-lg" />}
                   onClick={() => setStep(2)}
                 >
-                  Next: Location
+                  Next: Where is the School?
                 </Button>
               </div>
             )}
@@ -405,7 +405,7 @@ export default function RegisterPage() {
                       ) : undefined
                     }
                   >
-                    {loading ? "Creating..." : "Create Account"}
+                    {loading ? "Setting Up..." : "Finish & Start Using"}
                   </Button>
                 </div>
               </div>

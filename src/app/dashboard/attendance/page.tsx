@@ -26,13 +26,13 @@ const STATUS_CONFIG: Record<
   absent: {
     color: "bg-error",
     bg: "bg-error-container",
-    label: "Absent",
+    label: "Not In School",
     icon: "cancel",
   },
   present: {
     color: "bg-secondary",
     bg: "bg-secondary-container",
-    label: "Present",
+    label: "In School",
     icon: "check_circle",
   },
   late: {
@@ -494,7 +494,7 @@ export default function AttendancePage() {
                 {presentCount}
               </div>
               <div className="text-xs md:text-sm text-on-surface-variant mt-1">
-                Present
+                In School
               </div>
             </div>
             <div
@@ -505,7 +505,7 @@ export default function AttendancePage() {
                 {absentCount}
               </div>
               <div className="text-xs md:text-sm text-on-surface-variant mt-1">
-                Absent
+                Away
               </div>
             </div>
             <div
@@ -531,11 +531,11 @@ export default function AttendancePage() {
               { icon: "event", text: "Choose the date (defaults to today)" },
               {
                 icon: "touch_app",
-                text: "Tap a student to cycle: Present → Absent → Late",
+                text: "Tap a student to change: In School → Away → Late",
               },
               {
                 icon: "toggle_on",
-                text: "Roll Call Mode: starts all as Present, tap to mark absent",
+                text: "Call Out Names Mode: starts all as In School, tap to mark Away",
               },
               {
                 icon: "save",
@@ -550,10 +550,10 @@ export default function AttendancePage() {
                 <MaterialIcon icon="mic" className="text-xl text-primary" />
                 <div>
                   <div className="font-semibold text-on-surface">
-                    Roll Call Mode
+                    Call Out Names
                   </div>
                   <div className="text-xs text-on-surface-variant">
-                    All students start as present — tap to mark absent
+                    Everyone starts as In School — tap only those Away
                   </div>
                 </div>
               </div>
@@ -564,7 +564,7 @@ export default function AttendancePage() {
                 }`}
                 role="switch"
                 aria-checked={rollCallMode}
-                aria-label="Toggle Roll Call Mode"
+                aria-label="Toggle Call Out Names Mode"
               >
                 <div
                   className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow transition-transform duration-200 ${
@@ -584,7 +584,7 @@ export default function AttendancePage() {
                   icon={<MaterialIcon icon="check_circle" />}
                   size="sm"
                 >
-                  Mark All Present
+                  Mark All In School
                 </Button>
                 <Button
                   variant="secondary"
@@ -592,11 +592,11 @@ export default function AttendancePage() {
                   icon={<MaterialIcon icon="person_remove" />}
                   size="sm"
                 >
-                  Quick Absent
+                  Quick Away
                 </Button>
                 <div className="flex-1" />
                 <div className="text-sm text-on-surface-variant self-center font-medium">
-                  {presentCount} present, {absentCount} absent, {lateCount} late
+                  {presentCount} present, {absentCount} away, {lateCount} late
                 </div>
               </div>
 
@@ -611,9 +611,8 @@ export default function AttendancePage() {
                         : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
                     }`}
                   >
-                    {f === "all"
                       ? "All"
-                      : f.charAt(0).toUpperCase() + f.slice(1)}
+                      : f === "present" ? "In School" : f === "absent" ? "Away" : "Late"}
                     {f !== "all" && (
                       <span className="ml-1 opacity-70">
                         (
@@ -712,7 +711,7 @@ export default function AttendancePage() {
                   className="w-full"
                   size="lg"
                 >
-                  Save: {presentCount} present, {absentCount} absent,{" "}
+                  Save: {presentCount} present, {absentCount} away,{" "}
                   {lateCount} late
                 </Button>
               </div>
@@ -727,7 +726,7 @@ export default function AttendancePage() {
                     <MaterialIcon icon={allMarked ? "undo" : "check_circle"} />
                   }
                 >
-                  {allMarked ? "Reset All" : "Mark All Present"}
+                  {allMarked ? "Reset All" : "Mark All In School"}
                 </Button>
                 <Tabs
                   tabs={[

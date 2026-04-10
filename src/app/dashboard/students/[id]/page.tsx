@@ -616,7 +616,7 @@ export default function StudentProfilePage({
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
           <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
             <ClipboardCheck className="w-4 h-4 text-emerald-600" />
-            Attendance
+            Attendance (Days in School)
           </h3>
           <div className="flex flex-col items-center gap-4">
             <AttendanceRing percentage={attendancePct} />
@@ -628,7 +628,7 @@ export default function StudentProfilePage({
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
           <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-yellow-600" />
-            Fee Status
+            Money Owed (Fees)
           </h3>
           <FeeProgressBar paid={feePosition.paid} total={feePosition.total} />
           <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
@@ -656,7 +656,7 @@ export default function StudentProfilePage({
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
           <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-blue-600" />
-            Grade Trend
+            Marks Trend (Performance)
           </h3>
           <div className="flex items-center justify-center py-4">
             {gradeHistory.length > 0 ? (
@@ -743,7 +743,7 @@ export default function StudentProfilePage({
               </div>
               <div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                  Date of Birth
+                  Birthday
                 </div>
                 <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                   {student.date_of_birth
@@ -758,7 +758,7 @@ export default function StudentProfilePage({
               </div>
               <div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                  Admission Date
+                  Joined School On
                 </div>
                 <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                   {student.admission_date
