@@ -10,6 +10,7 @@ interface Event {
   start_date: string;
   end_date: string | null;
   event_type: string;
+  description?: string | null;
 }
 
 export default function TermTimeline({ events }: { events: Event[] }) {

@@ -37,6 +37,9 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
     "upload" | "preview" | "importing" | "complete"
   >("upload");
   const [validatedRows, setValidatedRows] = useState<ValidatedRow[]>([]);
+  const [error, setError] = useState<string>("");
+  const [selectedClass, setSelectedClass] = useState<string>("");
+  const [result, setResult] = useState<ImportResult | null>(null);
 
   const parseCSV = (text: string): ValidatedRow[] => {
     const lines = text.trim().split("\n");
@@ -472,7 +475,7 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
               height: 64,
               borderRadius: "50%",
               background:
-                result.failed === 0 ? "var(--green-soft)" : "var(--amber-soft)",
+                result?.failed === 0 ? "var(--green-soft)" : "var(--amber-soft)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -483,10 +486,10 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
               className="material-symbols-outlined"
               style={{
                 fontSize: 32,
-                color: result.failed === 0 ? "var(--green)" : "var(--amber)",
+                color: result?.failed === 0 ? "var(--green)" : "var(--amber)",
               }}
             >
-              {result.failed === 0 ? "check_circle" : "warning"}
+              {result?.failed === 0 ? "check_circle" : "warning"}
             </span>
           </div>
 
@@ -502,11 +505,11 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
           </h3>
 
           <p style={{ fontSize: 14, color: "var(--t2)", marginBottom: 16 }}>
-            {result.success} students imported successfully
-            {result.failed > 0 && `, ${result.failed} failed`}
+            {result?.success} students imported successfully
+            {(result?.failed ?? 0) > 0 && `, ${result?.failed} failed`}
           </p>
 
-          {result.errors.length > 0 && (
+          {(result?.errors.length ?? 0) > 0 && (
             <div
               style={{
                 maxHeight: 150,
@@ -518,7 +521,7 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
                 marginBottom: 16,
               }}
             >
-              {result.errors.slice(0, 10).map((err, i) => (
+              {result?.errors.slice(0, 10).map((err: string, i: number) => (
                 <p
                   key={i}
                   style={{ fontSize: 12, color: "var(--red)", marginBottom: 4 }}
