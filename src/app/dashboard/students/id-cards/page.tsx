@@ -7,7 +7,6 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import StudentIDCard from "@/components/students/StudentIDCard";
 import MaterialIcon from "@/components/MaterialIcon";
-import { cardClassName } from "@/lib/utils";
 import { useReactToPrint } from "react-to-print";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
@@ -16,7 +15,7 @@ export default function IDCardGenerator() {
   const { school } = useAuth();
   const searchParams = useSearchParams();
   const studentId = searchParams.get("studentId");
-  
+
   const [loading, setLoading] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -50,7 +49,9 @@ export default function IDCardGenerator() {
     const { data, error } = await supabase
       .from("students")
       .select("*, classes(name, stream)")
-      .or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,student_number.ilike.%${search}%`)
+      .or(
+        `first_name.ilike.%${search}%,last_name.ilike.%${search}%,student_number.ilike.%${search}%`,
+      )
       .limit(20);
 
     if (data) setStudents(data);
@@ -58,20 +59,24 @@ export default function IDCardGenerator() {
   };
 
   const addStudent = async (student: any) => {
-    if (students.find(s => s.id === student.id)) return;
-    setStudents(prev => [...prev, student]);
+    if (students.find((s) => s.id === student.id)) return;
+    setStudents((prev) => [...prev, student]);
   };
 
   const removeStudent = (id: string) => {
-    setStudents(prev => prev.filter(s => s.id !== id));
+    setStudents((prev) => prev.filter((s) => s.id !== id));
   };
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight">Identity Center</h1>
-          <p className="text-slate-500 font-medium">Generate professional student ID cards</p>
+          <h1 className="text-3xl font-black text-slate-800 tracking-tight">
+            Identity Center
+          </h1>
+          <p className="text-slate-500 font-medium">
+            Generate professional student ID cards
+          </p>
         </div>
         <button
           onClick={handlePrint}
@@ -86,7 +91,7 @@ export default function IDCardGenerator() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Search Panel */}
         <div className="lg:col-span-1 space-y-6">
-          <div className={cardClassName + " p-6"}>
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
             <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
               <MaterialIcon icon="person_search" className="text-primary-700" />
               Add Students
@@ -96,31 +101,43 @@ export default function IDCardGenerator() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && searchStudents()}
+                onKeyDown={(e) => e.key === "Enter" && searchStudents()}
                 placeholder="Search by name or ID..."
                 className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-100 transition-all outline-none"
               />
-              <MaterialIcon icon="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <MaterialIcon
+                icon="search"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
             </div>
-            
+
             <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
               {students.length > 0 ? (
-                 students.map(s => (
-                  <div key={s.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all group">
+                students.map((s) => (
+                  <div
+                    key={s.id}
+                    className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all group"
+                  >
                     <div className="min-w-0">
-                      <p className="text-[13px] font-bold text-slate-800 truncate">{s.first_name} {s.last_name}</p>
-                      <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">{s.student_number}</p>
+                      <p className="text-[13px] font-bold text-slate-800 truncate">
+                        {s.first_name} {s.last_name}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">
+                        {s.student_number}
+                      </p>
                     </div>
-                    <button 
+                    <button
                       onClick={() => removeStudent(s.id)}
                       className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
                     >
                       <MaterialIcon icon="close" style={{ fontSize: 16 }} />
                     </button>
                   </div>
-                 ))
+                ))
               ) : (
-                <p className="text-center text-xs text-slate-400 py-10">Search and add students to generate cards.</p>
+                <p className="text-center text-xs text-slate-400 py-10">
+                  Search and add students to generate cards.
+                </p>
               )}
             </div>
           </div>
@@ -128,31 +145,40 @@ export default function IDCardGenerator() {
 
         {/* Preview Panel */}
         <div className="lg:col-span-3">
-          <div className={cardClassName + " p-8 min-h-[600px] bg-slate-100/50"}>
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 min-h-[600px] bg-slate-100/50">
             <div className="mb-8 flex justify-between items-center text-slate-400">
-               <h3 className="font-bold uppercase tracking-widest text-[11px]">Identity Preview</h3>
-               <p className="text-[10px] font-medium italic">Cards are designed to standard CR80 size (85.6mm x 54mm)</p>
+              <h3 className="font-bold uppercase tracking-widest text-[11px]">
+                Identity Preview
+              </h3>
+              <p className="text-[10px] font-medium italic">
+                Cards are designed to standard CR80 size (85.6mm x 54mm)
+              </p>
             </div>
 
-            <div 
+            <div
               ref={printRef}
               className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-y-10 gap-x-6 justify-items-center print:block print:p-0"
             >
               {students.length > 0 ? (
                 students.map((s, i) => (
-                  <div key={s.id} className="print:mb-[10mm] print:break-inside-avoid">
-                    <StudentIDCard 
-                      student={s} 
-                      school={school || { name: "SkoolMate Official School" }} 
+                  <div
+                    key={s.id}
+                    className="print:mb-[10mm] print:break-inside-avoid"
+                  >
+                    <StudentIDCard
+                      student={s}
+                      school={school || { name: "SkoolMate Official School" }}
                     />
                   </div>
                 ))
               ) : (
                 <div className="col-span-full py-20 text-center space-y-4">
-                   <div className="w-20 h-20 bg-white rounded-[24px] shadow-sm flex items-center justify-center mx-auto text-slate-200">
-                     <MaterialIcon icon="id_card" style={{ fontSize: 40 }} />
-                   </div>
-                   <p className="text-slate-400 font-medium">No cards to preview.</p>
+                  <div className="w-20 h-20 bg-white rounded-[24px] shadow-sm flex items-center justify-center mx-auto text-slate-200">
+                    <MaterialIcon icon="id_card" style={{ fontSize: 40 }} />
+                  </div>
+                  <p className="text-slate-400 font-medium">
+                    No cards to preview.
+                  </p>
                 </div>
               )}
             </div>
