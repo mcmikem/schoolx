@@ -208,26 +208,26 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] flex flex-col justify-center relative overflow-hidden">
-      {/* Decorative Background Elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[var(--navy-soft)] blur-[120px] rounded-full opacity-50" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[var(--green-soft)] blur-[120px] rounded-full opacity-30" />
-      
-      <div className="relative z-10 w-full max-w-md mx-auto px-4">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-[24px] bg-white shadow-xl mb-6 ring-1 ring-slate-100">
-             <AnimatedLogo type="logo" className="w-12 h-12" />
+    <div className="min-h-screen bg-[var(--bg)] flex relative overflow-hidden">
+      {/* Left Column: Login Form */}
+      <div className="flex-1 flex flex-col justify-center relative z-10 w-full lg:max-w-[45%] xl:max-w-[40%] px-6 lg:px-16 xl:px-24">
+        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-[var(--primary)] blur-[150px] rounded-full opacity-10" />
+        
+        <div className="w-full max-w-[420px] mx-auto">
+          <div className="mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-[20px] bg-white shadow-lg mb-6 ring-1 ring-slate-100">
+               <AnimatedLogo type="logo" className="w-10 h-10" />
+            </div>
+            <h2 className="text-4xl font-black text-slate-800 tracking-tight">
+               Welcome Back
+            </h2>
+            <p className="mt-2 text-slate-500 font-medium">
+               Enter your credentials to access your digital campus.
+            </p>
           </div>
-          <h2 className="text-3xl font-extrabold text-[var(--t1)] tracking-tight">
-             Welcome Back
-          </h2>
-          <p className="mt-2 text-[var(--t3)] font-medium">
-             Enter your credentials to access your workspace
-          </p>
-        </div>
 
-        <div className="card-premium p-8 md:p-10 shadow-[0_32px_64px_rgba(15,23,42,0.1)]">
-          <form onSubmit={handleLogin} className="space-y-5">
+          <div className="bg-white/80 backdrop-blur-xl p-8 md:p-10 shadow-[0_32px_64px_rgba(15,23,42,0.06)] rounded-[32px] border border-white/50">
+            <form onSubmit={handleLogin} className="space-y-5">
             <Input
               label={t("auth.phoneNumber")}
               id="phone"
@@ -315,6 +315,53 @@ export default function LoginPage() {
                 {t("auth.registerSchool")}
               </Link>
             </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Column: Dynamic Branding & Social Proof */}
+      <div className="hidden lg:flex flex-1 relative bg-[var(--primary)] text-white overflow-hidden p-12 xl:p-24 flex-col justify-between">
+        {/* Dynamic Glass/Liquid Background Effects */}
+        <div className="absolute top-0 right-0 w-full h-full opacity-40">
+           <div className="absolute top-[10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-400 blur-[120px] mix-blend-overlay animate-pulse" style={{ animationDuration: '8s' }} />
+           <div className="absolute bottom-[10%] left-[20%] w-[50%] h-[50%] rounded-full bg-teal-400 blur-[100px] mix-blend-overlay animate-pulse" style={{ animationDelay: '4s', animationDuration: '10s' }} />
+        </div>
+
+        <div className="relative z-10">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-8">
+             <MaterialIcon icon="verified" className="text-teal-300" style={{ fontSize: 18 }} />
+             <span className="text-xs font-bold uppercase tracking-widest text-blue-100">Trusted by 500+ Schools</span>
+          </div>
+          <h1 className="text-5xl xl:text-6xl font-black leading-[1.1] tracking-tight mb-6">
+            The Operating System<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-blue-200">
+              For African Education.
+            </span>
+          </h1>
+          <p className="text-lg xl:text-xl text-blue-100/80 font-medium max-w-lg leading-relaxed">
+            Eliminate paperwork, track fees in real-time, keep parents engaged, and run your entire campus from a single premium dashboard.
+          </p>
+        </div>
+
+        {/* Testimonial Card */}
+        <div className="relative z-10 max-w-md">
+          <div className="p-8 rounded-[32px] bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl relative">
+            <MaterialIcon icon="format_quote" className="absolute top-6 right-8 text-5xl text-white/10" />
+            <div className="flex gap-1 mb-4">
+              {[1,2,3,4,5].map(i => <MaterialIcon key={i} icon="star" className="text-amber-400 text-sm" />)}
+            </div>
+            <p className="text-lg font-medium leading-relaxed mb-6 italic text-white/90">
+              "SkoolMate transformed how we operate. We collected 40% more fees on time and our parents love the real-time academic updates via the portal."
+            </p>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-blue-900 flex items-center justify-center font-bold border-2 border-white/20 shadow-lg">
+                SO
+              </div>
+              <div>
+                <p className="font-bold text-base">Sarah Otim</p>
+                <p className="text-xs text-blue-200 font-medium tracking-wide uppercase">Director, Hillside College</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

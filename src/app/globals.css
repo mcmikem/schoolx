@@ -32,31 +32,34 @@
   --t3: #586979; /* Tertiary (Increased contrast for accessibility) */
   --t4: #6b7785; /* Quaternary (Increased contrast for accessibility) */
 
-  /* New color palette: Navy (#001F3F) and Gold (#D4AF37) */
-  --primary: #001f3f;
-  --primary-50: #e6e9ed;
-  --primary-100: #c0c8d4;
-  --primary-200: #99a5ba;
-  --primary-300: #73829f;
-  --primary-400: #526688;
-  --primary-500: #001f3f;
-  --primary-600: #001a35;
-  --primary-700: #00142c;
-  --primary-800: #000f22;
-  --primary-900: #000919;
-  --secondary: #d4af37;
-  --secondary-50: #faf6e8;
-  --secondary-100: #f2e9c5;
-  --secondary-200: #eadba0;
-  --secondary-300: #e2cd7b;
-  --secondary-400: #d9bf56;
-  --secondary-500: #d4af37;
-  --secondary-600: #c99c2f;
-  --secondary-700: #be8927;
-  --secondary-800: #b3761f;
-  --secondary-900: #a16317;
+  /* New color palette: Liquid Glass Education SaaS Theme */
+  --primary: #2563eb;
+  --primary-50: #eff6ff;
+  --primary-100: #dbeafe;
+  --primary-200: #bfdbfe;
+  --primary-300: #93c5fd;
+  --primary-400: #60a5fa;
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  --primary-800: #1e40af;
+  --primary-900: #1e3a8a;
+  --secondary: #3b82f6;
+  --secondary-50: #f0fdfa;
+  --secondary-100: #ccfbf1;
+  --secondary-200: #99f6e4;
+  --secondary-300: #5eead4;
+  --secondary-400: #2dd4bf;
+  --secondary-500: #14b8a6;
+  --secondary-600: #0d9488;
+  --secondary-700: #0f766e;
+  --secondary-800: #115e59;
+  --secondary-900: #134e4a;
+  
+  --accent: #f97316; /* CTA Orange */
+  
   --on-primary: #ffffff;
-  --on-secondary: #001f3f;
+  --on-secondary: #ffffff;
 
   --surface-brightest: #ffffff;
   --surface-bright: #f8fafb;
@@ -94,22 +97,22 @@
   --dur: 200ms;
 
   /* Premium Gradients */
-  --grad-teal: linear-gradient(135deg, #0d9488 0%, #2dd4bf 100%);
-  --grad-navy: linear-gradient(135deg, #001f3f 0%, #003366 100%);
-  --grad-amber: linear-gradient(135deg, #b45309 0%, #f59e0b 100%);
+  --grad-teal: linear-gradient(135deg, #14b8a6 0%, #2dd4bf 100%);
+  --grad-navy: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  --grad-amber: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
   --grad-surface: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.8) 0%,
-    rgba(255, 255, 255, 0.4) 100%
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.6) 100%
   );
 }
 
 .glass-premium {
   background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  backdrop-filter: blur(16px) saturate(200%);
+  -webkit-backdrop-filter: blur(16px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 10px 40px -10px rgba(37, 99, 235, 0.1); /* Subtle blue tint */
 }
 
 /* Base X Motif Pattern */

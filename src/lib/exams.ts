@@ -217,7 +217,7 @@ export function getExamColor(type: ExamType): string {
     mid_term: "#B86B0C",
     saturday: "#2E9448",
     eot: "#C0392B",
-    mock: "#8B5CF6",
+    mock: "#10B981",
   };
   return colors[type];
 }
