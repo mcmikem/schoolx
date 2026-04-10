@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { getQuerySchoolId } from "./utils";
-import { triggerAutomationEvent } from "./automation-engine";
+import { triggerAutomationEvent } from "../automation-engine";
 import { DEMO_ATTENDANCE, DemoAttendance } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
