@@ -21,6 +21,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { DEMO_CLASSES, DEMO_ATTENDANCE } from "@/lib/demo-data";
 import { PageGuidance } from "@/components/PageGuidance";
+import StudentSummaryPulse from "@/components/students/StudentSummaryPulse";
 
 const STUDENT_TEMPLATE_COLUMNS = [
   "student_number",
@@ -1264,39 +1265,12 @@ export default function StudentHubPage() {
         }
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="card-premium p-6 flex flex-col items-center justify-center text-center">
-          <div className="w-12 h-12 rounded-2xl bg-[var(--navy-soft)] flex items-center justify-center mb-4">
-             <MaterialIcon icon="groups" className="text-[var(--navy)] text-2xl" />
-          </div>
-          <div className="text-3xl font-extrabold text-[var(--t1)]">{students.length}</div>
-          <div className="text-[10px] font-bold text-[var(--t3)] uppercase tracking-widest mt-1">Total Enrollment</div>
-        </div>
-        
-        <div className="card-premium p-6 flex flex-col items-center justify-center text-center">
-          <div className="w-12 h-12 rounded-2xl bg-[var(--blue-soft)] flex items-center justify-center mb-4">
-             <MaterialIcon icon="male" className="text-blue-600 text-2xl" />
-          </div>
-          <div className="text-3xl font-extrabold text-blue-700">{students.filter(s => s.gender === 'M').length}</div>
-          <div className="text-[10px] font-bold text-[var(--t3)] uppercase tracking-widest mt-1">Total Boys</div>
-        </div>
-
-        <div className="card-premium p-6 flex flex-col items-center justify-center text-center">
-          <div className="w-12 h-12 rounded-2xl bg-pink-50 flex items-center justify-center mb-4">
-             <MaterialIcon icon="female" className="text-pink-600 text-2xl" />
-          </div>
-          <div className="text-3xl font-extrabold text-pink-700">{students.filter(s => s.gender === 'F').length}</div>
-          <div className="text-[10px] font-bold text-[var(--t3)] uppercase tracking-widest mt-1">Total Girls</div>
-        </div>
-
-        <div className="card-premium p-6 flex flex-col items-center justify-center text-center border-l-4 border-l-[var(--red)]">
-          <div className="w-12 h-12 rounded-2xl bg-[var(--red-soft)] flex items-center justify-center mb-4">
-             <MaterialIcon icon="warning" className="text-[var(--red)] text-2xl" />
-          </div>
-          <div className="text-3xl font-extrabold text-[var(--red)]">{atRiskStudents.length}</div>
-          <div className="text-[10px] font-bold text-[var(--red)] uppercase tracking-widest mt-1">At Risk / Dropout</div>
-        </div>
-      </div>
+      <StudentSummaryPulse
+        totalStudents={students.length}
+        boysCount={students.filter((s) => s.gender === "M").length}
+        girlsCount={students.filter((s) => s.gender === "F").length}
+        atRiskCount={atRiskStudents.length}
+      />
 
       <PageGuidance
         title="How to Manage Students"

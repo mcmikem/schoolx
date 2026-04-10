@@ -28,6 +28,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { TableSkeleton, FullPageLoader } from "@/components/ui/Skeleton";
 import { EmptyState, NoData } from "@/components/EmptyState";
+import FinanceSummaryPulse from "@/components/fees/FinanceSummaryPulse";
 import { calculateStudentFeePosition } from "@/lib/operations";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useUndo, UndoNotification } from "@/lib/useUndo";
@@ -1092,28 +1093,15 @@ export default function FinanceHubPage() {
             </Button>
           </div>
         }
-      >
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 animate-fade-in">
-           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
-              <div className="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1">Total Expected</div>
-              <div className="text-xl font-extrabold text-white">{formatCurrency(stats.totalExpected).split(' ').pop()}</div>
-           </div>
-           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
-              <div className="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1">Collections</div>
-              <div className="text-xl font-extrabold text-white">{formatCurrency(stats.totalPaid).split(' ').pop()}</div>
-           </div>
-           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
-              <div className="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1">Outstanding</div>
-              <div className="text-xl font-extrabold text-[var(--amber)]">{formatCurrency(stats.totalBalance).split(' ').pop()}</div>
-           </div>
-           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
-              <div className="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1">Realization</div>
-              <div className="text-xl font-extrabold text-[var(--green)]">
-                {stats.totalExpected > 0 ? Math.round((stats.totalPaid / stats.totalExpected) * 100) : 0}%
-              </div>
-           </div>
-        </div>
-      </PageHeader>
+      />
+
+      <FinanceSummaryPulse
+        totalExpected={stats.totalExpected}
+        totalPaid={stats.totalPaid}
+        totalBalance={stats.totalBalance}
+        realizationRate={stats.totalExpected > 0 ? Math.round((stats.totalPaid / stats.totalExpected) * 100) : 0}
+        formatValue={(val) => formatCurrency(val).split(' ').pop() || '0'}
+      />
 
       <PageGuidance
         title="How to Manage Fees"
