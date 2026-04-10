@@ -44,24 +44,75 @@ import {
 import { useStudent } from "@/lib/hooks";
 import { SendSMSModal } from "@/components/SendSMSModal";
 
-const gradeHistory = [
-  { term: "Term 1 2024", average: 72 },
-  { term: "Term 2 2024", average: 75 },
-  { term: "Term 3 2024", average: 78 },
-  { term: "Term 1 2025", average: 82 },
-  { term: "Term 2 2025", average: 80 },
-  { term: "Term 1 2026", average: 85 },
-];
+function useStudentData(studentId: string, isDemo: boolean) {
+  const [attendancePct, setAttendancePct] = useState(0);
+  const [feePosition, setFeePosition] = useState({ paid: 0, total: 0 });
+  const [gradeHistory, setGradeHistory] = useState<{ term: string; average: number }[]>([]);
+  const [subjectScores, setSubjectScores] = useState<{ subject: string; score: number }[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
 
-const subjectScores = [
-  { subject: "Math", score: 85 },
-  { subject: "English", score: 90 },
-  { subject: "Science", score: 78 },
-  { subject: "SST", score: 72 },
-  { subject: "RE", score: 88 },
-  { subject: "Kiswahili", score: 65 },
-  { subject: "CAPE", score: 92 },
-];
+  useEffect(() => {
+    if (!studentId) return;
+
+    if (isDemo) {
+      setAttendancePct(82);
+      setFeePosition({ paid: 850000, total: 1200000 });
+      setGradeHistory([
+        { term: "Term 1 2025", average: 75 },
+        { term: "Term 2 2025", average: 80 },
+        { term: "Term 3 2025", average: 85 },
+      ]);
+      setSubjectScores([
+        { subject: "Math", score: 88 },
+        { subject: "English", score: 92 },
+        { subject: "Science", score: 12 },
+        { subject: "SST", score: 68 },
+      ]);
+      return;
+    }
+
+    async function fetchDetails() {
+      // Fetch attendance
+      const { data: attData } = await supabase
+        .from("attendance")
+        .select("status")
+        .eq("student_id", studentId);
+      
+      if (attData && attData.length > 0) {
+        const present = attData.filter(a => a.status === 'present').length;
+        setAttendancePct(Math.round((present / attData.length) * 100));
+        setAttendanceRecords(attData);
+      }
+
+      // Fetch fees (simplified)
+      const { data: feeData } = await supabase
+        .from("student_fees")
+        .select("amount_paid, total_fees")
+        .eq("student_id", studentId)
+        .maybeSingle();
+      
+      if (feeData) {
+        setFeePosition({ paid: feeData.amount_paid || 0, total: feeData.total_fees || 0 });
+      }
+
+      // Fetch grades
+      const { data: gradesData } = await supabase
+        .from("grades")
+        .select("subject, score, term")
+        .eq("student_id", studentId);
+      
+      if (gradesData) {
+        // Compute history and current
+        setSubjectScores(gradesData.map(g => ({ subject: g.subject, score: g.score })));
+        setGradeHistory([{ term: "Current", average: Math.round(gradesData.reduce((a, b) => a + b.score, 0) / gradesData.length) }]);
+      }
+    }
+
+    fetchDetails();
+  }, [studentId, isDemo]);
+
+  return { attendancePct, feePosition, gradeHistory, subjectScores, attendanceRecords };
+}
 
 function AttendanceRing({ percentage }: { percentage: number }) {
   const radius = 36;
@@ -100,21 +151,28 @@ function AttendanceRing({ percentage }: { percentage: number }) {
   );
 }
 
-function AttendanceHeatmap() {
+function AttendanceHeatmap({ records, isDemo }: { records: any[], isDemo: boolean }) {
   const days = useMemo(() => {
-    const result: { status: "present" | "absent" | "late"; date: Date }[] = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      if (d.getDay() === 0) continue;
-      const rand = Math.random();
-      result.push({
-        date: d,
-        status: rand > 0.2 ? "present" : rand > 0.08 ? "late" : "absent",
-      });
+    if (isDemo) {
+      const result: { status: "present" | "absent" | "late"; date: Date }[] = [];
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        if (d.getDay() === 0) continue;
+        const rand = Math.random();
+        result.push({
+          date: d,
+          status: rand > 0.2 ? "present" : rand > 0.08 ? "late" : "absent",
+        });
+      }
+      return result;
     }
-    return result;
-  }, []);
+    
+    return records.slice(-30).map(r => ({
+      date: new Date(r.date || Date.now()),
+      status: r.status as "present" | "absent" | "late"
+    }));
+  }, [records, isDemo]);
 
   const colorMap = {
     present: "bg-emerald-400 dark:bg-emerald-500",
@@ -317,15 +375,20 @@ export default function StudentProfilePage({
 }: {
   params: { id: string };
 }) {
-  const { student, loading, error } = useStudent(params.id);
+  const { isDemo } = useAuth();
+  const { student, loading: studentLoading, error } = useStudent(params.id);
+  const { 
+    attendancePct, 
+    feePosition, 
+    gradeHistory, 
+    subjectScores, 
+    attendanceRecords 
+  } = useStudentData(params.id, isDemo);
+  
   const [activeTab, setActiveTab] = useState("overview");
   const [smsOpen, setSmsOpen] = useState(false);
 
-  const attendancePct = 78;
-  const feePaid = 850000;
-  const feeTotal = 1200000;
-
-  if (loading)
+  if (studentLoading)
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-800"></div>
@@ -473,7 +536,7 @@ export default function StudentProfilePage({
               </div>
               <div className="text-center px-4 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                 <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                  {gradeHistory[gradeHistory.length - 1].average}%
+                  {gradeHistory.length > 0 ? `${gradeHistory[gradeHistory.length - 1].average}%` : "N/A"}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   Avg Grade
@@ -482,13 +545,13 @@ export default function StudentProfilePage({
               <div className="text-center px-4 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                 <div
                   className={`text-xl font-bold ${
-                    feeTotal - feePaid > 0
+                    feePosition.total - feePosition.paid > 0
                       ? "text-red-600 dark:text-red-400"
                       : "text-emerald-600 dark:text-emerald-400"
                   }`}
                 >
-                  {feeTotal - feePaid > 0
-                    ? `${((feeTotal - feePaid) / 1000).toFixed(0)}K`
+                  {feePosition.total - feePosition.paid > 0
+                    ? `${((feePosition.total - feePosition.paid) / 1000).toFixed(0)}K`
                     : "Paid"}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -554,20 +617,20 @@ export default function StudentProfilePage({
           </h3>
           <div className="flex flex-col items-center gap-4">
             <AttendanceRing percentage={attendancePct} />
-            <AttendanceHeatmap />
+            <AttendanceHeatmap records={attendanceRecords} isDemo={isDemo} />
           </div>
         </div>
-
+ 
         {/* Fee Status */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
           <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-yellow-600" />
             Fee Status
           </h3>
-          <FeeProgressBar paid={feePaid} total={feeTotal} />
+          <FeeProgressBar paid={feePosition.paid} total={feePosition.total} />
           <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
             <div className="flex items-center gap-2">
-              {feeTotal - feePaid > 0 ? (
+              {feePosition.total - feePosition.paid > 0 ? (
                 <>
                   <AlertCircle className="w-4 h-4 text-red-500" />
                   <span className="text-sm font-medium text-red-600 dark:text-red-400">
@@ -593,10 +656,14 @@ export default function StudentProfilePage({
             Grade Trend
           </h3>
           <div className="flex items-center justify-center py-4">
-            <GradeSparkline data={gradeHistory} />
+            {gradeHistory.length > 0 ? (
+               <GradeSparkline data={gradeHistory} />
+            ) : (
+               <p className="text-xs text-[var(--t3)]">No grade history yet</p>
+            )}
           </div>
           <div className="mt-2 text-xs text-[var(--t3)] text-center">
-            Last 6 terms average progression
+            {gradeHistory.length > 0 ? "Last 6 terms average progression" : "Add grades to see trends"}
           </div>
         </div>
       </div>

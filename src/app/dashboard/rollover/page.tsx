@@ -12,11 +12,11 @@ import { logAuditEventWithOfflineSupport } from '@/lib/audit'
 
 export default function RolloverPage() {
   const router = useRouter()
-  const { school } = useAuth()
+  const { school, isDemo } = useAuth()
   const { academicYear, currentTerm, setAcademicYear, setCurrentTerm } = useAcademic()
   const toast = useToast()
-  const { students } = useStudents(school?.id)
-  const { classes: allSchoolClasses } = useClasses(school?.id)
+  const { students, updateStudent } = useStudents(school?.id)
+  const { classes: allSchoolClasses, updateClass, createClass } = useClasses(school?.id)
   
   const [newAcademicYear, setNewAcademicYear] = useState(String(Number(academicYear) + 1))
   const [promoting, setPromoting] = useState(false)
@@ -42,6 +42,20 @@ export default function RolloverPage() {
     try {
       setPromoting(true)
       
+      if (isDemo) {
+        await new Promise(r => setTimeout(r, 1000))
+        if (currentTerm < 3) {
+          setCurrentTerm((currentTerm + 1) as 1 | 2 | 3)
+          toast.success(`Term ${currentTerm + 1} started`)
+        } else {
+          setAcademicYear(newAcademicYear)
+          setCurrentTerm(1)
+          toast.success(`New academic year ${newAcademicYear} started`)
+        }
+        router.push('/dashboard')
+        return
+      }
+
       if (currentTerm < 3) {
         await setCurrentTerm((currentTerm + 1) as 1 | 2 | 3)
         toast.success(`Term ${currentTerm + 1} started`)
@@ -64,6 +78,26 @@ export default function RolloverPage() {
 
     try {
       setPromoting(true)
+
+      if (isDemo) {
+        await new Promise(r => setTimeout(r, 2000))
+        // Simulate promotion
+        students.forEach(s => {
+          const className = s.classes?.name || ''
+          if (className.includes('P.7') || className.includes('S.6')) {
+            updateStudent(s.id, { status: 'completed' })
+          } else {
+            // simplified promotion logic for demo
+            const nextClass = allSchoolClasses.find(c => c.name === getNextClassName(className))
+            if (nextClass) updateStudent(s.id, { class_id: nextClass.id })
+          }
+        })
+        setAcademicYear(newAcademicYear)
+        setCurrentTerm(1)
+        toast.success(`Academic year ${newAcademicYear} setup complete (Demo)`)
+        router.push('/dashboard')
+        return
+      }
 
       // 1. Mark P.7 and S.6 students as completed
       const graduatingStudents = students.filter(s => {

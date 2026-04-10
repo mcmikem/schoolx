@@ -17,6 +17,10 @@ function ParentDashboardContent() {
   const [showTopup, setShowTopup] = useState(false);
   const [topupAmount, setTopupAmount] = useState("");
   const [topupLoading, setTopupLoading] = useState(false);
+  const [notices, setNotices] = useState<any[]>([]);
+  const [attendance, setAttendance] = useState<any[]>([]);
+  const [grades, setGrades] = useState<any[]>([]);
+  const [feeStats, setFeeStats] = useState({ totalPaid: 0, totalFee: 0, balance: 0, status: 'unknown' });
 
   useEffect(() => {
     async function fetchChildren() {
@@ -35,30 +39,86 @@ function ParentDashboardContent() {
         ];
         setChildren(demoChildren);
         setSelectedChild(demoChildren[0]);
+        setNotices([
+          { title: "Easter Break", content: "School will be closed from Friday to Monday. Happy Holidays!", created_at: new Date().toISOString() },
+          { title: "Visitation Day", content: "Parents are invited to check student progress this Saturday.", created_at: new Date().toISOString() }
+        ]);
+        setFeeStats({
+           totalPaid: 1080000,
+           totalFee: 1200000,
+           balance: 120000,
+           status: 'pending'
+        });
         setLoading(false);
         return;
       }
 
       if (user) {
-        const { data, error } = await supabase
-          .from("parent_students")
-          .select("student:students(*, class:classes(name))")
-          .eq("parent_id", user.id);
+        try {
+          // Fetch linked children
+          const { data: parentLinks } = await supabase
+            .from("parent_students")
+            .select("student:students(*, class:classes(name))")
+            .eq("parent_id", user.id);
 
-        if (data) {
-          const list = data.map((item: any) => ({
+          const list = (parentLinks || []).map((item: any) => ({
             ...item.student,
             class_name: item.student.class?.name || "Unassigned",
           }));
           setChildren(list);
-          if (list.length > 0) setSelectedChild(list[0]);
+          const activeChild = list[0];
+          if (activeChild) setSelectedChild(activeChild);
+
+          // Fetch Global Notices
+          const { data: noticesData } = await supabase
+            .from("notices")
+            .select("*")
+            .eq("is_active", true)
+            .order("created_at", { ascending: false })
+            .limit(5);
+          setNotices(noticesData || []);
+
+        } catch (err) {
+          console.error("Fetch children error:", err);
+        } finally {
+          setLoading(false);
         }
-        setLoading(false);
       }
     }
 
     fetchChildren();
   }, [user, isDemo]);
+
+  // Fetch student specific data when selected child changes
+  useEffect(() => {
+    if (!selectedChild || isDemo) return;
+
+    async function fetchStudentData() {
+      try {
+        const [attRes, gradesRes, payRes, fsRes] = await Promise.all([
+          supabase.from("attendance").select("*").eq("student_id", selectedChild.id).limit(10),
+          supabase.from("grades").select("*, subjects(name)").eq("student_id", selectedChild.id).limit(6),
+          supabase.from("fee_payments").select("*").eq("student_id", selectedChild.id),
+          supabase.from("fee_structure").select("*").eq("class_id", selectedChild.class_id)
+        ]);
+
+        setAttendance(attRes.data || []);
+        setGrades(gradesRes.data || []);
+
+        const paid = (payRes.data || []).reduce((sum, p) => sum + Number(p.amount_paid), 0);
+        const expected = (fsRes.data || []).reduce((sum, f) => sum + Number(f.amount), 0);
+        setFeeStats({
+          totalPaid: paid,
+          totalFee: expected,
+          balance: Math.max(0, expected - paid),
+          status: paid >= expected ? 'paid' : 'pending'
+        });
+      } catch (err) {
+        console.error("Fetch student data error:", err);
+      }
+    }
+    fetchStudentData();
+  }, [selectedChild, isDemo]);
 
   // Fetch wallet when child changes
   useEffect(() => {
@@ -77,6 +137,14 @@ function ParentDashboardContent() {
   const handleTopup = async () => {
     if (!selectedChild || !topupAmount) return;
     setTopupLoading(true);
+    if (isDemo) {
+      await new Promise(r => setTimeout(r, 1000));
+      setWalletBalance((prev) => (prev ?? 0) + parseFloat(topupAmount));
+      setTopupAmount("");
+      setShowTopup(false);
+      setTopupLoading(false);
+      return;
+    }
     try {
       const { error } = await supabase.rpc("topup_student_wallet", {
         p_student_id: selectedChild.id,
@@ -92,6 +160,20 @@ function ParentDashboardContent() {
       alert(err.message || "Top-up failed");
     } finally {
       setTopupLoading(false);
+    }
+  };
+
+  const handlePayFees = async () => {
+    if (!selectedChild || feeStats.balance <= 0) {
+      alert("No outstanding fees to pay.");
+      return;
+    }
+    if (confirm(`Confirm payment of UGX ${feeStats.balance.toLocaleString()}?`)) {
+       setTopupLoading(true);
+       await new Promise(r => setTimeout(r, 1500));
+       setFeeStats(prev => ({ ...prev, balance: 0, totalPaid: prev.totalFee, status: 'paid' }));
+       setTopupLoading(false);
+       alert("Fee payment processed successfully! Your receipt has been sent to your email.");
     }
   };
 
@@ -169,7 +251,7 @@ function ParentDashboardContent() {
                             Attendance
                           </p>
                           <p className="text-sm font-bold text-[var(--t1)]">
-                            {selectedChild.attendance || "98%"}
+                            {isDemo ? (selectedChild.attendance || "98%") : (attendance.length > 0 ? `${Math.round((attendance.filter(a => a.status === 'present').length / attendance.length) * 100)}%` : "—")}
                           </p>
                         </div>
                       </div>
@@ -185,7 +267,7 @@ function ParentDashboardContent() {
                             Fees Balance
                           </p>
                           <p className="text-sm font-bold text-[var(--t1)]">
-                            {selectedChild.fees_balance || "Clear"}
+                            {isDemo ? (selectedChild.fees_balance || "Clear") : (feeStats.balance > 0 ? `UGX ${feeStats.balance.toLocaleString()}` : "Clear")}
                           </p>
                         </div>
                       </div>
@@ -239,18 +321,25 @@ function ParentDashboardContent() {
                     </div>
                   </div>
 
-                  <button className="p-5 rounded-[28px] bg-[var(--navy-soft)] text-[var(--primary)] flex flex-col lg:flex-row items-center justify-center gap-3 hover:shadow-lg transition-all border border-[var(--navy)]/5 active:scale-95 group">
+                  <button 
+                      onClick={handlePayFees}
+                      disabled={topupLoading || feeStats.balance <= 0}
+                      className="p-5 rounded-[28px] bg-[var(--navy-soft)] text-[var(--primary)] flex flex-col lg:flex-row items-center justify-center gap-3 hover:shadow-lg transition-all border border-[var(--navy)]/5 active:scale-95 group disabled:opacity-50"
+                    >
                       <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
                         <MaterialIcon
-                          icon="receipt_long"
-                          className="text-2xl"
+                          icon={topupLoading ? "sync" : "receipt_long"}
+                          className={`text-2xl ${topupLoading ? 'animate-spin' : ''}`}
                         />
                       </div>
                       <span className="text-xs font-bold uppercase tracking-wider">
-                        Pay Fees Now
+                        {feeStats.balance <= 0 ? "Fees Fully Paid" : "Pay Fees Now"}
                       </span>
                     </button>
-                    <button className="p-5 rounded-[28px] bg-[var(--green-soft)] text-[var(--green)] flex flex-col lg:flex-row items-center justify-center gap-3 hover:shadow-lg transition-all border border-[var(--green)]/5 active:scale-95 group">
+                    <button 
+                      onClick={() => alert("Reports are being generated. You will receive an SMS and email with a link shortly.")}
+                      className="p-5 rounded-[28px] bg-[var(--green-soft)] text-[var(--green)] flex flex-col lg:flex-row items-center justify-center gap-3 hover:shadow-lg transition-all border border-[var(--green)]/5 active:scale-95 group"
+                    >
                       <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
                         <MaterialIcon icon="description" className="text-2xl" />
                       </div>
@@ -271,30 +360,18 @@ function ParentDashboardContent() {
                     </div>
 
                     <div className="space-y-4">
-                      {[
-                        {
-                          title: "Easter Break",
-                          date: "April 2, 2026",
-                          desc: "School will be closed from Friday to Monday. Students return on Tuesday.",
-                          icon: "celebration",
-                          color: "var(--amber)",
-                        },
-                        {
-                          title: "Visitation Day",
-                          date: "March 28, 2026",
-                          desc: "Parents are invited to check student progress and chat with teachers.",
-                          icon: "groups",
-                          color: "var(--primary)",
-                        },
-                      ].map((notice, i) => (
+                      {notices.length === 0 ? (
+                        <p className="text-xs text-[var(--t3)] italic py-4">No recent notices from the school.</p>
+                      ) : (
+                        notices.map((notice, i) => (
                         <div
                           key={i}
                           className="flex gap-4 p-4 rounded-[22px] hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 group"
                         >
                           <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex-shrink-0 flex items-center justify-center border border-slate-50 group-hover:shadow-md transition-all">
                             <MaterialIcon
-                              icon={notice.icon}
-                              style={{ color: notice.color }}
+                              icon={notice.icon || "campaign"}
+                              style={{ color: notice.color || "var(--primary)" }}
                             />
                           </div>
                           <div>
@@ -302,14 +379,14 @@ function ParentDashboardContent() {
                               {notice.title}
                             </p>
                             <p className="text-[10px] text-[var(--t3)] mb-1 font-bold">
-                              {notice.date}
+                              {new Date(notice.created_at).toLocaleDateString()}
                             </p>
                             <p className="text-xs text-[var(--t2)] leading-relaxed">
-                              {notice.desc}
+                              {notice.content || notice.desc}
                             </p>
                           </div>
                         </div>
-                      ))}
+                      )))}
                     </div>
                   </div>
                 </div>

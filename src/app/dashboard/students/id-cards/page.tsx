@@ -8,9 +8,10 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { useReactToPrint } from "react-to-print";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
+import { DEMO_STUDENTS } from "@/lib/demo-data";
 
 export default function IDCardGenerator() {
-  const { school } = useAuth();
+  const { school, isDemo } = useAuth();
   const searchParams = useSearchParams();
   const studentId = searchParams?.get("studentId") || null;
 
@@ -27,6 +28,12 @@ export default function IDCardGenerator() {
 
   const loadSingleStudent = async (id: string) => {
     setLoading(true);
+    if (isDemo) {
+      const demoS = DEMO_STUDENTS.find(s => s.id === id) || DEMO_STUDENTS[0];
+      setStudents([{ ...demoS, classes: { name: "P.5", stream: "North" } }]);
+      setLoading(false);
+      return;
+    }
     const { data, error } = await supabase
       .from("students")
       .select("*, classes(name, stream)")
@@ -44,6 +51,15 @@ export default function IDCardGenerator() {
   const searchStudents = async () => {
     if (search.length < 3) return;
     setLoading(true);
+    if (isDemo) {
+      const filtered = DEMO_STUDENTS.filter(s => 
+        s.first_name.toLowerCase().includes(search.toLowerCase()) || 
+        s.last_name.toLowerCase().includes(search.toLowerCase())
+      );
+      setStudents(filtered.map(s => ({ ...s, classes: { name: "P.5", stream: "North" } })));
+      setLoading(false);
+      return;
+    }
     const { data, error } = await supabase
       .from("students")
       .select("*, classes(name, stream)")
