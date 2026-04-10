@@ -9,6 +9,7 @@ const PAGES_TO_CACHE = [
   '/login',
   '/manifest.json',
   '/offline.html',
+  '/dashboard/store/pos',
 ];
 
 const SUPABASE_URL = 'https://pgbfrmqteduyxjlgafkb.supabase.co';
