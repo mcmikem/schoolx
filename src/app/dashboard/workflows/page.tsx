@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
-import { TopBar } from "@/components/dashboard";
+import TopBar from "@/components/dashboard/TopBar";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 
@@ -46,17 +46,49 @@ export default function WorkflowsBuilder() {
   const [selectedAction, setSelectedAction] = useState("");
 
   const triggers = [
-    { id: "student_absent", label: "Student is marked Absent", icon: "how_to_reg", color: "text-amber-500", bg: "bg-amber-50" },
-    { id: "canteen_balance_low", label: "Canteen Wallet < UGX 5,000", icon: "wallet", color: "text-red-500", bg: "bg-red-50" },
-    { id: "fee_payment_received", label: "Fee Payment Received", icon: "payments", color: "text-emerald-500", bg: "bg-emerald-50" },
-    { id: "grade_published", label: "Exam Grades Published", icon: "school", color: "text-blue-500", bg: "bg-blue-50" },
+    {
+      id: "student_absent",
+      label: "Student is marked Absent",
+      icon: "how_to_reg",
+      color: "text-amber-500",
+      bg: "bg-amber-50",
+    },
+    {
+      id: "canteen_balance_low",
+      label: "Canteen Wallet < UGX 5,000",
+      icon: "wallet",
+      color: "text-red-500",
+      bg: "bg-red-50",
+    },
+    {
+      id: "fee_payment_received",
+      label: "Fee Payment Received",
+      icon: "payments",
+      color: "text-emerald-500",
+      bg: "bg-emerald-50",
+    },
+    {
+      id: "grade_published",
+      label: "Exam Grades Published",
+      icon: "school",
+      color: "text-blue-500",
+      bg: "bg-blue-50",
+    },
   ];
 
   const actions = [
     { id: "sms_parent", label: "Send SMS to Parent", icon: "sms" },
-    { id: "push_notification_parent", label: "Push Notification via Portal", icon: "notifications_active" },
+    {
+      id: "push_notification_parent",
+      label: "Push Notification via Portal",
+      icon: "notifications_active",
+    },
     { id: "email_bursar", label: "Email Bursar", icon: "email" },
-    { id: "suspend_exam_print", label: "Suspend Exam Card Printing", icon: "block" },
+    {
+      id: "suspend_exam_print",
+      label: "Suspend Exam Card Printing",
+      icon: "block",
+    },
   ];
 
   const handleSaveWorkflow = () => {
@@ -81,9 +113,12 @@ export default function WorkflowsBuilder() {
     toast.success("Workflow deployed successfully to production engine");
   };
 
-  const getTriggerLabel = (id: string) => triggers.find((t) => t.id === id)?.label || "Unknown Trigger";
-  const getActionLabel = (id: string) => actions.find((a) => a.id === id)?.label || "Unknown Action";
-  const getTriggerDisplayData = (id: string) => triggers.find((t) => t.id === id) || triggers[0];
+  const getTriggerLabel = (id: string) =>
+    triggers.find((t) => t.id === id)?.label || "Unknown Trigger";
+  const getActionLabel = (id: string) =>
+    actions.find((a) => a.id === id)?.label || "Unknown Action";
+  const getTriggerDisplayData = (id: string) =>
+    triggers.find((t) => t.id === id) || triggers[0];
 
   return (
     <div className="h-full flex flex-col bg-[var(--bg)] w-full">
@@ -95,11 +130,16 @@ export default function WorkflowsBuilder() {
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-full -mr-32 -mt-32 blur-3xl z-0 pointer-events-none" />
           <div className="relative z-10 flex-1">
             <h1 className="text-3xl font-black tracking-tight text-[var(--t1)] flex items-center gap-3">
-              <MaterialIcon icon="account_tree" className="text-[var(--primary)]" style={{ fontSize: 32 }} />
+              <MaterialIcon
+                icon="account_tree"
+                className="text-[var(--primary)]"
+                style={{ fontSize: 32 }}
+              />
               Automation Engine
             </h1>
             <p className="text-[var(--t3)] font-medium mt-2 max-w-lg">
-              Create rules to eliminate manual work. The automation engine runs 24/7 scanning for triggers and executing actions automatically.
+              Create rules to eliminate manual work. The automation engine runs
+              24/7 scanning for triggers and executing actions automatically.
             </p>
           </div>
           <button
@@ -113,18 +153,32 @@ export default function WorkflowsBuilder() {
         {/* Builder View */}
         {isBuilderOpen && (
           <div className="glass-premium rounded-3xl p-8 border border-[var(--primary)]/30 animate-in slide-in-from-top-4 relative overflow-hidden shadow-2xl">
-            <div className="absolute inset-0 bg-grid-slate-200/50 [mask-image:linear-gradient(0deg,transparent,black)] pointer-events-none" style={{ backgroundImage: "linear-gradient(to right, #80808012 1px, transparent 1px), linear-gradient(to bottom, #80808012 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
-            
+            <div
+              className="absolute inset-0 bg-grid-slate-200/50 [mask-image:linear-gradient(0deg,transparent,black)] pointer-events-none"
+              style={{
+                backgroundImage:
+                  "linear-gradient(to right, #80808012 1px, transparent 1px), linear-gradient(to bottom, #80808012 1px, transparent 1px)",
+                backgroundSize: "24px 24px",
+              }}
+            />
+
             <div className="relative z-10">
               <div className="flex justify-between items-center mb-8">
-                <h2 className="text-xl font-bold text-[var(--t1)]">Visual Workflow Builder</h2>
-                <button onClick={() => setIsBuilderOpen(false)} className="text-[var(--t3)] hover:text-[var(--red)] transition-colors">
+                <h2 className="text-xl font-bold text-[var(--t1)]">
+                  Visual Workflow Builder
+                </h2>
+                <button
+                  onClick={() => setIsBuilderOpen(false)}
+                  className="text-[var(--t3)] hover:text-[var(--red)] transition-colors"
+                >
                   <MaterialIcon icon="close" />
                 </button>
               </div>
 
               <div className="mb-8">
-                <label className="block text-xs font-black uppercase tracking-widest text-[var(--t3)] mb-2">Workflow Name</label>
+                <label className="block text-xs font-black uppercase tracking-widest text-[var(--t3)] mb-2">
+                  Workflow Name
+                </label>
                 <input
                   type="text"
                   value={newTitle}
@@ -137,22 +191,35 @@ export default function WorkflowsBuilder() {
               <div className="flex flex-col md:flex-row items-center gap-8 mb-10 w-full relative">
                 {/* Trigger Selection */}
                 <div className="flex-1 w-full bg-[var(--surface-container)] rounded-3xl p-6 border-2 border-dashed border-[var(--border)] relative group hover:border-[var(--primary)] transition-colors">
-                  <div className="absolute -top-4 -left-4 w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center shadow-lg font-black text-[var(--t1)]">1</div>
-                  <h3 className="text-sm font-black uppercase tracking-widest text-[var(--t2)] mb-4 text-center">When this happens...</h3>
-                  
+                  <div className="absolute -top-4 -left-4 w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center shadow-lg font-black text-[var(--t1)]">
+                    1
+                  </div>
+                  <h3 className="text-sm font-black uppercase tracking-widest text-[var(--t2)] mb-4 text-center">
+                    When this happens...
+                  </h3>
+
                   <div className="grid gap-3">
                     {triggers.map((t) => (
                       <button
                         key={t.id}
                         onClick={() => setSelectedTrigger(t.id)}
                         className={`p-4 rounded-2xl flex items-center gap-3 transition-all border text-left ${
-                          selectedTrigger === t.id ? `bg-white border-2 border-[var(--primary)] shadow-lg scale-100` : `bg-[var(--surface)] border-[var(--border)] hover:border-[var(--primary)]/50 scale-[0.98]`
+                          selectedTrigger === t.id
+                            ? `bg-white border-2 border-[var(--primary)] shadow-lg scale-100`
+                            : `bg-[var(--surface)] border-[var(--border)] hover:border-[var(--primary)]/50 scale-[0.98]`
                         }`}
                       >
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${t.bg} ${t.color}`}>
-                           <MaterialIcon icon={t.icon} style={{fontSize: 20}} />
+                        <div
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center ${t.bg} ${t.color}`}
+                        >
+                          <MaterialIcon
+                            icon={t.icon}
+                            style={{ fontSize: 20 }}
+                          />
                         </div>
-                        <span className="font-bold text-[var(--t1)] text-sm">{t.label}</span>
+                        <span className="font-bold text-[var(--t1)] text-sm">
+                          {t.label}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -160,28 +227,39 @@ export default function WorkflowsBuilder() {
 
                 {/* Connector Arrow */}
                 <div className="hidden md:flex flex-col items-center justify-center relative">
-                   <div className="h-[2px] w-16 bg-[var(--border)] absolute" />
-                   <div className="w-12 h-12 rounded-full bg-[var(--bg)] border-2 border-[var(--border)] z-10 flex items-center justify-center text-[var(--primary)] shadow-inner">
-                      <MaterialIcon icon="arrow_forward" style={{fontSize: 26, fontWeight: 'bold'}} />
-                   </div>
+                  <div className="h-[2px] w-16 bg-[var(--border)] absolute" />
+                  <div className="w-12 h-12 rounded-full bg-[var(--bg)] border-2 border-[var(--border)] z-10 flex items-center justify-center text-[var(--primary)] shadow-inner">
+                    <MaterialIcon
+                      icon="arrow_forward"
+                      style={{ fontSize: 26, fontWeight: "bold" }}
+                    />
+                  </div>
                 </div>
 
                 {/* Action Selection */}
                 <div className="flex-1 w-full bg-[var(--surface-container)] rounded-3xl p-6 border-2 border-dashed border-[var(--border)] relative group hover:border-[var(--primary)] transition-colors">
-                  <div className="absolute -top-4 -right-4 w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center shadow-lg font-black text-[var(--t1)]">2</div>
-                  <h3 className="text-sm font-black uppercase tracking-widest text-[var(--t2)] mb-4 text-center">Then do this...</h3>
-                  
+                  <div className="absolute -top-4 -right-4 w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center shadow-lg font-black text-[var(--t1)]">
+                    2
+                  </div>
+                  <h3 className="text-sm font-black uppercase tracking-widest text-[var(--t2)] mb-4 text-center">
+                    Then do this...
+                  </h3>
+
                   <div className="grid gap-3">
                     {actions.map((a) => (
                       <button
                         key={a.id}
                         onClick={() => setSelectedAction(a.id)}
                         className={`p-4 rounded-2xl flex items-center gap-3 transition-all border text-left ${
-                          selectedAction === a.id ? `bg-[var(--primary)] border-2 border-[var(--primary)] shadow-lg shadow-[var(--primary)]/30 scale-100 text-white` : `bg-[var(--surface)] border-[var(--border)] hover:border-[var(--primary)]/50 scale-[0.98] text-[var(--t1)]`
+                          selectedAction === a.id
+                            ? `bg-[var(--primary)] border-2 border-[var(--primary)] shadow-lg shadow-[var(--primary)]/30 scale-100 text-white`
+                            : `bg-[var(--surface)] border-[var(--border)] hover:border-[var(--primary)]/50 scale-[0.98] text-[var(--t1)]`
                         }`}
                       >
                         <MaterialIcon icon={a.icon} />
-                        <span className="font-bold text-sm tracking-tight">{a.label}</span>
+                        <span className="font-bold text-sm tracking-tight">
+                          {a.label}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -212,37 +290,50 @@ export default function WorkflowsBuilder() {
           {workflows.map((wf) => {
             const triggerInfo = getTriggerDisplayData(wf.trigger);
             return (
-              <div key={wf.id} className="bg-[var(--surface)] border border-[var(--border)] rounded-3xl p-6 shadow-sm hover:shadow-xl hover:border-[var(--primary)]/30 transition-all group flex flex-col items-start h-full">
+              <div
+                key={wf.id}
+                className="bg-[var(--surface)] border border-[var(--border)] rounded-3xl p-6 shadow-sm hover:shadow-xl hover:border-[var(--primary)]/30 transition-all group flex flex-col items-start h-full"
+              >
                 <div className="w-full flex justify-between items-start mb-4">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${triggerInfo.bg} ${triggerInfo.color} group-hover:scale-110 transition-transform`}>
+                  <div
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${triggerInfo.bg} ${triggerInfo.color} group-hover:scale-110 transition-transform`}
+                  >
                     <MaterialIcon icon={triggerInfo.icon} />
                   </div>
                   <div className="flex flex-col items-end">
                     <span
                       className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                        wf.status === "active" ? "bg-emerald-100 text-emerald-700 border border-emerald-200" : "bg-[var(--surface-container)] text-[var(--t3)] border border-[var(--border)]"
+                        wf.status === "active"
+                          ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                          : "bg-[var(--surface-container)] text-[var(--t3)] border border-[var(--border)]"
                       }`}
                     >
                       {wf.status}
                     </span>
                     <button className="text-[var(--t4)] hover:text-[var(--primary)] mt-2">
-                       <MaterialIcon icon="more_horiz" />
+                      <MaterialIcon icon="more_horiz" />
                     </button>
                   </div>
                 </div>
 
                 <div className="flex-1 w-full">
-                  <h3 className="text-lg font-bold text-[var(--t1)] mb-4 tracking-tight">{wf.name}</h3>
-                  
+                  <h3 className="text-lg font-bold text-[var(--t1)] mb-4 tracking-tight">
+                    {wf.name}
+                  </h3>
+
                   <div className="bg-[var(--surface-container-low)] rounded-2xl p-4 border border-[var(--border)] relative overflow-hidden">
                     <div className="flex items-center gap-2 mb-3 z-10 relative">
-                       <div className="w-2 h-2 rounded-full bg-slate-300 flex-shrink-0" />
-                       <p className="text-xs font-bold text-[var(--t2)] line-clamp-1">{getTriggerLabel(wf.trigger)}</p>
+                      <div className="w-2 h-2 rounded-full bg-slate-300 flex-shrink-0" />
+                      <p className="text-xs font-bold text-[var(--t2)] line-clamp-1">
+                        {getTriggerLabel(wf.trigger)}
+                      </p>
                     </div>
                     <div className="absolute left-[19px] top-6 bottom-6 w-[2px] bg-slate-200" />
                     <div className="flex items-center gap-2 z-10 relative">
-                       <div className="w-2 h-2 rounded-full bg-[var(--primary)] shadow-[0_0_10px_var(--primary)] flex-shrink-0" />
-                       <p className="text-xs font-bold text-[var(--primary)] line-clamp-1">{getActionLabel(wf.action)}</p>
+                      <div className="w-2 h-2 rounded-full bg-[var(--primary)] shadow-[0_0_10px_var(--primary)] flex-shrink-0" />
+                      <p className="text-xs font-bold text-[var(--primary)] line-clamp-1">
+                        {getActionLabel(wf.action)}
+                      </p>
                     </div>
                   </div>
                 </div>
