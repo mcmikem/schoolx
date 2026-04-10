@@ -312,6 +312,7 @@ export default function CalendarPage() {
           </Card>
         </div>
       </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
