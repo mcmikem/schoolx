@@ -18,7 +18,7 @@ function supabaseImageHosts() {
 }
 
 const nextConfig = {
-  output: "export",
+  // output: "export", // Disabled to allow Vercel to support API/Cron routes
   trailingSlash: true,
   experimental: {},
   images: {
