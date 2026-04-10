@@ -17,7 +17,7 @@ export function PageHeader({
 }: PageHeaderProps) {
   if (variant === "premium") {
     return (
-      <div className="relative overflow-hidden bg-motif rounded-[var(--r2)] p-6 mb-8 border border-[var(--border)] shadow-sm">
+      <div className="relative overflow-hidden bg-motif rounded-[var(--r2)] p-6 mb-8 border border-[var(--border)] shadow-sm motif-kente-border">
         <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
           <span className="material-symbols-outlined text-[120px]">school</span>
         </div>

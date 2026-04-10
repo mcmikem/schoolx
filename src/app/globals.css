@@ -939,3 +939,66 @@ h6,
 .font-heading {
   font-family: "Sora", sans-serif;
 }
+
+/* -- PREMIUM UPGRADES 2026 ------------------------------- */
+
+.card-premium {
+  @apply bg-white/70 backdrop-blur-md border border-white/40 rounded-[var(--r2)] shadow-[var(--sh2)] overflow-hidden transition-all duration-300;
+}
+
+.card-premium:hover {
+  @apply shadow-[var(--sh3)] -translate-y-1;
+}
+
+.text-premium {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--green) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  @apply font-bold;
+}
+
+/* African-Inspired Motif (Kente Border) */
+.motif-kente-border {
+  position: relative;
+}
+
+.motif-kente-border::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-image: linear-gradient(90deg, 
+    var(--amber) 0%, var(--amber) 25%, 
+    var(--navy) 25%, var(--navy) 50%, 
+    var(--green) 50%, var(--green) 75%, 
+    var(--red) 75%, var(--red) 100%);
+  background-size: 40px 100%;
+  opacity: 0.6;
+}
+
+.glass-surface {
+  @apply bg-white/40 backdrop-blur-sm border border-white/20 rounded-2xl;
+}
+
+.inner-shadow {
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.stat-pulse {
+  @apply relative;
+}
+
+.stat-pulse::before {
+  content: '';
+  @apply absolute -inset-1 bg-[var(--primary)] opacity-0 rounded-full animate-pulse;
+}
+
+.btn-navy {
+  @apply bg-[var(--navy)] text-white shadow-[var(--sh1)] transition-all active:scale-[0.98];
+}
+
+.btn-navy:hover {
+  @apply brightness-110 shadow-[var(--sh2)];
+}
