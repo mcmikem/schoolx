@@ -7,9 +7,10 @@ interface SmartAdvisorProps {
   collectionRate: number;
   attendanceRate: number;
   role: "headmaster" | "bursar" | "dean" | "teacher";
+  performanceAlerts?: any[];
 }
 
-export default function SmartAdvisor({ stats, collectionRate, attendanceRate, role }: SmartAdvisorProps) {
+export default function SmartAdvisor({ stats, collectionRate, attendanceRate, role, performanceAlerts = [] }: SmartAdvisorProps) {
   const insights = useMemo(() => {
     const list: string[] = [];
     
@@ -54,6 +55,11 @@ export default function SmartAdvisor({ stats, collectionRate, attendanceRate, ro
     const isEndOfTerm = new Date().getMonth() === 3 || new Date().getMonth() === 7 || new Date().getMonth() === 11;
     if (isEndOfTerm && role === "headmaster") {
       list.push("End of Term: Time to check all names are correct and print the term report cards.");
+    }
+
+    if (performanceAlerts.length > 0) {
+      const topAlert = performanceAlerts[0];
+      list.push(`Alert: ${topAlert.studentName} marks dropped by ${topAlert.dropPercentage}% in ${topAlert.subjectName}. Consider a parent meeting.`);
     }
 
     return list;
