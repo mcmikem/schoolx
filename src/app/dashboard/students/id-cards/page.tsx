@@ -12,7 +12,7 @@ import { useEffect } from "react";
 export default function IDCardGenerator() {
   const { school } = useAuth();
   const searchParams = useSearchParams();
-  const studentId = searchParams.get("studentId");
+  const studentId = searchParams?.get("studentId") || null;
 
   const [loading, setLoading] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
@@ -38,7 +38,7 @@ export default function IDCardGenerator() {
   };
 
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,
   });
 
   const searchStudents = async () => {
