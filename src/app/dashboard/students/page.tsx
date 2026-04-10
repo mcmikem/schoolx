@@ -449,17 +449,33 @@ export default function StudentHubPage() {
 
   const fetchPromotionClasses = useCallback(async () => {
     if (!school?.id) return;
+    if (isDemo) {
+      setPromotionClasses(DEMO_CLASSES as any);
+      return;
+    }
     const { data } = await supabase
       .from("classes")
       .select("*")
       .eq("school_id", school?.id)
       .order("level", { ascending: true });
     setPromotionClasses(data || []);
-  }, [school?.id]);
+  }, [school?.id, isDemo]);
 
   const fetchPromotionStudents = useCallback(async () => {
     if (!school?.id || !fromClass) return;
     setPromotionLoading(true);
+    if (isDemo) {
+      const classStudents = students.filter(s => s.class_id === fromClass);
+      setPromotionStudents(classStudents as any);
+      setSelectedStudents(new Set(classStudents.map((s) => s.id)));
+      const defaultActions: StudentActionMap = {};
+      classStudents.forEach((s) => {
+        defaultActions[s.id] = { action: "promote" };
+      });
+      setStudentActions(defaultActions);
+      setPromotionLoading(false);
+      return;
+    }
     const { data } = await supabase
       .from("students")
       .select("*, classes(*)")
@@ -475,10 +491,25 @@ export default function StudentHubPage() {
     });
     setStudentActions(defaultActions);
     setPromotionLoading(false);
-  }, [school?.id, fromClass]);
+  }, [school?.id, fromClass, isDemo, students]);
 
   const fetchPromotionHistory = useCallback(async () => {
     if (!school?.id) return;
+    if (isDemo) {
+      setPromotionHistory([
+        {
+          id: "demo-h1",
+          from_classes: { name: "P.4" },
+          to_classes: { name: "P.5" },
+          academic_year: academicYear,
+          promotion_type: "promoted",
+          promoted_at: new Date().toISOString(),
+          users: { full_name: user?.full_name || "Admin" },
+          student_count: 32,
+        },
+      ]);
+      return;
+    }
     const { data } = await supabase
       .from("student_promotions")
       .select("*, from_classes(name), to_classes(name), users(full_name)")
@@ -486,7 +517,7 @@ export default function StudentHubPage() {
       .order("promoted_at", { ascending: false })
       .limit(20);
     setPromotionHistory(data || []);
-  }, [school?.id]);
+  }, [school?.id, isDemo, academicYear, user?.full_name]);
 
   useEffect(() => {
     if (school?.id) fetchPromotionClasses();
@@ -1094,16 +1125,34 @@ export default function StudentHubPage() {
     }
     setPromoting(true);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      let promoted = 0,
-        repeating = 0,
-        demoted = 0;
+      let user_id = "demo-user";
+      if (!isDemo) {
+        const { data: { user } } = await supabase.auth.getUser();
+        user_id = user?.id || user_id;
+      }
+
+      let promoted = 0, repeating = 0, demoted = 0;
+      
       for (const studentId of selectedArray) {
         const actionData = studentActions[studentId];
         if (!actionData) continue;
         const action = actionData.action;
+
+        if (isDemo) {
+          if (action === "promote") {
+            await updateStudent(studentId, { class_id: toClass });
+            promoted++;
+          } else if (action === "repeat") {
+            await updateStudent(studentId, { repeating: true });
+            repeating++;
+          } else if (action === "demote") {
+            const targetClass = actionData.targetClassId || fromClass;
+            await updateStudent(studentId, { class_id: targetClass });
+            demoted++;
+          }
+          continue;
+        }
+
         if (action === "promote") {
           await supabase
             .from("students")
@@ -1116,7 +1165,7 @@ export default function StudentHubPage() {
             to_class_id: toClass,
             academic_year: academicYear,
             promotion_type: "promoted",
-            promoted_by: user?.id,
+            promoted_by: user_id,
             promoted_at: new Date().toISOString(),
           });
           promoted++;
@@ -1133,7 +1182,7 @@ export default function StudentHubPage() {
             academic_year: academicYear,
             promotion_type: "repeating",
             notes: "Repeating class",
-            promoted_by: user?.id,
+            promoted_by: user_id,
             promoted_at: new Date().toISOString(),
           });
           repeating++;
@@ -1151,7 +1200,7 @@ export default function StudentHubPage() {
             academic_year: academicYear,
             promotion_type: "demoted",
             notes: actionData.reason || "Demoted",
-            promoted_by: user?.id,
+            promoted_by: user_id,
             promoted_at: new Date().toISOString(),
           });
           demoted++;

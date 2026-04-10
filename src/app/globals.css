@@ -4,10 +4,10 @@
 
 /* -- TOKENS ----------------------------------------------- */
 :root {
-  /* SchoolX Brand Colors */
-  --navy: #0056d2; /* Core Blue */
-  --navy-mid: #1a6be0;
-  --navy-soft: #e6f0ff;
+  /* SchoolX Brand Colors - Aligned with SkoolMate OS Official Logo */
+  --navy: #001F3F; /* Official Brand Deep Navy */
+  --navy-mid: #003366;
+  --navy-soft: #f0f7ff;
 
   --green: #0d9488; /* Teal - WCAG compliant */
   --green-soft: #ccfbf1;
@@ -27,24 +27,24 @@
   --border2: #d9d9d9; /* Motif Gray */
 
   /* Text Colors (Depth Slate) */
-  --t1: #1b2530; /* Primary Text */
+  --t1: #001F3F; /* Primary Text matches Brand */
   --t2: #3e4c59; /* Secondary */
-  --t3: #586979; /* Tertiary (Increased contrast for accessibility) */
-  --t4: #6b7785; /* Quaternary (Increased contrast for accessibility) */
+  --t3: #586979; /* Tertiary */
+  --t4: #6b7785; /* Quaternary */
 
   /* New color palette: Liquid Glass Education SaaS Theme */
-  --primary: #2563eb;
-  --primary-50: #eff6ff;
-  --primary-100: #dbeafe;
-  --primary-200: #bfdbfe;
-  --primary-300: #93c5fd;
-  --primary-400: #60a5fa;
-  --primary-500: #3b82f6;
-  --primary-600: #2563eb;
-  --primary-700: #1d4ed8;
-  --primary-800: #1e40af;
-  --primary-900: #1e3a8a;
-  --secondary: #3b82f6;
+  --primary: #001F3F; /* Changed from #2563eb to match SkoolMate OS */
+  --primary-50: #f0f7ff;
+  --primary-100: #e0efff;
+  --primary-200: #c2e0ff;
+  --primary-300: #99ccff;
+  --primary-400: #66b2ff;
+  --primary-500: #3399ff;
+  --primary-600: #0080ff;
+  --primary-700: #0066cc;
+  --primary-800: #004d99;
+  --primary-900: #001F3F;
+  --secondary: #0056d2;
   --secondary-50: #f0fdfa;
   --secondary-100: #ccfbf1;
   --secondary-200: #99f6e4;

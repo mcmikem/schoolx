@@ -64,6 +64,22 @@ export default function CanteenPage() {
       // #endregion
       return;
     }
+    if (isDemo) {
+      setItems([
+        { id: "1", name: "Chapati", category: "food", price: 1000, stock: 45, unit: "pieces", active: true },
+        { id: "2", name: "Mandazi", category: "snack", price: 500, stock: 12, unit: "pieces", active: true },
+        { id: "3", name: "Soda (300ml)", category: "drink", price: 1500, stock: 8, unit: "liters", active: true },
+        { id: "4", name: "Rice & Beans", category: "food", price: 3500, stock: 20, unit: "pieces", active: true },
+      ]);
+      setOrders([
+        { id: "ORD-1", student_id: "s1", total: 4500, status: "completed", created_at: new Date().toISOString(), student_name: "Isaac Mugisha", items: [] },
+        { id: "ORD-2", student_id: "s2", total: 1000, status: "pending", created_at: new Date().toISOString(), student_name: "Sarah Jane", items: [] },
+        { id: "ORD-3", student_id: "s3", total: 2000, status: "preparing", created_at: new Date().toISOString(), student_name: "John Doe", items: [] },
+      ]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const { data: itemsData, error: itemsError } = await supabase
@@ -78,33 +94,6 @@ export default function CanteenPage() {
         .eq("school_id", school.id)
         .order("created_at", { ascending: false })
         .limit(50);
-      // #region agent log
-      fetch("/api/debug/log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId: "9e14f3",
-          runId: "pre-fix",
-          hypothesisId: "H7",
-          location: "src/app/dashboard/canteen/page.tsx:loadData",
-          message: "loaded canteen items/orders",
-          data: {
-            schoolId: school.id,
-            itemsLen: itemsData?.length ?? null,
-            ordersLen: ordersData?.length ?? null,
-            hasItemsError: !!itemsError,
-            itemsError: itemsError
-              ? String(itemsError.message || itemsError)
-              : null,
-            hasOrdersError: !!ordersError,
-            ordersError: ordersError
-              ? String(ordersError.message || ordersError)
-              : null,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
 
       setItems(itemsData || []);
       setOrders(ordersData || []);
@@ -113,7 +102,7 @@ export default function CanteenPage() {
     } finally {
       setLoading(false);
     }
-  }, [school]);
+  }, [school, isDemo]);
 
   useEffect(() => {
     if (school?.id) loadData();

@@ -148,7 +148,9 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
   };
 
   const handleImport = async () => {
-    if (!school?.id || !supabase) {
+    const isCurrentlyDemo = typeof window !== 'undefined' && localStorage.getItem("omuto_demo_v1") !== null;
+    
+    if (!school?.id || (!supabase && !isCurrentlyDemo)) {
       setError("Cannot import - no school or database connection");
       return;
     }
@@ -157,13 +159,21 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
     setError("");
 
     const results: ImportResult = { success: 0, failed: 0, errors: [] };
-    const batchSize = 50;
+    const batchSize = 10; // Smaller batches for demo feel
 
     const validStudents = validatedRows.filter(r => r.isValid).map(r => r.data);
     if (validStudents.length === 0) {
        setError("No valid rows to import.");
        setStep("preview");
        return;
+    }
+
+    if (isCurrentlyDemo) {
+      // Simulate slow import
+      await new Promise(r => setTimeout(r, 1500));
+      setResult({ success: validStudents.length, failed: 0, errors: [] });
+      setStep("complete");
+      return;
     }
 
     // Process in batches

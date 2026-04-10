@@ -50,6 +50,12 @@ export default function SmartAdvisor({ stats, collectionRate, attendanceRate, ro
       list.push("Tip: Use the 'Bulk SMS' tool to announce upcoming school events instantly.");
     }
 
+    // Rollover reminder
+    const isEndOfTerm = new Date().getMonth() === 3 || new Date().getMonth() === 7 || new Date().getMonth() === 11;
+    if (isEndOfTerm && role === "headmaster") {
+      list.push("Strategic Tip: Term end detected. Review report cards and prepare for the Academic Rollover Wizard.");
+    }
+
     return list;
   }, [stats, collectionRate, attendanceRate, role]);
 

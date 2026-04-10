@@ -242,6 +242,72 @@ export async function POST(request: NextRequest) {
           );
         `,
       },
+      {
+        name: 'notices',
+        sql: `
+          CREATE TABLE IF NOT EXISTS notices (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            is_active BOOLEAN DEFAULT true,
+            priority TEXT CHECK (priority IN ('low', 'medium', 'high')) DEFAULT 'medium',
+            expiry_date DATE,
+            created_by UUID,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+          );
+        `,
+      },
+      {
+        name: 'student_wallets',
+        sql: `
+          CREATE TABLE IF NOT EXISTS student_wallets (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            student_id UUID REFERENCES students(id) ON DELETE CASCADE UNIQUE,
+            balance NUMERIC(12,2) DEFAULT 0,
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+          );
+        `,
+      },
+      {
+        name: 'wallet_transactions',
+        sql: `
+          CREATE TABLE IF NOT EXISTS wallet_transactions (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+            amount NUMERIC(12,2) NOT NULL,
+            type TEXT CHECK (type IN ('topup', 'spend', 'refund')) NOT NULL,
+            reference TEXT,
+            description TEXT,
+            recorded_by UUID,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+          );
+        `,
+      },
+      {
+        name: 'topup_rpc',
+        sql: `
+          CREATE OR REPLACE FUNCTION topup_student_wallet(
+            p_student_id UUID,
+            p_amount NUMERIC,
+            p_description TEXT,
+            p_ref TEXT
+          ) RETURNS VOID AS $$
+          BEGIN
+            -- Ensure wallet exists
+            INSERT INTO student_wallets (student_id, balance)
+            VALUES (p_student_id, p_amount)
+            ON CONFLICT (student_id) DO UPDATE
+            SET balance = student_wallets.balance + p_amount,
+                updated_at = NOW();
+
+            -- Record transaction
+            INSERT INTO wallet_transactions (student_id, amount, type, description, reference)
+            VALUES (p_student_id, p_amount, 'topup', p_description, p_ref);
+          END;
+          $$ LANGUAGE plpgsql;
+        `,
+      },
     ]
 
     for (const table of tables) {

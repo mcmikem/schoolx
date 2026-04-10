@@ -8,9 +8,10 @@ import AdmissionLetter from "@/components/students/AdmissionLetter";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useReactToPrint } from "react-to-print";
 import { useSearchParams } from "next/navigation";
+import { DEMO_STUDENTS } from "@/lib/demo-data";
 
 export default function AdmissionPackagePage() {
-  const { school } = useAuth();
+  const { school, isDemo } = useAuth();
   const { academicYear } = useAcademic();
   const searchParams = useSearchParams();
   const studentId = searchParams?.get("studentId") || null;
@@ -31,6 +32,12 @@ export default function AdmissionPackagePage() {
 
   const loadStudent = async (id: string) => {
     setLoading(true);
+    if (isDemo) {
+      const demoS = DEMO_STUDENTS.find(s => s.id === id) || DEMO_STUDENTS[0];
+      setStudent({ ...demoS, classes: { name: "P.5", stream: "North" } });
+      setLoading(false);
+      return;
+    }
     const { data, error } = await supabase
       .from("students")
       .select("*, classes(name, stream)")
