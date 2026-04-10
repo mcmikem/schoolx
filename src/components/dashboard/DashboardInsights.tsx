@@ -122,8 +122,8 @@ export default function DashboardInsights({
       <div className="lg:col-span-2 glass-premium rounded-[var(--r2)] p-6 flex flex-col gap-4 min-h-[350px]">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-bold text-[var(--t1)] font-heading">Performance Trends</h3>
-            <p className="text-[11px] text-[var(--t3)] font-medium">Fee Collection vs Attendance (Projections)</p>
+            <h3 className="text-sm font-bold text-[var(--t1)] font-heading">Fees & Attendance Tracker</h3>
+            <p className="text-[11px] text-[var(--t3)] font-medium">How money and attendance changed this year</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
@@ -202,7 +202,7 @@ export default function DashboardInsights({
         {/* School Health Gauge */}
         <div className="glass-premium rounded-[var(--r2)] p-5 flex flex-col items-center justify-center relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-full h-1 bg-[var(--grad-teal)] opacity-20" />
-          <h3 className="text-xs font-bold text-[var(--t3)] uppercase tracking-widest mb-4">School Health</h3>
+          <h3 className="text-xs font-bold text-[var(--t3)] uppercase tracking-widest mb-4">Total School Status</h3>
           
           <div className="relative w-40 h-28 flex items-center justify-center">
             <svg viewBox="0 0 100 60" className="w-full h-full">
@@ -234,7 +234,7 @@ export default function DashboardInsights({
             </svg>
             <div className="absolute bottom-2 flex flex-col items-center">
               <span className="text-3xl font-extrabold text-[var(--t1)] font-heading leading-none">{healthScore}%</span>
-              <span className="text-[10px] font-bold text-[var(--green)] uppercase mt-1">Excellent</span>
+              <span className="text-[10px] font-bold text-[var(--green)] uppercase mt-1">Doing Well</span>
             </div>
           </div>
           
@@ -254,7 +254,7 @@ export default function DashboardInsights({
         {/* Demographics Doughnut */}
         <div className="glass-premium rounded-[var(--r2)] p-5 flex flex-col flex-1">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs font-bold text-[var(--t3)] uppercase tracking-widest">Demographics</h3>
+            <h3 className="text-xs font-bold text-[var(--t3)] uppercase tracking-widest">Student Summary</h3>
             <MaterialIcon icon="groups" style={{ fontSize: 18, color: "var(--navy)" }} />
           </div>
           
@@ -324,7 +324,7 @@ export default function DashboardInsights({
               </div>
               
               <div className="flex flex-col gap-1">
-                <span className="text-[10px] text-[var(--t3)] font-bold uppercase">Estimated Term Remaining</span>
+                <span className="text-[10px] text-[var(--t3)] font-bold uppercase">Balance to Collect</span>
                 <span className="text-lg font-heading text-[var(--t1)]">
                    UGX {((stats?.feesBalance || 0)).toLocaleString()}
                 </span>

@@ -15,17 +15,17 @@ export default function SmartAdvisor({ stats, collectionRate, attendanceRate, ro
     
     if (role === "headmaster" || role === "bursar") {
       if (collectionRate < 50) {
-        list.push("Revenue collection is below 50%. Prioritize sending fee reminders this week.");
+        list.push("Money collected is less than half of what is expected. You should tell parents to clear balances soon.");
       } else if (collectionRate > 80) {
-        list.push("Excellent collection rate! Consider allocating surplus to pending infrastructure tasks.");
+        list.push("Great job! Almost everyone has paid. You can now plan for school repairs or new equipment.");
       }
     }
 
     if (role === "headmaster" || role === "dean" || role === "teacher") {
       if (attendanceRate < 85) {
-        list.push("Attendance dip detected. Check for seasonal illness or local events affecting students.");
+        list.push("Attendance is dropped today. Check if children are sick or if there is a local event keeping them away.");
       } else if (attendanceRate >= 95) {
-        list.push("Outstanding engagement! Student participation is at an all-time high.");
+        list.push("Very good! Almost every student is in school today.");
       }
     }
 
@@ -53,7 +53,7 @@ export default function SmartAdvisor({ stats, collectionRate, attendanceRate, ro
     // Rollover reminder
     const isEndOfTerm = new Date().getMonth() === 3 || new Date().getMonth() === 7 || new Date().getMonth() === 11;
     if (isEndOfTerm && role === "headmaster") {
-      list.push("Strategic Tip: Term end detected. Review report cards and prepare for the Academic Rollover Wizard.");
+      list.push("End of Term: Time to check all names are correct and print the term report cards.");
     }
 
     return list;
@@ -67,7 +67,7 @@ export default function SmartAdvisor({ stats, collectionRate, attendanceRate, ro
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-             <span className="text-[10px] font-extrabold text-amber uppercase tracking-widest">Smart Advisor</span>
+             <span className="text-[10px] font-extrabold text-amber uppercase tracking-widest">Daily School Advisor</span>
              <span className="w-1.5 h-1.5 rounded-full bg-amber animate-ping" />
           </div>
           <div className="space-y-2">
