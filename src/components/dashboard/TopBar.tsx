@@ -7,17 +7,17 @@ import { useAcademic } from "@/lib/academic-context";
 import GlobalSearch from "@/components/GlobalSearch";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useTheme } from "@/lib/theme-context";
-import { useDashboardNotifications } from "@/components/dashboard/AccessControlGuard";
+import { useNotifications } from "@/lib/notifications";
 import { useSidebar } from "@/contexts/SidebarContext";
 
 type DashboardNotification = {
   id: string;
+  type?: string;
   title: string;
-  desc: string;
-  time: string;
-  icon: string;
-  color: string;
-  href: string;
+  message: string;
+  created_at: string;
+  link?: string;
+  read: boolean;
 };
 
 function getNextStep(path: string): {
@@ -83,50 +83,73 @@ function NotificationsPanel({
             You are caught up. No urgent items right now.
           </div>
         )}
-        {notifications.map((n) => (
-          <div
-            key={n.id}
-            className="flex gap-3 px-4 py-3 border-b border-[var(--border)] hover:bg-[var(--bg)] transition-colors"
-          >
+        {notifications.map((n) => {
+          let icon = "notifications";
+          let color = "var(--primary)";
+          
+          switch(n.type) {
+            case "warning": icon = "warning"; color = "var(--amber)"; break;
+            case "error": icon = "error"; color = "var(--red)"; break;
+            case "success": icon = "check_circle"; color = "var(--green)"; break;
+            case "payment": icon = "payments"; color = "var(--green)"; break;
+            case "attendance": icon = "how_to_reg"; color = "var(--amber)"; break;
+          }
+
+          return (
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ background: `${n.color}20` }}
-            >
-              <MaterialIcon
-                icon={n.icon}
-                style={{ fontSize: 15, color: n.color }}
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-[12px] font-semibold text-[var(--t1)]">
-                {n.title}
-              </div>
-              <div className="text-[11px] text-[var(--t3)] mt-0.5 truncate">
-                {n.desc}
-              </div>
-              <div className="text-[10px] text-[var(--t4)] mt-1">{n.time}</div>
-            </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDismiss(n.id);
+              key={n.id}
+              className={`flex gap-3 px-4 py-3 border-b border-[var(--border)] hover:bg-[var(--bg)] transition-colors ${!n.read ? 'bg-blue-50/50' : ''}`}
+              onClick={() => {
+                if (!n.read) onDismiss(n.id);
+                if (n.link) window.location.href = n.link;
               }}
-              className="text-[var(--t4)] hover:text-[var(--t2)] transition-colors self-start mt-1"
-              aria-label="Dismiss notification"
             >
-              <MaterialIcon icon="close" style={{ fontSize: 14 }} />
-            </button>
-          </div>
-        ))}
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: `${color}20` }}
+              >
+                <MaterialIcon
+                  icon={icon}
+                  style={{ fontSize: 15, color: color }}
+                />
+              </div>
+              <div className="flex-1 min-w-0 cursor-pointer">
+                <div className={`text-[12px] text-[var(--t1)] ${!n.read ? 'font-bold' : 'font-semibold'}`}>
+                  {n.title}
+                </div>
+                <div className="text-[11px] text-[var(--t3)] mt-0.5 truncate">
+                  {n.message}
+                </div>
+                <div className="text-[10px] text-[var(--t4)] mt-1">
+                  {new Date(n.created_at).toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'})}
+                </div>
+              </div>
+              {!n.read && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDismiss(n.id);
+                }}
+                className="text-[var(--t4)] hover:text-[var(--t2)] transition-colors self-start mt-1"
+                aria-label="Mark as read"
+              >
+                <MaterialIcon icon="check" style={{ fontSize: 14 }} />
+              </button>
+              )}
+            </div>
+          )
+        })}
       </div>
       {notifications.length > 0 && (
-        <Link
-          href={notifications[0]?.href || "/dashboard/notices"}
-          onClick={onClose}
-          className="block px-4 py-[10px] text-center text-[12px] text-[var(--primary)] font-medium border-t border-[var(--border)] no-underline hover:bg-[var(--bg)] transition-colors"
+        <button
+          onClick={() => {
+             notifications.forEach(n => !n.read && onDismiss(n.id));
+             onClose();
+          }}
+          className="w-full block px-4 py-[10px] text-center text-[12px] text-[var(--primary)] font-medium border-t border-[var(--border)] no-underline hover:bg-[var(--bg)] transition-colors"
         >
-          Open priority queue
-        </Link>
+          Mark all as read
+        </button>
       )}
     </div>
   );
@@ -187,10 +210,7 @@ export default function TopBar({
   );
   const { isOpen, open: openSidebar, close: closeSidebar } = useSidebar();
 
-  const { notifications } = useDashboardNotifications();
-  const visibleNotifications = notifications.filter(
-    (n) => !dismissedNotifs.has(n.id),
-  );
+  const { notifications, unreadCount, markAsRead } = useNotifications();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -332,23 +352,21 @@ export default function TopBar({
           <button
             onClick={() => setNotifOpen(!notifOpen)}
             className="w-9 h-9 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center cursor-pointer shadow-[var(--sh1)] relative hover:bg-[var(--bg)] transition-colors"
-            aria-label={`Notifications${visibleNotifications.length > 0 ? `, ${visibleNotifications.length} unread` : ""}`}
+            aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
           >
             <MaterialIcon
               icon="notifications"
               style={{ fontSize: 16, color: "var(--t2)" }}
             />
-            {visibleNotifications.length > 0 && (
+            {unreadCount > 0 && (
               <div className="absolute top-1.5 right-1.5 w-[7px] h-[7px] rounded-full bg-[var(--red)] border-[1.5px] border-[var(--surface)]" />
             )}
           </button>
           <NotificationsPanel
             open={notifOpen}
             onClose={() => setNotifOpen(false)}
-            notifications={visibleNotifications}
-            onDismiss={(id) =>
-              setDismissedNotifs((prev) => new Set(prev).add(id))
-            }
+            notifications={notifications}
+            onDismiss={(id) => markAsRead(id)}
           />
         </div>
 
