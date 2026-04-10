@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { format } from "date-fns";
@@ -34,24 +35,43 @@ export default function CanteenPOSPage() {
     "wallet",
   );
 
+  const isOnline = useOnlineStatus();
+
   // Load Inventory
   useEffect(() => {
     const fetchInventory = async () => {
       if (!school?.id) return;
-      const { data } = await supabase
-        .from("canteen_items")
-        .select("*")
-        .eq("school_id", school.id)
-        .eq("is_active", true);
+      try {
+        if (isOnline) {
+          const { data } = await supabase
+            .from("canteen_items")
+            .select("*")
+            .eq("school_id", school.id)
+            .eq("is_active", true);
 
-      if (data) {
-        setItems(data);
-        const cats = Array.from(new Set(data.map((i: any) => i.category)));
-        setCategories(["All", ...cats]);
+          if (data) {
+            setItems(data);
+            const cats = Array.from(new Set(data.map((i: any) => i.category)));
+            setCategories(["All", ...cats]);
+            await offlineDB.cacheFromServer("canteen_items", data);
+          }
+        } else {
+          // Offline mode fallback
+          const cachedData = await offlineDB.getAllFromCache("canteen_items", { school_id: school.id, is_active: true });
+          if (cachedData && cachedData.length > 0) {
+            setItems(cachedData as any);
+            const cats = Array.from(new Set(cachedData.map((i: any) => i.category)));
+            setCategories(["All", ...cats]);
+          } else {
+            toast.error("Offline and no cached items found");
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load inventory:", err);
       }
     };
     fetchInventory();
-  }, [school?.id]);
+  }, [school?.id, isOnline]);
 
   const addToCart = (item: POSItem) => {
     setCart((prev) => {
@@ -84,46 +104,56 @@ export default function CanteenPOSPage() {
       setLoading(false);
       return;
     }
+    
     try {
-      // 1. Record Sale
-      const { data: sale, error: saleError } = await supabase
-        .from("canteen_sales")
-        .insert({
-          school_id: school.id,
-          student_id: student?.id || null,
-          total_amount: total,
-          payment_method: paymentMethod,
-          items: cart.map((i) => ({
-            id: i.id,
-            name: i.name,
-            quantity: i.quantity,
-            price: i.price,
-          })),
-          recorded_by: user?.id,
-        })
-        .select()
-        .single();
+      const saleRecord = {
+        id: isOnline ? undefined : crypto.randomUUID(), // Let Supabase gen ID if online, IDB if offline
+        school_id: school.id,
+        student_id: student?.id || null,
+        total_amount: total,
+        payment_method: paymentMethod,
+        items: cart.map((i) => ({
+          id: i.id,
+          name: i.name,
+          quantity: i.quantity,
+          price: i.price,
+        })),
+        recorded_by: user?.id,
+        created_at: new Date().toISOString()
+      };
 
-      if (saleError) throw saleError;
+      if (!isOnline) {
+        // Offline: save to IDB and Sync Queue
+        await offlineDB.save("canteen_sales", saleRecord);
+        toast.info("Offline: Order saved to sync queue");
+      } else {
+        // Online: Direct Supabase insert
+        const { data: sale, error: saleError } = await supabase
+          .from("canteen_sales")
+          .insert(saleRecord)
+          .select()
+          .single();
 
-      // 2. If Wallet, Deduct Balance
-      if (paymentMethod === "wallet" && student) {
-        const { error: walletError } = await supabase.rpc(
-          "deduct_student_wallet",
-          {
-            p_student_id: student.id,
-            p_amount: total,
-            p_description: `Purchase at Canteen`,
-            p_ref: sale.id,
-          },
-        );
-        if (walletError) throw walletError;
+        if (saleError) throw saleError;
+        
+        // If Wallet, Deduct Balance (Only works online right now)
+        if (paymentMethod === "wallet" && student) {
+          const { error: walletError } = await supabase.rpc(
+            "deduct_student_wallet",
+            {
+              p_student_id: student.id,
+              p_amount: total,
+              p_description: `Purchase at Canteen`,
+              p_ref: sale.id,
+            },
+          );
+          if (walletError) throw walletError;
+        }
       }
 
-      // 3. Update Stock (Simple for now)
       setCart([]);
       setStudent(null);
-      alert("Sale successful!");
+      alert(isOnline ? "Sale successful!" : "Sale stored offline!");
     } catch (err: any) {
       alert(err.message || "Failed to process sale");
     } finally {
@@ -150,11 +180,20 @@ export default function CanteenPOSPage() {
         </div>
 
         <div className="flex items-center gap-6">
-          <div className="text-right">
-            <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
-              Terminal
-            </p>
-            <p className="text-sm font-bold text-slate-800">Counter 01</p>
+          <div className="text-right flex items-center gap-4">
+            {!isOnline && (
+              <div className="flex items-center gap-2 text-amber-500 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-100 animate-pulse">
+                <MaterialIcon icon="wifi_off" style={{ fontSize: 16 }} />
+                <span className="text-xs font-bold uppercase tracking-wider">Offline Mode</span>
+              </div>
+            )}
+            
+            <div>
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                Terminal
+              </p>
+              <p className="text-sm font-bold text-slate-800">Counter 01</p>
+            </div>
           </div>
           <div className="flex items-center gap-3 px-4 py-2 bg-slate-100 rounded-2xl">
             <MaterialIcon icon="schedule" className="text-primary-700" />
