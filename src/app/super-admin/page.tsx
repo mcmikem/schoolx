@@ -84,7 +84,7 @@ export default function SuperAdminDashboard() {
     payment_enabled: true,
     payment_gateway: "mobile_money",
     demo_mode: true,
-    support_email: "support@skoolmate.os",
+    support_email: "support@omuto.org",
     support_phone: "+256700287030",
   });
 

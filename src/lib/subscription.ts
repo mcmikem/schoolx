@@ -237,7 +237,7 @@ export async function sendPaymentReceipt(
       <p><strong>Plan:</strong> ${paymentData.plan.charAt(0).toUpperCase() + paymentData.plan.slice(1)}</p>
       <p><strong>Payment Method:</strong> ${paymentData.provider.charAt(0).toUpperCase() + paymentData.provider.slice(1)}</p>
       <p><strong>Transaction ID:</strong> ${paymentData.transactionId}</p>
-      <p>Your subscription is now active. Thank you for using Omuto School Management System!</p>
+      <p>Your subscription is now active. Thank you for using SkoolMate OS!</p>
     `;
 
     // Send email (using a placeholder - in reality, you'd use an email service)

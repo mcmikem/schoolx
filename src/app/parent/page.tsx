@@ -107,7 +107,7 @@ export default function ParentPortal() {
       }
 
       // Verify password using Supabase auth
-      const email = `${formattedPhone}@omuto.sms`
+      const email = `${formattedPhone}@omuto.org`
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,

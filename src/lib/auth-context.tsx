@@ -60,7 +60,7 @@ function sanitizeDemoRole(raw: unknown): User["role"] {
   return "headmaster";
 }
 
-const DEMO_KEY = "omuto_demo_v1";
+const DEMO_KEY = "skoolmate_demo_v1";
 
 function encryptDemoData(data: string): string {
   if (typeof window === "undefined") return data;
@@ -306,7 +306,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // If we are in demo mode, auth state changes should be ignored
         // unless it's a sign out that clears the demo.
         // Note: we don't depend on isDemo here to avoid re-running the effect
-        const DEMO_KEY = "omuto_demo_v1";
+        const DEMO_KEY = "skoolmate_demo_v1";
         const isCurrentlyDemo = localStorage.getItem(DEMO_KEY) !== null;
 
         if (isCurrentlyDemo && event !== "SIGNED_OUT") return;
@@ -329,7 +329,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signIn(phone: string, password: string) {
     try {
-      const email = `${phone}@omuto.sms`;
+      const email = `${phone}@omuto.org`;
       const { data, error } = await supabase!.auth.signInWithPassword({
         email,
         password,
@@ -371,7 +371,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signUp(phone: string, password: string, name: string) {
     try {
-      const email = `${phone}@omuto.sms`;
+      const email = `${phone}@omuto.org`;
       const { data, error } = await supabase!.auth.signUp({
         email,
         password,
@@ -422,7 +422,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     // Clear demo data if present
-    const DEMO_KEY = "omuto_demo_v1";
+    const DEMO_KEY = "skoolmate_demo_v1";
     localStorage.removeItem(DEMO_KEY);
 
     try {

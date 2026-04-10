@@ -1,4 +1,4 @@
-// Navigation configuration for SchoolX
+// Navigation configuration for SchoolMate OS
 // Organized by logical groups with collapsible sections
 
 interface NavItem {
@@ -133,6 +133,18 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       ],
     },
     {
+      label: "School Xperience",
+      icon: "rocket_launch",
+      defaultOpen: false,
+      items: [
+        { href: "/dashboard/osx", label: "Chapter Home", icon: "home" },
+        { href: "/dashboard/osx/leadership", label: "SLF Leadership", icon: "military_tech" },
+        { href: "/dashboard/osx/red", label: "RED Dignity", icon: "female" },
+        { href: "/dashboard/osx/green", label: "GreenSchools", icon: "eco" },
+        { href: "/dashboard/osx/water", label: "PureWater", icon: "water_drop" },
+      ],
+    },
+    {
       label: "System",
       icon: "settings",
       defaultOpen: false,
@@ -196,6 +208,16 @@ export const navigationByRole: Record<string, NavGroup[]> = {
         { href: "/dashboard/lesson-plans", label: "Lesson Plans", icon: "menu_book" },
       ],
     },
+    {
+      label: "School Xperience",
+      icon: "rocket_launch",
+      defaultOpen: false,
+      items: [
+        { href: "/dashboard/osx", label: "OSX Activities", icon: "home" },
+        { href: "/dashboard/osx/leadership", label: "SLF Training", icon: "military_tech" },
+        { href: "/dashboard/osx/green", label: "Green Teams", icon: "eco" },
+      ],
+    },
   ],
 
   bursar: [
@@ -224,6 +246,15 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       items: [
         { href: "/dashboard/students", label: "Student List", icon: "group" },
         { href: "/dashboard/payment-plans", label: "Payment Plans", icon: "calendar_month" },
+      ],
+    },
+    {
+      label: "School Xperience",
+      icon: "rocket_launch",
+      defaultOpen: false,
+      items: [
+        { href: "/dashboard/osx", label: "Chapter Home", icon: "home" },
+        { href: "/dashboard/store/inventory", label: "Service Catalog", icon: "inventory" },
       ],
     },
     {
@@ -271,6 +302,15 @@ export const navigationByRole: Record<string, NavGroup[]> = {
         { href: "/dashboard/messages", label: "Messages", icon: "chat" },
         { href: "/dashboard/health", label: "Health", icon: "local_hospital" },
         { href: "/dashboard/library", label: "Library", icon: "local_library" },
+      ],
+    },
+    {
+      label: "School Xperience",
+      icon: "rocket_launch",
+      defaultOpen: false,
+      items: [
+        { href: "/dashboard/osx", label: "Chapter Home", icon: "home" },
+        { href: "/dashboard/osx/red", label: "RED Campaign", icon: "female" },
       ],
     },
   ],

@@ -148,7 +148,7 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
   };
 
   const handleImport = async () => {
-    const isCurrentlyDemo = typeof window !== 'undefined' && localStorage.getItem("omuto_demo_v1") !== null;
+    const isCurrentlyDemo = typeof window !== 'undefined' && localStorage.getItem("skoolmate_demo_v1") !== null;
     
     if (!school?.id || (!supabase && !isCurrentlyDemo)) {
       setError("Cannot import - no school or database connection");
@@ -265,6 +265,7 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
         <div>
           <div style={{ marginBottom: 16 }}>
             <label
+              htmlFor="class-assign"
               style={{
                 fontSize: 14,
                 fontWeight: 500,
@@ -276,6 +277,7 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
               Assign to Class (optional)
             </label>
             <select
+              id="class-assign"
               aria-label="Assign to Class"
               value={selectedClass}
               onChange={(e) => setSelectedClass(e.target.value)}
@@ -298,6 +300,15 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
 
           <div
             onClick={() => fileInputRef.current?.click()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                fileInputRef.current?.click();
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label="Upload CSV file"
             style={{
               border: "2px dashed var(--border)",
               borderRadius: 12,

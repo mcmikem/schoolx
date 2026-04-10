@@ -65,7 +65,7 @@ async function sendSMS(to: string, message: string): Promise<{ success: boolean;
         username: AFRICAS_TALKING_USERNAME,
         to,
         message,
-        from: 'OMUTO', // Registered sender ID
+        from: 'SKOOLMATE', // Registered sender ID
       }),
     })
 

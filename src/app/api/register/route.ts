@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Create auth user using admin client
-    const emailForAuth = `${normalizedPhone}@omuto.sms`
+    const emailForAuth = `${normalizedPhone}@omuto.org`
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: emailForAuth,
       password: password,
@@ -219,61 +219,56 @@ export async function POST(request: NextRequest) {
       throw userError
     }
 
-    // 6. Auto-seed in background (don't fail registration if this fails)
-    // Run setup asynchronously to avoid timeout
-    const setupPromise = (async () => {
-      try {
-        const currentYear = new Date().getFullYear().toString()
-        
-        // Create subjects
-        const defaultSubjects = getDefaultSubjects(schoolType)
-        if (defaultSubjects.length > 0) {
-          const subjectRecords = defaultSubjects.map(s => ({
-            school_id: schoolData.id,
-            name: s.name,
-            code: s.code,
-            level: s.level,
-            is_compulsory: s.is_compulsory,
-          }))
-          await supabaseAdmin.from('subjects').insert(subjectRecords)
-        }
-
-        // Create classes
-        const defaultClasses = getDefaultClasses(schoolType, schoolData.id)
-        if (defaultClasses.length > 0) {
-          await supabaseAdmin.from('classes').insert(defaultClasses)
-        }
-
-        // Create academic year (use correct column names from schema)
-        const { data: academicYear } = await supabaseAdmin
-          .from('academic_years')
-          .insert({
-            school_id: schoolData.id,
-            year: `${currentYear}`,
-            is_current: true,
-          })
-          .select()
-          .single()
-
-        // Create terms
-        if (academicYear) {
-          await supabaseAdmin.from('terms').insert([
-            { school_id: schoolData.id, academic_year_id: academicYear.id, term_number: 1, start_date: `${currentYear}-02-01`, end_date: `${currentYear}-04-30`, is_current: true },
-            { school_id: schoolData.id, academic_year_id: academicYear.id, term_number: 2, start_date: `${currentYear}-05-01`, end_date: `${currentYear}-07-31`, is_current: false },
-            { school_id: schoolData.id, academic_year_id: academicYear.id, term_number: 3, start_date: `${currentYear}-08-01`, end_date: `${currentYear}-11-30`, is_current: false },
-          ])
-        }
-        
-        console.log('[Setup] Auto-setup completed for school:', schoolData.id)
-      } catch (setupError) {
-        console.error('[Setup] Auto-setup failed:', setupError)
-        // Don't throw - registration already succeeded
+    // 6. Auto-seed essential curriculum data
+    // Run setup and await it so the serverless function doesn't terminate and kill the process.
+    try {
+      const currentYear = new Date().getFullYear().toString()
+      
+      // Create subjects
+      const defaultSubjects = getDefaultSubjects(schoolType)
+      if (defaultSubjects.length > 0) {
+        const subjectRecords = defaultSubjects.map(s => ({
+          school_id: schoolData.id,
+          name: s.name,
+          code: s.code,
+          level: s.level,
+          is_compulsory: s.is_compulsory,
+        }))
+        await supabaseAdmin.from('subjects').insert(subjectRecords)
       }
-    })()
 
-    // Don't await - let it run in background
+      // Create classes
+      const defaultClasses = getDefaultClasses(schoolType, schoolData.id)
+      if (defaultClasses.length > 0) {
+        await supabaseAdmin.from('classes').insert(defaultClasses)
+      }
 
-    // Return success - client will sign in separately
+      // Create academic year
+      const { data: academicYear } = await supabaseAdmin
+        .from('academic_years')
+        .insert({
+          school_id: schoolData.id,
+          year: `${currentYear}`,
+          is_current: true,
+        })
+        .select()
+        .single()
+
+      // Create terms
+      if (academicYear) {
+        await supabaseAdmin.from('terms').insert([
+          { school_id: schoolData.id, academic_year_id: academicYear.id, term_number: 1, start_date: `${currentYear}-02-01`, end_date: `${currentYear}-04-30`, is_current: true },
+          { school_id: schoolData.id, academic_year_id: academicYear.id, term_number: 2, start_date: `${currentYear}-05-01`, end_date: `${currentYear}-07-31`, is_current: false },
+          { school_id: schoolData.id, academic_year_id: academicYear.id, term_number: 3, start_date: `${currentYear}-08-01`, end_date: `${currentYear}-11-30`, is_current: false },
+        ])
+      }
+      
+      console.log('[Setup] Auto-setup completed for school:', schoolData.id)
+    } catch (setupError) {
+      console.error('[Setup] Auto-setup failed:', setupError)
+    }
+
+    // Return success
     return apiSuccess(
       {
         schoolId: schoolData.id,

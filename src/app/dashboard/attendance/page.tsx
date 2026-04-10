@@ -392,12 +392,39 @@ export default function AttendancePage() {
         subtitle={`Marking records for ${selectedClassName?.name || "Academic Classes"}`}
         variant="premium"
         actions={
-          <div className="flex items-center gap-3">
-            {offlineCount > 0 && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--amber-soft)] text-[var(--amber)] text-[10px] font-bold uppercase tracking-wider">
-                <MaterialIcon icon="cloud_off" className="text-sm" />
-                {offlineCount} Pending Sync
-              </div>
+          <div className="flex items-center gap-2">
+            {absentCount > 0 && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={async () => {
+                  if (!confirm(`Send absence alerts to parents of ${absentCount} absent students?`)) return;
+                  try {
+                    const absentees = students.filter(s => attendance[s.id] === 'absent');
+                    const { supabase: sb } = await import("@/lib/supabase");
+                    
+                    for (const student of absentees) {
+                      const phone = (student as any).parent_phone;
+                      if (!phone) continue;
+                      
+                      await sb.from("messages").insert({
+                        school_id: school?.id,
+                        recipient_phone: phone,
+                        message: `SkoolMate Alert: ${student.first_name} was marked ABSENT today (${date}). Please confirm with school if this is unexpected.`,
+                        status: "sent",
+                        type: "attendance_alert"
+                      });
+                    }
+                    toast.success(`Absence alerts queued for ${absentees.length} parents`);
+                  } catch (err) {
+                    toast.error("Failed to send alerts");
+                  }
+                }}
+                className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+                icon={<MaterialIcon icon="notification_important" />}
+              >
+                Notify Parents ({absentCount})
+              </Button>
             )}
             <Button
               onClick={saveAttendance}
@@ -611,6 +638,7 @@ export default function AttendancePage() {
                         : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
                     }`}
                   >
+                    {f === "all"
                       ? "All"
                       : f === "present" ? "In School" : f === "absent" ? "Away" : "Late"}
                     {f !== "all" && (

@@ -257,6 +257,18 @@ export default function ImportPage() {
             <MaterialIcon icon="menu_book" className="text-lg" />
             Grades
           </button>
+          <button
+            onClick={() => {
+              setActiveTab("ai_paste");
+              setPreview([]);
+              setMappedData([]);
+            }}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
+              activeTab === "ai_paste"
+                ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
+                : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
+            }`}
+          >
             <MaterialIcon icon="smart_toys" className="text-lg" />
             AI Smart Paste
           </button>

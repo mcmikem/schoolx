@@ -8,15 +8,15 @@ import Script from "next/script";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || "https://omuto.sms",
+    process.env.NEXT_PUBLIC_SITE_URL || "https://omuto.org",
   ),
   title: "SkoolMate OS | Your Digital School Partner",
   description:
     "The all-in-one school management system built for Ugandan schools. Track attendance, grades, fees, and send parent SMS — all from one dashboard. Start your free 30-day trial today.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/SkoolMate logos/SchoolMate icon.svg",
-    apple: "/SkoolMate logos/SchoolMate icon.svg",
+    icon: "/SkoolMate logos/SkoolMate icon.svg",
+    apple: "/SkoolMate logos/SkoolMate icon.svg",
   },
   appleWebApp: {
     capable: true,
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     description:
       "Attendance, grades, fees, and parent SMS — all in one system built for Ugandan schools. Start your free 30-day trial.",
     type: "website",
-    url: "https://omuto.sms",
+    url: "https://omuto.org",
     images: ["/og-image.png"],
     locale: "en_UG",
     siteName: "SkoolMate OS",
@@ -75,11 +75,11 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="SkoolMate OS" />
         <link
           rel="apple-touch-icon"
-          href="/SkoolMate logos/SchoolMate icon.svg"
+          href="/SkoolMate logos/SkoolMate icon.svg"
         />
         <link
           rel="icon"
-          href="/SkoolMate logos/SchoolMate icon.svg"
+          href="/SkoolMate logos/SkoolMate icon.svg"
           type="image/svg+xml"
         />
       </head>

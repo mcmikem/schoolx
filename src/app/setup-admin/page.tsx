@@ -28,7 +28,7 @@ export default function SetupAdminPage() {
 
     try {
       const cleanPhone = form.phone.replace(/[^0-9]/g, "");
-      const email = `${cleanPhone}@omuto.sms`;
+      const email = `${cleanPhone}@omuto.org`;
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password: form.password,

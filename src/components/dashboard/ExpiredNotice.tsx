@@ -8,7 +8,7 @@ export default function ExpiredNotice() {
   const [loading, setLoading] = useState(false);
 
   const handleContactSupport = () => {
-    window.location.href = `mailto:billing@omuto.sms?subject=Subscription Renewal: ${school?.name}`;
+    window.location.href = `mailto:billing@omuto.org?subject=Subscription Renewal: ${school?.name}`;
   };
 
   return (
@@ -81,7 +81,7 @@ export default function ExpiredNotice() {
           </button>
         </div>
 
-        {/* Omuto Foundation Ads */}
+        {/* SkoolMate Foundation Ads */}
         <div className="mt-8 pt-6 border-t border-[#e5e9f0]">
           <p className="text-xs text-[#5c6670] mb-3">
             Brought to you by{" "}
@@ -91,7 +91,7 @@ export default function ExpiredNotice() {
               rel="noopener noreferrer"
               className="text-amber-700 hover:text-amber-900 font-semibold"
             >
-              Omuto Foundation
+              SkoolMate Foundation
             </a>
           </p>
           <div className="grid grid-cols-2 gap-2">
@@ -107,7 +107,7 @@ export default function ExpiredNotice() {
                 style={{ fontSize: 20 }}
               />
               <span className="text-xs font-medium text-amber-800">
-                Omuto Foundation
+                SkoolMate Foundation
               </span>
               <span className="text-[10px] text-amber-600">omuto.org</span>
             </a>
@@ -123,7 +123,7 @@ export default function ExpiredNotice() {
                 style={{ fontSize: 20 }}
               />
               <span className="text-xs font-medium text-blue-800">
-                Omuto Essentials
+                SkoolMate Essentials
               </span>
               <span className="text-[10px] text-blue-600">
                 essentials.omuto.org
@@ -131,7 +131,7 @@ export default function ExpiredNotice() {
             </a>
           </div>
           <a
-            href="https://omuto.org/osx.php"
+            href="https://omuto.org/osx"
             target="_blank"
             rel="noopener noreferrer"
             className="mt-3 flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold text-sm transition-all active:scale-[0.98]"

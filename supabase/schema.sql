@@ -1358,3 +1358,79 @@ CREATE TABLE IF NOT EXISTS pending_mobile_payments (
 
 CREATE INDEX IF NOT EXISTS idx_pending_mobile_payments_txref ON pending_mobile_payments(tx_ref);
 CREATE INDEX IF NOT EXISTS idx_pending_mobile_payments_school ON pending_mobile_payments(school_id);
+
+-- ============================================
+-- ADDITIONAL TABLES FOR PRODUCTION READINESS
+-- ============================================
+
+-- 1. BUDGET ITEMS (Persistence for Budgeting Module)
+CREATE TABLE IF NOT EXISTS budget_items (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    category TEXT NOT NULL,
+    type TEXT CHECK (type IN ('income', 'expense')) NOT NULL,
+    budgeted NUMERIC(12,2) DEFAULT 0,
+    actual NUMERIC(12,2) DEFAULT 0,
+    academic_year TEXT,
+    term INTEGER,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(school_id, category, academic_year, term)
+);
+
+-- 2. PAYROLL HISTORY (Tracking processed salaries)
+CREATE TABLE IF NOT EXISTS payroll_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    staff_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    month TEXT NOT NULL, -- e.g. "April 2026"
+    gross_pay NUMERIC(12,2) NOT NULL,
+    nssf_deduction NUMERIC(12,2) DEFAULT 0,
+    paye_tax NUMERIC(12,2) DEFAULT 0,
+    other_deductions NUMERIC(12,2) DEFAULT 0,
+    net_pay NUMERIC(12,2) NOT NULL,
+    status TEXT CHECK (status IN ('pending', 'paid')) DEFAULT 'pending',
+    payment_method TEXT,
+    processed_by UUID REFERENCES users(id),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(staff_id, month)
+);
+
+-- 3. LIBRARY BOOKS (Real persistence for Library)
+-- Note: Re-stating or fixing based on previous verification
+CREATE TABLE IF NOT EXISTS library_books (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    isbn TEXT,
+    title TEXT NOT NULL,
+    author TEXT,
+    category TEXT,
+    total_copies INTEGER DEFAULT 1,
+    available_copies INTEGER DEFAULT 1,
+    shelf_location TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 4. LIBRARY CHECKOUTS
+CREATE TABLE IF NOT EXISTS library_checkouts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    book_id UUID REFERENCES library_books(id) ON DELETE CASCADE,
+    student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+    checkout_date DATE DEFAULT CURRENT_DATE,
+    due_date DATE,
+    return_date DATE,
+    status TEXT CHECK (status IN ('borrowed', 'returned', 'overdue')) DEFAULT 'borrowed',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS for new tables
+ALTER TABLE budget_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payroll_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE library_books ENABLE ROW LEVEL SECURITY;
+ALTER TABLE library_checkouts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "School users budget_items all" ON budget_items FOR ALL TO authenticated USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
+CREATE POLICY "School users payroll_history all" ON payroll_history FOR ALL TO authenticated USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
+CREATE POLICY "School users library_books all" ON library_books FOR ALL TO authenticated USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
+CREATE POLICY "School users library_checkouts all" ON library_checkouts FOR ALL TO authenticated USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
+

@@ -1,4 +1,4 @@
-// Automation utilities for SchoolX
+// Automation utilities for SkoolMate OS
 // Auto-grade computation, UNEB division calculation, report card generation, etc.
 
 import {

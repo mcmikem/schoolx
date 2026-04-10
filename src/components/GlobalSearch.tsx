@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 
-const RECENT_SEARCHES_KEY = "omuto_recent_searches";
+const RECENT_SEARCHES_KEY = "skoolmate_recent_searches";
 const MAX_RECENT_SEARCHES = 8;
 
 interface SearchResult {

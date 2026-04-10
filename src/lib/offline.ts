@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 
-const DB_NAME = "omuto-sms-db";
+const DB_NAME = "omuto.org-db";
 const DB_VERSION = 4;
 
 interface OfflineRecord {

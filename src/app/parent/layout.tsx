@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     description:
       "Stay connected with your child's school life. View attendance, grades, fees, and receive SMS updates.",
     type: "website",
-    url: "https://omuto.sms/parent",
+    url: "https://omuto.org/parent",
     images: ["/og-image.png"],
   },
 };

@@ -107,7 +107,7 @@ export default function ParentDashboard() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const demoStr = localStorage.getItem("omuto_parent_demo");
+    const demoStr = localStorage.getItem("skoolmate_parent_demo");
     if (demoStr) {
       setIsDemo(true);
     }

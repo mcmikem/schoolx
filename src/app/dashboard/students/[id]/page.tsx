@@ -506,6 +506,31 @@ export default function StudentProfilePage({
                   />
                   {statusCfg.label}
                 </span>
+                {student.houses && (
+                  <span 
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border"
+                    style={{ 
+                      backgroundColor: `${student.houses.color}15`, 
+                      color: student.houses.color,
+                      borderColor: `${student.houses.color}30` 
+                    }}
+                  >
+                    <Home className="w-3 h-3" />
+                    {student.houses.name} House
+                  </span>
+                )}
+                {student.prefect_role && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border border-amber-200 bg-amber-50 text-amber-700">
+                    <Trophy className="w-3 h-3" />
+                    {student.prefect_role.replace(/_/g, ' ')}
+                  </span>
+                )}
+                {student.student_council_role && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border border-blue-200 bg-blue-50 text-blue-700">
+                    <Star className="w-3 h-3" />
+                    Council: {student.student_council_role.replace(/_/g, ' ')}
+                  </span>
+                )}
               </div>
               <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
                 <span className="flex items-center gap-1">

@@ -213,7 +213,7 @@ export default function SchoolsPage() {
 
       // Step 2: Create the admin user via Supabase Auth
       const cleanPhone = newAdmin.phone.replace(/[^0-9]/g, '')
-      const email = `${cleanPhone}@omuto.sms`
+      const email = `${cleanPhone}@omuto.org`
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -334,7 +334,7 @@ export default function SchoolsPage() {
     }
     try {
       const cleanPhone = newUserForm.phone.replace(/[^0-9]/g, '')
-      const email = `${cleanPhone}@omuto.sms`
+      const email = `${cleanPhone}@omuto.org`
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -823,7 +823,7 @@ export default function SchoolsPage() {
                   <div className="font-mono text-lg font-bold text-[#002045]">{createdSchool.adminPassword}</div>
                 </div>
                 <div className="pt-2 border-t border-gray-200">
-                  <div className="text-xs text-[#5c6670]">Login URL: <span className="font-mono text-sm">omuto.sms/login</span></div>
+                  <div className="text-xs text-[#5c6670]">Login URL: <span className="font-mono text-sm">omuto.org/login</span></div>
                 </div>
               </div>
 

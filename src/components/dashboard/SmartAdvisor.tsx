@@ -8,38 +8,53 @@ interface SmartAdvisorProps {
   attendanceRate: number;
   role: "headmaster" | "bursar" | "dean" | "teacher";
   performanceAlerts?: any[];
+  isOsxPartner?: boolean;
 }
 
-export default function SmartAdvisor({ stats, collectionRate, attendanceRate, role, performanceAlerts = [] }: SmartAdvisorProps) {
+export default function SmartAdvisor({ stats, collectionRate, attendanceRate, role, performanceAlerts = [], isOsxPartner = false }: SmartAdvisorProps) {
   const insights = useMemo(() => {
     const list: string[] = [];
     
     if (role === "headmaster" || role === "bursar") {
       if (collectionRate < 50) {
-        list.push("Money collected is less than half of what is expected. You should tell parents to clear balances soon.");
-      } else if (collectionRate > 80) {
-        list.push("Great job! Almost everyone has paid. You can now plan for school repairs or new equipment.");
+        list.push("Sustainability Warning: Collection rate is below 50%. School operation buffer is at high risk. Recommend activating 'Auto-SMS Recovery' for all balances.");
       }
     }
 
-    if (role === "headmaster" || role === "dean" || role === "teacher") {
-      if (attendanceRate < 85) {
-        list.push("Attendance is dropped today. Check if children are sick or if there is a local event keeping them away.");
-      } else if (attendanceRate >= 95) {
-        list.push("Very good! Almost every student is in school today.");
+    if (role === "headmaster" && collectionRate > 85) {
+       list.push("Strong Cash Flow: Fee collection has crossed 85%. Excellent time to invest in term-end rewards or infrastructure maintenance.");
+    }
+
+    // OSX Engagement Tips — only shown to schools in the OSX partnership
+    if (isOsxPartner) {
+      if (role === "headmaster" || role === "dean") {
+        const currentMonth = new Date().getMonth();
+        if (currentMonth === 1 || currentMonth === 4 || currentMonth === 8) {
+          list.push("OSX Foundation: It's the start of the term. Ensure your 'Action Teams' are launched and Chapter toolkits are delivered.");
+        }
+        if (attendanceRate > 95) {
+          list.push("Leadership Moment: High engagement detected. A perfect time for an SLF 'Servant Leadership' assembly or debate championship.");
+        }
+      }
+
+      if (role === "headmaster" || role === "teacher") {
+        if (new Date().getMonth() >= 2 && new Date().getMonth() <= 4) {
+          list.push("GreenSchools: Rainy season is here. Perfect for the 'School Garden' project or tree planting drives.");
+        }
+        list.push("RED Campaign: Routine check—are the dignity kits fully stocked for the term? Use the 'Service Catalog' to restock.");
       }
     }
 
     if (stats?.pendingLeave > 0) {
-      list.push(`Leave Management: ${stats.pendingLeave} staff requests awaiting your decision.`);
+      list.push(`Operational Excellence: ${stats.pendingLeave} staff leave requests are pending. Resolution improves teacher morale and lesson stability.`);
     }
 
     if (stats?.classesNotMarked > 0) {
-      list.push(`Action Required: ${stats.classesNotMarked} classes haven't marked attendance today.`);
+      list.push(`Compliance Check: ${stats.classesNotMarked} classes have not submitted attendance. Digital registration compliance is essential for audit integrity.`);
     }
 
     if (role === "bursar" && collectionRate > 0 && collectionRate < 100 && stats?.totalFeesExpected) {
-       list.push(`Financial Goal: You are UGX ${(stats.totalFeesExpected - stats.totalFeesCollected).toLocaleString()} away from your term target.`);
+       list.push(`Revenue Goal: Target of UGX ${(stats.totalFeesExpected - stats.totalFeesCollected).toLocaleString()} remains for term budget completion.`);
     }
 
     if (stats?.pendingApprovals > 3) {

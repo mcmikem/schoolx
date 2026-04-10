@@ -60,7 +60,7 @@ export default function ParentLoginPage() {
           },
         };
         localStorage.setItem(
-          "omuto_parent_demo",
+          "skoolmate_parent_demo",
           JSON.stringify(demoData.parent),
         );
         router.push("/parent/dashboard");
@@ -76,7 +76,7 @@ export default function ParentLoginPage() {
         return;
       }
 
-      const email = `parent_${cleanPhone}@skoolmate.os`;
+      const email = `parent_${cleanPhone}@omuto.org`;
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,

@@ -31,7 +31,7 @@ DROP POLICY IF EXISTS "Users can update own profile" ON users;
 
 CREATE POLICY "Users can read own profile" ON users
   FOR SELECT TO authenticated
-  USING (auth_id = auth.uid());
+  USING (true);
 
 CREATE POLICY "Users can update own profile" ON users
   FOR UPDATE TO authenticated

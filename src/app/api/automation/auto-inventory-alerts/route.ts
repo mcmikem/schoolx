@@ -211,7 +211,7 @@ async function sendInventoryAlertEmail(
       Authorization: `Bearer ${resendApiKey}`,
     },
     body: JSON.stringify({
-      from: process.env.EMAIL_FROM || "noreply@schoolx.com",
+      from: process.env.EMAIL_FROM || "noreply@omuto.org",
       to: [email],
       subject: `Inventory Alert: ${itemName} - Low Stock`,
       html,

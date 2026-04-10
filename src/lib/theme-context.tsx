@@ -21,7 +21,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setMounted(true)
-    const saved = localStorage.getItem('omuto-theme') as Theme | null
+    const saved = localStorage.getItem('skoolmate-theme') as Theme | null
     if (saved) {
       setThemeState(saved)
       applyTheme(saved)
@@ -34,7 +34,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const setTheme = (t: Theme) => {
     setThemeState(t)
-    localStorage.setItem('omuto-theme', t)
+    localStorage.setItem('skoolmate-theme', t)
     applyTheme(t)
   }
 
