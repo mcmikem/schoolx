@@ -12,7 +12,11 @@ function ParentDashboardContent() {
   const { close: closeSidebar } = useSidebar();
   const [children, setChildren] = useState<any[]>([]);
   const [selectedChild, setSelectedChild] = useState<any>(null);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showTopup, setShowTopup] = useState(false);
+  const [topupAmount, setTopupAmount] = useState("");
+  const [topupLoading, setTopupLoading] = useState(false);
 
   useEffect(() => {
     async function fetchChildren() {
@@ -55,6 +59,41 @@ function ParentDashboardContent() {
 
     fetchChildren();
   }, [user, isDemo]);
+
+  // Fetch wallet when child changes
+  useEffect(() => {
+    if (!selectedChild || isDemo) {
+      if (isDemo) setWalletBalance(8500); // demo balance
+      return;
+    }
+    supabase
+      .from("student_wallets")
+      .select("balance")
+      .eq("student_id", selectedChild.id)
+      .single()
+      .then(({ data }) => setWalletBalance(data?.balance ?? 0));
+  }, [selectedChild, isDemo]);
+
+  const handleTopup = async () => {
+    if (!selectedChild || !topupAmount) return;
+    setTopupLoading(true);
+    try {
+      const { error } = await supabase.rpc("topup_student_wallet", {
+        p_student_id: selectedChild.id,
+        p_amount: parseFloat(topupAmount),
+        p_description: "Top-up by Parent via Portal",
+        p_ref: `PAR-${Date.now()}`,
+      });
+      if (error) throw error;
+      setWalletBalance((prev) => (prev ?? 0) + parseFloat(topupAmount));
+      setTopupAmount("");
+      setShowTopup(false);
+    } catch (err: any) {
+      alert(err.message || "Top-up failed");
+    } finally {
+      setTopupLoading(false);
+    }
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -173,7 +212,34 @@ function ParentDashboardContent() {
                 {/* Quick Actions & Recent Updates */}
                 <div className="lg:col-span-2 space-y-6">
                   <div className="grid grid-cols-2 gap-4">
-                    <button className="p-5 rounded-[28px] bg-[var(--navy-soft)] text-[var(--primary)] flex flex-col lg:flex-row items-center justify-center gap-3 hover:shadow-lg transition-all border border-[var(--navy)]/5 active:scale-95 group">
+                    {/* Wallet Card */}
+                  <div className="col-span-2 p-5 rounded-[28px] bg-gradient-to-br from-slate-800 to-slate-900 text-white relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -mr-16 -mt-16" />
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full -ml-12 -mb-12" />
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[2px] opacity-50">Canteen Wallet</p>
+                          <p className="text-xs font-bold opacity-70 mt-0.5">{selectedChild?.first_name}'s Pocket Money</p>
+                        </div>
+                        <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center">
+                          <MaterialIcon icon="account_balance_wallet" />
+                        </div>
+                      </div>
+                      <p className="text-3xl font-black tracking-tight mb-1">
+                        {walletBalance !== null ? `UGX ${walletBalance.toLocaleString()}` : "—"}
+                      </p>
+                      <p className="text-[10px] opacity-40 font-bold mb-4">Available Balance</p>
+                      <button
+                        onClick={() => setShowTopup(true)}
+                        className="px-5 py-2.5 bg-white text-slate-900 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-lg"
+                      >
+                        + Add Funds
+                      </button>
+                    </div>
+                  </div>
+
+                  <button className="p-5 rounded-[28px] bg-[var(--navy-soft)] text-[var(--primary)] flex flex-col lg:flex-row items-center justify-center gap-3 hover:shadow-lg transition-all border border-[var(--navy)]/5 active:scale-95 group">
                       <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
                         <MaterialIcon
                           icon="receipt_long"
@@ -263,6 +329,57 @@ function ParentDashboardContent() {
             )}
           </div>
         </div>
+
+        {/* Top-up Modal */}
+        {showTopup && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
+              <div className="p-8">
+                <div className="flex justify-between items-center mb-8">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center">
+                    <MaterialIcon icon="add_card" />
+                  </div>
+                  <button onClick={() => setShowTopup(false)} className="p-2 hover:bg-slate-100 rounded-xl">
+                    <MaterialIcon icon="close" className="text-slate-400" />
+                  </button>
+                </div>
+                <h3 className="text-2xl font-black text-slate-800 mb-1">Add Pocket Money</h3>
+                <p className="text-sm text-slate-400 font-medium mb-8">Funds will be available immediately in {selectedChild?.first_name}'s digital wallet</p>
+
+                <div className="space-y-6">
+                  <input
+                    type="number"
+                    value={topupAmount}
+                    onChange={(e) => setTopupAmount(e.target.value)}
+                    placeholder="Amount (UGX)"
+                    className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-2xl font-black outline-none focus:ring-4 focus:ring-slate-200"
+                  />
+                  <div className="flex gap-2">
+                    {[5000, 10000, 20000, 50000].map((a) => (
+                      <button
+                        key={a}
+                        onClick={() => setTopupAmount(a.toString())}
+                        className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-500 hover:border-slate-800 hover:text-slate-800 transition-all"
+                      >
+                        +{a / 1000}k
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={handleTopup}
+                    disabled={!topupAmount || topupLoading}
+                    className="w-full py-5 bg-slate-900 text-white rounded-[28px] font-black uppercase tracking-[2px] hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                  >
+                    {topupLoading
+                      ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      : <><MaterialIcon icon="bolt" /> Confirm Top-up</>
+                    }
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

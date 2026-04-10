@@ -25,10 +25,15 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       items: [
         { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
         {
+          href: "/dashboard/analytics/dna",
+          label: "Performance DNA",
+          icon: "biotech",
+          badge: "New",
+        },
+        {
           href: "/dashboard/analytics",
           label: "Insights",
           icon: "analytics",
-          badge: "New",
         },
         {
           href: "/dashboard/messages",
@@ -105,32 +110,26 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       ],
     },
     {
+      label: "Commercial Suite",
+      icon: "shopping_cart",
+      defaultOpen: false,
+      items: [
+        { href: "/dashboard/store/pos", label: "Canteen POS", icon: "shopping_cart" },
+        { href: "/dashboard/store/inventory", label: "Inventory", icon: "inventory" },
+        { href: "/dashboard/store/wallets", label: "Student Wallets", icon: "account_balance_wallet" },
+        { href: "/dashboard/analytics/dna", label: "Performance DNA", icon: "biotech" },
+      ],
+    },
+    {
       label: "Services",
       icon: "extension",
       defaultOpen: false,
       items: [
-        {
-          href: "/dashboard/health",
-          label: "Health/Sick Bay",
-          icon: "local_hospital",
-        },
-        {
-          href: "/dashboard/transport",
-          label: "Transport",
-          icon: "directions_bus",
-        },
+        { href: "/dashboard/health", label: "Health/Sick Bay", icon: "local_hospital" },
+        { href: "/dashboard/transport", label: "Transport", icon: "directions_bus" },
         { href: "/dashboard/library", label: "Library", icon: "local_library" },
-        {
-          href: "/dashboard/assets",
-          label: "Assets",
-          icon: "inventory_2",
-        },
+        { href: "/dashboard/assets", label: "Assets", icon: "inventory_2" },
         { href: "/dashboard/dorm", label: "Dormitory", icon: "bed" },
-        {
-          href: "/dashboard/canteen",
-          label: "Canteen",
-          icon: "restaurant",
-        },
       ],
     },
     {
@@ -299,7 +298,9 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       ],
     },
     {
-      title: "Commercial Suite",
+      label: "Commercial Suite",
+      icon: "shopping_cart",
+      defaultOpen: false,
       items: [
         { href: "/dashboard/store/pos", label: "Canteen POS", icon: "shopping_cart" },
         { href: "/dashboard/store/inventory", label: "Inventory", icon: "inventory" },
@@ -307,7 +308,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       ],
     },
     {
-      title: "Finances",
+      label: "Finances",
       defaultOpen: false,
       items: [
         { href: "/dashboard/fees", label: "Finance Hub", icon: "payments" },
