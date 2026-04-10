@@ -1,12 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./globals-ux.css";
 import Providers from "./providers";
 import MobileInit from "./mobile-init";
 import DebugPing from "@/components/DebugPing";
 import Script from "next/script";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://omuto.sms"),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://omuto.sms",
+  ),
   title: "SkoolMate OS | Your Digital School Partner",
   description:
     "The all-in-one school management system built for Ugandan schools. Track attendance, grades, fees, and send parent SMS — all from one dashboard. Start your free 30-day trial today.",

@@ -1,0 +1,83 @@
+/* 
+ * Global styles for UX improvements 
+ * - Touch-friendly targets (min 44px)
+ * - Focus states for accessibility
+ * - Transitions
+ */
+
+/* Touch-friendly interactive elements */
+button,
+[role="button"],
+a,
+input[type="checkbox"],
+input[type="radio"],
+select,
+[tabindex]:not([tabindex="-1"]) {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Focus visible states for accessibility */
+:focus-visible {
+  outline: 2px solid var(--primary, #2563eb);
+  outline-offset: 2px;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border: #000;
+    --on-surface: #000;
+    --surface: #fff;
+  }
+}
+
+/* Smooth transitions */
+* {
+  transition-property:
+    background-color, border-color, color, fill, stroke, opacity, box-shadow,
+    transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Better scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-container, #f1f5f9);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--on-surface-variant, #94a3b8);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--on-surface, #475569);
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
