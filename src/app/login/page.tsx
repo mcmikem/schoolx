@@ -350,7 +350,7 @@ export default function LoginPage() {
               style={{ fontSize: 18 }}
             />
             <span className="text-xs font-bold uppercase tracking-widest text-blue-100">
-              Trusted by 500+ Schools
+              Locally Optimized for Uganda
             </span>
           </div>
           <h1 className="text-5xl xl:text-6xl font-black leading-[1.1] tracking-tight mb-6">
@@ -366,39 +366,43 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Testimonial Card */}
-        <div className="relative z-10 max-w-md">
-          <div className="p-8 rounded-[32px] bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl relative">
-            <MaterialIcon
-              icon="format_quote"
-              className="absolute top-6 right-8 text-5xl text-white/10"
-            />
-            <div className="flex gap-1 mb-4">
-              {[1, 2, 3, 4, 5].map((i) => (
+        {/* Reality Check: Feature List */}
+        <div className="relative z-10 grid grid-cols-1 gap-4 max-w-md">
+          {[
+            {
+              icon: "how_to_reg",
+              title: "10-Second Attendance",
+              desc: "Take class attendance faster than you can write on a chalkboard.",
+            },
+            {
+              icon: "sms",
+              title: "Instant Parent SMS",
+              desc: "Keep parents informed with automatic fee reminders and holiday notices.",
+            },
+            {
+              icon: "description",
+              title: "Auto-Generated Reports",
+              desc: "Stop calculating averages by hand. Click one button to print student report cards.",
+            },
+          ].map((item, i) => (
+            <div
+              key={i}
+              className="p-5 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl flex gap-4"
+            >
+              <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
                 <MaterialIcon
-                  key={i}
-                  icon="star"
-                  className="text-amber-400 text-sm"
+                  icon={item.icon}
+                  className="text-teal-300 text-xl"
                 />
-              ))}
-            </div>
-            <p className="text-lg font-medium leading-relaxed mb-6 italic text-white/90">
-              &quot;SkoolMate transformed how we operate. We collected 40% more
-              fees on time and our parents love the real-time academic updates
-              via the portal.&quot;
-            </p>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-blue-900 flex items-center justify-center font-bold border-2 border-white/20 shadow-lg">
-                SO
               </div>
               <div>
-                <p className="font-bold text-base">Sarah Otim</p>
-                <p className="text-xs text-blue-200 font-medium tracking-wide uppercase">
-                  Director, Hillside College
+                <h3 className="font-bold text-base text-white">{item.title}</h3>
+                <p className="text-xs text-blue-100/70 leading-relaxed mt-1">
+                  {item.desc}
                 </p>
               </div>
             </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>

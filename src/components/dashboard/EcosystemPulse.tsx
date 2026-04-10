@@ -57,7 +57,7 @@ export default function EcosystemPulse({ payments, smsStats, loading }: Ecosyste
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-[var(--green)] animate-pulse" />
-          <h3 className="text-sm font-bold text-[var(--t1)] font-heading">Ecosystem Pulse</h3>
+          <h3 className="text-sm font-bold text-[var(--t1)] font-heading">Recent Activity</h3>
         </div>
         <span className="text-[10px] font-bold text-[var(--t3)] uppercase tracking-wider">Live Feed</span>
       </div>
