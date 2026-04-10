@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import SkoolMateLogo from "@/components/SkoolMateLogo";
 import AnimatedLogo from "@/components/AnimatedLogo";
@@ -816,6 +817,16 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 
 /* ─── HOME PAGE ─── */
 export default function HomePage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // If running in Capacitor (Mobile APK), skip landing page and go straight to login
+    const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor?.isNative;
+    if (isCapacitor) {
+      router.push("/login");
+    }
+  }, [router]);
+
   return (
     <main
       className="min-h-screen bg-[var(--bg)] text-[var(--t1)]"
@@ -830,38 +841,34 @@ export default function HomePage() {
       {/* ===== HERO ===== */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-x-0 top-0 h-[620px] bg-[radial-gradient(circle_at_top_left,_rgba(23,50,95,0.13),_transparent_42%),radial-gradient(circle_at_top_right,_rgba(46,148,72,0.10),_transparent_38%),linear-gradient(180deg,_#ffffff_0%,_var(--bg)_72%)]" />
-        <div className="absolute left-[8%] top-24 h-40 w-40 rounded-full bg-[#d6e4ff] blur-3xl" />
-        <div className="absolute right-[10%] top-40 h-48 w-48 rounded-full bg-[#dff3e5] blur-3xl" />
+        <div className="absolute left-[8%] top-24 h-40 w-40 rounded-full bg-[#d6e4ff] blur-3xl opacity-50" />
+        <div className="absolute right-[10%] top-40 h-48 w-48 rounded-full bg-[#dff3e5] blur-3xl opacity-50" />
 
         <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-5 sm:px-6 lg:px-8 lg:pb-24">
           {/* Nav */}
           <nav className="flex items-center justify-between rounded-full border border-white/70 bg-white/80 px-4 py-3 shadow-[0_8px_30px_rgba(15,23,42,0.06)] backdrop-blur sm:px-6">
-            <SkoolMateLogo size="md" variant="white" />
+            <SkoolMateLogo size="md" variant="default" />
             <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
               <button
                 onClick={() => smoothScroll("#features")}
-                aria-label="Navigate to Features section"
                 className="transition hover:text-slate-950 cursor-pointer"
               >
                 Features
               </button>
               <button
                 onClick={() => smoothScroll("#story")}
-                aria-label="Navigate to Story section"
                 className="transition hover:text-slate-950 cursor-pointer"
               >
                 Story
               </button>
               <button
                 onClick={() => smoothScroll("#security")}
-                aria-label="Navigate to Security section"
                 className="transition hover:text-slate-950 cursor-pointer"
               >
                 Security
               </button>
               <button
                 onClick={() => smoothScroll("#pricing")}
-                aria-label="Navigate to Pricing section"
                 className="transition hover:text-slate-950 cursor-pointer"
               >
                 Pricing
@@ -892,10 +899,12 @@ export default function HomePage() {
           {/* Hero grid */}
           <div className="grid gap-14 pt-12 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:pt-20">
             <div className="max-w-2xl">
-              <AnimatedLogo
-                type="opening"
-                className="w-64 h-64 lg:w-80 lg:h-80 -mb-4"
-              />
+              <div className="mb-6 flex animate-fade-in">
+                <div className="px-4 py-1.5 rounded-full bg-[var(--navy-soft)] border border-[var(--navy)]/10 text-[var(--navy)] text-[10px] uppercase font-bold tracking-widest flex items-center gap-2">
+                  <MaterialIcon icon="award_star" className="text-sm" />
+                  Uganda&apos;s Premium School OS
+                </div>
+              </div>
               <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--primary)] shadow-sm">
                 <MaterialIcon icon="bolt" className="text-[18px]" />
                 Built from experience on the ground in schools

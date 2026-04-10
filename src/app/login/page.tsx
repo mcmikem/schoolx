@@ -51,7 +51,13 @@ export default function LoginPage() {
       role: "Headmaster",
       phone: "0700000001",
       password: DEMO_PASSWORD,
-      label: "Headmaster (Full Access)",
+      label: "Headmaster",
+    },
+    {
+      role: "Parent",
+      phone: "0700000005",
+      password: DEMO_PASSWORD,
+      label: "Parent Portal",
     },
     {
       role: "Teacher",
@@ -63,13 +69,7 @@ export default function LoginPage() {
       role: "Bursar",
       phone: "0700000003",
       password: DEMO_PASSWORD,
-      label: "Bursar (Fees Only)",
-    },
-    {
-      role: "Dean",
-      phone: "0700000004",
-      password: DEMO_PASSWORD,
-      label: "Dean of Studies",
+      label: "Bursar",
     },
   ];
 
@@ -112,6 +112,11 @@ export default function LoginPage() {
         name: "Sarah Dean",
         school_id: "demo-school",
       },
+      "0700000005": {
+        role: "parent",
+        name: "Robert Parent",
+        school_id: "demo-school",
+      },
     };
 
     const cleanPhone = phone.replace(/[^0-9]/g, "");
@@ -129,7 +134,7 @@ export default function LoginPage() {
         district: "Kampala",
         school_type: "primary",
         ownership: "private",
-        primary_color: "#001F3F",
+        primary_color: "#17325F",
         subscription_plan: "premium",
         subscription_status: "active",
       };
@@ -139,9 +144,13 @@ export default function LoginPage() {
       });
       localStorage.setItem(DEMO_KEY, demoData);
       toast.success(tWithParams("auth.welcomeDemo", { name: demoUser.name }));
-      // Super admin goes to super-admin page, others go to dashboard
-      const redirectPath =
-        demoUser.role === "super_admin" ? "/super-admin" : "/dashboard";
+      
+      const redirectPath = demoUser.role === "super_admin" 
+        ? "/super-admin" 
+        : demoUser.role === "parent"
+          ? "/parent-portal"
+          : "/dashboard";
+      
       window.location.href = redirectPath;
       return;
     }
@@ -199,22 +208,25 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--surface-bright)] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center mb-6">
-          <AnimatedLogo type="opening" className="w-48 h-48" />
+    <div className="min-h-screen bg-[var(--bg)] flex flex-col justify-center relative overflow-hidden">
+      {/* Decorative Background Elements */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[var(--navy-soft)] blur-[120px] rounded-full opacity-50" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[var(--green-soft)] blur-[120px] rounded-full opacity-30" />
+      
+      <div className="relative z-10 w-full max-w-md mx-auto px-4">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-[24px] bg-white shadow-xl mb-6 ring-1 ring-slate-100">
+             <AnimatedLogo type="logo" className="w-12 h-12" />
+          </div>
+          <h2 className="text-3xl font-extrabold text-[var(--t1)] tracking-tight">
+             Welcome Back
+          </h2>
+          <p className="mt-2 text-[var(--t3)] font-medium">
+             Enter your credentials to access your workspace
+          </p>
         </div>
 
-        <h2 className="text-center text-2xl font-bold text-[var(--primary)] tracking-tight">
-          {t("auth.signInToAccount")}
-        </h2>
-        <p className="mt-2 text-center text-sm text-[var(--t3)]">
-          {t("auth.enterPhoneAndPassword")}
-        </p>
-      </div>
-
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] py-8 px-6 sm:px-10 shadow-[var(--sh1)]">
+        <div className="card-premium p-8 md:p-10 shadow-[0_32px_64px_rgba(15,23,42,0.1)]">
           <form onSubmit={handleLogin} className="space-y-5">
             <Input
               label={t("auth.phoneNumber")}

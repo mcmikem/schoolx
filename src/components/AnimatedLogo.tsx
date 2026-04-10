@@ -3,7 +3,7 @@
 import Image from "next/image";
 
 interface AnimatedLogoProps {
-  type?: "opening" | "logo_white";
+  type?: "opening" | "logo_white" | "logo";
   className?: string;
   autoplay?: boolean;
 }
@@ -13,7 +13,10 @@ export default function AnimatedLogo({
   className = "",
   autoplay = true,
 }: AnimatedLogoProps) {
-  const src = type === "opening" ? "/opening.webp" : "/logo-white.webp";
+  const src = 
+    type === "opening" ? "/opening.webp" : 
+    type === "logo_white" ? "/SkoolMate logos/SchoolMate White.svg" :
+    "/SkoolMate logos/SchoolMate logo official.svg";
 
   return (
     <div className={`relative ${className}`}>
