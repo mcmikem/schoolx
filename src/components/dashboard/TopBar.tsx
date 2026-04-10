@@ -229,22 +229,23 @@ export default function TopBar({
   const currentDate = new Date();
 
   const routeLabels: Record<string, string> = {
-    dashboard: "Dashboard",
-    students: "Students",
-    fees: "Fees",
-    grades: "Grades",
-    staff: "Staff",
+    dashboard: "Home",
+    students: "Student Hub",
+    fees: "Payments",
+    grades: "Record Marks",
+    staff: "Staff List",
     attendance: "Attendance",
-    messages: "Messages",
+    messages: "Phone & SMS",
     settings: "Settings",
-    reports: "Reports",
-    notices: "Notices",
+    reports: "Report Cards",
+    notices: "Notice Board",
     timetable: "Timetable",
-    warnings: "Warnings",
-    "bulk-sms": "Bulk SMS",
-    "expense-approvals": "Expense Approvals",
-    "leave-approvals": "Leave Approvals",
-    "dropout-tracking": "Dropout Tracking",
+    warnings: "At Risk",
+    "bulk-sms": "Send SMS",
+    "expense-approvals": "Approve Expenses",
+    "leave-approvals": "Approve Leave",
+    "dropout-tracking": "Dropout Tracker",
+    rollover: "Promote & Transitions",
   };
 
   const buildBreadcrumbs = () => {

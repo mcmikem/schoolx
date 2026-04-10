@@ -374,7 +374,19 @@ function HeadmasterDashboardContent() {
         role="headmaster"
       />
 
-      {/* Premium Dashboard Insights Section */}
+      <div className="mb-8">
+        <ActionCenter
+          items={
+            focusItems.map((item) => ({
+              ...item,
+              priority: item.status === "alert" ? "high" : "medium",
+            })) as any
+          }
+          loading={loadingExtra}
+        />
+      </div>
+
+      {/* Analytics Section - secondary on mobile */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
         <div className="xl:col-span-3">
           <DashboardInsights
@@ -396,19 +408,6 @@ function HeadmasterDashboardContent() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        <div className="lg:col-span-2">
-          <ActionCenter
-            items={
-              focusItems.map((item) => ({
-                ...item,
-                priority: item.status === "alert" ? "high" : "medium",
-              })) as any
-            }
-            loading={loadingExtra}
-          />
-        </div>
-      </div>
     </div>
   );
 }
