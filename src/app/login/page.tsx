@@ -304,6 +304,7 @@ export default function LoginPage() {
               ))}
             </div>
           </form>
+          </div>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-[var(--t3)]">
