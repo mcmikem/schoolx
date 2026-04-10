@@ -76,6 +76,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
         { href: "/dashboard/exams", label: "Exams", icon: "fact_check" },
         { href: "/dashboard/timetable", label: "Timetable", icon: "calendar_month" },
         { href: "/dashboard/syllabus", label: "Syllabus", icon: "track_changes" },
+        { href: "/dashboard/custom-reports", label: "Report Builder", icon: "build", badge: "Pro" },
         { href: "/dashboard/batch-reports", label: "Batch Reports", icon: "print", badge: "New" },
         { href: "/dashboard/bulk-sms", label: "SMS Centre", icon: "sms" },
       ],
