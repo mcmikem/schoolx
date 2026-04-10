@@ -132,6 +132,12 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       defaultOpen: false,
       items: [
         {
+          href: "/dashboard/workflows",
+          label: "Workflows",
+          icon: "account_tree",
+          badge: "New",
+        },
+        {
           href: "/dashboard/settings",
           label: "Settings",
           icon: "settings",
