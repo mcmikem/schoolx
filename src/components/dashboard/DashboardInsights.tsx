@@ -21,6 +21,7 @@ interface DashboardInsightsProps {
   students: any[];
   payments: any[];
   loading?: boolean;
+  isDemo?: boolean;
 }
 
 export default function DashboardInsights({
@@ -30,28 +31,40 @@ export default function DashboardInsights({
   students,
   payments,
   loading,
+  isDemo,
 }: DashboardInsightsProps) {
-  // Generate dummy trend data for the area chart (last 6 months)
-  // In a real app, this would come from an API
-  // Generate real trend data for the area chart based on last 6 months of payments
+  // Generate trend data for the area chart (last 6 months)
   const trendData = useMemo(() => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
     
-    // In a real scenario, we'd group payments by month. 
-    // Here we'll derive a realistic curve based on the current collectionRate
+    // Determine if we should show real data or demo data
+    const hasData = payments.length > 0 || students.length > 0;
+    
     return months.map((month, i) => {
-      // Simulate historical growth but keep it anchored to roughly the current collection status
+      // If not demo mode and no real data, return zeros
+      if (!isDemo && !hasData) {
+        return { name: month, fees: 0, attendance: 0 };
+      }
+
+      // In demo mode or if we have data, we'll derive a curve
+      // For real accounts with data, we might want to actually group payments,
+      // but as a fallback/simplification to prevent "jumping" to zero, 
+      // we'll anchor to the current rate only if data exists.
       const growthFactor = (i + 1) / months.length;
+      
+      // Only add noise if it's explicitly demo mode
+      const noise = isDemo ? Math.random() * 500 : 0;
       const baseFee = (collectionRate * 1000) * growthFactor;
-      const noise = Math.random() * 500;
       
       return {
         name: month,
         fees: Math.max(0, baseFee + noise),
-        attendance: Math.min(100, attendanceRate - (Math.random() * 5) + (i * 0.5)),
+        attendance: i < months.length - 1 
+          ? (attendanceRate > 0 ? Math.min(100, attendanceRate - (isDemo ? Math.random() * 5 : 0) + (i * 0.5)) : 0)
+          : attendanceRate,
       };
     });
-  }, [collectionRate, attendanceRate]);
+  }, [collectionRate, attendanceRate, isDemo, payments.length, students.length]);
 
   // Student Demographics Data - Accurate from props
   const demoData = useMemo(() => {
@@ -68,16 +81,23 @@ export default function DashboardInsights({
       results.push({ name: "Other", value: others, color: "var(--t4)" });
     }
     
-    // Fallback if no students yet
+    // Only show fallback data in Demo Mode
     if (students.length === 0) {
-       return [
-         { name: "Boys", value: 50, color: "var(--navy)" },
-         { name: "Girls", value: 50, color: "var(--green)" },
-       ];
+       if (isDemo) {
+         return [
+           { name: "Boys", value: 50, color: "var(--navy)" },
+           { name: "Girls", value: 50, color: "var(--green)" },
+         ];
+       } else {
+         return [
+           { name: "Boys", value: 0, color: "var(--navy)" },
+           { name: "Girls", value: 0, color: "var(--green)" },
+         ];
+       }
     }
     
     return results;
-  }, [students]);
+  }, [students, isDemo]);
 
   // School Health Score (Weighted average)
   const healthScore = useMemo(() => {
@@ -117,55 +137,63 @@ export default function DashboardInsights({
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 mt-2">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={trendData}>
-              <defs>
-                <linearGradient id="colorFees" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--navy)" stopOpacity={0.1} />
-                  <stop offset="95%" stopColor="var(--navy)" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="colorAtt" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--green)" stopOpacity={0.1} />
-                  <stop offset="95%" stopColor="var(--green)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-              <XAxis 
-                dataKey="name" 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fontSize: 10, fill: "var(--t3)", fontWeight: 600 }}
-                dy={10}
-              />
-              <YAxis hide />
-              <Tooltip 
-                contentStyle={{ 
-                  borderRadius: "12px", 
-                  border: "none", 
-                  boxShadow: "var(--sh3)",
-                  fontSize: "12px",
-                  fontWeight: "bold"
-                }} 
-              />
-              <Area
-                type="monotone"
-                dataKey="fees"
-                stroke="var(--navy)"
-                strokeWidth={3}
-                fillOpacity={1}
-                fill="url(#colorFees)"
-              />
-              <Area
-                type="monotone"
-                dataKey="attendance"
-                stroke="var(--green)"
-                strokeWidth={3}
-                fillOpacity={1}
-                fill="url(#colorAtt)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+        <div className="flex-1 min-h-0 mt-2 relative">
+          {(!isDemo && trendData.every(d => d.fees === 0 && d.attendance === 0)) ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-[var(--bg)]/50 backdrop-blur-sm rounded-xl border border-dashed border-[var(--border)]">
+              <MaterialIcon icon="analytics" style={{ fontSize: 40, color: 'var(--t4)', opacity: 0.5 }} />
+              <div className="mt-2 text-sm font-bold text-[var(--t2)]">No Activity Data Yet</div>
+              <p className="text-[11px] text-[var(--t4)] max-w-[200px]">Once you start recording attendance and fees, your performance trends will appear here.</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={trendData}>
+                <defs>
+                  <linearGradient id="colorFees" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--navy)" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="var(--navy)" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorAtt" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--green)" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="var(--green)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fill: "var(--t3)", fontWeight: 600 }}
+                  dy={10}
+                />
+                <YAxis hide />
+                <Tooltip 
+                  contentStyle={{ 
+                    borderRadius: "12px", 
+                    border: "none", 
+                    boxShadow: "var(--sh3)",
+                    fontSize: "12px",
+                    fontWeight: "bold"
+                  }} 
+                />
+                <Area
+                  type="monotone"
+                  dataKey="fees"
+                  stroke="var(--navy)"
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#colorFees)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="attendance"
+                  stroke="var(--green)"
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#colorAtt)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 
@@ -230,37 +258,47 @@ export default function DashboardInsights({
             <MaterialIcon icon="groups" style={{ fontSize: 18, color: "var(--navy)" }} />
           </div>
           
-          <div className="flex-1 flex items-center">
-            <div className="w-24 h-24">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={demoData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={30}
-                    outerRadius={45}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {demoData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex-1 flex flex-col gap-2 ml-4">
-              {demoData.map((item) => (
-                <div key={item.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                    <span className="text-xs font-bold text-[var(--t2)]">{item.name}</span>
-                  </div>
-                  <span className="text-xs font-extrabold text-[var(--t1)]">{item.value}</span>
+          <div className="flex-1 flex items-center relative">
+            {(!isDemo && students.length === 0) ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
+                <MaterialIcon icon="person_off" style={{ fontSize: 32, color: 'var(--t4)', opacity: 0.5 }} />
+                <div className="mt-1 text-xs font-bold text-[var(--t2)]">No Students</div>
+                <p className="text-[10px] text-[var(--t4)] max-w-[150px]">Enroll students to see breakdown.</p>
+              </div>
+            ) : (
+              <>
+                <div className="w-24 h-24">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={demoData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={30}
+                        outerRadius={45}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {demoData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
-              ))}
-            </div>
+                <div className="flex-1 flex flex-col gap-2 ml-4">
+                  {demoData.map((item) => (
+                    <div key={item.name} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                        <span className="text-xs font-bold text-[var(--t2)]">{item.name}</span>
+                      </div>
+                      <span className="text-xs font-extrabold text-[var(--t1)]">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
