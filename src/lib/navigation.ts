@@ -17,6 +17,28 @@ export interface NavGroup {
 
 // Define navigation by role
 export const navigationByRole: Record<string, NavGroup[]> = {
+  super_admin: [
+    {
+      label: "System Control HUB",
+      icon: "admin_panel_settings",
+      defaultOpen: true,
+      items: [
+        { href: "/super-admin", label: "Super Admin Home", icon: "admin_panel_settings" },
+        { href: "/super-admin?tab=overview", label: "System Monitor", icon: "troubleshoot" },
+      ],
+    },
+    {
+      label: "Global Operations",
+      icon: "public",
+      defaultOpen: true,
+      items: [
+        { href: "/super-admin", label: "All Schools", icon: "corporate_fare" },
+        { href: "/super-admin?tab=features", label: "Feature Toggles", icon: "toggle_on" },
+        { href: "/super-admin?tab=settings", label: "Platform Settings", icon: "settings_ethernet" },
+      ],
+    },
+  ],
+
   headmaster: [
     {
       label: "Main Hub",
