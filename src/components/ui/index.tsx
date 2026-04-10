@@ -198,3 +198,11 @@ export function Avatar({ src, name, size = "md" }: AvatarProps) {
     </div>
   );
 }
+
+export { Breadcrumbs } from "./Breadcrumbs";
+export {
+  useKeyboardShortcuts,
+  DEFAULT_SHORTCUTS,
+} from "@/lib/hooks/useKeyboardShortcuts";
+export { useAutoSave, useFieldValidation } from "@/lib/hooks/useAutoSave";
+export { TouchButton, TouchInput } from "./TouchComponents";
