@@ -109,70 +109,7 @@ function BursarDashboardContent() {
           </div>
         </div>
 
-      <SmartAdvisor 
-        stats={{}} 
-        collectionRate={collectionRate} 
-        attendanceRate={0} 
-        role="bursar" 
-      />
-
-      {/* Visual Insights & Pulse */}
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
-        <div className="xl:col-span-3">
-          <DashboardInsights
-            stats={{}}
-            attendanceRate={0}
-            collectionRate={collectionRate}
-            students={students}
-            payments={payments}
-          />
-        </div>
-        <div className="xl:col-span-1">
-          <EcosystemPulse payments={payments} />
-        </div>
-      </div>
-
-      {/* Quick Actions Bar */}
-      <div className="quick-actions-bar">
-        <Link href="/dashboard/fees" className="qa-large">
-          <div
-            className="qa-large-icon"
-            style={{ background: "var(--green-soft)", color: "var(--green)" }}
-          >
-            <MaterialIcon icon="add_card" style={{ fontSize: "24px" }} />
-          </div>
-          <span className="qa-large-label">Record Payment</span>
-        </Link>
-        <Link href="/dashboard/fees" className="qa-large">
-          <div
-            className="qa-large-icon"
-            style={{ background: "var(--navy-soft)", color: "var(--navy)" }}
-          >
-            <MaterialIcon icon="receipt_long" style={{ fontSize: "24px" }} />
-          </div>
-          <span className="qa-large-label">Fee Structure</span>
-        </Link>
-        <Link href="/dashboard/invoicing" className="qa-large">
-          <div
-            className="qa-large-icon"
-            style={{ background: "var(--amber-soft)", color: "var(--amber)" }}
-          >
-            <MaterialIcon icon="description" style={{ fontSize: "24px" }} />
-          </div>
-          <span className="qa-large-label">Invoicing</span>
-        </Link>
-        <Link href="/dashboard/cashbook" className="qa-large">
-          <div
-            className="qa-large-icon"
-            style={{ background: "rgba(37,99,235,0.1)", color: "#2563eb" }}
-          >
-            <MaterialIcon icon="book" style={{ fontSize: "24px" }} />
-          </div>
-          <span className="qa-large-label">Cashbook</span>
-        </Link>
-      </div>
-
-      <div className="stat-grid sm:grid-cols-3 !mb-8">
+      <div className="stat-grid sm:grid-cols-3 mb-8">
         <StatCard
           label="Total Collected"
           value={`UGX ${formatCurrency(totalFeesCollected)}`}
@@ -189,7 +126,7 @@ function BursarDashboardContent() {
         <StatCard
           label="Total Arrears"
           value={`UGX ${formatCurrency(totalArrears)}`}
-          subValue={`${students.length} students pending`}
+          subValue={`${students.length} pending`}
           icon="warning"
           accentColor="red"
           variant="premium-amber"
@@ -203,125 +140,78 @@ function BursarDashboardContent() {
         />
       </div>
 
-      <div className="mb-6">
-        <div className="mb-3">
-          <h3 className="text-sm font-bold text-[var(--t1)]">
-            Finance Actions
-          </h3>
+      <div className="mb-8">
+        <SmartAdvisor 
+          stats={{}} 
+          collectionRate={collectionRate} 
+          attendanceRate={0} 
+          role="bursar" 
+        />
+      </div>
+
+      {/* Visual Insights */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
+        <div className="xl:col-span-3">
+          <DashboardInsights
+            stats={{}}
+            attendanceRate={0}
+            collectionRate={collectionRate}
+            students={students}
+            payments={payments}
+            isDemo={isDemo}
+          />
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Link
-            href="/dashboard/fees"
-            className="qa-item !flex-row !justify-start !p-4"
-          >
-            <div
-              className="qa-icon"
-              style={{ background: "var(--green-soft)", color: "var(--green)" }}
-            >
-              <MaterialIcon icon="add_card" style={{ fontSize: 20 }} />
+        <div className="xl:col-span-1">
+          <EcosystemPulse payments={payments} />
+        </div>
+      </div>
+
+      {/* Action Hub */}
+      <div className="mb-4 mt-8">
+        <h3 className="text-sm font-bold text-[var(--t1)] mb-4 flex items-center gap-2">
+          <MaterialIcon icon="bolt" className="text-[var(--amber)]" />
+          Quick Financial Ops
+        </h3>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Link href="/dashboard/fees" className="qa-item group">
+            <div className="qa-icon" style={{ background: "var(--green-soft)", color: "var(--green)" }}>
+              <MaterialIcon icon="add_card" />
             </div>
-            <div className="min-w-0">
-              <div className="text-[13px] font-bold text-[var(--t1)] truncate">
-                Record Payment
-              </div>
-              <div className="text-[10px] text-[var(--t3)] font-medium truncate">
-                Add new entry
-              </div>
-            </div>
-          </Link>
-          <Link
-            href="/dashboard/fees"
-            className="qa-item !flex-row !justify-start !p-4"
-          >
-            <div
-              className="qa-icon"
-              style={{ background: "var(--navy-soft)", color: "var(--navy)" }}
-            >
-              <MaterialIcon icon="receipt_long" style={{ fontSize: 20 }} />
-            </div>
-            <div className="min-w-0">
-              <div className="text-[13px] font-bold text-[var(--t1)] truncate">
-                Fee Structure
-              </div>
-              <div className="text-[10px] text-[var(--t3)] font-medium truncate">
-                Manage fees
-              </div>
+            <div className="mt-2">
+              <div className="text-[14px] font-bold text-[var(--t1)]">Payments</div>
+              <div className="text-[11px] text-[var(--t4)]">Record student fees</div>
             </div>
           </Link>
-          <Link
-            href="/dashboard/invoicing"
-            className="qa-item !flex-row !justify-start !p-4"
-          >
-            <div
-              className="qa-icon"
-              style={{ background: "var(--navy-soft)", color: "var(--navy)" }}
-            >
-              <MaterialIcon icon="description" style={{ fontSize: 20 }} />
+          <Link href="/dashboard/invoicing" className="qa-item group">
+            <div className="qa-icon" style={{ background: "var(--navy-soft)", color: "var(--navy)" }}>
+              <MaterialIcon icon="description" />
             </div>
-            <div className="min-w-0">
-              <div className="text-[13px] font-bold text-[var(--t1)] truncate">
-                Invoicing
-              </div>
-              <div className="text-[10px] text-[var(--t3)] font-medium truncate">
-                Generate docs
-              </div>
+            <div className="mt-2">
+              <div className="text-[14px] font-bold text-[var(--t1)]">Invoicing</div>
+              <div className="text-[11px] text-[var(--t4)]">Generate bills</div>
             </div>
           </Link>
-          <Link
-            href="/dashboard/cashbook"
-            className="qa-item !flex-row !justify-start !p-4"
-          >
-            <div
-              className="qa-icon"
-              style={{ background: "var(--amber-soft)", color: "var(--amber)" }}
-            >
-              <MaterialIcon icon="book" style={{ fontSize: 20 }} />
+          <Link href="/dashboard/cashbook" className="qa-item group">
+            <div className="qa-icon" style={{ background: "var(--amber-soft)", color: "var(--amber)" }}>
+              <MaterialIcon icon="book" />
             </div>
-            <div className="min-w-0">
-              <div className="text-[13px] font-bold text-[var(--t1)] truncate">
-                Cashbook
-              </div>
-              <div className="text-[10px] text-[var(--t3)] font-medium truncate">
-                Audit logs
-              </div>
+            <div className="mt-2">
+              <div className="text-[14px] font-bold text-[var(--t1)]">Cashbook</div>
+              <div className="text-[11px] text-[var(--t4)]">Daily tracking</div>
+            </div>
+          </Link>
+          <Link href="/dashboard/budget" className="qa-item group">
+            <div className="qa-icon" style={{ background: "var(--blue-soft)", color: "var(--blue)" }}>
+              <MaterialIcon icon="account_balance_wallet" />
+            </div>
+            <div className="mt-2">
+              <div className="text-[14px] font-bold text-[var(--t1)]">Budgets</div>
+              <div className="text-[11px] text-[var(--t4)]">Plan spending</div>
             </div>
           </Link>
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-header">
-          <div>
-            <div className="card-title">
-              Collection Progress · Term {currentTerm}
-            </div>
-            <div className="card-sub">{academicYear} academic cycle</div>
-          </div>
-          <span className="badge badge-green font-mono">{collectionRate}%</span>
-        </div>
-        <div className="card-body">
-          <div className="h-2.5 bg-[var(--bg)] rounded-full overflow-hidden mb-4">
-            <div
-              className="h-full bg-[var(--green)] rounded-full transition-all duration-500"
-              style={{ width: `${Math.min(collectionRate, 100)}%` }}
-            />
-          </div>
-          <div className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-[var(--t3)]">
-            <div className="flex flex-col">
-              <span>Collected</span>
-              <span className="text-[var(--t1)] text-xs mt-0.5">
-                UGX {formatCurrency(totalFeesCollected)}
-              </span>
-            </div>
-            <div className="flex flex-col text-right">
-              <span>Expected</span>
-              <span className="text-[var(--navy)] text-xs mt-0.5">
-                UGX {formatCurrency(totalFeesExpected)}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
