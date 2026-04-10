@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import SidebarLayout from "@/components/SidebarLayout";
-import PageHeader from "@/components/PageHeader";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import StudentIDCard from "@/components/students/StudentIDCard";
