@@ -313,6 +313,8 @@ export function useClasses(schoolId?: string) {
         name: newClass.name || "Unknown Class",
         level: newClass.level || "Primary",
         school_id: schoolId || "00000000-0000-0000-0000-000000000001",
+        max_students: newClass.max_students || 50,
+        academic_year: newClass.academic_year || new Date().getFullYear().toString(),
         created_at: new Date().toISOString(),
       };
       setClasses((prev) => [...prev, demoClass]);
