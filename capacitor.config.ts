@@ -6,6 +6,7 @@ const config: CapacitorConfig = {
   webDir: "out",
   server: {
     url: "https://omuto-school-management.vercel.app",
+    hostname: "skoolmate.os",
     androidScheme: "https",
     cleartext: true,
   },

@@ -194,35 +194,41 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--surface-bright)] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-lg">
-        <div className="flex justify-center">
-          <OmutoLogo size="lg" />
+    <div className="min-h-screen bg-[var(--bg)] flex flex-col justify-center relative overflow-hidden">
+      {/* Decorative Background Elements */}
+      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-[var(--navy-soft)] blur-[120px] rounded-full opacity-50" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-[var(--green-soft)] blur-[120px] rounded-full opacity-30" />
+
+      <div className="relative z-10 w-full max-w-lg mx-auto px-4">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-[24px] bg-white shadow-xl mb-6 ring-1 ring-slate-100">
+             <OmutoLogo size="md" />
+          </div>
+          <h2 className="text-3xl font-extrabold text-[var(--t1)] tracking-tight">
+             Register Your School
+          </h2>
+          <p className="mt-2 text-[var(--t3)] font-medium">
+             Join Uganda&apos;s leading school operating system
+          </p>
         </div>
 
-        <h2 className="mt-6 text-center text-2xl font-bold text-[var(--primary)] tracking-tight">
-          Register your school
-        </h2>
-        <p className="mt-2 text-center text-sm text-[var(--t3)]">
-          Step {step} of 3 — 30 days free trial
-        </p>
-      </div>
-
-      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-lg px-4">
-        <div className="flex gap-2" role="navigation" aria-label="Registration progress">
-          {[1, 2, 3].map((s) => (
-            <div
-              key={s}
-              className={`h-1.5 flex-1 rounded-full transition-colors ${
-                s <= step ? "bg-[var(--primary)]" : "bg-[var(--border)]"
-              }`}
-            />
-          ))}
+        <div className="mb-6">
+          <div className="flex gap-2" role="navigation" aria-label="Registration progress">
+            {[1, 2, 3].map((s) => (
+              <div
+                key={s}
+                className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
+                  s <= step ? "bg-[var(--primary)] shadow-[0_0_12px_rgba(23,50,95,0.4)]" : "bg-[var(--border)]"
+                }`}
+              />
+            ))}
+          </div>
+          <p className="mt-4 text-center text-[10px] font-bold uppercase tracking-widest text-[var(--t3)]">
+            Step {step} of 3 — Account Setup
+          </p>
         </div>
-      </div>
 
-      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-lg">
-        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] py-8 px-6 sm:px-10 shadow-[var(--sh1)]">
+        <div className="card-premium p-8 md:p-10 shadow-[0_32px_64px_rgba(15,23,42,0.1)]">
           {error && (
             <div
               className="mb-4 p-3 rounded-xl text-sm border bg-[var(--red-soft)] border-[var(--error)]/25 text-[var(--error)]"

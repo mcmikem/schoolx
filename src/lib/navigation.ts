@@ -417,6 +417,32 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       ],
     },
   ],
+  parent: [
+    {
+      label: "Child Portal",
+      defaultOpen: true,
+      items: [
+        { href: "/parent-portal", label: "Overview", icon: "dashboard" },
+        { href: "/parent-portal/attendance", label: "Attendance", icon: "how_to_reg" },
+        { href: "/parent-portal/academics", label: "Academics", icon: "menu_book" },
+      ],
+    },
+    {
+      label: "Finance",
+      defaultOpen: true,
+      items: [
+        { href: "/parent-portal/fees", label: "Fees & Receipts", icon: "payments" },
+      ],
+    },
+    {
+      label: "School",
+      defaultOpen: false,
+      items: [
+        { href: "/parent-portal/notices", label: "Notice Board", icon: "campaign" },
+        { href: "/parent-portal/messages", label: "Message School", icon: "chat" },
+      ],
+    },
+  ],
 };
 
 export function getNavigationForRole(role: string): NavGroup[] {

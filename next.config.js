@@ -18,8 +18,11 @@ function supabaseImageHosts() {
 }
 
 const nextConfig = {
+  output: "export",
+  trailingSlash: true,
   experimental: {},
   images: {
+    unoptimized: true,
     remotePatterns: [
       ...supabaseImageHosts(),
       {
