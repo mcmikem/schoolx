@@ -14,7 +14,7 @@ import ActionCenter from "@/components/dashboard/ActionCenter";
 import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
 
 function BursarDashboardContent() {
-  const { school, user } = useAuth();
+  const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
   const { students } = useStudents(school?.id);
   const { payments } = useFeePayments(school?.id);
@@ -86,28 +86,28 @@ function BursarDashboardContent() {
 
   return (
     <div className="content">
-        <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="ph-title truncate !text-3xl">
-                {greeting}, {user?.full_name?.split(" ")[0]}
-              </div>
-              <div className="ph-sub truncate !text-sm">
-                Bursar · {school?.name} • {academicYear} Term {currentTerm}
-              </div>
+      <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="ph-title truncate !text-3xl">
+              {greeting}, {user?.full_name?.split(" ")[0]}
             </div>
-            <div className="ph-actions">
-              <Link href="/dashboard/reports" className="btn btn-ghost shadow-sm">
-                <MaterialIcon icon="download" style={{ fontSize: "16px" }} />
-                <span>Financial Report</span>
-              </Link>
-              <Link href="/dashboard/fees" className="btn btn-primary shadow-md">
-                <MaterialIcon icon="add_card" style={{ fontSize: "16px" }} />
-                <span>Record Payment</span>
-              </Link>
+            <div className="ph-sub truncate !text-sm">
+              Bursar · {school?.name} • {academicYear} Term {currentTerm}
             </div>
           </div>
+          <div className="ph-actions">
+            <Link href="/dashboard/reports" className="btn btn-ghost shadow-sm">
+              <MaterialIcon icon="download" style={{ fontSize: "16px" }} />
+              <span>Financial Report</span>
+            </Link>
+            <Link href="/dashboard/fees" className="btn btn-primary shadow-md">
+              <MaterialIcon icon="add_card" style={{ fontSize: "16px" }} />
+              <span>Record Payment</span>
+            </Link>
+          </div>
         </div>
+      </div>
 
       <div className="stat-grid sm:grid-cols-3 mb-8">
         <StatCard
@@ -141,11 +141,11 @@ function BursarDashboardContent() {
       </div>
 
       <div className="mb-8">
-        <SmartAdvisor 
-          stats={{}} 
-          collectionRate={collectionRate} 
-          attendanceRate={0} 
-          role="bursar" 
+        <SmartAdvisor
+          stats={{}}
+          collectionRate={collectionRate}
+          attendanceRate={0}
+          role="bursar"
         />
       </div>
 
@@ -174,44 +174,65 @@ function BursarDashboardContent() {
         </h3>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Link href="/dashboard/fees" className="qa-item group">
-            <div className="qa-icon" style={{ background: "var(--green-soft)", color: "var(--green)" }}>
+            <div
+              className="qa-icon"
+              style={{ background: "var(--green-soft)", color: "var(--green)" }}
+            >
               <MaterialIcon icon="add_card" />
             </div>
             <div className="mt-2">
-              <div className="text-[14px] font-bold text-[var(--t1)]">Payments</div>
-              <div className="text-[11px] text-[var(--t4)]">Record student fees</div>
+              <div className="text-[14px] font-bold text-[var(--t1)]">
+                Payments
+              </div>
+              <div className="text-[11px] text-[var(--t4)]">
+                Record student fees
+              </div>
             </div>
           </Link>
           <Link href="/dashboard/invoicing" className="qa-item group">
-            <div className="qa-icon" style={{ background: "var(--navy-soft)", color: "var(--navy)" }}>
+            <div
+              className="qa-icon"
+              style={{ background: "var(--navy-soft)", color: "var(--navy)" }}
+            >
               <MaterialIcon icon="description" />
             </div>
             <div className="mt-2">
-              <div className="text-[14px] font-bold text-[var(--t1)]">Invoicing</div>
+              <div className="text-[14px] font-bold text-[var(--t1)]">
+                Invoicing
+              </div>
               <div className="text-[11px] text-[var(--t4)]">Generate bills</div>
             </div>
           </Link>
           <Link href="/dashboard/cashbook" className="qa-item group">
-            <div className="qa-icon" style={{ background: "var(--amber-soft)", color: "var(--amber)" }}>
+            <div
+              className="qa-icon"
+              style={{ background: "var(--amber-soft)", color: "var(--amber)" }}
+            >
               <MaterialIcon icon="book" />
             </div>
             <div className="mt-2">
-              <div className="text-[14px] font-bold text-[var(--t1)]">Cashbook</div>
+              <div className="text-[14px] font-bold text-[var(--t1)]">
+                Cashbook
+              </div>
               <div className="text-[11px] text-[var(--t4)]">Daily tracking</div>
             </div>
           </Link>
           <Link href="/dashboard/budget" className="qa-item group">
-            <div className="qa-icon" style={{ background: "var(--blue-soft)", color: "var(--blue)" }}>
+            <div
+              className="qa-icon"
+              style={{ background: "var(--blue-soft)", color: "var(--blue)" }}
+            >
               <MaterialIcon icon="account_balance_wallet" />
             </div>
             <div className="mt-2">
-              <div className="text-[14px] font-bold text-[var(--t1)]">Budgets</div>
+              <div className="text-[14px] font-bold text-[var(--t1)]">
+                Budgets
+              </div>
               <div className="text-[11px] text-[var(--t4)]">Plan spending</div>
             </div>
           </Link>
         </div>
       </div>
-
     </div>
   );
 }
