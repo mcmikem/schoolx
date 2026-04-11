@@ -26,7 +26,16 @@ const CONDITION_BADGE: Record<string, string> = {
   Condemned: "bg-slate-100 text-slate-500",
 };
 
-const CATEGORIES = ["All", "Electronics", "Furniture", "Equipment", "Vehicles", "Books", "Sports", "Other"];
+const CATEGORIES = [
+  "All",
+  "Electronics",
+  "Furniture",
+  "Equipment",
+  "Vehicles",
+  "Books",
+  "Sports",
+  "Other",
+];
 
 export default function AssetsPage() {
   const { school } = useAuth();
@@ -38,9 +47,13 @@ export default function AssetsPage() {
   const [filterCategory, setFilterCategory] = useState("All");
   const [search, setSearch] = useState("");
   const [form, setForm] = useState({
-    name: "", category: "Electronics", location: "",
-    quantity: "1", condition: "Good" as Asset["condition"],
-    purchase_date: "", notes: "",
+    name: "",
+    category: "Electronics",
+    location: "",
+    quantity: "1",
+    condition: "Good" as Asset["condition"],
+    purchase_date: "",
+    notes: "",
   });
 
   const fetchAssets = useCallback(async () => {
@@ -56,22 +69,36 @@ export default function AssetsPage() {
     setLoading(false);
   }, [school?.id]);
 
-  useEffect(() => { fetchAssets(); }, [fetchAssets]);
+  useEffect(() => {
+    fetchAssets();
+  }, [fetchAssets]);
 
   const saveAsset = async () => {
     if (!form.name || !school?.id) return;
     setSaving(true);
     const { error } = await supabase.from("assets").insert({
       school_id: school.id,
-      name: form.name, category: form.category, location: form.location,
-      quantity: parseInt(form.quantity) || 1, condition: form.condition,
-      purchase_date: form.purchase_date || null, notes: form.notes || null,
+      name: form.name,
+      category: form.category,
+      location: form.location,
+      quantity: parseInt(form.quantity) || 1,
+      condition: form.condition,
+      purchase_date: form.purchase_date || null,
+      notes: form.notes || null,
     });
     if (error) toast.error("Failed to save asset: " + error.message);
     else {
       toast.success("Asset registered successfully");
       setShowAdd(false);
-      setForm({ name: "", category: "Electronics", location: "", quantity: "1", condition: "Good", purchase_date: "", notes: "" });
+      setForm({
+        name: "",
+        category: "Electronics",
+        location: "",
+        quantity: "1",
+        condition: "Good",
+        purchase_date: "",
+        notes: "",
+      });
       fetchAssets();
     }
     setSaving(false);
@@ -79,7 +106,10 @@ export default function AssetsPage() {
 
   const filtered = assets.filter((a) => {
     const matchCat = filterCategory === "All" || a.category === filterCategory;
-    const matchSearch = !search || a.name.toLowerCase().includes(search.toLowerCase()) || a.location.toLowerCase().includes(search.toLowerCase());
+    const matchSearch =
+      !search ||
+      a.name.toLowerCase().includes(search.toLowerCase()) ||
+      a.location.toLowerCase().includes(search.toLowerCase());
     return matchCat && matchSearch;
   });
 
@@ -89,7 +119,10 @@ export default function AssetsPage() {
         title="Assets & Inventory"
         subtitle="Track school property and equipment"
         actions={
-          <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-6 py-3 bg-[var(--primary)] text-[var(--on-primary)] rounded-2xl font-bold shadow-lg hover:scale-105 transition-all">
+          <button
+            onClick={() => setShowAdd(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-[var(--primary)] text-[var(--on-primary)] rounded-2xl font-bold shadow-lg hover:scale-105 transition-all"
+          >
             <MaterialIcon icon="add" /> Register Asset
           </button>
         }
@@ -97,61 +130,137 @@ export default function AssetsPage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: "Total Items", value: assets.length, icon: "inventory_2", color: "bg-blue-600" },
-          { label: "Total Units", value: assets.reduce((s, a) => s + a.quantity, 0).toLocaleString(), icon: "widgets", color: "bg-indigo-500" },
-          { label: "Need Maintenance", value: assets.filter((a) => a.condition === "Requires Maintenance").length, icon: "build", color: "bg-amber-500" },
-          { label: "Categories", value: [...new Set(assets.map((a) => a.category))].length, icon: "category", color: "bg-emerald-500" },
+          {
+            label: "Total Items",
+            value: assets.length,
+            icon: "inventory_2",
+            color: "bg-blue-600",
+          },
+          {
+            label: "Total Units",
+            value: assets.reduce((s, a) => s + a.quantity, 0).toLocaleString(),
+            icon: "widgets",
+            color: "bg-indigo-500",
+          },
+          {
+            label: "Need Maintenance",
+            value: assets.filter((a) => a.condition === "Requires Maintenance")
+              .length,
+            icon: "build",
+            color: "bg-amber-500",
+          },
+          {
+            label: "Categories",
+            value: Array.from(new Set(assets.map((a) => a.category))).length,
+            icon: "category",
+            color: "bg-emerald-500",
+          },
         ].map((s) => (
-          <div key={s.label} className="p-5 bg-white rounded-3xl border border-slate-100 flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-2xl ${s.color} text-white flex items-center justify-center shrink-0`}><MaterialIcon icon={s.icon} /></div>
+          <div
+            key={s.label}
+            className="p-5 bg-white rounded-3xl border border-slate-100 flex items-center gap-4"
+          >
+            <div
+              className={`w-12 h-12 rounded-2xl ${s.color} text-white flex items-center justify-center shrink-0`}
+            >
+              <MaterialIcon icon={s.icon} />
+            </div>
             <div>
               <p className="text-2xl font-black text-slate-800">{s.value}</p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{s.label}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                {s.label}
+              </p>
             </div>
           </div>
         ))}
       </div>
 
       <div className="flex flex-wrap gap-3 items-center">
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search assets..." className="px-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm font-bold outline-none w-56" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search assets..."
+          className="px-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm font-bold outline-none w-56"
+        />
         <div className="flex gap-2 flex-wrap">
           {CATEGORIES.map((c) => (
-            <button key={c} onClick={() => setFilterCategory(c)} className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${filterCategory === c ? "bg-[var(--primary)] text-[var(--on-primary)]" : "bg-white border border-slate-200 text-slate-500 hover:border-slate-300"}`}>{c}</button>
+            <button
+              key={c}
+              onClick={() => setFilterCategory(c)}
+              className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${filterCategory === c ? "bg-[var(--primary)] text-[var(--on-primary)]" : "bg-white border border-slate-200 text-slate-500 hover:border-slate-300"}`}
+            >
+              {c}
+            </button>
           ))}
         </div>
       </div>
 
       <div className={cardClassName + " overflow-hidden"}>
         <div className="p-5 border-b border-slate-50 bg-slate-50/50">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{filtered.length} items</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            {filtered.length} items
+          </p>
         </div>
         {loading ? (
-          <div className="p-8 text-center text-slate-400 font-medium">Loading assets…</div>
+          <div className="p-8 text-center text-slate-400 font-medium">
+            Loading assets…
+          </div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center">
-            <MaterialIcon icon="inventory_2" className="text-5xl text-slate-200 mb-3" />
+            <MaterialIcon
+              icon="inventory_2"
+              className="text-5xl text-slate-200 mb-3"
+            />
             <p className="font-bold text-slate-400">No assets found</p>
-            <p className="text-sm text-slate-300 mt-1">Register your first asset to get started</p>
+            <p className="text-sm text-slate-300 mt-1">
+              Register your first asset to get started
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-slate-50">
-                  {["Asset Name","Category","Location","Qty","Condition"].map((h) => (
-                    <th key={h} className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">{h}</th>
+                  {[
+                    "Asset Name",
+                    "Category",
+                    "Location",
+                    "Qty",
+                    "Condition",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400"
+                    >
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {filtered.map((a) => (
-                  <tr key={a.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-800 text-sm">{a.name}</td>
-                    <td className="px-6 py-4 text-sm text-slate-500">{a.category}</td>
-                    <td className="px-6 py-4 text-sm text-slate-500">{a.location}</td>
-                    <td className="px-6 py-4 font-black text-slate-800">{a.quantity.toLocaleString()}</td>
+                  <tr
+                    key={a.id}
+                    className="hover:bg-slate-50/50 transition-colors"
+                  >
+                    <td className="px-6 py-4 font-bold text-slate-800 text-sm">
+                      {a.name}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-500">
+                      {a.category}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-500">
+                      {a.location}
+                    </td>
+                    <td className="px-6 py-4 font-black text-slate-800">
+                      {a.quantity.toLocaleString()}
+                    </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${CONDITION_BADGE[a.condition] || "bg-slate-100 text-slate-500"}`}>{a.condition}</span>
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${CONDITION_BADGE[a.condition] || "bg-slate-100 text-slate-500"}`}
+                      >
+                        {a.condition}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -166,43 +275,115 @@ export default function AssetsPage() {
           <div className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl overflow-hidden">
             <div className="p-8 space-y-5">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-black text-slate-800">Register Asset</h2>
-                <button onClick={() => setShowAdd(false)} className="p-2 hover:bg-slate-100 rounded-xl"><MaterialIcon icon="close" className="text-slate-400" /></button>
+                <h2 className="text-2xl font-black text-slate-800">
+                  Register Asset
+                </h2>
+                <button
+                  onClick={() => setShowAdd(false)}
+                  className="p-2 hover:bg-slate-100 rounded-xl"
+                >
+                  <MaterialIcon icon="close" className="text-slate-400" />
+                </button>
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Asset Name</label>
-                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Dell Optiplex Computers" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none" />
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                  Asset Name
+                </label>
+                <input
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="e.g. Dell Optiplex Computers"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Category</label>
-                  <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none">
-                    {CATEGORIES.slice(1).map((c) => <option key={c}>{c}</option>)}
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                    Category
+                  </label>
+                  <select
+                    value={form.category}
+                    onChange={(e) =>
+                      setForm({ ...form, category: e.target.value })
+                    }
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                  >
+                    {CATEGORIES.slice(1).map((c) => (
+                      <option key={c}>{c}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Quantity</label>
-                  <input type="number" min="1" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none" />
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                    Quantity
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={form.quantity}
+                    onChange={(e) =>
+                      setForm({ ...form, quantity: e.target.value })
+                    }
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Location</label>
-                  <input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="e.g. Computer Lab 1" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none" />
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                    Location
+                  </label>
+                  <input
+                    value={form.location}
+                    onChange={(e) =>
+                      setForm({ ...form, location: e.target.value })
+                    }
+                    placeholder="e.g. Computer Lab 1"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                  />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Condition</label>
-                  <select value={form.condition} onChange={(e) => setForm({ ...form, condition: e.target.value as any })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none">
-                    <option>Good</option><option>Fair</option><option>Requires Maintenance</option><option>Condemned</option>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                    Condition
+                  </label>
+                  <select
+                    value={form.condition}
+                    onChange={(e) =>
+                      setForm({ ...form, condition: e.target.value as any })
+                    }
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                  >
+                    <option>Good</option>
+                    <option>Fair</option>
+                    <option>Requires Maintenance</option>
+                    <option>Condemned</option>
                   </select>
                 </div>
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Notes (optional)</label>
-                <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} placeholder="Any additional notes..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none resize-none" />
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                  Notes (optional)
+                </label>
+                <textarea
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  rows={2}
+                  placeholder="Any additional notes..."
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none resize-none"
+                />
               </div>
-              <button onClick={saveAsset} disabled={!form.name || saving} className="w-full py-4 bg-[var(--primary)] text-[var(--on-primary)] rounded-[28px] font-black uppercase tracking-widest hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-                {saving ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><MaterialIcon icon="save" /> Save Asset</>}
+              <button
+                onClick={saveAsset}
+                disabled={!form.name || saving}
+                className="w-full py-4 bg-[var(--primary)] text-[var(--on-primary)] rounded-[28px] font-black uppercase tracking-widest hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {saving ? (
+                  <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <MaterialIcon icon="save" /> Save Asset
+                  </>
+                )}
               </button>
             </div>
           </div>
