@@ -8,9 +8,6 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 export async function POST(request: NextRequest) {
   try {
     const cron = requireCronSecretOrDeny(request)
-    // #region agent log
-    fetch('http://127.0.0.1:7705/ingest/3abb6116-9e7c-43c2-8376-b2438c7d299e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9e14f3'},body:JSON.stringify({sessionId:'9e14f3',runId:'pre-fix',hypothesisId:'H1',location:'src/app/api/setup/route.ts:POST:cron',message:'setup POST entry',data:{cronOk:cron.ok,hasSupabaseUrl:!!process.env.NEXT_PUBLIC_SUPABASE_URL,hasServiceKey:!!process.env.SUPABASE_SERVICE_ROLE_KEY,nodeEnv:process.env.NODE_ENV},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     if (!cron.ok) return cron.response
 
     if (!supabaseServiceKey) {
@@ -42,8 +39,11 @@ export async function POST(request: NextRequest) {
             logo_url TEXT,
             primary_color TEXT DEFAULT '#1e3a5f',
             uneab_center_number TEXT,
-            subscription_plan TEXT CHECK (subscription_plan IN ('free', 'basic', 'premium')) DEFAULT 'free',
-            subscription_status TEXT CHECK (subscription_status IN ('active', 'expired', 'trial')) DEFAULT 'trial',
+            subscription_plan TEXT CHECK (subscription_plan IN ('free', 'free_trial', 'basic', 'premium', 'max')) DEFAULT 'free',
+            subscription_status TEXT CHECK (subscription_status IN ('active', 'expired', 'trial', 'past_due', 'canceled', 'unpaid', 'suspended')) DEFAULT 'trial',
+            paypal_subscription_id TEXT,
+            last_payment_at TIMESTAMPTZ,
+            last_payment_attempt TIMESTAMPTZ,
             trial_ends_at TIMESTAMPTZ,
             created_at TIMESTAMPTZ DEFAULT NOW()
           );
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
             full_name TEXT NOT NULL,
             phone TEXT NOT NULL,
             email TEXT,
-            role TEXT CHECK (role IN ('super_admin', 'school_admin', 'teacher', 'student', 'parent')) NOT NULL,
+            role TEXT CHECK (role IN ('super_admin', 'school_admin', 'admin', 'board', 'headmaster', 'dean_of_studies', 'bursar', 'teacher', 'secretary', 'dorm_master', 'student', 'parent')) NOT NULL,
             avatar_url TEXT,
             is_active BOOLEAN DEFAULT true,
             created_at TIMESTAMPTZ DEFAULT NOW()
@@ -313,9 +313,6 @@ export async function POST(request: NextRequest) {
     for (const table of tables) {
       try {
         const { error } = await supabase.rpc('exec_sql', { sql: table.sql })
-        // #region agent log
-        fetch('http://127.0.0.1:7705/ingest/3abb6116-9e7c-43c2-8376-b2438c7d299e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9e14f3'},body:JSON.stringify({sessionId:'9e14f3',runId:'pre-fix',hypothesisId:'H2',location:'src/app/api/setup/route.ts:loop:exec_sql',message:'exec_sql result',data:{table:table.name,hasRpcError:!!error,rpcError: error ? String(error.message||error) : null},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         if (error) {
           const { error: directError } = await supabase.from(table.name).select('id').limit(1)
           if (directError) {
@@ -344,9 +341,6 @@ export async function POST(request: NextRequest) {
     // New: Seed demo data after tables are set up
     const { seedDemoData } = await import('@/lib/seed-demo')
     const seedResult = await seedDemoData()
-    // #region agent log
-    fetch('http://127.0.0.1:7705/ingest/3abb6116-9e7c-43c2-8376-b2438c7d299e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9e14f3'},body:JSON.stringify({sessionId:'9e14f3',runId:'pre-fix',hypothesisId:'H3',location:'src/app/api/setup/route.ts:seed',message:'seedDemoData result',data:{hasError:!!seedResult?.error,error: seedResult?.error ? String(seedResult.error) : null},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     if (seedResult.error) {
       results['demo_seeding'] = `Error: ${seedResult.error}`
     } else {

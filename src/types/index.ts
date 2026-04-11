@@ -14,8 +14,8 @@ export interface School {
   logo_url?: string
   primary_color: string
   uneab_center_number?: string
-  subscription_plan: 'free' | 'basic' | 'premium'
-  subscription_status: 'active' | 'expired' | 'trial'
+  subscription_plan: 'free' | 'free_trial' | 'basic' | 'premium' | 'max'
+  subscription_status: 'active' | 'expired' | 'trial' | 'past_due' | 'canceled' | 'unpaid' | 'suspended'
   trial_ends_at?: string
   feature_stage?: 'core' | 'academic' | 'finance' | 'full'
   created_at: string

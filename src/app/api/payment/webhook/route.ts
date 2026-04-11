@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import {
-  updateSchoolSubscription,
   sendPaymentReceipt,
   handleSubscriptionChange,
 } from "@/lib/subscription";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PlanType } from "@/lib/payments/subscription-client";
 
 export async function POST(request: Request) {
@@ -17,7 +15,6 @@ export async function POST(request: Request) {
     return new NextResponse("Webhook secret not configured", { status: 500 });
   }
 
-  const Stripe = require("stripe");
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
   let event;
@@ -243,24 +240,23 @@ function determinePlanFromPrice(price: any): PlanType {
 }
 function mapStripeSubscriptionStatus(
   status: any,
-): "active" | "canceled" | "past_due" | "unpaid" {
+): "active" | "trial" | "canceled" | "past_due" | "unpaid" | "suspended" {
   switch (status) {
     case "active":
       return "active";
+    case "trialing":
+      return "trial";
     case "canceled":
       return "canceled";
     case "past_due":
       return "past_due";
     case "unpaid":
       return "unpaid";
-    // Map other Stripe statuses to our closest match
+    case "paused":
+      return "suspended";
     case "incomplete":
     case "incomplete_expired":
-    case "trialing":
-    case "paused":
     default:
-      // For trialing, incomplete, etc., we'll treat as active for now
-      // but this could be adjusted based on business logic
       return "active";
   }
 }

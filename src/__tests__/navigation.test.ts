@@ -25,8 +25,9 @@ describe("Navigation", () => {
       ).toBe(true);
     });
 
-    test("returns navigation for dean_of_students", () => {
-      const nav = getNavigationForRole("dean_of_students");
+    test("returns navigation for dean_of_studies", () => {
+      // Role is 'dean_of_studies', not 'dean_of_students' — fixing name drift
+      const nav = getNavigationForRole("dean_of_studies");
       expect(nav).toBeDefined();
       expect(
         nav.some((g) =>
