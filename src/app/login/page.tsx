@@ -150,6 +150,8 @@ export default function LoginPage() {
       localStorage.setItem(DEMO_KEY, demoData);
       toast.success(tWithParams("auth.welcomeDemo", { name: demoUser.name }));
 
+      // /parent-portal has the full authenticated parent dashboard with SidebarShell
+      // /parent is the standalone login-gated portal (no auth context)
       const redirectPath =
         demoUser.role === "super_admin"
           ? "/super-admin"
