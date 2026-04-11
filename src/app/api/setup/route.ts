@@ -42,8 +42,11 @@ export async function POST(request: NextRequest) {
             logo_url TEXT,
             primary_color TEXT DEFAULT '#1e3a5f',
             uneab_center_number TEXT,
-            subscription_plan TEXT CHECK (subscription_plan IN ('free', 'basic', 'premium')) DEFAULT 'free',
-            subscription_status TEXT CHECK (subscription_status IN ('active', 'expired', 'trial')) DEFAULT 'trial',
+            subscription_plan TEXT CHECK (subscription_plan IN ('free', 'free_trial', 'basic', 'premium', 'max')) DEFAULT 'free',
+            subscription_status TEXT CHECK (subscription_status IN ('active', 'expired', 'trial', 'past_due', 'canceled', 'unpaid', 'suspended')) DEFAULT 'trial',
+            paypal_subscription_id TEXT,
+            last_payment_at TIMESTAMPTZ,
+            last_payment_attempt TIMESTAMPTZ,
             trial_ends_at TIMESTAMPTZ,
             created_at TIMESTAMPTZ DEFAULT NOW()
           );
@@ -59,7 +62,7 @@ export async function POST(request: NextRequest) {
             full_name TEXT NOT NULL,
             phone TEXT NOT NULL,
             email TEXT,
-            role TEXT CHECK (role IN ('super_admin', 'school_admin', 'teacher', 'student', 'parent')) NOT NULL,
+            role TEXT CHECK (role IN ('super_admin', 'school_admin', 'admin', 'board', 'headmaster', 'dean_of_studies', 'bursar', 'teacher', 'secretary', 'dorm_master', 'student', 'parent')) NOT NULL,
             avatar_url TEXT,
             is_active BOOLEAN DEFAULT true,
             created_at TIMESTAMPTZ DEFAULT NOW()
