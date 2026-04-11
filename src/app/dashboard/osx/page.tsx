@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -54,13 +55,23 @@ const STEPS = [
 ];
 
 export default function OSXPage() {
-  const { school } = useAuth();
+  useAuth(); // auth context for future school-specific data
+  const searchParams = useSearchParams();
+  const activeTab = searchParams.get("tab") || "overview";
   const [tier] = useState("Active");
+
+  const TAB_LABELS: Record<string, string> = {
+    overview: "Overview",
+    leadership: "SLF Leadership",
+    red: "RED Dignity",
+    green: "GreenSchools",
+    water: "PureWater",
+  };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="School Xperience"
+        title={`School Xperience${activeTab !== "overview" ? " — " + TAB_LABELS[activeTab] : ""}`}
         subtitle="Student Leadership & Social Impact Hub"
         variant="premium"
         actions={
