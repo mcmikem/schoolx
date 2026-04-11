@@ -22,7 +22,7 @@ import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
-  const { user, loading, isDemo, isTrialExpired, signOut } = useAuth();
+  const { user, school, loading, isDemo, isTrialExpired, signOut } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const toast = useToast();
@@ -45,6 +45,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     await signOut();
     toast.success("Signed out successfully");
   };
+
+  // Close sidebar on every navigation (pathname change) to fix mobile stuck-open bug
+  useEffect(() => {
+    closeSidebar();
+  }, [pathname, closeSidebar]);
 
   const handleNavigate = () => {
     closeSidebar();
