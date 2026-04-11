@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { cardClassName } from "@/lib/utils";
 import { format } from "date-fns";
@@ -26,6 +27,7 @@ const TEMPLATES: MessageTemplate[] = [
 
 export default function SMSCenterPage() {
   const { school } = useAuth();
+  const toast = useToast();
   const [activeTemplate, setActiveTemplate] = useState<MessageTemplate>(TEMPLATES[0]);
   const [message, setMessage] = useState(TEMPLATES[0].body);
   const [recipient, setRecipient] = useState<"all" | "class" | "individual">("all");
@@ -55,18 +57,55 @@ export default function SMSCenterPage() {
     if (!message || !school?.id) return;
     setSending(true);
     try {
-      // In production this would call an SMS API (e.g., Africa's Talking)
-      await supabase.from("sms_logs").insert({
-        school_id: school.id,
-        automation_type: activeTemplate.id,
-        parent_phone: phone || "BULK",
-        message,
-        status: "sent",
-        metadata: { recipient, selected_class: selectedClass },
+      // Build recipient list from DB based on selection
+      let recipients: { phone: string; name: string }[] = [];
+      if (recipient === "individual" && phone) {
+        recipients = [{ phone, name: "Parent" }];
+      } else {
+        let query = supabase
+          .from("students")
+          .select("parent_phone, parent_name")
+          .eq("school_id", school.id)
+          .not("parent_phone", "is", null);
+        if (recipient === "class" && selectedClass) {
+          query = query.eq("class_id", selectedClass);
+        }
+        const { data: studentData } = await query;
+        recipients = (studentData || [])
+          .filter((s: any) => s.parent_phone)
+          .map((s: any) => ({ phone: s.parent_phone, name: s.parent_name || "Parent" }));
+      }
+
+      if (recipients.length === 0) {
+        toast.error("No recipients found with phone numbers");
+        setSending(false);
+        return;
+      }
+
+      // Call the Africa's Talking SMS API route
+      // POST = single recipient, PUT = bulk (up to 100)
+      const isBulk = recipients.length > 1;
+      const res = await fetch("/api/sms", {
+        method: isBulk ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          isBulk
+            ? { schoolId: school.id, phones: recipients.map((r) => r.phone), message }
+            : { schoolId: school.id, phone: recipients[0].phone, message }
+        ),
       });
-      alert("Message queued successfully!");
+      const result = await res.json();
+      if (result.success) {
+        const sent = isBulk ? result.totalSent : 1;
+        const failed = isBulk ? result.totalFailed : 0;
+        toast.success(`SMS sent to ${sent} recipient(s)${failed > 0 ? ` (${failed} failed)` : ""}`);
+        // Refresh logs
+        supabase.from("sms_logs").select("*").eq("school_id", school.id).order("sent_at", { ascending: false }).limit(20).then(({ data }) => setLogs(data || []));
+      } else {
+        toast.error("Failed to send SMS: " + (result.error || "Unknown error"));
+      }
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setSending(false);
     }

@@ -49,7 +49,7 @@ export default function AnalyticsPage() {
           <div className="flex items-center gap-4">
             <div className="px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-xl">
               <p className="text-[10px] text-green font-bold uppercase tracking-wider">Health Score</p>
-              <p className="text-xl font-bold text-[var(--on-surface)]">84%</p>
+              <p className="text-xl font-bold text-[var(--on-surface)]">{data.stats.healthScore ?? "—"}%</p>
             </div>
           </div>
         }
@@ -65,7 +65,7 @@ export default function AnalyticsPage() {
               <p className="text-3xl font-bold text-[var(--on-surface)]">{data.stats.totalStudents}</p>
               <div className="flex items-center gap-1 text-green text-xs font-bold">
                 <MaterialIcon icon="trending_up" className="text-sm" />
-                <span>+2% vs last term</span>
+                <span>+{data.stats.totalStudents > 0 ? "—" : "0"} vs last term</span>
               </div>
             </CardBody>
           </Card>
@@ -81,7 +81,7 @@ export default function AnalyticsPage() {
           <Card className="!bg-surface-container-low/40">
             <CardBody className="space-y-2">
               <p className="text-[10px] text-[var(--on-surface-variant)] font-bold uppercase tracking-widest">Avg. Attendance</p>
-              <p className="text-3xl font-bold text-[var(--on-surface)]">92%</p>
+              <p className="text-3xl font-bold text-[var(--on-surface)]">{data.stats.avgAttendance}%</p>
               <p className="text-xs text-[var(--on-surface-variant)] italic">Last 30 days</p>
             </CardBody>
           </Card>
