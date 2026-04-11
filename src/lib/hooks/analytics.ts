@@ -132,7 +132,23 @@ export function useAnalytics(schoolId?: string) {
           return null
         }).filter((s: any) => s !== null)
 
-        setData({ genderDistribution, revenueProjections, atRiskStudents: atRiskStudents || [], attendanceTrends: [], classPerformance: [], subjectPerformance: [], feeCollection: [], stats: { totalStudents: students?.length || 0, avgAttendance: 92, avgGrade: 74, feeCollectionRate: totalExpected > 0 ? (totalCollected / totalExpected) * 100 : 0, projectedRevenue: totalExpected } })
+        // Compute real average attendance rate across all students with records
+        const allAttRates = Object.values(attendanceMap).map((a) => (a.present / a.total) * 100)
+        const realAvgAttendance = allAttRates.length > 0
+          ? Math.round(allAttRates.reduce((s, v) => s + v, 0) / allAttRates.length)
+          : 0
+
+        // Compute real average grade across all students with grades
+        const allGradeAvgs = Object.values(gradesMap).map((g) => g.sum / g.count)
+        const realAvgGrade = allGradeAvgs.length > 0
+          ? Math.round(allGradeAvgs.reduce((s, v) => s + v, 0) / allGradeAvgs.length)
+          : 0
+
+        // Compute health score as weighted average of fee collection rate and attendance rate
+        const feeRate = totalExpected > 0 ? (totalCollected / totalExpected) * 100 : 0
+        const healthScore = Math.round((realAvgAttendance * 0.5) + (feeRate * 0.3) + (realAvgGrade * 0.2))
+
+        setData({ genderDistribution, revenueProjections, atRiskStudents: atRiskStudents || [], attendanceTrends: [], classPerformance: [], subjectPerformance: [], feeCollection: [], stats: { totalStudents: students?.length || 0, avgAttendance: realAvgAttendance, avgGrade: realAvgGrade, feeCollectionRate: feeRate, projectedRevenue: totalExpected, healthScore } })
       } catch (err) { console.error('Analytics Error:', err) }
       finally { setLoading(false) }
     }

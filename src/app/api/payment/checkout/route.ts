@@ -6,6 +6,15 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth check before body parse
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { provider, plan, returnUrl, cancelUrl } = body as {
       provider: "paypal";
@@ -19,16 +28,6 @@ export async function POST(request: NextRequest) {
         { error: "Missing required fields: provider, plan" },
         { status: 400 },
       );
-    }
-
-    const supabase = await createSupabaseServerClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { data: userData } = await supabase
