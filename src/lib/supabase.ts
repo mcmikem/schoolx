@@ -100,10 +100,16 @@ const createMockClient = (): SupabaseClient => {
   return mock as unknown as SupabaseClient
 }
 
+// Export a flag so application boundaries can show a setup screen instead of crashing
+export const isSupabaseConfigured = hasUsableSupabaseConfig;
+
 if (!hasUsableSupabaseConfig && isProd) {
-  // Fail fast in production builds/runtimes — mock clients hide incidents.
-  throw new Error(
-    "Supabase configuration missing/invalid. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.",
+  // Log a clear error but do NOT throw at module evaluation time.
+  // Throwing here causes the entire Next.js app to crash with a 500 error
+  // rather than rendering a user-friendly configuration page.
+  console.error(
+    "[Supabase] CRITICAL: Supabase configuration missing/invalid. " +
+    "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."
   );
 }
 
@@ -116,7 +122,7 @@ debugLog('[Supabase] hasUsableSupabaseConfig:', hasUsableSupabaseConfig);
 debugLog('[Supabase] realClient:', realClient ? 'created' : 'null');
 debugLog('[Supabase] final supabase:', !!(realClient || createMockClient()) ? 'real/mock' : 'null');
 
-export const supabase = realClient || (isNonProd ? createMockClient() : (null as unknown as SupabaseClient))
+export const supabase = realClient || createMockClient()
 
 
 export type Database = {
