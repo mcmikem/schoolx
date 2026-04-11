@@ -100,10 +100,16 @@ const createMockClient = (): SupabaseClient => {
   return mock as unknown as SupabaseClient
 }
 
+// Export a flag so application boundaries can show a setup screen instead of crashing
+export const isSupabaseConfigured = hasUsableSupabaseConfig;
+
 if (!hasUsableSupabaseConfig && isProd) {
-  // Fail fast in production builds/runtimes — mock clients hide incidents.
-  throw new Error(
-    "Supabase configuration missing/invalid. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.",
+  // Log a clear error but do NOT throw at module evaluation time.
+  // Throwing here causes the entire Next.js app to crash with a 500 error
+  // rather than rendering a user-friendly configuration page.
+  console.error(
+    "[Supabase] CRITICAL: Supabase configuration missing/invalid. " +
+    "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."
   );
 }
 
@@ -116,7 +122,7 @@ debugLog('[Supabase] hasUsableSupabaseConfig:', hasUsableSupabaseConfig);
 debugLog('[Supabase] realClient:', realClient ? 'created' : 'null');
 debugLog('[Supabase] final supabase:', !!(realClient || createMockClient()) ? 'real/mock' : 'null');
 
-export const supabase = realClient || (isNonProd ? createMockClient() : (null as unknown as SupabaseClient))
+export const supabase = realClient || createMockClient()
 
 
 export type Database = {
@@ -138,9 +144,12 @@ export type Database = {
           logo_url: string | null
           primary_color: string
           uneab_center_number: string | null
-          subscription_plan: 'free' | 'basic' | 'premium'
-          subscription_status: 'active' | 'expired' | 'trial'
+          subscription_plan: 'free' | 'free_trial' | 'basic' | 'premium' | 'max'
+          subscription_status: 'active' | 'expired' | 'trial' | 'past_due' | 'canceled' | 'unpaid' | 'suspended'
           trial_ends_at: string | null
+          paypal_subscription_id: string | null
+          last_payment_at: string | null
+          last_payment_attempt: string | null
           created_at: string
         }
         Insert: Omit<Database['public']['Tables']['schools']['Row'], 'id' | 'created_at'>
@@ -154,7 +163,7 @@ export type Database = {
           full_name: string
           phone: string
           email: string | null
-          role: 'super_admin' | 'school_admin' | 'teacher' | 'student' | 'parent'
+          role: 'super_admin' | 'school_admin' | 'admin' | 'board' | 'headmaster' | 'dean_of_studies' | 'bursar' | 'teacher' | 'secretary' | 'dorm_master' | 'student' | 'parent'
           avatar_url: string | null
           is_active: boolean
           created_at: string

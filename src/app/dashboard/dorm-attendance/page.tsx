@@ -135,33 +135,52 @@ export default function DormAttendancePage() {
   const saveAttendance = async () => {
     setSaving(true)
     try {
+      const checkedAt = new Date().toISOString()
+
+      // Separate records into updates (have an id) and inserts (new records)
+      const toUpdate: { id: string; status: AttendanceStatus; absence_reason?: AbsenceReason; absence_notes?: string; checked_at: string }[] = []
+      const toInsert: { dorm_id: string; date: string; student_id: string; check_type: CheckType; status: AttendanceStatus; absence_reason?: AbsenceReason; absence_notes?: string; checked_by?: string; checked_at: string }[] = []
+
       for (const [studentId, record] of Array.from(attendance.entries())) {
         if (record.id) {
-          await supabase
-            .from('dorm_attendance')
-            .update({
-              status: record.status,
-              absence_reason: record.absence_reason,
-              absence_notes: record.absence_notes,
-              checked_at: new Date().toISOString(),
-            })
-            .eq('id', record.id)
+          toUpdate.push({
+            id: record.id,
+            status: record.status,
+            absence_reason: record.absence_reason,
+            absence_notes: record.absence_notes,
+            checked_at: checkedAt,
+          })
         } else {
-          await supabase
-            .from('dorm_attendance')
-            .insert({
-              dorm_id: selectedDorm.id,
-              date,
-              student_id: studentId,
-              check_type: checkType,
-              status: record.status,
-              absence_reason: record.absence_reason,
-              absence_notes: record.absence_notes,
-              checked_by: user?.id,
-              checked_at: new Date().toISOString(),
-            })
+          toInsert.push({
+            dorm_id: selectedDorm.id,
+            date,
+            student_id: studentId,
+            check_type: checkType,
+            status: record.status,
+            absence_reason: record.absence_reason,
+            absence_notes: record.absence_notes,
+            checked_by: user?.id,
+            checked_at: checkedAt,
+          })
         }
       }
+
+      // Batch upsert: single request for all new records
+      if (toInsert.length > 0) {
+        const { error: insertError } = await supabase
+          .from('dorm_attendance')
+          .insert(toInsert)
+        if (insertError) throw insertError
+      }
+
+      // Batch upsert: single request for all existing records
+      if (toUpdate.length > 0) {
+        const { error: upsertError } = await supabase
+          .from('dorm_attendance')
+          .upsert(toUpdate, { onConflict: 'id' })
+        if (upsertError) throw upsertError
+      }
+
       toast.success('Attendance saved successfully')
       fetchStudentsAndAttendance()
     } catch (err: any) {

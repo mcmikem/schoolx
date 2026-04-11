@@ -160,10 +160,10 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       defaultOpen: false,
       items: [
         { href: "/dashboard/osx", label: "Chapter Home", icon: "home" },
-        { href: "/dashboard/osx/leadership", label: "SLF Leadership", icon: "military_tech" },
-        { href: "/dashboard/osx/red", label: "RED Dignity", icon: "female" },
-        { href: "/dashboard/osx/green", label: "GreenSchools", icon: "eco" },
-        { href: "/dashboard/osx/water", label: "PureWater", icon: "water_drop" },
+        { href: "/dashboard/osx?tab=leadership", label: "SLF Leadership", icon: "military_tech" },
+        { href: "/dashboard/osx?tab=red", label: "RED Dignity", icon: "female" },
+        { href: "/dashboard/osx?tab=green", label: "GreenSchools", icon: "eco" },
+        { href: "/dashboard/osx?tab=water", label: "PureWater", icon: "water_drop" },
       ],
     },
     {
@@ -236,8 +236,8 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       defaultOpen: false,
       items: [
         { href: "/dashboard/osx", label: "OSX Activities", icon: "home" },
-        { href: "/dashboard/osx/leadership", label: "SLF Training", icon: "military_tech" },
-        { href: "/dashboard/osx/green", label: "Green Teams", icon: "eco" },
+        { href: "/dashboard/osx?tab=leadership", label: "SLF Training", icon: "military_tech" },
+        { href: "/dashboard/osx?tab=green", label: "Green Teams", icon: "eco" },
       ],
     },
   ],
@@ -256,8 +256,8 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       defaultOpen: true,
       items: [
         { href: "/dashboard/fees", label: "Collect Fees", icon: "payments" },
-        { href: "/dashboard/invoicing", label: "Invoicing", icon: "description" },
-        { href: "/dashboard/cashbook", label: "Cashbook", icon: "book" },
+        { href: "/dashboard/fees?tab=invoicing", label: "Invoicing", icon: "description" },
+        { href: "/dashboard/fees?tab=cashbook", label: "Cashbook", icon: "book" },
         { href: "/dashboard/budget", label: "Budget", icon: "account_balance_wallet" },
         { href: "/dashboard/payroll", label: "Payroll", icon: "payments" },
       ],
@@ -267,7 +267,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       defaultOpen: false,
       items: [
         { href: "/dashboard/students", label: "Student List", icon: "group" },
-        { href: "/dashboard/payment-plans", label: "Payment Plans", icon: "calendar_month" },
+        { href: "/dashboard/fees?tab=payment-plans", label: "Payment Plans", icon: "calendar_month" },
       ],
     },
     {
@@ -332,7 +332,7 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       defaultOpen: false,
       items: [
         { href: "/dashboard/osx", label: "Chapter Home", icon: "home" },
-        { href: "/dashboard/osx/red", label: "RED Campaign", icon: "female" },
+        { href: "/dashboard/osx?tab=red", label: "RED Campaign", icon: "female" },
       ],
     },
   ],
