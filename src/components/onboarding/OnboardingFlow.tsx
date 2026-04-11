@@ -55,13 +55,12 @@ export default function OnboardingFlow({
     setLoading(true);
     try {
       // Build complete update with all onboarding settings
-      // Note: feature_stage will be added via migration - comment out for now
       const updateData: any = {
         name: schoolDetails.name || school.name,
         district: schoolDetails.district,
         subcounty: schoolDetails.subcounty,
         primary_color: branding.primary_color,
-        // feature_stage: featureStage, // TODO: Add after migration is applied
+        feature_stage: featureStage, // Column now exists in DB
         subscription_status:
           activationChoice === "premium" ? "active" : "trial",
         trial_ends_at:
