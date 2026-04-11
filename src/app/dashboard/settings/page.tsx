@@ -1,228 +1,324 @@
-'use client'
-import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '@/lib/auth-context'
-import { useToast } from '@/components/Toast'
-import { supabase } from '@/lib/supabase'
-import { ROLE_LABELS, type UserRole } from '@/lib/roles'
-import { FEATURE_STAGES, FeatureStage, DEFAULT_FEATURE_STAGE, canUseModule, ModuleKey } from '@/lib/featureStages'
-import { PageHeader } from '@/components/ui/PageHeader'
-import { Card, CardBody } from '@/components/ui/Card'
-import { Button } from '@/components/ui/index'
-import { Tabs, TabPanel } from '@/components/ui/Tabs'
-import { useClasses } from '@/lib/hooks'
+"use client";
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { useToast } from "@/components/Toast";
+import { supabase } from "@/lib/supabase";
+import { ROLE_LABELS, type UserRole } from "@/lib/roles";
+import {
+  FEATURE_STAGES,
+  FeatureStage,
+  DEFAULT_FEATURE_STAGE,
+  canUseModule,
+  ModuleKey,
+} from "@/lib/featureStages";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Card, CardBody } from "@/components/ui/Card";
+import { Button } from "@/components/ui/index";
+import { Tabs, TabPanel } from "@/components/ui/Tabs";
+import { useClasses } from "@/lib/hooks";
 
-const ROLE_OPTIONS: { value: UserRole; description: string; modules: ModuleKey[] }[] = [
+const ROLE_OPTIONS: {
+  value: UserRole;
+  description: string;
+  modules: ModuleKey[];
+}[] = [
   {
-    value: 'teacher',
-    description: 'Attendance, grades, homework, lesson plans and classroom communication.',
-    modules: ['attendance', 'marks', 'communications'],
+    value: "teacher",
+    description:
+      "Attendance, grades, homework, lesson plans and classroom communication.",
+    modules: ["attendance", "marks", "communications"],
   },
   {
-    value: 'school_admin',
-    description: 'Oversee operations, exports, dashboards, and general settings.',
-    modules: ['operations', 'exports', 'reports'],
+    value: "school_admin",
+    description:
+      "Oversee operations, exports, dashboards, and general settings.",
+    modules: ["operations", "exports", "reports"],
   },
   {
-    value: 'dean_of_studies',
-    description: 'Academic oversight, grading, exams, and report card views.',
-    modules: ['marks', 'exam', 'reports'],
+    value: "dean_of_studies",
+    description: "Academic oversight, grading, exams, and report card views.",
+    modules: ["marks", "exam", "reports"],
   },
   {
-    value: 'bursar',
-    description: 'Finance, invoicing, payroll, budgeting, and payment tracking.',
-    modules: ['finance', 'exports'],
+    value: "bursar",
+    description:
+      "Finance, invoicing, payroll, budgeting, and payment tracking.",
+    modules: ["finance", "exports"],
   },
   {
-    value: 'secretary',
-    description: 'Communications, visits, notices and calendar management.',
-    modules: ['communications', 'operations'],
+    value: "secretary",
+    description: "Communications, visits, notices and calendar management.",
+    modules: ["communications", "operations"],
   },
-]
+];
 
 const MODULE_LABELS: Record<ModuleKey, string> = {
-  dashboard: 'Dashboard',
-  attendance: 'Attendance',
-  marks: 'Marks & Exams',
-  exam: 'Exams',
-  communications: 'Communication',
-  finance: 'Finance',
-  reports: 'Reports',
-  exports: 'Exports',
-  staff: 'Staff',
-  operations: 'Operations',
-  parentPortal: 'Parent Portal',
-  dorm: 'Dorm',
-  health: 'Health',
-  analytics: 'Analytics',
-}
+  dashboard: "Dashboard",
+  attendance: "Attendance",
+  marks: "Marks & Exams",
+  exam: "Exams",
+  communications: "Communication",
+  finance: "Finance",
+  reports: "Reports",
+  exports: "Exports",
+  staff: "Staff",
+  operations: "Operations",
+  parentPortal: "Parent Portal",
+  dorm: "Dorm",
+  health: "Health",
+  analytics: "Analytics",
+};
 
-import MaterialIcon from '@/components/MaterialIcon'
-import GeneralSettings from '@/components/settings/GeneralSettings'
-import AcademicSettings from '@/components/settings/AcademicSettings'
+import MaterialIcon from "@/components/MaterialIcon";
+import GeneralSettings from "@/components/settings/GeneralSettings";
+import AcademicSettings from "@/components/settings/AcademicSettings";
 
 interface SchoolSettings {
-  sms_notifications: boolean
-  attendance_alerts: boolean
-  fee_reminders: boolean
-  attendance_threshold: number
-  grade_threshold: number
-  fee_threshold: number
+  sms_notifications: boolean;
+  attendance_alerts: boolean;
+  fee_reminders: boolean;
+  attendance_threshold: number;
+  grade_threshold: number;
+  fee_threshold: number;
 }
 
 export default function SettingsPage() {
-  const { school, user, refreshSchool } = useAuth()
-  const toast = useToast()
-  const { classes, loading: loadingClasses } = useClasses(school?.id)
-  const [activeTab, setActiveTab] = useState('general')
-  const [saving, setSaving] = useState(false)
-  const [users, setUsers] = useState<Array<{id: string, full_name: string, phone: string, role: string, is_active: boolean}>>([])
-  const [loadingUsers, setLoadingUsers] = useState(false)
-  const [showAddUser, setShowAddUser] = useState(false)
-  const [newUser, setNewUser] = useState({ full_name: '', phone: '', role: 'teacher' as UserRole, password: '' })
+  const { school, user, refreshSchool } = useAuth();
+  const toast = useToast();
+  const { classes, loading: loadingClasses } = useClasses(school?.id);
+  const [activeTab, setActiveTab] = useState("general");
+  const [saving, setSaving] = useState(false);
+  const [users, setUsers] = useState<
+    Array<{
+      id: string;
+      full_name: string;
+      phone: string;
+      role: string;
+      is_active: boolean;
+    }>
+  >([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [newUser, setNewUser] = useState({
+    full_name: "",
+    phone: "",
+    role: "teacher" as UserRole,
+    password: "",
+  });
   const [settings, setSettings] = useState<SchoolSettings>({
     sms_notifications: true,
     attendance_alerts: true,
     fee_reminders: false,
     attendance_threshold: 80,
     grade_threshold: 50,
-    fee_threshold: 50000
-  })
+    fee_threshold: 50000,
+  });
   const [schoolData, setSchoolData] = useState({
-    name: school?.name || '',
-    district: school?.district || '',
-    subcounty: '',
-    phone: '',
-    email: '',
-  })
-  const [logoUrl, setLogoUrl] = useState(school?.logo_url || '')
-  const [uploadingLogo, setUploadingLogo] = useState(false)
-  const [storageStatus, setStorageStatus] = useState<'unknown' | 'ok' | 'error'>('unknown')
-  const [selectedStage, setSelectedStage] = useState<FeatureStage>(school?.feature_stage as FeatureStage || DEFAULT_FEATURE_STAGE)
-  const [savingStage, setSavingStage] = useState(false)
+    name: school?.name || "",
+    district: school?.district || "",
+    subcounty: "",
+    phone: "",
+    email: "",
+  });
+  const [logoUrl, setLogoUrl] = useState(school?.logo_url || "");
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [storageStatus, setStorageStatus] = useState<
+    "unknown" | "ok" | "error"
+  >("unknown");
+  const [selectedPlan, setSelectedPlan] = useState<string>(
+    school?.subscription_plan || "basic",
+  );
+  const [upgradingPlan, setUpgradingPlan] = useState(false);
+  const [selectedStage, setSelectedStage] = useState<FeatureStage>(
+    (school?.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
+  );
+  const [savingStage, setSavingStage] = useState(false);
   const [schoolConfig, setSchoolConfig] = useState({
-    student_id_format: (school as any)?.student_id_format || 'STU{YYYY}{####}',
+    student_id_format: (school as any)?.student_id_format || "STU{YYYY}{####}",
     has_boarding: (school as any)?.has_boarding || false,
     has_houses: (school as any)?.has_houses || false,
     has_student_council: (school as any)?.has_student_council || false,
     has_prefects: (school as any)?.has_prefects || false,
-    location_type: (school as any)?.location_type || 'urban',
-  })
-  const [savingConfig, setSavingConfig] = useState(false)
-  const [houses, setHouses] = useState<any[]>([])
-  const [loadingHouses, setLoadingHouses] = useState(false)
-  const [showAddHouse, setShowAddHouse] = useState(false)
-  const [showAddClass, setShowAddClass] = useState(false)
-  const [newHouse, setNewHouse] = useState({ name: '', color: '#3b82f6', motto: '' })
-  const [newClass, setNewClass] = useState({ name: '', stream: '' })
-  const sc = school as any
-  const selectedRoleOption = ROLE_OPTIONS.find((option) => option.value === newUser.role)
-  const missingModules = selectedRoleOption?.modules.filter((module) => !canUseModule(selectedStage, module)) || []
-  const missingModuleLabels = missingModules.map((module) => MODULE_LABELS[module])
+    location_type: (school as any)?.location_type || "urban",
+  });
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [houses, setHouses] = useState<any[]>([]);
+  const [loadingHouses, setLoadingHouses] = useState(false);
+  const [showAddHouse, setShowAddHouse] = useState(false);
+  const [showAddClass, setShowAddClass] = useState(false);
+  const [newHouse, setNewHouse] = useState({
+    name: "",
+    color: "#3b82f6",
+    motto: "",
+  });
+  const [newClass, setNewClass] = useState({ name: "", stream: "" });
+  const sc = school as any;
+  const selectedRoleOption = ROLE_OPTIONS.find(
+    (option) => option.value === newUser.role,
+  );
+  const missingModules =
+    selectedRoleOption?.modules.filter(
+      (module) => !canUseModule(selectedStage, module),
+    ) || [];
+  const missingModuleLabels = missingModules.map(
+    (module) => MODULE_LABELS[module],
+  );
 
   const fetchSettings = useCallback(async () => {
-    if (!school?.id) return
+    if (!school?.id) return;
     try {
       const { data } = await supabase
-        .from('school_settings')
-        .select('key, value')
-        .eq('school_id', school.id)
-      
+        .from("school_settings")
+        .select("key, value")
+        .eq("school_id", school.id);
+
       if (data) {
-        const settingsMap: Record<string, string> = {}
-        data.forEach((s: {key: string, value: string}) => {
-          settingsMap[s.key] = s.value
-        })
-        setSettings(prev => ({
+        const settingsMap: Record<string, string> = {};
+        data.forEach((s: { key: string; value: string }) => {
+          settingsMap[s.key] = s.value;
+        });
+        setSettings((prev) => ({
           ...prev,
-          sms_notifications: settingsMap.sms_notifications !== 'false',
-          attendance_alerts: settingsMap.attendance_alerts !== 'false',
-          fee_reminders: settingsMap.fee_reminders === 'true',
-          attendance_threshold: parseInt(settingsMap.attendance_threshold) || 80,
+          sms_notifications: settingsMap.sms_notifications !== "false",
+          attendance_alerts: settingsMap.attendance_alerts !== "false",
+          fee_reminders: settingsMap.fee_reminders === "true",
+          attendance_threshold:
+            parseInt(settingsMap.attendance_threshold) || 80,
           grade_threshold: parseInt(settingsMap.grade_threshold) || 50,
-          fee_threshold: parseInt(settingsMap.fee_threshold) || 50000
-        }))
+          fee_threshold: parseInt(settingsMap.fee_threshold) || 50000,
+        }));
       }
-      
+
       // Fetch school logo
       const { data: schoolData } = await supabase
-        .from('schools')
-        .select('logo_url')
-        .eq('id', school.id)
-        .single()
-      
+        .from("schools")
+        .select("logo_url")
+        .eq("id", school.id)
+        .single();
+
       if (schoolData?.logo_url) {
-        setLogoUrl(schoolData.logo_url)
+        setLogoUrl(schoolData.logo_url);
       }
     } catch (err) {
-      console.error('Error:', err)
+      console.error("Error:", err);
     }
-  }, [school?.id])
+  }, [school?.id]);
 
   useEffect(() => {
     if (school?.feature_stage) {
-      setSelectedStage(school.feature_stage as FeatureStage)
+      setSelectedStage(school.feature_stage as FeatureStage);
     }
-  }, [school?.feature_stage])
+  }, [school?.feature_stage]);
 
   useEffect(() => {
     if (school?.id) {
-      fetchSettings()
+      fetchSettings();
     }
-  }, [school?.id, fetchSettings])
+  }, [school?.id, fetchSettings]);
 
   const saveSettings = async (key: string, value: string) => {
-    if (!school?.id) return
+    if (!school?.id) return;
     try {
       await supabase
-        .from('school_settings')
-        .upsert({ school_id: school.id, key, value }, { onConflict: 'school_id,key' })
+        .from("school_settings")
+        .upsert(
+          { school_id: school.id, key, value },
+          { onConflict: "school_id,key" },
+        );
     } catch (err) {
-      console.error('Error:', err)
+      console.error("Error:", err);
     }
-  }
+  };
 
-  const handleSettingChange = async (key: keyof SchoolSettings, value: boolean | number) => {
-    setSettings(prev => ({ ...prev, [key]: value }))
-    await saveSettings(key, String(value))
-  }
+  const handleSettingChange = async (
+    key: keyof SchoolSettings,
+    value: boolean | number,
+  ) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+    await saveSettings(key, String(value));
+  };
+
+  const handlePlanUpgrade = async (plan: string) => {
+    if (!school?.id) return;
+    setUpgradingPlan(true);
+    try {
+      // Update the school's subscription plan
+      const { error } = await supabase
+        .from("schools")
+        .update({
+          subscription_plan: plan,
+          subscription_status: "active",
+        })
+        .eq("id", school.id);
+
+      if (error) throw error;
+
+      await refreshSchool();
+      toast.success(`Successfully switched to ${plan.toUpperCase()} plan!`);
+
+      // Redirect to payment if upgrading to premium/max
+      if (plan === "premium" || plan === "max") {
+        window.location.href = "/api/payment/checkout?plan=" + plan;
+      }
+    } catch (err: any) {
+      console.error("Plan upgrade error:", err);
+      toast.error(err.message || "Failed to update plan. Please try again.");
+    } finally {
+      setUpgradingPlan(false);
+    }
+  };
 
   const exportAllData = async () => {
-    if (!school?.id) return
+    if (!school?.id) return;
     try {
-      toast.success('Preparing export...')
-      
-      const tables = ['students', 'classes', 'subjects', 'attendance', 'grades', 'fee_structure', 'fee_payments', 'users']
-      const allData: Record<string, unknown[]> = {}
-      
+      toast.success("Preparing export...");
+
+      const tables = [
+        "students",
+        "classes",
+        "subjects",
+        "attendance",
+        "grades",
+        "fee_structure",
+        "fee_payments",
+        "users",
+      ];
+      const allData: Record<string, unknown[]> = {};
+
       for (const table of tables) {
-        const { data } = await supabase.from(table).select('*').eq('school_id', school.id)
-        if (data) allData[table] = data
+        const { data } = await supabase
+          .from(table)
+          .select("*")
+          .eq("school_id", school.id);
+        if (data) allData[table] = data;
       }
-      
-      const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `skoolmate_backup_${school.name}_${new Date().toISOString().split('T')[0]}.json`
-      a.click()
-      URL.revokeObjectURL(url)
-      toast.success('Data exported successfully')
+
+      const blob = new Blob([JSON.stringify(allData, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `skoolmate_backup_${school.name}_${new Date().toISOString().split("T")[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Data exported successfully");
     } catch (err) {
-      toast.error('Export failed')
+      toast.error("Export failed");
     }
-  }
+  };
 
   const exportStudentPhotos = async () => {
-    if (!school?.id) return
+    if (!school?.id) return;
 
     try {
-      toast.success('Preparing student photo backup...')
+      toast.success("Preparing student photo backup...");
       const { data, error } = await supabase
-        .from('students')
-        .select('*')
-        .eq('school_id', school.id)
+        .from("students")
+        .select("*")
+        .eq("school_id", school.id);
 
-      if (error) throw error
+      if (error) throw error;
 
       const photoManifest = (data || [])
         .map((student: Record<string, unknown>) => ({
@@ -232,242 +328,265 @@ export default function SettingsPage() {
           last_name: student.last_name,
           photo_url: student.photo_url || null,
         }))
-        .filter((student) => Boolean(student.photo_url))
+        .filter((student) => Boolean(student.photo_url));
 
-      const blob = new Blob([JSON.stringify(photoManifest, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `skoolmate_photos_${school.name}_${new Date().toISOString().split('T')[0]}.json`
-      a.click()
-      URL.revokeObjectURL(url)
+      const blob = new Blob([JSON.stringify(photoManifest, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `skoolmate_photos_${school.name}_${new Date().toISOString().split("T")[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
 
       toast.success(
         photoManifest.length > 0
           ? `Exported photo manifest for ${photoManifest.length} student(s)`
-          : 'No student photos were found, but an empty manifest was exported'
-      )
+          : "No student photos were found, but an empty manifest was exported",
+      );
     } catch (err) {
-      console.error(err)
-      toast.error('Photo export failed')
+      console.error(err);
+      toast.error("Photo export failed");
     }
-  }
+  };
 
   useEffect(() => {
     if (school) {
-      setSchoolData(prev => ({
+      setSchoolData((prev) => ({
         ...prev,
-        name: school.name || '',
-        district: school.district || '',
-      }))
+        name: school.name || "",
+        district: school.district || "",
+      }));
     }
-  }, [school])
+  }, [school]);
 
   const fetchUsers = useCallback(async () => {
-    if (!school?.id) return
+    if (!school?.id) return;
     try {
-      setLoadingUsers(true)
+      setLoadingUsers(true);
       const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('school_id', school.id)
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      setUsers(data || [])
+        .from("users")
+        .select("*")
+        .eq("school_id", school.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setUsers(data || []);
     } catch (err) {
-      console.error('Error:', err)
+      console.error("Error:", err);
     } finally {
-      setLoadingUsers(false)
+      setLoadingUsers(false);
     }
-  }, [school?.id])
+  }, [school?.id]);
 
   const fetchHouses = useCallback(async () => {
-    if (!school?.id) return
+    if (!school?.id) return;
     try {
-      setLoadingHouses(true)
-      const { data } = await supabase.from('houses').select('*').eq('school_id', school.id).order('name')
-      setHouses(data || [])
+      setLoadingHouses(true);
+      const { data } = await supabase
+        .from("houses")
+        .select("*")
+        .eq("school_id", school.id)
+        .order("name");
+      setHouses(data || []);
     } catch {
-      setHouses([])
+      setHouses([]);
     } finally {
-      setLoadingHouses(false)
+      setLoadingHouses(false);
     }
-  }, [school?.id])
+  }, [school?.id]);
 
   useEffect(() => {
-    if (activeTab === 'config' && school?.id) {
-      fetchHouses()
+    if (activeTab === "config" && school?.id) {
+      fetchHouses();
     }
-  }, [activeTab, school?.id, fetchHouses])
+  }, [activeTab, school?.id, fetchHouses]);
 
   const saveSchoolConfig = async () => {
-    if (!school?.id) return
+    if (!school?.id) return;
     try {
-      setSavingConfig(true)
-      const { error } = await supabase.from('schools').update({
-        student_id_format: schoolConfig.student_id_format,
-        has_boarding: schoolConfig.has_boarding,
-        has_houses: schoolConfig.has_houses,
-        has_student_council: schoolConfig.has_student_council,
-        has_prefects: schoolConfig.has_prefects,
-        location_type: schoolConfig.location_type,
-      }).eq('id', school.id)
-      if (error) throw error
-      toast.success('School configuration saved')
-      await refreshSchool()
+      setSavingConfig(true);
+      const { error } = await supabase
+        .from("schools")
+        .update({
+          student_id_format: schoolConfig.student_id_format,
+          has_boarding: schoolConfig.has_boarding,
+          has_houses: schoolConfig.has_houses,
+          has_student_council: schoolConfig.has_student_council,
+          has_prefects: schoolConfig.has_prefects,
+          location_type: schoolConfig.location_type,
+        })
+        .eq("id", school.id);
+      if (error) throw error;
+      toast.success("School configuration saved");
+      await refreshSchool();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to save')
+      toast.error(err.message || "Failed to save");
     } finally {
-      setSavingConfig(false)
+      setSavingConfig(false);
     }
-  }
+  };
 
   const addHouse = async () => {
-    if (!school?.id || !newHouse.name) return
+    if (!school?.id || !newHouse.name) return;
     try {
-      const { error } = await supabase.from('houses').insert({
+      const { error } = await supabase.from("houses").insert({
         school_id: school.id,
         name: newHouse.name,
         color: newHouse.color,
         motto: newHouse.motto || null,
-      })
-      if (error) throw error
-      toast.success('House added')
-      setShowAddHouse(false)
-      setNewHouse({ name: '', color: '#3b82f6', motto: '' })
-      fetchHouses()
+      });
+      if (error) throw error;
+      toast.success("House added");
+      setShowAddHouse(false);
+      setNewHouse({ name: "", color: "#3b82f6", motto: "" });
+      fetchHouses();
     } catch (err: any) {
-      toast.error(err.message || 'Failed')
+      toast.error(err.message || "Failed");
     }
-  }
+  };
 
   const deleteHouse = async (id: string) => {
     try {
-      await supabase.from('houses').delete().eq('id', id)
-      toast.success('House deleted')
-      fetchHouses()
+      await supabase.from("houses").delete().eq("id", id);
+      toast.success("House deleted");
+      fetchHouses();
     } catch {
-      toast.error('Failed to delete')
+      toast.error("Failed to delete");
     }
-  }
+  };
 
   const handleAddClass = async () => {
-    if (!school?.id || !newClass.name) return
+    if (!school?.id || !newClass.name) return;
     try {
-      const { error } = await supabase.from('classes').insert({
+      const { error } = await supabase.from("classes").insert({
         school_id: school.id,
         name: newClass.name,
         stream: newClass.stream || null,
-        level: parseInt(newClass.name.replace(/[^0-9]/g, '')) || 1,
+        level: parseInt(newClass.name.replace(/[^0-9]/g, "")) || 1,
         academic_year: new Date().getFullYear().toString(),
-      })
-      if (error) throw error
-      toast.success('Class added')
-      setShowAddClass(false)
-      setNewClass({ name: '', stream: '' })
+      });
+      if (error) throw error;
+      toast.success("Class added");
+      setShowAddClass(false);
+      setNewClass({ name: "", stream: "" });
     } catch (err: any) {
-      toast.error(err.message || 'Failed to add class')
+      toast.error(err.message || "Failed to add class");
     }
-  }
+  };
 
   const handleDeleteClass = async (id: string) => {
-    if (!confirm('Delete this class? All students in this class will need to be reassigned.')) return
+    if (
+      !confirm(
+        "Delete this class? All students in this class will need to be reassigned.",
+      )
+    )
+      return;
     try {
-      await supabase.from('classes').delete().eq('id', id)
-      toast.success('Class deleted')
+      await supabase.from("classes").delete().eq("id", id);
+      toast.success("Class deleted");
     } catch (err: any) {
-      toast.error(err.message || 'Failed to delete class')
+      toast.error(err.message || "Failed to delete class");
     }
-  }
+  };
 
   useEffect(() => {
-    if (activeTab === 'users' && school?.id) {
-      fetchUsers()
+    if (activeTab === "users" && school?.id) {
+      fetchUsers();
     }
-  }, [activeTab, school?.id, fetchUsers])
+  }, [activeTab, school?.id, fetchUsers]);
 
   const saveSchoolSettings = async () => {
-    if (!school?.id) return
+    if (!school?.id) return;
     try {
-      setSaving(true)
+      setSaving(true);
       const { error } = await supabase
-        .from('schools')
+        .from("schools")
         .update({
           name: schoolData.name,
           district: schoolData.district,
           phone: schoolData.phone || null,
           email: schoolData.email || null,
         })
-        .eq('id', school.id)
-      if (error) throw error
-      toast.success('Settings saved')
+        .eq("id", school.id);
+      if (error) throw error;
+      toast.success("Settings saved");
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to save')
+      toast.error(err instanceof Error ? err.message : "Failed to save");
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const toggleUserStatus = async (id: string, currentStatus: boolean) => {
     try {
       const { error } = await supabase
-        .from('users')
+        .from("users")
         .update({ is_active: !currentStatus })
-        .eq('id', id)
-      if (error) throw error
-      setUsers(users.map(u => u.id === id ? { ...u, is_active: !currentStatus } : u))
-      toast.success(currentStatus ? 'User deactivated' : 'User activated')
+        .eq("id", id);
+      if (error) throw error;
+      setUsers(
+        users.map((u) =>
+          u.id === id ? { ...u, is_active: !currentStatus } : u,
+        ),
+      );
+      toast.success(currentStatus ? "User deactivated" : "User activated");
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update')
+      toast.error(err instanceof Error ? err.message : "Failed to update");
     }
-  }
+  };
 
   const handleAddUser = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!school?.id) return
+    e.preventDefault();
+    if (!school?.id) return;
     try {
-      const normalizedPhone = newUser.phone.replace(/[^0-9]/g, '')
-      
-      const response = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const normalizedPhone = newUser.phone.replace(/[^0-9]/g, "");
+
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           schoolId: school.id,
           fullName: newUser.full_name,
           phone: normalizedPhone,
           password: newUser.password,
-          role: newUser.role
-        })
-      })
+          role: newUser.role,
+        }),
+      });
 
-      const result = await response.json()
+      const result = await response.json();
       if (!result.success) {
-        throw new Error(result.error || 'Failed to add user')
+        throw new Error(result.error || "Failed to add user");
       }
 
-      toast.success('User added successfully')
-      setShowAddUser(false)
-      setNewUser({ full_name: '', phone: '', role: 'teacher', password: '' })
-      fetchUsers()
+      toast.success("User added successfully");
+      setShowAddUser(false);
+      setNewUser({ full_name: "", phone: "", role: "teacher", password: "" });
+      fetchUsers();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to add user')
+      toast.error(err instanceof Error ? err.message : "Failed to add user");
     }
-  }
+  };
 
   const tabs = [
-    { id: 'general', label: 'School Details' },
-    { id: 'config', label: 'School Config', badge: 'New' },
-    { id: 'users', label: 'Staff & Users' },
-    { id: 'notifications', label: 'Notifications' },
-    { id: 'backup', label: 'Backup & Export' },
-    { id: 'subscription', label: 'Billing & Plans', badge: 'Active' },
-  ]
+    { id: "general", label: "School Details" },
+    { id: "config", label: "School Config", badge: "New" },
+    { id: "users", label: "Staff & Users" },
+    { id: "notifications", label: "Notifications" },
+    { id: "backup", label: "Backup & Export" },
+    { id: "subscription", label: "Billing & Plans", badge: "Active" },
+  ];
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader title="Settings" subtitle="Manage your school settings" />
 
-      <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} className="mb-6" />
+      <Tabs
+        tabs={tabs}
+        activeTab={activeTab}
+        onChange={setActiveTab}
+        className="mb-6"
+      />
 
       <TabPanel activeTab={activeTab} tabId="general">
         <div className="space-y-6">
@@ -493,146 +612,303 @@ export default function SettingsPage() {
       <TabPanel activeTab={activeTab} tabId="config">
         <div className="space-y-6">
           {/* School Type */}
-          <Card><CardBody>
-            <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-4">School Type</h2>
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              {(['urban', 'peri_urban', 'rural'] as const).map(type => (
-                <button key={type} onClick={() => setSchoolConfig({...schoolConfig, location_type: type})} className={`p-4 rounded-xl border-2 text-center transition-all ${schoolConfig.location_type === type ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
-                  <div className="font-medium capitalize">{type.replace('_', ' ')}</div>
-                </button>
-              ))}
-            </div>
-            <div className="space-y-3">
-              {[
-                { key: 'has_boarding', label: 'Boarding School', desc: 'Students stay overnight' },
-                { key: 'has_houses', label: 'House System', desc: 'Students belong to colored houses (e.g., Nile, Victoria)' },
-                { key: 'has_student_council', label: 'Student Council', desc: 'President, VP, Secretary, etc.' },
-                { key: 'has_prefects', label: 'Prefects', desc: 'Head Boy, Head Girl, Sports Prefect, etc.' },
-              ].map(({ key, label, desc }) => (
-                <label key={key} className="flex items-center justify-between p-3 bg-[var(--surface-container)] rounded-xl cursor-pointer">
-                  <div>
-                    <div className="font-medium text-[var(--on-surface)]">{label}</div>
-                    <div className="text-xs text-[var(--t3)]">{desc}</div>
-                  </div>
-                  <input type="checkbox" checked={(schoolConfig as any)[key]} onChange={(e) => setSchoolConfig({...schoolConfig, [key]: e.target.checked})} className="w-5 h-5 rounded border-[var(--border)] text-[var(--primary)]" />
-                </label>
-              ))}
-            </div>
-          </CardBody></Card>
+          <Card>
+            <CardBody>
+              <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-4">
+                School Type
+              </h2>
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                {(["urban", "peri_urban", "rural"] as const).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() =>
+                      setSchoolConfig({ ...schoolConfig, location_type: type })
+                    }
+                    className={`p-4 rounded-xl border-2 text-center transition-all ${schoolConfig.location_type === type ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
+                  >
+                    <div className="font-medium capitalize">
+                      {type.replace("_", " ")}
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <div className="space-y-3">
+                {[
+                  {
+                    key: "has_boarding",
+                    label: "Boarding School",
+                    desc: "Students stay overnight",
+                  },
+                  {
+                    key: "has_houses",
+                    label: "House System",
+                    desc: "Students belong to colored houses (e.g., Nile, Victoria)",
+                  },
+                  {
+                    key: "has_student_council",
+                    label: "Student Council",
+                    desc: "President, VP, Secretary, etc.",
+                  },
+                  {
+                    key: "has_prefects",
+                    label: "Prefects",
+                    desc: "Head Boy, Head Girl, Sports Prefect, etc.",
+                  },
+                ].map(({ key, label, desc }) => (
+                  <label
+                    key={key}
+                    className="flex items-center justify-between p-3 bg-[var(--surface-container)] rounded-xl cursor-pointer"
+                  >
+                    <div>
+                      <div className="font-medium text-[var(--on-surface)]">
+                        {label}
+                      </div>
+                      <div className="text-xs text-[var(--t3)]">{desc}</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={(schoolConfig as any)[key]}
+                      onChange={(e) =>
+                        setSchoolConfig({
+                          ...schoolConfig,
+                          [key]: e.target.checked,
+                        })
+                      }
+                      className="w-5 h-5 rounded border-[var(--border)] text-[var(--primary)]"
+                    />
+                  </label>
+                ))}
+              </div>
+            </CardBody>
+          </Card>
 
           {/* Student ID Format */}
-          <Card><CardBody>
-            <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-2">Student ID Format</h2>
-            <p className="text-sm text-[var(--t3)] mb-4">Customize how student numbers are generated. Tokens: <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs">{`{YYYY}`}</code> = year, <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs">{`{####}`}</code> = sequential number, <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs">{`{CLASS}`}</code> = class code, <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs">{`{GENDER}`}</code> = M/F</p>
-            <input type="text" value={schoolConfig.student_id_format} onChange={(e) => setSchoolConfig({...schoolConfig, student_id_format: e.target.value})} className="input mb-2" placeholder="STU{YYYY}{####}" />
-            <div className="text-xs text-[var(--t3)]">Example: <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded">{schoolConfig.student_id_format.replace('{YYYY}', '2026').replace('{####}', '0001').replace('{CLASS}', 'P7').replace('{GENDER}', 'M')}</code></div>
-          </CardBody></Card>
+          <Card>
+            <CardBody>
+              <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-2">
+                Student ID Format
+              </h2>
+              <p className="text-sm text-[var(--t3)] mb-4">
+                Customize how student numbers are generated. Tokens:{" "}
+                <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs">{`{YYYY}`}</code>{" "}
+                = year,{" "}
+                <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs">{`{####}`}</code>{" "}
+                = sequential number,{" "}
+                <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs">{`{CLASS}`}</code>{" "}
+                = class code,{" "}
+                <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs">{`{GENDER}`}</code>{" "}
+                = M/F
+              </p>
+              <input
+                type="text"
+                value={schoolConfig.student_id_format}
+                onChange={(e) =>
+                  setSchoolConfig({
+                    ...schoolConfig,
+                    student_id_format: e.target.value,
+                  })
+                }
+                className="input mb-2"
+                placeholder="STU{YYYY}{####}"
+              />
+              <div className="text-xs text-[var(--t3)]">
+                Example:{" "}
+                <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded">
+                  {schoolConfig.student_id_format
+                    .replace("{YYYY}", "2026")
+                    .replace("{####}", "0001")
+                    .replace("{CLASS}", "P7")
+                    .replace("{GENDER}", "M")}
+                </code>
+              </div>
+            </CardBody>
+          </Card>
 
           {/* Houses */}
           {schoolConfig.has_houses && (
-            <Card><CardBody>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-[var(--on-surface)]">Houses</h2>
-                <Button size="sm" onClick={() => setShowAddHouse(true)}><MaterialIcon icon="add" className="text-sm" /> Add House</Button>
-              </div>
-              {loadingHouses ? (
-                <div className="text-sm text-[var(--t3)]">Loading houses...</div>
-              ) : houses.length === 0 ? (
-                <div className="text-sm text-[var(--t3)]">No houses configured yet</div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {houses.map(house => (
-                    <div key={house.id} className="p-4 rounded-xl border-2 text-center" style={{ borderColor: house.color }}>
-                      <div className="w-10 h-10 rounded-full mx-auto mb-2" style={{ backgroundColor: house.color }} />
-                      <div className="font-semibold text-sm">{house.name}</div>
-                      {house.motto && <div className="text-xs text-[var(--t3)] italic mt-0.5">{house.motto}</div>}
-                      <button onClick={() => deleteHouse(house.id)} className="text-xs text-red-500 mt-2 hover:underline">Remove</button>
-                    </div>
-                  ))}
+            <Card>
+              <CardBody>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-[var(--on-surface)]">
+                    Houses
+                  </h2>
+                  <Button size="sm" onClick={() => setShowAddHouse(true)}>
+                    <MaterialIcon icon="add" className="text-sm" /> Add House
+                  </Button>
                 </div>
-              )}
-            </CardBody></Card>
+                {loadingHouses ? (
+                  <div className="text-sm text-[var(--t3)]">
+                    Loading houses...
+                  </div>
+                ) : houses.length === 0 ? (
+                  <div className="text-sm text-[var(--t3)]">
+                    No houses configured yet
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {houses.map((house) => (
+                      <div
+                        key={house.id}
+                        className="p-4 rounded-xl border-2 text-center"
+                        style={{ borderColor: house.color }}
+                      >
+                        <div
+                          className="w-10 h-10 rounded-full mx-auto mb-2"
+                          style={{ backgroundColor: house.color }}
+                        />
+                        <div className="font-semibold text-sm">
+                          {house.name}
+                        </div>
+                        {house.motto && (
+                          <div className="text-xs text-[var(--t3)] italic mt-0.5">
+                            {house.motto}
+                          </div>
+                        )}
+                        <button
+                          onClick={() => deleteHouse(house.id)}
+                          className="text-xs text-red-500 mt-2 hover:underline"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardBody>
+            </Card>
           )}
 
           <div className="flex justify-end">
-            <Button onClick={saveSchoolConfig} disabled={savingConfig} variant="primary">
+            <Button
+              onClick={saveSchoolConfig}
+              disabled={savingConfig}
+              variant="primary"
+            >
               <MaterialIcon icon="save" className="text-sm" />
-              {savingConfig ? 'Saving...' : 'Save Configuration'}
+              {savingConfig ? "Saving..." : "Save Configuration"}
             </Button>
           </div>
 
           {/* Class Management */}
-          <Card><CardBody>
-            <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-4">Class Teachers</h2>
-            <p className="text-sm text-[var(--t3)] mb-4">Assign class teachers to each class. Class teachers manage attendance, behavior, and communicate with parents.</p>
-            {loadingClasses ? (
-              <div className="text-sm text-[var(--t3)]">Loading classes...</div>
-            ) : (
-              <div className="space-y-2">
-                {classes.slice(0, 10).map((cls: any) => (
-                  <div key={cls.id} className="flex items-center justify-between p-3 bg-[var(--surface-container)] rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <span className="font-medium text-[var(--on-surface)]">{cls.name}{cls.stream ? ` ${cls.stream}` : ''}</span>
-                      {cls.class_teacher_id && <span className="text-xs text-[var(--t3)]">Teacher assigned</span>}
-                    </div>
-                    <select 
-                      value={cls.class_teacher_id || ''}
-                      onChange={async (e) => {
-                        try {
-                          await supabase.from('classes').update({ class_teacher_id: e.target.value || null }).eq('id', cls.id)
-                        } catch (err) {
-                          console.error('Failed to update class teacher:', err)
-                        }
-                      }}
-                      className="input text-sm"
-                      style={{ width: 'auto', minWidth: '150px' }}
+          <Card>
+            <CardBody>
+              <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-4">
+                Class Teachers
+              </h2>
+              <p className="text-sm text-[var(--t3)] mb-4">
+                Assign class teachers to each class. Class teachers manage
+                attendance, behavior, and communicate with parents.
+              </p>
+              {loadingClasses ? (
+                <div className="text-sm text-[var(--t3)]">
+                  Loading classes...
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {classes.slice(0, 10).map((cls: any) => (
+                    <div
+                      key={cls.id}
+                      className="flex items-center justify-between p-3 bg-[var(--surface-container)] rounded-lg"
                     >
-                      <option value="">No teacher</option>
-                      {users.filter((s: any) => s.role === 'teacher').map((s: any) => (
-                        <option key={s.id} value={s.id}>{s.full_name}</option>
-                      ))}
-                    </select>
-                  </div>
-                ))}
-                {classes.length > 10 && <div className="text-sm text-[var(--t3)]">+ {classes.length - 10} more classes</div>}
-              </div>
-            )}
-          </CardBody></Card>
+                      <div className="flex items-center gap-3">
+                        <span className="font-medium text-[var(--on-surface)]">
+                          {cls.name}
+                          {cls.stream ? ` ${cls.stream}` : ""}
+                        </span>
+                        {cls.class_teacher_id && (
+                          <span className="text-xs text-[var(--t3)]">
+                            Teacher assigned
+                          </span>
+                        )}
+                      </div>
+                      <select
+                        value={cls.class_teacher_id || ""}
+                        onChange={async (e) => {
+                          try {
+                            await supabase
+                              .from("classes")
+                              .update({
+                                class_teacher_id: e.target.value || null,
+                              })
+                              .eq("id", cls.id);
+                          } catch (err) {
+                            console.error(
+                              "Failed to update class teacher:",
+                              err,
+                            );
+                          }
+                        }}
+                        className="input text-sm"
+                        style={{ width: "auto", minWidth: "150px" }}
+                      >
+                        <option value="">No teacher</option>
+                        {users
+                          .filter((s: any) => s.role === "teacher")
+                          .map((s: any) => (
+                            <option key={s.id} value={s.id}>
+                              {s.full_name}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  ))}
+                  {classes.length > 10 && (
+                    <div className="text-sm text-[var(--t3)]">
+                      + {classes.length - 10} more classes
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardBody>
+          </Card>
 
           {/* Class List Management */}
-          <Card><CardBody>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-[var(--on-surface)]">Manage Classes</h2>
-              <Button size="sm" onClick={() => setShowAddClass(true)}>
-                <MaterialIcon icon="add" className="text-sm" />
-                Add Class
-              </Button>
-            </div>
-            <p className="text-sm text-[var(--t3)] mb-4">Add or remove classes. Use streams (A, B, C) if your school has multiple classes per level.</p>
-            {loadingClasses ? (
-              <div className="text-sm text-[var(--t3)]">Loading...</div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {classes.map((cls: any) => (
-                  <div key={cls.id} className="flex items-center justify-between p-3 bg-[var(--surface-container)] rounded-lg border border-[var(--border)]">
-                    <span className="font-medium text-[var(--on-surface)]">{cls.name}{cls.stream ? ` ${cls.stream}` : ''}</span>
-                    <button 
-                      onClick={() => handleDeleteClass(cls.id)}
-                      className="text-[var(--t3)] hover:text-red-500 p-1"
-                      title="Delete class"
-                    >
-                      <MaterialIcon icon="delete" className="text-sm" />
-                    </button>
-                  </div>
-                ))}
-                {classes.length === 0 && (
-                  <div className="col-span-full text-sm text-[var(--t3)] text-center py-4">
-                    No classes yet. Add your first class above.
-                  </div>
-                )}
+          <Card>
+            <CardBody>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-[var(--on-surface)]">
+                  Manage Classes
+                </h2>
+                <Button size="sm" onClick={() => setShowAddClass(true)}>
+                  <MaterialIcon icon="add" className="text-sm" />
+                  Add Class
+                </Button>
               </div>
-            )}
-          </CardBody></Card>
+              <p className="text-sm text-[var(--t3)] mb-4">
+                Add or remove classes. Use streams (A, B, C) if your school has
+                multiple classes per level.
+              </p>
+              {loadingClasses ? (
+                <div className="text-sm text-[var(--t3)]">Loading...</div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {classes.map((cls: any) => (
+                    <div
+                      key={cls.id}
+                      className="flex items-center justify-between p-3 bg-[var(--surface-container)] rounded-lg border border-[var(--border)]"
+                    >
+                      <span className="font-medium text-[var(--on-surface)]">
+                        {cls.name}
+                        {cls.stream ? ` ${cls.stream}` : ""}
+                      </span>
+                      <button
+                        onClick={() => handleDeleteClass(cls.id)}
+                        className="text-[var(--t3)] hover:text-red-500 p-1"
+                        title="Delete class"
+                      >
+                        <MaterialIcon icon="delete" className="text-sm" />
+                      </button>
+                    </div>
+                  ))}
+                  {classes.length === 0 && (
+                    <div className="col-span-full text-sm text-[var(--t3)] text-center py-4">
+                      No classes yet. Add your first class above.
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardBody>
+          </Card>
         </div>
       </TabPanel>
 
@@ -670,27 +946,38 @@ export default function SettingsPage() {
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-[var(--surface-container)] rounded-full flex items-center justify-center">
                           <span className="text-[var(--primary)] font-semibold">
-                            {u.full_name?.charAt(0) || 'U'}
+                            {u.full_name?.charAt(0) || "U"}
                           </span>
                         </div>
                         <div>
-                          <div className="font-medium text-[var(--on-surface)]">{u.full_name}</div>
+                          <div className="font-medium text-[var(--on-surface)]">
+                            {u.full_name}
+                          </div>
                           <div className="flex items-center gap-2 mt-2">
                             <span className="px-2 py-1 rounded-lg text-xs font-medium bg-[var(--green-soft)] text-[var(--green)]">
-                              {u.role === 'dos' ? 'Director of Studies' : u.role === 'school_admin' ? 'Administrator' : u.role === 'bursar' ? 'Bursar' : u.role.charAt(0).toUpperCase() + u.role.slice(1)}
+                              {u.role === "dos"
+                                ? "Director of Studies"
+                                : u.role === "school_admin"
+                                  ? "Administrator"
+                                  : u.role === "bursar"
+                                    ? "Bursar"
+                                    : u.role.charAt(0).toUpperCase() +
+                                      u.role.slice(1)}
                             </span>
-                            <span className={`px-2 py-1 rounded-lg text-xs font-medium ${u.is_active ? 'bg-[var(--green-soft)] text-[var(--green)]' : 'bg-[var(--red-soft)] text-[var(--red)]'}`}>
-                              {u.is_active ? 'Active' : 'Inactive'}
+                            <span
+                              className={`px-2 py-1 rounded-lg text-xs font-medium ${u.is_active ? "bg-[var(--green-soft)] text-[var(--green)]" : "bg-[var(--red-soft)] text-[var(--red)]"}`}
+                            >
+                              {u.is_active ? "Active" : "Inactive"}
                             </span>
                           </div>
                         </div>
                       </div>
                       <Button
                         size="sm"
-                        variant={u.is_active ? 'secondary' : 'primary'}
+                        variant={u.is_active ? "secondary" : "primary"}
                         onClick={() => toggleUserStatus(u.id, u.is_active)}
                       >
-                        {u.is_active ? 'Deactivate' : 'Activate'}
+                        {u.is_active ? "Deactivate" : "Activate"}
                       </Button>
                     </div>
                   </CardBody>
@@ -705,49 +992,75 @@ export default function SettingsPage() {
         <div className="space-y-6">
           <Card>
             <CardBody>
-              <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-6">Notification Settings</h2>
+              <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-6">
+                Notification Settings
+              </h2>
               <div className="space-y-4">
                 <div className="flex items-center justify-between py-3 border-b border-[var(--border)]">
                   <div>
-                    <div className="font-medium text-[var(--on-surface)]">SMS Notifications</div>
-                    <div className="text-sm text-[var(--t3)]">Send SMS to parents for fee reminders</div>
+                    <div className="font-medium text-[var(--on-surface)]">
+                      SMS Notifications
+                    </div>
+                    <div className="text-sm text-[var(--t3)]">
+                      Send SMS to parents for fee reminders
+                    </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      className="sr-only peer" 
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
                       checked={settings.sms_notifications}
-                      onChange={(e) => handleSettingChange('sms_notifications', e.target.checked)}
+                      onChange={(e) =>
+                        handleSettingChange(
+                          "sms_notifications",
+                          e.target.checked,
+                        )
+                      }
                     />
                     <div className="w-11 h-6 bg-[var(--border)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--primary)]"></div>
                   </label>
                 </div>
                 <div className="flex items-center justify-between py-3 border-b border-[var(--border)]">
                   <div>
-                    <div className="font-medium text-[var(--on-surface)]">Attendance Alerts</div>
-                    <div className="text-sm text-[var(--t3)]">Notify when student is absent</div>
+                    <div className="font-medium text-[var(--on-surface)]">
+                      Attendance Alerts
+                    </div>
+                    <div className="text-sm text-[var(--t3)]">
+                      Notify when student is absent
+                    </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      className="sr-only peer" 
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
                       checked={settings.attendance_alerts}
-                      onChange={(e) => handleSettingChange('attendance_alerts', e.target.checked)}
+                      onChange={(e) =>
+                        handleSettingChange(
+                          "attendance_alerts",
+                          e.target.checked,
+                        )
+                      }
                     />
                     <div className="w-11 h-6 bg-[var(--border)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--primary)]"></div>
                   </label>
                 </div>
                 <div className="flex items-center justify-between py-3">
                   <div>
-                    <div className="font-medium text-[var(--on-surface)]">Fee Reminders</div>
-                    <div className="text-sm text-[var(--t3)]">Send automatic fee balance reminders</div>
+                    <div className="font-medium text-[var(--on-surface)]">
+                      Fee Reminders
+                    </div>
+                    <div className="text-sm text-[var(--t3)]">
+                      Send automatic fee balance reminders
+                    </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      className="sr-only peer" 
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
                       checked={settings.fee_reminders}
-                      onChange={(e) => handleSettingChange('fee_reminders', e.target.checked)}
+                      onChange={(e) =>
+                        handleSettingChange("fee_reminders", e.target.checked)
+                      }
                     />
                     <div className="w-11 h-6 bg-[var(--border)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--primary)]"></div>
                   </label>
@@ -758,39 +1071,68 @@ export default function SettingsPage() {
 
           <Card>
             <CardBody>
-              <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-6">Warning Thresholds</h2>
+              <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-6">
+                Warning Thresholds
+              </h2>
               <div className="space-y-6">
                 <div>
-                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Attendance Rate Threshold (%)</label>
-                  <p className="text-sm text-[var(--t3)] mb-2">Students below this attendance rate will be flagged</p>
-                  <input 
-                    type="number" 
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
+                    Attendance Rate Threshold (%)
+                  </label>
+                  <p className="text-sm text-[var(--t3)] mb-2">
+                    Students below this attendance rate will be flagged
+                  </p>
+                  <input
+                    type="number"
                     value={settings.attendance_threshold}
-                    onChange={(e) => handleSettingChange('attendance_threshold', parseInt(e.target.value) || 80)}
+                    onChange={(e) =>
+                      handleSettingChange(
+                        "attendance_threshold",
+                        parseInt(e.target.value) || 80,
+                      )
+                    }
                     className="w-32 px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
                     min={0}
                     max={100}
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Grade Threshold (%)</label>
-                  <p className="text-sm text-[var(--t3)] mb-2">Students scoring below this in 2+ subjects will be flagged</p>
-                  <input 
-                    type="number" 
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
+                    Grade Threshold (%)
+                  </label>
+                  <p className="text-sm text-[var(--t3)] mb-2">
+                    Students scoring below this in 2+ subjects will be flagged
+                  </p>
+                  <input
+                    type="number"
                     value={settings.grade_threshold}
-                    onChange={(e) => handleSettingChange('grade_threshold', parseInt(e.target.value) || 50)}
+                    onChange={(e) =>
+                      handleSettingChange(
+                        "grade_threshold",
+                        parseInt(e.target.value) || 50,
+                      )
+                    }
                     className="w-32 px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
                     min={0}
                     max={100}
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Fee Threshold (UGX)</label>
-                  <p className="text-sm text-[var(--t3)] mb-2">Students with payments below this amount will be flagged</p>
-                  <input 
-                    type="number" 
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
+                    Fee Threshold (UGX)
+                  </label>
+                  <p className="text-sm text-[var(--t3)] mb-2">
+                    Students with payments below this amount will be flagged
+                  </p>
+                  <input
+                    type="number"
                     value={settings.fee_threshold}
-                    onChange={(e) => handleSettingChange('fee_threshold', parseInt(e.target.value) || 50000)}
+                    onChange={(e) =>
+                      handleSettingChange(
+                        "fee_threshold",
+                        parseInt(e.target.value) || 50000,
+                      )
+                    }
                     className="w-32 px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
                     min={0}
                   />
@@ -807,8 +1149,12 @@ export default function SettingsPage() {
             <CardBody>
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--on-surface)]">SkoolMate Subscription</h2>
-                  <p className="text-sm text-[var(--t3)]">Your account is currently active</p>
+                  <h2 className="text-lg font-semibold text-[var(--on-surface)]">
+                    SkoolMate Subscription
+                  </h2>
+                  <p className="text-sm text-[var(--t3)]">
+                    Your account is currently active
+                  </p>
                 </div>
                 <div className="px-4 py-2 bg-[var(--green-soft)] text-[var(--green)] rounded-full text-sm font-semibold">
                   PREMIUM PLAN
@@ -817,37 +1163,138 @@ export default function SettingsPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="p-6 rounded-2xl border-2 border-[var(--border)] bg-[var(--surface-container-low)]">
-                  <div className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-2">Starter</div>
-                  <div className="text-2xl font-bold mb-4">UGX 250k <span className="text-sm font-normal text-[var(--t3)]">/ term</span></div>
+                  <div className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-2">
+                    Starter
+                  </div>
+                  <div className="text-2xl font-bold mb-4">
+                    UGX 250k{" "}
+                    <span className="text-sm font-normal text-[var(--t3)]">
+                      / term
+                    </span>
+                  </div>
                   <ul className="space-y-3 mb-6">
-                    <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Up to 100 Students</li>
-                    <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Basic Attendance</li>
-                    <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Fee Management</li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <MaterialIcon
+                        icon="check_circle"
+                        className="text-[var(--green)] text-base"
+                      />{" "}
+                      Up to 100 Students
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <MaterialIcon
+                        icon="check_circle"
+                        className="text-[var(--green)] text-base"
+                      />{" "}
+                      Basic Attendance
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <MaterialIcon
+                        icon="check_circle"
+                        className="text-[var(--green)] text-base"
+                      />{" "}
+                      Fee Management
+                    </li>
                   </ul>
-                  <Button variant="secondary" className="w-full" disabled>Active</Button>
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    loading={upgradingPlan && selectedPlan === "free_trial"}
+                    onClick={() => handlePlanUpgrade("free_trial")}
+                  >
+                    Active
+                  </Button>
                 </div>
 
                 <div className="p-6 rounded-2xl border-2 border-[var(--primary)] bg-[var(--primary-soft)] relative">
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[var(--primary)] text-white text-[10px] font-bold rounded-full uppercase">Most Popular</div>
-                  <div className="text-sm font-bold text-[var(--primary)] uppercase tracking-wider mb-2">Standard</div>
-                  <div className="text-2xl font-bold mb-4">UGX 600k <span className="text-sm font-normal text-[var(--t3)]">/ term</span></div>
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[var(--primary)] text-white text-[10px] font-bold rounded-full uppercase">
+                    Most Popular
+                  </div>
+                  <div className="text-sm font-bold text-[var(--primary)] uppercase tracking-wider mb-2">
+                    Standard
+                  </div>
+                  <div className="text-2xl font-bold mb-4">
+                    UGX 600k{" "}
+                    <span className="text-sm font-normal text-[var(--t3)]">
+                      / term
+                    </span>
+                  </div>
                   <ul className="space-y-3 mb-6">
-                    <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Up to 500 Students</li>
-                    <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> SMS Notifications</li>
-                    <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Report Card Printing</li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <MaterialIcon
+                        icon="check_circle"
+                        className="text-[var(--green)] text-base"
+                      />{" "}
+                      Up to 500 Students
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <MaterialIcon
+                        icon="check_circle"
+                        className="text-[var(--green)] text-base"
+                      />{" "}
+                      SMS Notifications
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <MaterialIcon
+                        icon="check_circle"
+                        className="text-[var(--green)] text-base"
+                      />{" "}
+                      Report Card Printing
+                    </li>
                   </ul>
-                  <Button className="w-full">Current Choice</Button>
+                  <Button
+                    className="w-full"
+                    loading={upgradingPlan && selectedPlan === "basic"}
+                    onClick={() => handlePlanUpgrade("basic")}
+                  >
+                    {school?.subscription_plan === "basic"
+                      ? "Current Plan"
+                      : "Select"}
+                  </Button>
                 </div>
 
                 <div className="p-6 rounded-2xl border-2 border-[var(--border)] bg-[var(--surface-container-low)]">
-                  <div className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-2">Premium</div>
-                  <div className="text-2xl font-bold mb-4">UGX 1.2M <span className="text-sm font-normal text-[var(--t3)]">/ term</span></div>
+                  <div className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-2">
+                    Premium
+                  </div>
+                  <div className="text-2xl font-bold mb-4">
+                    UGX 1.2M{" "}
+                    <span className="text-sm font-normal text-[var(--t3)]">
+                      / term
+                    </span>
+                  </div>
                   <ul className="space-y-3 mb-6">
-                    <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Unlimited Students</li>
-                    <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> AI Smart Advisor</li>
-                    <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Full Payroll & Assets</li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <MaterialIcon
+                        icon="check_circle"
+                        className="text-[var(--green)] text-base"
+                      />{" "}
+                      Unlimited Students
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <MaterialIcon
+                        icon="check_circle"
+                        className="text-[var(--green)] text-base"
+                      />{" "}
+                      AI Smart Advisor
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <MaterialIcon
+                        icon="check_circle"
+                        className="text-[var(--green)] text-base"
+                      />{" "}
+                      Full Payroll & Assets
+                    </li>
                   </ul>
-                  <Button variant="secondary" className="w-full">Contact Sales</Button>
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    loading={upgradingPlan && selectedPlan === "premium"}
+                    onClick={() => handlePlanUpgrade("premium")}
+                  >
+                    {school?.subscription_plan === "premium"
+                      ? "Current Plan"
+                      : "Upgrade"}
+                  </Button>
                 </div>
               </div>
             </CardBody>
@@ -855,24 +1302,42 @@ export default function SettingsPage() {
 
           <Card>
             <CardBody>
-              <h3 className="text-lg font-semibold mb-4 text-[var(--on-surface)]">Why Upgrade to Premium?</h3>
+              <h3 className="text-lg font-semibold mb-4 text-[var(--on-surface)]">
+                Why Upgrade to Premium?
+              </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex gap-4 p-4 rounded-xl bg-[var(--surface-container)]">
                   <div className="w-10 h-10 rounded-full bg-[var(--primary-soft)] flex items-center justify-center shrink-0">
-                    <MaterialIcon icon="smart_toy" className="text-[var(--primary)]" />
+                    <MaterialIcon
+                      icon="smart_toy"
+                      className="text-[var(--primary)]"
+                    />
                   </div>
                   <div>
-                    <div className="font-semibold text-sm">AI Smart Advisor</div>
-                    <div className="text-xs text-[var(--t3)]">Get proactive alerts about performance drops, fee deficits, and staff workload optimization.</div>
+                    <div className="font-semibold text-sm">
+                      AI Smart Advisor
+                    </div>
+                    <div className="text-xs text-[var(--t3)]">
+                      Get proactive alerts about performance drops, fee
+                      deficits, and staff workload optimization.
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-4 p-4 rounded-xl bg-[var(--surface-container)]">
                   <div className="w-10 h-10 rounded-full bg-[var(--primary-soft)] flex items-center justify-center shrink-0">
-                    <MaterialIcon icon="notifications_active" className="text-[var(--primary)]" />
+                    <MaterialIcon
+                      icon="notifications_active"
+                      className="text-[var(--primary)]"
+                    />
                   </div>
                   <div>
-                    <div className="font-semibold text-sm">Auto-SMS Reminders</div>
-                    <div className="text-xs text-[var(--t3)]">Recover fees 3.5x faster with automatic, personalized SMS nudges to parents.</div>
+                    <div className="font-semibold text-sm">
+                      Auto-SMS Reminders
+                    </div>
+                    <div className="text-xs text-[var(--t3)]">
+                      Recover fees 3.5x faster with automatic, personalized SMS
+                      nudges to parents.
+                    </div>
                   </div>
                 </div>
               </div>
@@ -885,13 +1350,19 @@ export default function SettingsPage() {
         <div className="space-y-6">
           <Card>
             <CardBody>
-              <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-6">Data Backup</h2>
+              <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-6">
+                Data Backup
+              </h2>
               <div className="space-y-4">
                 <div className="p-4 bg-[var(--surface-container-low)] rounded-xl">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="font-medium text-[var(--on-surface)]">Export All Data</div>
-                      <div className="text-sm text-[var(--t3)]">Download all school data as JSON</div>
+                      <div className="font-medium text-[var(--on-surface)]">
+                        Export All Data
+                      </div>
+                      <div className="text-sm text-[var(--t3)]">
+                        Download all school data as JSON
+                      </div>
                     </div>
                     <Button onClick={exportAllData}>
                       <MaterialIcon icon="download" className="text-lg" />
@@ -902,18 +1373,29 @@ export default function SettingsPage() {
                 <div className="p-4 bg-[var(--surface-container-low)] rounded-xl">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="font-medium text-[var(--on-surface)]">Student Photos Backup</div>
-                      <div className="text-sm text-[var(--t3)]">Export student photos and documents</div>
+                      <div className="font-medium text-[var(--on-surface)]">
+                        Student Photos Backup
+                      </div>
+                      <div className="text-sm text-[var(--t3)]">
+                        Export student photos and documents
+                      </div>
                     </div>
-                    <Button variant="secondary" onClick={exportStudentPhotos}>Export Photos</Button>
+                    <Button variant="secondary" onClick={exportStudentPhotos}>
+                      Export Photos
+                    </Button>
                   </div>
                 </div>
                 <div className="p-4 bg-[var(--amber-soft)] rounded-xl border border-[var(--amber)]/20">
                   <div className="flex items-center gap-3">
                     <MaterialIcon icon="info" className="text-[var(--amber)]" />
                     <div>
-                      <div className="font-medium text-[var(--on-surface)]">Important</div>
-                      <div className="text-sm text-[var(--t3)]">Regular backups are recommended. Cloud backup is available on Premium plans.</div>
+                      <div className="font-medium text-[var(--on-surface)]">
+                        Important
+                      </div>
+                      <div className="text-sm text-[var(--t3)]">
+                        Regular backups are recommended. Cloud backup is
+                        available on Premium plans.
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -924,12 +1406,23 @@ export default function SettingsPage() {
       </TabPanel>
 
       {showAddUser && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowAddUser(false)}>
-          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowAddUser(false)}
+        >
+          <div
+            className="bg-[var(--surface)] rounded-2xl w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-6 border-b border-[var(--border)]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[var(--on-surface)]">Add Staff Member</h2>
-                <button onClick={() => setShowAddUser(false)} className="p-2 text-[var(--t3)] hover:text-[var(--on-surface)]">
+                <h2 className="text-lg font-semibold text-[var(--on-surface)]">
+                  Add Staff Member
+                </h2>
+                <button
+                  onClick={() => setShowAddUser(false)}
+                  className="p-2 text-[var(--t3)] hover:text-[var(--on-surface)]"
+                >
                   <MaterialIcon icon="close" className="text-xl" />
                 </button>
               </div>
@@ -937,16 +1430,48 @@ export default function SettingsPage() {
             <div className="p-6 space-y-4">
               <form onSubmit={handleAddUser} className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Full Name</label>
-                  <input type="text" value={newUser.full_name} onChange={(e) => setNewUser({...newUser, full_name: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]" required />
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newUser.full_name}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, full_name: e.target.value })
+                    }
+                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
+                    required
+                  />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Phone Number</label>
-                  <input type="tel" placeholder="0700000000" value={newUser.phone} onChange={(e) => setNewUser({...newUser, phone: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]" required />
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="0700000000"
+                    value={newUser.phone}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, phone: e.target.value })
+                    }
+                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
+                    required
+                  />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Role</label>
-                  <select value={newUser.role} onChange={(e) => setNewUser({...newUser, role: e.target.value as UserRole})} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]">
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
+                    Role
+                  </label>
+                  <select
+                    value={newUser.role}
+                    onChange={(e) =>
+                      setNewUser({
+                        ...newUser,
+                        role: e.target.value as UserRole,
+                      })
+                    }
+                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
+                  >
                     {ROLE_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
                         {ROLE_LABELS[option.value] || option.value}
@@ -955,26 +1480,52 @@ export default function SettingsPage() {
                   </select>
                 </div>
                 <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4 text-sm space-y-1">
-                  <div className="text-xs font-semibold uppercase tracking-[0.4em] text-[var(--t3)]">Access summary</div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.4em] text-[var(--t3)]">
+                    Access summary
+                  </div>
                   <div className="text-sm text-[var(--on-surface)]">
-                    {selectedRoleOption?.description || 'This role inherits the default access for the selected profile.'}
+                    {selectedRoleOption?.description ||
+                      "This role inherits the default access for the selected profile."}
                   </div>
                   <div className="text-xs text-[var(--t3)]">
                     Current stage: {FEATURE_STAGES[selectedStage].label}
                   </div>
                   {missingModuleLabels.length > 0 && (
                     <div className="text-xs text-[var(--amber)]">
-                      Stage {FEATURE_STAGES[selectedStage].label} does not include {missingModuleLabels.join(', ')}. Upgrade or choose a broader stage before assigning this role.
+                      Stage {FEATURE_STAGES[selectedStage].label} does not
+                      include {missingModuleLabels.join(", ")}. Upgrade or
+                      choose a broader stage before assigning this role.
                     </div>
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Password</label>
-                  <input type="password" placeholder="Min 6 characters" value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]" required minLength={6} />
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Min 6 characters"
+                    value={newUser.password}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, password: e.target.value })
+                    }
+                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
+                    required
+                    minLength={6}
+                  />
                 </div>
                 <div className="flex gap-3 pt-4">
-                  <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowAddUser(false)}>Cancel</Button>
-                  <Button type="submit" className="flex-1">Add User</Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="flex-1"
+                    onClick={() => setShowAddUser(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="flex-1">
+                    Add User
+                  </Button>
                 </div>
               </form>
             </div>
@@ -983,35 +1534,92 @@ export default function SettingsPage() {
       )}
 
       {showAddHouse && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowAddHouse(false)}>
-          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowAddHouse(false)}
+        >
+          <div
+            className="bg-[var(--surface)] rounded-2xl w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-6 border-b border-[var(--border)]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[var(--on-surface)]">Add House</h2>
-                <button onClick={() => setShowAddHouse(false)} className="p-2 text-[var(--t3)] hover:text-[var(--on-surface)]">
+                <h2 className="text-lg font-semibold text-[var(--on-surface)]">
+                  Add House
+                </h2>
+                <button
+                  onClick={() => setShowAddHouse(false)}
+                  className="p-2 text-[var(--t3)] hover:text-[var(--on-surface)]"
+                >
                   <MaterialIcon icon="close" className="text-xl" />
                 </button>
               </div>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">House Name</label>
-                <input type="text" value={newHouse.name} onChange={(e) => setNewHouse({...newHouse, name: e.target.value})} className="input" placeholder="e.g., Nile" required />
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
+                  House Name
+                </label>
+                <input
+                  type="text"
+                  value={newHouse.name}
+                  onChange={(e) =>
+                    setNewHouse({ ...newHouse, name: e.target.value })
+                  }
+                  className="input"
+                  placeholder="e.g., Nile"
+                  required
+                />
               </div>
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Color</label>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
+                  Color
+                </label>
                 <div className="flex items-center gap-3">
-                  <input type="color" value={newHouse.color} onChange={(e) => setNewHouse({...newHouse, color: e.target.value})} className="w-12 h-10 rounded border cursor-pointer" />
-                  <input type="text" value={newHouse.color} onChange={(e) => setNewHouse({...newHouse, color: e.target.value})} className="input flex-1" />
+                  <input
+                    type="color"
+                    value={newHouse.color}
+                    onChange={(e) =>
+                      setNewHouse({ ...newHouse, color: e.target.value })
+                    }
+                    className="w-12 h-10 rounded border cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={newHouse.color}
+                    onChange={(e) =>
+                      setNewHouse({ ...newHouse, color: e.target.value })
+                    }
+                    className="input flex-1"
+                  />
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Motto (optional)</label>
-                <input type="text" value={newHouse.motto} onChange={(e) => setNewHouse({...newHouse, motto: e.target.value})} className="input" placeholder="e.g., Flowing Forward" />
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
+                  Motto (optional)
+                </label>
+                <input
+                  type="text"
+                  value={newHouse.motto}
+                  onChange={(e) =>
+                    setNewHouse({ ...newHouse, motto: e.target.value })
+                  }
+                  className="input"
+                  placeholder="e.g., Flowing Forward"
+                />
               </div>
               <div className="flex gap-3 pt-4">
-                <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowAddHouse(false)}>Cancel</Button>
-                <Button className="flex-1" onClick={addHouse}>Add House</Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => setShowAddHouse(false)}
+                >
+                  Cancel
+                </Button>
+                <Button className="flex-1" onClick={addHouse}>
+                  Add House
+                </Button>
               </div>
             </div>
           </div>
@@ -1019,34 +1627,78 @@ export default function SettingsPage() {
       )}
 
       {showAddClass && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowAddClass(false)}>
-          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowAddClass(false)}
+        >
+          <div
+            className="bg-[var(--surface)] rounded-2xl w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-6 border-b border-[var(--border)]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[var(--on-surface)]">Add Class</h2>
-                <button onClick={() => setShowAddClass(false)} className="p-2 text-[var(--t3)] hover:text-[var(--on-surface)]">
+                <h2 className="text-lg font-semibold text-[var(--on-surface)]">
+                  Add Class
+                </h2>
+                <button
+                  onClick={() => setShowAddClass(false)}
+                  className="p-2 text-[var(--t3)] hover:text-[var(--on-surface)]"
+                >
                   <MaterialIcon icon="close" className="text-xl" />
                 </button>
               </div>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Class Name</label>
-                <input type="text" value={newClass.name} onChange={(e) => setNewClass({...newClass, name: e.target.value})} className="input" placeholder="e.g., P.5 or S.1" required />
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
+                  Class Name
+                </label>
+                <input
+                  type="text"
+                  value={newClass.name}
+                  onChange={(e) =>
+                    setNewClass({ ...newClass, name: e.target.value })
+                  }
+                  className="input"
+                  placeholder="e.g., P.5 or S.1"
+                  required
+                />
               </div>
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Stream (Optional)</label>
-                <input type="text" value={newClass.stream} onChange={(e) => setNewClass({...newClass, stream: e.target.value})} className="input" placeholder="e.g., A, B, or C (leave empty if none)" />
-                <p className="text-xs text-[var(--t3)] mt-1">Only use streams if you have multiple classes at the same level</p>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
+                  Stream (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={newClass.stream}
+                  onChange={(e) =>
+                    setNewClass({ ...newClass, stream: e.target.value })
+                  }
+                  className="input"
+                  placeholder="e.g., A, B, or C (leave empty if none)"
+                />
+                <p className="text-xs text-[var(--t3)] mt-1">
+                  Only use streams if you have multiple classes at the same
+                  level
+                </p>
               </div>
               <div className="flex gap-3 pt-4">
-                <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowAddClass(false)}>Cancel</Button>
-                <Button className="flex-1" onClick={handleAddClass}>Add Class</Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => setShowAddClass(false)}
+                >
+                  Cancel
+                </Button>
+                <Button className="flex-1" onClick={handleAddClass}>
+                  Add Class
+                </Button>
               </div>
             </div>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }
