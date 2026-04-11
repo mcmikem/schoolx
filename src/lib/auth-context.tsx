@@ -125,10 +125,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return school?.subscription_plan as PlanType | null;
   };
 
-  const fetchUserData = useCallback(async (authId: string, retryCount = 0) => {
+  const fetchUserData = useCallback(async (authId: string, retryCount = 0): Promise<{ role: string } | null> => {
     if (!supabase) {
       setLoading(false);
-      return;
+      return null;
     }
     try {
       const { data: userData, error: userError } = await supabase
@@ -140,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userError) {
         console.error("Error fetching user:", userError);
         setLoading(false);
-        return;
+        return null;
       }
 
       if (!userData) {
@@ -158,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           authId,
         );
         setLoading(false);
-        return;
+        return null;
       }
 
       setUser({
@@ -170,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userData.role === "super_admin") {
         setSchool(null);
         setLoading(false);
-        return;
+        return { role: userData.role };
       }
 
       if (userData.school_id) {
@@ -203,9 +203,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       }
+
+      return { role: userData.role };
     } catch (error) {
       console.error("Error fetching user data:", error);
       setLoading(false);
+      return null;
     }
   }, []);
 
@@ -339,21 +342,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!data.user)
         return { error: { message: "No user returned from Supabase" } };
 
-      // fetchUserData populates the user state including role — no second query needed
-      await fetchUserData(data.user.id);
-
-      // Read role directly from the state that fetchUserData just set.
-      // We use a local ref pattern: access users table once via fetchUserData above.
-      // To route correctly, we do a lightweight role-only query using the already-fetched session.
-      let userRole: string = "school_admin";
-      if (supabase) {
-        const { data: roleRow } = await supabase
-          .from("users")
-          .select("role")
-          .eq("auth_id", data.user.id)
-          .maybeSingle();
-        userRole = roleRow?.role ?? "school_admin";
-      }
+      // fetchUserData populates user state AND returns the role — no second query needed
+      const userData = await fetchUserData(data.user.id);
+      const userRole: string = userData?.role ?? "school_admin";
 
       if (userRole === "super_admin") {
         router.push("/super-admin");
