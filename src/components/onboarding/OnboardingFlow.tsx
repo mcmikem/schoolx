@@ -47,16 +47,22 @@ export default function OnboardingFlow({
   const handleComplete = async () => {
     setLoading(true);
     try {
-      // Simple update - just primary_color, subscription_status, and trial_ends_at
-      // These columns definitely exist in the schema
+      // Build complete update with all onboarding settings
       const updateData = {
         primary_color: branding.primary_color,
+        feature_stage: featureStage,
         subscription_status:
           activationChoice === "premium" ? "active" : "trial",
         trial_ends_at:
           activationChoice === "trial"
             ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
             : null,
+        onboarding_completed: true,
+        onboarding_completed_at: new Date().toISOString(),
+        setup_progress: JSON.stringify({
+          completed: ["branding", "features", "activation"],
+          skipped: [],
+        }),
       };
 
       const { error } = await supabase
@@ -68,6 +74,23 @@ export default function OnboardingFlow({
         console.error("Update error:", error);
         throw error;
       }
+
+      // Create default setup checklist items
+      const checklistItems = [
+        { item_key: "academic_calendar", item_label: "Academic Calendar" },
+        { item_key: "class_structure", item_label: "Class & Stream Setup" },
+        { item_key: "fee_structure", item_label: "Fee Structure" },
+        { item_key: "staff_accounts", item_label: "Staff Accounts" },
+        { item_key: "student_import", item_label: "Import Students" },
+        { item_key: "sms_templates", item_label: "SMS Templates" },
+        { item_key: "payment_methods", item_label: "Payment Methods" },
+        { item_key: "grading_config", item_label: "Grading System" },
+      ];
+
+      await supabase.from("setup_checklist").upsert(
+        checklistItems.map((item) => ({ ...item, school_id: school.id })),
+        { onConflict: "school_id,item_key" },
+      );
 
       await refreshSchool();
       setLoading(false);
