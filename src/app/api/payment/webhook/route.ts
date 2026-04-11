@@ -39,23 +39,22 @@ export async function POST(request: Request) {
       // but we can still get the customer and subscription info here
       if (session.mode === "subscription" && session.subscription) {
         try {
-          const subscription = await stripe.subscriptions.retrieve(
+          const subscription = (await stripe.subscriptions.retrieve(
             session.subscription as string,
             { expand: ["customer", "items.data.price"] },
-          );
+          )) as unknown as {
+            status: string;
+            items: { data: { price: any }[] };
+            id: string;
+          };
 
           // Update school subscription
-          await handleSubscriptionChange(
-            // We need to get the school ID from the customer metadata
-            // Assuming we stored school_id in customer metadata
-            session.metadata?.school_id || "",
-            {
-              status: mapStripeSubscriptionStatus(subscription.status),
-              plan: determinePlanFromPrice(subscription.items.data.price),
-              provider: "stripe",
-              subscriptionId: subscription.id,
-            },
-          );
+          await handleSubscriptionChange(session.metadata?.school_id || "", {
+            status: mapStripeSubscriptionStatus(subscription.status),
+            plan: determinePlanFromPrice(subscription.items.data[0]?.price),
+            provider: "stripe",
+            subscriptionId: subscription.id,
+          });
         } catch (error) {
           console.error("Error handling checkout session completed:", error);
         }
@@ -94,7 +93,7 @@ export async function POST(request: Request) {
             "",
           {
             status: "active",
-            plan: determinePlanFromPrice(subscription.items.data.price),
+            plan: determinePlanFromPrice(subscription.items.data[0]?.price),
             provider: "stripe",
             subscriptionId: subscription.id,
           },
@@ -109,7 +108,7 @@ export async function POST(request: Request) {
             amount: invoice.amount_paid / 100, // Convert from cents
             currency: invoice.currency,
             date: new Date(invoice.created * 1000).toISOString(),
-            plan: determinePlanFromPrice(subscription.items.data.price),
+            plan: determinePlanFromPrice(subscription.items.data[0]?.price),
             provider: "stripe",
             transactionId: (invoice as unknown as { payment_intent: string })
               .payment_intent as string,
@@ -153,7 +152,7 @@ export async function POST(request: Request) {
       try {
         await handleSubscriptionChange(subscription.metadata?.school_id || "", {
           status: mapStripeSubscriptionStatus(subscription.status),
-          plan: determinePlanFromPrice(subscription.items.data.price),
+          plan: determinePlanFromPrice(subscription.items.data[0]?.price),
           provider: "stripe",
           subscriptionId: subscription.id,
         });
@@ -173,7 +172,7 @@ export async function POST(request: Request) {
       try {
         await handleSubscriptionChange(subscription.metadata?.school_id || "", {
           status: mapStripeSubscriptionStatus(subscription.status),
-          plan: determinePlanFromPrice(subscription.items.data.price),
+          plan: determinePlanFromPrice(subscription.items.data[0]?.price),
           provider: "stripe",
           subscriptionId: subscription.id,
         });
@@ -219,6 +218,7 @@ const PRICE_TO_PLAN_MAP: Record<string, PlanType> = {
 
 // Helper function to determine plan from Stripe price
 function determinePlanFromPrice(price: any): PlanType {
+  if (!price) return "free_trial";
   // If we have a price ID, try to map it
   if (price?.id) {
     const plan = PRICE_TO_PLAN_MAP[price.id];

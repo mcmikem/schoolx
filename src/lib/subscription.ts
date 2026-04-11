@@ -266,7 +266,13 @@ export async function sendPaymentReceipt(
 export async function handleSubscriptionChange(
   schoolId: string,
   changeData: {
-    status: "active" | "past_due" | "canceled" | "unpaid";
+    status:
+      | "active"
+      | "past_due"
+      | "canceled"
+      | "unpaid"
+      | "trial"
+      | "suspended";
     plan?: PlanType;
     provider: "stripe" | "paypal";
     subscriptionId?: string;
