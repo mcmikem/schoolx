@@ -33,9 +33,12 @@ function getUNEBDivision(avg: number): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { studentId, schoolId, term, academicYear } = await request.json();
+    // Auth check MUST come before body parse to prevent unauthenticated
+    // requests from consuming the body and triggering DB queries.
     const authCheck = await requireAuthenticatedUser(request);
     if (!authCheck.ok) return authCheck.response;
+
+    const { studentId, schoolId, term, academicYear } = await request.json();
 
     const validationError = validateRequiredFields({ studentId, schoolId }, [
       "studentId",
