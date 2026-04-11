@@ -138,9 +138,12 @@ export type Database = {
           logo_url: string | null
           primary_color: string
           uneab_center_number: string | null
-          subscription_plan: 'free' | 'basic' | 'premium'
-          subscription_status: 'active' | 'expired' | 'trial'
+          subscription_plan: 'free' | 'free_trial' | 'basic' | 'premium' | 'max'
+          subscription_status: 'active' | 'expired' | 'trial' | 'past_due' | 'canceled' | 'unpaid' | 'suspended'
           trial_ends_at: string | null
+          paypal_subscription_id: string | null
+          last_payment_at: string | null
+          last_payment_attempt: string | null
           created_at: string
         }
         Insert: Omit<Database['public']['Tables']['schools']['Row'], 'id' | 'created_at'>
@@ -154,7 +157,7 @@ export type Database = {
           full_name: string
           phone: string
           email: string | null
-          role: 'super_admin' | 'school_admin' | 'teacher' | 'student' | 'parent'
+          role: 'super_admin' | 'school_admin' | 'admin' | 'board' | 'headmaster' | 'dean_of_studies' | 'bursar' | 'teacher' | 'secretary' | 'dorm_master' | 'student' | 'parent'
           avatar_url: string | null
           is_active: boolean
           created_at: string
