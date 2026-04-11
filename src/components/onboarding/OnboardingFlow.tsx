@@ -24,6 +24,13 @@ export default function OnboardingFlow({
     logo_url: school?.logo_url || "",
   });
 
+  // School details that can be edited during onboarding
+  const [schoolDetails, setSchoolDetails] = useState({
+    name: school?.name || "",
+    district: (school as any)?.district || "",
+    subcounty: (school as any)?.subcounty || "",
+  });
+
   const [activationChoice, setActivationChoice] = useState<"trial" | "premium">(
     "trial",
   );
@@ -49,6 +56,9 @@ export default function OnboardingFlow({
     try {
       // Build complete update with all onboarding settings
       const updateData = {
+        name: schoolDetails.name || school.name,
+        district: schoolDetails.district,
+        subcounty: schoolDetails.subcounty,
         primary_color: branding.primary_color,
         feature_stage: featureStage,
         subscription_status:
@@ -226,6 +236,57 @@ export default function OnboardingFlow({
                 </p>
 
                 <div className="space-y-6 mb-8">
+                  {/* School Name */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-3">
+                      School Name
+                    </label>
+                    <Input
+                      value={schoolDetails.name}
+                      onChange={(e) =>
+                        setSchoolDetails({
+                          ...schoolDetails,
+                          name: e.target.value,
+                        })
+                      }
+                      placeholder="St. Mary's Primary School"
+                    />
+                  </div>
+
+                  {/* District */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-3">
+                      District
+                    </label>
+                    <Input
+                      value={schoolDetails.district}
+                      onChange={(e) =>
+                        setSchoolDetails({
+                          ...schoolDetails,
+                          district: e.target.value,
+                        })
+                      }
+                      placeholder="Kampala"
+                    />
+                  </div>
+
+                  {/* Subcounty */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-3">
+                      Subcounty / Division
+                    </label>
+                    <Input
+                      value={schoolDetails.subcounty}
+                      onChange={(e) =>
+                        setSchoolDetails({
+                          ...schoolDetails,
+                          subcounty: e.target.value,
+                        })
+                      }
+                      placeholder="Central Division"
+                    />
+                  </div>
+
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-3">
                       Primary Theme Color
