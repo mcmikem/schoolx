@@ -38,6 +38,25 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
     { name: "Tuition", amount: 150000, term: 1 },
   ]);
 
+  // Staff Setup State
+  const [staff, setStaff] = useState([
+    { name: "", phone: "", role: "teacher" },
+  ]);
+
+  // SMS Templates State
+  const [smsTemplates, setSmsTemplates] = useState([
+    {
+      id: "absentee",
+      name: "Absent Alert",
+      body: "Dear Parent, {student_name} was absent today. Please contact the school.",
+    },
+    {
+      id: "fee_reminder",
+      name: "Fee Reminder",
+      body: "Dear Parent, {student_name} has a fee balance of {balance}. Please pay to avoid penalties.",
+    },
+  ]);
+
   const saveAcademicYear = async () => {
     if (!school?.id) return;
     setLoading(true);
@@ -131,12 +150,108 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
 
       toast.success("Fee structure saved!");
       await refreshSchool();
+      setStep(4);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveStaff = async () => {
+    if (!school?.id) return;
+    setLoading(true);
+    try {
+      // Create staff users
+      for (const s of staff) {
+        if (!s.name || !s.phone) continue;
+
+        // Create auth user
+        const { data: authData, error: authError } = await supabase.auth.signUp(
+          {
+            phone: s.phone,
+            password: "Welcome" + s.phone.slice(-4), // Default password
+          },
+        );
+
+        if (authData?.user) {
+          await supabase.from("users").insert({
+            auth_id: authData.user.id,
+            school_id: school.id,
+            full_name: s.name,
+            phone: s.phone,
+            role: s.role,
+          });
+        }
+      }
+
+      await supabase.from("setup_checklist").upsert(
+        {
+          school_id: school.id,
+          item_key: "staff_accounts",
+          item_label: "Staff Accounts",
+          is_completed: true,
+          completed_at: new Date().toISOString(),
+        },
+        { onConflict: "school_id,item_key" },
+      );
+
+      toast.success("Staff accounts created!");
+      setStep(5);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveSmsTemplates = async () => {
+    if (!school?.id) return;
+    setLoading(true);
+    try {
+      // Save SMS templates
+      for (const t of smsTemplates) {
+        await supabase.from("sms_templates").upsert(
+          {
+            school_id: school.id,
+            id: t.id,
+            name: t.name,
+            body: t.body,
+            category: t.id === "absentee" ? "Attendance" : "Finance",
+          },
+          { onConflict: "school_id,id" },
+        );
+      }
+
+      await supabase.from("setup_checklist").upsert(
+        {
+          school_id: school.id,
+          item_key: "sms_templates",
+          item_label: "SMS Templates",
+          is_completed: true,
+          completed_at: new Date().toISOString(),
+        },
+        { onConflict: "school_id,item_key" },
+      );
+
+      toast.success("SMS templates saved!");
+      await refreshSchool();
       onComplete?.();
     } catch (err: any) {
       toast.error(err.message || "Failed to save");
     } finally {
       setLoading(false);
     }
+  };
+
+  const addStaff = () =>
+    setStaff([...staff, { name: "", phone: "", role: "teacher" }]);
+  const removeStaff = (i: number) =>
+    setStaff(staff.filter((_, idx) => idx !== i));
+  const updateStaff = (i: number, field: string, value: string) => {
+    const newStaff = [...staff];
+    newStaff[i] = { ...newStaff[i], [field]: value };
+    setStaff(newStaff);
   };
 
   const addClass = () =>
@@ -167,10 +282,10 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
             Quick School Setup
           </h3>
           <div className="flex gap-2">
-            {[1, 2, 3].map((s) => (
+            {[1, 2, 3, 4, 5].map((s) => (
               <div
                 key={s}
-                className={`w-8 h-2 rounded-full ${step >= s ? "bg-[var(--primary)]" : "bg-[var(--border)]"}`}
+                className={`flex-1 h-2 rounded-full ${step >= s ? "bg-[var(--primary)]" : "bg-[var(--border)]"}`}
               />
             ))}
           </div>
@@ -343,6 +458,103 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
               </div>
             ))}
             <Button onClick={saveFees} loading={loading} className="w-full">
+              Save & Continue
+            </Button>
+          </div>
+        )}
+
+        {step === 4 && (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h4 className="font-medium text-[var(--on-surface)]">
+                Staff Accounts
+              </h4>
+              <Button size="sm" variant="ghost" onClick={addStaff}>
+                <MaterialIcon icon="add" /> Add
+              </Button>
+            </div>
+            <p className="text-sm text-[var(--t3)]">
+              Add teachers and staff. They'll receive login details via SMS.
+            </p>
+            {staff.map((s, i) => (
+              <div key={i} className="flex gap-2">
+                <Input
+                  placeholder="Full Name"
+                  value={s.name}
+                  onChange={(e) => updateStaff(i, "name", e.target.value)}
+                  className="flex-1"
+                />
+                <Input
+                  placeholder="Phone"
+                  value={s.phone}
+                  onChange={(e) => updateStaff(i, "phone", e.target.value)}
+                  className="w-32"
+                />
+                <select
+                  value={s.role}
+                  onChange={(e) => updateStaff(i, "role", e.target.value)}
+                  className="input w-32"
+                >
+                  <option value="teacher">Teacher</option>
+                  <option value="school_admin">Admin</option>
+                  <option value="bursar">Bursar</option>
+                </select>
+                {staff.length > 1 && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => removeStaff(i)}
+                  >
+                    <MaterialIcon icon="close" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            <Button onClick={saveStaff} loading={loading} className="w-full">
+              Save & Continue
+            </Button>
+          </div>
+        )}
+
+        {step === 5 && (
+          <div className="space-y-4">
+            <h4 className="font-medium text-[var(--on-surface)]">
+              SMS Templates
+            </h4>
+            <p className="text-sm text-[var(--t3)]">
+              Pre-configured messages for parents.
+            </p>
+            {smsTemplates.map((t, i) => (
+              <div
+                key={i}
+                className="p-4 bg-[var(--surface-container)] rounded-xl"
+              >
+                <Input
+                  value={t.name}
+                  onChange={(e) => {
+                    const newTemplates = [...smsTemplates];
+                    newTemplates[i].name = e.target.value;
+                    setSmsTemplates(newTemplates);
+                  }}
+                  className="mb-2 font-medium"
+                />
+                <textarea
+                  value={t.body}
+                  onChange={(e) => {
+                    const newTemplates = [...smsTemplates];
+                    newTemplates[i].body = e.target.value;
+                    setSmsTemplates(newTemplates);
+                  }}
+                  className="w-full input h-20 text-sm"
+                  placeholder="Message template..."
+                />
+              </div>
+            ))}
+            <Button
+              onClick={saveSmsTemplates}
+              loading={loading}
+              className="w-full"
+            >
               Complete Setup
             </Button>
           </div>
