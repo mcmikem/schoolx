@@ -16,6 +16,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import { useClasses } from "@/lib/hooks";
+import SetupChecklist from "@/components/onboarding/SetupChecklist";
 
 const ROLE_OPTIONS: {
   value: UserRole;
@@ -573,6 +574,7 @@ export default function SettingsPage() {
     { id: "config", label: "School Config", badge: "New" },
     { id: "users", label: "Staff & Users" },
     { id: "notifications", label: "Notifications" },
+    { id: "checklist", label: "Setup Checklist", badge: "Important" },
     { id: "backup", label: "Backup & Export" },
     { id: "subscription", label: "Billing & Plans", badge: "Active" },
   ];
@@ -1343,6 +1345,27 @@ export default function SettingsPage() {
               </div>
             </CardBody>
           </Card>
+        </div>
+      </TabPanel>
+
+      <TabPanel activeTab={activeTab} tabId="checklist">
+        <div className="space-y-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <MaterialIcon icon="info" className="text-blue-600 mt-0.5" />
+              <div>
+                <h4 className="font-semibold text-blue-800">
+                  Complete Your School Setup
+                </h4>
+                <p className="text-sm text-blue-700 mt-1">
+                  Use this checklist to ensure your school is fully configured.
+                  Items can be completed now or skipped for later. We'll remind
+                  you to complete them.
+                </p>
+              </div>
+            </div>
+          </div>
+          <SetupChecklist showAll={true} />
         </div>
       </TabPanel>
 
