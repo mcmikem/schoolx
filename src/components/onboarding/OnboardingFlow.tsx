@@ -47,83 +47,42 @@ export default function OnboardingFlow({
   const handleComplete = async () => {
     setLoading(true);
     try {
-      console.log("School data:", school);
-      console.log("Feature stage value:", featureStage);
-
-      // Build update object - only include columns that should exist
-      const updateData: any = {
+      // Simple update - just primary_color, subscription_status, and trial_ends_at
+      // These columns definitely exist in the schema
+      const updateData = {
         primary_color: branding.primary_color,
+        subscription_status:
+          activationChoice === "premium" ? "active" : "trial",
+        trial_ends_at:
+          activationChoice === "trial"
+            ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+            : null,
       };
 
-      // Only update feature_stage if it exists (new column)
-      // Also check that featureStage is a valid value
-      if (
-        featureStage &&
-        ["core", "academic", "finance", "full"].includes(featureStage)
-      ) {
-        updateData.feature_stage = featureStage;
-      }
-
-      // Set trial or active status based on activation choice
-      updateData.subscription_status =
-        activationChoice === "premium" ? "active" : "trial";
-      if (activationChoice === "trial") {
-        updateData.trial_ends_at = new Date(
-          Date.now() + 30 * 24 * 60 * 60 * 1000,
-        ).toISOString();
-      }
-
-      console.log("Update data:", updateData);
-
-      const { error, data } = await supabase
+      const { error } = await supabase
         .from("schools")
         .update(updateData)
-        .eq("id", school.id)
-        .select();
-
-      console.log("Update result:", { error, data });
+        .eq("id", school.id);
 
       if (error) {
         console.error("Update error:", error);
-        // If it's a column error, try without feature_stage
-        if (error.message.includes("feature_stage")) {
-          const { error: retryError, data: retryData } = await supabase
-            .from("schools")
-            .update({
-              primary_color: branding.primary_color,
-              subscription_status:
-                activationChoice === "premium" ? "active" : "trial",
-              trial_ends_at:
-                activationChoice === "trial"
-                  ? new Date(
-                      Date.now() + 30 * 24 * 60 * 60 * 1000,
-                    ).toISOString()
-                  : null,
-            })
-            .eq("id", school.id)
-            .select();
-          console.log("Retry result:", { retryError, retryData });
-          if (retryError) throw retryError;
-        } else {
-          throw error;
-        }
+        throw error;
       }
 
-      // If user chose premium, they would ideally be redirected to payment gateway here.
-      // For now we'll push them to the subscription/fees page where payment happens.
       await refreshSchool();
-
       setLoading(false);
       onComplete();
 
       if (activationChoice === "premium") {
-        window.location.href = "/dashboard/settings?tab=billing";
+        window.location.href = "/dashboard/settings?tab=subscription";
       } else {
         toast.success("Welcome aboard! Your 30-day trial is active.");
       }
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to save your setup. Please try again.");
+    } catch (error: any) {
+      console.error("Final error:", error);
+      toast.error(
+        error.message || "Failed to save your setup. Please try again.",
+      );
       setLoading(false);
     }
   };
