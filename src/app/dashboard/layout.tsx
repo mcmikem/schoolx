@@ -13,6 +13,7 @@ import WorkflowGuide from "@/components/dashboard/WorkflowGuide";
 import WhatsAppSupport from "@/components/WhatsAppSupport";
 import SkoolMatePromo from "@/components/dashboard/SkoolMatePromo";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
+import PostOnboardingSetup from "@/components/onboarding/PostOnboardingSetup";
 import {
   useAccessControl,
   getPageTitle,
@@ -58,12 +59,26 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const pageTitle = getPageTitle(pathname || "/dashboard");
 
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showPostSetup, setShowPostSetup] = useState(false);
 
   useEffect(() => {
-    if (school && school.feature_stage !== 'full' && user?.role === 'school_admin') {
+    const schoolAny = school as any;
+    if (
+      school &&
+      !schoolAny?.onboarding_completed &&
+      user?.role === "school_admin"
+    ) {
       setShowOnboarding(true);
+    } else if (
+      school &&
+      schoolAny?.onboarding_completed &&
+      user?.role === "school_admin"
+    ) {
+      // Show post-onboarding setup if onboarding is complete but setup is not
+      setShowPostSetup(true);
     } else {
       setShowOnboarding(false);
+      setShowPostSetup(false);
     }
   }, [school, user]);
 
@@ -82,7 +97,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       <OfflineIndicator />
       {isTrialExpired && <ExpiredNotice />}
       {showOnboarding && (
-        <OnboardingFlow onComplete={() => setShowOnboarding(false)} />
+        <OnboardingFlow
+          onComplete={() => {
+            setShowOnboarding(false);
+            setShowPostSetup(true);
+          }}
+        />
+      )}
+      {showPostSetup && !showOnboarding && (
+        <PostOnboardingSetup onComplete={() => setShowPostSetup(false)} />
       )}
       <div className="bg-motif flex min-h-screen bg-[var(--bg)]">
         <SidebarShell onNavigate={handleNavigate} />
