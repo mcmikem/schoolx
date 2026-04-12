@@ -73,12 +73,6 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const DEMO_KEY = "skoolmate_demo_v1";
-
-  useEffect(() => {
-    localStorage.removeItem(DEMO_KEY);
-  }, []);
-
   const [form, setForm] = useState({
     schoolName: "",
     district: "",
@@ -95,6 +89,74 @@ export default function RegisterPage() {
 
   const updateForm = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+    if (error) setError("");
+  };
+
+  // Validation functions
+  const validateStep1 = (): boolean => {
+    if (!form.schoolName.trim()) {
+      setError("School name is required");
+      return false;
+    }
+    if (form.schoolName.trim().length < 3) {
+      setError("School name must be at least 3 characters");
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep2 = (): boolean => {
+    if (!form.district) {
+      setError("Please select a district");
+      return false;
+    }
+    if (!form.subcounty.trim()) {
+      setError("Sub-county is required");
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep3 = (): boolean => {
+    if (!form.adminName.trim()) {
+      setError("Admin name is required");
+      return false;
+    }
+    if (form.adminName.trim().length < 2) {
+      setError("Admin name must be at least 2 characters");
+      return false;
+    }
+    if (!form.adminPhone.trim()) {
+      setError("Admin phone is required");
+      return false;
+    }
+    // Uganda phone validation
+    const phoneRegex = /^(0|256|\\+256)[7][0-9]{8}$/;
+    const cleanPhone = form.adminPhone.replace(/[^0-9]/g, "");
+    if (cleanPhone.length < 10 || cleanPhone.length > 12) {
+      setError("Please enter a valid Uganda phone number (e.g., 0700000000)");
+      return false;
+    }
+    if (form.password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return false;
+    }
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords do not match");
+      return false;
+    }
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      setError("Please enter a valid email address");
+      return false;
+    }
+    return true;
+  };
+
+  const goToStep = (newStep: number) => {
+    setError("");
+    if (newStep === 2 && !validateStep1()) return;
+    if (newStep === 3 && !validateStep2()) return;
+    setStep(newStep);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,13 +167,7 @@ export default function RegisterPage() {
       return;
     }
 
-    if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
-    if (form.password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (!validateStep3()) {
       return;
     }
 
@@ -202,23 +258,29 @@ export default function RegisterPage() {
       <div className="relative z-10 w-full max-w-lg mx-auto px-4">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-[24px] bg-white shadow-xl mb-6 ring-1 ring-slate-100">
-             <SkoolMateLogo size="md" />
+            <SkoolMateLogo size="md" />
           </div>
           <h2 className="text-3xl font-extrabold text-[var(--t1)] tracking-tight">
-             Start Your School Account
+            Start Your School Account
           </h2>
           <p className="mt-2 text-[var(--t3)] font-medium">
-             Join Uganda&apos;s leading school operating system
+            Join Uganda&apos;s leading school operating system
           </p>
         </div>
 
         <div className="mb-6">
-          <div className="flex gap-2" role="navigation" aria-label="Registration progress">
+          <div
+            className="flex gap-2"
+            role="navigation"
+            aria-label="Registration progress"
+          >
             {[1, 2, 3].map((s) => (
               <div
                 key={s}
                 className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
-                  s <= step ? "bg-[var(--primary)] shadow-[0_0_12px_rgba(23,50,95,0.4)]" : "bg-[var(--border)]"
+                  s <= step
+                    ? "bg-[var(--primary)] shadow-[0_0_12px_rgba(23,50,95,0.4)]"
+                    : "bg-[var(--border)]"
                 }`}
               />
             ))}
@@ -271,7 +333,9 @@ export default function RegisterPage() {
                   type="button"
                   variant="primary"
                   className="w-full"
-                  icon={<MaterialIcon icon="arrow_forward" className="text-lg" />}
+                  icon={
+                    <MaterialIcon icon="arrow_forward" className="text-lg" />
+                  }
                   onClick={() => setStep(2)}
                 >
                   Next: Where is the School?
@@ -323,7 +387,9 @@ export default function RegisterPage() {
                     type="button"
                     variant="secondary"
                     className="flex-1"
-                    icon={<MaterialIcon icon="arrow_back" className="text-lg" />}
+                    icon={
+                      <MaterialIcon icon="arrow_back" className="text-lg" />
+                    }
                     onClick={() => setStep(1)}
                   >
                     Back
@@ -332,8 +398,10 @@ export default function RegisterPage() {
                     type="button"
                     variant="primary"
                     className="flex-1"
-                    icon={<MaterialIcon icon="arrow_forward" className="text-lg" />}
-                    onClick={() => setStep(3)}
+                    icon={
+                      <MaterialIcon icon="arrow_forward" className="text-lg" />
+                    }
+                    onClick={() => goToStep(3)}
                   >
                     Next: Account
                   </Button>
@@ -379,7 +447,9 @@ export default function RegisterPage() {
                   type="password"
                   placeholder="Enter password again"
                   value={form.confirmPassword}
-                  onChange={(e) => updateForm("confirmPassword", e.target.value)}
+                  onChange={(e) =>
+                    updateForm("confirmPassword", e.target.value)
+                  }
                   required
                   autoComplete="new-password"
                 />
@@ -389,8 +459,10 @@ export default function RegisterPage() {
                     type="button"
                     variant="secondary"
                     className="flex-1"
-                    icon={<MaterialIcon icon="arrow_back" className="text-lg" />}
-                    onClick={() => setStep(2)}
+                    icon={
+                      <MaterialIcon icon="arrow_back" className="text-lg" />
+                    }
+                    onClick={() => goToStep(2)}
                   >
                     Back
                   </Button>

@@ -10,8 +10,8 @@ export default function SetupAdminPage() {
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
-    name: "Super Admin",
-    phone: "0700000000",
+    name: "",
+    phone: "",
     password: "",
   });
 
@@ -20,8 +20,26 @@ export default function SetupAdminPage() {
     setLoading(true);
     setError("");
 
+    if (!form.name.trim()) {
+      setError("Name is required");
+      setLoading(false);
+      return;
+    }
+    if (!form.phone.trim()) {
+      setError("Phone number is required");
+      setLoading(false);
+      return;
+    }
+    if (form.password.length < 6) {
+      setError("Password must be at least 6 characters");
+      setLoading(false);
+      return;
+    }
+
     if (!supabase?.auth) {
-      setError("Supabase not configured. Set NEXT_PUBLIC_SUPABASE_URL and key.");
+      setError(
+        "Supabase not configured. Set NEXT_PUBLIC_SUPABASE_URL and key.",
+      );
       setLoading(false);
       return;
     }
@@ -58,8 +76,7 @@ export default function SetupAdminPage() {
 
       setDone(true);
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Setup failed";
+      const message = err instanceof Error ? err.message : "Setup failed";
       setError(message);
     } finally {
       setLoading(false);
