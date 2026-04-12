@@ -168,7 +168,7 @@ export interface Grade {
   student_id: string;
   subject_id: string;
   class_id: string;
-  assessment_type: "ca1" | "ca2" | "ca3" | "ca4" | "project" | "exam";
+  assessment_type: "ca1" | "ca2" | "ca3" | "ca4" | "project" | "aoi" | "exam";
   score: number;
   max_score: number;
   term: 1 | 2 | 3;
@@ -186,6 +186,7 @@ export interface SubjectGrades {
   ca3: number;
   ca4: number;
   project: number;
+  aoi: number; // Activities of Integration (NCDC new curriculum)
   exam: number;
   totalCA: number;
   finalScore: number;
