@@ -89,15 +89,6 @@ const heroStats = [
   { label: "Powered by", value: "Omuto Foundation" },
 ];
 
-const roleStrip = [
-  "Head teacher",
-  "Dean of studies",
-  "Bursar",
-  "Class teacher",
-  "Secretary",
-  "Dorm master",
-];
-
 const proofPoints = [
   "Attendance before assembly",
   "Fees, balances, and mobile money records",
@@ -154,14 +145,14 @@ const plans = [
     name: "Starter",
     price: "UGX 2,000",
     cadence: "per student/term",
-    description: "Small rural primaries",
+    bestFor: "Rural primary · under 200 students",
     features: [
       "Student records & profiles",
       "Daily attendance",
       "CA entry & report cards",
       "Fee collection & tracking",
-      "MoMo / Airtel payment",
-      "Basic offline sync",
+      "MTN MoMo + Airtel Money",
+      "Offline sync (works without internet)",
       "ID card generation",
       "Up to 3 admin users",
     ],
@@ -170,16 +161,16 @@ const plans = [
     name: "Growth",
     price: "UGX 3,500",
     cadence: "per student/term",
-    description: "Primary + secondary schools",
+    bestFor: "Urban primary · 200-500 students",
     features: [
       "Everything in Starter",
-      "Bulk SMS (500/term included)",
+      "Bulk SMS (200/term included)",
       "Parent portal",
-      "Syllabus & scheme of work",
+      "NCDC syllabus & scheme of work",
       "Lesson plans & homework",
       "Dorm & transport modules",
       "Library management",
-      "Finance enhanced (budgets)",
+      "Budget tracking",
       "Up to 10 admin users",
     ],
     featured: true,
@@ -188,7 +179,7 @@ const plans = [
     name: "Enterprise",
     price: "UGX 5,500",
     cadence: "per student/term",
-    description: "Large / secondary schools",
+    bestFor: "Secondary · 500+ students",
     features: [
       "Everything in Growth",
       "UNEB candidate registration",
@@ -905,18 +896,6 @@ export default function HomePage() {
             </div>
           </nav>
 
-          {/* Role strip */}
-          <div className="mt-5 overflow-hidden rounded-full border border-[var(--border)] bg-white/70 shadow-sm backdrop-blur">
-            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--t3)] sm:text-xs">
-              {roleStrip.map((role) => (
-                <span key={role} className="inline-flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--green)]" />
-                  {role}
-                </span>
-              ))}
-            </div>
-          </div>
-
           {/* Hero grid */}
           <div className="grid gap-14 pt-12 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:pt-20">
             <div className="max-w-2xl">
@@ -1444,11 +1423,20 @@ export default function HomePage() {
                 Pricing
               </p>
               <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl">
-                Clear term pricing for schools that want to move fast.
+                Clear pricing. No hidden fees.
               </h2>
               <p className="mt-5 text-lg leading-8 text-white/72">
-                Start with a 30-day free trial. Upgrade when your team is ready.
+                Per-student pricing that scales with your school. Start free,
+                upgrade when ready.
               </p>
+              <div className="mt-6">
+                <button
+                  onClick={() => smoothScroll("#comparison")}
+                  className="text-sm font-semibold text-white/80 hover:text-white underline underline-offset-4"
+                >
+                  See full feature comparison →
+                </button>
+              </div>
             </div>
           </FadeIn>
 
@@ -1485,9 +1473,9 @@ export default function HomePage() {
                     {plan.cadence}
                   </p>
                   <p
-                    className={`mt-5 text-sm leading-6 ${plan.featured ? "text-slate-600" : "text-white/72"}`}
+                    className={`mt-2 text-xs font-semibold uppercase tracking-wider ${plan.featured ? "text-[#2E9448]" : "text-white/80"}`}
                   >
-                    {plan.description}
+                    {plan.bestFor}
                   </p>
                   <div className="mt-6 space-y-3 flex-1">
                     {plan.features.map((feature) => (
@@ -1519,6 +1507,76 @@ export default function HomePage() {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* ===== COMPARISON TABLE ===== */}
+      <section
+        id="comparison"
+        className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:py-24"
+      >
+        <FadeIn>
+          <div className="text-center mb-10">
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
+              Feature Comparison
+            </p>
+            <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
+              See how we compare to the competition
+            </h2>
+          </div>
+          <p className="text-center text-sm text-slate-500 mb-8">
+            ✓ = Included &nbsp;&nbsp; ✗ = Not available &nbsp;&nbsp; ~ = Partial
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="text-left py-3 px-4 font-semibold text-slate-900">
+                    Feature
+                  </th>
+                  <th className="py-3 px-4 font-bold text-[#2E9448] bg-green-50">
+                    SkoolMate
+                  </th>
+                  <th className="py-3 px-4 text-slate-500">ShuleKeeper</th>
+                  <th className="py-3 px-4 text-slate-500">eSchool</th>
+                  <th className="py-3 px-4 text-slate-500">MoveTech</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ["NCDC syllabus & scheme of work", "✓", "✗", "✗", "✗"],
+                  ["MTN MoMo + Airtel integration", "✓", "~", "✗", "✗"],
+                  ["Student ID card generation", "✓", "✗", "✗", "✗"],
+                  ["Transport route tracking", "✓", "✗", "✗", "✗"],
+                  ["DNA + trend analysis", "✓", "✗", "✗", "✗"],
+                  ["White-label option", "✓", "✗", "✗", "✗"],
+                  ["Parent portal", "✓", "✓", "✓", "✗"],
+                  ["Offline mode", "~", "✓", "✗", "✓"],
+                  ["UNEB registration", "✓", "~", "✗", "✗"],
+                  ["Full payroll", "✓", "✓", "✓", "~"],
+                ].map((row, i) => (
+                  <tr
+                    key={i}
+                    className="border-b border-slate-100 hover:bg-slate-50"
+                  >
+                    <td className="py-3 px-4 text-slate-700">{row[0]}</td>
+                    <td className="py-3 px-4 text-center font-bold bg-green-50/50">
+                      {row[1]}
+                    </td>
+                    <td className="py-3 px-4 text-center text-slate-500">
+                      {row[2]}
+                    </td>
+                    <td className="py-3 px-4 text-center text-slate-500">
+                      {row[3]}
+                    </td>
+                    <td className="py-3 px-4 text-center text-slate-500">
+                      {row[4]}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </FadeIn>
       </section>
 
       {/* ===== FAQ ===== */}
@@ -1603,10 +1661,10 @@ export default function HomePage() {
                 </li>
                 <li>
                   <button
-                    onClick={() => smoothScroll("#pricing")}
+                    onClick={() => smoothScroll("#comparison")}
                     className="text-sm text-slate-600 hover:text-slate-900 transition cursor-pointer"
                   >
-                    Pricing
+                    Compare
                   </button>
                 </li>
                 <li>
