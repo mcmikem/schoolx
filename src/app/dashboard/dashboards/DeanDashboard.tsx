@@ -1,12 +1,17 @@
-'use client'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/lib/auth-context'
-import { useAcademic } from '@/lib/academic-context'
-import { useStudents, useClasses, useSubjects, useDashboardStats } from '@/lib/hooks'
-import MaterialIcon from '@/components/MaterialIcon'
-import ErrorBoundary from '@/components/ErrorBoundary'
-import { StatsGridSkeleton } from '@/components/Skeletons'
+"use client";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
+import { useAcademic } from "@/lib/academic-context";
+import {
+  useStudents,
+  useClasses,
+  useSubjects,
+  useDashboardStats,
+} from "@/lib/hooks";
+import MaterialIcon from "@/components/MaterialIcon";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { StatsGridSkeleton } from "@/components/Skeletons";
 
 import StatCard from "@/components/dashboard/StatCard";
 import DashboardInsights from "@/components/dashboard/DashboardInsights";
@@ -15,66 +20,75 @@ import ActionCenter from "@/components/dashboard/ActionCenter";
 import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
 
 function DeanDashboardContent() {
-  const router = useRouter()
-  const { school, user } = useAuth()
-  const { academicYear, currentTerm } = useAcademic()
-  const { students } = useStudents(school?.id)
-  const { classes } = useClasses(school?.id)
-  const { subjects } = useSubjects(school?.id)
-  const { stats, loading: statsLoading } = useDashboardStats(school?.id)
+  const router = useRouter();
+  const { school, user } = useAuth();
+  const { academicYear, currentTerm } = useAcademic();
+  const { students } = useStudents(school?.id);
+  const { classes } = useClasses(school?.id);
+  const { subjects } = useSubjects(school?.id);
+  const { stats, loading: statsLoading } = useDashboardStats(school?.id);
 
-  const currentDate = new Date()
-  const greeting = currentDate.getHours() < 12 ? 'Good Morning' : currentDate.getHours() < 17 ? 'Good Afternoon' : 'Good Evening'
+  const currentDate = new Date();
+  const greeting =
+    currentDate.getHours() < 12
+      ? "Good Morning"
+      : currentDate.getHours() < 17
+        ? "Good Afternoon"
+        : "Good Evening";
 
   if (statsLoading) {
     return (
       <div className="content">
         <StatsGridSkeleton cols={3} />
       </div>
-    )
+    );
   }
 
   const getStudentCountForClass = (classId: string) => {
-    return students.filter(s => s.class_id === classId).length
-  }
+    return students.filter((s) => s.class_id === classId).length;
+  };
 
-  const attendanceRate = stats.totalStudents > 0
-    ? Math.round((stats.presentToday / stats.totalStudents) * 100)
-    : 0
+  const attendanceRate =
+    stats.totalStudents > 0
+      ? Math.round((stats.presentToday / stats.totalStudents) * 100)
+      : 0;
 
   return (
     <div className="content">
-        <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="ph-title truncate !text-3xl">
-                {greeting}, {user?.full_name?.split(" ")[0]}
-              </div>
-              <div className="ph-sub truncate !text-sm">
-                Dean of Academics · {school?.name} • Term {currentTerm}
-              </div>
+      <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="ph-title truncate !text-3xl">
+              {greeting}, {user?.full_name?.split(" ")[0]}
             </div>
-            <div className="ph-actions">
-              <Link href="/dashboard/reports" className="btn btn-ghost shadow-sm">
-                <MaterialIcon icon="download" style={{ fontSize: "16px" }} />
-                <span>Analytics</span>
-              </Link>
-              <Link href="/dashboard/grades" className="btn btn-primary shadow-md">
-                <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
-                <span>Quick Entry</span>
-              </Link>
+            <div className="ph-sub truncate !text-sm">
+              Dean of Academics · {school?.name} • Term {currentTerm}
             </div>
           </div>
+          <div className="ph-actions">
+            <Link href="/dashboard/reports" className="btn btn-ghost shadow-sm">
+              <MaterialIcon icon="download" style={{ fontSize: "16px" }} />
+              <span>Analytics</span>
+            </Link>
+            <Link
+              href="/dashboard/grades"
+              className="btn btn-primary shadow-md"
+            >
+              <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
+              <span>Quick Entry</span>
+            </Link>
+          </div>
         </div>
+      </div>
 
-      <SmartAdvisor 
-        stats={stats} 
-        collectionRate={0} 
-        attendanceRate={attendanceRate} 
-        role="dean" 
+      <SmartAdvisor
+        stats={stats}
+        collectionRate={0}
+        attendanceRate={attendanceRate}
+        role="dean"
       />
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
+      <div className="hidden xl:block grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
         <div className="xl:col-span-3">
           <DashboardInsights
             stats={stats}
@@ -91,51 +105,103 @@ function DeanDashboardContent() {
       </div>
 
       <div className="stat-grid sm:grid-cols-3 !mb-8">
-        <StatCard label="Students" value={students.length} subValue={`${classes.length} Classes enrolled`} icon="group" accentColor="navy" variant="premium-navy" />
-        <StatCard label="Attendance" value={`${attendanceRate}%`} subValue="School-wide rate" icon="how_to_reg" accentColor="green" variant="premium-teal" />
-        <StatCard label="Subjects" value={subjects.length} subValue={`Across ${classes.length} classes`} icon="school" accentColor="amber" />
+        <StatCard
+          label="Students"
+          value={students.length}
+          subValue={`${classes.length} Classes enrolled`}
+          icon="group"
+          accentColor="navy"
+          variant="premium-navy"
+        />
+        <StatCard
+          label="Attendance"
+          value={`${attendanceRate}%`}
+          subValue="School-wide rate"
+          icon="how_to_reg"
+          accentColor="green"
+          variant="premium-teal"
+        />
+        <StatCard
+          label="Subjects"
+          value={subjects.length}
+          subValue={`Across ${classes.length} classes`}
+          icon="school"
+          accentColor="amber"
+        />
       </div>
 
       <div className="mb-6">
         <div className="mb-3">
-          <h3 className="text-sm font-bold text-[var(--t1)]">Academic Actions</h3>
+          <h3 className="text-sm font-bold text-[var(--t1)]">
+            Academic Actions
+          </h3>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
           <Link href="/dashboard/grades" className="qa-item">
-            <div className="qa-icon" style={{ background: 'var(--navy-soft)', color: 'var(--navy)' }}>
+            <div
+              className="qa-icon"
+              style={{ background: "var(--navy-soft)", color: "var(--navy)" }}
+            >
               <MaterialIcon icon="grade" style={{ fontSize: 18 }} />
             </div>
-            <div className="text-[12px] font-bold text-[var(--t1)] mt-2">Grades</div>
+            <div className="text-[12px] font-bold text-[var(--t1)] mt-2">
+              Grades
+            </div>
           </Link>
           <Link href="/dashboard/attendance" className="qa-item">
-            <div className="qa-icon" style={{ background: 'var(--navy-soft)', color: 'var(--navy)' }}>
+            <div
+              className="qa-icon"
+              style={{ background: "var(--navy-soft)", color: "var(--navy)" }}
+            >
               <MaterialIcon icon="how_to_reg" style={{ fontSize: 18 }} />
             </div>
-            <div className="text-[12px] font-bold text-[var(--t1)] mt-2">Attendance</div>
+            <div className="text-[12px] font-bold text-[var(--t1)] mt-2">
+              Attendance
+            </div>
           </Link>
           <Link href="/dashboard/homework" className="qa-item">
-            <div className="qa-icon" style={{ background: 'var(--green-soft)', color: 'var(--green)' }}>
+            <div
+              className="qa-icon"
+              style={{ background: "var(--green-soft)", color: "var(--green)" }}
+            >
               <MaterialIcon icon="assignment" style={{ fontSize: 18 }} />
             </div>
-            <div className="text-[12px] font-bold text-[var(--t1)] mt-2">Homework</div>
+            <div className="text-[12px] font-bold text-[var(--t1)] mt-2">
+              Homework
+            </div>
           </Link>
           <Link href="/dashboard/planning" className="qa-item">
-            <div className="qa-icon" style={{ background: 'var(--amber-soft)', color: 'var(--amber)' }}>
+            <div
+              className="qa-icon"
+              style={{ background: "var(--amber-soft)", color: "var(--amber)" }}
+            >
               <MaterialIcon icon="event_note" style={{ fontSize: 18 }} />
             </div>
-            <div className="text-[12px] font-bold text-[var(--t1)] mt-2">Lesson Plans</div>
+            <div className="text-[12px] font-bold text-[var(--t1)] mt-2">
+              Lesson Plans
+            </div>
           </Link>
           <Link href="/dashboard/timetable" className="qa-item">
-            <div className="qa-icon" style={{ background: 'var(--red-soft)', color: 'var(--red)' }}>
+            <div
+              className="qa-icon"
+              style={{ background: "var(--red-soft)", color: "var(--red)" }}
+            >
               <MaterialIcon icon="calendar_month" style={{ fontSize: 18 }} />
             </div>
-            <div className="text-[12px] font-bold text-[var(--t1)] mt-2">Timetable</div>
+            <div className="text-[12px] font-bold text-[var(--t1)] mt-2">
+              Timetable
+            </div>
           </Link>
           <Link href="/dashboard/uneb" className="qa-item">
-            <div className="qa-icon" style={{ background: 'var(--bg)', color: 'var(--t2)' }}>
+            <div
+              className="qa-icon"
+              style={{ background: "var(--bg)", color: "var(--t2)" }}
+            >
               <MaterialIcon icon="workspace_premium" style={{ fontSize: 18 }} />
             </div>
-            <div className="text-[12px] font-bold text-[var(--t1)] mt-2">UNEB</div>
+            <div className="text-[12px] font-bold text-[var(--t1)] mt-2">
+              UNEB
+            </div>
           </Link>
         </div>
       </div>
@@ -143,7 +209,9 @@ function DeanDashboardContent() {
       <div className="card">
         <div className="card-header">
           <div>
-            <div className="card-title">Classes - {academicYear} Term {currentTerm}</div>
+            <div className="card-title">
+              Classes - {academicYear} Term {currentTerm}
+            </div>
             <div className="card-sub">{classes.length} classes enrolled</div>
           </div>
           <button className="btn btn-ghost !text-xs">Manage</button>
@@ -151,20 +219,31 @@ function DeanDashboardContent() {
         <div className="card-body">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {classes.map((cls: any) => {
-              const count = getStudentCountForClass(cls.id)
+              const count = getStudentCountForClass(cls.id);
               return (
-                <Link key={cls.id} href={`/dashboard/grades?class=${cls.id}`} className="qa-item !bg-[var(--bg)] border-none">
-                  <MaterialIcon icon="school" className="text-navy text-2xl mb-1" />
-                  <div className="text-[13px] font-bold text-[var(--t1)] truncate w-full">{cls.name}</div>
-                  <div className="text-[11px] text-[var(--t3)] font-medium">{count} students</div>
+                <Link
+                  key={cls.id}
+                  href={`/dashboard/grades?class=${cls.id}`}
+                  className="qa-item !bg-[var(--bg)] border-none"
+                >
+                  <MaterialIcon
+                    icon="school"
+                    className="text-navy text-2xl mb-1"
+                  />
+                  <div className="text-[13px] font-bold text-[var(--t1)] truncate w-full">
+                    {cls.name}
+                  </div>
+                  <div className="text-[11px] text-[var(--t3)] font-medium">
+                    {count} students
+                  </div>
                 </Link>
-              )
+              );
             })}
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export default function DeanDashboard() {
@@ -172,5 +251,5 @@ export default function DeanDashboard() {
     <ErrorBoundary>
       <DeanDashboardContent />
     </ErrorBoundary>
-  )
+  );
 }

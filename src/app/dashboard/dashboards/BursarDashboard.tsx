@@ -109,7 +109,7 @@ function BursarDashboardContent() {
         </div>
       </div>
 
-      <div className="stat-grid sm:grid-cols-3 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
           label="Total Collected"
           value={`UGX ${formatCurrency(totalFeesCollected)}`}
@@ -149,8 +149,8 @@ function BursarDashboardContent() {
         />
       </div>
 
-      {/* Visual Insights */}
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
+      {/* Visual Insights - hidden on mobile */}
+      <div className="hidden xl:block grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
         <div className="xl:col-span-3">
           <DashboardInsights
             stats={{}}
