@@ -10,10 +10,6 @@ import { Button, Input } from "@/components/ui";
 
 const DEMO_KEY = "skoolmate_demo_v1";
 
-// WARNING: This is a DEMO-ONLY password for local testing.
-// Never use this value in production. Remove or gate demo mode behind a feature flag.
-const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD || "demo1234";
-
 function encryptDemoData(data: object): string {
   try {
     return btoa(JSON.stringify(data));
@@ -34,7 +30,7 @@ function MaterialIcon({
   children?: React.ReactNode;
 }) {
   return (
-    <span 
+    <span
       className={`material-symbols-outlined ${className || ""}`}
       style={style}
     >
@@ -50,121 +46,72 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
 
-  const demoAccounts = [
-    {
-      role: "Headmaster",
-      phone: "0700000001",
-      password: DEMO_PASSWORD,
-      label: "Headmaster",
-    },
-    {
-      role: "Parent",
-      phone: "0700000005",
-      password: DEMO_PASSWORD,
-      label: "Parent Portal",
-    },
-    {
-      role: "Teacher",
-      phone: "0700000002",
-      password: DEMO_PASSWORD,
-      label: "Teacher",
-    },
-    {
-      role: "Bursar",
-      phone: "0700000003",
-      password: DEMO_PASSWORD,
-      label: "Bursar",
-    },
-  ];
-
-  const handleDemoLogin = (demo: (typeof demoAccounts)[0]) => {
-    setPhone(demo.phone);
-    setPassword(demo.password);
+  const validatePhone = (phone: string): boolean => {
+    const clean = phone.replace(/[^0-9]/g, "");
+    return clean.length >= 10 && clean.length <= 12;
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPhoneError("");
 
-    if (!phone.trim() || !password.trim()) {
-      toast.error(t("auth.validationRequired"));
+    if (!phone.trim()) {
+      setPhoneError("Phone number is required");
+      return;
+    }
+
+    if (!validatePhone(phone)) {
+      setPhoneError("Please enter a valid phone number");
+      return;
+    }
+
+    if (!password.trim()) {
+      toast.error("Password is required");
       return;
     }
 
     setLoading(true);
-
-    const demoUsers: Record<
-      string,
-      { role: string; name: string; school_id: string }
-    > = {
-      "0700000001": {
-        role: "headmaster",
-        name: "John Headmaster",
-        school_id: "demo-school",
-      },
-      "0700000002": {
-        role: "teacher",
-        name: "Mary Teacher",
-        school_id: "demo-school",
-      },
-      "0700000003": {
-        role: "bursar",
-        name: "James Bursar",
-        school_id: "demo-school",
-      },
-      "0700000004": {
-        role: "dean_of_studies",
-        name: "Sarah Dean",
-        school_id: "demo-school",
-      },
-      "0700000005": {
-        role: "parent",
-        name: "Robert Parent",
-        school_id: "demo-school",
-      },
-    };
 
     const cleanPhone = phone.replace(/[^0-9]/g, "");
 
     // Clear any previous demo data before login
     localStorage.removeItem(DEMO_KEY);
 
-    // DEMO LOGIN - always use local demo mode
-    if (password === DEMO_PASSWORD && demoUsers[cleanPhone]) {
-      const demoUser = demoUsers[cleanPhone];
-      const demoSchoolData = {
-        id: "00000000-0000-0000-0000-000000000001",
-        name: "St. Mary's Primary School (Demo)",
-        school_code: "DEMO001",
-        district: "Kampala",
-        school_type: "primary",
-        ownership: "private",
-        primary_color: "#17325F",
-        subscription_plan: "premium",
-        subscription_status: "active",
-      };
-      const demoData = encryptDemoData({
-        demoUser,
-        demoSchool: demoSchoolData,
-      });
-      localStorage.setItem(DEMO_KEY, demoData);
-      toast.success(tWithParams("auth.welcomeDemo", { name: demoUser.name }));
-
-      // /parent-portal has the full authenticated parent dashboard with SidebarShell
-      // /parent is the standalone login-gated portal (no auth context)
-      const redirectPath =
-        demoUser.role === "super_admin"
-          ? "/super-admin"
-          : demoUser.role === "parent"
-            ? "/parent-portal"
-            : "/dashboard";
-
-      window.location.href = redirectPath;
-      return;
-    }
-
-    // Normal login - Supabase auth
     try {
+      // Try server-side demo login first
+      const demoResponse = await fetch("/api/demo-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: cleanPhone, password }),
+      });
+
+      if (demoResponse.ok) {
+        const demoData = await demoResponse.json();
+        if (demoData.success && demoData.demo) {
+          const encrypted = encryptDemoData({
+            demoUser: demoData.user,
+            demoSchool: demoData.school,
+          });
+          localStorage.setItem(DEMO_KEY, encrypted);
+          toast.success(
+            tWithParams("auth.welcomeDemo", { name: demoData.user.name }),
+          );
+
+          const redirectPath =
+            demoData.user.role === "super_admin"
+              ? "/super-admin"
+              : demoData.user.role === "parent"
+                ? "/parent-portal"
+                : "/dashboard";
+
+          window.location.href = redirectPath;
+          return;
+        }
+      }
+
+      // Normal login - Supabase auth
       if (!supabase) {
         toast.error(
           "Supabase not configured. Please check environment variables.",
@@ -201,7 +148,6 @@ export default function LoginPage() {
 
       toast.success("Login successful!");
 
-      // Wait a moment for auth to settle, then redirect
       setTimeout(() => {
         window.location.href = "/dashboard";
       }, 500);
@@ -215,9 +161,20 @@ export default function LoginPage() {
     }
   };
 
+  const demoAccounts = [
+    { role: "Headmaster", phone: "0700000001" },
+    { role: "Teacher", phone: "0700000002" },
+    { role: "Bursar", phone: "0700000003" },
+    { role: "Dean", phone: "0700000004" },
+  ];
+
+  const handleDemoClick = (demoPhone: string) => {
+    setPhone(demoPhone);
+    setPassword("skoolmate_demo_2024");
+  };
+
   return (
     <div className="min-h-screen bg-[var(--bg)] flex relative overflow-hidden">
-      {/* Left Column: Login Form */}
       <div className="flex-1 flex flex-col justify-center relative z-10 w-full lg:max-w-[45%] xl:max-w-[40%] px-6 lg:px-16 xl:px-24">
         <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-[var(--primary)] blur-[150px] rounded-full opacity-10" />
 
@@ -236,16 +193,22 @@ export default function LoginPage() {
 
           <div className="bg-white/80 backdrop-blur-xl p-8 md:p-10 shadow-[0_32px_64px_rgba(15,23,42,0.06)] rounded-[32px] border border-white/50">
             <form onSubmit={handleLogin} className="space-y-5">
-              <Input
-                label={t("auth.phoneNumber")}
-                id="phone"
-                type="tel"
-                placeholder={t("auth.phonePlaceholder")}
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
-                autoComplete="tel"
-              />
+              <div>
+                <Input
+                  label={t("auth.phoneNumber")}
+                  id="phone"
+                  type="tel"
+                  placeholder="0700000000"
+                  value={phone}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    if (phoneError) setPhoneError("");
+                  }}
+                  error={phoneError}
+                  required
+                  autoComplete="tel"
+                />
+              </div>
 
               <Input
                 label={t("auth.password")}
@@ -294,7 +257,7 @@ export default function LoginPage() {
                 </div>
                 <div className="relative flex justify-center text-sm">
                   <span className="px-3 bg-[var(--surface)] text-[var(--t3)]">
-                    {t("auth.demoAccounts")}
+                    Try Demo Account
                   </span>
                 </div>
               </div>
@@ -307,7 +270,7 @@ export default function LoginPage() {
                     variant="secondary"
                     size="sm"
                     className="w-full justify-center text-xs py-2"
-                    onClick={() => handleDemoLogin(demo)}
+                    onClick={() => handleDemoClick(demo.phone)}
                   >
                     {demo.role}
                   </Button>
@@ -330,9 +293,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right Column: Dynamic Branding & Social Proof */}
       <div className="hidden lg:flex flex-1 relative bg-[var(--primary)] text-white overflow-hidden p-12 xl:p-24 flex-col justify-between">
-        {/* Dynamic Glass/Liquid Background Effects */}
         <div className="absolute top-0 right-0 w-full h-full opacity-40">
           <div
             className="absolute top-[10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-400 blur-[120px] mix-blend-overlay animate-pulse"
@@ -368,7 +329,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Reality Check: Feature List */}
         <div className="relative z-10 grid grid-cols-1 gap-4 max-w-md">
           {[
             {
