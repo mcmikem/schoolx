@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { useAcademic } from "@/lib/academic-context";
 import { supabase } from "@/lib/supabase";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { useToast } from "@/components/Toast";
@@ -24,6 +25,7 @@ interface CartItem extends POSItem {
 
 export default function CanteenPOSPage() {
   const { school, user } = useAuth();
+  const { academicYear } = useAcademic();
   const toast = useToast();
   const [items, setItems] = useState<POSItem[]>([]);
   const [categories, setCategories] = useState<string[]>(["All"]);
@@ -34,6 +36,7 @@ export default function CanteenPOSPage() {
   const [paymentMethod, setPaymentMethod] = useState<"wallet" | "cash">(
     "wallet",
   );
+  const [demoCounter, setDemoCounter] = useState(42);
 
   const isOnline = useOnlineStatus();
 
@@ -57,10 +60,15 @@ export default function CanteenPOSPage() {
           }
         } else {
           // Offline mode fallback
-          const cachedData = await offlineDB.getAllFromCache("canteen_items", { school_id: school.id, is_active: true });
+          const cachedData = await offlineDB.getAllFromCache("canteen_items", {
+            school_id: school.id,
+            is_active: true,
+          });
           if (cachedData && cachedData.length > 0) {
             setItems(cachedData as any);
-            const cats = Array.from(new Set(cachedData.map((i: any) => i.category)));
+            const cats = Array.from(
+              new Set(cachedData.map((i: any) => i.category)),
+            );
             setCategories(["All", ...cats]);
           } else {
             toast.error("Offline and no cached items found");
@@ -104,7 +112,7 @@ export default function CanteenPOSPage() {
       setLoading(false);
       return;
     }
-    
+
     try {
       const saleRecord = {
         id: isOnline ? undefined : crypto.randomUUID(), // Let Supabase gen ID if online, IDB if offline
@@ -119,7 +127,7 @@ export default function CanteenPOSPage() {
           price: i.price,
         })),
         recorded_by: user?.id,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       };
 
       if (!isOnline) {
@@ -135,7 +143,7 @@ export default function CanteenPOSPage() {
           .single();
 
         if (saleError) throw saleError;
-        
+
         // If Wallet, Deduct Balance (Only works online right now)
         if (paymentMethod === "wallet" && student) {
           const { error: walletError } = await supabase.rpc(
@@ -184,10 +192,12 @@ export default function CanteenPOSPage() {
             {!isOnline && (
               <div className="flex items-center gap-2 text-amber-500 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-100 animate-pulse">
                 <MaterialIcon icon="wifi_off" style={{ fontSize: 16 }} />
-                <span className="text-xs font-bold uppercase tracking-wider">Offline Mode</span>
+                <span className="text-xs font-bold uppercase tracking-wider">
+                  Offline Mode
+                </span>
               </div>
             )}
-            
+
             <div>
               <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
                 Terminal
@@ -282,15 +292,17 @@ export default function CanteenPOSPage() {
                   </p>
                 </div>
                 <button
-                  onClick={() =>
+                  onClick={() => {
+                    const counterStr = String(demoCounter).padStart(3, "0");
                     setStudent({
                       id: "demo123",
                       first_name: "Isaac",
                       last_name: "Mugisha",
                       balance: 15000,
-                      student_number: "SM/2026/042",
-                    })
-                  }
+                      student_number: `SM/${academicYear}/${counterStr}`,
+                    });
+                    setDemoCounter((c) => c + 1);
+                  }}
                   className="text-[9px] font-black uppercase text-primary-700 hover:underline"
                 >
                   Simulate Scan

@@ -199,7 +199,7 @@ export default function ExamsPage() {
         score,
         max_score: 100,
         term: currentTerm || 1,
-        academic_year: academicYear || "2026",
+        academic_year: academicYear,
       });
       toast.success("Score saved");
     } catch (err) {
@@ -217,7 +217,7 @@ export default function ExamsPage() {
       await createExam({
         ...newExam,
         term: currentTerm || 1,
-        academic_year: academicYear || "2026",
+        academic_year: academicYear,
       });
       toast.success("Exam created");
       setShowAddExam(false);
@@ -277,10 +277,13 @@ export default function ExamsPage() {
               </h3>
               <div className="flex gap-2">
                 {isDemo && selectedClass && selectedSubject && (
-                  <button 
+                  <button
                     onClick={() => {
-                      filteredStudents.forEach(s => {
-                         handleSaveScore(s.id, Math.floor(Math.random() * 40) + 60);
+                      filteredStudents.forEach((s) => {
+                        handleSaveScore(
+                          s.id,
+                          Math.floor(Math.random() * 40) + 60,
+                        );
                       });
                       toast.success("Marks autofilled for demo");
                     }}
@@ -290,10 +293,12 @@ export default function ExamsPage() {
                   </button>
                 )}
                 {selectedClass && selectedSubject && (
-                  <button 
+                  <button
                     onClick={() => {
-                       const count = filteredStudents.length;
-                       toast.success(`Generated ${count} unique comments based on student performance`);
+                      const count = filteredStudents.length;
+                      toast.success(
+                        `Generated ${count} unique comments based on student performance`,
+                      );
                     }}
                     className="px-3 py-1 bg-emerald-soft text-emerald-800 rounded-lg text-[10px] font-black uppercase border border-emerald-200 hover:bg-emerald-100 transition-all"
                   >
@@ -302,7 +307,7 @@ export default function ExamsPage() {
                 )}
               </div>
             </div>
-            
+
             {!selectedClass || !selectedSubject ? (
               <p className="text-xs text-[var(--t3)] font-medium">
                 Select a class and subject to activate the AI Insights engine.
@@ -310,38 +315,55 @@ export default function ExamsPage() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/50">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Class Average</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">
+                    Class Average
+                  </p>
                   <p className="text-lg font-black text-slate-800">
                     {(() => {
-                      const scores = filteredStudents.map(s => getStudentTotal(s.id)).filter(t => t > 0);
+                      const scores = filteredStudents
+                        .map((s) => getStudentTotal(s.id))
+                        .filter((t) => t > 0);
                       if (scores.length === 0) return "--";
-                      return (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1);
-                    })()}%
+                      return (
+                        scores.reduce((a, b) => a + b, 0) / scores.length
+                      ).toFixed(1);
+                    })()}
+                    %
                   </p>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/50">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Performance</p>
-                  <p className="text-lg font-black text-emerald-600">
-                    Steady
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">
+                    Performance
                   </p>
+                  <p className="text-lg font-black text-emerald-600">Steady</p>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/50">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Pass Rate</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">
+                    Pass Rate
+                  </p>
                   <p className="text-lg font-black text-slate-800">
                     {(() => {
-                      const totals = filteredStudents.map(s => getStudentTotal(s.id)).filter(t => t > 0);
+                      const totals = filteredStudents
+                        .map((s) => getStudentTotal(s.id))
+                        .filter((t) => t > 0);
                       if (totals.length === 0) return "0%";
-                      const passed = totals.filter(t => t >= 50).length;
+                      const passed = totals.filter((t) => t >= 50).length;
                       return `${Math.round((passed / totals.length) * 100)}%`;
                     })()}
                   </p>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/50">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Highest Score</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">
+                    Highest Score
+                  </p>
                   <p className="text-lg font-black text-blue-600">
                     {(() => {
-                      const totals = filteredStudents.map(s => getStudentTotal(s.id)).filter(t => t > 0);
-                      return totals.length > 0 ? `${Math.max(...totals).toFixed(0)}%` : "--";
+                      const totals = filteredStudents
+                        .map((s) => getStudentTotal(s.id))
+                        .filter((t) => t > 0);
+                      return totals.length > 0
+                        ? `${Math.max(...totals).toFixed(0)}%`
+                        : "--";
                     })()}
                   </p>
                 </div>
@@ -555,28 +577,33 @@ export default function ExamsPage() {
                         <td className="sticky left-0 bg-[var(--surface)] z-10 border-r border-[var(--border)]">
                           <div className="flex items-center justify-between gap-2 group/student">
                             <div className="flex items-center gap-2 min-w-0">
-                                <div className="w-7 h-7 rounded-full bg-[var(--navy)] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-                                  {student.first_name?.[0] || "?"}
-                                  {student.last_name?.[0] || ""}
+                              <div className="w-7 h-7 rounded-full bg-[var(--navy)] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                                {student.first_name?.[0] || "?"}
+                                {student.last_name?.[0] || ""}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-medium text-[var(--t1)] text-sm truncate max-w-[120px]">
+                                  {student.first_name} {student.last_name}
                                 </div>
-                                <div className="min-w-0">
-                                  <div className="font-medium text-[var(--t1)] text-sm truncate max-w-[120px]">
-                                    {student.first_name} {student.last_name}
-                                  </div>
-                                  <div className="text-xs text-[var(--t3)] truncate max-w-[120px]">
-                                    {student.student_number || "-"}
-                                  </div>
+                                <div className="text-xs text-[var(--t3)] truncate max-w-[120px]">
+                                  {student.student_number || "-"}
                                 </div>
+                              </div>
                             </div>
-                            <button 
+                            <button
                               onClick={() => {
-                                 const score = getStudentTotal(student.id);
-                                 alert(`AI Advice for ${student.first_name}: ${score > 80 ? "Excellent progress, keep it up!" : score > 50 ? "Solid performance, focus on improving speed." : "Needs urgent review on core concepts."}`);
+                                const score = getStudentTotal(student.id);
+                                alert(
+                                  `AI Advice for ${student.first_name}: ${score > 80 ? "Excellent progress, keep it up!" : score > 50 ? "Solid performance, focus on improving speed." : "Needs urgent review on core concepts."}`,
+                                );
                               }}
                               className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center opacity-0 group-hover/student:opacity-100 transition-all hover:bg-amber-100"
                               title="Generate AI Advice"
                             >
-                              <MaterialIcon icon="tips_and_updates" style={{ fontSize: 16 }} />
+                              <MaterialIcon
+                                icon="tips_and_updates"
+                                style={{ fontSize: 16 }}
+                              />
                             </button>
                           </div>
                         </td>

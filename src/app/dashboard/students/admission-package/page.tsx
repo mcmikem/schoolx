@@ -33,7 +33,7 @@ export default function AdmissionPackagePage() {
   const loadStudent = async (id: string) => {
     setLoading(true);
     if (isDemo) {
-      const demoS = DEMO_STUDENTS.find(s => s.id === id) || DEMO_STUDENTS[0];
+      const demoS = DEMO_STUDENTS.find((s) => s.id === id) || DEMO_STUDENTS[0];
       setStudent({ ...demoS, classes: { name: "P.5", stream: "North" } });
       setLoading(false);
       return;
@@ -127,7 +127,7 @@ export default function AdmissionPackagePage() {
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-slate-500">Academic Year</span>
                   <span className="text-xs font-bold text-slate-800">
-                    {academicYear || "2026"}
+                    {academicYear}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -168,7 +168,7 @@ export default function AdmissionPackagePage() {
                 <AdmissionLetter
                   student={student}
                   school={school || { name: "SkoolMate Official Academy" }}
-                  academicYear={academicYear || "2026"}
+                  academicYear={academicYear}
                 />
               </div>
             </div>
