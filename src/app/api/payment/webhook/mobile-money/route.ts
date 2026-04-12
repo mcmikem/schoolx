@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
               | "growth"
               | "enterprise"
               | "lifetime",
-            provider: pendingPayment.provider,
+            provider: pendingPayment.provider as "mtn" | "airtel",
             transactionId: txRef,
           });
         } catch (receiptError) {

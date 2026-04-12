@@ -289,7 +289,7 @@ export async function sendPaymentReceipt(
     currency: string;
     date: string;
     plan: PlanType;
-    provider: "mtn" | "airtel" | "bank" | "cash" | "card" | "paypal";
+    provider: "mtn" | "airtel" | "bank" | "cash" | "card" | "paypal" | "stripe";
     transactionId: string;
   },
 ) {
@@ -341,7 +341,7 @@ export async function handleSubscriptionChange(
       | "trial"
       | "suspended";
     plan?: PlanType;
-    provider: "mtn" | "airtel" | "bank" | "paypal";
+    provider: "mtn" | "airtel" | "bank" | "paypal" | "stripe";
     subscriptionId?: string;
   },
 ) {

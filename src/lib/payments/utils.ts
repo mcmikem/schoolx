@@ -159,7 +159,7 @@ export async function getPendingMobilePayment(
 // Update pending mobile payment status
 export async function updatePendingMobilePayment(
   reference: string,
-  status: "pending" | "completed" | "failed",
+  status: "pending" | "completed" | "failed" | "expired",
 ) {
   const supabase = await createSupabaseServerClient();
 
