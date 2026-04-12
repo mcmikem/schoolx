@@ -1,111 +1,194 @@
-// Subscription plans and premium feature guards
+// Subscription plans - matches landing page pricing
+// Starter: UGX 2,000/student/term
+// Growth: UGX 3,500/student/term
+// Enterprise: UGX 5,500/student/term
+// Lifetime: UGX 8-15M one-time
 
-export type PlanType = "free_trial" | "basic" | "premium" | "max";
+export type PlanType =
+  | "starter"
+  | "growth"
+  | "enterprise"
+  | "lifetime"
+  | "free_trial";
 
 export interface PlanFeatures {
   name: string;
+  pricePerStudent: number;
+  priceFrequency: "term" | "annual" | "one_time";
   maxStudents: number;
-  maxSMSPerMonth: number;
+  adminUsers: number;
+  smsQuota: number; // per term, 0 = none
   offlineMode: boolean;
-  autoSMSReports: boolean;
-  unebExport: boolean;
-  pdfReports: boolean;
-  whatsappIntegration: boolean;
-  capitationTracking: boolean;
-  dataExport: boolean;
-  globalSearch: boolean;
-  multiLanguage: boolean;
   parentPortal: boolean;
-  customReports: boolean;
-  prioritySupport: boolean;
+  syllabus: boolean;
+  lessonPlans: boolean;
+  dormManagement: boolean;
+  transport: boolean;
+  library: boolean;
+  budgets: boolean;
+  unebRegistration: boolean;
+  moesExports: boolean;
+  payroll: boolean;
+  staffLeave: boolean;
+  aiInsights: boolean;
+  workflowAutomation: boolean;
+  auditLogs: boolean;
   apiAccess: boolean;
-  multiSchool: boolean;
+  multiBranch: boolean;
+  sourceCode: boolean;
+  onPremise: boolean;
+  whiteLabel: boolean;
 }
 
 export const PLANS: Record<PlanType, PlanFeatures> = {
   free_trial: {
     name: "Free Trial",
+    pricePerStudent: 0,
+    priceFrequency: "term",
     maxStudents: 100,
-    maxSMSPerMonth: 20,
+    adminUsers: 3,
+    smsQuota: 0,
     offlineMode: false,
-    autoSMSReports: false,
-    unebExport: false,
-    pdfReports: false,
-    whatsappIntegration: false,
-    capitationTracking: false,
-    dataExport: false,
-    globalSearch: false,
-    multiLanguage: false,
     parentPortal: false,
-    customReports: false,
-    prioritySupport: false,
+    syllabus: false,
+    lessonPlans: false,
+    dormManagement: false,
+    transport: false,
+    library: false,
+    budgets: false,
+    unebRegistration: false,
+    moesExports: false,
+    payroll: false,
+    staffLeave: false,
+    aiInsights: false,
+    workflowAutomation: false,
+    auditLogs: false,
     apiAccess: false,
-    multiSchool: false,
+    multiBranch: false,
+    sourceCode: false,
+    onPremise: false,
+    whiteLabel: false,
   },
-  basic: {
-    name: "Basic",
-    maxStudents: 300,
-    maxSMSPerMonth: 100,
-    offlineMode: false,
-    autoSMSReports: false,
-    unebExport: true,
-    pdfReports: true,
-    whatsappIntegration: false,
-    capitationTracking: false,
-    dataExport: true,
-    globalSearch: false,
-    multiLanguage: false,
-    parentPortal: false,
-    customReports: false,
-    prioritySupport: false,
-    apiAccess: false,
-    multiSchool: false,
-  },
-  premium: {
-    name: "Premium",
-    maxStudents: 1000,
-    maxSMSPerMonth: 500,
-    offlineMode: false,
-    autoSMSReports: true,
-    unebExport: true,
-    pdfReports: true,
-    whatsappIntegration: true,
-    capitationTracking: true,
-    dataExport: true,
-    globalSearch: true,
-    multiLanguage: true,
-    parentPortal: true,
-    customReports: false,
-    prioritySupport: false,
-    apiAccess: false,
-    multiSchool: false,
-  },
-  max: {
-    name: "Max",
-    maxStudents: Infinity,
-    maxSMSPerMonth: 2000,
+  starter: {
+    name: "Starter",
+    pricePerStudent: 2000,
+    priceFrequency: "term",
+    maxStudents: 500,
+    adminUsers: 3,
+    smsQuota: 0,
     offlineMode: true,
-    autoSMSReports: true,
-    unebExport: true,
-    pdfReports: true,
-    whatsappIntegration: true,
-    capitationTracking: true,
-    dataExport: true,
-    globalSearch: true,
-    multiLanguage: true,
+    parentPortal: false,
+    syllabus: false,
+    lessonPlans: false,
+    dormManagement: false,
+    transport: false,
+    library: false,
+    budgets: false,
+    unebRegistration: false,
+    moesExports: false,
+    payroll: false,
+    staffLeave: false,
+    aiInsights: false,
+    workflowAutomation: false,
+    auditLogs: false,
+    apiAccess: false,
+    multiBranch: false,
+    sourceCode: false,
+    onPremise: false,
+    whiteLabel: false,
+  },
+  growth: {
+    name: "Growth",
+    pricePerStudent: 3500,
+    priceFrequency: "term",
+    maxStudents: 2000,
+    adminUsers: 10,
+    smsQuota: 500,
+    offlineMode: true,
     parentPortal: true,
-    customReports: true,
-    prioritySupport: true,
+    syllabus: true,
+    lessonPlans: true,
+    dormManagement: true,
+    transport: true,
+    library: true,
+    budgets: true,
+    unebRegistration: false,
+    moesExports: false,
+    payroll: false,
+    staffLeave: false,
+    aiInsights: false,
+    workflowAutomation: false,
+    auditLogs: false,
+    apiAccess: false,
+    multiBranch: false,
+    sourceCode: false,
+    onPremise: false,
+    whiteLabel: false,
+  },
+  enterprise: {
+    name: "Enterprise",
+    pricePerStudent: 5500,
+    priceFrequency: "term",
+    maxStudents: Infinity,
+    adminUsers: Infinity,
+    smsQuota: Infinity,
+    offlineMode: true,
+    parentPortal: true,
+    syllabus: true,
+    lessonPlans: true,
+    dormManagement: true,
+    transport: true,
+    library: true,
+    budgets: true,
+    unebRegistration: true,
+    moesExports: true,
+    payroll: true,
+    staffLeave: true,
+    aiInsights: true,
+    workflowAutomation: true,
+    auditLogs: true,
     apiAccess: true,
-    multiSchool: true,
+    multiBranch: true,
+    sourceCode: false,
+    onPremise: false,
+    whiteLabel: false,
+  },
+  lifetime: {
+    name: "Lifetime",
+    pricePerStudent: 0, // one-time payment
+    priceFrequency: "one_time",
+    maxStudents: Infinity,
+    adminUsers: Infinity,
+    smsQuota: Infinity,
+    offlineMode: true,
+    parentPortal: true,
+    syllabus: true,
+    lessonPlans: true,
+    dormManagement: true,
+    transport: true,
+    library: true,
+    budgets: true,
+    unebRegistration: true,
+    moesExports: true,
+    payroll: true,
+    staffLeave: true,
+    aiInsights: true,
+    workflowAutomation: true,
+    auditLogs: true,
+    apiAccess: true,
+    multiBranch: true,
+    sourceCode: true,
+    onPremise: true,
+    whiteLabel: true,
   },
 };
 
 export const PLAN_PRICES = {
-  free_trial: { term: 0 },
-  basic: { term: 100000 },
-  premium: { term: 200000 },
-  max: { term: 370000 },
+  free_trial: { term: 0, oneTime: 0 },
+  starter: { term: 2000, oneTime: null },
+  growth: { term: 3500, oneTime: null },
+  enterprise: { term: 5500, oneTime: null },
+  lifetime: { term: null, oneTime: 12000000 }, // UGX 12M average
 };
 
 export function canUseFeature(
@@ -121,6 +204,7 @@ export function getFeatureLimit(
   feature: keyof PlanFeatures,
 ): number {
   const value = PLANS[plan][feature];
+  if (value === Infinity) return -1; // -1 means unlimited
   return typeof value === "number" ? value : 0;
 }
 
@@ -133,41 +217,48 @@ export function getUpgradeMessage(feature: string): string {
   return `This feature requires a higher plan. Upgrade to unlock ${feature}.`;
 }
 
-// Payment-related functions would be added here when integrating with Stripe/PayPal
-// These would be implemented in the payments directory and imported as needed
-
-// We'll add types for payment processing
-export type PaymentProvider = "stripe" | "paypal" | "mtn" | "airtel";
-
-export interface PaymentRequest {
-  plan: PlanType;
-  provider: PaymentProvider;
-  returnUrl?: string;
+// Calculate monthly cost based on student count
+export function calculateMonthlyCost(
+  plan: PlanType,
+  studentCount: number,
+): number {
+  const pricePerStudent = PLANS[plan].pricePerStudent;
+  // 3 terms per year
+  return (pricePerStudent * studentCount * 3) / 12;
 }
 
-export interface PaymentResponse {
-  success: boolean;
-  redirectUrl?: string;
-  error?: string;
+export function getPlanForSchoolType(
+  schoolType: "primary" | "secondary" | "combined",
+): PlanType {
+  switch (schoolType) {
+    case "primary":
+      return "starter";
+    case "combined":
+      return "growth";
+    case "secondary":
+      return "growth";
+    default:
+      return "starter";
+  }
 }
 
 // Database functions for subscription management
 import { createSupabaseServerClient } from "./supabase/server";
 
-/**
- * Update a school's subscription status in the database
- */
 export async function updateSchoolSubscription(
   schoolId: string,
   updates: {
     subscription_status?: "active" | "expired" | "trial" | "past_due";
     subscription_plan?: PlanType;
-    stripe_customer_id?: string;
+    price_per_student?: number;
+    payment_frequency?: "term" | "annual" | "one_time";
+    admin_users_allowed?: number;
+    sms_quota_monthly?: number;
+    lifetime_license?: boolean;
     stripe_subscription_id?: string;
     paypal_subscription_id?: string;
     last_payment_at?: string;
     next_payment_date?: string;
-    last_payment_attempt?: string;
     trial_ends_at?: string | null;
   },
 ) {
@@ -191,9 +282,6 @@ export async function updateSchoolSubscription(
   }
 }
 
-/**
- * Send payment receipt via email and/or SMS
- */
 export async function sendPaymentReceipt(
   schoolId: string,
   paymentData: {
@@ -201,14 +289,13 @@ export async function sendPaymentReceipt(
     currency: string;
     date: string;
     plan: PlanType;
-    provider: PaymentProvider;
+    provider: "mtn" | "airtel" | "bank" | "cash" | "card" | "paypal";
     transactionId: string;
   },
 ) {
   try {
     const supabase = await createSupabaseServerClient();
 
-    // Get school information
     const { data: school, error: schoolError } = await supabase
       .from("schools")
       .select("id, name, email, phone, school_code")
@@ -220,38 +307,21 @@ export async function sendPaymentReceipt(
       throw schoolError;
     }
 
-    // Format amount for display
     const formattedAmount = new Intl.NumberFormat("en-UG", {
       style: "currency",
       currency: "UGX",
     }).format(paymentData.amount);
 
-    // Create email content
-    const emailSubject = `Payment Receipt - ${school.name}`;
-    const emailBody = `
-      <h2>Payment Receipt</h2>
-      <p>Thank you for your payment!</p>
-      <p><strong>School:</strong> ${school.name} (${school.school_code})</p>
-      <p><strong>Date:</strong> ${new Date(paymentData.date).toLocaleDateString()}</p>
-      <p><strong>Amount:</strong> ${formattedAmount}</p>
-      <p><strong>Plan:</strong> ${paymentData.plan.charAt(0).toUpperCase() + paymentData.plan.slice(1)}</p>
-      <p><strong>Payment Method:</strong> ${paymentData.provider.charAt(0).toUpperCase() + paymentData.provider.slice(1)}</p>
-      <p><strong>Transaction ID:</strong> ${paymentData.transactionId}</p>
-      <p>Your subscription is now active. Thank you for using SkoolMate OS!</p>
-    `;
+    console.log(`Sending payment receipt to ${school.email}:`, {
+      subject: `Payment Receipt - ${school.name}`,
+      amount: formattedAmount,
+      plan: paymentData.plan,
+    });
 
-    // Send email (using a placeholder - in reality, you'd use an email service)
-    console.log(`Sending email receipt to ${school.email}:`, emailSubject);
-
-    // Send SMS notification
     if (school.phone) {
       const smsMessage = `Payment confirmed for ${school.name}. Amount: ${formattedAmount}. Plan: ${paymentData.plan}. Thank you!`;
-      // In a real implementation, you would call your SMS service here
       console.log(`Sending SMS to ${school.phone}:`, smsMessage);
     }
-
-    // Record the receipt in database (optional)
-    // await supabase.from('payment_receipts').insert({ ... })
 
     return { success: true };
   } catch (error) {
@@ -260,9 +330,6 @@ export async function sendPaymentReceipt(
   }
 }
 
-/**
- * Handle subscription changes from webhooks
- */
 export async function handleSubscriptionChange(
   schoolId: string,
   changeData: {
@@ -274,14 +341,13 @@ export async function handleSubscriptionChange(
       | "trial"
       | "suspended";
     plan?: PlanType;
-    provider: "stripe" | "paypal";
+    provider: "mtn" | "airtel" | "bank" | "paypal";
     subscriptionId?: string;
   },
 ) {
   try {
     const supabase = await createSupabaseServerClient();
 
-    // Determine subscription status based on change data
     let subscriptionStatus: "active" | "expired" | "trial" | "past_due";
     switch (changeData.status) {
       case "active":
@@ -298,7 +364,6 @@ export async function handleSubscriptionChange(
         subscriptionStatus = "trial";
     }
 
-    // Prepare updates
     const updates: any = {
       subscription_status: subscriptionStatus,
     };
@@ -307,32 +372,19 @@ export async function handleSubscriptionChange(
       updates.subscription_plan = changeData.plan;
     }
 
-    if (changeData.provider === "stripe" && changeData.subscriptionId) {
-      updates.stripe_subscription_id = changeData.subscriptionId;
-    }
-
     if (changeData.provider === "paypal" && changeData.subscriptionId) {
       updates.paypal_subscription_id = changeData.subscriptionId;
     }
 
-    // If subscription is canceled/expired, clear subscription IDs
     if (changeData.status === "canceled") {
-      if (changeData.provider === "stripe") {
-        updates.stripe_subscription_id = null;
-      }
-      if (changeData.provider === "paypal") {
-        updates.paypal_subscription_id = null;
-      }
+      updates.paypal_subscription_id = null;
     }
 
-    // Update school subscription
     await updateSchoolSubscription(schoolId, updates);
 
-    // Send notification about subscription change
-    const notificationMessage = `Your subscription status has been updated to ${subscriptionStatus}.`;
     console.log(
-      `Sending subscription change notification for school ${schoolId}:`,
-      notificationMessage,
+      `Subscription changed for school ${schoolId}:`,
+      subscriptionStatus,
     );
 
     return { success: true };
@@ -342,71 +394,26 @@ export async function handleSubscriptionChange(
   }
 }
 
-/**
- * Utility function to determine plan from Stripe amount
- */
-export function determineStripePlanFromAmount(amountInCents: number): PlanType {
-  const amountInDollars = amountInCents / 100;
-
-  if (amountInDollars === 0) return "free_trial";
-  if (amountInDollars <= 10) return "basic";
-  if (amountInDollars <= 20) return "premium";
-  return "max";
-}
-
-/**
- * Utility function to determine plan from Stripe subscription
- */
-export function determineStripePlanFromSubscription(
-  subscription: any,
+export function determinePlanFromAmount(
+  amount: number,
+  isOneTime: boolean = false,
 ): PlanType {
-  // Get the price ID from subscription items
-  const priceId = subscription.items.data[0]?.price.id;
+  if (isOneTime) {
+    if (amount >= 8000000) return "lifetime";
+    return "lifetime";
+  }
 
-  // Map price IDs to plans (you would configure these in your Stripe dashboard)
-  const priceToPlan: Record<string, PlanType> = {
-    // Add your actual price IDs here
-    price_basic: "basic",
-    price_premium: "premium",
-    price_max: "max",
-  };
-
-  return priceToPlan[priceId] || "free_trial";
-}
-
-/**
- * Utility function to determine plan from PayPal amount
- */
-export function determinePayPalPlanFromAmount(amount: number): PlanType {
-  if (amount === 0) return "free_trial";
-  if (amount <= 10) return "basic";
-  if (amount <= 20) return "premium";
-  return "max";
-}
-
-/**
- * Utility function to determine plan from PayPal plan ID
- */
-export function determinePayPalPlanFromId(planId: string): PlanType {
-  // Map PayPal plan IDs to plans (you would configure these in your PayPal dashboard)
-  const planIdToPlan: Record<string, PlanType> = {
-    // Add your actual PayPal plan IDs here
-    plan_basic: "basic",
-    plan_premium: "premium",
-    plan_max: "max",
-  };
-
-  return planIdToPlan[planId] || "free_trial";
+  // Per-term pricing
+  if (amount <= 2000) return "starter";
+  if (amount <= 3500) return "growth";
+  return "enterprise";
 }
 
 const subscriptionApi = {
   updateSchoolSubscription,
   sendPaymentReceipt,
   handleSubscriptionChange,
-  determineStripePlanFromAmount,
-  determineStripePlanFromSubscription,
-  determinePayPalPlanFromAmount,
-  determinePayPalPlanFromId,
+  determinePlanFromAmount,
 };
 
 export default subscriptionApi;

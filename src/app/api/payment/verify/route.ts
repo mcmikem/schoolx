@@ -69,7 +69,11 @@ export async function POST(request: NextRequest) {
 
         await activateSchoolSubscription(
           pendingPayment.school_id,
-          pendingPayment.plan as "basic" | "premium" | "max",
+          pendingPayment.plan as
+            | "starter"
+            | "growth"
+            | "enterprise"
+            | "lifetime",
           provider,
           txRef,
         );
@@ -78,7 +82,11 @@ export async function POST(request: NextRequest) {
           amount: pendingPayment.amount,
           currency: "UGX",
           date: new Date().toISOString(),
-          plan: pendingPayment.plan as "basic" | "premium" | "max",
+          plan: pendingPayment.plan as
+            | "starter"
+            | "growth"
+            | "enterprise"
+            | "lifetime",
           provider,
           transactionId: txRef,
         });

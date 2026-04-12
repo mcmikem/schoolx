@@ -1,28 +1,36 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { apiSuccess, apiError, handleApiError, requireCronSecretOrDeny } from '@/lib/api-utils'
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import {
+  apiSuccess,
+  apiError,
+  handleApiError,
+  requireCronSecretOrDeny,
+} from "@/lib/api-utils";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export async function POST(request: NextRequest) {
   try {
-    const cron = requireCronSecretOrDeny(request)
-    if (!cron.ok) return cron.response
+    const cron = requireCronSecretOrDeny(request);
+    if (!cron.ok) return cron.response;
 
     if (!supabaseServiceKey) {
-      return apiError('SUPABASE_SERVICE_ROLE_KEY not set. Add it to .env.local', 400)
+      return apiError(
+        "SUPABASE_SERVICE_ROLE_KEY not set. Add it to .env.local",
+        400,
+      );
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
-    })
+    });
 
-    const results: Record<string, string> = {}
+    const results: Record<string, string> = {};
 
     const tables = [
       {
-        name: 'schools',
+        name: "schools",
         sql: `
           CREATE TABLE IF NOT EXISTS schools (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -39,7 +47,7 @@ export async function POST(request: NextRequest) {
             logo_url TEXT,
             primary_color TEXT DEFAULT '#1e3a5f',
             uneab_center_number TEXT,
-            subscription_plan TEXT CHECK (subscription_plan IN ('free', 'free_trial', 'basic', 'premium', 'max')) DEFAULT 'free',
+            subscription_plan TEXT CHECK (subscription_plan IN ('starter', 'growth', 'enterprise', 'lifetime', 'free_trial')) DEFAULT 'free_trial',
             subscription_status TEXT CHECK (subscription_status IN ('active', 'expired', 'trial', 'past_due', 'canceled', 'unpaid', 'suspended')) DEFAULT 'trial',
             paypal_subscription_id TEXT,
             last_payment_at TIMESTAMPTZ,
@@ -50,7 +58,7 @@ export async function POST(request: NextRequest) {
         `,
       },
       {
-        name: 'users',
+        name: "users",
         sql: `
           CREATE TABLE IF NOT EXISTS users (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -67,7 +75,7 @@ export async function POST(request: NextRequest) {
         `,
       },
       {
-        name: 'classes',
+        name: "classes",
         sql: `
           CREATE TABLE IF NOT EXISTS classes (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -83,7 +91,7 @@ export async function POST(request: NextRequest) {
         `,
       },
       {
-        name: 'subjects',
+        name: "subjects",
         sql: `
           CREATE TABLE IF NOT EXISTS subjects (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -97,7 +105,7 @@ export async function POST(request: NextRequest) {
         `,
       },
       {
-        name: 'students',
+        name: "students",
         sql: `
           CREATE TABLE IF NOT EXISTS students (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -128,7 +136,7 @@ export async function POST(request: NextRequest) {
         `,
       },
       {
-        name: 'attendance',
+        name: "attendance",
         sql: `
           CREATE TABLE IF NOT EXISTS attendance (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -144,7 +152,7 @@ export async function POST(request: NextRequest) {
         `,
       },
       {
-        name: 'grades',
+        name: "grades",
         sql: `
           CREATE TABLE IF NOT EXISTS grades (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -163,7 +171,7 @@ export async function POST(request: NextRequest) {
         `,
       },
       {
-        name: 'fee_structure',
+        name: "fee_structure",
         sql: `
           CREATE TABLE IF NOT EXISTS fee_structure (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -179,7 +187,7 @@ export async function POST(request: NextRequest) {
         `,
       },
       {
-        name: 'fee_payments',
+        name: "fee_payments",
         sql: `
           CREATE TABLE IF NOT EXISTS fee_payments (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -197,7 +205,7 @@ export async function POST(request: NextRequest) {
         `,
       },
       {
-        name: 'events',
+        name: "events",
         sql: `
           CREATE TABLE IF NOT EXISTS events (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -213,7 +221,7 @@ export async function POST(request: NextRequest) {
         `,
       },
       {
-        name: 'messages',
+        name: "messages",
         sql: `
           CREATE TABLE IF NOT EXISTS messages (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -230,7 +238,7 @@ export async function POST(request: NextRequest) {
         `,
       },
       {
-        name: 'parent_students',
+        name: "parent_students",
         sql: `
           CREATE TABLE IF NOT EXISTS parent_students (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -243,7 +251,7 @@ export async function POST(request: NextRequest) {
         `,
       },
       {
-        name: 'notices',
+        name: "notices",
         sql: `
           CREATE TABLE IF NOT EXISTS notices (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -259,7 +267,7 @@ export async function POST(request: NextRequest) {
         `,
       },
       {
-        name: 'student_wallets',
+        name: "student_wallets",
         sql: `
           CREATE TABLE IF NOT EXISTS student_wallets (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -270,7 +278,7 @@ export async function POST(request: NextRequest) {
         `,
       },
       {
-        name: 'wallet_transactions',
+        name: "wallet_transactions",
         sql: `
           CREATE TABLE IF NOT EXISTS wallet_transactions (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -285,7 +293,7 @@ export async function POST(request: NextRequest) {
         `,
       },
       {
-        name: 'topup_rpc',
+        name: "topup_rpc",
         sql: `
           CREATE OR REPLACE FUNCTION topup_student_wallet(
             p_student_id UUID,
@@ -308,47 +316,50 @@ export async function POST(request: NextRequest) {
           $$ LANGUAGE plpgsql;
         `,
       },
-    ]
+    ];
 
     for (const table of tables) {
       try {
-        const { error } = await supabase.rpc('exec_sql', { sql: table.sql })
+        const { error } = await supabase.rpc("exec_sql", { sql: table.sql });
         if (error) {
-          const { error: directError } = await supabase.from(table.name).select('id').limit(1)
+          const { error: directError } = await supabase
+            .from(table.name)
+            .select("id")
+            .limit(1);
           if (directError) {
-            results[table.name] = `Error: ${error.message}`
+            results[table.name] = `Error: ${error.message}`;
           } else {
-            results[table.name] = 'Exists'
+            results[table.name] = "Exists";
           }
         } else {
-          results[table.name] = 'Created'
+          results[table.name] = "Created";
         }
       } catch (e: any) {
-        results[table.name] = `Error: ${e.message}`
+        results[table.name] = `Error: ${e.message}`;
       }
     }
 
     // Migration: Add unique constraints to existing tables
     const migrations = [
       `ALTER TABLE IF EXISTS classes ADD CONSTRAINT classes_school_id_name_academic_year_key UNIQUE (school_id, name, academic_year);`,
-      `ALTER TABLE IF EXISTS fee_structure ADD CONSTRAINT fee_structure_school_id_class_id_name_term_academic_year_key UNIQUE (school_id, class_id, name, term, academic_year);`
-    ]
+      `ALTER TABLE IF EXISTS fee_structure ADD CONSTRAINT fee_structure_school_id_class_id_name_term_academic_year_key UNIQUE (school_id, class_id, name, term, academic_year);`,
+    ];
 
     for (const sql of migrations) {
-      await supabase.rpc('exec_sql', { sql }) // Errors are handled within the RPC or ignored visually
+      await supabase.rpc("exec_sql", { sql }); // Errors are handled within the RPC or ignored visually
     }
 
     // New: Seed demo data after tables are set up
-    const { seedDemoData } = await import('@/lib/seed-demo')
-    const seedResult = await seedDemoData()
+    const { seedDemoData } = await import("@/lib/seed-demo");
+    const seedResult = await seedDemoData();
     if (seedResult.error) {
-      results['demo_seeding'] = `Error: ${seedResult.error}`
+      results["demo_seeding"] = `Error: ${seedResult.error}`;
     } else {
-      results['demo_seeding'] = 'Seeded'
+      results["demo_seeding"] = "Seeded";
     }
 
-    return apiSuccess(results, 'Setup complete')
+    return apiSuccess(results, "Setup complete");
   } catch (error) {
-    return handleApiError(error)
+    return handleApiError(error);
   }
 }

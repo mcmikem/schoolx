@@ -340,27 +340,29 @@ async function handlePayPalSubscriptionPaymentFailed(
 // Helper function to determine plan from amount
 function determinePlanFromAmount(
   amount: number,
-): "free_trial" | "basic" | "premium" | "max" {
-  if (amount === 0) return "free_trial";
-  if (amount <= 10) return "basic";
-  if (amount <= 20) return "premium";
-  return "max";
+): "starter" | "growth" | "enterprise" | "lifetime" {
+  // Map amounts to new pricing (per student/term)
+  // Starter: 2000, Growth: 3500, Enterprise: 5500
+  if (amount <= 2000) return "starter";
+  if (amount <= 3500) return "growth";
+  if (amount <= 5500) return "enterprise";
+  return "lifetime";
 }
 
 // Helper function to determine plan from PayPal plan ID
 function determinePlanFromPlanId(
   planId: string,
-): "free_trial" | "basic" | "premium" | "max" {
-  // Map PayPal plan IDs to plans (you would configure these in your PayPal dashboard)
+): "starter" | "growth" | "enterprise" | "lifetime" {
+  // Map PayPal plan IDs to plans
   const planIdToPlan: Record<
     string,
-    "free_trial" | "basic" | "premium" | "max"
+    "starter" | "growth" | "enterprise" | "lifetime"
   > = {
-    // Add your actual PayPal plan IDs here
-    plan_basic: "basic",
-    plan_premium: "premium",
-    plan_max: "max",
+    plan_starter: "starter",
+    plan_growth: "growth",
+    plan_enterprise: "enterprise",
+    plan_lifetime: "lifetime",
   };
 
-  return planIdToPlan[planId] || "free_trial";
+  return planIdToPlan[planId] || "starter";
 }
