@@ -97,3 +97,137 @@ export async function createMobileMoneyPaymentIntent(
 
   return { reference, expiresAt };
 }
+
+// Pending mobile payment record
+interface PendingMobilePayment {
+  id?: string;
+  school_id: string;
+  plan: PlanType;
+  amount: number;
+  provider: string;
+  phone: string;
+  reference: string;
+  status: "pending" | "completed" | "failed";
+  created_at?: string;
+}
+
+// Save pending mobile payment
+export async function savePendingMobilePayment(params: {
+  schoolId: string;
+  plan: PlanType;
+  amount: number;
+  provider: string;
+  phone: string;
+  reference: string;
+}) {
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("pending_mobile_payments")
+    .insert({
+      school_id: params.schoolId,
+      plan: params.plan,
+      amount: params.amount,
+      provider: params.provider,
+      phone: params.phone,
+      reference: params.reference,
+      status: "pending",
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// Get pending mobile payment by reference
+export async function getPendingMobilePayment(
+  reference: string,
+): Promise<PendingMobilePayment | null> {
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("pending_mobile_payments")
+    .select("*")
+    .eq("reference", reference)
+    .single();
+
+  if (error) return null;
+  return data;
+}
+
+// Update pending mobile payment status
+export async function updatePendingMobilePayment(
+  reference: string,
+  status: "pending" | "completed" | "failed",
+) {
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("pending_mobile_payments")
+    .update({ status })
+    .eq("reference", reference)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// Update payment status in subscription history
+export async function updatePaymentStatus(
+  transactionId: string,
+  status: "pending" | "completed" | "failed" | "refunded",
+  extra?: { paid_at?: string },
+) {
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("subscription_history")
+    .update({
+      payment_status: status,
+      ...(extra?.paid_at && { paid_at: extra.paid_at }),
+    })
+    .eq("transaction_id", transactionId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// Activate school subscription
+export async function activateSchoolSubscription(
+  schoolId: string,
+  plan: PlanType,
+  provider: string,
+  transactionId: string,
+) {
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("schools")
+    .update({
+      subscription_plan: plan,
+      subscription_status: "active",
+      last_payment_at: new Date().toISOString(),
+    })
+    .eq("id", schoolId);
+
+  if (error) throw error;
+  return data;
+}
+
+// Get school payment history
+export async function getSchoolPaymentHistory(schoolId: string) {
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("subscription_history")
+    .select("*")
+    .eq("school_id", schoolId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data;
+}
