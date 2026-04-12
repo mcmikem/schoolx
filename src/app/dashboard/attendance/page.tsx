@@ -130,32 +130,41 @@ export default function AttendancePage() {
               record.class_id === selectedClass && record.date === date,
           );
         } else if (isOnline) {
-          const { data: onlineStudents, error: studentsError } = await supabase
-            .from("students")
-            .select("*")
-            .eq("school_id", school.id)
-            .eq("class_id", selectedClass)
-            .eq("status", "active")
-            .order("first_name");
+          // Parallelize queries for better performance
+          const [studentsRes, attendanceRes] = await Promise.all([
+            supabase
+              .from("students")
+              .select(
+                "id, first_name, last_name, student_number, class_id, gender, status",
+              )
+              .eq("school_id", school.id)
+              .eq("class_id", selectedClass)
+              .eq("status", "active")
+              .order("first_name"),
+            supabase
+              .from("attendance")
+              .select("student_id, status")
+              .eq("class_id", selectedClass)
+              .eq("date", date),
+          ]);
 
-          if (studentsError) throw studentsError;
-          studentsData = onlineStudents || [];
+          if (studentsRes.error) throw studentsRes.error;
+          studentsData = studentsRes.data || [];
+          attendanceData = attendanceRes.data || [];
 
-          const { data: onlineAttendance } = await supabase
-            .from("attendance")
-            .select("*")
-            .eq("class_id", selectedClass)
-            .eq("date", date);
-
-          attendanceData = onlineAttendance || [];
-          await offlineDB.cacheFromServer(
-            "students",
-            studentsData as Record<string, unknown>[],
-          );
-          await offlineDB.cacheFromServer(
-            "attendance",
-            attendanceData as Record<string, unknown>[],
-          );
+          // Cache for offline in background
+          offlineDB
+            .cacheFromServer(
+              "students",
+              studentsData as Record<string, unknown>[],
+            )
+            .catch(() => {});
+          offlineDB
+            .cacheFromServer(
+              "attendance",
+              attendanceData as Record<string, unknown>[],
+            )
+            .catch(() => {});
         } else {
           studentsData = (await offlineDB.getAllFromCache("students", {
             school_id: school.id,
@@ -398,24 +407,33 @@ export default function AttendancePage() {
                 variant="secondary"
                 size="sm"
                 onClick={async () => {
-                  if (!confirm(`Send absence alerts to parents of ${absentCount} absent students?`)) return;
+                  if (
+                    !confirm(
+                      `Send absence alerts to parents of ${absentCount} absent students?`,
+                    )
+                  )
+                    return;
                   try {
-                    const absentees = students.filter(s => attendance[s.id] === 'absent');
+                    const absentees = students.filter(
+                      (s) => attendance[s.id] === "absent",
+                    );
                     const { supabase: sb } = await import("@/lib/supabase");
-                    
+
                     for (const student of absentees) {
                       const phone = (student as any).parent_phone;
                       if (!phone) continue;
-                      
+
                       await sb.from("messages").insert({
                         school_id: school?.id,
                         recipient_phone: phone,
                         message: `SkoolMate Alert: ${student.first_name} was marked ABSENT today (${date}). Please confirm with school if this is unexpected.`,
                         status: "sent",
-                        type: "attendance_alert"
+                        type: "attendance_alert",
                       });
                     }
-                    toast.success(`Absence alerts queued for ${absentees.length} parents`);
+                    toast.success(
+                      `Absence alerts queued for ${absentees.length} parents`,
+                    );
                   } catch (err) {
                     toast.error("Failed to send alerts");
                   }
@@ -640,7 +658,11 @@ export default function AttendancePage() {
                   >
                     {f === "all"
                       ? "All"
-                      : f === "present" ? "In School" : f === "absent" ? "Away" : "Late"}
+                      : f === "present"
+                        ? "In School"
+                        : f === "absent"
+                          ? "Away"
+                          : "Late"}
                     {f !== "all" && (
                       <span className="ml-1 opacity-70">
                         (
@@ -739,8 +761,8 @@ export default function AttendancePage() {
                   className="w-full"
                   size="lg"
                 >
-                  Save: {presentCount} present, {absentCount} away,{" "}
-                  {lateCount} late
+                  Save: {presentCount} present, {absentCount} away, {lateCount}{" "}
+                  late
                 </Button>
               </div>
             </>
