@@ -304,13 +304,13 @@ export default function TeacherPerformancePage() {
         subtitle="Track teacher activity, syllabus coverage, and reward high performers"
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {(["lessonPlans", "syllabus", "grades", "attendance"] as const).map(
           (m) => (
             <button
               key={m}
               onClick={() => setMetric(m)}
-              className={`p-4 rounded-xl text-left transition-all ${
+              className={`p-3 sm:p-4 rounded-xl text-left transition-all ${
                 metric === m
                   ? "bg-[var(--primary)] text-white"
                   : "bg-surface-container-low hover:bg-surface-container"
@@ -338,7 +338,7 @@ export default function TeacherPerformancePage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>

@@ -150,28 +150,37 @@ function TeacherDashboardContent() {
 
   return (
     <div className="content">
-        <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="ph-title truncate !text-3xl">
-                {greeting}, {user?.full_name?.split(" ")[0]}
-              </div>
-              <div className="ph-sub truncate !text-sm">
-                Teacher · {school?.name} • Term {currentTerm}
-              </div>
+      <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="ph-title truncate !text-3xl">
+              {greeting}, {user?.full_name?.split(" ")[0]}
             </div>
-            <div className="ph-actions">
-              <Link href="/dashboard/timetable" className="btn btn-ghost shadow-sm">
-                <MaterialIcon icon="calendar_month" style={{ fontSize: "16px" }} />
-                <span>My Schedule</span>
-              </Link>
-              <Link href="/dashboard/grades" className="btn btn-primary shadow-md">
-                <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
-                <span>Quick Entry</span>
-              </Link>
+            <div className="ph-sub truncate !text-sm">
+              Teacher · {school?.name} • Term {currentTerm}
             </div>
           </div>
+          <div className="ph-actions">
+            <Link
+              href="/dashboard/timetable"
+              className="btn btn-ghost shadow-sm"
+            >
+              <MaterialIcon
+                icon="calendar_month"
+                style={{ fontSize: "16px" }}
+              />
+              <span>My Schedule</span>
+            </Link>
+            <Link
+              href="/dashboard/grades"
+              className="btn btn-primary shadow-md"
+            >
+              <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
+              <span>Quick Entry</span>
+            </Link>
+          </div>
         </div>
+      </div>
 
       {/* Quick Actions Bar - Top priority for teachers on mobile */}
       <div className="quick-actions-bar !mb-8">
@@ -213,10 +222,15 @@ function TeacherDashboardContent() {
         </Link>
       </div>
 
-      <SmartAdvisor stats={{}} attendanceRate={92} collectionRate={0} role="teacher" />
+      <SmartAdvisor
+        stats={{}}
+        attendanceRate={92}
+        collectionRate={0}
+        role="teacher"
+      />
 
-      {/* Analytics Section - secondary on mobile */}
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8 mt-8">
+      {/* Analytics Section - hidden on mobile */}
+      <div className="hidden xl:block grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8 mt-8">
         <div className="xl:col-span-3">
           <DashboardInsights
             stats={{}}
@@ -231,8 +245,7 @@ function TeacherDashboardContent() {
         </div>
       </div>
 
-
-      <div className="stat-grid sm:grid-cols-3 !mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 !mb-8">
         <StatCard
           label="My Classes"
           value={myClasses.length}
@@ -285,7 +298,7 @@ function TeacherDashboardContent() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 mt-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 mt-6">
         <Link
           href="/dashboard/attendance"
           className="qa-item !flex-row !justify-start !p-4"
