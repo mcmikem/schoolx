@@ -1,8 +1,8 @@
 // Subscription plans - matches landing page pricing
-// Starter: UGX 2,000/student/term
-// Growth: UGX 3,500/student/term
-// Enterprise: UGX 5,500/student/term
-// Lifetime: UGX 8-15M one-time
+// Starter: UGX 2,000/student/term (≤200 students, rural/primary)
+// Growth: UGX 3,500/student/term (≤500 students, urban/secondary)
+// Enterprise: UGX 5,500/student/term (unlimited, full features + UNEB)
+// Lifetime: UGX 8-15M one-time (white-label, source code)
 
 export type PlanType =
   | "starter"
