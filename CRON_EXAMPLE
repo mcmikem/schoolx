@@ -1,0 +1,12 @@
+# Omuto SMS - Migration Monitoring CRON Schedule
+# 
+# Add these lines to your crontab (crontab -e)
+# 
+# Check migration status every hour
+#0 * * * * /Users/user/Downloads/Omuto\ School\ Management\ System/scripts/monitor-migrations.sh check all >> /Users/user/Downloads/Omuto\ School\ Management\ System/logs/cron.log 2>&1
+# 
+# Run critical migrations daily at 2 AM
+#0 2 * * * /Users/user/Downloads/Omuto\ School\ Management\ System/scripts/monitor-migrations.sh run /Users/user/Downloads/Omuto\ School\ Management\ System/scripts/run-critical-fix.sh >> /Users/user/Downloads/Omuto\ School\ Management\ System/logs/cron.log 2>&1
+# 
+# Clean old logs weekly (Sundays at 3 AM)
+#0 3 * * 0 find /Users/user/Downloads/Omuto\ School\ Management\ System/logs -name "*.log" -mtime +30 -delete
