@@ -556,3 +556,11 @@ export const COMPETENCY_LEVELS = [
 ] as const;
 
 export type CompetencyLevel = (typeof COMPETENCY_LEVELS)[number]["id"];
+
+// Re-export NCDC syllabus helpers
+export {
+  ALL_NCDC_TOPICS,
+  getTopicsBySubject,
+  getTopicsByClass,
+  getTopicsByTerm,
+} from "./ndc-syllabus";
