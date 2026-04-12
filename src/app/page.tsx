@@ -7,6 +7,19 @@ import SkoolMateLogo from "@/components/SkoolMateLogo";
 import AnimatedLogo from "@/components/AnimatedLogo";
 import LaptopMockup from "@/components/LaptopMockup";
 
+const HEADLINES = [
+  "Save 5+ hours every week",
+  "Your school in your hand",
+  "One place. Complete control",
+  "Stop juggling spreadsheets",
+  "Everything runs smoother",
+  "Finally, it all connects",
+  "Built for Ugandan schools",
+  "Your school, simplified",
+];
+
+const ROTATION_INTERVAL = 4000;
+
 function MaterialIcon({
   icon,
   className,
@@ -829,6 +842,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 /* ─── HOME PAGE ─── */
 export default function HomePage() {
   const router = useRouter();
+  const [headlineIndex, setHeadlineIndex] = useState(0);
 
   useEffect(() => {
     // If running in Capacitor (Mobile APK), skip landing page and go straight to login
@@ -838,6 +852,14 @@ export default function HomePage() {
       router.push("/login");
     }
   }, [router]);
+
+  // Rotate headlines
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHeadlineIndex((prev) => (prev + 1) % HEADLINES.length);
+    }, ROTATION_INTERVAL);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <main
@@ -910,7 +932,9 @@ export default function HomePage() {
                 Built from experience on the ground in schools
               </div>
               <h1 className="mt-6 font-['Sora'] text-5xl font-semibold leading-[0.95] tracking-[-0.05em] text-[var(--t1)] sm:text-6xl lg:text-7xl">
-                Save 5+ hours every week
+                <span key={headlineIndex} className="animate-fade-in block">
+                  {HEADLINES[headlineIndex]}
+                </span>
                 <br />
                 with <span className="text-[var(--green)]">
                   all-in-one
