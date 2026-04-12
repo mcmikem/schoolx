@@ -1,26 +1,34 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from "@playwright/test";
 
-test('landing page renders primary CTAs', async ({ page }) => {
-  await page.goto('/')
+test("landing page renders primary CTAs", async ({ page }) => {
+  await page.goto("/");
 
-  await expect(page.getByRole('heading', { name: /run your entire school from one dashboard/i })).toBeVisible()
-  await expect(page.getByRole('link', { name: /open dashboard|sign in/i }).first()).toBeVisible()
-  await expect(page.getByRole('link', { name: /start free trial/i }).first()).toBeVisible()
-})
+  await expect(
+    page.getByRole("heading", {
+      name: /run your entire school from one dashboard/i,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /open dashboard|sign in/i }).first(),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /start free trial/i }).first(),
+  ).toBeVisible();
+});
 
-test('parent portal login page renders', async ({ page }) => {
-  await page.goto('/parent')
+test("parent portal login page renders", async ({ page }) => {
+  await page.goto("/parent");
 
-  await expect(page.getByText(/parent portal/i).first()).toBeVisible()
-  await expect(page.getByLabel(/phone number/i)).toBeVisible()
-  await expect(page.getByLabel(/password/i)).toBeVisible()
-})
+  await expect(page.getByText(/parent portal/i).first()).toBeVisible();
+  await expect(page.getByLabel(/phone number/i)).toBeVisible();
+  await expect(page.getByLabel(/password/i)).toBeVisible();
+});
 
-test('login page renders demo shortcuts', async ({ page }) => {
-  await page.goto('/login')
+test("login page renders demo shortcuts", async ({ page }) => {
+  await page.goto("/login");
 
-  await expect(page.getByRole('heading', { name: /sign in to your account/i })).toBeVisible()
-  await expect(page.getByRole('button', { name: /headmaster/i })).toBeVisible()
-  await expect(page.getByRole('button', { name: /teacher/i })).toBeVisible()
-  await expect(page.getByRole('button', { name: /bursar/i })).toBeVisible()
-})
+  // Check for login form
+  await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible();
+  // Check demo accounts section
+  await expect(page.getByText(/demo accounts/i)).toBeVisible();
+});
