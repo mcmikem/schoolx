@@ -323,7 +323,9 @@ export function useOfflineSync() {
       try {
         const pending = await offlineDB.getPendingSync();
         setPendingCount(pending.length);
-      } catch {}
+      } catch (err) {
+        console.error("Failed to check pending sync:", err);
+      }
     };
 
     check();

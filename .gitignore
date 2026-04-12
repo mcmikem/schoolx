@@ -34,4 +34,7 @@ Thumbs.db
 .aider*
 playwright-report/
 test-results/
+
+# Next.js
+next-env.d.ts
 tsconfig.tsbuildinfo
