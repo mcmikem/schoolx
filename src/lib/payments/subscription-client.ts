@@ -1,154 +1,196 @@
-export type PlanType = 'free_trial' | 'basic' | 'premium' | 'max'
+// Subscription client - matches landing page pricing
+// Starter: UGX 2,000/student/term
+// Growth: UGX 3,500/student/term
+// Enterprise: UGX 5,500/student/term
+// Lifetime: UGX 8-15M one-time
+
+export type PlanType =
+  | "starter"
+  | "growth"
+  | "enterprise"
+  | "lifetime"
+  | "free_trial";
 
 export interface PlanFeatures {
-  name: string
-  maxStudents: number
-  maxSMSPerMonth: number
-  offlineMode: boolean
-  autoSMSReports: boolean
-  unebExport: boolean
-  pdfReports: boolean
-  whatsappIntegration: boolean
-  capitationTracking: boolean
-  dataExport: boolean
-  globalSearch: boolean
-  multiLanguage: boolean
-  parentPortal: boolean
-  customReports: boolean
-  prioritySupport: boolean
-  apiAccess: boolean
-  multiSchool: boolean
+  name: string;
+  pricePerStudent: number;
+  priceFrequency: "term" | "annual" | "one_time";
+  maxStudents: number;
+  adminUsers: number;
+  smsQuota: number;
+  offlineMode: boolean;
+  parentPortal: boolean;
+  syllabus: boolean;
+  lessonPlans: boolean;
+  dormManagement: boolean;
+  transport: boolean;
+  library: boolean;
+  budgets: boolean;
+  unebRegistration: boolean;
+  moesExports: boolean;
+  payroll: boolean;
+  staffLeave: boolean;
+  aiInsights: boolean;
+  workflowAutomation: boolean;
+  auditLogs: boolean;
+  apiAccess: boolean;
+  multiBranch: boolean;
 }
 
 export const PLANS: Record<PlanType, PlanFeatures> = {
   free_trial: {
-    name: 'Free Trial',
+    name: "Free Trial",
+    pricePerStudent: 0,
+    priceFrequency: "term",
     maxStudents: 100,
-    maxSMSPerMonth: 20,
+    adminUsers: 3,
+    smsQuota: 0,
     offlineMode: false,
-    autoSMSReports: false,
-    unebExport: false,
-    pdfReports: false,
-    whatsappIntegration: false,
-    capitationTracking: false,
-    dataExport: false,
-    globalSearch: false,
-    multiLanguage: false,
     parentPortal: false,
-    customReports: false,
-    prioritySupport: false,
+    syllabus: false,
+    lessonPlans: false,
+    dormManagement: false,
+    transport: false,
+    library: false,
+    budgets: false,
+    unebRegistration: false,
+    moesExports: false,
+    payroll: false,
+    staffLeave: false,
+    aiInsights: false,
+    workflowAutomation: false,
+    auditLogs: false,
     apiAccess: false,
-    multiSchool: false,
+    multiBranch: false,
   },
-  basic: {
-    name: 'Basic',
-    maxStudents: 300,
-    maxSMSPerMonth: 100,
-    offlineMode: false,
-    autoSMSReports: false,
-    unebExport: true,
-    pdfReports: true,
-    whatsappIntegration: false,
-    capitationTracking: false,
-    dataExport: true,
-    globalSearch: false,
-    multiLanguage: false,
-    parentPortal: false,
-    customReports: false,
-    prioritySupport: false,
-    apiAccess: false,
-    multiSchool: false,
-  },
-  premium: {
-    name: 'Premium',
-    maxStudents: 1000,
-    maxSMSPerMonth: 500,
-    offlineMode: false,
-    autoSMSReports: true,
-    unebExport: true,
-    pdfReports: true,
-    whatsappIntegration: true,
-    capitationTracking: true,
-    dataExport: true,
-    globalSearch: true,
-    multiLanguage: true,
-    parentPortal: true,
-    customReports: false,
-    prioritySupport: false,
-    apiAccess: false,
-    multiSchool: false,
-  },
-  max: {
-    name: 'Max',
-    maxStudents: Infinity,
-    maxSMSPerMonth: 2000,
+  starter: {
+    name: "Starter",
+    pricePerStudent: 2000,
+    priceFrequency: "term",
+    maxStudents: 500,
+    adminUsers: 3,
+    smsQuota: 0,
     offlineMode: true,
-    autoSMSReports: true,
-    unebExport: true,
-    pdfReports: true,
-    whatsappIntegration: true,
-    capitationTracking: true,
-    dataExport: true,
-    globalSearch: true,
-    multiLanguage: true,
-    parentPortal: true,
-    customReports: true,
-    prioritySupport: true,
-    apiAccess: true,
-    multiSchool: true,
+    parentPortal: false,
+    syllabus: false,
+    lessonPlans: false,
+    dormManagement: false,
+    transport: false,
+    library: false,
+    budgets: false,
+    unebRegistration: false,
+    moesExports: false,
+    payroll: false,
+    staffLeave: false,
+    aiInsights: false,
+    workflowAutomation: false,
+    auditLogs: false,
+    apiAccess: false,
+    multiBranch: false,
   },
+  growth: {
+    name: "Growth",
+    pricePerStudent: 3500,
+    priceFrequency: "term",
+    maxStudents: 2000,
+    adminUsers: 10,
+    smsQuota: 500,
+    offlineMode: true,
+    parentPortal: true,
+    syllabus: true,
+    lessonPlans: true,
+    dormManagement: true,
+    transport: true,
+    library: true,
+    budgets: true,
+    unebRegistration: false,
+    moesExports: false,
+    payroll: false,
+    staffLeave: false,
+    aiInsights: false,
+    workflowAutomation: false,
+    auditLogs: false,
+    apiAccess: false,
+    multiBranch: false,
+  },
+  enterprise: {
+    name: "Enterprise",
+    pricePerStudent: 5500,
+    priceFrequency: "term",
+    maxStudents: Infinity,
+    adminUsers: Infinity,
+    smsQuota: Infinity,
+    offlineMode: true,
+    parentPortal: true,
+    syllabus: true,
+    lessonPlans: true,
+    dormManagement: true,
+    transport: true,
+    library: true,
+    budgets: true,
+    unebRegistration: true,
+    moesExports: true,
+    payroll: true,
+    staffLeave: true,
+    aiInsights: true,
+    workflowAutomation: true,
+    auditLogs: true,
+    apiAccess: true,
+    multiBranch: true,
+  },
+  lifetime: {
+    name: "Lifetime",
+    pricePerStudent: 0,
+    priceFrequency: "one_time",
+    maxStudents: Infinity,
+    adminUsers: Infinity,
+    smsQuota: Infinity,
+    offlineMode: true,
+    parentPortal: true,
+    syllabus: true,
+    lessonPlans: true,
+    dormManagement: true,
+    transport: true,
+    library: true,
+    budgets: true,
+    unebRegistration: true,
+    moesExports: true,
+    payroll: true,
+    staffLeave: true,
+    aiInsights: true,
+    workflowAutomation: true,
+    auditLogs: true,
+    apiAccess: true,
+    multiBranch: true,
+  },
+};
+
+// Plan order for upgrades
+export const order: PlanType[] = [
+  "free_trial",
+  "starter",
+  "growth",
+  "enterprise",
+  "lifetime",
+];
+
+// Get next plan in order
+export function getNextPlan(currentPlan: PlanType): PlanType | null {
+  const currentIndex = order.indexOf(currentPlan);
+  if (currentIndex === -1 || currentIndex === order.length - 1) return null;
+  return order[currentIndex + 1];
 }
 
-export const PLAN_PRICES = {
-  free_trial: { term: 0 },
-  basic: { term: 100000 },
-  premium: { term: 200000 },
-  max: { term: 370000 },
+// Calculate price for student count
+export function calculatePrice(plan: PlanType, studentCount: number): number {
+  return PLANS[plan].pricePerStudent * studentCount;
 }
 
-export type PaymentProvider = 'paypal' | 'mtn' | 'airtel'
-
-export interface PaymentRequest {
-  plan: PlanType
-  provider: PaymentProvider
-  returnUrl?: string
-}
-
-export interface PaymentResponse {
-  success: boolean
-  redirectUrl?: string
-  error?: string
-}
-
-export function formatPrice(amount: number): string {
-  if (amount === 0) return 'Free'
-  return `UGX ${amount.toLocaleString()}`
-}
-
-export function getUpgradeMessage(feature: string): string {
-  return `This feature requires a higher plan. Upgrade to unlock ${feature}.`
-}
-
-export function canUseFeature(plan: PlanType, feature: keyof PlanFeatures): boolean {
-  return !!PLANS[plan][feature]
-}
-
-export function getFeatureLimit(plan: PlanType, feature: 'maxStudents' | 'maxSMSPerMonth'): number {
-  return PLANS[plan][feature]
-}
-
-export function isPlanUpgrade(current: PlanType, target: PlanType): boolean {
-  const order: PlanType[] = ['free_trial', 'basic', 'premium', 'max']
-  return order.indexOf(target) > order.indexOf(current)
-}
-
-export function getPlanUsageWarning(plan: PlanType, currentCount: number, limitKey: 'maxStudents' | 'maxSMSPerMonth'): string | null {
-  const limit = getFeatureLimit(plan, limitKey)
-  if (currentCount >= limit) {
-    return `You've reached your plan limit of ${limit === Infinity ? '∞' : limit.toLocaleString()} ${limitKey === 'maxStudents' ? 'students' : 'SMS messages'}. Upgrade to add more.`
-  }
-  if (currentCount >= limit * 0.8) {
-    return `You're at ${Math.round((currentCount / limit) * 100)}% of your ${limitKey === 'maxStudents' ? 'student' : 'SMS'} limit (${currentCount}/${limit === Infinity ? '∞' : limit.toLocaleString()}). Consider upgrading.`
-  }
-  return null
+// Check if feature is available
+export function hasFeature(
+  plan: PlanType,
+  feature: keyof PlanFeatures,
+): boolean {
+  const value = PLANS[plan][feature];
+  return value === true || value === Infinity;
 }
