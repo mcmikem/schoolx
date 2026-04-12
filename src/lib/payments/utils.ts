@@ -219,14 +219,23 @@ export async function activateSchoolSubscription(
 }
 
 // Get school payment history
-export async function getSchoolPaymentHistory(schoolId: string) {
+export async function getSchoolPaymentHistory(
+  schoolId: string,
+  limit?: number,
+) {
   const supabase = await createSupabaseServerClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("subscription_history")
     .select("*")
     .eq("school_id", schoolId)
     .order("created_at", { ascending: false });
+
+  if (limit) {
+    query = query.limit(limit);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
   return data;
