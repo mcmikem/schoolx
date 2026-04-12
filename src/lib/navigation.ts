@@ -66,7 +66,6 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       defaultOpen: true,
       items: [
         { href: "/dashboard", label: "Dashboard Home", icon: "dashboard" },
-
         {
           href: "/dashboard/analytics/dna",
           label: "Performance DNA",
@@ -82,6 +81,11 @@ export const navigationByRole: Record<string, NavGroup[]> = {
           href: "/dashboard/messages",
           label: "Messages",
           icon: "chat",
+        },
+        {
+          href: "/dashboard/suggestions",
+          label: "Suggestions",
+          icon: "lightbulb",
         },
       ],
     },
@@ -670,6 +674,11 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       items: [
         { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
         { href: "/dashboard/notices", label: "Notices", icon: "campaign" },
+        {
+          href: "/dashboard/suggestions",
+          label: "Suggestions",
+          icon: "lightbulb",
+        },
       ],
     },
     {
