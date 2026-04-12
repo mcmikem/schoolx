@@ -186,7 +186,7 @@ export interface SubjectGrades {
   ca3: number;
   ca4: number;
   project: number;
-  aoi: number; // Activities of Integration (NCDC new curriculum)
+  aoi?: number; // Activities of Integration (optional for backward compat)
   exam: number;
   totalCA: number;
   finalScore: number;
