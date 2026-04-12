@@ -337,7 +337,7 @@ function HeadmasterDashboardContent() {
         </div>
       </div>
 
-      <div className="stat-grid !mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 !mb-8">
         <StatCard
           label="Total Students"
           value={stats.totalStudents || students.length || 0}
@@ -365,6 +365,15 @@ function HeadmasterDashboardContent() {
           variant="premium-amber"
           loading={loadingExtra}
         />
+        <StatCard
+          label="Staff"
+          value={staff.length}
+          subValue={`${staff.filter((s: any) => s.role === "teacher").length} teachers`}
+          icon="school"
+          accentColor="purple"
+          variant="premium-navy"
+          loading={loadingExtra}
+        />
       </div>
 
       <SmartAdvisor
@@ -386,8 +395,8 @@ function HeadmasterDashboardContent() {
         />
       </div>
 
-      {/* Analytics Section - secondary on mobile */}
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
+      {/* Analytics Section - hidden on mobile, shown on larger screens */}
+      <div className="hidden xl:block grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
         <div className="xl:col-span-3">
           <DashboardInsights
             stats={stats}
@@ -407,7 +416,6 @@ function HeadmasterDashboardContent() {
           />
         </div>
       </div>
-
     </div>
   );
 }
