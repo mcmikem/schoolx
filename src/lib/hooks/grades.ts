@@ -10,6 +10,47 @@ import {
   logRecordChangeWithOfflineSupport,
 } from "@/lib/audit";
 
+// NCDC 2025 Competency Levels
+export const COMPETENCY_LEVELS = [
+  {
+    id: "not_started",
+    name: "Not Started",
+    abbreviation: "NS",
+    min_score: 0,
+    max_score: 0,
+  },
+  {
+    id: "developing",
+    name: "Developing",
+    abbreviation: "D",
+    min_score: 1,
+    max_score: 29,
+  },
+  {
+    id: "demonstrates",
+    name: "Demonstrates",
+    abbreviation: "DEM",
+    min_score: 30,
+    max_score: 59,
+  },
+  {
+    id: "mastered",
+    name: "Mastered",
+    abbreviation: "M",
+    min_score: 60,
+    max_score: 89,
+  },
+  {
+    id: "extended",
+    name: "Extended",
+    abbreviation: "E",
+    min_score: 90,
+    max_score: 100,
+  },
+] as const;
+
+export type AssessmentType = "numerical" | "competency" | "both";
+
 export function useGrades(
   classId?: string,
   subjectId?: string,
@@ -288,7 +329,9 @@ export function useExamScores(
         .single();
       if (error) {
         if (error.code === "42P01") {
-          throw new Error("Exam scores table not set up. Contact your admin to run migrations.");
+          throw new Error(
+            "Exam scores table not set up. Contact your admin to run migrations.",
+          );
         }
         throw error;
       }
@@ -408,7 +451,9 @@ export function useExams(schoolId?: string) {
         .single();
       if (error) {
         if (error.code === "42P01") {
-          throw new Error("Exams table not set up. Contact your admin to run migrations.");
+          throw new Error(
+            "Exams table not set up. Contact your admin to run migrations.",
+          );
         }
         throw error;
       }
@@ -471,4 +516,33 @@ export function useExams(schoolId?: string) {
   }, [schoolId, isDemo]);
 
   return { exams, loading, createExam, deleteExam };
+}
+
+// Helper function: Convert numerical score to competency level
+export function scoreToCompetency(score: number, maxScore = 100): string {
+  const percentage = (score / maxScore) * 100;
+  if (percentage < 30) return "developing";
+  if (percentage < 60) return "demonstrates";
+  if (percentage < 90) return "mastered";
+  return "extended";
+}
+
+// Helper function: Convert competency to numerical range description
+export function competencyToRange(competency: string): string {
+  const level = COMPETENCY_LEVELS.find((c) => c.id === competency);
+  return level
+    ? `${level.name} (${level.min_score}%-${level.max_score}%)`
+    : "Unknown";
+}
+
+// Helper function: Get grade classification based on assessment type
+export function classifyGrade(
+  score: number,
+  maxScore: number,
+  assessmentType: "numerical" | "competency" = "numerical",
+): string | number {
+  if (assessmentType === "competency") {
+    return scoreToCompetency(score, maxScore);
+  }
+  return Math.round((score / maxScore) * 100);
 }
