@@ -265,7 +265,7 @@ const osxLinks = [
 const faqItems = [
   {
     q: "Do I need internet to use SkoolMate OS?",
-    a: "SkoolMate OS works best with internet, but the Premium and Max plans include offline mode. Teachers can mark attendance and enter grades without connection, and everything syncs automatically when internet returns.",
+    a: "SkoolMate OS works best with internet, but all plans include offline mode. Teachers can mark attendance and enter grades without connection, and everything syncs automatically when internet returns.",
   },
   {
     q: "Can I import my existing student data?",
