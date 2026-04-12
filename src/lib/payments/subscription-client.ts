@@ -194,3 +194,27 @@ export function hasFeature(
   const value = PLANS[plan][feature];
   return value === true || value === Infinity;
 }
+
+// Get feature limit value
+export function getFeatureLimit(
+  plan: PlanType,
+  feature: keyof PlanFeatures,
+): number {
+  const value = PLANS[plan][feature];
+  if (value === Infinity) return -1;
+  return typeof value === "number" ? value : 0;
+}
+
+// Get plan usage warning message
+export function getPlanUsageWarning(
+  plan: PlanType,
+  currentCount: number,
+  feature: keyof PlanFeatures,
+): string | null {
+  const limit = getFeatureLimit(plan, feature);
+  if (limit === -1) return null; // Unlimited
+  if (currentCount >= limit) {
+    return `You've reached the ${feature} limit (${limit}) for your ${plan} plan. Upgrade to unlock more.`;
+  }
+  return null;
+}
