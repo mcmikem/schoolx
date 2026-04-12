@@ -46,6 +46,6 @@ test("login page renders demo shortcuts", async ({ page }) => {
 
   // Check for login form
   await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible();
-  // Check demo accounts section
-  await expect(page.getByText(/demo accounts/i)).toBeVisible();
+  // Check demo accounts section - updated text
+  await expect(page.getByText(/try demo account/i)).toBeVisible();
 });
