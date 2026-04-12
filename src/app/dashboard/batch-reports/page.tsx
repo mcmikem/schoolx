@@ -19,7 +19,11 @@ export default function BatchReportsPage() {
 
   useEffect(() => {
     if (!school?.id) return;
-    supabase.from("classes").select("id, name, stream").eq("school_id", school.id).then(({ data }) => setClasses(data || []));
+    supabase
+      .from("classes")
+      .select("id, name, stream")
+      .eq("school_id", school.id)
+      .then(({ data }) => setClasses(data || []));
   }, [school?.id]);
 
   const loadStudents = async () => {
@@ -36,24 +40,34 @@ export default function BatchReportsPage() {
   };
 
   const toggleStudent = (id: string) => {
-    setSelected((prev) => prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]);
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
+    );
   };
 
   const toggleAll = () => {
-    setSelected(selected.length === students.length ? [] : students.map((s) => s.id));
+    setSelected(
+      selected.length === students.length ? [] : students.map((s) => s.id),
+    );
   };
 
   const handleGenerate = () => {
     // In production: trigger jsPDF batch generation for each student
-    alert(`Generating ${selected.length} report cards for Term ${term}, ${academicYear}.\n\nThis will open a print preview for batch printing.`);
+    alert(
+      `Generating ${selected.length} report cards for Term ${term}, ${academicYear}.\n\nThis will open a print preview for batch printing.`,
+    );
   };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight">Batch Report Cards</h1>
-          <p className="text-slate-500 font-medium tracking-tight">Generate and print report cards for an entire class at once</p>
+          <h1 className="text-3xl font-black text-slate-800 tracking-tight">
+            Batch Report Cards
+          </h1>
+          <p className="text-slate-500 font-medium tracking-tight">
+            Generate and print report cards for an entire class at once
+          </p>
         </div>
         <button
           onClick={handleGenerate}
@@ -67,18 +81,24 @@ export default function BatchReportsPage() {
 
       {/* Config */}
       <div className={cardClassName + " p-8"}>
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6">Batch Configuration</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6">
+          Batch Configuration
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Academic Year</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+              Academic Year
+            </label>
             <input
               readOnly
-              value={academicYear || "2026"}
+              value={academicYear}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-600 text-sm"
             />
           </div>
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Term</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+              Term
+            </label>
             <select
               value={term}
               onChange={(e) => setTerm(e.target.value)}
@@ -90,7 +110,9 @@ export default function BatchReportsPage() {
             </select>
           </div>
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Class</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+              Class
+            </label>
             <div className="flex gap-3">
               <select
                 value={selectedClass}
@@ -98,14 +120,22 @@ export default function BatchReportsPage() {
                 className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-800 text-sm outline-none"
               >
                 <option value="">Choose class...</option>
-                {classes.map((c) => <option key={c.id} value={c.id}>{c.name} {c.stream || ""}</option>)}
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} {c.stream || ""}
+                  </option>
+                ))}
               </select>
               <button
                 onClick={loadStudents}
                 disabled={!selectedClass || loading}
                 className="px-4 py-3 bg-slate-800 text-white rounded-2xl font-bold text-sm hover:scale-105 transition-all disabled:opacity-40"
               >
-                {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" /> : <MaterialIcon icon="search" />}
+                {loading ? (
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
+                ) : (
+                  <MaterialIcon icon="search" />
+                )}
               </button>
             </div>
           </div>
@@ -117,12 +147,25 @@ export default function BatchReportsPage() {
         <div className={cardClassName + " overflow-hidden"}>
           <div className="p-5 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <input type="checkbox" checked={selected.length === students.length} onChange={toggleAll} className="w-4 h-4 rounded accent-slate-800 cursor-pointer" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{students.length} Students Found</p>
+              <input
+                type="checkbox"
+                checked={selected.length === students.length}
+                onChange={toggleAll}
+                className="w-4 h-4 rounded accent-slate-800 cursor-pointer"
+              />
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                {students.length} Students Found
+              </p>
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100">
-              <MaterialIcon icon="check_circle" className="text-emerald-500" style={{ fontSize: 16 }} />
-              <span className="text-xs font-bold text-slate-600">{selected.length} selected</span>
+              <MaterialIcon
+                icon="check_circle"
+                className="text-emerald-500"
+                style={{ fontSize: 16 }}
+              />
+              <span className="text-xs font-bold text-slate-600">
+                {selected.length} selected
+              </span>
             </div>
           </div>
 
@@ -142,8 +185,12 @@ export default function BatchReportsPage() {
                   {i + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-slate-800">{student.first_name} {student.last_name}</p>
-                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{student.student_number}</p>
+                  <p className="text-sm font-bold text-slate-800">
+                    {student.first_name} {student.last_name}
+                  </p>
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                    {student.student_number}
+                  </p>
                 </div>
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                   <span className="px-3 py-1 bg-slate-800 text-white text-[9px] font-black uppercase tracking-widest rounded-full">
@@ -156,7 +203,8 @@ export default function BatchReportsPage() {
 
           <div className="p-6 bg-slate-50/50 border-t border-slate-50 flex justify-between items-center">
             <p className="text-xs text-slate-400 font-medium italic">
-              Each report card will be generated as a separate page in a single print job
+              Each report card will be generated as a separate page in a single
+              print job
             </p>
             <button
               onClick={handleGenerate}
@@ -172,8 +220,14 @@ export default function BatchReportsPage() {
 
       {students.length === 0 && selectedClass && !loading && (
         <div className={cardClassName + " p-20 text-center"}>
-          <MaterialIcon icon="group_off" style={{ fontSize: 48 }} className="text-slate-200 mb-4" />
-          <p className="text-slate-400 font-medium">No active students found in this class.</p>
+          <MaterialIcon
+            icon="group_off"
+            style={{ fontSize: 48 }}
+            className="text-slate-200 mb-4"
+          />
+          <p className="text-slate-400 font-medium">
+            No active students found in this class.
+          </p>
         </div>
       )}
     </div>
