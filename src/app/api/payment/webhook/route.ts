@@ -211,9 +211,10 @@ export async function POST(request: Request) {
 
 // Map Stripe price IDs to our plan types
 const PRICE_TO_PLAN_MAP: Record<string, PlanType> = {
-  price_basic: "basic",
-  price_premium: "premium",
-  price_max: "max",
+  price_starter: "starter",
+  price_growth: "growth",
+  price_enterprise: "enterprise",
+  price_lifetime: "lifetime",
 };
 
 // Helper function to determine plan from Stripe price
@@ -228,15 +229,15 @@ function determinePlanFromPrice(price: any): PlanType {
   // Fallback: try to determine from amount (in cents)
   const amount = price?.unit_amount;
   if (amount) {
-    // These are approximate USD amounts in cents
-    if (amount <= 500) return "free_trial"; // Free trial
-    if (amount <= 2500) return "basic"; // ~$25/month
-    if (amount <= 5000) return "premium"; // ~$50/month
-    return "max"; // ~$75+/month
+    // These are approximate USD amounts in cents (converted from UGX pricing)
+    if (amount <= 500) return "starter"; // Starter
+    if (amount <= 3500) return "growth"; // Growth
+    if (amount <= 5500) return "enterprise"; // Enterprise
+    return "lifetime"; // Lifetime
   }
 
-  // Default to premium if we can't determine
-  return "premium";
+  // Default to growth if we can't determine
+  return "growth";
 }
 function mapStripeSubscriptionStatus(
   status: any,

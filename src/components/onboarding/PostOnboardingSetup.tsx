@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function PostOnboardingSetup({ onComplete }: Props) {
+  const router = useRouter();
   const { school, refreshSchool } = useAuth();
   const toast = useToast();
   const [step, setStep] = useState(1);
@@ -101,9 +103,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
               </div>
               <Button
                 className="w-full"
-                onClick={() =>
-                  (window.location.href = "/dashboard/settings?tab=config")
-                }
+                onClick={() => router.push("/dashboard/settings?tab=config")}
               >
                 Configure Calendar
               </Button>
@@ -137,9 +137,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
               </div>
               <Button
                 className="w-full"
-                onClick={() =>
-                  (window.location.href = "/dashboard/settings?tab=config")
-                }
+                onClick={() => router.push("/dashboard/settings?tab=config")}
               >
                 Add Classes
               </Button>
@@ -173,7 +171,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
               </div>
               <Button
                 className="w-full"
-                onClick={() => (window.location.href = "/dashboard/fees")}
+                onClick={() => router.push("/dashboard/fees")}
               >
                 Configure Fees
               </Button>
@@ -207,9 +205,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
               </div>
               <Button
                 className="w-full"
-                onClick={() =>
-                  (window.location.href = "/dashboard/settings?tab=users")
-                }
+                onClick={() => router.push("/dashboard/settings?tab=users")}
               >
                 Add Staff
               </Button>
@@ -240,9 +236,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
               </div>
               <Button
                 className="w-full"
-                onClick={() =>
-                  (window.location.href = "/dashboard/sms-templates")
-                }
+                onClick={() => router.push("/dashboard/sms-templates")}
               >
                 Set Up SMS
               </Button>

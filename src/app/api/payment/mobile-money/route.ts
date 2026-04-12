@@ -83,8 +83,8 @@ export async function POST(request: NextRequest) {
       plan,
       amount,
       provider,
-      phoneNumber,
-      txRef: paymentLink.txRef,
+      phone: phoneNumber,
+      reference: paymentLink.txRef,
     });
 
     await recordPayment({
@@ -94,7 +94,6 @@ export async function POST(request: NextRequest) {
       provider,
       transactionId: paymentLink.txRef,
       paymentStatus: "pending",
-      phoneNumber,
     });
 
     return NextResponse.json(

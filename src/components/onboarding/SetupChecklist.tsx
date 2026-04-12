@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export default function SetupChecklist({ onComplete, showAll = false }: Props) {
+  const router = useRouter();
   const { school, user } = useAuth();
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -235,9 +237,7 @@ export default function SetupChecklist({ onComplete, showAll = false }: Props) {
                   </Button>
                   <Button
                     size="sm"
-                    onClick={() =>
-                      (window.location.href = getItemRoute(item.item_key))
-                    }
+                    onClick={() => router.push(getItemRoute(item.item_key))}
                   >
                     Setup
                   </Button>
@@ -248,9 +248,7 @@ export default function SetupChecklist({ onComplete, showAll = false }: Props) {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() =>
-                    (window.location.href = getItemRoute(item.item_key))
-                  }
+                  onClick={() => router.push(getItemRoute(item.item_key))}
                 >
                   View
                 </Button>
@@ -263,9 +261,7 @@ export default function SetupChecklist({ onComplete, showAll = false }: Props) {
           <Button
             variant="secondary"
             className="w-full mt-4"
-            onClick={() =>
-              (window.location.href = "/dashboard/settings?tab=checklist")
-            }
+            onClick={() => router.push("/dashboard/settings?tab=checklist")}
           >
             View All {incompleteItems.length} Items
           </Button>

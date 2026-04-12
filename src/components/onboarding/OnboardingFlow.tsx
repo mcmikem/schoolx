@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Button, Input, Select } from "@/components/ui";
@@ -14,6 +15,7 @@ export default function OnboardingFlow({
 }: {
   onComplete: () => void;
 }) {
+  const router = useRouter();
   const { school, user, refreshSchool } = useAuth();
   const toast = useToast();
   const [step, setStep] = useState(1);
@@ -107,7 +109,7 @@ export default function OnboardingFlow({
       onComplete();
 
       if (activationChoice === "premium") {
-        window.location.href = "/dashboard/settings?tab=subscription";
+        router.push("/dashboard/settings?tab=subscription");
       } else {
         toast.success("Welcome aboard! Your 30-day trial is active.");
       }

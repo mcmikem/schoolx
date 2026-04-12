@@ -148,7 +148,7 @@ export default function SuperAdminDashboard() {
         name: s.name,
         district: s.district || "Unknown",
         ownership: s.ownership || "private",
-        subscription_plan: s.subscription_plan || "basic",
+        subscription_plan: s.subscription_plan || "starter",
         subscription_status: s.subscription_status || "trial",
         created_at: s.created_at,
         primary_color: s.primary_color || "#001F3F",
@@ -196,7 +196,7 @@ export default function SuperAdminDashboard() {
         name: "St. Mary's Primary School",
         district: "Kampala",
         ownership: "private",
-        subscription_plan: "premium",
+        subscription_plan: "growth",
         subscription_status: "active",
         created_at: "2024-01-15",
         student_count: 850,
@@ -223,7 +223,7 @@ export default function SuperAdminDashboard() {
         name: "Kampala Junior School",
         district: "Kampala",
         ownership: "private",
-        subscription_plan: "basic",
+        subscription_plan: "starter",
         subscription_status: "active",
         created_at: "2024-03-20",
         student_count: 420,
@@ -277,7 +277,7 @@ export default function SuperAdminDashboard() {
         name: "Jinja College",
         district: "Jinja",
         ownership: "private",
-        subscription_plan: "premium",
+        subscription_plan: "growth",
         subscription_status: "active",
         created_at: "2023-08-01",
         student_count: 980,
@@ -304,7 +304,7 @@ export default function SuperAdminDashboard() {
         name: "Soroti Primary School",
         district: "Soroti",
         ownership: "government",
-        subscription_plan: "basic",
+        subscription_plan: "starter",
         subscription_status: "active",
         created_at: "2023-05-15",
         student_count: 560,
@@ -728,9 +728,10 @@ export default function SuperAdminDashboard() {
                           }
                           className="text-xs bg-surface-container px-2 py-1 rounded border-none"
                         >
-                          <option value="basic">Basic</option>
-                          <option value="standard">Standard</option>
-                          <option value="premium">Premium</option>
+                          <option value="starter">Starter</option>
+                          <option value="growth">Growth</option>
+                          <option value="enterprise">Enterprise</option>
+                          <option value="lifetime">Lifetime</option>
                         </select>
                       </td>
                       <td className="px-4 py-3">

@@ -1,8 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPayPalOrder } from "@/lib/payments/paypal";
+import { createMobileMoneyPaymentLink } from "@/lib/payments/mobile-money";
 import { PlanType } from "@/lib/subscription";
-import { getPlanPrice, recordPayment } from "@/lib/payments/utils";
+import {
+  getPlanPrice,
+  recordPayment,
+  savePendingMobilePayment,
+} from "@/lib/payments/utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const plan = searchParams.get("plan") as PlanType;
+
+  if (!plan) {
+    return NextResponse.redirect(
+      new URL(
+        "/dashboard/settings?tab=subscription&error=no_plan",
+        request.url,
+      ),
+    );
+  }
+
+  return NextResponse.redirect(
+    new URL(`/dashboard/settings?tab=subscription&plan=${plan}`, request.url),
+  );
+}
 
 export async function POST(request: NextRequest) {
   try {

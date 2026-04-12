@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
@@ -127,9 +128,12 @@ export default function SettingsPage() {
     "unknown" | "ok" | "error"
   >("unknown");
   const [selectedPlan, setSelectedPlan] = useState<string>(
-    school?.subscription_plan || "basic",
+    school?.subscription_plan || "starter",
   );
   const [upgradingPlan, setUpgradingPlan] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedPaymentPlan, setSelectedPaymentPlan] = useState<string>("");
+  const searchParams = useSearchParams();
   const [selectedStage, setSelectedStage] = useState<FeatureStage>(
     (school?.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
   );
@@ -217,6 +221,18 @@ export default function SettingsPage() {
     }
   }, [school?.id, fetchSettings]);
 
+  useEffect(() => {
+    const plan = searchParams?.get("plan");
+    const error = searchParams?.get("error");
+    if (plan) {
+      setSelectedPaymentPlan(plan);
+      setShowPaymentModal(true);
+    }
+    if (error === "no_plan") {
+      toast.error("Please select a plan to upgrade");
+    }
+  }, [searchParams, toast]);
+
   const saveSettings = async (key: string, value: string) => {
     if (!school?.id) return;
     try {
@@ -241,29 +257,106 @@ export default function SettingsPage() {
 
   const handlePlanUpgrade = async (plan: string) => {
     if (!school?.id) return;
+
+    // For free plans, just switch directly
+    if (plan === "starter" || plan === "free_trial") {
+      setUpgradingPlan(true);
+      try {
+        const { error } = await supabase
+          .from("schools")
+          .update({
+            subscription_plan: plan,
+            subscription_status: "trial",
+          })
+          .eq("id", school.id);
+
+        if (error) throw error;
+
+        await refreshSchool();
+        toast.success(`Successfully switched to ${plan.toUpperCase()} plan!`);
+      } catch (err: any) {
+        console.error("Plan upgrade error:", err);
+        toast.error(err.message || "Failed to update plan. Please try again.");
+      } finally {
+        setUpgradingPlan(false);
+      }
+      return;
+    }
+
+    // For paid plans, show payment modal
+    setSelectedPaymentPlan(plan);
+    setShowPaymentModal(true);
+  };
+
+  const initiatePayment = async (provider: "mtn" | "airtel" | "paypal") => {
+    if (!school?.id || !selectedPaymentPlan) return;
+
     setUpgradingPlan(true);
     try {
-      // Update the school's subscription plan
-      const { error } = await supabase
-        .from("schools")
-        .update({
-          subscription_plan: plan,
-          subscription_status: "active",
-        })
-        .eq("id", school.id);
+      let paymentData: {
+        url?: string;
+        link?: string;
+        txRef?: string;
+        error?: string;
+      };
 
-      if (error) throw error;
+      if (provider === "mtn" || provider === "airtel") {
+        const phone = prompt(
+          `Enter your ${provider === "mtn" ? "MTN" : "Airtel"} phone number (e.g., 0772000000):`,
+        );
+        if (!phone) {
+          setUpgradingPlan(false);
+          return;
+        }
 
-      await refreshSchool();
-      toast.success(`Successfully switched to ${plan.toUpperCase()} plan!`);
+        const response = await fetch("/api/payment/mobile-money", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider,
+            plan: selectedPaymentPlan,
+            phoneNumber: phone,
+          }),
+        });
 
-      // Redirect to payment if upgrading to premium/max
-      if (plan === "premium" || plan === "max") {
-        window.location.href = "/api/payment/checkout?plan=" + plan;
+        const result = await response.json();
+        if (!response.ok || result.error) {
+          throw new Error(result.error || "Payment failed");
+        }
+
+        paymentData = result;
+
+        if (result.paymentLink) {
+          window.location.href = result.paymentLink;
+        }
+      } else {
+        // PayPal
+        const response = await fetch("/api/payment/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider: "paypal",
+            plan: selectedPaymentPlan,
+          }),
+        });
+
+        const result = await response.json();
+        if (!response.ok || result.error) {
+          throw new Error(result.error || "Payment failed");
+        }
+
+        paymentData = result;
+
+        if (result.url) {
+          window.location.href = result.url;
+        }
       }
+
+      setShowPaymentModal(false);
+      toast.success("Redirecting to payment...");
     } catch (err: any) {
-      console.error("Plan upgrade error:", err);
-      toast.error(err.message || "Failed to update plan. Please try again.");
+      console.error("Payment error:", err);
+      toast.error(err.message || "Failed to initiate payment");
     } finally {
       setUpgradingPlan(false);
     }
@@ -935,6 +1028,88 @@ export default function SettingsPage() {
                         <div className="w-24 h-3 bg-[var(--border)] rounded" />
                       </div>
                     </div>
+
+                    {/* Payment Modal */}
+                    {showPaymentModal && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                        <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-bold text-[var(--on-surface)]">
+                              Complete Payment
+                            </h3>
+                            <button
+                              onClick={() => setShowPaymentModal(false)}
+                              className="text-[var(--t3)] hover:text-[var(--on-surface)]"
+                            >
+                              <MaterialIcon icon="close" />
+                            </button>
+                          </div>
+
+                          <div className="mb-6">
+                            <p className="text-[var(--t3)] mb-2">
+                              You selected{" "}
+                              <strong>
+                                {selectedPaymentPlan?.toUpperCase()}
+                              </strong>{" "}
+                              plan
+                            </p>
+                            <p className="text-sm text-[var(--t3)]">
+                              Choose your payment method:
+                            </p>
+                          </div>
+
+                          <div className="space-y-3">
+                            <button
+                              onClick={() => initiatePayment("mtn")}
+                              disabled={upgradingPlan}
+                              className="w-full p-4 rounded-xl border-2 border-yellow-400 bg-yellow-50 hover:bg-yellow-100 flex items-center gap-3 transition-colors"
+                            >
+                              <span className="text-2xl">🟡</span>
+                              <div className="text-left">
+                                <div className="font-semibold text-[var(--on-surface)]">
+                                  MTN Mobile Money
+                                </div>
+                                <div className="text-xs text-[var(--t3)]">
+                                  Instant payment via MoMo
+                                </div>
+                              </div>
+                            </button>
+
+                            <button
+                              onClick={() => initiatePayment("airtel")}
+                              disabled={upgradingPlan}
+                              className="w-full p-4 rounded-xl border-2 border-red-400 bg-red-50 hover:bg-red-100 flex items-center gap-3 transition-colors"
+                            >
+                              <span className="text-2xl">🔴</span>
+                              <div className="text-left">
+                                <div className="font-semibold text-[var(--on-surface)]">
+                                  Airtel Money
+                                </div>
+                                <div className="text-xs text-[var(--t3)]">
+                                  Instant payment via Airtel
+                                </div>
+                              </div>
+                            </button>
+
+                            <button
+                              onClick={() => initiatePayment("paypal")}
+                              disabled={upgradingPlan}
+                              className="w-full p-4 rounded-xl border-2 border-blue-500 bg-blue-50 hover:bg-blue-100 flex items-center gap-3 transition-colors"
+                            >
+                              <span className="text-2xl">💳</span>
+                              <div className="text-left">
+                                <div className="font-semibold text-[var(--on-surface)]">
+                                  PayPal
+                                </div>
+                                <div className="text-xs text-[var(--t3)]">
+                                  International cards accepted
+                                </div>
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </CardBody>
                 </Card>
               ))}
@@ -1200,8 +1375,8 @@ export default function SettingsPage() {
                   <Button
                     variant="secondary"
                     className="w-full"
-                    loading={upgradingPlan && selectedPlan === "free_trial"}
-                    onClick={() => handlePlanUpgrade("free_trial")}
+                    loading={upgradingPlan && selectedPlan === "starter"}
+                    onClick={() => handlePlanUpgrade("starter")}
                   >
                     Active
                   </Button>
@@ -1212,12 +1387,12 @@ export default function SettingsPage() {
                     Most Popular
                   </div>
                   <div className="text-sm font-bold text-[var(--primary)] uppercase tracking-wider mb-2">
-                    Standard
+                    Growth
                   </div>
                   <div className="text-2xl font-bold mb-4">
-                    UGX 600k{" "}
+                    UGX 3,500{" "}
                     <span className="text-sm font-normal text-[var(--t3)]">
-                      / term
+                      / month
                     </span>
                   </div>
                   <ul className="space-y-3 mb-6">
@@ -1245,10 +1420,10 @@ export default function SettingsPage() {
                   </ul>
                   <Button
                     className="w-full"
-                    loading={upgradingPlan && selectedPlan === "basic"}
-                    onClick={() => handlePlanUpgrade("basic")}
+                    loading={upgradingPlan && selectedPlan === "growth"}
+                    onClick={() => handlePlanUpgrade("growth")}
                   >
-                    {school?.subscription_plan === "basic"
+                    {school?.subscription_plan === "growth"
                       ? "Current Plan"
                       : "Select"}
                   </Button>
@@ -1256,12 +1431,12 @@ export default function SettingsPage() {
 
                 <div className="p-6 rounded-2xl border-2 border-[var(--border)] bg-[var(--surface-container-low)]">
                   <div className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-2">
-                    Premium
+                    Enterprise
                   </div>
                   <div className="text-2xl font-bold mb-4">
-                    UGX 1.2M{" "}
+                    UGX 5,500{" "}
                     <span className="text-sm font-normal text-[var(--t3)]">
-                      / term
+                      / month
                     </span>
                   </div>
                   <ul className="space-y-3 mb-6">
@@ -1290,10 +1465,10 @@ export default function SettingsPage() {
                   <Button
                     variant="secondary"
                     className="w-full"
-                    loading={upgradingPlan && selectedPlan === "premium"}
-                    onClick={() => handlePlanUpgrade("premium")}
+                    loading={upgradingPlan && selectedPlan === "enterprise"}
+                    onClick={() => handlePlanUpgrade("enterprise")}
                   >
-                    {school?.subscription_plan === "premium"
+                    {school?.subscription_plan === "enterprise"
                       ? "Current Plan"
                       : "Upgrade"}
                   </Button>
