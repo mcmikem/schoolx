@@ -2,9 +2,26 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useClasses, useSubjects } from "@/lib/hooks";
+import { useAcademic } from "@/lib/academic-context";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useToast } from "@/components/Toast";
+import {
+  S1_ALL_SUBJECTS,
+  S2_ALL_SUBJECTS,
+  S3_ALL_SUBJECTS,
+  S4_ALL_SUBJECTS,
+  S5_ALL_SUBJECTS,
+  S6_ALL_SUBJECTS,
+  P1_ALL_SUBJECTS,
+  P2_ALL_SUBJECTS,
+  P3_ALL_SUBJECTS,
+  P4_ALL_SUBJECTS,
+  P5_ALL_SUBJECTS,
+  P6_ALL_SUBJECTS,
+  P7_ALL_SUBJECTS,
+  NSDCTopic,
+} from "@/lib/ndc-syllabus";
 
 interface SyllabusTopic {
   id: string;
@@ -23,6 +40,7 @@ export default function SyllabusPage() {
   const toast = useToast();
   const { classes } = useClasses(school?.id);
   const { subjects } = useSubjects(school?.id, false);
+  const { academicYear } = useAcademic();
 
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
@@ -38,6 +56,91 @@ export default function SyllabusPage() {
     weeks_covered: "",
     resources: "",
   });
+  const [populating, setPopulating] = useState(false);
+
+  const getClassLevel = (className: string): number => {
+    const match = className.match(/S[1-6]/);
+    if (match) return parseInt(match[0].replace("S", ""));
+    const pMatch = className.match(/P[1-7]/);
+    if (pMatch) return parseInt(pMatch[0].replace("P", ""));
+    return 1;
+  };
+
+  const getNDCCTopics = (): NSDCTopic[] => {
+    const level = getClassLevel(
+      classes.find((c) => c.id === selectedClass)?.name || "",
+    );
+    const subjectName =
+      subjects.find((s) => s.id === selectedSubject)?.name || "";
+
+    if (level >= 1 && level <= 3) {
+      const primaryMap: Record<number, NSDCTopic[]> = {
+        1: P1_ALL_SUBJECTS,
+        2: P2_ALL_SUBJECTS,
+        3: P3_ALL_SUBJECTS,
+      };
+      return (primaryMap[level] || []).filter(
+        (t) => t.subject.toLowerCase() === subjectName.toLowerCase(),
+      );
+    }
+
+    if (level >= 4 && level <= 7) {
+      const upperPrimaryMap: Record<number, NSDCTopic[]> = {
+        4: P4_ALL_SUBJECTS,
+        5: P5_ALL_SUBJECTS,
+        6: P6_ALL_SUBJECTS,
+        7: P7_ALL_SUBJECTS,
+      };
+      return (upperPrimaryMap[level] || []).filter(
+        (t) => t.subject.toLowerCase() === subjectName.toLowerCase(),
+      );
+    }
+
+    const secondaryMap: Record<number, NSDCTopic[]> = {
+      1: S1_ALL_SUBJECTS,
+      2: S2_ALL_SUBJECTS,
+      3: S3_ALL_SUBJECTS,
+      4: S4_ALL_SUBJECTS,
+      5: S5_ALL_SUBJECTS,
+      6: S6_ALL_SUBJECTS,
+    };
+    return (secondaryMap[level] || []).filter(
+      (t) => t.subject.toLowerCase() === subjectName.toLowerCase(),
+    );
+  };
+
+  const handleAutoPopulate = async () => {
+    if (!school?.id || !selectedClass || !selectedSubject || !user?.id) return;
+    setPopulating(true);
+    try {
+      const ncdcTopics = getNDCCTopics();
+      if (ncdcTopics.length === 0) {
+        toast.error("No NCDC topics found for this class/subject");
+        return;
+      }
+      const toInsert = ncdcTopics.map((t) => ({
+        school_id: school.id,
+        class_id: selectedClass,
+        subject_id: selectedSubject,
+        topic: t.topic,
+        subtopics: JSON.stringify(t.subtopics),
+        objectives: t.objectives.join("; "),
+        weeks_covered: `Week ${t.weeks}`,
+        term: t.term,
+        academic_year: academicYear || "2026",
+        created_by: user.id,
+      }));
+      const { error } = await supabase.from("syllabus").insert(toInsert);
+      if (error) throw error;
+      toast.success(`Added ${toInsert.length} NCDC topics`);
+      fetchSyllabus();
+    } catch (err) {
+      console.error("Failed to populate syllabus:", err);
+      toast.error("Failed to populate syllabus");
+    } finally {
+      setPopulating(false);
+    }
+  };
 
   const fetchSyllabus = useCallback(async () => {
     if (!school?.id) return;
@@ -215,6 +318,16 @@ export default function SyllabusPage() {
             </option>
           ))}
         </select>
+        {selectedClass && selectedSubject && (
+          <button
+            onClick={handleAutoPopulate}
+            disabled={populating}
+            className="px-4 py-2 bg-[#10b981] text-white rounded-xl text-sm font-medium hover:bg-[#059669] disabled:opacity-50 flex items-center gap-1"
+          >
+            <MaterialIcon icon="auto_awesome" style={{ fontSize: "16px" }} />
+            {populating ? "Populating..." : "NCDC Topics"}
+          </button>
+        )}
       </div>
 
       {/* Progress Stats */}
