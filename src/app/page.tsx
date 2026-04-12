@@ -74,19 +74,19 @@ function smoothScroll(id: string) {
 
 /* ─── Trust badges (above the fold) ─── */
 const trustBadges = [
-  { icon: "lock", label: "TLS Encrypted" },
-  { icon: "shield", label: "Role-Based Access" },
-  { icon: "verified_user", label: "Uganda Data Protection Compliant" },
-  { icon: "backup", label: "Auto-Backed Up" },
+  { icon: "verified", label: "NCDC 2025 Compliant" },
+  { icon: "fact_check", label: "UNEB Ready" },
+  { icon: "location_on", label: "Made in Uganda" },
   { icon: "support_agent", label: "Local WhatsApp Support" },
-  { icon: "cloud_done", label: "PostgreSQL / Supabase" },
+  { icon: "wifi_off", label: "Works Offline" },
+  { icon: "security", label: "Data Protection Compliant" },
 ];
 
 /* ─── Hero stats (concrete, not vague) ─── */
 const heroStats = [
-  { label: "Setup time", value: "Under 5 minutes" },
-  { label: "Works on", value: "Any device" },
-  { label: "No credit card", value: "Needed to start" },
+  { label: "Save", value: "5+ hours/week" },
+  { label: "Built for", value: "Ugandan schools" },
+  { label: "Powered by", value: "Omuto Foundation" },
 ];
 
 const roleStrip = [
@@ -152,48 +152,68 @@ const modules = [
 const plans = [
   {
     name: "Starter",
-    price: "UGX 50,000",
-    cadence: "per student/year",
-    description: "For small schools getting started with digital management.",
+    price: "UGX 2,000",
+    cadence: "per student/term",
+    description: "Small rural primaries",
     features: [
-      "Core modules (students, attendance, grades)",
-      "500 SMS messages/month",
-      "Basic reports",
-      "Email support",
-      "PDF report cards",
-      "UNEB export",
+      "Student records & profiles",
+      "Daily attendance",
+      "CA entry & report cards",
+      "Fee collection & tracking",
+      "MoMo / Airtel payment",
+      "Basic offline sync",
+      "ID card generation",
+      "Up to 3 admin users",
     ],
   },
   {
-    name: "Standard",
-    price: "UGX 65,000",
-    cadence: "per student/year",
-    description:
-      "For growing schools that need full automation and parent engagement.",
+    name: "Growth",
+    price: "UGX 3,500",
+    cadence: "per student/term",
+    description: "Primary + secondary schools",
     features: [
-      "All modules (fees, payroll, budgets, timetable)",
-      "1,000 SMS messages/month",
-      "Advanced reports & analytics",
-      "Priority support",
+      "Everything in Starter",
+      "Bulk SMS (500/term included)",
       "Parent portal",
-      "Multi-branch support",
+      "Syllabus & scheme of work",
+      "Lesson plans & homework",
+      "Dorm & transport modules",
+      "Library management",
+      "Finance enhanced (budgets)",
+      "Up to 10 admin users",
     ],
     featured: true,
   },
   {
-    name: "Premium",
-    price: "UGX 80,000",
-    cadence: "per student/year",
-    description:
-      "For large schools that want everything plus dedicated support.",
+    name: "Enterprise",
+    price: "UGX 5,500",
+    cadence: "per student/term",
+    description: "Large / secondary schools",
     features: [
-      "Everything in Standard",
-      "Unlimited SMS",
-      "Full UNEB reports & MoES exports",
-      "Dedicated account manager",
-      "API access",
-      "Training sessions for staff",
-      "Custom integrations",
+      "Everything in Growth",
+      "UNEB candidate registration",
+      "MoES exports & board reports",
+      "Full payroll management",
+      "Staff leave & substitutions",
+      "AI insights & DNA analysis",
+      "Workflow automation",
+      "Full audit logs",
+      "Unlimited admin users",
+    ],
+  },
+  {
+    name: "Lifetime",
+    price: "UGX 8-15M",
+    cadence: "one-time",
+    description: "Ownership, no monthly fees",
+    features: [
+      "All Enterprise features",
+      "Source code license",
+      "On-premise deployment",
+      "White-label option",
+      "2-day dedicated onboarding",
+      "1-year support included",
+      "By application only",
     ],
   },
 ];
@@ -821,7 +841,8 @@ export default function HomePage() {
 
   useEffect(() => {
     // If running in Capacitor (Mobile APK), skip landing page and go straight to login
-    const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor?.isNative;
+    const isCapacitor =
+      typeof window !== "undefined" && (window as any).Capacitor?.isNative;
     if (isCapacitor) {
       router.push("/login");
     }
@@ -910,13 +931,16 @@ export default function HomePage() {
                 Built from experience on the ground in schools
               </div>
               <h1 className="mt-6 font-['Sora'] text-5xl font-semibold leading-[0.95] tracking-[-0.05em] text-[var(--t1)] sm:text-6xl lg:text-7xl">
-                Run your entire school
+                Save 5+ hours every week
                 <br />
-                from one <span className="text-[var(--green)]">dashboard</span>.
+                with <span className="text-[var(--green)]">
+                  all-in-one
+                </span>{" "}
+                school management.
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-8 text-[var(--t2)] sm:text-xl">
-                Attendance, grades, fees, and parent SMS — all in one system
-                built for Ugandan schools. Stop juggling notebooks and
+                The only system built for Ugandan schools — NCDC 2025 compliant,
+                UNEB-ready, and works offline. Stop juggling notebooks and
                 spreadsheets.
               </p>
 
@@ -927,12 +951,17 @@ export default function HomePage() {
                 >
                   Start 30-day free trial
                 </Link>
-                <Link
-                  href="/login"
-                  className="btn btn-secondary px-7 py-4 text-base"
+                <button
+                  className="btn btn-secondary px-7 py-4 text-base flex items-center gap-2"
+                  onClick={() =>
+                    document
+                      .getElementById("demo-video")
+                      ?.scrollIntoView({ behavior: "smooth" })
+                  }
                 >
-                  Open dashboard
-                </Link>
+                  <MaterialIcon icon="play_circle" className="text-lg" />
+                  Watch 30-sec demo
+                </button>
               </div>
 
               {/* Trust badges — ABOVE THE FOLD */}
@@ -1168,10 +1197,10 @@ export default function HomePage() {
                 carrying every day.
               </h2>
               <p className="mt-5 text-base leading-7 text-white/76">
-                At SkoolMate Foundation, the work has been close enough to schools
-                to see the real picture, not an abstract one. The issue was
-                never that people were not trying. The issue was that the system
-                around them kept slowing the work down.
+                At SkoolMate Foundation, the work has been close enough to
+                schools to see the real picture, not an abstract one. The issue
+                was never that people were not trying. The issue was that the
+                system around them kept slowing the work down.
               </p>
               <div className="mt-8 grid gap-3">
                 {storyMoments.map((item) => (
@@ -1290,8 +1319,8 @@ export default function HomePage() {
                   SkoolMate OS and OSX
                 </p>
                 <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
-                  SkoolMate OS is the system layer inside the wider SkoolMate School
-                  Xperience.
+                  SkoolMate OS is the system layer inside the wider SkoolMate
+                  School Xperience.
                 </h2>
                 <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
                   OSX is the broader transformation model. SkoolMate OS is the
