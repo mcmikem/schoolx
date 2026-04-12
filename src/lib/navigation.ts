@@ -141,18 +141,6 @@ export const navigationByRole: Record<string, NavGroup[]> = {
           label: "Syllabus",
           icon: "track_changes",
         },
-        {
-          href: "/dashboard/custom-reports",
-          label: "Report Builder",
-          icon: "build",
-          badge: "Pro",
-        },
-        {
-          href: "/dashboard/batch-reports",
-          label: "Batch Reports",
-          icon: "print",
-          badge: "New",
-        },
         { href: "/dashboard/bulk-sms", label: "SMS Centre", icon: "sms" },
       ],
     },
@@ -200,11 +188,6 @@ export const navigationByRole: Record<string, NavGroup[]> = {
           href: "/dashboard/store/wallets",
           label: "Student Wallets",
           icon: "account_balance_wallet",
-        },
-        {
-          href: "/dashboard/analytics/dna",
-          label: "Performance DNA",
-          icon: "biotech",
         },
       ],
     },
@@ -262,12 +245,6 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       defaultOpen: false,
       items: [
         {
-          href: "/dashboard/workflows",
-          label: "Workflows",
-          icon: "account_tree",
-          badge: "New",
-        },
-        {
           href: "/dashboard/settings",
           label: "Settings",
           icon: "settings",
@@ -277,7 +254,6 @@ export const navigationByRole: Record<string, NavGroup[]> = {
           href: "/dashboard/sync-center",
           label: "Sync Center",
           icon: "sync",
-          badge: "Offline",
         },
       ],
     },
