@@ -8,75 +8,118 @@ import {
   getUCEDivision,
   getUACEGrade,
   getUACEPoints,
+  getUNEBGrade,
   SchoolLevel,
-} from '@/lib/grading'
+} from "@/lib/grading";
 
 // ============================================
 // AUTO-GRADE COMPUTATION
 // ============================================
 
-export function computeSubjectTotal(ca1: number, ca2: number, ca3: number, ca4: number, project: number, exam: number): {
-  totalCA: number
-  finalScore: number
-  grade: string
-  gradeLabel: string
+export function computeSubjectTotal(
+  ca1: number,
+  ca2: number,
+  ca3: number,
+  ca4: number,
+  project: number,
+  exam: number,
+): {
+  totalCA: number;
+  finalScore: number;
+  grade: string;
+  gradeLabel: string;
 } {
-  const totalCA = (ca1 + ca2 + ca3 + ca4 + project) / 5
-  const finalScore = Math.round(totalCA * 0.25 + exam * 0.75)
-  const grade = getPLEGrade(finalScore)
-  const gradeLabel = getGradeLabel(finalScore)
+  const totalCA = (ca1 + ca2 + ca3 + ca4 + project) / 5;
+  const finalScore = Math.round(totalCA * 0.25 + exam * 0.75);
+  const grade = getPLEGrade(finalScore);
+  const gradeLabel = getGradeLabel(finalScore);
 
-  return { totalCA, finalScore, grade, gradeLabel }
+  return { totalCA, finalScore, grade, gradeLabel };
+}
+
+// NCDC New Curriculum: 80% Exam + 20% Activities of Integration (AOI)
+// For S1-S4 under the new Lower Secondary Curriculum
+export function computeSubjectTotalNewCurriculum(
+  ca1: number,
+  ca2: number,
+  ca3: number,
+  ca4: number,
+  aoi: number, // Activities of Integration (20%)
+  exam: number, // Summative Exam (80%)
+): {
+  totalCA: number;
+  finalScore: number;
+  grade: string;
+  gradeLabel: string;
+  competencyLevel: string;
+} {
+  const totalCA = ca1 + ca2 + ca3 + ca4; // CA contribution
+  // New curriculum: 20% AOI + 80% Exam
+  const finalScore = Math.round(aoi * 0.2 + exam * 0.8);
+  const grade = getUNEBGrade(finalScore);
+  const gradeLabel = getGradeLabel(finalScore);
+
+  // Determine competency level based on AOI score
+  let competencyLevel = "Developing";
+  if (aoi >= 80) competencyLevel = "Mastered";
+  else if (aoi >= 60) competencyLevel = "Extended";
+  else if (aoi >= 40) competencyLevel = "Demonstrates";
+
+  return { totalCA, finalScore, grade, gradeLabel, competencyLevel };
 }
 
 export function computePLEAggregate(subjectScores: number[]): {
-  aggregate: number
-  division: string
-  best4: number[]
+  aggregate: number;
+  division: string;
+  best4: number[];
 } {
   // Best 4 subjects for PLE
-  const sorted = [...subjectScores].sort((a, b) => a - b)
-  const best4 = sorted.slice(0, 4)
-  const aggregate = best4.reduce((sum, s) => sum + s, 0)
-  const division = getPLEDivision(aggregate)
+  const sorted = [...subjectScores].sort((a, b) => a - b);
+  const best4 = sorted.slice(0, 4);
+  const aggregate = best4.reduce((sum, s) => sum + s, 0);
+  const division = getPLEDivision(aggregate);
 
-  return { aggregate, division, best4 }
+  return { aggregate, division, best4 };
 }
 
 export function computeUCEDivision(subjectGrades: string[]): string {
-  return getUCEDivision(subjectGrades)
+  return getUCEDivision(subjectGrades);
 }
 
 export function computeUACEResult(
   principalScores: number[],
-  subsidiaryScores: number[]
+  subsidiaryScores: number[],
 ): {
-  principalGrades: string[]
-  subsidiaryGrades: string[]
-  points: number
-  division: string
+  principalGrades: string[];
+  subsidiaryGrades: string[];
+  points: number;
+  division: string;
 } {
-  const principalGrades = principalScores.map(s => getUACEGrade(s))
-  const subsidiaryGrades = subsidiaryScores.map(s => getUACEGrade(s))
-  const { points, division } = getUACEPoints(principalGrades, subsidiaryGrades)
+  const principalGrades = principalScores.map((s) => getUACEGrade(s));
+  const subsidiaryGrades = subsidiaryScores.map((s) => getUACEGrade(s));
+  const { points, division } = getUACEPoints(principalGrades, subsidiaryGrades);
 
-  return { principalGrades, subsidiaryGrades, points, division }
+  return { principalGrades, subsidiaryGrades, points, division };
 }
 
 export function getGradeLabel(score: number): string {
-  if (score >= 80) return 'Distinction'
-  if (score >= 70) return 'Very Good'
-  if (score >= 65) return 'Good'
-  if (score >= 60) return 'Credit'
-  if (score >= 55) return 'Satisfactory'
-  if (score >= 50) return 'Pass'
-  if (score >= 45) return 'Below Average'
-  if (score >= 40) return 'Poor'
-  return 'Fail'
+  if (score >= 80) return "Distinction";
+  if (score >= 70) return "Very Good";
+  if (score >= 65) return "Good";
+  if (score >= 60) return "Credit";
+  if (score >= 55) return "Satisfactory";
+  if (score >= 50) return "Pass";
+  if (score >= 45) return "Below Average";
+  if (score >= 40) return "Poor";
+  return "Fail";
 }
 
-export function generateAutoComment(score: number, subject: string, studentName: string): string {
-  const name = studentName.split(' ')[0] // First name only
+export function generateAutoComment(
+  score: number,
+  subject: string,
+  studentName: string,
+): string {
+  const name = studentName.split(" ")[0]; // First name only
   const comments: Record<string, string[]> = {
     excellent: [
       `${name} has shown outstanding performance in ${subject}. Keep it up!`,
@@ -108,51 +151,60 @@ export function generateAutoComment(score: number, subject: string, studentName:
       `Very poor performance in ${subject}. ${name} needs urgent academic support.`,
       `${name} is at risk in ${subject}. Parent-teacher meeting recommended.`,
     ],
-  }
+  };
 
-  let category: string
-  if (score >= 80) category = 'excellent'
-  else if (score >= 70) category = 'veryGood'
-  else if (score >= 60) category = 'good'
-  else if (score >= 50) category = 'average'
-  else if (score >= 40) category = 'poor'
-  else category = 'fail'
+  let category: string;
+  if (score >= 80) category = "excellent";
+  else if (score >= 70) category = "veryGood";
+  else if (score >= 60) category = "good";
+  else if (score >= 50) category = "average";
+  else if (score >= 40) category = "poor";
+  else category = "fail";
 
-  const options = comments[category]
-  return options[Math.floor(Math.random() * options.length)]
+  const options = comments[category];
+  return options[Math.floor(Math.random() * options.length)];
 }
 
 // ============================================
 // FEE AUTOMATION
 // ============================================
 
-export function computeFeeBalance(totalFees: number, totalPaid: number): {
-  balance: number
-  percentagePaid: number
-  status: 'paid' | 'partial' | 'unpaid' | 'overpaid'
+export function computeFeeBalance(
+  totalFees: number,
+  totalPaid: number,
+): {
+  balance: number;
+  percentagePaid: number;
+  status: "paid" | "partial" | "unpaid" | "overpaid";
 } {
-  const balance = totalFees - totalPaid
-  const percentagePaid = totalFees > 0 ? Math.round((totalPaid / totalFees) * 100) : 0
-  let status: 'paid' | 'partial' | 'unpaid' | 'overpaid'
+  const balance = totalFees - totalPaid;
+  const percentagePaid =
+    totalFees > 0 ? Math.round((totalPaid / totalFees) * 100) : 0;
+  let status: "paid" | "partial" | "unpaid" | "overpaid";
 
-  if (balance <= 0 && totalPaid > totalFees) status = 'overpaid'
-  else if (balance <= 0) status = 'paid'
-  else if (totalPaid > 0) status = 'partial'
-  else status = 'unpaid'
+  if (balance <= 0 && totalPaid > totalFees) status = "overpaid";
+  else if (balance <= 0) status = "paid";
+  else if (totalPaid > 0) status = "partial";
+  else status = "unpaid";
 
-  return { balance, percentagePaid, status }
+  return { balance, percentagePaid, status };
 }
 
-export function generateReceiptNumber(schoolCode: string, studentId: string): string {
-  const date = new Date()
-  const dateStr = date.getFullYear().toString().slice(2) +
-    String(date.getMonth() + 1).padStart(2, '0') +
-    String(date.getDate()).padStart(2, '0')
-  const timeStr = String(date.getHours()).padStart(2, '0') +
-    String(date.getMinutes()).padStart(2, '0') +
-    String(date.getSeconds()).padStart(2, '0')
+export function generateReceiptNumber(
+  schoolCode: string,
+  studentId: string,
+): string {
+  const date = new Date();
+  const dateStr =
+    date.getFullYear().toString().slice(2) +
+    String(date.getMonth() + 1).padStart(2, "0") +
+    String(date.getDate()).padStart(2, "0");
+  const timeStr =
+    String(date.getHours()).padStart(2, "0") +
+    String(date.getMinutes()).padStart(2, "0") +
+    String(date.getSeconds()).padStart(2, "0");
 
-  return `${schoolCode || 'SCH'}-${dateStr}-${timeStr}-${studentId.slice(0, 4).toUpperCase()}`
+  return `${schoolCode || "SCH"}-${dateStr}-${timeStr}-${studentId.slice(0, 4).toUpperCase()}`;
 }
 
 // ============================================
@@ -160,49 +212,62 @@ export function generateReceiptNumber(schoolCode: string, studentId: string): st
 // ============================================
 
 export function computeAttendanceStats(records: { status: string }[]): {
-  present: number
-  absent: number
-  late: number
-  total: number
-  rate: number
+  present: number;
+  absent: number;
+  late: number;
+  total: number;
+  rate: number;
 } {
-  const present = records.filter(r => r.status === 'present').length
-  const absent = records.filter(r => r.status === 'absent').length
-  const late = records.filter(r => r.status === 'late').length
-  const total = records.length
-  const rate = total > 0 ? Math.round((present / total) * 100) : 0
+  const present = records.filter((r) => r.status === "present").length;
+  const absent = records.filter((r) => r.status === "absent").length;
+  const late = records.filter((r) => r.status === "late").length;
+  const total = records.length;
+  const rate = total > 0 ? Math.round((present / total) * 100) : 0;
 
-  return { present, absent, late, total, rate }
+  return { present, absent, late, total, rate };
 }
 
 export function identifyAtRiskStudents(
-  students: Array<{ id: string; name: string; attendanceRate: number; avgScore: number; feeBalance: number }>,
+  students: Array<{
+    id: string;
+    name: string;
+    attendanceRate: number;
+    avgScore: number;
+    feeBalance: number;
+  }>,
   thresholds: { attendanceMin: number; scoreMin: number; feeMax: number } = {
     attendanceMin: 70,
     scoreMin: 40,
     feeMax: 500000,
-  }
+  },
 ): Array<{ id: string; name: string; risks: string[] }> {
   return students
-    .map(student => {
-      const risks: string[] = []
-      if (student.attendanceRate < thresholds.attendanceMin) risks.push('low_attendance')
-      if (student.avgScore < thresholds.scoreMin) risks.push('low_grades')
-      if (student.feeBalance > thresholds.feeMax) risks.push('fee_arrears')
-      return risks.length > 0 ? { id: student.id, name: student.name, risks } : null
+    .map((student) => {
+      const risks: string[] = [];
+      if (student.attendanceRate < thresholds.attendanceMin)
+        risks.push("low_attendance");
+      if (student.avgScore < thresholds.scoreMin) risks.push("low_grades");
+      if (student.feeBalance > thresholds.feeMax) risks.push("fee_arrears");
+      return risks.length > 0
+        ? { id: student.id, name: student.name, risks }
+        : null;
     })
-    .filter(Boolean) as Array<{ id: string; name: string; risks: string[] }>
+    .filter(Boolean) as Array<{ id: string; name: string; risks: string[] }>;
 }
 
 // ============================================
 // PAYROLL AUTOMATION (Uganda)
 // ============================================
 
-export function computeNSSF(grossSalary: number): { employee: number; employer: number; total: number } {
+export function computeNSSF(grossSalary: number): {
+  employee: number;
+  employer: number;
+  total: number;
+} {
   // NSSF: 5% employee, 10% employer (Uganda)
-  const employee = Math.round(grossSalary * 0.05)
-  const employer = Math.round(grossSalary * 0.10)
-  return { employee, employer, total: employee + employer }
+  const employee = Math.round(grossSalary * 0.05);
+  const employer = Math.round(grossSalary * 0.1);
+  return { employee, employer, total: employee + employer };
 }
 
 export function computePAYE(grossSalary: number): number {
@@ -210,32 +275,36 @@ export function computePAYE(grossSalary: number): number {
   // First UGX 235,000: 0%
   // Next UGX 235,000 - 1,000,000: 10%
   // Above UGX 1,000,000: 30%
-  const threshold1 = 235000
-  const threshold2 = 1000000
+  const threshold1 = 235000;
+  const threshold2 = 1000000;
 
-  if (grossSalary <= threshold1) return 0
+  if (grossSalary <= threshold1) return 0;
 
-  let tax = 0
-  const taxable2 = Math.min(grossSalary, threshold2) - threshold1
-  tax += taxable2 * 0.10
+  let tax = 0;
+  const taxable2 = Math.min(grossSalary, threshold2) - threshold1;
+  tax += taxable2 * 0.1;
 
   if (grossSalary > threshold2) {
-    tax += (grossSalary - threshold2) * 0.30
+    tax += (grossSalary - threshold2) * 0.3;
   }
 
-  return Math.round(tax)
+  return Math.round(tax);
 }
 
-export function computeNetSalary(grossSalary: number, allowances: number = 0, deductions: number = 0): {
-  gross: number
-  nssf_employee: number
-  paye: number
-  other_deductions: number
-  net: number
+export function computeNetSalary(
+  grossSalary: number,
+  allowances: number = 0,
+  deductions: number = 0,
+): {
+  gross: number;
+  nssf_employee: number;
+  paye: number;
+  other_deductions: number;
+  net: number;
 } {
-  const totalGross = grossSalary + allowances
-  const nssf = computeNSSF(grossSalary)
-  const paye = computePAYE(totalGross - nssf.employee)
+  const totalGross = grossSalary + allowances;
+  const nssf = computeNSSF(grossSalary);
+  const paye = computePAYE(totalGross - nssf.employee);
 
   return {
     gross: totalGross,
@@ -243,7 +312,7 @@ export function computeNetSalary(grossSalary: number, allowances: number = 0, de
     paye,
     other_deductions: deductions,
     net: totalGross - nssf.employee - paye - deductions,
-  }
+  };
 }
 
 // ============================================
@@ -253,20 +322,30 @@ export function computeNetSalary(grossSalary: number, allowances: number = 0, de
 export function checkPromotionEligibility(
   studentGrades: number[],
   attendanceRate: number,
-  thresholds: { minAverage: number; minAttendance: number } = { minAverage: 40, minAttendance: 60 }
+  thresholds: { minAverage: number; minAttendance: number } = {
+    minAverage: 40,
+    minAttendance: 60,
+  },
 ): { eligible: boolean; reason: string } {
-  const average = studentGrades.length > 0
-    ? studentGrades.reduce((sum, g) => sum + g, 0) / studentGrades.length
-    : 0
+  const average =
+    studentGrades.length > 0
+      ? studentGrades.reduce((sum, g) => sum + g, 0) / studentGrades.length
+      : 0;
 
   if (average < thresholds.minAverage) {
-    return { eligible: false, reason: `Average score ${average.toFixed(1)}% below minimum ${thresholds.minAverage}%` }
+    return {
+      eligible: false,
+      reason: `Average score ${average.toFixed(1)}% below minimum ${thresholds.minAverage}%`,
+    };
   }
   if (attendanceRate < thresholds.minAttendance) {
-    return { eligible: false, reason: `Attendance ${attendanceRate}% below minimum ${thresholds.minAttendance}%` }
+    return {
+      eligible: false,
+      reason: `Attendance ${attendanceRate}% below minimum ${thresholds.minAttendance}%`,
+    };
   }
 
-  return { eligible: true, reason: 'Meets all promotion criteria' }
+  return { eligible: true, reason: "Meets all promotion criteria" };
 }
 
 // ============================================
@@ -274,31 +353,33 @@ export function checkPromotionEligibility(
 // ============================================
 
 export function getCurrentTerm(): { term: number; year: number } {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth() + 1 // 1-12
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1; // 1-12
 
   // Uganda school terms (approximate)
   // Term 1: Feb - May
   // Term 2: Jun - Aug
   // Term 3: Sep - Nov
-  let term = 1
-  if (month >= 2 && month <= 5) term = 1
-  else if (month >= 6 && month <= 8) term = 2
-  else if (month >= 9 && month <= 11) term = 3
-  else term = 1 // Dec-Jan is holiday, default to Term 1 of next year
+  let term = 1;
+  if (month >= 2 && month <= 5) term = 1;
+  else if (month >= 6 && month <= 8) term = 2;
+  else if (month >= 9 && month <= 11) term = 3;
+  else term = 1; // Dec-Jan is holiday, default to Term 1 of next year
 
   if (month === 12 || month === 1) {
-    return { term: 3, year: month === 1 ? year - 1 : year }
+    return { term: 3, year: month === 1 ? year - 1 : year };
   }
 
-  return { term, year }
+  return { term, year };
 }
 
-export function getTermDates(year: number): Array<{ term: number; start: string; end: string }> {
+export function getTermDates(
+  year: number,
+): Array<{ term: number; start: string; end: string }> {
   return [
     { term: 1, start: `${year}-02-05`, end: `${year}-05-10` },
     { term: 2, start: `${year}-06-03`, end: `${year}-08-15` },
     { term: 3, start: `${year}-09-02`, end: `${year}-11-15` },
-  ]
+  ];
 }

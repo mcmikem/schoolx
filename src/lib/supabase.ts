@@ -310,7 +310,14 @@ export type Database = {
           student_id: string;
           subject_id: string;
           class_id: string;
-          assessment_type: "ca1" | "ca2" | "ca3" | "ca4" | "project" | "exam";
+          assessment_type:
+            | "ca1"
+            | "ca2"
+            | "ca3"
+            | "ca4"
+            | "project"
+            | "aoi"
+            | "exam";
           score: number;
           max_score: number;
           term: number;

@@ -130,7 +130,11 @@ export const navigationByRole: Record<string, NavGroup[]> = {
           label: "Grades & Reports",
           icon: "menu_book",
         },
-        { href: "/dashboard/exams", label: "Exams", icon: "fact_check" },
+        {
+          href: "/dashboard/exams",
+          label: "Exams",
+          icon: "fact_check",
+        },
         {
           href: "/dashboard/timetable",
           label: "Timetable",
@@ -140,6 +144,11 @@ export const navigationByRole: Record<string, NavGroup[]> = {
           href: "/dashboard/syllabus",
           label: "Syllabus",
           icon: "track_changes",
+        },
+        {
+          href: "/dashboard/homework",
+          label: "Assignments",
+          icon: "assignment",
         },
         { href: "/dashboard/bulk-sms", label: "SMS Centre", icon: "sms" },
       ],
@@ -207,8 +216,11 @@ export const navigationByRole: Record<string, NavGroup[]> = {
           icon: "directions_bus",
         },
         { href: "/dashboard/library", label: "Library", icon: "local_library" },
-        { href: "/dashboard/assets", label: "Assets", icon: "inventory_2" },
-        { href: "/dashboard/dorm", label: "Dormitory", icon: "bed" },
+        {
+          href: "/dashboard/dorm",
+          label: "Boarding",
+          icon: "bed",
+        },
       ],
     },
     {
