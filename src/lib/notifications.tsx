@@ -54,7 +54,7 @@ export function NotificationsProvider({
 }) {
   const { school } = useAuth();
   const schoolId = propSchoolId || school?.id;
-  
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -89,7 +89,9 @@ export function NotificationsProvider({
             created_at: new Date().toISOString(),
           });
         }
-      } catch {}
+      } catch (err) {
+        console.error("Attendance check failed:", err);
+      }
 
       // 2. Check for fee payments today
       try {
@@ -114,7 +116,9 @@ export function NotificationsProvider({
             created_at: new Date().toISOString(),
           });
         }
-      } catch {}
+      } catch (err) {
+        console.error("Attendance check failed:", err);
+      }
 
       // 3. Check for overdue fees (students with balance > 0)
       try {
@@ -157,7 +161,9 @@ export function NotificationsProvider({
             });
           }
         }
-      } catch {}
+      } catch (err) {
+        console.error("Fee check failed:", err);
+      }
 
       // 4. Add sample notifications if no data
       if (generatedNotifications.length === 0) {
