@@ -46,12 +46,15 @@ import { SendSMSModal } from "@/components/SendSMSModal";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 
-
 function useStudentData(studentId: string, isDemo: boolean) {
   const [attendancePct, setAttendancePct] = useState(0);
   const [feePosition, setFeePosition] = useState({ paid: 0, total: 0 });
-  const [gradeHistory, setGradeHistory] = useState<{ term: string; average: number }[]>([]);
-  const [subjectScores, setSubjectScores] = useState<{ subject: string; score: number }[]>([]);
+  const [gradeHistory, setGradeHistory] = useState<
+    { term: string; average: number }[]
+  >([]);
+  const [subjectScores, setSubjectScores] = useState<
+    { subject: string; score: number }[]
+  >([]);
   const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
 
   useEffect(() => {
@@ -80,9 +83,9 @@ function useStudentData(studentId: string, isDemo: boolean) {
         .from("attendance")
         .select("status")
         .eq("student_id", studentId);
-      
+
       if (attData && attData.length > 0) {
-        const present = attData.filter(a => a.status === 'present').length;
+        const present = attData.filter((a) => a.status === "present").length;
         setAttendancePct(Math.round((present / attData.length) * 100));
         setAttendanceRecords(attData);
       }
@@ -93,9 +96,12 @@ function useStudentData(studentId: string, isDemo: boolean) {
         .select("amount_paid, total_fees")
         .eq("student_id", studentId)
         .maybeSingle();
-      
+
       if (feeData) {
-        setFeePosition({ paid: feeData.amount_paid || 0, total: feeData.total_fees || 0 });
+        setFeePosition({
+          paid: feeData.amount_paid || 0,
+          total: feeData.total_fees || 0,
+        });
       }
 
       // Fetch grades
@@ -103,18 +109,33 @@ function useStudentData(studentId: string, isDemo: boolean) {
         .from("grades")
         .select("subject, score, term")
         .eq("student_id", studentId);
-      
+
       if (gradesData) {
         // Compute history and current
-        setSubjectScores(gradesData.map(g => ({ subject: g.subject, score: g.score })));
-        setGradeHistory([{ term: "Current", average: Math.round(gradesData.reduce((a, b) => a + b.score, 0) / gradesData.length) }]);
+        setSubjectScores(
+          gradesData.map((g) => ({ subject: g.subject, score: g.score })),
+        );
+        setGradeHistory([
+          {
+            term: "Current",
+            average: Math.round(
+              gradesData.reduce((a, b) => a + b.score, 0) / gradesData.length,
+            ),
+          },
+        ]);
       }
     }
 
     fetchDetails();
   }, [studentId, isDemo]);
 
-  return { attendancePct, feePosition, gradeHistory, subjectScores, attendanceRecords };
+  return {
+    attendancePct,
+    feePosition,
+    gradeHistory,
+    subjectScores,
+    attendanceRecords,
+  };
 }
 
 function AttendanceRing({ percentage }: { percentage: number }) {
@@ -154,10 +175,17 @@ function AttendanceRing({ percentage }: { percentage: number }) {
   );
 }
 
-function AttendanceHeatmap({ records, isDemo }: { records: any[], isDemo: boolean }) {
+function AttendanceHeatmap({
+  records,
+  isDemo,
+}: {
+  records: any[];
+  isDemo: boolean;
+}) {
   const days = useMemo(() => {
     if (isDemo) {
-      const result: { status: "present" | "absent" | "late"; date: Date }[] = [];
+      const result: { status: "present" | "absent" | "late"; date: Date }[] =
+        [];
       for (let i = 29; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
@@ -170,10 +198,10 @@ function AttendanceHeatmap({ records, isDemo }: { records: any[], isDemo: boolea
       }
       return result;
     }
-    
-    return records.slice(-30).map(r => ({
+
+    return records.slice(-30).map((r) => ({
       date: new Date(r.date || Date.now()),
-      status: r.status as "present" | "absent" | "late"
+      status: r.status as "present" | "absent" | "late",
     }));
   }, [records, isDemo]);
 
@@ -393,14 +421,17 @@ export default function StudentProfilePage({
         : null,
     [student],
   );
-  const { 
-    attendancePct, 
-    feePosition, 
-    gradeHistory, 
-    subjectScores, 
-    attendanceRecords 
-  } = useStudentData(studentProfile, isDemo);
-  
+
+  const studentId = studentProfile?.id || "";
+
+  const {
+    attendancePct,
+    feePosition,
+    gradeHistory,
+    subjectScores,
+    attendanceRecords,
+  } = useStudentData(studentId, isDemo);
+
   const [activeTab, setActiveTab] = useState("overview");
   const [smsOpen, setSmsOpen] = useState(false);
 
@@ -456,14 +487,14 @@ export default function StudentProfilePage({
             <MessageSquare className="w-4 h-4" />
             SMS Parent
           </button>
-          <Link 
+          <Link
             href={`/dashboard/students/id-cards?studentId=${student.id}`}
             className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             <IdCard className="w-4 h-4" />
             Print ID
           </Link>
-          <Link 
+          <Link
             href={`/dashboard/students/admission-package?studentId=${student.id}`}
             className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
@@ -520,12 +551,12 @@ export default function StudentProfilePage({
                   {statusCfg.label}
                 </span>
                 {student.houses && (
-                  <span 
+                  <span
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border"
-                    style={{ 
-                      backgroundColor: `${student.houses.color}15`, 
+                    style={{
+                      backgroundColor: `${student.houses.color}15`,
                       color: student.houses.color,
-                      borderColor: `${student.houses.color}30` 
+                      borderColor: `${student.houses.color}30`,
                     }}
                   >
                     <Home className="w-3 h-3" />
@@ -535,13 +566,13 @@ export default function StudentProfilePage({
                 {student.prefect_role && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border border-amber-200 bg-amber-50 text-amber-700">
                     <Trophy className="w-3 h-3" />
-                    {student.prefect_role.replace(/_/g, ' ')}
+                    {student.prefect_role.replace(/_/g, " ")}
                   </span>
                 )}
                 {student.student_council_role && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border border-blue-200 bg-blue-50 text-blue-700">
                     <Star className="w-3 h-3" />
-                    Council: {student.student_council_role.replace(/_/g, ' ')}
+                    Council: {student.student_council_role.replace(/_/g, " ")}
                   </span>
                 )}
               </div>
@@ -577,7 +608,9 @@ export default function StudentProfilePage({
               </div>
               <div className="text-center px-4 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                 <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                  {gradeHistory.length > 0 ? `${gradeHistory[gradeHistory.length - 1].average}%` : "N/A"}
+                  {gradeHistory.length > 0
+                    ? `${gradeHistory[gradeHistory.length - 1].average}%`
+                    : "N/A"}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   Avg Grade
@@ -661,7 +694,7 @@ export default function StudentProfilePage({
             <AttendanceHeatmap records={attendanceRecords} isDemo={isDemo} />
           </div>
         </div>
- 
+
         {/* Fee Status */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
           <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
@@ -698,13 +731,15 @@ export default function StudentProfilePage({
           </h3>
           <div className="flex items-center justify-center py-4">
             {gradeHistory.length > 0 ? (
-               <GradeSparkline data={gradeHistory} />
+              <GradeSparkline data={gradeHistory} />
             ) : (
-               <p className="text-xs text-[var(--t3)]">No grade history yet</p>
+              <p className="text-xs text-[var(--t3)]">No grade history yet</p>
             )}
           </div>
           <div className="mt-2 text-xs text-[var(--t3)] text-center">
-            {gradeHistory.length > 0 ? "Last 6 terms average progression" : "Add grades to see trends"}
+            {gradeHistory.length > 0
+              ? "Last 6 terms average progression"
+              : "Add grades to see trends"}
           </div>
         </div>
       </div>

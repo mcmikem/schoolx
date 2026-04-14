@@ -333,7 +333,52 @@ export function assertSchoolScopeOrDeny(params: {
   return { ok: true, schoolId: requestedSchoolId };
 }
 
-export function requireCronSecretOrDeny(request: NextRequest): { ok: true } | { ok: false; response: NextResponse } {
+export function assertUserRoleOrDeny(params: {
+  userRole: string;
+  allowedRoles: string[];
+}): { ok: true } | { ok: false; response: NextResponse } {
+  const { userRole, allowedRoles } = params;
+
+  if (!allowedRoles.includes(userRole)) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
+      ),
+    };
+  }
+
+  return { ok: true };
+}
+
+export function requireDevelopmentRouteOrDeny():
+  | {
+      ok: true;
+    }
+  | {
+      ok: false;
+      response: NextResponse;
+    } {
+  const isDevelopment = process.env.NODE_ENV === "development";
+  const isExplicitlyEnabled = process.env.ENABLE_DEV_TEST_ROUTES === "true";
+
+  if (!isDevelopment || !isExplicitlyEnabled) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, error: "Not found" },
+        { status: 404 },
+      ),
+    };
+  }
+
+  return { ok: true };
+}
+
+export function requireCronSecretOrDeny(
+  request: NextRequest,
+): { ok: true } | { ok: false; response: NextResponse } {
   const expected = process.env.CRON_SECRET;
   if (!expected) {
     return {
