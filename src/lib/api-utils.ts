@@ -411,7 +411,9 @@ export function requireCronSecretOrDeny(
   return { ok: true };
 }
 
-export function createServiceRoleClientOrThrow(): ServiceRoleClient {
+export function createServiceRoleClientOrThrow(): ReturnType<
+  typeof createClient
+> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -424,11 +426,11 @@ export function createServiceRoleClientOrThrow(): ServiceRoleClient {
       autoRefreshToken: false,
       persistSession: false,
     },
-  });
+  }) as any;
 }
 
 export async function requireExistingSchoolOrDeny(params: {
-  supabase: ServiceRoleClient;
+  supabase: any;
   schoolId: unknown;
 }): Promise<
   | { ok: true; schoolId: string; school: Record<string, unknown> }
