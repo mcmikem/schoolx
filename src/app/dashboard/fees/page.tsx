@@ -1,5 +1,6 @@
 "use client";
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import {
@@ -63,6 +64,7 @@ export default function FinanceHubPage() {
   const { school } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
+  const searchParams = useSearchParams();
 
   const { students } = useStudents(school?.id);
   const { classes } = useClasses(school?.id);
@@ -159,6 +161,18 @@ export default function FinanceHubPage() {
 
   const [invoiceClassFilter, setInvoiceClassFilter] = useState("all");
   const [cashbookDateFilter, setCashbookDateFilter] = useState("today");
+
+  useEffect(() => {
+    const requestedTab = searchParams?.get("tab");
+    if (
+      requestedTab === "balances" ||
+      requestedTab === "payment-plans" ||
+      requestedTab === "invoices" ||
+      requestedTab === "cashbook"
+    ) {
+      setTab(requestedTab);
+    }
+  }, [searchParams]);
 
   const formatCurrency = (amount: number) => `UGX ${amount.toLocaleString()}`;
 

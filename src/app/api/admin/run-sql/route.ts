@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+import {
+  requireCronSecretOrDeny,
+  requireDevelopmentRouteOrDeny,
+} from "@/lib/api-utils";
 
 export async function POST(req: NextRequest) {
   try {
+    const devOnly = requireDevelopmentRouteOrDeny();
+    if (!devOnly.ok) return devOnly.response;
+
+    const cron = requireCronSecretOrDeny(req);
+    if (!cron.ok) return cron.response;
+
     const { sql } = await req.json();
 
     // Supabase doesn't have exec_sql by default, but we can try

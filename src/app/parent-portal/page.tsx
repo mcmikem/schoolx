@@ -1,17 +1,22 @@
 "use client";
 import { useAuth } from "@/lib/auth-context";
+import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import SidebarShell from "@/components/dashboard/SidebarShell";
 import TopBar from "@/components/dashboard/TopBar";
 import MaterialIcon from "@/components/MaterialIcon";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
+import { useToast } from "@/components/Toast";
 
 function ParentDashboardContent() {
   const { user, isDemo, signOut } = useAuth();
   const { isAuthorized, isChecking } = useParentPortalGuard();
   const { close: closeSidebar } = useSidebar();
+  const router = useRouter();
+  const toast = useToast();
   const [children, setChildren] = useState<any[]>([]);
   const [selectedChild, setSelectedChild] = useState<any>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
@@ -169,25 +174,20 @@ function ParentDashboardContent() {
       setWalletBalance((prev) => (prev ?? 0) + parseFloat(topupAmount));
       setTopupAmount("");
       setShowTopup(false);
+      toast.success("Pocket money added successfully.");
     } catch (err: any) {
-      alert(err.message || "Top-up failed");
+      toast.error(err.message || "Top-up failed");
     } finally {
       setTopupLoading(false);
     }
   };
 
-  const handlePayFees = async () => {
+  const handlePayFees = () => {
     if (!selectedChild || feeStats.balance <= 0) {
-      alert("No outstanding fees to pay.");
+      toast.info("No outstanding fees for this learner.");
       return;
     }
-    if (confirm(`Confirm payment of UGX ${feeStats.balance.toLocaleString()}?`)) {
-       setTopupLoading(true);
-       await new Promise(r => setTimeout(r, 1500));
-       setFeeStats(prev => ({ ...prev, balance: 0, totalPaid: prev.totalFee, status: 'paid' }));
-       setTopupLoading(false);
-       alert("Fee payment processed successfully! Your receipt has been sent to your email.");
-    }
+    router.push("/parent-portal/fees");
   };
 
   const handleSignOut = async () => {
@@ -300,7 +300,7 @@ function ParentDashboardContent() {
                             Next Exam
                           </p>
                           <p className="text-sm font-bold text-[var(--t1)]">
-                            {selectedChild.next_exam || "Schedule Pending"}
+                            {selectedChild.next_exam || "No exam scheduled"}
                           </p>
                         </div>
                       </div>
@@ -338,7 +338,7 @@ function ParentDashboardContent() {
                     </div>
                   </div>
 
-                  <button 
+                    <button
                       onClick={handlePayFees}
                       disabled={topupLoading || feeStats.balance <= 0}
                       className="p-5 rounded-[28px] bg-[var(--navy-soft)] text-[var(--primary)] flex flex-col lg:flex-row items-center justify-center gap-3 hover:shadow-lg transition-all border border-[var(--navy)]/5 active:scale-95 group disabled:opacity-50"
@@ -350,20 +350,20 @@ function ParentDashboardContent() {
                         />
                       </div>
                       <span className="text-xs font-bold uppercase tracking-wider">
-                        {feeStats.balance <= 0 ? "Fees Fully Paid" : "Pay Fees Now"}
+                        {feeStats.balance <= 0 ? "Fees Fully Paid" : "Open Fee Statement"}
                       </span>
                     </button>
-                    <button 
-                      onClick={() => alert("Reports are being generated. You will receive an SMS and email with a link shortly.")}
+                    <Link
+                      href="/parent-portal/academics"
                       className="p-5 rounded-[28px] bg-[var(--green-soft)] text-[var(--green)] flex flex-col lg:flex-row items-center justify-center gap-3 hover:shadow-lg transition-all border border-[var(--green)]/5 active:scale-95 group"
                     >
                       <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
                         <MaterialIcon icon="description" className="text-2xl" />
                       </div>
                       <span className="text-xs font-bold uppercase tracking-wider">
-                        Download Reports
+                        Academic Reports
                       </span>
-                    </button>
+                    </Link>
                   </div>
 
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
@@ -371,9 +371,12 @@ function ParentDashboardContent() {
                       <h4 className="font-bold text-[var(--t1)]">
                         Recent Notices
                       </h4>
-                      <button className="text-[var(--primary)] text-xs font-bold uppercase tracking-wider hover:underline">
+                      <Link
+                        href="/parent-portal/notices"
+                        className="text-[var(--primary)] text-xs font-bold uppercase tracking-wider hover:underline"
+                      >
                         View All
-                      </button>
+                      </Link>
                     </div>
 
                     <div className="space-y-4">

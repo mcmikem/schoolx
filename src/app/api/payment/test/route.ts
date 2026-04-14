@@ -1,27 +1,26 @@
-import { NextResponse } from 'next/server'
+import { NextResponse } from "next/server";
+import { requireDevelopmentRouteOrDeny } from "@/lib/api-utils";
 
 export async function GET() {
-  if (process.env.NODE_ENV !== 'development') {
-    return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 })
-  }
+  const devOnly = requireDevelopmentRouteOrDeny();
+  if (!devOnly.ok) return devOnly.response;
   return NextResponse.json({
-    status: 'ok',
-    message: 'Payment webhook endpoints are accessible',
+    status: "ok",
+    message: "Payment webhook endpoints are accessible",
     timestamp: new Date().toISOString(),
     endpoints: {
-      stripeWebhook: '/api/payment/webhook',
-      paypalWebhook: '/api/payment/paypal/webhook'
-    }
-  })
+      stripeWebhook: "/api/payment/webhook",
+      paypalWebhook: "/api/payment/paypal/webhook",
+    },
+  });
 }
 
 export async function POST() {
-  if (process.env.NODE_ENV !== 'development') {
-    return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 })
-  }
+  const devOnly = requireDevelopmentRouteOrDeny();
+  if (!devOnly.ok) return devOnly.response;
   return NextResponse.json({
-    status: 'ok',
-    message: 'POST request received',
-    timestamp: new Date().toISOString()
-  })
+    status: "ok",
+    message: "POST request received",
+    timestamp: new Date().toISOString(),
+  });
 }

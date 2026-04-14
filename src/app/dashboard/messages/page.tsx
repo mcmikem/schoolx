@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { useSMSTriggers } from "@/lib/hooks";
@@ -107,6 +108,7 @@ const DEFAULT_TEMPLATES = [
 export default function CommunicationHubPage() {
   const { user, school, isDemo } = useAuth();
   const toast = useToast();
+  const searchParams = useSearchParams();
   const { staff } = useStaff(school?.id);
   const {
     triggers,
@@ -118,6 +120,19 @@ export default function CommunicationHubPage() {
   } = useSMSTriggers(school?.id);
 
   const [activeTab, setActiveTab] = useState("messages");
+
+  useEffect(() => {
+    const requestedTab = searchParams?.get("tab");
+    if (
+      requestedTab === "messages" ||
+      requestedTab === "bulk-sms" ||
+      requestedTab === "automation" ||
+      requestedTab === "templates" ||
+      requestedTab === "notices"
+    ) {
+      setActiveTab(requestedTab);
+    }
+  }, [searchParams]);
 
   // Messages state
   const [messageType, setMessageType] = useState<

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import Papa from "papaparse";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -108,6 +109,7 @@ export default function StudentHubPage() {
   const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
+  const searchParams = useSearchParams();
   const { students, loading, createStudent, updateStudent, deleteStudent } =
     useStudents(school?.id);
   const { classes } = useClasses(school?.id);
@@ -123,6 +125,12 @@ export default function StudentHubPage() {
   const [editingStudent, setEditingStudent] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [houses, setHouses] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (searchParams?.get("action") === "add") {
+      setShowAddModal(true);
+    }
+  }, [searchParams]);
 
   // Filters
   const [filterGender, setFilterGender] = useState<"all" | "M" | "F">("all");

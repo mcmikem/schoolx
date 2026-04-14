@@ -1,21 +1,50 @@
-import '@testing-library/jest-dom'
+import "@testing-library/jest-dom";
+
+if (typeof global.Request === "undefined") {
+  class RequestShim {}
+
+  class ResponseShim {
+    status: number;
+    private body: unknown;
+
+    constructor(body?: unknown, init?: { status?: number }) {
+      this.body = body;
+      this.status = init?.status ?? 200;
+    }
+
+    static json(body: unknown, init?: { status?: number }) {
+      return new ResponseShim(body, init);
+    }
+
+    json() {
+      return Promise.resolve(this.body);
+    }
+  }
+
+  class HeadersShim {}
+
+  global.Request = RequestShim as typeof Request;
+  global.Response = ResponseShim as typeof Response;
+  global.Headers = HeadersShim as typeof Headers;
+  global.fetch = jest.fn() as typeof fetch;
+}
 
 // Mock next/navigation
-jest.mock('next/navigation', () => ({
+jest.mock("next/navigation", () => ({
   useRouter() {
     return {
       push: jest.fn(),
       replace: jest.fn(),
       back: jest.fn(),
-    }
+    };
   },
   usePathname() {
-    return ''
+    return "";
   },
-}))
+}));
 
 // Mock supabase
-jest.mock('@/lib/supabase', () => ({
+jest.mock("@/lib/supabase", () => ({
   supabase: {
     from: jest.fn(() => ({
       select: jest.fn().mockReturnThis(),
@@ -31,16 +60,22 @@ jest.mock('@/lib/supabase', () => ({
       getSession: jest.fn().mockResolvedValue({ data: { session: null } }),
     },
   },
-}))
+}));
 
 // Mock localStorage
 const localStorageMock = (() => {
-  let store: Record<string, string> = {}
+  let store: Record<string, string> = {};
   return {
     getItem: jest.fn((key: string) => store[key] || null),
-    setItem: jest.fn((key: string, value: string) => { store[key] = value }),
-    removeItem: jest.fn((key: string) => { delete store[key] }),
-    clear: jest.fn(() => { store = {} }),
-  }
-})()
-Object.defineProperty(window, 'localStorage', { value: localStorageMock })
+    setItem: jest.fn((key: string, value: string) => {
+      store[key] = value;
+    }),
+    removeItem: jest.fn((key: string) => {
+      delete store[key];
+    }),
+    clear: jest.fn(() => {
+      store = {};
+    }),
+  };
+})();
+Object.defineProperty(window, "localStorage", { value: localStorageMock });

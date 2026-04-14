@@ -5,7 +5,8 @@ import {
   apiError,
   handleApiError,
   validateRequiredFields,
-  requireAuthenticatedUser,
+  requireUserWithSchool,
+  assertSchoolScopeOrDeny,
 } from "@/lib/api-utils";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -33,10 +34,8 @@ function getUNEBDivision(avg: number): string {
 
 export async function POST(request: NextRequest) {
   try {
-    // Auth check MUST come before body parse to prevent unauthenticated
-    // requests from consuming the body and triggering DB queries.
-    const authCheck = await requireAuthenticatedUser(request);
-    if (!authCheck.ok) return authCheck.response;
+    const auth = await requireUserWithSchool(request);
+    if (!auth.ok) return auth.response;
 
     const { studentId, schoolId, term, academicYear } = await request.json();
 
@@ -52,19 +51,11 @@ export async function POST(request: NextRequest) {
       ? createClient(supabaseUrl, supabaseServiceKey)
       : createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
-    const { data: currentUser } = await supabase
-      .from("users")
-      .select("id, school_id, role")
-      .eq("auth_id", authCheck.context.authUserId)
-      .single();
-
-    if (!currentUser) {
-      return apiError("User profile not found", 403);
-    }
-
-    if (currentUser.school_id !== schoolId) {
-      return apiError("Forbidden: school access denied", 403);
-    }
+    const scope = assertSchoolScopeOrDeny({
+      userSchoolId: auth.context.schoolId,
+      requestedSchoolId: schoolId,
+    });
+    if (!scope.ok) return scope.response;
 
     // Fetch student with class info
     const { data: student, error: studentError } = await supabase
@@ -85,7 +76,7 @@ export async function POST(request: NextRequest) {
     const { data: school } = await supabase
       .from("schools")
       .select("*")
-      .eq("id", schoolId)
+      .eq("id", scope.schoolId)
       .single();
 
     // Fetch grades for this term
