@@ -1,37 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  requireUserWithSchool,
+  assertUserRoleOrDeny,
+} from "@/lib/api-utils";
+
+const BILLING_ROLES = [
+  "super_admin",
+  "school_admin",
+  "admin",
+  "headmaster",
+  "bursar",
+];
 
 export async function POST(request: NextRequest) {
   try {
-    // Auth check before body parse
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireUserWithSchool(request);
+    if (!auth.ok) return auth.response;
+
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: BILLING_ROLES,
+    });
+    if (!roleCheck.ok) return roleCheck.response;
 
     const body = await request.json();
     const { returnUrl } = body as { returnUrl?: string };
+    const schoolId = auth.context.schoolId;
 
-    const { data: userData } = await supabase
-      .from("users")
-      .select("school_id")
-      .eq("auth_id", user.id)
-      .single();
-
-    if (!userData?.school_id) {
-      return NextResponse.json(
-        { error: "School not found for user" },
-        { status: 404 },
-      );
-    }
-
+    const supabase = await createSupabaseServerClient();
     const { data: school } = await supabase
       .from("schools")
       .select("stripe_customer_id")
-      .eq("id", userData.school_id)
+      .eq("id", schoolId)
       .single();
 
     if (!school?.stripe_customer_id) {

@@ -1,9 +1,30 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  requireUserWithSchool,
+  assertUserRoleOrDeny,
+} from "@/lib/api-utils";
+
+const BILLING_ROLES = [
+  "super_admin",
+  "school_admin",
+  "admin",
+  "headmaster",
+  "bursar",
+];
 
 // Create Stripe customer portal session
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const auth = await requireUserWithSchool(request);
+    if (!auth.ok) return auth.response;
+
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: BILLING_ROLES,
+    });
+    if (!roleCheck.ok) return roleCheck.response;
+
     const { customerId, returnUrl } = await request.json();
 
     if (!customerId) {
@@ -19,6 +40,7 @@ export async function POST(request: Request) {
     const { data: school, error } = await supabase
       .from("schools")
       .select("id, stripe_customer_id")
+      .eq("id", auth.context.schoolId)
       .eq("stripe_customer_id", customerId)
       .single();
 

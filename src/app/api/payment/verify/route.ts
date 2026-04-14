@@ -7,20 +7,32 @@ import {
   updatePendingMobilePayment,
 } from "@/lib/payments/utils";
 import { sendPaymentReceipt } from "@/lib/subscription";
+import {
+  requireUserWithSchool,
+  assertUserRoleOrDeny,
+} from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
+const BILLING_ROLES = [
+  "super_admin",
+  "school_admin",
+  "admin",
+  "headmaster",
+  "bursar",
+];
+
 export async function POST(request: NextRequest) {
   try {
-    // Auth check before body parse
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireUserWithSchool(request);
+    if (!auth.ok) return auth.response;
+
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: BILLING_ROLES,
+    });
+    if (!roleCheck.ok) return roleCheck.response;
 
     const body = await request.json();
     const { txRef, provider } = body as {
@@ -35,19 +47,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: userData } = await supabase
-      .from("users")
-      .select("school_id")
-      .eq("auth_id", user.id)
-      .single();
-
-    if (!userData?.school_id) {
-      return NextResponse.json(
-        { error: "School not found for user" },
-        { status: 404 },
-      );
-    }
-
     if (provider === "mtn" || provider === "airtel") {
       const pendingPayment = await getPendingMobilePayment(txRef);
 
@@ -56,6 +55,10 @@ export async function POST(request: NextRequest) {
           { error: "Payment not found" },
           { status: 404 },
         );
+      }
+
+      if (pendingPayment.school_id !== auth.context.schoolId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
       const status = await verifyMobileMoneyPayment(txRef);
@@ -129,14 +132,17 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireUserWithSchool(request);
+    if (!auth.ok) return auth.response;
+
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: BILLING_ROLES,
+    });
+    if (!roleCheck.ok) return roleCheck.response;
+
     const searchParams = request.nextUrl.searchParams;
     const txRef = searchParams.get("txRef");
-    const provider = searchParams.get("provider") as
-      | "stripe"
-      | "paypal"
-      | "mtn"
-      | "airtel"
-      | null;
 
     if (!txRef) {
       return NextResponse.json(
@@ -150,6 +156,7 @@ export async function GET(request: NextRequest) {
     const { data: payment, error } = await supabase
       .from("subscription_payments")
       .select("*")
+      .eq("school_id", auth.context.schoolId)
       .eq("transaction_id", txRef)
       .single();
 

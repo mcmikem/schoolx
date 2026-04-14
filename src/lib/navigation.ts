@@ -106,6 +106,11 @@ export const navigationByRole: Record<string, NavGroup[]> = {
           label: "Conduct & Merits",
           icon: "military_tech",
         },
+        {
+          href: "/dashboard/student-enrollments",
+          label: "Enrollments",
+          icon: "school",
+        },
         { href: "/dashboard/staff", label: "Staff Hub", icon: "person" },
         {
           href: "/dashboard/attendance",
@@ -125,6 +130,11 @@ export const navigationByRole: Record<string, NavGroup[]> = {
 
       defaultOpen: false,
       items: [
+        {
+          href: "/dashboard/academic-terms",
+          label: "Academic Terms",
+          icon: "calendar_today",
+        },
         {
           href: "/dashboard/grades",
           label: "Grades & Reports",
@@ -160,6 +170,11 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       defaultOpen: false,
       items: [
         { href: "/dashboard/fees", label: "Finance Hub", icon: "payments" },
+        {
+          href: "/dashboard/fee-terms",
+          label: "Fee Terms",
+          icon: "rule",
+        },
         {
           href: "/dashboard/budget",
           label: "Budget",

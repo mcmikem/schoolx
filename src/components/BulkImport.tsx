@@ -57,7 +57,9 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
     // Check if required headers even exist in the document
     const missingHeaders = requiredFields.filter((f) => !headers.includes(f));
     if (missingHeaders.length > 0) {
-      throw new Error(`CSV is missing required columns: ${missingHeaders.join(", ")}`);
+      throw new Error(
+        `CSV is missing required columns: ${missingHeaders.join(", ")}`,
+      );
     }
 
     const processedRows: ValidatedRow[] = [];
@@ -66,7 +68,9 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
       const line = lines[i].trim();
       if (!line) continue;
       // Handle commas inside quotes properly (basic CSV parsing)
-      const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map((v) => v.trim().replace(/^['"]|['"]$/g, ""));
+      const values = line
+        .split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
+        .map((v) => v.trim().replace(/^['"]|['"]$/g, ""));
       if (values.length === 0 || values.every((v) => !v)) continue;
 
       const student: any = {};
@@ -78,26 +82,40 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
       let isValid = true;
 
       // Validate required fields
-      if (!student.first_name) { rowErrors.push("Missing first_name"); isValid = false; }
-      if (!student.last_name) { rowErrors.push("Missing last_name"); isValid = false; }
-      
+      if (!student.first_name) {
+        rowErrors.push("Missing first_name");
+        isValid = false;
+      }
+      if (!student.last_name) {
+        rowErrors.push("Missing last_name");
+        isValid = false;
+      }
+
       const rawGender = student.gender?.toString().toUpperCase();
       let normalizedGender = rawGender;
       if (!rawGender) {
-         rowErrors.push("Missing gender");
-         isValid = false;
-      } else if (rawGender !== "M" && rawGender !== "F" && rawGender !== "MALE" && rawGender !== "FEMALE") {
-         rowErrors.push(`Invalid gender '${rawGender}'`);
-         isValid = false;
+        rowErrors.push("Missing gender");
+        isValid = false;
+      } else if (
+        rawGender !== "M" &&
+        rawGender !== "F" &&
+        rawGender !== "MALE" &&
+        rawGender !== "FEMALE"
+      ) {
+        rowErrors.push(`Invalid gender '${rawGender}'`);
+        isValid = false;
       } else {
-         normalizedGender = (rawGender === "MALE" ? "M" : rawGender === "FEMALE" ? "F" : rawGender) as "M" | "F";
+        normalizedGender = (
+          rawGender === "MALE" ? "M" : rawGender === "FEMALE" ? "F" : rawGender
+        ) as "M" | "F";
       }
 
       // Format mobile numbers to ensure they look okay (basic validation)
-      let phone = student.parent_phone || student.guardian_phone || student.phone || "";
+      let phone =
+        student.parent_phone || student.guardian_phone || student.phone || "";
       if (phone && phone.length < 9) {
-         rowErrors.push("Phone number looks too short");
-         isValid = false;
+        rowErrors.push("Phone number looks too short");
+        isValid = false;
       }
 
       processedRows.push({
@@ -148,8 +166,10 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
   };
 
   const handleImport = async () => {
-    const isCurrentlyDemo = typeof window !== 'undefined' && localStorage.getItem("skoolmate_demo_v1") !== null;
-    
+    const isCurrentlyDemo =
+      typeof window !== "undefined" &&
+      localStorage.getItem("skoolmate_demo_v1") !== null;
+
     if (!school?.id || (!supabase && !isCurrentlyDemo)) {
       setError("Cannot import - no school or database connection");
       return;
@@ -161,16 +181,18 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
     const results: ImportResult = { success: 0, failed: 0, errors: [] };
     const batchSize = 10; // Smaller batches for demo feel
 
-    const validStudents = validatedRows.filter(r => r.isValid).map(r => r.data);
+    const validStudents = validatedRows
+      .filter((r) => r.isValid)
+      .map((r) => r.data);
     if (validStudents.length === 0) {
-       setError("No valid rows to import.");
-       setStep("preview");
-       return;
+      setError("No valid rows to import.");
+      setStep("preview");
+      return;
     }
 
     if (isCurrentlyDemo) {
       // Simulate slow import
-      await new Promise(r => setTimeout(r, 1500));
+      await new Promise((r) => setTimeout(r, 1500));
       setResult({ success: validStudents.length, failed: 0, errors: [] });
       setStep("complete");
       return;
@@ -346,7 +368,7 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv"
+              accept=".csv,.xlsx,.xls"
               onChange={handleFileSelect}
               style={{ display: "none" }}
             />
@@ -378,9 +400,19 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
                 Data Validation Preview
               </h3>
               <p className="text-sm text-[var(--t3)] mt-1">
-                Found <strong className="text-[var(--t1)]">{validatedRows.length}</strong> total rows.{" "}
-                <span className="text-emerald-600 font-bold">{validatedRows.filter(r => r.isValid).length} ready</span>,{" "}
-                <span className="text-red-600 font-bold">{validatedRows.filter(r => !r.isValid).length} invalid</span>.
+                Found{" "}
+                <strong className="text-[var(--t1)]">
+                  {validatedRows.length}
+                </strong>{" "}
+                total rows.{" "}
+                <span className="text-emerald-600 font-bold">
+                  {validatedRows.filter((r) => r.isValid).length} ready
+                </span>
+                ,{" "}
+                <span className="text-red-600 font-bold">
+                  {validatedRows.filter((r) => !r.isValid).length} invalid
+                </span>
+                .
               </p>
             </div>
             <button
@@ -401,48 +433,80 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
             <table className="w-full text-sm text-left whitespace-nowrap">
               <thead className="bg-[var(--surface-container-low)] sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th className="px-4 py-3 font-semibold text-[var(--t2)] w-12 text-center">Status</th>
-                  <th className="px-4 py-3 font-semibold text-[var(--t2)]">Name</th>
-                  <th className="px-4 py-3 font-semibold text-[var(--t2)]">Gender</th>
-                  <th className="px-4 py-3 font-semibold text-[var(--t2)]">Parent Phone</th>
-                  <th className="px-4 py-3 font-semibold text-[var(--t2)]">Errors</th>
+                  <th className="px-4 py-3 font-semibold text-[var(--t2)] w-12 text-center">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 font-semibold text-[var(--t2)]">
+                    Name
+                  </th>
+                  <th className="px-4 py-3 font-semibold text-[var(--t2)]">
+                    Gender
+                  </th>
+                  <th className="px-4 py-3 font-semibold text-[var(--t2)]">
+                    Parent Phone
+                  </th>
+                  <th className="px-4 py-3 font-semibold text-[var(--t2)]">
+                    Errors
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)] bg-white">
                 {validatedRows.slice(0, 50).map((row, i) => (
-                  <tr key={i} className={row.isValid ? "hover:bg-slate-50" : "bg-red-50/50"}>
+                  <tr
+                    key={i}
+                    className={
+                      row.isValid ? "hover:bg-slate-50" : "bg-red-50/50"
+                    }
+                  >
                     <td className="px-4 py-3 text-center">
-                      <span className={`material-symbols-outlined text-[18px] ${row.isValid ? "text-emerald-500" : "text-red-500"}`}>
+                      <span
+                        className={`material-symbols-outlined text-[18px] ${row.isValid ? "text-emerald-500" : "text-red-500"}`}
+                      >
                         {row.isValid ? "check_circle" : "error"}
                       </span>
                     </td>
                     <td className="px-4 py-3 font-medium text-[var(--t1)]">
-                      {row.data.first_name} {row.data.last_name || <span className="text-red-400 italic">Empty</span>}
+                      {row.data.first_name}{" "}
+                      {row.data.last_name || (
+                        <span className="text-red-400 italic">Empty</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-[var(--t2)]">
-                      {row.data.gender || <span className="text-red-400 italic">Empty</span>}
+                      {row.data.gender || (
+                        <span className="text-red-400 italic">Empty</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-[var(--t2)] font-mono text-xs">
-                      {row.data.parent_phone || <span className="text-[var(--t4)] italic">None</span>}
+                      {row.data.parent_phone || (
+                        <span className="text-[var(--t4)] italic">None</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {row.errors.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {row.errors.map((err, errIdx) => (
-                            <span key={errIdx} className="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-red-100 text-red-700 border border-red-200">
+                            <span
+                              key={errIdx}
+                              className="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-red-100 text-red-700 border border-red-200"
+                            >
                               {err}
                             </span>
                           ))}
                         </div>
                       ) : (
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Ready</span>
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                          Ready
+                        </span>
                       )}
                     </td>
                   </tr>
                 ))}
                 {validatedRows.length > 50 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-4 text-center text-[var(--t3)] italic bg-[var(--surface-container-low)]">
+                    <td
+                      colSpan={5}
+                      className="px-4 py-4 text-center text-[var(--t3)] italic bg-[var(--surface-container-low)]"
+                    >
                       ... plus {validatedRows.length - 50} more rows
                     </td>
                   </tr>
@@ -452,19 +516,26 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
           </div>
 
           <div className="bg-blue-50 border border-blue-100 text-blue-800 rounded-xl p-4 mb-6 text-sm flex gap-3">
-            <span className="material-symbols-outlined text-blue-500 shrink-0">info</span>
+            <span className="material-symbols-outlined text-blue-500 shrink-0">
+              info
+            </span>
             <p>
-              Only valid records will be imported. <strong className="font-bold">{validatedRows.filter(r => !r.isValid).length} invalid rows</strong> will be skipped entirely.
+              Only valid records will be imported.{" "}
+              <strong className="font-bold">
+                {validatedRows.filter((r) => !r.isValid).length} invalid rows
+              </strong>{" "}
+              will be skipped entirely.
             </p>
           </div>
 
           <button
             onClick={handleImport}
-            disabled={validatedRows.filter(r => r.isValid).length === 0}
+            disabled={validatedRows.filter((r) => r.isValid).length === 0}
             className="w-full flex justify-center items-center gap-2 px-4 py-3.5 bg-[var(--primary)] text-white font-bold rounded-xl shadow-[var(--sh2)] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             <span className="material-symbols-outlined">cloud_upload</span>
-            Import {validatedRows.filter(r => r.isValid).length} Valid Students
+            Import {validatedRows.filter((r) => r.isValid).length} Valid
+            Students
           </button>
         </div>
       )}
@@ -496,7 +567,9 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
               height: 64,
               borderRadius: "50%",
               background:
-                result?.failed === 0 ? "var(--green-soft)" : "var(--amber-soft)",
+                result?.failed === 0
+                  ? "var(--green-soft)"
+                  : "var(--amber-soft)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",

@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendFeeOverdueReminders, sendAbsenteeAlert } from '@/lib/sms-automation'
+import { requireCronSecretOrDeny } from '@/lib/api-utils'
 
 // This endpoint is called by Vercel Cron or any scheduler
 // Configure in vercel.json:
 // "crons": [{ "path": "/api/cron/sms-reminders", "schedule": "0 8 * * 1-5" }]
 
 export async function GET(request: NextRequest) {
-  // Verify cron secret to prevent unauthorized access
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const cron = requireCronSecretOrDeny(request)
+  if (!cron.ok) return cron.response
 
   try {
     const results: Record<string, any> = {}

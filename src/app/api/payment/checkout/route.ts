@@ -5,9 +5,20 @@ import { PlanType } from "@/lib/subscription";
 import {
   getPlanPrice,
   recordPayment,
-  savePendingMobilePayment,
 } from "@/lib/payments/utils";
+import {
+  requireUserWithSchool,
+  assertUserRoleOrDeny,
+} from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+const BILLING_ROLES = [
+  "super_admin",
+  "school_admin",
+  "admin",
+  "headmaster",
+  "bursar",
+];
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -29,14 +40,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Auth check before body parse
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireUserWithSchool(request);
+    if (!auth.ok) return auth.response;
+
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: BILLING_ROLES,
+    });
+    if (!roleCheck.ok) return roleCheck.response;
 
     const body = await request.json();
     const { provider, plan, returnUrl, cancelUrl } = body as {
@@ -53,23 +64,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: userData } = await supabase
-      .from("users")
-      .select("school_id, role")
-      .eq("auth_id", user.id)
-      .single();
-
-    if (!userData?.school_id) {
-      return NextResponse.json(
-        { error: "School not found for user" },
-        { status: 404 },
-      );
-    }
-
+    const supabase = await createSupabaseServerClient();
     const { data: school } = await supabase
       .from("schools")
       .select("*")
-      .eq("id", userData.school_id)
+      .eq("id", auth.context.schoolId)
       .single();
 
     if (!school) {

@@ -6,10 +6,19 @@ import {
   withSecurity,
   requireUserWithSchool,
   assertSchoolScopeOrDeny,
+  assertUserRoleOrDeny,
 } from '@/lib/api-utils'
 
 const AFRICAS_TALKING_API_KEY = process.env.AFRICAS_TALKING_API_KEY || ''
 const AFRICAS_TALKING_USERNAME = process.env.AFRICAS_TALKING_USERNAME || 'sandbox'
+const SMS_ALLOWED_ROLES = [
+  'super_admin',
+  'school_admin',
+  'admin',
+  'headmaster',
+  'bursar',
+  'secretary',
+]
 
 interface SMSRequest {
   phone: string
@@ -110,6 +119,12 @@ async function handlePost(request: NextRequest) {
     })
     if (!scope.ok) return scope.response
 
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: SMS_ALLOWED_ROLES,
+    })
+    if (!roleCheck.ok) return roleCheck.response
+
     if (typeof phone !== 'string' || phone.length < 10 || phone.length > 15) {
       return apiError('Invalid phone number format', 400)
     }
@@ -153,6 +168,12 @@ async function handlePut(request: NextRequest) {
       requestedSchoolId: schoolId,
     })
     if (!scope.ok) return scope.response
+
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: SMS_ALLOWED_ROLES,
+    })
+    if (!roleCheck.ok) return roleCheck.response
 
     if (!Array.isArray(phones) || phones.length > 100) {
       return apiError('Phone list must be an array with maximum 100 recipients', 400)
