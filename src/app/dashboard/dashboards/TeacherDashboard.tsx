@@ -369,7 +369,7 @@ function TeacherDashboardContent() {
           </div>
         </Link>
         <Link
-          href="/dashboard/planning"
+          href="/dashboard/lesson-plans"
           className="qa-item !flex-row !justify-start !p-4"
         >
           <div

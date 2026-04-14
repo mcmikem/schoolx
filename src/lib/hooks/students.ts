@@ -23,6 +23,18 @@ type StudentWithClass = Student & {
   houses?: { id: string; name: string; color: string } | null;
   prefect_role?: string;
   student_council_role?: string;
+  parent_phone2?: string;
+  parent_email?: string;
+  blood_type?: string;
+  house_id?: string;
+  previous_school?: string;
+  district_origin?: string;
+  sub_county?: string;
+  parish?: string;
+  village?: string;
+  boarding_status?: string;
+  games_house?: string;
+  is_class_monitor?: boolean;
 };
 
 export function useStudents(
@@ -299,8 +311,7 @@ export function useStudent(id: string) {
           .from("students")
           .select(
             `
-            id, school_id, student_number, first_name, last_name, gender, 
-            date_of_birth, parent_name, parent_phone, class_id, admission_date, status, created_at,
+            *,
             classes(id, name, level), houses(id, name, color), prefect_role, student_council_role
           `,
           )

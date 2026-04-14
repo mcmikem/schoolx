@@ -1,12 +1,11 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import Link from "next/link";
 import AnimatedLogo from "@/components/AnimatedLogo";
 import { t, tWithParams } from "@/i18n";
 import { Button, Input } from "@/components/ui";
+import { useAuth } from "@/lib/auth-context";
 
 const DEMO_KEY = "skoolmate_demo_v1";
 
@@ -40,8 +39,8 @@ function MaterialIcon({
 }
 
 export default function LoginPage() {
-  const router = useRouter();
   const toast = useToast();
+  const { signIn } = useAuth();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -111,24 +110,7 @@ export default function LoginPage() {
         }
       }
 
-      // Normal login - Supabase auth
-      if (!supabase) {
-        toast.error(
-          "Supabase not configured. Please check environment variables.",
-        );
-        setLoading(false);
-        return;
-      }
-
-      const email = `${cleanPhone}@omuto.org`;
-
-      const { data, error: authError } = await supabase.auth.signInWithPassword(
-        {
-          email,
-          password,
-        },
-      );
-
+      const { error: authError } = await signIn(cleanPhone, password);
       if (authError) {
         console.error("Auth error:", authError);
         if (authError.message.includes("Invalid login credentials")) {
@@ -140,17 +122,7 @@ export default function LoginPage() {
         return;
       }
 
-      if (!data.user) {
-        toast.error("Login failed - no user found");
-        setLoading(false);
-        return;
-      }
-
       toast.success("Login successful!");
-
-      setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 500);
     } catch (err: unknown) {
       console.error("Login exception:", err);
       const errorMessage =
