@@ -11,6 +11,10 @@ import {
   logAuditEventWithOfflineSupport,
   logRecordChangeWithOfflineSupport,
 } from "@/lib/audit";
+import {
+  normalizeAttendanceInput,
+  validateAttendanceInput,
+} from "@/lib/validation";
 
 export function useAttendance(classId?: string, date?: string) {
   const [attendance, setAttendance] = useState<any[]>([]);
@@ -45,13 +49,17 @@ export function useAttendance(classId?: string, date?: string) {
       });
       return newRecord;
     }
-    const payload = {
+    const payload = normalizeAttendanceInput({
       student_id: studentId,
       class_id: classId,
       date: currentDate,
       status,
       recorded_by: recordedBy,
-    };
+    });
+    const validationErrors = validateAttendanceInput(payload);
+    if (validationErrors.length > 0) {
+      throw new Error(validationErrors[0]);
+    }
     const previousRecord = attendance.find((a) => a.student_id === studentId);
 
     if (!isOnline) {

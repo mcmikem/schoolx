@@ -5,9 +5,11 @@ import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
+import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
 
 export default function ParentAcademicsPage() {
   const { user, isDemo } = useAuth();
+  const { isAuthorized, isChecking } = useParentPortalGuard();
   const [children, setChildren] = useState<any[]>([]);
   const [selectedChild, setSelectedChild] = useState<any>(null);
   const [grades, setGrades] = useState<any[]>([]);
@@ -132,6 +134,10 @@ export default function ParentAcademicsPage() {
   useEffect(() => {
     if (selectedChild) fetchGrades(selectedChild);
   }, [selectedChild, fetchGrades]);
+
+  if (isChecking || !isAuthorized) {
+    return null;
+  }
 
   const filtered =
     selectedTerm === "all"

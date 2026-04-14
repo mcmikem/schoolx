@@ -41,70 +41,91 @@ export default function DashboardInsights({
   // Generate trend data for the area chart (last 6 months)
   const trendData = useMemo(() => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
+    const totalStudents = stats?.totalStudents || activeStudents.length || 0;
 
-    // Determine if we should show real data or demo data
-    const hasData = payments.length > 0 || activeStudents.length > 0;
+    // If no real data at all, show message
+    if (!isDemo && totalStudents === 0) {
+      return months.map((month) => ({
+        name: month,
+        students: 0,
+        attendance: 0,
+      }));
+    }
+
+    // Use stats if available, otherwise derive meaningful demo curve
+    const currentAttendance = attendanceRate || 85;
+    const baseStudents = totalStudents > 0 ? totalStudents : 100;
 
     return months.map((month, i) => {
-      // If not demo mode and no real data, return zeros
-      if (!isDemo && !hasData) {
-        return { name: month, fees: 0, attendance: 0 };
-      }
-
-      // In demo mode or if we have data, we'll derive a curve
-      // For real accounts with data, we might want to actually group payments,
-      // but as a fallback/simplification to prevent "jumping" to zero,
-      // we'll anchor to the current rate only if data exists.
-      const growthFactor = (i + 1) / months.length;
-
-      // Only add noise if it's explicitly demo mode
-      const noise = isDemo ? Math.random() * 500 : 0;
-      const baseFee = collectionRate * 1000 * growthFactor;
+      // In demo mode with stats, show realistic growth
+      const progress = i / (months.length - 1);
+      const studentNoise = isDemo ? Math.round((Math.random() - 0.5) * 20) : 0;
+      const attendanceNoise = isDemo ? (Math.random() - 0.5) * 5 : 0;
 
       return {
         name: month,
-        fees: Math.max(0, baseFee + noise),
-        attendance:
-          i < months.length - 1
-            ? attendanceRate > 0
-              ? Math.min(
-                  100,
-                  attendanceRate - (isDemo ? Math.random() * 5 : 0) + i * 0.5,
-                )
-              : 0
-            : attendanceRate,
+        students: Math.round(baseStudents * progress) + studentNoise,
+        attendance: Math.min(
+          100,
+          Math.max(0, currentAttendance - 5 + progress * 10 + attendanceNoise),
+        ),
       };
     });
-  }, [
-    collectionRate,
-    attendanceRate,
-    isDemo,
-    payments.length,
-    students.length,
-  ]);
+  }, [collectionRate, attendanceRate, isDemo, stats, students.length]);
 
-  // Student Demographics Data - Active students only for accuracy
+  // Student Demographics Data - Use stats first, fallback to students array
   const demoData = useMemo(() => {
-    // Filter to active students only - match student hub
+    // Use stats.totalStudents if available (represents real data)
+    const totalFromStats = stats?.totalStudents || 0;
+
+    if (totalFromStats > 0) {
+      // Use actual data from stats - calculate gender from students array or estimate
+      const boys = activeStudents.filter(
+        (s) => s.gender === "M" || s.gender === "Male",
+      ).length;
+      const girls = activeStudents.filter(
+        (s) => s.gender === "F" || s.gender === "Female",
+      ).length;
+
+      // If we have partial data from students array, scale proportionally
+      const known = boys + girls;
+      if (known > 0 && known < totalFromStats) {
+        const boyRatio = boys / known;
+        return [
+          {
+            name: "Boys",
+            value: Math.round(totalFromStats * boyRatio),
+            color: "var(--navy)",
+          },
+          {
+            name: "Girls",
+            value: Math.round(totalFromStats * (1 - boyRatio)),
+            color: "var(--green)",
+          },
+        ];
+      }
+      // Otherwise show actual from array
+      return [
+        { name: "Boys", value: boys, color: "var(--navy)" },
+        { name: "Girls", value: girls, color: "var(--green)" },
+      ];
+    }
+
+    // Fallback to students array only
     const boys = activeStudents.filter(
       (s) => s.gender === "M" || s.gender === "Male",
     ).length;
     const girls = activeStudents.filter(
       (s) => s.gender === "F" || s.gender === "Female",
     ).length;
-    const others = activeStudents.length - (boys + girls);
 
     const results = [
       { name: "Boys", value: boys || 0, color: "var(--navy)" },
       { name: "Girls", value: girls || 0, color: "var(--green)" },
     ];
 
-    if (others > 0) {
-      results.push({ name: "Other", value: others, color: "var(--t4)" });
-    }
-
     // Only show fallback data in Demo Mode
-    if (activeStudents.length === 0) {
+    if (activeStudents.length === 0 && totalFromStats === 0) {
       if (isDemo) {
         return [
           { name: "Boys", value: 50, color: "var(--navy)" },
@@ -119,7 +140,7 @@ export default function DashboardInsights({
     }
 
     return results;
-  }, [students, isDemo]);
+  }, [students, isDemo, stats]);
 
   // School Health Score (Weighted average)
   const healthScore = useMemo(() => {
@@ -171,7 +192,7 @@ export default function DashboardInsights({
 
         <div className="flex-1 min-h-0 mt-2 relative">
           {!isDemo &&
-          trendData.every((d) => d.fees === 0 && d.attendance === 0) ? (
+          trendData.every((d) => d.students === 0 && d.attendance === 0) ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-[var(--bg)]/50 backdrop-blur-sm rounded-xl border border-dashed border-[var(--border)]">
               <MaterialIcon
                 icon="analytics"
@@ -238,7 +259,7 @@ export default function DashboardInsights({
                 />
                 <Area
                   type="monotone"
-                  dataKey="fees"
+                  dataKey="students"
                   stroke="var(--navy)"
                   strokeWidth={3}
                   fillOpacity={1}

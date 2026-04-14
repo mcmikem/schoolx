@@ -259,15 +259,39 @@ describe('Fee Structure Validation', () => {
       name: 'Tuition',
       amount: 50000,
       term: 4,
+      academic_year: '2024',
     })
     expect(result.valid).toBe(false)
     expect(result.errors).toContain('Term must be 1, 2, or 3')
+  })
+
+  test('requires academic year', () => {
+    const result = validateFeeStructure({
+      name: 'Tuition',
+      amount: 50000,
+      term: 1,
+    })
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain('Academic year is required')
+  })
+
+  test('rejects invalid due date', () => {
+    const result = validateFeeStructure({
+      name: 'Tuition',
+      amount: 50000,
+      term: 1,
+      academic_year: '2024',
+      due_date: 'not-a-date',
+    })
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain('Invalid due date')
   })
 
   test('warns about high fee amount', () => {
     const result = validateFeeStructure({
       name: 'Tuition',
       amount: 10000000,
+      academic_year: '2024',
     })
     expect(result.valid).toBe(true)
     expect(result.warnings).toContain('High fee amount - please verify')

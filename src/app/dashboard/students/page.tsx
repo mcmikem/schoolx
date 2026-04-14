@@ -124,6 +124,13 @@ export default function StudentHubPage() {
   const [saving, setSaving] = useState(false);
   const [houses, setHouses] = useState<any[]>([]);
 
+  // Filters
+  const [filterGender, setFilterGender] = useState<"all" | "M" | "F">("all");
+  const [filterPosition, setFilterPosition] = useState<string>("all");
+  const [filterDefaulters, setFilterDefaulters] = useState(false);
+  const [sortBy, setSortBy] = useState<"name" | "number" | "class">("name");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
   const newStudentDraft: any = {
     showRestoreDialog: false,
     discardDraft: () => {},
@@ -465,7 +472,7 @@ export default function StudentHubPage() {
     if (!school?.id || !fromClass) return;
     setPromotionLoading(true);
     if (isDemo) {
-      const classStudents = students.filter(s => s.class_id === fromClass);
+      const classStudents = students.filter((s) => s.class_id === fromClass);
       setPromotionStudents(classStudents as any);
       setSelectedStudents(new Set(classStudents.map((s) => s.id)));
       const defaultActions: StudentActionMap = {};
@@ -542,7 +549,7 @@ export default function StudentHubPage() {
   };
 
   const filtered = useMemo(() => {
-    return students.filter((s) => {
+    let result = students.filter((s) => {
       const name = `${s.first_name} ${s.last_name}`.toLowerCase();
       const matchesSearch =
         name.includes(searchTerm.toLowerCase()) ||
@@ -550,9 +557,38 @@ export default function StudentHubPage() {
         s.student_number?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesClass =
         selectedClass === "all" || s.class_id === selectedClass;
-      return matchesSearch && matchesClass;
+      const sAny = s as any;
+      const matchesGender = filterGender === "all" || s.gender === filterGender;
+      const matchesPosition =
+        filterPosition === "all" ||
+        (filterPosition === "monitor" && sAny.is_class_monitor) ||
+        (filterPosition === "prefect" &&
+          (sAny.prefect_role || sAny.student_council_role));
+      return matchesSearch && matchesClass && matchesGender && matchesPosition;
     });
-  }, [students, searchTerm, selectedClass]);
+
+    // Sort
+    result.sort((a, b) => {
+      if (sortBy === "name") {
+        return `${a.first_name} ${a.last_name}`.localeCompare(
+          `${b.first_name} ${b.last_name}`,
+        );
+      }
+      if (sortBy === "number") {
+        return (a.student_number || "").localeCompare(b.student_number || "");
+      }
+      return (a.classes?.name || "").localeCompare(b.classes?.name || "");
+    });
+
+    return result;
+  }, [
+    students,
+    searchTerm,
+    selectedClass,
+    filterGender,
+    filterPosition,
+    sortBy,
+  ]);
 
   const handleStudentTemplateUpload = (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -743,6 +779,7 @@ export default function StudentHubPage() {
       ple_index_number: student.ple_index_number || "",
       opening_balance: student.opening_balance?.toString() || "0",
     });
+    window.scrollTo(0, 0);
     setShowEditModal(true);
   };
 
@@ -1127,12 +1164,16 @@ export default function StudentHubPage() {
     try {
       let user_id = "demo-user";
       if (!isDemo) {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         user_id = user?.id || user_id;
       }
 
-      let promoted = 0, repeating = 0, demoted = 0;
-      
+      let promoted = 0,
+        repeating = 0,
+        demoted = 0;
+
       for (const studentId of selectedArray) {
         const actionData = studentActions[studentId];
         if (!actionData) continue;
@@ -1819,6 +1860,78 @@ export default function StudentHubPage() {
                   {c.stream ? ` ${c.stream}` : ""}
                 </option>
               ))}
+            </select>
+            <select
+              value={filterGender}
+              onChange={(e) => setFilterGender(e.target.value as any)}
+              style={{
+                padding: "10px 14px",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                background: "var(--surface)",
+                color: "var(--t1)",
+                cursor: "pointer",
+              }}
+            >
+              <option value="all">All Genders</option>
+              <option value="M">Boys only</option>
+              <option value="F">Girls only</option>
+            </select>
+            <select
+              value={filterPosition}
+              onChange={(e) => setFilterPosition(e.target.value)}
+              style={{
+                padding: "10px 14px",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                background: "var(--surface)",
+                color: "var(--t1)",
+                cursor: "pointer",
+              }}
+            >
+              <option value="all">All Positions</option>
+              <option value="monitor">Class Monitors</option>
+              <option value="prefect">Prefects</option>
+            </select>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 600,
+                color: "var(--t1)",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={filterDefaulters}
+                onChange={(e) => setFilterDefaulters(e.target.checked)}
+              />
+              Defaulters
+            </label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              style={{
+                padding: "10px 14px",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                background: "var(--surface)",
+                color: "var(--t1)",
+                cursor: "pointer",
+              }}
+            >
+              <option value="name">Sort by Name</option>
+              <option value="number">Sort by Number</option>
+              <option value="class">Sort by Class</option>
             </select>
           </div>
 
@@ -2824,6 +2937,102 @@ export default function StudentHubPage() {
                 </button>
               </div>
               <form onSubmit={handleUpdateStudent} style={{ padding: 20 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 16,
+                    marginBottom: 20,
+                    paddingBottom: 16,
+                    borderBottom: "1px solid var(--border)",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: "50%",
+                      background: "var(--bg)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      overflow: "hidden",
+                      border: "2px dashed var(--border)",
+                      cursor: "pointer",
+                    }}
+                    title="Click to upload photo"
+                  >
+                    {(editingStudent as any)?.photo_url ? (
+                      <img
+                        src={(editingStudent as any).photo_url}
+                        alt="Student"
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    ) : (
+                      <MaterialIcon
+                        style={{ fontSize: 32, color: "var(--t3)" }}
+                      >
+                        person
+                      </MaterialIcon>
+                    )}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: ".5px",
+                        textTransform: "uppercase",
+                        color: "var(--t3)",
+                        marginBottom: 6,
+                        display: "block",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Student Photo
+                      <input
+                        type="file"
+                        accept="image/*"
+                        disabled={uploadingPhoto}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setUploadingPhoto(true);
+                          // In demo mode, just simulate upload
+                          if (isDemo) {
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                              const updatedStudent = {
+                                ...editingStudent,
+                                photo_url: reader.result,
+                              };
+                              setEditingStudent(updatedStudent);
+                              setEditForm((prev: any) => ({
+                                ...prev,
+                                photo_url: reader.result,
+                              }));
+                              setUploadingPhoto(false);
+                            };
+                            reader.readAsDataURL(file);
+                          } else {
+                            // Real upload would go to Supabase storage
+                            setUploadingPhoto(false);
+                          }
+                        }}
+                        style={{ display: "none" }}
+                      />
+                    </label>
+                    <p style={{ fontSize: 11, color: "var(--t3)" }}>
+                      {uploadingPhoto
+                        ? "Uploading..."
+                        : "Click to upload new photo"}
+                    </p>
+                  </div>
+                </div>
                 <div
                   style={{
                     display: "grid",
@@ -4595,6 +4804,54 @@ export default function StudentHubPage() {
           >
             <BulkImport onComplete={() => setShowBulkImportModal(false)} />
           </Modal>
+        )}
+        {deleteConfirm.open && (
+          <div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setDeleteConfirm({ open: false, studentId: null })}
+          >
+            <div
+              className="bg-[var(--surface)] rounded-2xl w-full max-w-md p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ textAlign: "center", marginBottom: 24 }}>
+                <MaterialIcon
+                  style={{
+                    fontSize: 48,
+                    color: "var(--error)",
+                    marginBottom: 16,
+                  }}
+                >
+                  warning
+                </MaterialIcon>
+                <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
+                  Remove Student?
+                </h3>
+                <p style={{ color: "var(--t3)", fontSize: 14 }}>
+                  This action cannot be undone. All records for this student
+                  will be permanently deleted.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  variant="ghost"
+                  onClick={() =>
+                    setDeleteConfirm({ open: false, studentId: null })
+                  }
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleDeleteStudent}
+                  className="flex-1"
+                  style={{ background: "var(--error)" }}
+                >
+                  Remove
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </TabPanel>
     </div>

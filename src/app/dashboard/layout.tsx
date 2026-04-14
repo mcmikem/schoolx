@@ -36,6 +36,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     if (!loading) {
       hasCheckedAuth.current = true;
     }
+    // Only redirect after we've finished checking AND determined no valid session
     if (hasCheckedAuth.current && !loading && !user && !isDemo) {
       router.replace("/login");
     }
