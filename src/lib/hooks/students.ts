@@ -5,6 +5,10 @@ import { useAuth } from "@/lib/auth-context";
 import type { Student, CreateStudentInput, Class } from "@/types";
 import { getQuerySchoolId, withTimeout } from "./utils";
 import { getCachedData, setCachedData, invalidateCache } from "./queryCache";
+import {
+  normalizeStudentInput,
+  validateStudentInput,
+} from "@/lib/validation";
 
 import { DEMO_STUDENTS, DEMO_CLASSES, DemoStudent } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
@@ -35,6 +39,32 @@ export function useStudents(
   const hasInitialized = useRef(false);
 
   const cacheKey = `students:${schoolId}:${limit}:${offset}`;
+
+  const assertUniqueStudentNumber = useCallback(
+    async (studentNumber: string | undefined, studentId?: string) => {
+      if (!studentNumber || !schoolId || isDemo || isDemoSchool(schoolId)) {
+        return;
+      }
+
+      let query = supabase
+        .from("students")
+        .select("id")
+        .eq("school_id", getQuerySchoolId(schoolId, isDemo))
+        .eq("student_number", studentNumber)
+        .limit(1);
+
+      if (studentId) {
+        query = query.neq("id", studentId);
+      }
+
+      const { data, error: duplicateError } = await query;
+      if (duplicateError) throw duplicateError;
+      if (data && data.length > 0) {
+        throw new Error("Student number already exists for this school");
+      }
+    },
+    [schoolId, isDemo],
+  );
 
   const fetchStudents = useCallback(async () => {
     // Demo mode - check for demo school UUID
@@ -93,6 +123,12 @@ export function useStudents(
   }, [schoolId, isDemo, limit, offset, cacheKey]);
 
   const createStudent = async (student: CreateStudentInput) => {
+    const normalizedStudent = normalizeStudentInput(student);
+    const validationErrors = validateStudentInput(normalizedStudent);
+    if (validationErrors.length > 0) {
+      throw new Error(validationErrors[0]);
+    }
+
     // Check plan limit for non-demo schools
     if (!isDemo && !isDemoSchool(schoolId) && school?.subscription_plan) {
       const maxStudents = getFeatureLimit(
@@ -109,14 +145,15 @@ export function useStudents(
     if (isDemo || isDemoSchool(schoolId)) {
       const newId = `demo-student-${Date.now()}`;
       const newStudentData: StudentWithClass = {
-        ...student,
+        ...normalizedStudent,
         id: newId,
         school_id: schoolId || "00000000-0000-0000-0000-000000000001",
-        student_number: student.student_number || `STU-${newId.slice(0, 8)}`,
+        student_number:
+          normalizedStudent.student_number || `STU-${newId.slice(0, 8)}`,
         status: "active" as const,
         admission_date: new Date().toISOString().split("T")[0],
         created_at: new Date().toISOString(),
-        classes: (DEMO_CLASSES.find((c) => c.id === student.class_id) ||
+        classes: (DEMO_CLASSES.find((c) => c.id === normalizedStudent.class_id) ||
           DEMO_CLASSES[0]) as unknown as Class,
       };
       setStudents((prev) => [newStudentData, ...prev]);
@@ -126,9 +163,10 @@ export function useStudents(
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
+      await assertUniqueStudentNumber(normalizedStudent.student_number);
       const { data, error: insertError } = await supabase
         .from("students")
-        .insert({ ...student, school_id: querySchoolId })
+        .insert({ ...normalizedStudent, school_id: querySchoolId })
         .select(
           `
           id, school_id, student_number, first_name, last_name, gender, 
@@ -148,19 +186,33 @@ export function useStudents(
   };
 
   const updateStudent = async (id: string, updates: Partial<Student>) => {
+    const normalizedUpdates = normalizeStudentInput(updates);
+    const validationErrors = validateStudentInput(normalizedUpdates, {
+      partial: true,
+    });
+    if (validationErrors.length > 0) {
+      throw new Error(validationErrors[0]);
+    }
+
     if (isDemo || isDemoSchool(schoolId)) {
-      setStudents((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, ...updates } : s)),
-      );
-      return {
-        ...students.find((s) => s.id === id),
-        ...updates,
+      const existingStudent = students.find((s) => s.id === id);
+      if (!existingStudent) {
+        throw new Error("Student not found");
+      }
+      const updatedStudent = {
+        ...existingStudent,
+        ...normalizedUpdates,
       } as StudentWithClass;
+      setStudents((prev) =>
+        prev.map((s) => (s.id === id ? updatedStudent : s)),
+      );
+      return updatedStudent;
     }
     try {
+      await assertUniqueStudentNumber(normalizedUpdates.student_number, id);
       const { data, error: updateError } = await supabase
         .from("students")
-        .update(updates)
+        .update(normalizedUpdates)
         .eq("id", id)
         .select(
           `
@@ -318,7 +370,8 @@ export function useClasses(schoolId?: string) {
         level: newClass.level || "Primary",
         school_id: schoolId || "00000000-0000-0000-0000-000000000001",
         max_students: newClass.max_students || 50,
-        academic_year: newClass.academic_year || new Date().getFullYear().toString(),
+        academic_year:
+          newClass.academic_year || new Date().getFullYear().toString(),
         created_at: new Date().toISOString(),
       };
       setClasses((prev) => [...prev, demoClass]);
@@ -355,7 +408,9 @@ export function useClasses(schoolId?: string) {
         .select()
         .single();
       if (error) throw error;
-      setClasses((prev) => prev.map((c) => (c.id === id ? (data as Class) : c)));
+      setClasses((prev) =>
+        prev.map((c) => (c.id === id ? (data as Class) : c)),
+      );
       return data as Class;
     } catch (err) {
       throw err;

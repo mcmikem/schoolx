@@ -129,7 +129,7 @@ export default function SetupChecklist({ onComplete, showAll = false }: Props) {
       fee_structure: "/dashboard/fees",
       staff_accounts: "/dashboard/settings?tab=users",
       student_import: "/dashboard/import",
-      sms_templates: "/dashboard/sms-templates",
+      sms_templates: "/dashboard/messages",
       payment_methods: "/dashboard/fees?tab=payments",
       grading_config: "/dashboard/grades?tab=settings",
     };

@@ -6,9 +6,11 @@ import SidebarShell from "@/components/dashboard/SidebarShell";
 import TopBar from "@/components/dashboard/TopBar";
 import MaterialIcon from "@/components/MaterialIcon";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
+import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
 
 function ParentDashboardContent() {
   const { user, isDemo, signOut } = useAuth();
+  const { isAuthorized, isChecking } = useParentPortalGuard();
   const { close: closeSidebar } = useSidebar();
   const [children, setChildren] = useState<any[]>([]);
   const [selectedChild, setSelectedChild] = useState<any>(null);
@@ -70,13 +72,19 @@ function ParentDashboardContent() {
           if (activeChild) setSelectedChild(activeChild);
 
           // Fetch Global Notices
-          const { data: noticesData } = await supabase
-            .from("notices")
-            .select("*")
-            .eq("is_active", true)
-            .order("created_at", { ascending: false })
-            .limit(5);
-          setNotices(noticesData || []);
+          const schoolId = list[0]?.school_id || null;
+          if (schoolId) {
+            const { data: noticesData } = await supabase
+              .from("notices")
+              .select("*")
+              .eq("school_id", schoolId)
+              .eq("is_active", true)
+              .order("created_at", { ascending: false })
+              .limit(5);
+            setNotices(noticesData || []);
+          } else {
+            setNotices([]);
+          }
 
         } catch (err) {
           console.error("Fetch children error:", err);
@@ -99,7 +107,12 @@ function ParentDashboardContent() {
           supabase.from("attendance").select("*").eq("student_id", selectedChild.id).limit(10),
           supabase.from("grades").select("*, subjects(name)").eq("student_id", selectedChild.id).limit(6),
           supabase.from("fee_payments").select("*").eq("student_id", selectedChild.id),
-          supabase.from("fee_structure").select("*").eq("class_id", selectedChild.class_id)
+          supabase
+            .from("fee_structure")
+            .select("*")
+            .eq("school_id", selectedChild.school_id)
+            .is("deleted_at", null)
+            .or(`class_id.is.null,class_id.eq.${selectedChild.class_id}`)
         ]);
 
         setAttendance(attRes.data || []);
@@ -181,6 +194,10 @@ function ParentDashboardContent() {
     await signOut();
     window.location.href = "/login";
   };
+
+  if (isChecking || !isAuthorized) {
+    return null;
+  }
 
   return (
     <div className="bg-motif flex min-h-screen bg-[var(--bg)]">

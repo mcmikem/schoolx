@@ -191,6 +191,7 @@ export function validateFeeStructure(fee: {
   amount?: number
   term?: number
   academic_year?: string
+  due_date?: string
 }): ValidationResult {
   const errors: string[] = []
   const warnings: string[] = []
@@ -205,6 +206,17 @@ export function validateFeeStructure(fee: {
 
   if (fee.term && (fee.term < 1 || fee.term > 3)) {
     errors.push('Term must be 1, 2, or 3')
+  }
+
+  if (!fee.academic_year?.trim()) {
+    errors.push('Academic year is required')
+  }
+
+  if (fee.due_date) {
+    const dueDate = new Date(fee.due_date)
+    if (isNaN(dueDate.getTime())) {
+      errors.push('Invalid due date')
+    }
   }
 
   if (fee.amount && fee.amount > 5000000) {

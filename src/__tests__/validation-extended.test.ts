@@ -1,4 +1,5 @@
 import {
+  isFutureDate,
   sanitizeString,
   sanitizePhone,
   sanitizeNumber,
@@ -6,6 +7,14 @@ import {
   isValidEmail,
   isValidDate,
   isValidScore,
+  normalizeAttendanceInput,
+  normalizeFeeStructureInput,
+  normalizePaymentInput,
+  normalizeStudentInput,
+  validateAttendanceInput,
+  validateFeeStructureInput,
+  validatePaymentInput,
+  validateStudentInput,
 } from '../lib/validation'
 
 describe('Validation - String Sanitization', () => {
@@ -109,6 +118,13 @@ describe('Validation - Date Validation', () => {
       expect(isValidDate('not-a-date')).toBe(false)
     })
   })
+
+  describe('isFutureDate', () => {
+    test('detects future dates', () => {
+      expect(isFutureDate('2030-01-01', new Date('2026-01-01'))).toBe(true)
+      expect(isFutureDate('2025-12-31', new Date('2026-01-01'))).toBe(false)
+    })
+  })
 })
 
 describe('Validation - Score Validation', () => {
@@ -131,6 +147,278 @@ describe('Validation - Score Validation', () => {
     test('respects custom max score', () => {
       expect(isValidScore(50, 50)).toBe(true)
       expect(isValidScore(75, 50)).toBe(false)
+    })
+  })
+})
+
+describe('Validation - Student Input', () => {
+  describe('normalizeStudentInput', () => {
+    test('normalizes names, phones, and student number', () => {
+      expect(
+        normalizeStudentInput({
+          first_name: '  Jane ',
+          last_name: ' Doe ',
+          parent_name: ' Parent Name ',
+          parent_phone: '+256 700 000 000',
+          parent_phone2: '0700-111-222',
+          student_number: ' sm 001 ',
+          class_id: ' class-1 ',
+          opening_balance: '15,000' as any,
+        }),
+      ).toEqual({
+        first_name: 'Jane',
+        last_name: 'Doe',
+        parent_name: 'Parent Name',
+        parent_phone: '+256700000000',
+        parent_phone2: '0700111222',
+        student_number: 'SM001',
+        class_id: 'class-1',
+        opening_balance: 15000,
+      })
+    })
+  })
+
+  describe('validateStudentInput', () => {
+    test('accepts a valid student payload', () => {
+      expect(
+        validateStudentInput({
+          first_name: 'Jane',
+          last_name: 'Doe',
+          parent_name: 'Parent',
+          parent_phone: '0700000000',
+          class_id: 'class-1',
+          date_of_birth: '2020-01-01',
+          opening_balance: 0,
+        }),
+      ).toEqual([])
+    })
+
+    test('rejects future date of birth and negative balance', () => {
+      expect(
+        validateStudentInput(
+          {
+            first_name: 'Jane',
+            last_name: 'Doe',
+            parent_name: 'Parent',
+            parent_phone: '0700000000',
+            class_id: 'class-1',
+            date_of_birth: '2030-01-01',
+            opening_balance: -1,
+          },
+          { today: new Date('2026-01-01') },
+        ),
+      ).toEqual([
+        'Date of birth cannot be in the future',
+        'Opening balance cannot be negative',
+      ])
+    })
+
+    test('allows partial updates without required field errors', () => {
+      expect(
+        validateStudentInput(
+          { student_number: 'SM001', opening_balance: 5000 },
+          { partial: true },
+        ),
+      ).toEqual([])
+    })
+
+    test('rejects invalid phone numbers', () => {
+      expect(
+        validateStudentInput({
+          first_name: 'Jane',
+          last_name: 'Doe',
+          parent_name: 'Parent',
+          parent_phone: '123',
+          parent_phone2: 'abc',
+          class_id: 'class-1',
+        }),
+      ).toEqual([
+        'Parent phone must be a valid phone number',
+        'Alternative parent phone must be a valid phone number',
+      ])
+    })
+
+    test('rejects duplicate parent phone numbers', () => {
+      expect(
+        validateStudentInput({
+          first_name: 'Jane',
+          last_name: 'Doe',
+          parent_name: 'Parent',
+          parent_phone: '0700000000',
+          parent_phone2: '0700 000 000',
+          class_id: 'class-1',
+        }),
+      ).toEqual([
+        'Alternative parent phone must be different from the primary parent phone',
+      ])
+    })
+  })
+})
+
+describe('Validation - Payment Input', () => {
+  describe('normalizePaymentInput', () => {
+    test('normalizes payment fields', () => {
+      expect(
+        normalizePaymentInput({
+          student_id: ' student-1 ',
+          amount_paid: '50,000' as any,
+          payment_method: ' MOBILE_MONEY ',
+          payment_reference: ' mm 123 ',
+          paid_by: ' Parent Name ',
+          notes: '  Paid at office ',
+          payment_date: ' 2026-04-10 ',
+        }),
+      ).toEqual({
+        student_id: 'student-1',
+        amount_paid: 50000,
+        payment_method: 'mobile_money',
+        payment_reference: 'MM123',
+        paid_by: 'Parent Name',
+        notes: 'Paid at office',
+        payment_date: '2026-04-10',
+      })
+    })
+  })
+
+  describe('validatePaymentInput', () => {
+    test('accepts a valid payment payload', () => {
+      expect(
+        validatePaymentInput({
+          student_id: 'student-1',
+          amount_paid: 50000,
+          payment_method: 'cash',
+          payment_date: '2026-04-10',
+        }),
+      ).toEqual([])
+    })
+
+    test('rejects invalid payment payload', () => {
+      expect(
+        validatePaymentInput(
+          {
+            student_id: '',
+            amount_paid: -1,
+            payment_method: 'wire',
+            payment_date: '2030-01-01',
+          },
+          { today: new Date('2026-01-01') },
+        ),
+      ).toEqual([
+        'Student is required',
+        'Amount must be greater than 0',
+        'Payment method is invalid',
+        'Payment date cannot be in the future',
+      ])
+    })
+  })
+})
+
+describe('Validation - Attendance Input', () => {
+  describe('normalizeAttendanceInput', () => {
+    test('normalizes attendance fields', () => {
+      expect(
+        normalizeAttendanceInput({
+          student_id: ' student-1 ',
+          class_id: ' class-1 ',
+          status: ' PRESENT ',
+          date: ' 2026-04-10 ',
+          recorded_by: ' user-1 ',
+        }),
+      ).toEqual({
+        student_id: 'student-1',
+        class_id: 'class-1',
+        status: 'present',
+        date: '2026-04-10',
+        recorded_by: 'user-1',
+      })
+    })
+  })
+
+  describe('validateAttendanceInput', () => {
+    test('accepts a valid attendance payload', () => {
+      expect(
+        validateAttendanceInput({
+          student_id: 'student-1',
+          class_id: 'class-1',
+          status: 'present',
+          date: '2026-04-10',
+        }),
+      ).toEqual([])
+    })
+
+    test('rejects invalid attendance payload', () => {
+      expect(
+        validateAttendanceInput(
+          {
+            student_id: '',
+            class_id: '',
+            status: 'unknown',
+            date: '2030-01-01',
+          },
+          { today: new Date('2026-01-01') },
+        ),
+      ).toEqual([
+        'Student is required',
+        'Class is required',
+        'Attendance status is invalid',
+        'Attendance date cannot be in the future',
+      ])
+    })
+  })
+})
+
+describe('Validation - Fee Structure Input', () => {
+  describe('normalizeFeeStructureInput', () => {
+    test('normalizes fee structure fields', () => {
+      expect(
+        normalizeFeeStructureInput({
+          name: ' Tuition ',
+          class_id: ' class-1 ',
+          amount: '150,000' as any,
+          term: 1,
+          academic_year: ' 2026 ',
+          due_date: ' 2026-05-01 ',
+        }),
+      ).toEqual({
+        name: 'Tuition',
+        class_id: 'class-1',
+        amount: 150000,
+        term: 1,
+        academic_year: '2026',
+        due_date: '2026-05-01',
+      })
+    })
+  })
+
+  describe('validateFeeStructureInput', () => {
+    test('accepts a valid fee structure payload', () => {
+      expect(
+        validateFeeStructureInput({
+          name: 'Tuition',
+          amount: 150000,
+          term: 1,
+          academic_year: '2026',
+          due_date: '2026-05-01',
+        }),
+      ).toEqual([])
+    })
+
+    test('rejects invalid fee structure payload', () => {
+      expect(
+        validateFeeStructureInput({
+          name: '',
+          amount: -10,
+          term: 4,
+          academic_year: '',
+          due_date: 'not-a-date',
+        }),
+      ).toEqual([
+        'Fee name is required',
+        'Amount must be greater than 0',
+        'Term must be 1, 2, or 3',
+        'Academic year is required',
+        'Due date must be a valid date',
+      ])
     })
   })
 })

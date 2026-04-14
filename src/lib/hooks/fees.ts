@@ -15,6 +15,12 @@ import {
 import { isDemoSchool } from "@/lib/demo-utils";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
+import {
+  normalizeFeeStructureInput,
+  normalizePaymentInput,
+  validateFeeStructureInput,
+  validatePaymentInput,
+} from "@/lib/validation";
 
 export function useFeePayments(schoolId?: string) {
   const [payments, setPayments] = useState<FeePayment[]>([]);
@@ -111,9 +117,18 @@ export function useFeePayments(schoolId?: string) {
   }, [schoolId, isDemo, isOnline, cacheKey]);
 
   const createPayment = async (payment: CreatePaymentInput) => {
+    const normalizedPayment = normalizePaymentInput({
+      ...payment,
+      payment_date: new Date().toISOString().split("T")[0],
+    });
+    const validationErrors = validatePaymentInput(normalizedPayment);
+    if (validationErrors.length > 0) {
+      throw new Error(validationErrors[0]);
+    }
+
     if (isDemo || isDemoSchool(schoolId)) {
       const newPaymentData = {
-        ...payment,
+        ...normalizedPayment,
         id: `demo-payment-${Date.now()}`,
         school_id: schoolId || "00000000-0000-0000-0000-000000000001",
         created_at: new Date().toISOString(),
@@ -129,9 +144,8 @@ export function useFeePayments(schoolId?: string) {
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     const payload = {
-      ...payment,
+      ...normalizedPayment,
       school_id: querySchoolId,
-      payment_date: new Date().toISOString().split("T")[0],
     };
     if (!isOnline) {
       const offlineSaved = await offlineDB.save(
@@ -163,7 +177,7 @@ export function useFeePayments(schoolId?: string) {
     try {
       const { data, error: insertError } = await supabase
         .from("fee_payments")
-        .insert({ ...payment, school_id: querySchoolId })
+        .insert(payload)
         .select(
           `
           id, student_id, fee_id, amount_paid, payment_method, payment_reference, 
@@ -338,13 +352,33 @@ export function useFeeStructure(schoolId?: string) {
     academic_year: string;
     due_date?: string;
   }) => {
+    const normalizedFee = normalizeFeeStructureInput(fee);
+    const validationErrors = validateFeeStructureInput(normalizedFee);
+    if (validationErrors.length > 0) {
+      throw new Error(validationErrors[0]);
+    }
+
+    const existingDuplicate = feeStructure.find(
+      (existing) =>
+        existing.name.trim().toLowerCase() ===
+          normalizedFee.name!.trim().toLowerCase() &&
+        (existing.class_id || null) === (normalizedFee.class_id || null) &&
+        Number(existing.term) === normalizedFee.term &&
+        existing.academic_year === normalizedFee.academic_year,
+    );
+    if (existingDuplicate) {
+      throw new Error(
+        "A fee structure with the same name, class, term, and academic year already exists",
+      );
+    }
+
     if (isDemo || isDemoSchool(schoolId)) {
       const newFeeData = {
-        ...fee,
+        ...normalizedFee,
         id: `demo-fee-${Date.now()}`,
         school_id: schoolId || "00000000-0000-0000-0000-000000000001",
-        class_id: fee.class_id || null,
-        due_date: fee.due_date || null,
+        class_id: normalizedFee.class_id || null,
+        due_date: normalizedFee.due_date || null,
         created_at: new Date().toISOString(),
       };
       setFeeStructure((prev) => [
@@ -359,9 +393,9 @@ export function useFeeStructure(schoolId?: string) {
         .from("fee_structure")
         .insert({
           school_id: querySchoolId,
-          ...fee,
-          class_id: fee.class_id || null,
-          due_date: fee.due_date || null,
+          ...normalizedFee,
+          class_id: normalizedFee.class_id || null,
+          due_date: normalizedFee.due_date || null,
         })
         .select()
         .single();

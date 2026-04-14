@@ -7,9 +7,11 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
+import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
 
 export default function ParentMessagesPage() {
   const { user, isDemo } = useAuth();
+  const { isAuthorized, isChecking } = useParentPortalGuard();
   const toast = useToast();
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -56,6 +58,10 @@ export default function ParentMessagesPage() {
   useEffect(() => { fetchSchoolId(); }, [fetchSchoolId]);
   useEffect(() => { fetchMessages(); }, [fetchMessages]);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  if (isChecking || !isAuthorized) {
+    return null;
+  }
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !user?.id) return;

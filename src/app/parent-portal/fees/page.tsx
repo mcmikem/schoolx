@@ -6,9 +6,11 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
+import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
 
 export default function ParentFeesPage() {
   const { user, isDemo } = useAuth();
+  const { isAuthorized, isChecking } = useParentPortalGuard();
   const [children, setChildren] = useState<any[]>([]);
   const [selectedChild, setSelectedChild] = useState<any>(null);
   const [feeStructure, setFeeStructure] = useState<any[]>([]);
@@ -26,7 +28,9 @@ export default function ParentFeesPage() {
     if (!user?.id) return;
     const { data } = await supabase
       .from("parent_students")
-      .select("student:students(id, first_name, last_name, class_id, class:classes(name))")
+      .select(
+        "student:students(id, first_name, last_name, school_id, class_id, class:classes(name))",
+      )
       .eq("parent_id", user.id);
     const list = (data || []).map((d: any) => ({ ...d.student, class_name: d.student.class?.name || "—" }));
     setChildren(list);
@@ -55,8 +59,20 @@ export default function ParentFeesPage() {
       return;
     }
     const [{ data: fs }, { data: pays }] = await Promise.all([
-      supabase.from("fee_structure").select("id, name, amount, term").eq("class_id", child.class_id),
-      supabase.from("fee_payments").select("id, amount_paid, payment_date, payment_method, receipt_number, fee_structure:fee_structure_id(name)").eq("student_id", child.id).order("payment_date", { ascending: false }),
+      supabase
+        .from("fee_structure")
+        .select("id, name, amount, term")
+        .eq("school_id", child.school_id)
+        .is("deleted_at", null)
+        .or(`class_id.is.null,class_id.eq.${child.class_id}`),
+      supabase
+        .from("fee_payments")
+        .select(
+          "id, amount_paid, payment_date, payment_method, payment_reference, fee_structure:fee_id(name)",
+        )
+        .eq("student_id", child.id)
+        .is("deleted_at", null)
+        .order("payment_date", { ascending: false }),
     ]);
     const totalFee = (fs || []).reduce((s: number, f: any) => s + Number(f.amount), 0);
     const totalPaid = (pays || []).reduce((s: number, p: any) => s + Number(p.amount_paid), 0);
@@ -68,6 +84,10 @@ export default function ParentFeesPage() {
 
   useEffect(() => { fetchChildren(); }, [fetchChildren]);
   useEffect(() => { if (selectedChild) fetchFees(selectedChild); }, [selectedChild, fetchFees]);
+
+  if (isChecking || !isAuthorized) {
+    return null;
+  }
 
   const paidPct = stats.totalFee > 0 ? Math.round((stats.totalPaid / stats.totalFee) * 100) : 0;
 
@@ -158,7 +178,7 @@ export default function ParentFeesPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-[10px] text-[var(--on-surface-variant)]">{new Date(p.payment_date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</p>
-                        {p.receipt_number && <p className="text-[10px] font-mono text-[var(--on-surface-variant)]">{p.receipt_number}</p>}
+                        {p.payment_reference && <p className="text-[10px] font-mono text-[var(--on-surface-variant)]">{p.payment_reference}</p>}
                       </div>
                     </div>
                   </div>

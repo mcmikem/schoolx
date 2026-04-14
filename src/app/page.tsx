@@ -459,7 +459,7 @@ function DesktopMockup() {
 
   return (
     <div
-      className={`mockup-shell mockup-desktop relative rounded-[32px] border border-slate-200 bg-white p-3 shadow-[0_40px_90px_rgba(15,23,42,0.14)] transition-all duration-700 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+      className={`mockup-shell mockup-desktop relative rounded-[32px] border border-slate-200 bg-white p-3 shadow-[0_40px_90px_rgba(15,23,42,0.14)] transition-all duration-700 min-h-[480px] ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
     >
       <div className="rounded-[28px] border border-slate-200 bg-[#f8fbff] overflow-hidden">
         <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-3">
@@ -700,7 +700,7 @@ function PhoneMockup() {
 
   return (
     <div
-      className={`mockup-shell mockup-phone mx-auto w-[280px] rounded-[36px] border border-slate-200 bg-[#0b1220] p-2.5 shadow-[0_35px_80px_rgba(15,23,42,0.2)] transition-all duration-700 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+      className={`mockup-shell mockup-phone mx-auto w-[280px] rounded-[36px] border border-slate-200 bg-[#0b1220] p-2.5 shadow-[0_35px_80px_rgba(15,23,42,0.2)] transition-all duration-700 min-h-[520px] ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
     >
       <div className="overflow-hidden rounded-[30px] bg-white">
         <div className="flex items-center justify-between bg-[#17325F] px-4 pb-3 pt-4 text-white">

@@ -15,6 +15,10 @@ import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { Modal } from "@/components/ui/Modal";
 import { PageGuidance } from "@/components/PageGuidance";
+import {
+  normalizeAttendanceInput,
+  validateAttendanceInput,
+} from "@/lib/validation";
 
 const STATUS_CYCLE = ["absent", "present", "late"] as const;
 type AttendanceStatus = (typeof STATUS_CYCLE)[number];
@@ -291,16 +295,27 @@ export default function AttendancePage() {
   const saveAttendance = async () => {
     if (!selectedClass || !user?.id) return;
 
-    const records = Object.entries(attendance).map(([studentId, status]) => ({
-      student_id: studentId,
-      class_id: selectedClass,
-      date,
-      status,
-      recorded_by: user.id,
-    }));
+    const records = Object.entries(attendance).map(([studentId, status]) =>
+      normalizeAttendanceInput({
+        student_id: studentId,
+        class_id: selectedClass,
+        date,
+        status,
+        recorded_by: user.id,
+      }),
+    );
 
     if (records.length === 0) {
       toast.warning("No attendance records to save");
+      return;
+    }
+
+    const invalidRecord = records.find(
+      (record) => validateAttendanceInput(record).length > 0,
+    );
+    if (invalidRecord) {
+      const [message] = validateAttendanceInput(invalidRecord);
+      toast.error(message);
       return;
     }
 

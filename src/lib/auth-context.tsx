@@ -125,98 +125,103 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return school?.subscription_plan as PlanType | null;
   };
 
-  const fetchUserData = useCallback(async (authId: string, retryCount = 0): Promise<{ role: string } | null> => {
-    if (!supabase) {
-      setLoading(false);
-      return null;
-    }
-    try {
-      const { data: userData, error: userError } = await supabase
-        .from("users")
-        .select("*")
-        .eq("auth_id", authId)
-        .maybeSingle();
-
-      if (userError) {
-        console.error("Error fetching user:", userError);
+  const fetchUserData = useCallback(
+    async (
+      authId: string,
+      retryCount = 0,
+    ): Promise<{ role: string } | null> => {
+      if (!supabase) {
         setLoading(false);
         return null;
       }
-
-      if (!userData) {
-        if (retryCount < 3) {
-          console.log(
-            `[Auth] User profile not found for auth_id: ${authId}. Retrying...`,
-          );
-          await new Promise((resolve) =>
-            setTimeout(resolve, 1000 * (retryCount + 1)),
-          );
-          return fetchUserData(authId, retryCount + 1);
-        }
-        console.error(
-          "No user profile found for auth_id after retries:",
-          authId,
-        );
-        setLoading(false);
-        return null;
-      }
-
-      setUser({
-        ...userData,
-        role: userData.role as User["role"],
-      });
-
-      // Super admins don't have a school - they manage all schools
-      if (userData.role === "super_admin") {
-        setSchool(null);
-        setLoading(false);
-        return { role: userData.role };
-      }
-
-      if (userData.school_id) {
-        const { data: schoolData, error: schoolError } = await supabase
-          .from("schools")
+      try {
+        const { data: userData, error: userError } = await supabase
+          .from("users")
           .select("*")
-          .eq("id", userData.school_id)
-          .single();
+          .eq("auth_id", authId)
+          .maybeSingle();
 
-        if (schoolError) {
-          console.error("Error fetching school profile:", schoolError);
+        if (userError) {
+          console.error("Error fetching user:", userError);
+          setLoading(false);
+          return null;
         }
 
-        if (schoolData) {
-          setSchool({
-            ...schoolData,
-            feature_stage:
-              (schoolData.feature_stage as FeatureStage) ||
-              DEFAULT_FEATURE_STAGE,
-          });
-          if (
-            schoolData.subscription_status === "trial" &&
-            schoolData.trial_ends_at
-          ) {
-            setIsTrialExpired(new Date(schoolData.trial_ends_at) < new Date());
-          } else if (schoolData.subscription_status === "expired") {
-            setIsTrialExpired(true);
-          } else {
-            setIsTrialExpired(false);
+        if (!userData) {
+          if (retryCount < 3) {
+            console.log(
+              `[Auth] User profile not found for auth_id: ${authId}. Retrying...`,
+            );
+            await new Promise((resolve) =>
+              setTimeout(resolve, 1000 * (retryCount + 1)),
+            );
+            return fetchUserData(authId, retryCount + 1);
+          }
+          console.error(
+            "No user profile found for auth_id after retries:",
+            authId,
+          );
+          setLoading(false);
+          return null;
+        }
+
+        setUser({
+          ...userData,
+          role: userData.role as User["role"],
+        });
+
+        // Super admins don't have a school - they manage all schools
+        if (userData.role === "super_admin") {
+          setSchool(null);
+          setLoading(false);
+          return { role: userData.role };
+        }
+
+        if (userData.school_id) {
+          const { data: schoolData, error: schoolError } = await supabase
+            .from("schools")
+            .select("*")
+            .eq("id", userData.school_id)
+            .single();
+
+          if (schoolError) {
+            console.error("Error fetching school profile:", schoolError);
+          }
+
+          if (schoolData) {
+            setSchool({
+              ...schoolData,
+              feature_stage:
+                (schoolData.feature_stage as FeatureStage) ||
+                DEFAULT_FEATURE_STAGE,
+            });
+            if (
+              schoolData.subscription_status === "trial" &&
+              schoolData.trial_ends_at
+            ) {
+              setIsTrialExpired(
+                new Date(schoolData.trial_ends_at) < new Date(),
+              );
+            } else if (schoolData.subscription_status === "expired") {
+              setIsTrialExpired(true);
+            } else {
+              setIsTrialExpired(false);
+            }
           }
         }
-      }
 
-      return { role: userData.role };
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-      setLoading(false);
-      return null;
-    }
-  }, []);
+        return { role: userData.role };
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        setLoading(false);
+        return null;
+      }
+    },
+    [],
+  );
 
   const checkUser = useCallback(async () => {
-    // Safety timeout - always set loading to false after 5 seconds
-    const timeoutId = setTimeout(() => {
-      setLoading(false);
-    }, 5000);
+    // Don't use timeout - only set loading false after actual check completes
 
     try {
       const demoUserStr = localStorage.getItem(DEMO_KEY);
@@ -254,7 +259,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
             setIsDemo(true);
             setIsTrialExpired(false);
-            clearTimeout(timeoutId);
             setLoading(false);
             return;
           }
@@ -275,25 +279,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setIsDemo(false);
             setLoading(false);
           } else {
+            // No valid session - clear user and redirect
+            setUser(null);
+            setSchool(null);
             setIsDemo(false);
             setLoading(false);
           }
         } catch (sessionError) {
-          console.error("[Auth] Session error:", sessionError);
+          // On session error, still clear user to prevent stuck state
+          setUser(null);
+          setSchool(null);
           setIsDemo(false);
           setLoading(false);
         }
-        clearTimeout(timeoutId);
         setLoading(false);
       } else {
         setIsDemo(false);
-        clearTimeout(timeoutId);
         setLoading(false);
       }
     } catch (error) {
-      console.error("[Auth] Error:", error);
       setIsDemo(false);
-      clearTimeout(timeoutId);
       setLoading(false);
     }
   }, [fetchUserData]);

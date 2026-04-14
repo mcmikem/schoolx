@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
+import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
 
 const STATUS_STYLES: Record<string, string> = {
   present: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -15,6 +16,7 @@ const STATUS_STYLES: Record<string, string> = {
 
 export default function ParentAttendancePage() {
   const { user, isDemo } = useAuth();
+  const { isAuthorized, isChecking } = useParentPortalGuard();
   const [children, setChildren] = useState<any[]>([]);
   const [selectedChild, setSelectedChild] = useState<any>(null);
   const [records, setRecords] = useState<any[]>([]);
@@ -55,12 +57,16 @@ export default function ParentAttendancePage() {
     }
     const { data } = await supabase
       .from("attendance")
-      .select("id, date, status, notes")
+      .select("id, date, status, remarks")
       .eq("student_id", child.id)
       .order("date", { ascending: false })
       .limit(60);
-    setRecords(data || []);
-    computeStats(data || []);
+    const normalized = (data || []).map((record: any) => ({
+      ...record,
+      notes: record.remarks,
+    }));
+    setRecords(normalized);
+    computeStats(normalized);
     setLoading(false);
   }, [isDemo]);
 
@@ -72,6 +78,10 @@ export default function ParentAttendancePage() {
 
   useEffect(() => { fetchChildren(); }, [fetchChildren]);
   useEffect(() => { if (selectedChild) fetchAttendance(selectedChild); }, [selectedChild, fetchAttendance]);
+
+  if (isChecking || !isAuthorized) {
+    return null;
+  }
 
   const attendanceRate = stats.total > 0 ? Math.round(((stats.present + stats.late) / stats.total) * 100) : 0;
 

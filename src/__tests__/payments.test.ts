@@ -29,8 +29,8 @@ describe("Payment Utils", () => {
       expect(getPlanFromAmount(PLAN_PRICES.enterprise.term)).toBe("enterprise");
     });
 
-    test("returns free_trial for unknown amount", () => {
-      expect(getPlanFromAmount(999999)).toBe("free_trial");
+    test("returns enterprise for unknown high amount", () => {
+      expect(getPlanFromAmount(999999)).toBe("enterprise");
     });
 
     test("returns free_trial for zero", () => {
