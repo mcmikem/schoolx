@@ -23,10 +23,10 @@ if (typeof global.Request === "undefined") {
 
   class HeadersShim {}
 
-  global.Request = RequestShim as typeof Request;
-  global.Response = ResponseShim as typeof Response;
-  global.Headers = HeadersShim as typeof Headers;
-  global.fetch = jest.fn() as typeof fetch;
+  global.Request = RequestShim as unknown as typeof Request;
+  global.Response = ResponseShim as unknown as typeof Response;
+  global.Headers = HeadersShim as unknown as typeof Headers;
+  global.fetch = jest.fn() as unknown as typeof fetch;
 }
 
 // Mock next/navigation
