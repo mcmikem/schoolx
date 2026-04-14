@@ -18,8 +18,7 @@ export async function POST(request: NextRequest) {
 
     const today = new Date().toISOString().split("T")[0];
 
-    // 1. Get all classes
-    const { data: classes }: { data: any[] } = await supabase
+    const { data: classes } = await supabase
       .from("classes")
       .select("id, name, teacher_id")
       .eq("school_id", school.schoolId)
@@ -28,21 +27,23 @@ export async function POST(request: NextRequest) {
     if (!classes || classes.length === 0)
       return NextResponse.json({ success: true, message: "No classes" });
 
-    // 2. Get attendance marked today
-    const { data: attendance }: { data: any[] } = await supabase
+    const { data: attendance } = await supabase
       .from("attendance")
       .select("class_id")
       .eq("date", today);
 
-    const markedClassIds = new Set((attendance || []).map((a) => a.class_id));
-    const unmarkedClasses = classes.filter((c) => !markedClassIds.has(c.id));
+    const markedClassIds = new Set(
+      (attendance || []).map((a: any) => a.class_id),
+    );
+    const unmarkedClasses = classes.filter(
+      (c: any) => !markedClassIds.has(c.id),
+    );
 
     const results = { nudgesSent: 0, errors: 0 };
 
     for (const cls of unmarkedClasses) {
       if (!cls.teacher_id) continue;
 
-      // Get teacher phone
       const { data: teacher } = await supabase
         .from("users")
         .select("full_name, phone")
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       summary: results,
-      unmarked: unmarkedClasses.map((c) => c.name),
+      unmarked: unmarkedClasses.map((c: any) => c.name),
     });
   } catch (error) {
     return NextResponse.json({ error: "Heartbeat failed" }, { status: 500 });

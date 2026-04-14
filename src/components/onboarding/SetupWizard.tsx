@@ -101,22 +101,38 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         academic_year: academicYear.year,
       }));
 
-      await supabase.from("classes").insert(classData);
+      const { error: classError } = await supabase
+        .from("classes")
+        .insert(classData);
 
-      await supabase.from("setup_checklist").upsert(
-        {
-          school_id: school.id,
-          item_key: "class_structure",
-          item_label: "Class & Stream Setup",
-          is_completed: true,
-          completed_at: new Date().toISOString(),
-        },
-        { onConflict: "school_id,item_key" },
-      );
+      if (classError) {
+        console.error("Class insert error:", classError);
+        toast.error(`Failed to save classes: ${classError.message}`);
+        setLoading(false);
+        return;
+      }
+
+      const { error: checklistError } = await supabase
+        .from("setup_checklist")
+        .upsert(
+          {
+            school_id: school.id,
+            item_key: "class_structure",
+            item_label: "Class & Stream Setup",
+            is_completed: true,
+            completed_at: new Date().toISOString(),
+          },
+          { onConflict: "school_id,item_key" },
+        );
+
+      if (checklistError) {
+        console.error("Checklist update error:", checklistError);
+      }
 
       toast.success("Classes created!");
       setStep(3);
     } catch (err: any) {
+      console.error("Save classes exception:", err);
       toast.error(err.message || "Failed to save");
     } finally {
       setLoading(false);
@@ -135,18 +151,33 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         academic_year: academicYear.year,
       }));
 
-      await supabase.from("fee_structure").insert(feeData);
+      const { error: feeError } = await supabase
+        .from("fee_structure")
+        .insert(feeData);
 
-      await supabase.from("setup_checklist").upsert(
-        {
-          school_id: school.id,
-          item_key: "fee_structure",
-          item_label: "Fee Structure",
-          is_completed: true,
-          completed_at: new Date().toISOString(),
-        },
-        { onConflict: "school_id,item_key" },
-      );
+      if (feeError) {
+        console.error("Fee insert error:", feeError);
+        toast.error(`Failed to save fees: ${feeError.message}`);
+        setLoading(false);
+        return;
+      }
+
+      const { error: checklistError } = await supabase
+        .from("setup_checklist")
+        .upsert(
+          {
+            school_id: school.id,
+            item_key: "fee_structure",
+            item_label: "Fee Structure",
+            is_completed: true,
+            completed_at: new Date().toISOString(),
+          },
+          { onConflict: "school_id,item_key" },
+        );
+
+      if (checklistError) {
+        console.error("Checklist update error:", checklistError);
+      }
 
       toast.success("Fee structure saved!");
       await refreshSchool();
@@ -174,27 +205,43 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
           },
         );
 
+        if (authError) {
+          console.error("Auth signup error:", authError);
+          toast.error(`Failed to create staff: ${authError.message}`);
+          continue;
+        }
+
         if (authData?.user) {
-          await supabase.from("users").insert({
+          const { error: userError } = await supabase.from("users").insert({
             auth_id: authData.user.id,
             school_id: school.id,
             full_name: s.name,
             phone: s.phone,
             role: s.role,
           });
+
+          if (userError) {
+            console.error("User insert error:", userError);
+          }
         }
       }
 
-      await supabase.from("setup_checklist").upsert(
-        {
-          school_id: school.id,
-          item_key: "staff_accounts",
-          item_label: "Staff Accounts",
-          is_completed: true,
-          completed_at: new Date().toISOString(),
-        },
-        { onConflict: "school_id,item_key" },
-      );
+      const { error: checklistError } = await supabase
+        .from("setup_checklist")
+        .upsert(
+          {
+            school_id: school.id,
+            item_key: "staff_accounts",
+            item_label: "Staff Accounts",
+            is_completed: true,
+            completed_at: new Date().toISOString(),
+          },
+          { onConflict: "school_id,item_key" },
+        );
+
+      if (checklistError) {
+        console.error("Checklist update error:", checklistError);
+      }
 
       toast.success("Staff accounts created!");
       setStep(5);
