@@ -98,7 +98,7 @@ export default function RootLayout({
           Skip to main content
         </a>
         <Providers>{children}</Providers>
-        <DebugPing />
+        {process.env.NODE_ENV === "development" && <DebugPing />}
         <MobileInit />
         <Script id="sw-register" strategy="afterInteractive">{`
           (function() {

@@ -259,9 +259,10 @@ function GradeSparkline({
   const maxVal = 100;
   const minVal = Math.max(0, Math.min(...data.map((d) => d.average)) - 10);
   const range = maxVal - minVal || 1;
+  const denominator = Math.max(1, data.length - 1);
 
   const points = data.map((d, i) => {
-    const x = padding + (i / (data.length - 1)) * (width - padding * 2);
+    const x = padding + (i / denominator) * (width - padding * 2);
     const y =
       height -
       padding -
@@ -285,7 +286,7 @@ function GradeSparkline({
           points={points.join(" ")}
         />
         {data.map((d, i) => {
-          const x = padding + (i / (data.length - 1)) * (width - padding * 2);
+          const x = padding + (i / denominator) * (width - padding * 2);
           const y =
             height -
             padding -
@@ -380,13 +381,25 @@ export default function StudentProfilePage({
 }) {
   const { isDemo } = useAuth();
   const { student, loading: studentLoading, error } = useStudent(params.id);
+  const studentProfile = useMemo(
+    () =>
+      student
+        ? {
+            id: student.id,
+            school_id: student.school_id,
+            class_id: student.class_id,
+            opening_balance: student.opening_balance,
+          }
+        : null,
+    [student],
+  );
   const { 
     attendancePct, 
     feePosition, 
     gradeHistory, 
     subjectScores, 
     attendanceRecords 
-  } = useStudentData(params.id, isDemo);
+  } = useStudentData(studentProfile, isDemo);
   
   const [activeTab, setActiveTab] = useState("overview");
   const [smsOpen, setSmsOpen] = useState(false);
@@ -835,19 +848,19 @@ export default function StudentProfilePage({
       </div>
 
       {/* Additional Info - House, Origin, Leadership */}
-      {((student as any).house_id ||
+      {(student.houses ||
         (student as any).previous_school ||
         (student as any).district_origin ||
         (student as any).prefect_role ||
         (student as any).student_council_role) && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          {(student as any).house_id && (
+          {student.houses && (
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
                 House & Boarding
               </h3>
               <div className="space-y-3">
-                {(student as any).house_id && (
+                {student.houses && (
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-teal-50 dark:bg-teal-900/20 rounded-lg flex items-center justify-center">
                       <Home className="w-4 h-4 text-teal-600 dark:text-teal-400" />
@@ -857,7 +870,7 @@ export default function StudentProfilePage({
                         House
                       </div>
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {(student as any).house?.name || "Assigned"}
+                        {student.houses.name || "Assigned"}
                       </div>
                     </div>
                   </div>
@@ -888,7 +901,7 @@ export default function StudentProfilePage({
                         Games House
                       </div>
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {(student as any).games_house?.name || "Assigned"}
+                        {(student as any).games_house || "Assigned"}
                       </div>
                     </div>
                   </div>

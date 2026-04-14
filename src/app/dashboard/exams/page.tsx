@@ -77,21 +77,6 @@ export default function ExamsPage() {
 
   const loadCustomWeights = useCallback(async () => {
     if (!school?.id) {
-      // #region agent log
-      fetch("/api/debug/log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId: "9e14f3",
-          runId: "pre-fix",
-          hypothesisId: "H5",
-          location: "src/app/dashboard/exams/page.tsx:loadCustomWeights:guard",
-          message: "skipped loadCustomWeights due to missing school.id",
-          data: { hasSchool: !!school, schoolId: school?.id ?? null },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
       setLoadingWeights(false);
       return;
     }
@@ -101,29 +86,6 @@ export default function ExamsPage() {
       .select("exam_weights")
       .eq("school_id", school.id)
       .single();
-    // #region agent log
-    fetch("/api/debug/log", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sessionId: "9e14f3",
-        runId: "pre-fix",
-        hypothesisId: "H5",
-        location: "src/app/dashboard/exams/page.tsx:loadCustomWeights",
-        message: "loaded exam_weights",
-        data: {
-          schoolId: school.id,
-          hasError: !!error,
-          error: error ? String(error.message || error) : null,
-          weightsType: typeof (data as any)?.exam_weights,
-          weightsLen: Array.isArray((data as any)?.exam_weights)
-            ? (data as any).exam_weights.length
-            : null,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
 
     if (data?.exam_weights) {
       const saved = data.exam_weights as any[];

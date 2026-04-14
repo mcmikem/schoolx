@@ -52,8 +52,19 @@ interface SupportTicket {
 
 const PLANS: Record<string, { monthly: number; annual: number; perStudent: number; label: string; color: string }> = {
   starter: { monthly: 350_000, annual: 3_800_000, perStudent: 50_000, label: 'Starter', color: '#3b82f6' },
-  standard: { monthly: 550_000, annual: 6_000_000, perStudent: 65_000, label: 'Standard', color: '#0d9488' },
-  premium: { monthly: 850_000, annual: 9_500_000, perStudent: 80_000, label: 'Premium', color: '#f59e0b' },
+  growth: { monthly: 550_000, annual: 6_000_000, perStudent: 65_000, label: 'Growth', color: '#0d9488' },
+  enterprise: { monthly: 850_000, annual: 9_500_000, perStudent: 80_000, label: 'Enterprise', color: '#f59e0b' },
+}
+
+const LEGACY_PLAN_MAP: Record<string, string> = {
+  free: 'free_trial',
+  standard: 'growth',
+  premium: 'enterprise',
+}
+
+function normalizePlan(plan?: string) {
+  if (!plan) return 'starter'
+  return LEGACY_PLAN_MAP[plan] || plan
 }
 
 const ALL_MODULES = [
@@ -156,7 +167,7 @@ export default function SchoolsPage() {
       setSchools(schoolsWithCounts as any)
       const totalStudents = schoolsWithCounts.reduce((sum, s) => sum + (s.student_count || 0), 0)
       const totalRevenue = schoolsWithCounts.reduce((sum, s) => {
-        const plan = PLANS[s.subscription_plan]
+        const plan = PLANS[normalizePlan(s.subscription_plan)]
         return sum + (s.subscription_status === 'active' ? plan.annual : 0)
       }, 0)
 
@@ -264,7 +275,7 @@ export default function SchoolsPage() {
         subscription_ends_at: new Date(Date.now() + (subForm.billing === 'annual' ? 365 : 30) * 24 * 60 * 60 * 1000).toISOString(),
       }).eq('id', selectedSchool.id)
       if (error) throw error
-      toast.success(`Subscription updated to ${PLANS[subForm.plan].label}`)
+      toast.success(`Subscription updated to ${PLANS[normalizePlan(subForm.plan)].label}`)
       setShowSubModal(false)
       fetchSchools()
     } catch (err: any) {
@@ -477,7 +488,8 @@ export default function SchoolsPage() {
       s.school_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.district?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchStatus = filterStatus === 'all' || s.subscription_status === filterStatus
-    const matchPlan = filterPlan === 'all' || s.subscription_plan === filterPlan
+    const matchPlan =
+      filterPlan === 'all' || normalizePlan(s.subscription_plan) === filterPlan
     return matchSearch && matchStatus && matchPlan
   })
 
@@ -564,8 +576,8 @@ export default function SchoolsPage() {
         <select value={filterPlan} onChange={(e) => setFilterPlan(e.target.value)} className="input sm:w-32">
           <option value="all">Plan</option>
           <option value="starter">Starter</option>
-          <option value="standard">Standard</option>
-          <option value="premium">Premium</option>
+          <option value="growth">Growth</option>
+          <option value="enterprise">Enterprise</option>
         </select>
       </div>
 
@@ -604,8 +616,8 @@ export default function SchoolsPage() {
                 <span className="capitalize">{school.ownership}</span>
               </div>
               <div className="flex items-center justify-between text-sm mb-2">
-                <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: `${PLANS[school.subscription_plan]?.color}15`, color: PLANS[school.subscription_plan]?.color }}>
-                  {PLANS[school.subscription_plan]?.label || school.subscription_plan}
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: `${PLANS[normalizePlan(school.subscription_plan)]?.color}15`, color: PLANS[normalizePlan(school.subscription_plan)]?.color }}>
+                  {PLANS[normalizePlan(school.subscription_plan)]?.label || school.subscription_plan}
                 </span>
                 <span className="text-[#5c6670]">{school.student_count || 0} students</span>
               </div>
@@ -616,7 +628,7 @@ export default function SchoolsPage() {
               <div className="mt-3 pt-3 border-t border-[#e8eaed] flex gap-3">
                 <button onClick={(e) => { e.stopPropagation(); openSchoolDetail(school) }} className="text-xs text-blue-600 hover:text-blue-800 font-medium">View Details</button>
                 <span className="text-[#e8eaed]">|</span>
-                <button onClick={(e) => { e.stopPropagation(); setSelectedSchool(school); setSubForm({ plan: school.subscription_plan === 'suspended' ? 'starter' : school.subscription_plan, status: school.subscription_status === 'suspended' ? 'active' : school.subscription_status, billing: 'annual' }); setShowSubModal(true) }} className="text-xs text-green-600 hover:text-green-800 font-medium">Manage Plan</button>
+                <button onClick={(e) => { e.stopPropagation(); setSelectedSchool(school); setSubForm({ plan: school.subscription_plan === 'suspended' ? 'starter' : normalizePlan(school.subscription_plan), status: school.subscription_status === 'suspended' ? 'active' : school.subscription_status, billing: 'annual' }); setShowSubModal(true) }} className="text-xs text-green-600 hover:text-green-800 font-medium">Manage Plan</button>
               </div>
             </div>
           ))}
@@ -641,7 +653,7 @@ export default function SchoolsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-[#f8f9fa] rounded-xl p-4">
                   <div className="text-sm text-[#5c6670] mb-1">Plan</div>
-                  <div className="font-semibold text-[#002045]">{PLANS[selectedSchool.subscription_plan]?.label || selectedSchool.subscription_plan}</div>
+                  <div className="font-semibold text-[#002045]">{PLANS[normalizePlan(selectedSchool.subscription_plan)]?.label || selectedSchool.subscription_plan}</div>
                 </div>
                 <div className="bg-[#f8f9fa] rounded-xl p-4">
                   <div className="text-sm text-[#5c6670] mb-1">Status</div>
@@ -667,7 +679,7 @@ export default function SchoolsPage() {
 
               {/* Actions */}
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => { setSubForm({ plan: selectedSchool.subscription_plan === 'suspended' ? 'starter' : selectedSchool.subscription_plan, status: selectedSchool.subscription_status === 'suspended' ? 'active' : selectedSchool.subscription_status, billing: 'annual' }); setShowSubModal(true) }} className="btn btn-primary text-sm">
+                <button onClick={() => { setSubForm({ plan: selectedSchool.subscription_plan === 'suspended' ? 'starter' : normalizePlan(selectedSchool.subscription_plan), status: selectedSchool.subscription_status === 'suspended' ? 'active' : selectedSchool.subscription_status, billing: 'annual' }); setShowSubModal(true) }} className="btn btn-primary text-sm">
                   <MaterialIcon icon="swap_horiz" /> Change Plan
                 </button>
                 <button onClick={() => setShowTrialModal(true)} className="btn btn-secondary text-sm">
@@ -774,7 +786,7 @@ export default function SchoolsPage() {
                   <div><label className="label">Ownership</label><select value={newSchool.ownership} onChange={(e) => setNewSchool({...newSchool, ownership: e.target.value})} className="input"><option value="private">Private</option><option value="government">Government</option><option value="government_aided">Government Aided</option></select></div>
                 </div>
                 <div><label className="label">School Phone</label><input type="tel" value={newSchool.phone} onChange={(e) => setNewSchool({...newSchool, phone: e.target.value})} className="input" placeholder="0700000000" /></div>
-                <div><label className="label">Starting Plan</label><select value={newSchool.subscription_plan} onChange={(e) => setNewSchool({...newSchool, subscription_plan: e.target.value})} className="input"><option value="starter">Starter (UGX 50K/student)</option><option value="standard">Standard (UGX 65K/student)</option><option value="premium">Premium (UGX 80K/student)</option></select></div>
+                <div><label className="label">Starting Plan</label><select value={newSchool.subscription_plan} onChange={(e) => setNewSchool({...newSchool, subscription_plan: e.target.value})} className="input"><option value="starter">Starter (UGX 50K/student)</option><option value="growth">Growth (UGX 65K/student)</option><option value="enterprise">Enterprise (UGX 80K/student)</option></select></div>
                 <div className="flex gap-3 pt-4">
                   <button type="button" onClick={() => { setShowAddModal(false); setAddStep(1) }} className="btn btn-secondary flex-1">Cancel</button>
                   <button type="button" onClick={() => { if (!newSchool.name || !newSchool.school_code || !newSchool.district) { toast.error('Please fill in all required fields'); return } setAddStep(2) }} className="btn btn-primary flex-1">Next →</button>
