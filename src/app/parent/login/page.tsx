@@ -17,6 +17,7 @@ export default function ParentLoginPage() {
   const [linking, setLinking] = useState(false);
   const [linkStudentId, setLinkStudentId] = useState("");
   const [linkedChildPhone, setLinkedChildPhone] = useState("");
+  const PARENT_DEMO_KEY = "skoolmate_parent_demo";
 
   const DEMO_PASSWORD = "demo1234";
 
@@ -30,6 +31,11 @@ export default function ParentLoginPage() {
     setPhone(demoParent.phone);
     setPassword(demoParent.password);
   };
+
+  useEffect(() => {
+    localStorage.removeItem("parent_session");
+    sessionStorage.removeItem(PARENT_DEMO_KEY);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,10 +65,7 @@ export default function ParentLoginPage() {
             ],
           },
         };
-        localStorage.setItem(
-          "skoolmate_parent_demo",
-          JSON.stringify(demoData.parent),
-        );
+        sessionStorage.setItem(PARENT_DEMO_KEY, JSON.stringify(demoData.parent));
         router.push("/parent/dashboard");
         setLoading(false);
         return;
@@ -76,7 +79,7 @@ export default function ParentLoginPage() {
         return;
       }
 
-      const email = `parent_${cleanPhone}@omuto.org`;
+      const email = `${cleanPhone}@omuto.org`;
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -92,13 +95,6 @@ export default function ParentLoginPage() {
         .single();
 
       if (parentData) {
-        localStorage.setItem(
-          "parent_session",
-          JSON.stringify({
-            user: data.user,
-            parent: parentData,
-          }),
-        );
         router.push("/parent/dashboard");
       } else {
         setLinking(true);

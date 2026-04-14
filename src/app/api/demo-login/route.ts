@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 // Demo credentials - ONLY accessible server-side
 const DEMO_CREDS = {
   "0700000001": {
-    role: "school_admin",
+    role: "headmaster",
     name: "John Headmaster",
     school_id: "demo-school",
   },

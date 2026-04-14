@@ -105,9 +105,10 @@ export default function ParentDashboard() {
     "overview" | "academics" | "fees" | "messages"
   >("overview");
   const [message, setMessage] = useState("");
+  const PARENT_DEMO_KEY = "skoolmate_parent_demo";
 
   useEffect(() => {
-    const demoStr = localStorage.getItem("skoolmate_parent_demo");
+    const demoStr = sessionStorage.getItem(PARENT_DEMO_KEY);
     if (demoStr) {
       setIsDemo(true);
     }
@@ -154,7 +155,10 @@ export default function ParentDashboard() {
             </div>
           </div>
           <button
-            onClick={() => router.push("/parent/login")}
+            onClick={() => {
+              sessionStorage.removeItem(PARENT_DEMO_KEY);
+              router.push("/parent/login");
+            }}
             className="text-white/70 hover:text-white"
           >
             <MaterialIcon className="text-2xl">logout</MaterialIcon>

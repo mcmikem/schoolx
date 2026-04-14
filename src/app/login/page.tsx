@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/auth-context";
 
 const DEMO_KEY = "skoolmate_demo_v1";
 
-function encryptDemoData(data: object): string {
+function serializeDemoData(data: object): string {
   try {
     return btoa(JSON.stringify(data));
   } catch {
@@ -89,11 +89,12 @@ export default function LoginPage() {
       if (demoResponse.ok) {
         const demoData = await demoResponse.json();
         if (demoData.success && demoData.demo) {
-          const encrypted = encryptDemoData({
+          const encoded = serializeDemoData({
             demoUser: demoData.user,
             demoSchool: demoData.school,
           });
-          localStorage.setItem(DEMO_KEY, encrypted);
+          sessionStorage.setItem(DEMO_KEY, encoded);
+          localStorage.removeItem(DEMO_KEY);
           toast.success(
             tWithParams("auth.welcomeDemo", { name: demoData.user.name }),
           );
