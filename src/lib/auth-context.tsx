@@ -29,19 +29,6 @@ export type UserRoleValue =
   | "board"
   | "super_admin";
 
-const ALL_VALID_ROLES: string[] = [
-  "super_admin",
-  "school_admin",
-  "headmaster",
-  "dean_of_studies",
-  "bursar",
-  "teacher",
-  "student",
-  "parent",
-  "secretary",
-  "dorm_master",
-];
-
 // Demo sessions must never be able to assume elevated roles.
 const DEMO_ALLOWED_ROLES: string[] = [
   "headmaster",
@@ -62,16 +49,6 @@ function sanitizeDemoRole(raw: unknown): User["role"] {
 
 const DEMO_KEY = "skoolmate_demo_v1";
 
-function encryptDemoData(data: string): string {
-  if (typeof window === "undefined") return data;
-  try {
-    const encoded = btoa(data);
-    return encoded;
-  } catch {
-    return data;
-  }
-}
-
 function decryptDemoData(encrypted: string): string | null {
   if (typeof window === "undefined") return null;
   try {
@@ -79,6 +56,28 @@ function decryptDemoData(encrypted: string): string | null {
   } catch {
     return null;
   }
+}
+
+function readDemoStorage(): string | null {
+  if (typeof window === "undefined") return null;
+
+  const sessionValue = sessionStorage.getItem(DEMO_KEY);
+  if (sessionValue) return sessionValue;
+
+  const legacyValue = localStorage.getItem(DEMO_KEY);
+  if (legacyValue) {
+    sessionStorage.setItem(DEMO_KEY, legacyValue);
+    localStorage.removeItem(DEMO_KEY);
+    return legacyValue;
+  }
+
+  return null;
+}
+
+function clearDemoStorage() {
+  if (typeof window === "undefined") return;
+  sessionStorage.removeItem(DEMO_KEY);
+  localStorage.removeItem(DEMO_KEY);
 }
 
 // Local extensions for Auth context if needed, otherwise use imported types.
@@ -224,7 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Don't use timeout - only set loading false after actual check completes
 
     try {
-      const demoUserStr = localStorage.getItem(DEMO_KEY);
+      const demoUserStr = readDemoStorage();
 
       if (demoUserStr) {
         try {
@@ -264,7 +263,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } catch (e) {
           console.error("[Auth] Error parsing demo data:", e);
-          localStorage.removeItem(DEMO_KEY);
+          clearDemoStorage();
         }
       }
 
@@ -314,8 +313,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // If we are in demo mode, auth state changes should be ignored
         // unless it's a sign out that clears the demo.
         // Note: we don't depend on isDemo here to avoid re-running the effect
-        const DEMO_KEY = "skoolmate_demo_v1";
-        const isCurrentlyDemo = localStorage.getItem(DEMO_KEY) !== null;
+        const isCurrentlyDemo = readDemoStorage() !== null;
 
         if (isCurrentlyDemo && event !== "SIGNED_OUT") return;
 
@@ -420,8 +418,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     // Clear demo data if present
-    const DEMO_KEY = "skoolmate_demo_v1";
-    localStorage.removeItem(DEMO_KEY);
+    clearDemoStorage();
 
     try {
       await supabase!.auth.signOut();

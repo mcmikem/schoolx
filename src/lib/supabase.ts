@@ -3,8 +3,10 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const isProd = process.env.NODE_ENV === "production";
-const isNonProd = !isProd;
 const isDev = process.env.NODE_ENV === "development";
+const allowMockClient =
+  process.env.NODE_ENV === "test" ||
+  process.env.ALLOW_SUPABASE_MOCK === "true";
 const debugLog = (...args: unknown[]) => {
   if (isDev) console.log(...args);
 };
@@ -124,6 +126,73 @@ const createMockClient = (): SupabaseClient => {
   return mock as unknown as SupabaseClient;
 };
 
+const createUnavailableClient = (): SupabaseClient => {
+  const error = () =>
+    new Error(
+      "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, or explicitly enable ALLOW_SUPABASE_MOCK for non-production demo use.",
+    );
+
+  const throwUnavailable = async () => {
+    throw error();
+  };
+
+  const throwSyncUnavailable = () => {
+    throw error();
+  };
+
+  const unavailableBuilder: Record<string, any> = {
+    select: throwSyncUnavailable,
+    insert: throwSyncUnavailable,
+    update: throwSyncUnavailable,
+    upsert: throwSyncUnavailable,
+    delete: throwSyncUnavailable,
+    eq: throwSyncUnavailable,
+    neq: throwSyncUnavailable,
+    gt: throwSyncUnavailable,
+    gte: throwSyncUnavailable,
+    lt: throwSyncUnavailable,
+    lte: throwSyncUnavailable,
+    like: throwSyncUnavailable,
+    ilike: throwSyncUnavailable,
+    in: throwSyncUnavailable,
+    contains: throwSyncUnavailable,
+    overlaps: throwSyncUnavailable,
+    is: throwSyncUnavailable,
+    or: throwSyncUnavailable,
+    order: throwSyncUnavailable,
+    limit: throwSyncUnavailable,
+    range: throwSyncUnavailable,
+    match: throwSyncUnavailable,
+    abortSignal: throwSyncUnavailable,
+    then: throwUnavailable,
+    catch: throwUnavailable,
+    finally: throwUnavailable,
+    single: throwUnavailable,
+    maybeSingle: throwUnavailable,
+  };
+
+  return {
+    from: () => unavailableBuilder,
+    auth: {
+      signInWithPassword: throwUnavailable,
+      signUp: throwUnavailable,
+      signOut: throwUnavailable,
+      getSession: throwUnavailable,
+      getUser: throwUnavailable,
+      onAuthStateChange: () => ({
+        data: { subscription: { unsubscribe: () => {} } },
+      }),
+    },
+    storage: {
+      from: () => ({
+        upload: throwUnavailable,
+        getPublicUrl: throwSyncUnavailable,
+        createBucket: throwUnavailable,
+      }),
+    },
+  } as unknown as SupabaseClient;
+};
+
 // Export a flag so application boundaries can show a setup screen instead of crashing
 export const isSupabaseConfigured = hasUsableSupabaseConfig;
 
@@ -146,10 +215,16 @@ debugLog("[Supabase] hasUsableSupabaseConfig:", hasUsableSupabaseConfig);
 debugLog("[Supabase] realClient:", realClient ? "created" : "null");
 debugLog(
   "[Supabase] final supabase:",
-  !!(realClient || createMockClient()) ? "real/mock" : "null",
+  realClient
+    ? "real"
+    : allowMockClient
+      ? "mock"
+      : "unavailable-config",
 );
 
-export const supabase = realClient || createMockClient();
+export const supabase =
+  realClient ||
+  (allowMockClient ? createMockClient() : createUnavailableClient());
 
 export type Database = {
   public: {

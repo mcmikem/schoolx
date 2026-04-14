@@ -10,6 +10,7 @@ export async function POST(request: NextRequest) {
     const cron = requireCronSecretOrDeny(request);
     if (!cron.ok) return cron.response;
 
+    // @ts-ignore - Supabase type inference issue with service role client
     const supabase = createServiceRoleClientOrThrow();
 
     const { schoolId } = await request.json();
@@ -24,7 +25,13 @@ export async function POST(request: NextRequest) {
       .eq("school_id", school.schoolId)
       .eq("status", "active");
 
-    if (!classes || classes.length === 0)
+    const classList = (classes || []) as {
+      id: string;
+      name: string;
+      teacher_id: string | null;
+    }[];
+
+    if (classList.length === 0)
       return NextResponse.json({ success: true, message: "No classes" });
 
     const { data: attendance } = await supabase
@@ -35,9 +42,7 @@ export async function POST(request: NextRequest) {
     const markedClassIds = new Set(
       (attendance || []).map((a: any) => a.class_id),
     );
-    const unmarkedClasses = classes.filter(
-      (c: any) => !markedClassIds.has(c.id),
-    );
+    const unmarkedClasses = classList.filter((c) => !markedClassIds.has(c.id));
 
     const results = { nudgesSent: 0, errors: 0 };
 
@@ -50,11 +55,12 @@ export async function POST(request: NextRequest) {
         .eq("id", cls.teacher_id)
         .single();
 
-      if (teacher?.phone) {
+      const teacherUser = teacher as any;
+      if (teacherUser?.phone) {
         const message = `Friendly Nudge: Attendance for ${cls.name} hasn't been marked yet. Please update the system as soon as possible. - SkoolMate Admin`;
 
         try {
-          const smsRes = await sendSMS(teacher.phone, message);
+          const smsRes = await sendSMS(teacherUser.phone, message);
           if (smsRes.success) {
             results.nudgesSent++;
             await supabase.from("automated_message_logs").insert({
@@ -63,7 +69,7 @@ export async function POST(request: NextRequest) {
               recipient_id: teacher.phone,
               record_id: cls.id,
               status: "sent",
-            });
+            } as any);
           }
         } catch {
           results.errors++;

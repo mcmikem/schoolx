@@ -49,10 +49,38 @@ function createMockQueryBuilder() {
   return builder;
 }
 
+function createUnavailableServerClient() {
+  const error = () =>
+    new Error(
+      "Supabase server client is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, or explicitly enable ALLOW_SUPABASE_MOCK for non-production demo use.",
+    );
+
+  const throwUnavailable = async () => {
+    throw error();
+  };
+
+  const throwSyncUnavailable = () => {
+    throw error();
+  };
+
+  return {
+    auth: {
+      getUser: throwUnavailable,
+      getSession: throwUnavailable,
+    },
+    from: () => {
+      throwSyncUnavailable();
+    },
+  } as ReturnType<typeof createServerClient>;
+}
+
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const allowMockClient =
+    process.env.NODE_ENV === "test" ||
+    process.env.ALLOW_SUPABASE_MOCK === "true";
 
   if (
     !isValidHttpUrl(supabaseUrl) ||
@@ -60,6 +88,10 @@ export async function createSupabaseServerClient() {
     supabaseAnonKey.startsWith("your-") ||
     supabaseAnonKey.includes("xxxxxxxx")
   ) {
+    if (!allowMockClient) {
+      return createUnavailableServerClient();
+    }
+
     const mock = {
       auth: {
         getUser: async () => ({ data: { user: null }, error: null }),

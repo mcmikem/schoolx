@@ -21,7 +21,7 @@ A comprehensive, offline-first school management platform designed for East Afri
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14, React 18, TypeScript
+- **Frontend**: Next.js 16, React 18, TypeScript
 - **Styling**: Tailwind CSS 3.4
 - **Backend**: Supabase (PostgreSQL + Auth)
 - **Payments**: Stripe, PayPal, Flutterwave (Mobile Money)
@@ -47,7 +47,7 @@ npm run dev
 
 ### Demo Credentials
 - Phone: `0700000001`
-- Password: `demo1234`
+- Password: `skoolmate_demo_2024`
 
 ## Environment Variables
 
@@ -105,11 +105,10 @@ src/
 
 ## Security
 
-- Row Level Security (RLS) enabled
-- Input sanitization on all API routes
-- Rate limiting on sensitive endpoints
-- CSRF protection on mutations
-- Encrypted demo mode storage
+- Row Level Security (RLS) is used in Supabase
+- Some sensitive API routes enforce rate limiting and CSRF checks
+- Demo mode is session-scoped and should not be treated as secure storage
+- Production deployments must provide valid Supabase env vars; silent mock fallback is disabled
 
 ## License
 

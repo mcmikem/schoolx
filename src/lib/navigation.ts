@@ -111,6 +111,11 @@ export const navigationByRole: Record<string, NavGroup[]> = {
           label: "Enrollments",
           icon: "school",
         },
+        {
+          href: "/dashboard/courses",
+          label: "Courses",
+          icon: "menu_book",
+        },
         { href: "/dashboard/staff", label: "Staff Hub", icon: "person" },
         {
           href: "/dashboard/attendance",

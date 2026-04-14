@@ -4,6 +4,8 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { calculateStudentFeePosition } from "@/lib/operations";
 
+const PARENT_SELECTED_CHILD_KEY = "parent_selected_child_id";
+
 function MaterialIcon({
   icon,
   className,
@@ -34,16 +36,11 @@ export default function ParentPortal() {
   const [parentName, setParentName] = useState("");
 
   useEffect(() => {
-    async function restoreAndValidateSession() {
-      const stored = localStorage.getItem("parent_session");
-      if (!stored) return;
-
+    async function restoreSessionFromAuth() {
       try {
-        const data = JSON.parse(stored);
         const { data: authData, error: authError } =
           await supabase.auth.getUser();
         if (authError || !authData.user) {
-          localStorage.removeItem("parent_session");
           return;
         }
 
@@ -54,8 +51,7 @@ export default function ParentPortal() {
           .eq("role", "parent")
           .single();
 
-        if (parentError || !parentUser || parentUser.id !== data.parentId) {
-          localStorage.removeItem("parent_session");
+        if (parentError || !parentUser) {
           return;
         }
 
@@ -65,40 +61,30 @@ export default function ParentPortal() {
           .eq("parent_id", parentUser.id);
 
         if (childrenError || !children || children.length === 0) {
-          localStorage.removeItem("parent_session");
           return;
         }
 
         const validChildren = children
           .map((c: any) => c.students)
           .filter(Boolean);
+        const selectedChildId = localStorage.getItem(PARENT_SELECTED_CHILD_KEY);
         const restoredStudent =
-          validChildren.find((c: any) => c.id === data.student?.id) ||
+          validChildren.find((c: any) => c.id === selectedChildId) ||
           validChildren[0];
 
         if (!restoredStudent) {
-          localStorage.removeItem("parent_session");
           return;
         }
 
         setStudentData(restoredStudent);
         setParentName(parentUser.full_name);
-        localStorage.setItem(
-          "parent_session",
-          JSON.stringify({
-            ...data,
-            parentId: parentUser.id,
-            parentName: parentUser.full_name,
-            student: restoredStudent,
-            children: validChildren,
-          }),
-        );
+        localStorage.setItem(PARENT_SELECTED_CHILD_KEY, restoredStudent.id);
       } catch {
-        localStorage.removeItem("parent_session");
+        localStorage.removeItem(PARENT_SELECTED_CHILD_KEY);
       }
     }
 
-    restoreAndValidateSession();
+    restoreSessionFromAuth();
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -113,30 +99,29 @@ export default function ParentPortal() {
         formattedPhone = phone;
       }
 
-      // Find parent user
-      const { data: parentUser, error: parentError } = await supabase
-        .from("users")
-        .select("*, schools(name, logo_url)")
-        .eq("phone", formattedPhone)
-        .eq("role", "parent")
-        .single();
+      // Verify password using Supabase auth
+      const email = `${formattedPhone}@omuto.org`;
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      if (parentError || !parentUser) {
-        setError("No parent account found with this phone number");
+      if (authError) {
+        setError("Invalid credentials");
         setLoading(false);
         return;
       }
 
-      // Verify password using Supabase auth
-      const email = `${formattedPhone}@omuto.org`;
-      const { data: authData, error: authError } =
-        await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+      const { data: parentUser, error: parentError } = await supabase
+        .from("users")
+        .select("id, full_name")
+        .eq("auth_id", authData.user.id)
+        .eq("role", "parent")
+        .single();
 
-      if (authError) {
-        setError("Invalid phone number or password");
+      if (parentError || !parentUser) {
+        await supabase.auth.signOut();
+        setError("Parent access is not configured for this account");
         setLoading(false);
         return;
       }
@@ -144,24 +129,22 @@ export default function ParentPortal() {
       // Get children
       const { data: children } = await supabase
         .from("parent_students")
-        .select("*, students(*, classes(name, level))")
+        .select("students(*, classes(name, level))")
         .eq("parent_id", parentUser.id);
 
       if (!children || children.length === 0) {
-        setError("No children linked to this parent account");
+        await supabase.auth.signOut();
+        setError("No linked student was found for this account");
         setLoading(false);
         return;
       }
 
-      const sessionData = {
-        parentId: parentUser.id,
-        parentName: parentUser.full_name,
-        school: parentUser.schools,
-        children: children.map((c: any) => c.students),
-      };
-
-      localStorage.setItem("parent_session", JSON.stringify(sessionData));
-      setStudentData(children[0].students);
+      const validChildren = children
+        .map((c: any) => c.students)
+        .filter(Boolean);
+      const firstChild = validChildren[0];
+      localStorage.setItem(PARENT_SELECTED_CHILD_KEY, firstChild.id);
+      setStudentData(firstChild);
       setParentName(parentUser.full_name);
     } catch (err) {
       setError("Login failed. Please try again.");
@@ -172,16 +155,12 @@ export default function ParentPortal() {
 
   const switchChild = (child: any) => {
     setStudentData(child);
-    const stored = localStorage.getItem("parent_session");
-    if (stored) {
-      const data = JSON.parse(stored);
-      data.student = child;
-      localStorage.setItem("parent_session", JSON.stringify(data));
-    }
+    localStorage.setItem(PARENT_SELECTED_CHILD_KEY, child.id);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("parent_session");
+  const handleLogout = async () => {
+    localStorage.removeItem(PARENT_SELECTED_CHILD_KEY);
+    await supabase.auth.signOut();
     setStudentData(null);
     setParentName("");
     setPhone("");
@@ -386,15 +365,34 @@ function ParentDashboard({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem("parent_session");
-    if (stored) {
-      try {
-        const data = JSON.parse(stored);
-        setChildren(data.children || []);
-      } catch (err) {
-        console.error("Failed to parse parent session:", err);
-      }
+    async function fetchChildren() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      const { data: parentUser } = await supabase
+        .from("users")
+        .select("id")
+        .eq("auth_id", user.id)
+        .eq("role", "parent")
+        .single();
+
+      if (!parentUser) return;
+
+      const { data } = await supabase
+        .from("parent_students")
+        .select("students(*, classes(name, level))")
+        .eq("parent_id", parentUser.id);
+
+      const validChildren = (data || [])
+        .map((entry: any) => entry.students)
+        .filter(Boolean);
+      setChildren(validChildren);
     }
+
+    fetchChildren();
   }, []);
 
   useEffect(() => {
