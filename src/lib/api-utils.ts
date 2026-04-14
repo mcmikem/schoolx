@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { User } from "@/types";
 
@@ -258,6 +259,8 @@ export interface UserWithSchoolContext extends AuthenticatedUserContext {
   schoolId: string | null;
 }
 
+type ServiceRoleClient = ReturnType<typeof createClient>;
+
 export async function requireUserWithSchool(
   request: NextRequest,
 ): Promise<
@@ -406,4 +409,62 @@ export function requireCronSecretOrDeny(
   }
 
   return { ok: true };
+}
+
+export function createServiceRoleClientOrThrow(): ServiceRoleClient {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error("Service role client is not configured");
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
+
+export async function requireExistingSchoolOrDeny(params: {
+  supabase: ServiceRoleClient;
+  schoolId: unknown;
+}): Promise<
+  | { ok: true; schoolId: string; school: Record<string, unknown> }
+  | { ok: false; response: NextResponse }
+> {
+  const { supabase, schoolId } = params;
+
+  if (typeof schoolId !== "string" || schoolId.length === 0) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, error: "School ID is required" },
+        { status: 400 },
+      ),
+    };
+  }
+
+  const { data: school, error } = await supabase
+    .from("schools")
+    .select("id, name, school_code, subscription_status")
+    .eq("id", schoolId)
+    .maybeSingle();
+
+  if (error || !school) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, error: "School not found" },
+        { status: 404 },
+      ),
+    };
+  }
+
+  return {
+    ok: true,
+    schoolId,
+    school: school as Record<string, unknown>,
+  };
 }

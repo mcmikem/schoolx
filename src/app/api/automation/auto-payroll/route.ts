@@ -1,25 +1,21 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { computeNetSalary, computeNSSF, computePAYE } from "@/lib/automation";
-import { requireCronSecretOrDeny } from "@/lib/api-utils";
+import {
+  requireCronSecretOrDeny,
+  createServiceRoleClientOrThrow,
+  requireExistingSchoolOrDeny,
+} from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   try {
     const cron = requireCronSecretOrDeny(request);
     if (!cron.ok) return cron.response;
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createServiceRoleClientOrThrow();
 
     const { schoolId, month, year } = await request.json();
-
-    if (!schoolId) {
-      return NextResponse.json(
-        { error: "Missing required parameter: schoolId" },
-        { status: 400 },
-      );
-    }
+    const school = await requireExistingSchoolOrDeny({ supabase, schoolId });
+    if (!school.ok) return school.response;
 
     const payrollMonth = month || new Date().getMonth() + 1;
     const payrollYear = year || new Date().getFullYear();
@@ -44,7 +40,7 @@ export async function POST(request: NextRequest) {
         tin_number
       `,
       )
-      .eq("school_id", schoolId)
+      .eq("school_id", school.schoolId)
       .eq("status", "active");
 
     if (staffError) {
@@ -98,7 +94,7 @@ export async function POST(request: NextRequest) {
         const { data: payrollRecord, error: payrollError } = await supabase
           .from("payroll_records")
           .insert({
-            school_id: schoolId,
+            school_id: school.schoolId,
             staff_id: member.id,
             month: payrollMonth,
             year: payrollYear,
@@ -135,7 +131,7 @@ export async function POST(request: NextRequest) {
         await supabase.from("payroll_deductions").insert([
           {
             payroll_record_id: payrollRecord.id,
-            school_id: schoolId,
+            school_id: school.schoolId,
             staff_id: member.id,
             type: "NSSF",
             amount: nssf_employee,
@@ -144,7 +140,7 @@ export async function POST(request: NextRequest) {
           },
           {
             payroll_record_id: payrollRecord.id,
-            school_id: schoolId,
+            school_id: school.schoolId,
             staff_id: member.id,
             type: "PAYE",
             amount: payeAmount,
@@ -183,7 +179,7 @@ export async function POST(request: NextRequest) {
     // Create payroll summary
     if (processed.length > 0) {
       await supabase.from("payroll_summaries").insert({
-        school_id: schoolId,
+        school_id: school.schoolId,
         month: payrollMonth,
         year: payrollYear,
         staff_count: processed.length,

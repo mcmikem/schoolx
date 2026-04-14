@@ -1,4 +1,3 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import {
   computeSubjectTotal,
@@ -12,25 +11,22 @@ import {
   isTerminalClass,
   getNextClassName,
 } from "@/lib/operations";
-import { requireCronSecretOrDeny } from "@/lib/api-utils";
+import {
+  requireCronSecretOrDeny,
+  createServiceRoleClientOrThrow,
+  requireExistingSchoolOrDeny,
+} from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   try {
     const cron = requireCronSecretOrDeny(request);
     if (!cron.ok) return cron.response;
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createServiceRoleClientOrThrow();
 
     const { schoolId, currentTerm, academicYear } = await request.json();
-
-    if (!schoolId) {
-      return NextResponse.json(
-        { error: "Missing required parameter: schoolId" },
-        { status: 400 },
-      );
-    }
+    const school = await requireExistingSchoolOrDeny({ supabase, schoolId });
+    if (!school.ok) return school.response;
 
     const term = currentTerm || 3;
     const year = academicYear || new Date().getFullYear().toString();
@@ -103,7 +99,7 @@ export async function POST(request: NextRequest) {
       const { data: classes, error: classesError } = await supabase
         .from("classes")
         .select("id, name, level")
-        .eq("school_id", schoolId);
+        .eq("school_id", school.schoolId);
 
       if (classesError) {
         throw new Error(classesError.message);
@@ -125,7 +121,7 @@ export async function POST(request: NextRequest) {
         `,
         )
         .in("class_id", classIds)
-        .eq("school_id", schoolId)
+        .eq("school_id", school.schoolId)
         .eq("status", "active");
 
       if (studentsError) {
@@ -228,7 +224,7 @@ export async function POST(request: NextRequest) {
           const { data: newCard } = await supabase
             .from("report_cards")
             .insert({
-              school_id: schoolId,
+              school_id: school.schoolId,
               student_id: student.id,
               class_id: student.class_id,
               academic_year: year,
@@ -290,7 +286,7 @@ export async function POST(request: NextRequest) {
       const { data: classes, error: classesError } = await supabase
         .from("classes")
         .select("id, name, level, academic_year")
-        .eq("school_id", schoolId);
+        .eq("school_id", school.schoolId);
 
       if (classesError) {
         throw new Error(classesError.message);
@@ -299,7 +295,7 @@ export async function POST(request: NextRequest) {
       const { data: students } = await supabase
         .from("students")
         .select("id, first_name, last_name, class_id, status")
-        .eq("school_id", schoolId);
+        .eq("school_id", school.schoolId);
 
       const { data: grades } = await supabase
         .from("student_grades")
@@ -313,7 +309,7 @@ export async function POST(request: NextRequest) {
       const { data: archive, error: archiveError } = await supabase
         .from("term_archives")
         .insert({
-          school_id: schoolId,
+          school_id: school.schoolId,
           academic_year: year,
           term,
           classes_count: classes?.length || 0,
@@ -362,7 +358,7 @@ export async function POST(request: NextRequest) {
         .select(
           "id, first_name, last_name, parent_email, parent_phone, class_id, classes (name)",
         )
-        .eq("school_id", schoolId)
+        .eq("school_id", school.schoolId)
         .eq("status", "active");
 
       let noticesSent = 0;
@@ -428,12 +424,12 @@ export async function POST(request: NextRequest) {
       const { data: classes } = await supabase
         .from("classes")
         .select("id, name, level, academic_year")
-        .eq("school_id", schoolId);
+        .eq("school_id", school.schoolId);
 
       const { data: students } = await supabase
         .from("students")
         .select("id, first_name, last_name, class_id, status")
-        .eq("school_id", schoolId);
+        .eq("school_id", school.schoolId);
 
       // Build rollover preview
       const rolloverPreview = buildRolloverPreview({
@@ -463,20 +459,20 @@ export async function POST(request: NextRequest) {
           academic_year: nextYear,
           updated_at: new Date().toISOString(),
         })
-        .eq("school_id", schoolId);
+        .eq("school_id", school.schoolId);
 
       // Create next term record if it doesn't exist
       const { data: existingTerm } = await supabase
         .from("academic_terms")
         .select("id")
-        .eq("school_id", schoolId)
+        .eq("school_id", school.schoolId)
         .eq("academic_year", nextYear)
         .eq("term", nextTerm)
         .limit(1);
 
       if (!existingTerm || existingTerm.length === 0) {
         await supabase.from("academic_terms").insert({
-          school_id: schoolId,
+          school_id: school.schoolId,
           academic_year: nextYear,
           term: nextTerm,
           status: "upcoming",
@@ -507,7 +503,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: overallSuccess,
       summary: {
-        schoolId,
+        schoolId: school.schoolId,
         academicYear: year,
         term,
         stepsCompleted: steps.filter((s) => s.status === "completed").length,

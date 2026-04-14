@@ -1,29 +1,25 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import {
   detectConsecutiveAbsenceAlerts,
   filterAbsenceAlertsForCooldown,
 } from "@/lib/operations";
 import type { AttendanceAlert } from "@/lib/operations";
-import { requireCronSecretOrDeny } from "@/lib/api-utils";
+import {
+  requireCronSecretOrDeny,
+  createServiceRoleClientOrThrow,
+  requireExistingSchoolOrDeny,
+} from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   try {
     const cron = requireCronSecretOrDeny(request);
     if (!cron.ok) return cron.response;
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createServiceRoleClientOrThrow();
 
     const { schoolId, threshold } = await request.json();
-
-    if (!schoolId) {
-      return NextResponse.json(
-        { error: "Missing required parameter: schoolId" },
-        { status: 400 },
-      );
-    }
+    const school = await requireExistingSchoolOrDeny({ supabase, schoolId });
+    if (!school.ok) return school.response;
 
     const absenceThreshold = threshold || 3;
 
@@ -31,7 +27,7 @@ export async function POST(request: NextRequest) {
     const { data: students, error: studentsError } = await supabase
       .from("students")
       .select("id, first_name, last_name, parent_phone, class_id")
-      .eq("school_id", schoolId)
+      .eq("school_id", school.schoolId)
       .eq("status", "active");
 
     if (studentsError) {
@@ -92,7 +88,7 @@ export async function POST(request: NextRequest) {
     const { data: recentLogs } = await supabase
       .from("automated_message_logs")
       .select("trigger_id, record_id, status, sent_at, created_at")
-      .eq("school_id", schoolId)
+      .eq("school_id", school.schoolId)
       .gte(
         "created_at",
         new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
@@ -149,7 +145,7 @@ export async function POST(request: NextRequest) {
         if (smsResult.success) {
           // Log the message
           await supabase.from("messages").insert({
-            school_id: schoolId,
+            school_id: school.schoolId,
             recipient_type: "individual",
             recipient_id: alert.studentId,
             phone: alert.parentPhone,
@@ -161,7 +157,7 @@ export async function POST(request: NextRequest) {
 
           // Log the automated message
           await supabase.from("automated_message_logs").insert({
-            school_id: schoolId,
+            school_id: school.schoolId,
             trigger_id: "auto-attendance-followup",
             recipient_id: alert.parentPhone,
             record_id: alert.studentId,

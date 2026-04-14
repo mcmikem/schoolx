@@ -5,10 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import type { Student, CreateStudentInput, Class } from "@/types";
 import { getQuerySchoolId, withTimeout } from "./utils";
 import { getCachedData, setCachedData, invalidateCache } from "./queryCache";
-import {
-  normalizeStudentInput,
-  validateStudentInput,
-} from "@/lib/validation";
+import { normalizeStudentInput, validateStudentInput } from "@/lib/validation";
 
 import { DEMO_STUDENTS, DEMO_CLASSES, DemoStudent } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
@@ -143,10 +140,11 @@ export function useStudents(
 
     // Check plan limit for non-demo schools
     if (!isDemo && !isDemoSchool(schoolId) && school?.subscription_plan) {
-      const maxStudents = getFeatureLimit(
-        school.subscription_plan as PlanType,
-        "maxStudents",
-      );
+      const plan = school.subscription_plan as PlanType;
+      const maxStudents =
+        typeof plan === "string"
+          ? getFeatureLimit(plan, "maxStudents")
+          : 999999;
       if (totalCount >= maxStudents) {
         throw new Error(
           `Student limit reached. Your plan allows ${maxStudents.toLocaleString()} students. Upgrade to add more.`,
@@ -165,8 +163,9 @@ export function useStudents(
         status: "active" as const,
         admission_date: new Date().toISOString().split("T")[0],
         created_at: new Date().toISOString(),
-        classes: (DEMO_CLASSES.find((c) => c.id === normalizedStudent.class_id) ||
-          DEMO_CLASSES[0]) as unknown as Class,
+        classes: (DEMO_CLASSES.find(
+          (c) => c.id === normalizedStudent.class_id,
+        ) || DEMO_CLASSES[0]) as unknown as Class,
       };
       setStudents((prev) => [newStudentData, ...prev]);
       setTotalCount((prev) => prev + 1);
