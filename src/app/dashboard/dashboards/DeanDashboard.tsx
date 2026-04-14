@@ -170,7 +170,7 @@ function DeanDashboardContent() {
               Homework
             </div>
           </Link>
-          <Link href="/dashboard/planning" className="qa-item">
+          <Link href="/dashboard/lesson-plans" className="qa-item">
             <div
               className="qa-icon"
               style={{ background: "var(--amber-soft)", color: "var(--amber)" }}

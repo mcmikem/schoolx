@@ -353,6 +353,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (userRole === "super_admin") {
         router.push("/super-admin");
+      } else if (userRole === "parent") {
+        router.push("/parent-portal");
       } else if (userRole === "school_admin") {
         router.push("/dashboard/schools");
       } else {

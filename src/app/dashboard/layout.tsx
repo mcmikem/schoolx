@@ -42,6 +42,20 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     }
   }, [loading, user, isDemo, router]);
 
+  useEffect(() => {
+    if (loading || !user || isDemo) return;
+
+    if (user.role === "parent") {
+      router.replace("/parent-portal");
+      return;
+    }
+
+    if (user.role === "super_admin") {
+      router.replace("/super-admin");
+      return;
+    }
+  }, [loading, user, isDemo, router]);
+
   const handleSignOut = async () => {
     sessionStorage.removeItem("lastDeniedPath");
     await signOut();
