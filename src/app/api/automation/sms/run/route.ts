@@ -3,7 +3,9 @@ import {
   apiError,
   apiSuccess,
   handleApiError,
-  requireAuthenticatedUser,
+  requireUserWithSchool,
+  assertSchoolScopeOrDeny,
+  assertUserRoleOrDeny,
   withSecurity,
 } from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -12,9 +14,18 @@ import {
   filterAbsenceAlertsForCooldown,
 } from "@/lib/operations";
 
+const AUTOMATION_ALLOWED_ROLES = [
+  "super_admin",
+  "school_admin",
+  "admin",
+  "headmaster",
+  "bursar",
+  "secretary",
+];
+
 async function handlePost(request: NextRequest) {
   try {
-    const auth = await requireAuthenticatedUser(request);
+    const auth = await requireUserWithSchool(request);
     if (!auth.ok) return auth.response;
 
     const body = await request.json();
@@ -27,22 +38,31 @@ async function handlePost(request: NextRequest) {
       return apiError("School ID and trigger ID are required", 400);
     }
 
-    const supabase = await createSupabaseServerClient();
-    const { data: actor } = await supabase
-      .from("users")
-      .select("id, school_id, role, full_name")
-      .eq("auth_id", auth.context.authUserId)
-      .maybeSingle();
+    const scope = assertSchoolScopeOrDeny({
+      userSchoolId: auth.context.schoolId,
+      requestedSchoolId: schoolId,
+    });
+    if (!scope.ok) return scope.response;
 
-    if (!actor || actor.school_id !== schoolId) {
-      return apiError("Unauthorized for this school", 403);
-    }
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: AUTOMATION_ALLOWED_ROLES,
+    });
+    if (!roleCheck.ok) return roleCheck.response;
+
+    const supabase = await createSupabaseServerClient();
+    const actor = {
+      id: auth.context.user.id,
+      school_id: auth.context.schoolId,
+      role: auth.context.user.role,
+      full_name: auth.context.user.full_name,
+    };
 
     const { data: trigger, error: triggerError } = await supabase
       .from("sms_triggers")
       .select("*")
       .eq("id", triggerId)
-      .eq("school_id", schoolId)
+      .eq("school_id", scope.schoolId)
       .maybeSingle();
 
     if (triggerError || !trigger) {
@@ -63,7 +83,7 @@ async function handlePost(request: NextRequest) {
     const { data: students } = await supabase
       .from("students")
       .select("id, first_name, last_name, parent_phone")
-      .eq("school_id", schoolId)
+      .eq("school_id", scope.schoolId)
       .eq("status", "active");
 
     const studentIds = (students || []).map(
@@ -96,7 +116,7 @@ async function handlePost(request: NextRequest) {
     const { data: recentLogs } = await supabase
       .from("automated_message_logs")
       .select("trigger_id, record_id, status, sent_at, created_at")
-      .eq("school_id", schoolId)
+      .eq("school_id", scope.schoolId)
       .eq("trigger_id", trigger.id)
       .gte(
         "created_at",
@@ -115,7 +135,7 @@ async function handlePost(request: NextRequest) {
 
     for (const alert of alertsToSend) {
       const { error: messageError } = await supabase.from("messages").insert({
-        school_id: schoolId,
+        school_id: scope.schoolId,
         recipient_type: "individual",
         recipient_id: alert.studentId,
         phone: alert.parentPhone,
@@ -130,7 +150,7 @@ async function handlePost(request: NextRequest) {
       }
 
       await supabase.from("automated_message_logs").insert({
-        school_id: schoolId,
+        school_id: scope.schoolId,
         trigger_id: trigger.id,
         recipient_id: alert.parentPhone || null,
         record_id: alert.studentId,
@@ -145,7 +165,7 @@ async function handlePost(request: NextRequest) {
       .eq("id", trigger.id);
 
     await supabase.from("audit_log").insert({
-      school_id: schoolId,
+      school_id: scope.schoolId,
       user_id: actor.id,
       user_name: actor.full_name,
       action: "create",

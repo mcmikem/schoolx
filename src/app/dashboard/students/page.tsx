@@ -1496,7 +1496,7 @@ export default function StudentHubPage() {
               </div>
               <input
                 type="file"
-                accept=".csv,.xlsx"
+                accept=".csv,.xlsx,.xls"
                 onChange={handleStudentTemplateUpload}
                 className="w-full text-sm text-slate-600"
                 disabled={templateStatus === "parsing"}
