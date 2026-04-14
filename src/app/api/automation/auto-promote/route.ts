@@ -1,29 +1,28 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
-import { requireCronSecretOrDeny } from "@/lib/api-utils";
+import {
+  requireCronSecretOrDeny,
+  createServiceRoleClientOrThrow,
+  requireExistingSchoolOrDeny,
+} from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   try {
     const cron = requireCronSecretOrDeny(request);
     if (!cron.ok) return cron.response;
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
+    const supabase = createServiceRoleClientOrThrow();
 
     const { schoolId, academicYear, criteria } = await request.json();
 
-    if (!schoolId || !academicYear) {
+    if (!academicYear) {
       return NextResponse.json(
-        { error: "Missing required parameters: schoolId, academicYear" },
+        { error: "Missing required parameter: academicYear" },
         { status: 400 },
       );
     }
+
+    const school = await requireExistingSchoolOrDeny({ supabase, schoolId });
+    if (!school.ok) return school.response;
 
     const promotionCriteria = criteria || {
       minAverageScore: 50,
@@ -42,7 +41,7 @@ export async function POST(request: NextRequest) {
         student_attendance (status)
       `,
       )
-      .eq("school_id", schoolId)
+      .eq("school_id", school.schoolId)
       .eq("status", "active");
 
     if (studentsError) {
@@ -134,7 +133,7 @@ export async function POST(request: NextRequest) {
           const { data: nextClasses } = await supabase
             .from("classes")
             .select("id, name")
-            .eq("school_id", schoolId)
+            .eq("school_id", school.schoolId)
             .ilike("level", `%${nextLevelPattern}%`)
             .limit(1);
 
@@ -145,7 +144,7 @@ export async function POST(request: NextRequest) {
               .update({ class_id: nextClassId, repeating: false })
               .eq("id", student.id);
             await supabase.from("student_promotions").insert({
-              school_id: schoolId,
+              school_id: school.schoolId,
               student_id: student.id,
               from_class_id: studentClass.id,
               to_class_id: nextClassId,

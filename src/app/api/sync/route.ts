@@ -6,6 +6,7 @@ import {
   handleApiError,
   requireUserWithSchool,
   assertSchoolScopeOrDeny,
+  assertUserRoleOrDeny,
 } from '@/lib/api-utils'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -32,6 +33,207 @@ const VALID_TABLES = [
   'timetable',
 ]
 const SOFT_DELETE_TABLES = new Set(['grades', 'fee_payments', 'fee_structure', 'fee_adjustments'])
+const DIRECT_SCHOOL_TABLES = new Set([
+  'students',
+  'classes',
+  'subjects',
+  'fee_structure',
+  'fee_adjustments',
+  'messages',
+  'events',
+  'timetable',
+])
+const OWNED_RELATION_TABLES = new Set(['attendance', 'grades', 'fee_payments'])
+const SYNC_ALLOWED_ROLES = [
+  'super_admin',
+  'school_admin',
+  'admin',
+  'headmaster',
+  'dean_of_studies',
+  'teacher',
+  'bursar',
+  'secretary',
+  'dorm_master',
+]
+
+async function resolveSchoolOwnership(params: {
+  supabase: ReturnType<typeof createClient>
+  table: string
+  action: SyncItem['action']
+  data: Record<string, unknown>
+  schoolId: string
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { supabase, table, action, data, schoolId } = params
+
+  if (DIRECT_SCHOOL_TABLES.has(table)) {
+    if (action === 'create') {
+      return data.school_id === schoolId
+        ? { ok: true }
+        : { ok: false, error: `Forbidden: school scope mismatch for ${table}` }
+    }
+
+    const recordId = data.id
+    if (typeof recordId !== 'string' || recordId.length === 0) {
+      return { ok: false, error: `Missing id for ${action} on ${table}` }
+    }
+
+    const { data: existing, error } = await supabase
+      .from(table)
+      .select('school_id')
+      .eq('id', recordId)
+      .maybeSingle()
+
+    if (error || !existing || existing.school_id !== schoolId) {
+      return { ok: false, error: `Forbidden: school scope mismatch for ${table}` }
+    }
+
+    return { ok: true }
+  }
+
+  if (table === 'attendance') {
+    if (action === 'create') {
+      const classId = data.class_id
+      const studentId = data.student_id
+
+      if (typeof classId === 'string') {
+        const { data: classRow } = await supabase
+          .from('classes')
+          .select('school_id')
+          .eq('id', classId)
+          .maybeSingle()
+        if (classRow?.school_id === schoolId) return { ok: true }
+      }
+
+      if (typeof studentId === 'string') {
+        const { data: studentRow } = await supabase
+          .from('students')
+          .select('school_id')
+          .eq('id', studentId)
+          .maybeSingle()
+        if (studentRow?.school_id === schoolId) return { ok: true }
+      }
+
+      return { ok: false, error: 'Forbidden: attendance record is outside school scope' }
+    }
+
+    const recordId = data.id
+    if (typeof recordId !== 'string' || recordId.length === 0) {
+      return { ok: false, error: `Missing id for ${action} on attendance` }
+    }
+
+    const { data: existing } = await supabase
+      .from('attendance')
+      .select('student_id, class_id')
+      .eq('id', recordId)
+      .maybeSingle()
+
+    if (!existing) {
+      return { ok: false, error: 'Forbidden: attendance record not found in school scope' }
+    }
+
+    return resolveSchoolOwnership({
+      supabase,
+      table: 'attendance',
+      action: 'create',
+      data: existing as Record<string, unknown>,
+      schoolId,
+    })
+  }
+
+  if (table === 'grades') {
+    if (action === 'create') {
+      const classId = data.class_id
+      const studentId = data.student_id
+
+      if (typeof classId === 'string') {
+        const { data: classRow } = await supabase
+          .from('classes')
+          .select('school_id')
+          .eq('id', classId)
+          .maybeSingle()
+        if (classRow?.school_id === schoolId) return { ok: true }
+      }
+
+      if (typeof studentId === 'string') {
+        const { data: studentRow } = await supabase
+          .from('students')
+          .select('school_id')
+          .eq('id', studentId)
+          .maybeSingle()
+        if (studentRow?.school_id === schoolId) return { ok: true }
+      }
+
+      return { ok: false, error: 'Forbidden: grade record is outside school scope' }
+    }
+
+    const recordId = data.id
+    if (typeof recordId !== 'string' || recordId.length === 0) {
+      return { ok: false, error: `Missing id for ${action} on grades` }
+    }
+
+    const { data: existing } = await supabase
+      .from('grades')
+      .select('student_id, class_id')
+      .eq('id', recordId)
+      .maybeSingle()
+
+    if (!existing) {
+      return { ok: false, error: 'Forbidden: grade record not found in school scope' }
+    }
+
+    return resolveSchoolOwnership({
+      supabase,
+      table: 'grades',
+      action: 'create',
+      data: existing as Record<string, unknown>,
+      schoolId,
+    })
+  }
+
+  if (table === 'fee_payments') {
+    if (action === 'create') {
+      const studentId = data.student_id
+      if (typeof studentId !== 'string') {
+        return { ok: false, error: 'Missing student_id for fee_payments create' }
+      }
+
+      const { data: studentRow } = await supabase
+        .from('students')
+        .select('school_id')
+        .eq('id', studentId)
+        .maybeSingle()
+
+      return studentRow?.school_id === schoolId
+        ? { ok: true }
+        : { ok: false, error: 'Forbidden: fee payment is outside school scope' }
+    }
+
+    const recordId = data.id
+    if (typeof recordId !== 'string' || recordId.length === 0) {
+      return { ok: false, error: `Missing id for ${action} on fee_payments` }
+    }
+
+    const { data: existing } = await supabase
+      .from('fee_payments')
+      .select('student_id')
+      .eq('id', recordId)
+      .maybeSingle()
+
+    if (!existing) {
+      return { ok: false, error: 'Forbidden: fee payment not found in school scope' }
+    }
+
+    return resolveSchoolOwnership({
+      supabase,
+      table: 'fee_payments',
+      action: 'create',
+      data: existing as Record<string, unknown>,
+      schoolId,
+    })
+  }
+
+  return { ok: false, error: `Unsupported sync table: ${table}` }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,6 +251,12 @@ export async function POST(request: NextRequest) {
 
     const auth = await requireUserWithSchool(request)
     if (!auth.ok) return auth.response
+
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: SYNC_ALLOWED_ROLES,
+    })
+    if (!roleCheck.ok) return roleCheck.response
 
     const scope = assertSchoolScopeOrDeny({
       userSchoolId: auth.context.schoolId,
@@ -86,15 +294,17 @@ export async function POST(request: NextRequest) {
         }
 
         // Basic tenancy enforcement: require school_id to match on all scoped tables.
-        // If a table doesn't have school_id, reject unless it is explicitly whitelisted.
-        const dataSchoolId = (item.data as any).school_id
-        const tablesWithoutSchoolId = new Set(['attendance', 'grades', 'fee_payments', 'fee_structure', 'fee_adjustments', 'messages', 'events'])
-        if (!tablesWithoutSchoolId.has(item.table)) {
-          if (dataSchoolId !== scope.schoolId) {
-            failedCount++
-            errors.push(`Forbidden: school scope mismatch for ${item.table}`)
-            continue
-          }
+        const ownership = await resolveSchoolOwnership({
+          supabase,
+          table: item.table,
+          action: item.action,
+          data: item.data,
+          schoolId: scope.schoolId,
+        })
+        if (!ownership.ok) {
+          failedCount++
+          errors.push(ownership.error)
+          continue
         }
 
         switch (item.action) {
@@ -118,9 +328,7 @@ export async function POST(request: NextRequest) {
             }
             const { id, ...updateData } = item.data
             const query = supabase.from(item.table).update(updateData).eq('id', recordId)
-            const { error } = !tablesWithoutSchoolId.has(item.table)
-              ? await query.eq('school_id', scope.schoolId)
-              : await query
+            const { error } = await query
             if (error) {
               failedCount++
               errors.push(`Update failed for ${item.table}: ${error.message}`)
@@ -139,12 +347,8 @@ export async function POST(request: NextRequest) {
             }
             const query = supabase.from(item.table)
             const { error } = SOFT_DELETE_TABLES.has(item.table)
-              ? await (tablesWithoutSchoolId.has(item.table)
-                  ? query.update({ deleted_at: new Date().toISOString() }).eq('id', deleteId)
-                  : query.update({ deleted_at: new Date().toISOString() }).eq('id', deleteId).eq('school_id', scope.schoolId))
-              : await (tablesWithoutSchoolId.has(item.table)
-                  ? query.delete().eq('id', deleteId)
-                  : query.delete().eq('id', deleteId).eq('school_id', scope.schoolId))
+              ? await query.update({ deleted_at: new Date().toISOString() }).eq('id', deleteId)
+              : await query.delete().eq('id', deleteId)
             if (error) {
               failedCount++
               errors.push(`Delete failed for ${item.table}: ${error.message}`)

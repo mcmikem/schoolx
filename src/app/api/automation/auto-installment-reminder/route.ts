@@ -1,31 +1,27 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { detectInstallmentReminders } from "@/lib/operations";
-import { requireCronSecretOrDeny } from "@/lib/api-utils";
+import {
+  requireCronSecretOrDeny,
+  createServiceRoleClientOrThrow,
+  requireExistingSchoolOrDeny,
+} from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   try {
     const cron = requireCronSecretOrDeny(request);
     if (!cron.ok) return cron.response;
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createServiceRoleClientOrThrow();
 
     const { schoolId, daysNotice } = await request.json();
-
-    if (!schoolId) {
-      return NextResponse.json(
-        { error: "Missing required parameter: schoolId" },
-        { status: 400 },
-      );
-    }
+    const school = await requireExistingSchoolOrDeny({ supabase, schoolId });
+    if (!school.ok) return school.response;
 
     // 1. Get all active payment plans for this school
     const { data: plans } = await supabase
       .from("payment_plans")
       .select("*")
-      .eq("school_id", schoolId)
+      .eq("school_id", school.schoolId)
       .eq("status", "active");
 
     if (!plans || plans.length === 0) {
@@ -68,7 +64,7 @@ export async function POST(request: NextRequest) {
         if (smsRes.success) {
            // Log success
            await supabase.from("automated_message_logs").insert({
-             school_id: schoolId,
+             school_id: school.schoolId,
              trigger_id: "auto-installment-reminder",
              recipient_id: reminder.parentPhone,
              record_id: reminder.planId,

@@ -1,6 +1,9 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
-import { requireCronSecretOrDeny } from "@/lib/api-utils";
+import {
+  requireCronSecretOrDeny,
+  createServiceRoleClientOrThrow,
+  requireExistingSchoolOrDeny,
+} from "@/lib/api-utils";
 
 // Auto Fee Reminder SMS Scheduler
 // Automatically sends SMS reminders to parents with outstanding fees
@@ -11,18 +14,11 @@ export async function POST(request: NextRequest) {
     const cron = requireCronSecretOrDeny(request);
     if (!cron.ok) return cron.response;
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createServiceRoleClientOrThrow();
 
     const { schoolId, triggers } = await request.json();
-
-    if (!schoolId) {
-      return NextResponse.json(
-        { error: "Missing required parameter: schoolId" },
-        { status: 400 },
-      );
-    }
+    const school = await requireExistingSchoolOrDeny({ supabase, schoolId });
+    if (!school.ok) return school.response;
 
     // Default triggers (days overdue)
     const reminderTriggers = triggers || [
@@ -60,7 +56,7 @@ export async function POST(request: NextRequest) {
         )
       `,
       )
-      .eq("school_id", schoolId)
+      .eq("school_id", school.schoolId)
       .eq("status", "active");
 
     if (studentsError) {
@@ -160,7 +156,7 @@ export async function POST(request: NextRequest) {
 
                 // Log the SMS
                 await supabase.from("messages").insert({
-                  school_id: schoolId,
+                  school_id: school.schoolId,
                   recipient: student.parent_phone,
                   message: message,
                   status: "sent",
