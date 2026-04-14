@@ -237,7 +237,7 @@ export async function POST(request: NextRequest) {
         ownership,
         phone: phone || null,
         email: email || null,
-        subscription_plan: "free",
+        subscription_plan: "free_trial",
         subscription_status: "trial",
         trial_ends_at: new Date(
           Date.now() + 30 * 24 * 60 * 60 * 1000,

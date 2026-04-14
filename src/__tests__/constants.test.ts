@@ -66,8 +66,8 @@ describe('Constants', () => {
     test('has all payment methods', () => {
       expect(PAYMENT_METHODS.CASH).toBe('cash')
       expect(PAYMENT_METHODS.MOBILE_MONEY).toBe('mobile_money')
-      expect(PAYMENT_METHODS.BANK_TRANSFER).toBe('bank_transfer')
-      expect(PAYMENT_METHODS.CHEQUE).toBe('cheque')
+      expect(PAYMENT_METHODS.BANK).toBe('bank')
+      expect(PAYMENT_METHODS.INSTALLMENT).toBe('installment')
     })
   })
 

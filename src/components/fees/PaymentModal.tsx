@@ -252,6 +252,7 @@ export default function PaymentModal({
                   <option value="cash">Cash</option>
                   <option value="mobile_money">Mobile Money</option>
                   <option value="bank">Bank Transfer</option>
+                  <option value="installment">Installment</option>
                 </select>
               </div>
               <div>

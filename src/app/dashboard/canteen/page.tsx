@@ -47,34 +47,75 @@ export default function CanteenPage() {
 
   const loadData = useCallback(async () => {
     if (!school?.id) {
-      // #region agent log
-      fetch("/api/debug/log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId: "9e14f3",
-          runId: "pre-fix",
-          hypothesisId: "H7",
-          location: "src/app/dashboard/canteen/page.tsx:loadData:guard",
-          message: "skipped canteen loadData due to missing school.id",
-          data: { hasSchool: !!school, schoolId: school?.id ?? null },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
       return;
     }
     if (isDemo) {
       setItems([
-        { id: "1", name: "Chapati", category: "food", price: 1000, stock: 45, unit: "pieces", active: true },
-        { id: "2", name: "Mandazi", category: "snack", price: 500, stock: 12, unit: "pieces", active: true },
-        { id: "3", name: "Soda (300ml)", category: "drink", price: 1500, stock: 8, unit: "liters", active: true },
-        { id: "4", name: "Rice & Beans", category: "food", price: 3500, stock: 20, unit: "pieces", active: true },
+        {
+          id: "1",
+          name: "Chapati",
+          category: "food",
+          price: 1000,
+          stock: 45,
+          unit: "pieces",
+          active: true,
+        },
+        {
+          id: "2",
+          name: "Mandazi",
+          category: "snack",
+          price: 500,
+          stock: 12,
+          unit: "pieces",
+          active: true,
+        },
+        {
+          id: "3",
+          name: "Soda (300ml)",
+          category: "drink",
+          price: 1500,
+          stock: 8,
+          unit: "liters",
+          active: true,
+        },
+        {
+          id: "4",
+          name: "Rice & Beans",
+          category: "food",
+          price: 3500,
+          stock: 20,
+          unit: "pieces",
+          active: true,
+        },
       ]);
       setOrders([
-        { id: "ORD-1", student_id: "s1", total: 4500, status: "completed", created_at: new Date().toISOString(), student_name: "Isaac Mugisha", items: [] },
-        { id: "ORD-2", student_id: "s2", total: 1000, status: "pending", created_at: new Date().toISOString(), student_name: "Sarah Jane", items: [] },
-        { id: "ORD-3", student_id: "s3", total: 2000, status: "preparing", created_at: new Date().toISOString(), student_name: "John Doe", items: [] },
+        {
+          id: "ORD-1",
+          student_id: "s1",
+          total: 4500,
+          status: "completed",
+          created_at: new Date().toISOString(),
+          student_name: "Isaac Mugisha",
+          items: [],
+        },
+        {
+          id: "ORD-2",
+          student_id: "s2",
+          total: 1000,
+          status: "pending",
+          created_at: new Date().toISOString(),
+          student_name: "Sarah Jane",
+          items: [],
+        },
+        {
+          id: "ORD-3",
+          student_id: "s3",
+          total: 2000,
+          status: "preparing",
+          created_at: new Date().toISOString(),
+          student_name: "John Doe",
+          items: [],
+        },
       ]);
       setLoading(false);
       return;

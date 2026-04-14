@@ -57,8 +57,8 @@ export type Gender = typeof GENDER[keyof typeof GENDER]
 export const PAYMENT_METHODS = {
   CASH: 'cash',
   MOBILE_MONEY: 'mobile_money',
-  BANK_TRANSFER: 'bank_transfer',
-  CHEQUE: 'cheque',
+  BANK: 'bank',
+  INSTALLMENT: 'installment',
 } as const
 
 export type PaymentMethod = typeof PAYMENT_METHODS[keyof typeof PAYMENT_METHODS]

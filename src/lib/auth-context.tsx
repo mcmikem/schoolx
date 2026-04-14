@@ -251,7 +251,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               school_type: demoSchool.school_type || "primary",
               ownership: demoSchool.ownership || "private",
               primary_color: demoSchool.primary_color || "#001F3F",
-              subscription_plan: demoSchool.subscription_plan || "premium",
+              subscription_plan: demoSchool.subscription_plan || "growth",
               subscription_status: demoSchool.subscription_status || "active",
               feature_stage:
                 (demoSchool.feature_stage as FeatureStage) || "full",
