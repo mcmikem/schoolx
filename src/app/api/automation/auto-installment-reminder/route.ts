@@ -18,13 +18,15 @@ export async function POST(request: NextRequest) {
     if (!school.ok) return school.response;
 
     // 1. Get all active payment plans for this school
-    const { data: plans }: { data: any[] } = await supabase
+    const plansQuery = await supabase
       .from("payment_plans")
       .select("*")
       .eq("school_id", school.schoolId)
       .eq("status", "active");
 
-    if (!plans || plans.length === 0) {
+    const activePlans: any[] = (plansQuery.data || []) as any[];
+
+    if (!activePlans || activePlans.length === 0) {
       return NextResponse.json({
         success: true,
         message: "No active plans found",

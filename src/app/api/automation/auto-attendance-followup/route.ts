@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
             status: "sent",
             sent_at: sentAt,
             type: "attendance_followup",
-          });
+          } as any);
 
           // Log the automated message
           await supabase.from("automated_message_logs").insert({
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
             record_id: alert.studentId,
             status: "sent",
             sent_at: sentAt,
-          });
+          } as any);
 
           smsResults.push({
             studentId: alert.studentId,

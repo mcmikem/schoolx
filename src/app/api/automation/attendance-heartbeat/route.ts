@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
             await supabase.from("automated_message_logs").insert({
               school_id: school.schoolId,
               trigger_id: "attendance-heartbeat",
-              recipient_id: teacher.phone,
+              recipient_id: teacherUser.phone,
               record_id: cls.id,
               status: "sent",
             } as any);
