@@ -2,9 +2,25 @@
 
 # Apply migrations to Supabase via REST API
 # Usage: ./scripts/db-push.sh
+# Required env vars: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
-SUPABASE_URL="https://gucxpmgwvnbqykevucbi.supabase.co"
-SERVICE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1Y3hwbWd3dm5icXlrZXZ1Y2JpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE3NjYxMCwiZXhwIjoyMDg5NzUyNjEwfQ.u-yxVo_MfiXnoj6UlFZgcAsNinM0XY4PryIUp77O-7Y"
+set -e
+
+# Check required environment variables
+if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then
+  echo "Error: NEXT_PUBLIC_SUPABASE_URL is not set"
+  echo "Please set it in your .env file or export it before running this script"
+  exit 1
+fi
+
+if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+  echo "Error: SUPABASE_SERVICE_ROLE_KEY is not set"
+  echo "Please set it in your .env file or export it before running this script"
+  exit 1
+fi
+
+SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL"
+SERVICE_KEY="$SUPABASE_SERVICE_ROLE_KEY"
 
 # Create the SQL query to add columns
 SQL='ALTER TABLE schools ADD COLUMN IF NOT EXISTS feature_stage TEXT DEFAULT '\''core'\'';
