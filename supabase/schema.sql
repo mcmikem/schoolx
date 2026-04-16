@@ -1303,10 +1303,10 @@ CREATE TABLE IF NOT EXISTS expense_approvals (
 CREATE TABLE IF NOT EXISTS subscription_payments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE NOT NULL,
-    plan TEXT CHECK (plan IN ('free_trial', 'basic', 'premium', 'max')) NOT NULL,
+    plan TEXT CHECK (plan IN ('free_trial', 'starter', 'growth', 'enterprise', 'lifetime')) NOT NULL,
     amount NUMERIC(12,2) NOT NULL,
     currency TEXT DEFAULT 'UGX',
-    provider TEXT CHECK (provider IN ('stripe', 'paypal', 'mtn', 'airtel')) NOT NULL,
+    provider TEXT CHECK (provider IN ('paypal', 'mtn', 'airtel')) NOT NULL,
     transaction_id TEXT NOT NULL,
     payment_status TEXT CHECK (payment_status IN ('pending', 'completed', 'failed', 'refunded')) DEFAULT 'pending',
     customer_id TEXT,
@@ -1349,14 +1349,14 @@ CREATE TABLE IF NOT EXISTS pending_mobile_payments (
     amount NUMERIC(12,2) NOT NULL,
     provider TEXT CHECK (provider IN ('mtn', 'airtel')) NOT NULL,
     phone_number TEXT NOT NULL,
-    tx_ref TEXT NOT NULL,
+    reference TEXT NOT NULL,
     status TEXT CHECK (status IN ('pending', 'completed', 'failed', 'expired')) DEFAULT 'pending',
     expires_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(tx_ref)
+    UNIQUE(reference)
 );
 
-CREATE INDEX IF NOT EXISTS idx_pending_mobile_payments_txref ON pending_mobile_payments(tx_ref);
+CREATE INDEX IF NOT EXISTS idx_pending_mobile_payments_reference ON pending_mobile_payments(reference);
 CREATE INDEX IF NOT EXISTS idx_pending_mobile_payments_school ON pending_mobile_payments(school_id);
 
 -- ============================================

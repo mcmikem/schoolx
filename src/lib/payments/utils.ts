@@ -2,7 +2,6 @@ import { PLAN_PRICES, PlanType } from "../subscription";
 import { createSupabaseServerClient } from "../supabase/server";
 
 export const PAYMENT_PROVIDERS = {
-  STRIPE: "stripe",
   PAYPAL: "paypal",
   MTN: "mtn",
   AIRTEL: "airtel",
@@ -56,11 +55,11 @@ export async function recordPayment(params: {
 }) {
   const supabase = await createSupabaseServerClient();
 
-  const { data, error } = await supabase.from("subscription_history").insert({
+  const { data, error } = await supabase.from("subscription_payments").insert({
     school_id: params.schoolId,
     plan: params.plan,
-    amount_paid: params.amount,
-    payment_method: params.provider,
+    amount: params.amount,
+    provider: params.provider,
     transaction_id: params.transactionId,
     payment_status: params.paymentStatus,
   });
@@ -183,7 +182,7 @@ export async function updatePaymentStatus(
   const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase
-    .from("subscription_history")
+    .from("subscription_payments")
     .update({
       payment_status: status,
       ...(extra?.paid_at && { paid_at: extra.paid_at }),
@@ -226,7 +225,7 @@ export async function getSchoolPaymentHistory(
   const supabase = await createSupabaseServerClient();
 
   let query = supabase
-    .from("subscription_history")
+    .from("subscription_payments")
     .select("*")
     .eq("school_id", schoolId)
     .order("created_at", { ascending: false });
