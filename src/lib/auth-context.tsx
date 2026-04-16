@@ -344,7 +344,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: { message: "Invalid phone number format" }, role: null };
       }
 
-      let authResult: any = null;
+      let authResult:
+        | Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>
+        | null = null;
       for (const email of emailCandidates) {
         const result = await supabase!.auth.signInWithPassword({
           email,

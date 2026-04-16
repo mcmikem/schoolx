@@ -86,8 +86,12 @@ export default function ParentLoginPage() {
       }
 
       const emailCandidates = getOmutoAuthEmailCandidates(parsedPhone.canonical);
-      let authData: any = null;
-      let authError: any = null;
+      let authData: Awaited<
+        ReturnType<typeof supabase.auth.signInWithPassword>
+      >["data"] | null = null;
+      let authError: Awaited<
+        ReturnType<typeof supabase.auth.signInWithPassword>
+      >["error"] | null = null;
       for (const email of emailCandidates) {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
