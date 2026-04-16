@@ -106,7 +106,7 @@ async function sendSMS(phone: string, message: string) {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        apikye: apiKey,
+        apikey: apiKey,
       },
       body: new URLSearchParams({ username, to: phone, message }),
     },
