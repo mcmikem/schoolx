@@ -7,10 +7,7 @@ import {
   updatePendingMobilePayment,
 } from "@/lib/payments/utils";
 import { sendPaymentReceipt } from "@/lib/subscription";
-import {
-  requireUserWithSchool,
-  assertUserRoleOrDeny,
-} from "@/lib/api-utils";
+import { requireUserWithSchool, assertUserRoleOrDeny } from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -35,20 +32,20 @@ export async function POST(request: NextRequest) {
     if (!roleCheck.ok) return roleCheck.response;
 
     const body = await request.json();
-    const { txRef, provider } = body as {
-      txRef: string;
+    const { reference, provider } = body as {
+      reference: string;
       provider: "paypal" | "mtn" | "airtel";
     };
 
-    if (!txRef || !provider) {
+    if (!reference || !provider) {
       return NextResponse.json(
-        { error: "Missing required fields: txRef, provider" },
+        { error: "Missing required fields: reference, provider" },
         { status: 400 },
       );
     }
 
     if (provider === "mtn" || provider === "airtel") {
-      const pendingPayment = await getPendingMobilePayment(txRef);
+      const pendingPayment = await getPendingMobilePayment(reference);
 
       if (!pendingPayment) {
         return NextResponse.json(
@@ -61,12 +58,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
-      const status = await verifyMobileMoneyPayment(txRef);
+      const status = await verifyMobileMoneyPayment(reference);
 
       if (status.status === "completed") {
-        await updatePendingMobilePayment(txRef, "completed");
+        await updatePendingMobilePayment(reference, "completed");
 
-        await updatePaymentStatus(txRef, "completed", {
+        await updatePaymentStatus(reference, "completed", {
           paid_at: new Date().toISOString(),
         });
 
@@ -78,7 +75,7 @@ export async function POST(request: NextRequest) {
             | "enterprise"
             | "lifetime",
           provider,
-          txRef,
+          reference,
         );
 
         await sendPaymentReceipt(pendingPayment.school_id, {
@@ -91,7 +88,7 @@ export async function POST(request: NextRequest) {
             | "enterprise"
             | "lifetime",
           provider,
-          transactionId: txRef,
+          transactionId: reference,
         });
 
         return NextResponse.json({
@@ -100,8 +97,8 @@ export async function POST(request: NextRequest) {
           message: "Payment verified successfully",
         });
       } else if (status.status === "failed") {
-        await updatePendingMobilePayment(txRef, "failed");
-        await updatePaymentStatus(txRef, "failed");
+        await updatePendingMobilePayment(reference, "failed");
+        await updatePaymentStatus(reference, "failed");
 
         return NextResponse.json({
           success: false,
@@ -142,11 +139,11 @@ export async function GET(request: NextRequest) {
     if (!roleCheck.ok) return roleCheck.response;
 
     const searchParams = request.nextUrl.searchParams;
-    const txRef = searchParams.get("txRef");
+    const reference = searchParams.get("reference");
 
-    if (!txRef) {
+    if (!reference) {
       return NextResponse.json(
-        { error: "Missing txRef parameter" },
+        { error: "Missing reference parameter" },
         { status: 400 },
       );
     }
@@ -157,7 +154,7 @@ export async function GET(request: NextRequest) {
       .from("subscription_payments")
       .select("*")
       .eq("school_id", auth.context.schoolId)
-      .eq("transaction_id", txRef)
+      .eq("transaction_id", reference)
       .single();
 
     if (error || !payment) {

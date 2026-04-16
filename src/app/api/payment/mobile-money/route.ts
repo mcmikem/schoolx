@@ -6,10 +6,7 @@ import {
   recordPayment,
   savePendingMobilePayment,
 } from "@/lib/payments/utils";
-import {
-  requireUserWithSchool,
-  assertUserRoleOrDeny,
-} from "@/lib/api-utils";
+import { requireUserWithSchool, assertUserRoleOrDeny } from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const BILLING_ROLES = [
@@ -75,7 +72,7 @@ export async function POST(request: NextRequest) {
       name: school.name,
       schoolId: school.id,
       plan,
-      returnUrl: `${baseUrl}/dashboard/pricing?success=true&provider=${provider}&txRef={txRef}`,
+      returnUrl: `${baseUrl}/dashboard/pricing?success=true&provider=${provider}&reference={reference}`,
     });
 
     await savePendingMobilePayment({
