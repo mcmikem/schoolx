@@ -6,6 +6,7 @@ import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import SkoolMateLogo from "@/components/SkoolMateLogo";
 import { Button, Input } from "@/components/ui";
+import { getOmutoAuthEmailCandidates, parseUgandaPhone } from "@/lib/auth-phone";
 
 export default function ParentLoginPage() {
   const router = useRouter();
@@ -46,9 +47,14 @@ export default function ParentLoginPage() {
 
     setLoading(true);
     try {
-      const cleanPhone = phone.replace(/[^0-9]/g, "");
+      const parsedPhone = parseUgandaPhone(phone);
+      if (!parsedPhone) {
+        toast.error("Please enter a valid Uganda phone number");
+        setLoading(false);
+        return;
+      }
 
-      if (password === DEMO_PASSWORD && cleanPhone === demoParent.phone) {
+      if (password === DEMO_PASSWORD && parsedPhone.canonical === demoParent.phone) {
         const demoData = {
           parent: {
             id: "demo-parent-1",
@@ -79,19 +85,29 @@ export default function ParentLoginPage() {
         return;
       }
 
-      const email = `${cleanPhone}@omuto.org`;
+      const emailCandidates = getOmutoAuthEmailCandidates(parsedPhone.canonical);
+      let authData: Awaited<
+        ReturnType<typeof supabase.auth.signInWithPassword>
+      >["data"] | null = null;
+      let authError: Awaited<
+        ReturnType<typeof supabase.auth.signInWithPassword>
+      >["error"] | null = null;
+      for (const email of emailCandidates) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        authData = data;
+        authError = error;
+        if (!error && data?.user) break;
+      }
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
+      if (authError || !authData?.user) throw authError;
 
       const { data: parentData } = await supabase
         .from("parent_profiles")
         .select("*")
-        .eq("user_id", data.user.id)
+        .eq("user_id", authData.user.id)
         .single();
 
       if (parentData) {
