@@ -5,6 +5,7 @@ import {
   PRIMARY_TEMPLATE,
   SECONDARY_TEMPLATE,
 } from "@/lib/curriculum-templates";
+import { parseUgandaPhone } from "@/lib/auth-phone";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -139,15 +140,14 @@ export async function POST(request: NextRequest) {
       return apiError("Invalid email format", 400);
     }
 
-    // Normalize phone number (remove spaces, dashes, keep only digits)
-    const normalizedPhone = adminPhone.replace(/[^0-9]/g, "");
-
-    if (normalizedPhone.length < 10 || normalizedPhone.length > 12) {
+    const parsedPhone = parseUgandaPhone(adminPhone);
+    if (!parsedPhone) {
       return apiError(
         "Invalid phone number format. Please use Uganda format (e.g., 0700000000)",
         400,
       );
     }
+    const normalizedPhone = parsedPhone.canonical;
 
     // Create admin client (bypasses RLS)
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
     const { data: existingUser } = await supabaseAdmin
       .from("users")
       .select("id")
-      .eq("phone", normalizedPhone)
+      .in("phone", parsedPhone.variants)
       .single();
 
     if (existingUser) {
@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Create auth user using admin client
-    const emailForAuth = `${normalizedPhone}@omuto.org`;
+    const emailForAuth = `${parsedPhone.canonical}@omuto.org`;
     const { data: authData, error: authError } =
       await supabaseAdmin.auth.admin.createUser({
         email: emailForAuth,

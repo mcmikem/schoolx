@@ -6,6 +6,7 @@ import AnimatedLogo from "@/components/AnimatedLogo";
 import { t, tWithParams } from "@/i18n";
 import { Button, Input } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
+import { isValidUgandaPhone, parseUgandaPhone } from "@/lib/auth-phone";
 
 const DEMO_KEY = "skoolmate_demo_v1";
 
@@ -48,8 +49,7 @@ export default function LoginPage() {
   const [phoneError, setPhoneError] = useState("");
 
   const validatePhone = (phone: string): boolean => {
-    const clean = phone.replace(/[^0-9]/g, "");
-    return clean.length >= 10 && clean.length <= 12;
+    return isValidUgandaPhone(phone);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -73,7 +73,12 @@ export default function LoginPage() {
 
     setLoading(true);
 
-    const cleanPhone = phone.replace(/[^0-9]/g, "");
+    const parsedPhone = parseUgandaPhone(phone);
+    if (!parsedPhone) {
+      setPhoneError("Please enter a valid Uganda phone number");
+      setLoading(false);
+      return;
+    }
 
     // Clear any previous demo data before login
     localStorage.removeItem(DEMO_KEY);
@@ -83,7 +88,7 @@ export default function LoginPage() {
       const demoResponse = await fetch("/api/demo-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: cleanPhone, password }),
+        body: JSON.stringify({ phone: parsedPhone.canonical, password }),
       });
 
       if (demoResponse.ok) {
@@ -111,7 +116,7 @@ export default function LoginPage() {
         }
       }
 
-      const { error: authError } = await signIn(cleanPhone, password);
+      const { error: authError, role } = await signIn(parsedPhone.canonical, password);
       if (authError) {
         console.error("Auth error:", authError);
         if (authError.message.includes("Invalid login credentials")) {
@@ -124,6 +129,13 @@ export default function LoginPage() {
       }
 
       toast.success("Login successful!");
+      const redirectPath =
+        role === "super_admin"
+          ? "/super-admin"
+          : role === "parent"
+            ? "/parent-portal"
+            : "/dashboard";
+      window.location.href = redirectPath;
     } catch (err: unknown) {
       console.error("Login exception:", err);
       const errorMessage =

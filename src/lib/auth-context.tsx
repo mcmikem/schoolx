@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { PlanType } from "./payments/subscription-client";
 import { FeatureStage, DEFAULT_FEATURE_STAGE } from "./featureStages";
 import type { User, School } from "@/types";
+import { getOmutoAuthEmailCandidates, parseUgandaPhone } from "./auth-phone";
 
 // Roles that demo sessions are allowed to assume.
 // super_admin / school_admin are intentionally excluded to prevent privilege injection.
@@ -89,7 +90,10 @@ interface AuthContextType {
   loading: boolean;
   isDemo: boolean;
   isTrialExpired: boolean;
-  signIn: (phone: string, password: string) => Promise<{ error: any }>;
+  signIn: (
+    phone: string,
+    password: string,
+  ) => Promise<{ error: any; role: User["role"] | null }>;
   signUp: (
     phone: string,
     password: string,
@@ -335,38 +339,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signIn(phone: string, password: string) {
     try {
-      const email = `${phone}@omuto.org`;
-      const { data, error } = await supabase!.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const emailCandidates = getOmutoAuthEmailCandidates(phone);
+      if (emailCandidates.length === 0) {
+        return { error: { message: "Invalid phone number format" }, role: null };
+      }
 
-      if (error) return { error };
-      if (!data.user)
-        return { error: { message: "No user returned from Supabase" } };
+      let authResult: any = null;
+      for (const email of emailCandidates) {
+        const result = await supabase!.auth.signInWithPassword({
+          email,
+          password,
+        });
+        authResult = result;
+        if (!result.error && result.data?.user) {
+          break;
+        }
+      }
+
+      if (!authResult || authResult.error) return { error: authResult?.error, role: null };
+      if (!authResult.data.user) {
+        return {
+          error: { message: "No user returned from Supabase" },
+          role: null,
+        };
+      }
 
       // fetchUserData populates user state AND returns the role — no second query needed
-      const userData = await fetchUserData(data.user.id);
-      const userRole: string = userData?.role ?? "school_admin";
+      const userData = await fetchUserData(authResult.data.user.id);
+      const userRole = (userData?.role as User["role"]) ?? null;
 
       // Don't redirect immediately - let the auth state change listener handle it
       // This prevents race conditions and ensures state is properly set
-      return { error: null };
+      return { error: null, role: userRole };
     } catch (error) {
-      return { error };
+      return { error, role: null };
     }
   }
 
   async function signUp(phone: string, password: string, name: string) {
     try {
-      const email = `${phone}@omuto.org`;
+      const parsedPhone = parseUgandaPhone(phone);
+      if (!parsedPhone) {
+        return { error: { message: "Invalid phone number format" } };
+      }
+      const email = `${parsedPhone.canonical}@omuto.org`;
       const { data, error } = await supabase!.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: name,
-            phone: phone,
+            phone: parsedPhone.canonical,
           },
         },
       });

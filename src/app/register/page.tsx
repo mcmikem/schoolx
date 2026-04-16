@@ -1,11 +1,12 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import SkoolMateLogo from "@/components/SkoolMateLogo";
 import { logger } from "@/lib/logger";
 import { Button, Input, Select } from "@/components/ui";
+import { getOmutoAuthEmailCandidates, isValidUgandaPhone } from "@/lib/auth-phone";
 
 function MaterialIcon({
   icon,
@@ -130,10 +131,7 @@ export default function RegisterPage() {
       setError("Admin phone is required");
       return false;
     }
-    // Uganda phone validation
-    const phoneRegex = /^(0|256|\\+256)[7][0-9]{8}$/;
-    const cleanPhone = form.adminPhone.replace(/[^0-9]/g, "");
-    if (cleanPhone.length < 10 || cleanPhone.length > 12) {
+    if (!isValidUgandaPhone(form.adminPhone)) {
       setError("Please enter a valid Uganda phone number (e.g., 0700000000)");
       return false;
     }
@@ -208,23 +206,32 @@ export default function RegisterPage() {
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      const normalizedPhone = form.adminPhone.replace(/[^0-9]/g, "");
-      const email = `${normalizedPhone}@omuto.org`;
-
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password: form.password,
-      });
-
-      if (signInError) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-
-        const { error: retryError } = await supabase.auth.signInWithPassword({
+      const emailCandidates = getOmutoAuthEmailCandidates(form.adminPhone);
+      let signedIn = false;
+      for (const email of emailCandidates) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password: form.password,
         });
+        if (!signInError) {
+          signedIn = true;
+          break;
+        }
+      }
 
-        if (retryError) {
+      if (!signedIn) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        for (const email of emailCandidates) {
+          const { error: retryError } = await supabase.auth.signInWithPassword({
+            email,
+            password: form.password,
+          });
+          if (!retryError) {
+            signedIn = true;
+            break;
+          }
+        }
+        if (!signedIn) {
           setError("Account created! Please go to login page and sign in.");
           setLoading(false);
           return;
@@ -336,7 +343,7 @@ export default function RegisterPage() {
                   icon={
                     <MaterialIcon icon="arrow_forward" className="text-lg" />
                   }
-                  onClick={() => setStep(2)}
+                  onClick={() => goToStep(2)}
                 >
                   Next: Where is the School?
                 </Button>
