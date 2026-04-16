@@ -349,16 +349,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userData = await fetchUserData(data.user.id);
       const userRole: string = userData?.role ?? "school_admin";
 
-      if (userRole === "super_admin") {
-        router.push("/super-admin");
-      } else if (userRole === "parent") {
-        router.push("/parent-portal");
-      } else if (userRole === "school_admin") {
-        router.push("/dashboard/schools");
-      } else {
-        router.push("/dashboard");
-      }
-
+      // Don't redirect immediately - let the auth state change listener handle it
+      // This prevents race conditions and ensures state is properly set
       return { error: null };
     } catch (error) {
       return { error };
