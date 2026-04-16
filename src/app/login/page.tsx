@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useToast } from "@/components/Toast";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import AnimatedLogo from "@/components/AnimatedLogo";
 import { t, tWithParams } from "@/i18n";
 import { Button, Input } from "@/components/ui";
@@ -40,6 +41,7 @@ function MaterialIcon({
 }
 
 export default function LoginPage() {
+  const router = useRouter();
   const toast = useToast();
   const { signIn } = useAuth();
   const [phone, setPhone] = useState("");
@@ -135,7 +137,7 @@ export default function LoginPage() {
           : role === "parent"
             ? "/parent-portal"
             : "/dashboard";
-      window.location.href = redirectPath;
+      router.push(redirectPath);
     } catch (err: unknown) {
       console.error("Login exception:", err);
       const errorMessage =
