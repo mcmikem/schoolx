@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
@@ -33,7 +33,7 @@ export default function SuggestionBoxPage() {
     category: "feedback" as "feedback" | "feature" | "bug" | "general",
   });
 
-  const fetchSuggestions = async () => {
+  const fetchSuggestions = useCallback(async () => {
     if (!school?.id) {
       setSuggestions([]);
       setLoading(false);
@@ -53,12 +53,11 @@ export default function SuggestionBoxPage() {
       setSuggestions(data || []);
     }
     setLoading(false);
-  };
+  }, [school?.id, toast]);
 
   useEffect(() => {
     fetchSuggestions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [school?.id]);
+  }, [fetchSuggestions]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

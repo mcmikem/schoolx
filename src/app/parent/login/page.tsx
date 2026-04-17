@@ -10,7 +10,9 @@ import { Button, Input } from "@/components/ui";
 export default function ParentLoginPage() {
   const router = useRouter();
   const toast = useToast();
-  const demoModeEnabled = process.env.NEXT_PUBLIC_ENABLE_DEMO_MODE === "true";
+  const demoModeEnabled =
+    process.env.NEXT_PUBLIC_ENABLE_DEMO_MODE === "true" &&
+    process.env.NODE_ENV === "development";
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
