@@ -347,6 +347,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSchool(null);
           setIsDemo(false);
           setIsTrialExpired(false);
+          setLoading(false);
         }
       });
 

@@ -158,8 +158,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   const handleSignOut = async () => {
     sessionStorage.removeItem("lastDeniedPath");
-    await signOut();
     toast.success("Signed out successfully");
+    await signOut();
   };
 
   // Close sidebar on every navigation (pathname change) to fix mobile stuck-open bug
