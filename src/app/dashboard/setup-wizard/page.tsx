@@ -1,6 +1,6 @@
 'use client'
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
@@ -131,7 +131,7 @@ export default function SetupWizardPage() {
     setFees(prev => prev.map((f, idx) => idx === i ? { ...f, [field]: value } : f))
   }
 
-  const handleSave = useCallback(async () => {
+  const handleSave = async () => {
     if (!user?.school_id && !school?.id) {
       toast.error('No school associated with your account')
       return
@@ -218,7 +218,7 @@ export default function SetupWizardPage() {
     } finally {
       setSaving(false)
     }
-  }, [user?.school_id, school?.id, schoolInfo, classes, academic.type, academic.year, subjects, staff, fees, toast])
+  }
 
   const stepContent = () => {
     switch (currentStep) {
