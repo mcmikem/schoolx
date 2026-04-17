@@ -96,7 +96,7 @@ export default function StudentWalletsPage() {
     if (!showTopup || !topupAmount) return;
 
     const amount = Number(topupAmount);
-    if (!Number.isFinite(amount) || amount <= 0) {
+    if (!(Number.isFinite(amount) && amount > 0)) {
       toast.error("Enter a valid top-up amount.");
       return;
     }

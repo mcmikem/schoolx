@@ -10,7 +10,7 @@ import TeacherDashboard from './dashboards/TeacherDashboard'
 import { DashboardSkeleton } from '@/components/Skeletons'
 
 function getFirstName(fullName?: string | null) {
-  return fullName?.trim().split(/\s+/)?.[0] || 'User'
+  return fullName?.trim().split(' ').filter(Boolean)?.[0] || 'User'
 }
 
 function SecretaryDashboard() {

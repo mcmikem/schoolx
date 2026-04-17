@@ -20,7 +20,7 @@ export default function NoticesPage() {
   const [form, setForm] = useState({
     title: "",
     content: "",
-    category: "general",
+    category: "General",
     send_sms: false,
   });
 
@@ -71,7 +71,7 @@ export default function NoticesPage() {
             title: form.title,
             content: form.content,
             type: form.category,
-            priority: form.category === "emergency" ? "high" : "normal",
+            priority: form.category === "Emergency" ? "high" : "normal",
             published_by: user?.id,
             created_at: new Date().toISOString(),
             is_published: true,
@@ -84,7 +84,7 @@ export default function NoticesPage() {
           title: form.title,
           content: form.content,
           type: form.category,
-          priority: form.category === "emergency" ? "high" : "normal",
+          priority: form.category === "Emergency" ? "high" : "normal",
           published_by: user?.id,
           publish_date: new Date().toISOString(),
           is_published: true,
@@ -93,7 +93,7 @@ export default function NoticesPage() {
         await fetchNotices();
       }
       setShowPostModal(false);
-      setForm({ title: "", content: "", category: "general", send_sms: false });
+      setForm({ title: "", content: "", category: "General", send_sms: false });
       toast.success("Notice posted successfully");
     } catch {
       toast.error("Failed to post notice");
@@ -190,10 +190,10 @@ export default function NoticesPage() {
                     }
                     className="input w-full"
                   >
-                    <option value="general">General</option>
-                    <option value="academic">Academic</option>
-                    <option value="event">Event</option>
-                    <option value="emergency">Emergency</option>
+                    <option value="General">General</option>
+                    <option value="Academic">Academic</option>
+                    <option value="Event">Event</option>
+                    <option value="Emergency">Emergency</option>
                   </select>
                 </div>
                 <div>

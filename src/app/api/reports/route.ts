@@ -9,6 +9,9 @@ import {
   assertUserRoleOrDeny,
   createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
+
+// Reports are available to school operations and academic leadership roles only;
+// parent/student-facing roles are intentionally excluded from aggregate report access.
 const REPORT_ALLOWED_ROLES = [
   "super_admin",
   "school_admin",

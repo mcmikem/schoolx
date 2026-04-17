@@ -62,6 +62,7 @@ interface Installment {
 
 type FinanceTab = "balances" | "payment-plans" | "invoices" | "cashbook";
 
+// Maximum fee/payment amount (100M UGX) to catch obvious entry mistakes.
 const MAX_FINANCE_AMOUNT = 100_000_000;
 
 export default function FinanceHubPage() {
