@@ -8,6 +8,7 @@ import ExpiredNotice from "@/components/dashboard/ExpiredNotice";
 import TrialBanner from "@/components/dashboard/TrialBanner";
 import SidebarShell from "@/components/dashboard/SidebarShell";
 import TopBar from "@/components/dashboard/TopBar";
+import DashboardStatusStrip from "@/components/dashboard/DashboardStatusStrip";
 import MobileBottomNav from "@/components/dashboard/MobileBottomNav";
 import WorkflowGuide from "@/components/dashboard/WorkflowGuide";
 import WhatsAppSupport from "@/components/WhatsAppSupport";
@@ -132,6 +133,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         >
           <TopBar pageTitle={pageTitle} onSignOut={handleSignOut} />
           <TrialBanner />
+          <DashboardStatusStrip />
           <SkoolMatePromo />
           <WorkflowGuide />
           {children}

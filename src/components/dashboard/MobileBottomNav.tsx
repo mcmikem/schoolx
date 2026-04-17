@@ -19,30 +19,30 @@ export default function MobileBottomNav() {
   const quickStep = useMemo<QuickStep>(() => {
     if (!pathname)
       return {
-        label: "Add Student",
+        label: "Add learner",
         href: "/dashboard/students",
         icon: "person_add",
       };
     if (pathname.startsWith("/dashboard/students"))
       return {
-        label: "Take Attendance",
+        label: "Attendance",
         href: "/dashboard/attendance",
         icon: "how_to_reg",
       };
     if (pathname.startsWith("/dashboard/attendance"))
       return {
-        label: "Record Fees",
+        label: "Record fees",
         href: "/dashboard/fees",
         icon: "payments",
       };
     if (pathname.startsWith("/dashboard/fees"))
       return {
-        label: "Send Reminder",
+        label: "Send SMS",
         href: "/dashboard/messages",
         icon: "sms",
       };
     return {
-      label: "Add Student",
+      label: "Add learner",
       href: "/dashboard/students",
       icon: "person_add",
     };
@@ -62,7 +62,7 @@ export default function MobileBottomNav() {
         className={`mobile-nav-item ${isActive("/dashboard/students") ? "active" : ""}`}
       >
         <MaterialIcon icon="group" size={20} />
-        <span>Students</span>
+        <span>Learners</span>
       </Link>
       <Link
         href={quickStep.href}
