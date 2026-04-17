@@ -4,8 +4,11 @@ import {
   calculateFeeStats,
   getUniqueTerms,
   mapParentStudentLinks,
+  normalizeFeeTermItems,
+  normalizePayments,
   normalizeAttendanceRecords,
   normalizeGrades,
+  normalizeWalletTransactions,
   resolveSelectedChild,
 } from "@/lib/parent-portal";
 
@@ -164,6 +167,108 @@ describe("parent portal helpers", () => {
         latestExamType: null,
         teacherComment: null,
         performanceBand: "excellent",
+      },
+    ]);
+  });
+
+  it("normalizes legacy and modern payment rows into a shared shape", () => {
+    expect(
+      normalizePayments([
+        {
+          id: "legacy-payment",
+          amount_paid: 250000,
+          payment_date: "2026-01-01",
+          payment_method: "Cash",
+          payment_reference: "LEG-1",
+          fee_structure: { name: "Tuition" },
+        },
+        {
+          id: "modern-payment",
+          amount: 180000,
+          payment_date: "2026-02-01",
+          payment_method: "Bank",
+          transaction_reference: "MOD-1",
+          student_fee_terms: {
+            fee_terms: { name: "Term Plan" },
+          },
+        },
+      ]),
+    ).toEqual([
+      {
+        id: "legacy-payment",
+        amount_paid: 250000,
+        payment_date: "2026-01-01",
+        payment_method: "Cash",
+        payment_reference: "LEG-1",
+        fee_structure: { name: "Tuition" },
+      },
+      {
+        id: "modern-payment",
+        amount_paid: 180000,
+        payment_date: "2026-02-01",
+        payment_method: "Bank",
+        payment_reference: "MOD-1",
+        fee_structure: { name: "Term Plan" },
+      },
+    ]);
+  });
+
+  it("normalizes wallet transaction rows from legacy and modern schemas", () => {
+    expect(
+      normalizeWalletTransactions([
+        {
+          id: "legacy-tx",
+          amount: 10000,
+          type: "topup",
+          reference: "LEG-REF",
+          description: "Legacy top-up",
+          created_at: "2026-01-01T10:00:00.000Z",
+        },
+        {
+          id: "modern-tx",
+          amount: 5000,
+          transaction_type: "adjustment",
+          reference_id: "MOD-REF",
+          description: "Wallet adjustment",
+          created_at: "2026-01-02T10:00:00.000Z",
+        },
+      ]),
+    ).toEqual([
+      {
+        id: "legacy-tx",
+        amount: 10000,
+        type: "topup",
+        reference: "LEG-REF",
+        description: "Legacy top-up",
+        created_at: "2026-01-01T10:00:00.000Z",
+      },
+      {
+        id: "modern-tx",
+        amount: 5000,
+        type: "adjustment",
+        reference: "MOD-REF",
+        description: "Wallet adjustment",
+        created_at: "2026-01-02T10:00:00.000Z",
+      },
+    ]);
+  });
+
+  it("maps modern fee-term assignments into fee summary items", () => {
+    expect(
+      normalizeFeeTermItems([
+        {
+          id: "term-1",
+          final_amount: 400000,
+          academic_year: "2026",
+          fee_terms: { name: "Term One Plan" },
+        },
+      ]),
+    ).toEqual([
+      {
+        id: "term-1",
+        name: "Term One Plan",
+        amount: 400000,
+        term: "2026",
       },
     ]);
   });

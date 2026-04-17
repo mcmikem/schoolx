@@ -16,6 +16,9 @@ import {
   ParentPortalFeeStructureItem,
   ParentPortalPayment,
   ParentPortalWalletTransaction,
+  normalizeFeeTermItems,
+  normalizePayments,
+  normalizeWalletTransactions,
   resolveSelectedChild,
 } from "@/lib/parent-portal";
 import {
@@ -33,6 +36,7 @@ const WALLET_BADGE_STYLES: Record<
   topup: "bg-emerald-50 text-emerald-700 border-emerald-200",
   spend: "bg-amber-50 text-amber-700 border-amber-200",
   refund: "bg-blue-50 text-blue-700 border-blue-200",
+  adjustment: "bg-slate-100 text-slate-700 border-slate-200",
 };
 
 const QUICK_TOPUP_AMOUNTS = [5000, 10000, 20000, 50000] as const;
@@ -92,46 +96,107 @@ export default function ParentFeesPage() {
         return;
       }
 
-      const [
-        { data: feeData },
-        { data: paymentData },
-        { data: walletData },
-        { data: walletTxData },
-      ] = await Promise.all([
-        supabase
-          .from("fee_structure")
-          .select("id, name, amount, term")
-          .eq("school_id", scopedChild.school_id)
-          .is("deleted_at", null)
-          .or(`class_id.is.null,class_id.eq.${scopedChild.class_id}`),
-        supabase
-          .from("fee_payments")
+      try {
+        const modernFeeTermsPromise = supabase
+          .from("student_fee_terms")
           .select(
-            "id, amount_paid, payment_date, payment_method, payment_reference, fee_structure:fee_id(name)",
+            "id, final_amount, academic_year, fee_terms(name)",
           )
           .eq("student_id", scopedChild.id)
-          .is("deleted_at", null)
-          .order("payment_date", { ascending: false }),
-        supabase
-          .from("student_wallets")
-          .select("balance")
-          .eq("student_id", scopedChild.id)
-          .maybeSingle(),
-        supabase
-          .from("wallet_transactions")
-          .select("id, amount, type, reference, description, created_at")
-          .eq("student_id", scopedChild.id)
-          .order("created_at", { ascending: false })
-          .limit(8),
-      ]);
+          .order("created_at", { ascending: false });
 
-      setFeeStructure((feeData || []) as ParentPortalFeeStructureItem[]);
-      setPayments((paymentData || []) as ParentPortalPayment[]);
-      setWalletBalance(Number(walletData?.balance || 0));
-      setWalletTransactions(
-        (walletTxData || []) as ParentPortalWalletTransaction[],
-      );
-      setLoading(false);
+        const modernPaymentsPromise = supabase
+          .from("fee_payments")
+          .select(
+            "id, amount, payment_date, payment_method, transaction_reference, student_fee_terms!inner(student_id, fee_terms(name))",
+          )
+          .eq("student_fee_terms.student_id", scopedChild.id)
+          .order("payment_date", { ascending: false });
+
+        const walletPromise = supabase
+          .from("student_wallets")
+          .select("id, balance")
+          .eq("student_id", scopedChild.id)
+          .maybeSingle();
+
+        const [modernFeeTermsRes, modernPaymentsRes, walletRes] =
+          await Promise.all([
+            modernFeeTermsPromise,
+            modernPaymentsPromise,
+            walletPromise,
+          ]);
+
+        const walletId = walletRes.data?.id;
+
+        let walletTxData: ParentPortalWalletTransaction[] = [];
+        if (walletId) {
+          const modernWalletTxRes = await supabase
+            .from("wallet_transactions")
+            .select("id, amount, transaction_type, reference_id, description, created_at")
+            .eq("wallet_id", walletId)
+            .order("created_at", { ascending: false })
+            .limit(8);
+
+          if (!modernWalletTxRes.error) {
+            walletTxData = normalizeWalletTransactions(modernWalletTxRes.data || []);
+          }
+        }
+
+        if (!modernFeeTermsRes.error || !modernPaymentsRes.error) {
+          setFeeStructure(
+            normalizeFeeTermItems((modernFeeTermsRes.data || []) as never[]),
+          );
+          setPayments(
+            normalizePayments((modernPaymentsRes.data || []) as never[]),
+          );
+          setWalletBalance(Number(walletRes.data?.balance || 0));
+          setWalletTransactions(walletTxData);
+          setLoading(false);
+          return;
+        }
+
+        const [
+          { data: feeData },
+          { data: paymentData },
+          legacyWalletRes,
+          legacyWalletTxRes,
+        ] = await Promise.all([
+          supabase
+            .from("fee_structure")
+            .select("id, name, amount, term")
+            .eq("school_id", scopedChild.school_id)
+            .is("deleted_at", null)
+            .or(`class_id.is.null,class_id.eq.${scopedChild.class_id}`),
+          supabase
+            .from("fee_payments")
+            .select(
+              "id, amount_paid, payment_date, payment_method, payment_reference, fee_structure:fee_id(name)",
+            )
+            .eq("student_id", scopedChild.id)
+            .is("deleted_at", null)
+            .order("payment_date", { ascending: false }),
+          supabase
+            .from("student_wallets")
+            .select("balance")
+            .eq("student_id", scopedChild.id)
+            .maybeSingle(),
+          supabase
+            .from("wallet_transactions")
+            .select("id, amount, type, reference, description, created_at")
+            .eq("student_id", scopedChild.id)
+            .order("created_at", { ascending: false })
+            .limit(8),
+        ]);
+
+        setFeeStructure((feeData || []) as ParentPortalFeeStructureItem[]);
+        setPayments(normalizePayments((paymentData || []) as never[]));
+        setWalletBalance(Number(legacyWalletRes.data?.balance || 0));
+        setWalletTransactions(
+          normalizeWalletTransactions((legacyWalletTxRes.data || []) as never[]),
+        );
+      } finally {
+        setLoading(false);
+      }
     },
     [isDemo, children],
   );

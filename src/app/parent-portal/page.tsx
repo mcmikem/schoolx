@@ -14,6 +14,8 @@ import { useToast } from "@/components/Toast";
 import {
   calculateFeeStats,
   mapParentStudentLinks,
+  normalizeFeeTermItems,
+  normalizePayments,
   normalizeGrades,
   ParentPortalAttendanceRecord,
   ParentPortalChild,
@@ -125,17 +127,50 @@ function ParentDashboardContent() {
       const scopedChild = resolveSelectedChild(children, selectedChildId);
       if (!scopedChild) return;
       try {
-        const [attRes, gradesRes, payRes, fsRes] = await Promise.all([
+        const [attRes, gradesRes] = await Promise.all([
           supabase.from("attendance").select("id, date, status, remarks").eq("student_id", scopedChild.id).limit(10),
           supabase.from("grades").select("id, score, max_score, grade, term, exam_type, teacher_comment, subjects(name)").eq("student_id", scopedChild.id).limit(6),
-          supabase.from("fee_payments").select("id, amount_paid, payment_date, payment_method, payment_reference").eq("student_id", scopedChild.id),
-          supabase
-            .from("fee_structure")
-            .select("*")
-            .eq("school_id", scopedChild.school_id)
-            .is("deleted_at", null)
-            .or(`class_id.is.null,class_id.eq.${scopedChild.class_id}`)
         ]);
+
+        let normalizedFeeStructure = [];
+        let normalizedPayments = [];
+
+        const [modernFeeTermsRes, modernPaymentsRes] = await Promise.all([
+          supabase
+            .from("student_fee_terms")
+            .select("id, final_amount, academic_year, fee_terms(name)")
+            .eq("student_id", scopedChild.id)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("fee_payments")
+            .select(
+              "id, amount, payment_date, payment_method, transaction_reference, student_fee_terms!inner(student_id, fee_terms(name))",
+            )
+            .eq("student_fee_terms.student_id", scopedChild.id)
+            .order("payment_date", { ascending: false }),
+        ]);
+
+        if (!modernFeeTermsRes.error || !modernPaymentsRes.error) {
+          normalizedFeeStructure = normalizeFeeTermItems(
+            (modernFeeTermsRes.data || []) as never[],
+          );
+          normalizedPayments = normalizePayments(
+            (modernPaymentsRes.data || []) as never[],
+          );
+        } else {
+          const [payRes, fsRes] = await Promise.all([
+            supabase.from("fee_payments").select("id, amount_paid, payment_date, payment_method, payment_reference").eq("student_id", scopedChild.id),
+            supabase
+              .from("fee_structure")
+              .select("*")
+              .eq("school_id", scopedChild.school_id)
+              .is("deleted_at", null)
+              .or(`class_id.is.null,class_id.eq.${scopedChild.class_id}`),
+          ]);
+
+          normalizedFeeStructure = fsRes.data || [];
+          normalizedPayments = normalizePayments((payRes.data || []) as never[]);
+        }
 
         setAttendance(
           (attRes.data || []).map((record) => ({
@@ -146,7 +181,7 @@ function ParentDashboardContent() {
           })),
         );
         setGrades(normalizeGrades(gradesRes.data || []));
-        setFeeStats(calculateFeeStats(fsRes.data || [], payRes.data || []));
+        setFeeStats(calculateFeeStats(normalizedFeeStructure, normalizedPayments));
       } catch (err) {
         console.error("Fetch student data error:", err);
       }
@@ -166,7 +201,7 @@ function ParentDashboardContent() {
       .from("student_wallets")
       .select("balance")
       .eq("student_id", scopedChild.id)
-      .single()
+      .maybeSingle()
       .then(({ data }) => setWalletBalance(data?.balance ?? 0));
   }, [selectedChild, isDemo, children]);
 
