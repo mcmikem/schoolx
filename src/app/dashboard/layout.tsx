@@ -198,8 +198,16 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       schoolAny?.onboarding_completed &&
       user?.role === "school_admin"
     ) {
-      // Show post-onboarding setup if onboarding is complete but setup is not
-      setShowPostSetup(true);
+      // Only auto-open the post-setup panel once per browser session so that
+      // it doesn't interrupt the user on every page refresh.
+      const sessionKey = `post_setup_shown_${school.id}`;
+      if (
+        typeof window !== "undefined" &&
+        !sessionStorage.getItem(sessionKey)
+      ) {
+        sessionStorage.setItem(sessionKey, "1");
+        setShowPostSetup(true);
+      }
     } else {
       setShowOnboarding(false);
       setShowPostSetup(false);
