@@ -21,10 +21,9 @@ function getSupabaseClient() {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseClient();
-
     const cron = requireCronSecretOrDeny(request);
     if (!cron.ok) return cron.response;
+    const supabase = getSupabaseClient();
 
     const body = await request.json();
     const { schoolCode, apiPassword, date, fromDate, toDate } = body;
