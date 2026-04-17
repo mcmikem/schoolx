@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
@@ -54,6 +55,7 @@ export default function NoticesPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       {!DEMO_MODE_ENABLED && (
         <Card className="mb-6">
@@ -190,5 +192,6 @@ export default function NoticesPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

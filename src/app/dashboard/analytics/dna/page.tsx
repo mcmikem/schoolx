@@ -1,5 +1,6 @@
 "use client";
 
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useStudents } from "@/lib/hooks";
@@ -76,6 +77,7 @@ export default function PerformanceDNAPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
       <div className="flex justify-between items-end">
         <div>
@@ -291,5 +293,6 @@ export default function PerformanceDNAPage() {
         </div>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

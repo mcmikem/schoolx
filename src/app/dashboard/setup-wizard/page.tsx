@@ -1,4 +1,5 @@
 'use client'
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
@@ -468,6 +469,7 @@ export default function SetupWizardPage() {
   }
 
   return (
+    <PageErrorBoundary>
     <div className="min-h-screen bg-[#f5f6f8]">
       {/* Header */}
       <div className="bg-white border-b border-[#e8eaed] px-6 py-4">
@@ -533,5 +535,6 @@ export default function SetupWizardPage() {
         </div>
       </div>
     </div>
+    </PageErrorBoundary>
   )
 }

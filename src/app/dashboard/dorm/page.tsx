@@ -1,4 +1,5 @@
 'use client'
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
@@ -61,6 +62,7 @@ export default function DormitoryPage() {
   ]
 
   return (
+    <PageErrorBoundary>
     <div className="p-8 max-w-7xl mx-auto space-y-8">
       <PageHeader
         title="Dormitory Management"
@@ -222,5 +224,6 @@ export default function DormitoryPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   )
 }

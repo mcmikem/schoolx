@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useStudents, useClasses } from "@/lib/hooks";
@@ -232,6 +233,7 @@ export default function ExportPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader title="Export Data" subtitle="Export school data to Excel" />
 
@@ -378,5 +380,6 @@ export default function ExportPage() {
         </ul>
       </UICard>
     </div>
+    </PageErrorBoundary>
   );
 }

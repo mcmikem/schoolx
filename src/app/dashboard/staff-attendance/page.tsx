@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
@@ -168,6 +169,7 @@ export default function StaffAttendancePage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <PageHeader
         title="Staff Attendance"
@@ -285,5 +287,6 @@ export default function StaffAttendancePage() {
         </>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

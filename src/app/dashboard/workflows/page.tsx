@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import TopBar from "@/components/dashboard/TopBar";
@@ -121,6 +122,7 @@ export default function WorkflowsBuilder() {
     triggers.find((t) => t.id === id) || triggers[0];
 
   return (
+    <PageErrorBoundary>
     <div className="h-full flex flex-col bg-[var(--bg)] w-full">
       <TopBar pageTitle="Automated Workflows" onSignOut={() => {}} />
 
@@ -343,5 +345,6 @@ export default function WorkflowsBuilder() {
         </div>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

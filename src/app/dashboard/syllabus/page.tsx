@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useClasses, useSubjects } from "@/lib/hooks";
@@ -266,6 +267,7 @@ export default function SyllabusPage() {
   const stats = getProgressStats();
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
@@ -567,5 +569,6 @@ export default function SyllabusPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

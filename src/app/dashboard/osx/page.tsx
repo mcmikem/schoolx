@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -69,6 +70,7 @@ export default function OSXPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="space-y-6">
       <PageHeader
         title={`School Xperience${activeTab !== "overview" ? " — " + TAB_LABELS[activeTab] : ""}`}
@@ -292,5 +294,6 @@ export default function OSXPage() {
         </div>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -256,6 +257,7 @@ export default function TrendAnalyticsPage() {
   }
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <PageHeader
         title="Trend Analytics"
@@ -420,5 +422,6 @@ export default function TrendAnalyticsPage() {
         </>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

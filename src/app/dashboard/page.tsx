@@ -1,6 +1,11 @@
 'use client'
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import DashboardRouter from './DashboardRouter'
 
 export default function DashboardPage() {
-  return <DashboardRouter />
+  return (
+    <PageErrorBoundary>
+      <DashboardRouter />
+    </PageErrorBoundary>
+  );
 }

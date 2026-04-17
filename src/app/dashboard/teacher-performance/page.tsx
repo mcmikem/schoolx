@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -240,6 +241,7 @@ export default function TeacherPerformancePage() {
   }
 
   return (
+    <PageErrorBoundary>
     <div className="content">
       <PageHeader
         title="Teacher Performance"
@@ -442,5 +444,6 @@ export default function TeacherPerformancePage() {
         </div>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

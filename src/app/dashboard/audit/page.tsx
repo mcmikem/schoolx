@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { getAuditLog, AuditEntry } from "@/lib/audit";
@@ -47,6 +48,7 @@ export default function AuditLogPage() {
   const modules = Array.from(new Set(logs.map((l) => l.module)));
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <PageHeader title="Audit Log" subtitle="Track all system activities" />
 
@@ -190,5 +192,6 @@ export default function AuditLogPage() {
         </CardBody>
       </Card>
     </div>
+    </PageErrorBoundary>
   );
 }

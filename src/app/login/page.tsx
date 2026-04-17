@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/Toast";
 import Link from "next/link";
@@ -48,6 +49,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
 
   // If user is already authenticated, redirect to dashboard
   useEffect(() => {
@@ -73,7 +75,6 @@ export default function LoginPage() {
       </div>
     );
   }
-  const [phoneError, setPhoneError] = useState("");
 
   const validatePhone = (phone: string): boolean => {
     const clean = phone.replace(/[^0-9]/g, "");
@@ -178,6 +179,7 @@ export default function LoginPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="min-h-screen bg-[var(--bg)] flex relative overflow-hidden">
       <div className="flex-1 flex flex-col justify-center relative z-10 w-full lg:max-w-[45%] xl:max-w-[40%] px-6 lg:px-16 xl:px-24">
         <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-[var(--primary)] blur-[150px] rounded-full opacity-10" />
@@ -376,5 +378,6 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

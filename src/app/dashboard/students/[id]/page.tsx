@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
@@ -460,6 +461,7 @@ export default function StudentProfilePage({
     : "N/A";
 
   return (
+    <PageErrorBoundary>
     <div>
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
@@ -1209,5 +1211,6 @@ export default function StudentProfilePage({
         onClose={() => setSmsOpen(false)}
       />
     </div>
+    </PageErrorBoundary>
   );
 }

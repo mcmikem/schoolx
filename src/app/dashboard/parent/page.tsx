@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -204,6 +205,7 @@ export default function ParentPortal() {
     `${linkedStudent.first_name?.[0] || ""}${linkedStudent.last_name?.[0] || ""}`.toUpperCase();
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full animate-fade-in">
       {/* Header and Child Selector */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-8">
@@ -556,5 +558,6 @@ export default function ParentPortal() {
         </div>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }
