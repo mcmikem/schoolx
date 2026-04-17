@@ -11,7 +11,7 @@ function getQuickAction(pathname: string | null) {
   if (!pathname || pathname === "/dashboard") {
       return {
         href: "/dashboard/students",
-        label: "Add learners",
+        label: "Add learner",
         helper: "Start by entering or checking learner records.",
         icon: "person_add",
       };
