@@ -384,7 +384,7 @@ export async function POST(request: NextRequest) {
       `ALTER TABLE IF EXISTS wallet_transactions ADD COLUMN IF NOT EXISTS wallet_id UUID REFERENCES student_wallets(id) ON DELETE CASCADE;`,
       `ALTER TABLE IF EXISTS wallet_transactions ADD COLUMN IF NOT EXISTS transaction_type TEXT;`,
       `ALTER TABLE IF EXISTS wallet_transactions ADD COLUMN IF NOT EXISTS reference_id TEXT;`,
-      `UPDATE student_wallets sw SET school_id = students.school_id FROM students WHERE sw.student_id = students.id AND sw.school_id IS NULL;`,
+      `UPDATE student_wallets sw SET school_id = students.school_id FROM students WHERE sw.student_id = students.id AND sw.school_id IS NULL AND students.school_id IS NOT NULL;`,
       `CREATE INDEX IF NOT EXISTS idx_parent_messages_parent_id ON parent_messages(parent_id);`,
       `CREATE INDEX IF NOT EXISTS idx_student_wallets_school_id ON student_wallets(school_id);`,
       `CREATE INDEX IF NOT EXISTS idx_wallet_transactions_school_id ON wallet_transactions(school_id);`,
