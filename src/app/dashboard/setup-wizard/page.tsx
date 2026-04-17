@@ -131,6 +131,7 @@ export default function SetupWizardPage() {
     setFees(prev => prev.map((f, idx) => idx === i ? { ...f, [field]: value } : f))
   }
 
+  // Local submit handler only used by this page; it does not need stable memoization.
   const handleSave = async () => {
     if (!user?.school_id && !school?.id) {
       toast.error('No school associated with your account')
