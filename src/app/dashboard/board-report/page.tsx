@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -157,6 +158,7 @@ export default function BoardReportPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <PageHeader
         title="Board Report"
@@ -257,5 +259,6 @@ export default function BoardReportPage() {
         </CardBody>
       </Card>
     </div>
+    </PageErrorBoundary>
   );
 }

@@ -20,4 +20,18 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
+  // Automatically start the dev server when running E2E tests.
+  // NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES=true is required so that the
+  // demo-session storage mechanism in auth-context is active, which the
+  // authenticated test helpers rely on.
+  webServer: {
+    command: "npm run dev",
+    url: "http://localhost:3000",
+    // Reuse an already-running server to avoid slow restarts during development.
+    reuseExistingServer: true,
+    timeout: 120 * 1000,
+    env: {
+      NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES: "true",
+    },
+  },
 });

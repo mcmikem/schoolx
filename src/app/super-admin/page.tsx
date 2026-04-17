@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -463,6 +464,7 @@ export default function SuperAdminDashboard() {
   }
 
   return (
+    <PageErrorBoundary>
     <div className="content">
       <PageHeader
         title="Super Admin Dashboard"
@@ -1086,5 +1088,6 @@ export default function SuperAdminDashboard() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

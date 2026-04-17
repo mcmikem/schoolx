@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { PlanType } from "./payments/subscription-client";
 import { FeatureStage, DEFAULT_FEATURE_STAGE } from "./featureStages";
 import type { User, School } from "@/types";
+import { logger } from "./logger";
 
 // Roles that demo sessions are allowed to assume.
 // super_admin / school_admin are intentionally excluded to prevent privilege injection.
@@ -48,6 +49,9 @@ function sanitizeDemoRole(raw: unknown): User["role"] {
 }
 
 const DEMO_KEY = "skoolmate_demo_v1";
+const DEMO_MODE_ENABLED =
+  process.env.NODE_ENV === "development" &&
+  process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
 
 function decryptDemoData(encrypted: string): string | null {
   if (typeof window === "undefined") return null;
@@ -60,6 +64,10 @@ function decryptDemoData(encrypted: string): string | null {
 
 function readDemoStorage(): string | null {
   if (typeof window === "undefined") return null;
+  if (!DEMO_MODE_ENABLED) {
+    clearDemoStorage();
+    return null;
+  }
 
   const sessionValue = sessionStorage.getItem(DEMO_KEY);
   if (sessionValue) return sessionValue;
@@ -141,14 +149,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .maybeSingle();
 
         if (userError) {
-          console.error("Error fetching user:", userError);
+          logger.error("Error fetching user:", userError);
           setLoading(false);
           return null;
         }
 
         if (!userData) {
           if (retryCount < 3) {
-            console.log(
+            logger.warn(
               `[Auth] User profile not found for auth_id: ${authId}. Retrying...`,
             );
             await new Promise((resolve) =>
@@ -156,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             );
             return fetchUserData(authId, retryCount + 1);
           }
-          console.error(
+          logger.error(
             "No user profile found for auth_id after retries:",
             authId,
           );
@@ -184,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .single();
 
           if (schoolError) {
-            console.error("Error fetching school profile:", schoolError);
+            logger.error("Error fetching school profile:", schoolError);
           }
 
           if (schoolData) {
@@ -209,9 +217,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
 
+        setLoading(false);
         return { role: userData.role };
       } catch (error) {
-        console.error("Error fetching user data:", error);
+        logger.error("Error fetching user data:", error);
         setLoading(false);
         return null;
       }
@@ -262,7 +271,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           }
         } catch (e) {
-          console.error("[Auth] Error parsing demo data:", e);
+          logger.error("[Auth] Error parsing demo data:", e);
           clearDemoStorage();
         }
       }
@@ -317,8 +326,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (isCurrentlyDemo && event !== "SIGNED_OUT") return;
 
-        if (event === "SIGNED_IN" && session && session.user) {
+        if (
+          (event === "SIGNED_IN" ||
+            event === "INITIAL_SESSION" ||
+            event === "TOKEN_REFRESHED") &&
+          session &&
+          session.user
+        ) {
           await fetchUserData(session.user.id);
+          setIsDemo(false);
+          setLoading(false);
+        } else if (event === "INITIAL_SESSION" && !session) {
+          // No session on initial load — clear state and stop loading
+          setUser(null);
+          setSchool(null);
           setIsDemo(false);
           setLoading(false);
         } else if (event === "SIGNED_OUT") {
@@ -326,6 +347,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSchool(null);
           setIsDemo(false);
           setIsTrialExpired(false);
+          setLoading(false);
         }
       });
 
@@ -347,10 +369,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // fetchUserData populates user state AND returns the role — no second query needed
       const userData = await fetchUserData(data.user.id);
-      const userRole: string = userData?.role ?? "school_admin";
 
-      // Don't redirect immediately - let the auth state change listener handle it
-      // This prevents race conditions and ensures state is properly set
+      if (!userData) {
+        // Auth succeeded but no matching profile in the users table
+        await supabase!.auth.signOut();
+        return {
+          error: {
+            message:
+              "No user profile found. Please contact your school administrator.",
+          },
+        };
+      }
+
       return { error: null };
     } catch (error) {
       return { error };
@@ -404,7 +434,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch (error) {
-      console.error("Error refreshing school:", error);
+      logger.error("Error refreshing school:", error);
     }
   }
 

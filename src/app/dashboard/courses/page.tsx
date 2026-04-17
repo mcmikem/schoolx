@@ -1,5 +1,6 @@
 "use client";
 
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -178,6 +179,7 @@ export default function CoursesPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <>
       <PageHeader
         title="Courses"
@@ -527,5 +529,6 @@ export default function CoursesPage() {
         </div>
       </Modal>
     </>
+    </PageErrorBoundary>
   );
 }

@@ -139,11 +139,11 @@ export async function POST(request: NextRequest) {
 
           if (nextClasses && nextClasses.length > 0) {
             const nextClassId = nextClasses[0].id;
-            await supabase
+            await (supabase as any)
               .from("students")
               .update({ class_id: nextClassId, repeating: false })
               .eq("id", student.id);
-            await supabase.from("student_promotions").insert({
+            await (supabase as any).from("student_promotions").insert({
               school_id: school.schoolId,
               student_id: student.id,
               from_class_id: studentClass.id,

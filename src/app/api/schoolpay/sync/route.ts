@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { SchoolPayService } from "@/lib/payments/schoolpay";
 import {
+  createServiceRoleClientOrThrow,
   requireCronSecretOrDeny,
   requireDevelopmentRouteOrDeny,
 } from "@/lib/api-utils";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 export async function POST(request: NextRequest) {
   try {
+    const devOnly = requireDevelopmentRouteOrDeny();
+    if (!devOnly.ok) return devOnly.response;
+
     const cron = requireCronSecretOrDeny(request);
     if (!cron.ok) return cron.response;
+
+    const supabase = createServiceRoleClientOrThrow();
 
     const body = await request.json();
     const { schoolCode, apiPassword, date, fromDate, toDate } = body;
@@ -89,7 +90,10 @@ export async function POST(request: NextRequest) {
       supplementaryPayments: insertedSupplementary,
     });
   } catch (error) {
-    console.error("SchoolPay sync error:", error);
+    console.error(
+      "SchoolPay sync error:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return NextResponse.json(
       { error: "Failed to sync transactions" },
       { status: 500 },

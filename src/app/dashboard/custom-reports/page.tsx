@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import TopBar from "@/components/dashboard/TopBar";
@@ -92,6 +93,7 @@ export default function CustomReportsBuilder() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="h-full flex flex-col bg-[var(--bg)] w-full">
       <TopBar pageTitle="Report Builder Canvas" onSignOut={() => {}} />
 
@@ -262,5 +264,6 @@ export default function CustomReportsBuilder() {
         </div>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

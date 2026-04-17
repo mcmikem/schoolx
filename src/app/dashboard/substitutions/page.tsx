@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -368,6 +369,7 @@ export default function SubstitutionsPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Substitutions"
@@ -787,5 +789,6 @@ export default function SubstitutionsPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

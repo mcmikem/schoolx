@@ -34,6 +34,8 @@ import { calculateStudentFeePosition } from "@/lib/operations";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useUndo, UndoNotification } from "@/lib/useUndo";
 import { PageGuidance } from "@/components/PageGuidance";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 
 interface PaymentPlan {
   id: string;
@@ -60,6 +62,9 @@ interface Installment {
 
 type FinanceTab = "balances" | "payment-plans" | "invoices" | "cashbook";
 
+// Maximum fee/payment amount (100M UGX) to catch obvious entry mistakes.
+const MAX_FINANCE_AMOUNT = 100_000_000;
+
 export default function FinanceHubPage() {
   const { school } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
@@ -75,6 +80,7 @@ export default function FinanceHubPage() {
     school?.id,
   );
   const receiptRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [tab, setTab] = useState<FinanceTab>("balances");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -98,6 +104,34 @@ export default function FinanceHubPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [saving, setSaving] = useState(false);
   const [sendingReminders, setSendingReminders] = useState(false);
+
+  // Keyboard shortcuts: Ctrl+N = record payment, Ctrl+F = focus search, Escape = close modals
+  useKeyboardShortcuts([
+    {
+      key: "n",
+      ctrl: true,
+      action: () => setShowPaymentModal(true),
+      description: "Record new payment",
+    },
+    {
+      key: "f",
+      ctrl: true,
+      action: () => {
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      },
+      description: "Focus search",
+    },
+    {
+      key: "Escape",
+      action: () => {
+        setShowPaymentModal(false);
+        setShowFeeModal(false);
+        setShowAdjustmentModal(false);
+      },
+      description: "Close modal",
+    },
+  ]);
 
   const feeDraft = useFormDraft("fee_add_form");
   const [newFee, setNewFee] = useState({
@@ -478,8 +512,20 @@ export default function FinanceHubPage() {
 
   const handleRecordPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPayment.student_id || !newPayment.amount_paid) {
+    const normalizedAmount = newPayment.amount_paid.trim();
+
+    if (!newPayment.student_id || !normalizedAmount) {
       toast.error("Please fill all required fields");
+      return;
+    }
+
+    const parsedAmount = Number(normalizedAmount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      toast.error("Payment amount must be a positive number");
+      return;
+    }
+    if (parsedAmount > MAX_FINANCE_AMOUNT) {
+      toast.error("Payment amount seems too large. Please check and try again.");
       return;
     }
     try {
@@ -493,7 +539,7 @@ export default function FinanceHubPage() {
       }
       await createPayment({
         student_id: newPayment.student_id,
-        amount_paid: Number(newPayment.amount_paid),
+        amount_paid: parsedAmount,
         payment_method: newPayment.payment_method,
         payment_reference: reference || undefined,
         paid_by: newPayment.paid_by || undefined,
@@ -505,11 +551,8 @@ export default function FinanceHubPage() {
       if (student) {
         setSelectedStudent({
           ...student,
-          paid: student.paid + Number(newPayment.amount_paid),
-          balance: Math.max(
-            0,
-            student.balance - Number(newPayment.amount_paid),
-          ),
+          paid: student.paid + parsedAmount,
+          balance: Math.max(0, student.balance - parsedAmount),
         });
         setShowReceiptModal(true);
       }
@@ -569,6 +612,19 @@ export default function FinanceHubPage() {
     e.preventDefault();
     if (!newFee.name || !newFee.amount) {
       toast.error("Please fill fee name and amount");
+      return;
+    }
+    const parsedFeeAmount = Number(newFee.amount);
+    if (isNaN(parsedFeeAmount) || parsedFeeAmount <= 0) {
+      toast.error("Fee amount must be a positive number");
+      return;
+    }
+    if (parsedFeeAmount > MAX_FINANCE_AMOUNT) {
+      toast.error("Fee amount seems too large. Please check and try again.");
+      return;
+    }
+    if (newFee.name.trim().length < 2) {
+      toast.error("Fee name must be at least 2 characters");
       return;
     }
     try {
@@ -1073,6 +1129,7 @@ export default function FinanceHubPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="space-y-6 pb-24 md:pb-6">
       <PageHeader
         title="Fees Tracker"
@@ -1176,6 +1233,7 @@ export default function FinanceHubPage() {
                   className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant"
                 />
                 <input
+                  ref={searchInputRef}
                   type="text"
                   placeholder="Search by name or student number..."
                   value={searchTerm}
@@ -2298,5 +2356,6 @@ export default function FinanceHubPage() {
         }}
       />
     </div>
+    </PageErrorBoundary>
   );
 }

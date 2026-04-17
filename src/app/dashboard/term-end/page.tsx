@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
@@ -271,6 +272,7 @@ export default function TermEndPage() {
   const totalSteps = steps.length;
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
       <PageHeader
         title="End-of-Term Workflow"
@@ -470,5 +472,6 @@ export default function TermEndPage() {
         </Card>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

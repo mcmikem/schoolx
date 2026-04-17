@@ -1,5 +1,6 @@
 "use client";
 
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
@@ -862,6 +863,7 @@ export default function HomePage() {
   }, []);
 
   return (
+    <PageErrorBoundary>
     <main
       className="min-h-screen bg-[var(--bg)] text-[var(--t1)]"
       id="main-content"
@@ -1791,5 +1793,6 @@ export default function HomePage() {
         </div>
       </footer>
     </main>
+    </PageErrorBoundary>
   );
 }

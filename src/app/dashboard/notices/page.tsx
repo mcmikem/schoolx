@@ -1,12 +1,14 @@
 "use client";
-import { useState, useEffect } from "react";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
-import { DEMO_NOTICES, DEMO_STAFF } from "@/lib/demo-data";
+import { DEMO_NOTICES } from "@/lib/demo-data";
 
 export default function NoticesPage() {
   const { user, school, isDemo } = useAuth();
@@ -22,34 +24,86 @@ export default function NoticesPage() {
     send_sms: false,
   });
 
-  useEffect(() => {
+  const fetchNotices = useCallback(async () => {
     if (isDemo) {
       setNotices(DEMO_NOTICES);
       setLoading(false);
+      return;
     }
-  }, [isDemo]);
+    if (!school?.id) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("notices")
+        .select("*")
+        .eq("school_id", school.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      setNotices(data || []);
+    } catch {
+      toast.error("Failed to load notices");
+    } finally {
+      setLoading(false);
+    }
+  }, [school?.id, isDemo, toast]);
+
+  useEffect(() => {
+    fetchNotices();
+  }, [fetchNotices]);
 
   const handlePost = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.title.trim() || !form.content.trim()) {
+      toast.error("Title and content are required");
+      return;
+    }
     setPosting(true);
-    const newNotice = {
-      id: `notice-${Date.now()}`,
-      title: form.title,
-      content: form.content,
-      category: form.category,
-      priority: form.category === "Emergency" ? "high" : "normal",
-      created_by: user?.id,
-      created_at: new Date().toISOString(),
-      send_sms: form.send_sms,
-    };
-    setNotices([newNotice, ...notices]);
-    setShowPostModal(false);
-    setForm({ title: "", content: "", category: "General", send_sms: false });
-    toast.success("Notice posted successfully");
-    setPosting(false);
+    try {
+      if (isDemo) {
+        // Demo mode – local state only
+        setNotices([
+          {
+            id: `notice-${Date.now()}`,
+            title: form.title,
+            content: form.content,
+            type: form.category,
+            priority: form.category === "Emergency" ? "high" : "normal",
+            published_by: user?.id,
+            created_at: new Date().toISOString(),
+            is_published: true,
+          },
+          ...notices,
+        ]);
+      } else {
+        const { error } = await supabase.from("notices").insert({
+          school_id: school!.id,
+          title: form.title,
+          content: form.content,
+          type: form.category,
+          priority: form.category === "Emergency" ? "high" : "normal",
+          published_by: user?.id,
+          publish_date: new Date().toISOString(),
+          is_published: true,
+        });
+        if (error) throw error;
+        await fetchNotices();
+      }
+      setShowPostModal(false);
+      setForm({ title: "", content: "", category: "General", send_sms: false });
+      toast.success("Notice posted successfully");
+    } catch {
+      toast.error("Failed to post notice");
+    } finally {
+      setPosting(false);
+    }
   };
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       <PageHeader
         title="Notices"
@@ -79,9 +133,14 @@ export default function NoticesPage() {
                 <h2 className="text-lg font-semibold">{notice.title}</h2>
                 <p className="text-sm text-gray-500 mt-1">{notice.content}</p>
                 <div className="flex items-center gap-2 mt-2">
-                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                    {notice.category}
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 capitalize">
+                    {notice.type || notice.category || "General"}
                   </span>
+                  {notice.priority === "high" && (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600">
+                      Urgent
+                    </span>
+                  )}
                   <span className="text-xs text-gray-400">
                     {new Date(notice.created_at).toLocaleDateString()}
                   </span>
@@ -131,10 +190,10 @@ export default function NoticesPage() {
                     }
                     className="input w-full"
                   >
-                    <option>General</option>
-                    <option>Academic</option>
-                    <option>Event</option>
-                    <option>Emergency</option>
+                    <option value="General">General</option>
+                    <option value="Academic">Academic</option>
+                    <option value="Event">Event</option>
+                    <option value="Emergency">Emergency</option>
                   </select>
                 </div>
                 <div>
@@ -173,5 +232,6 @@ export default function NoticesPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

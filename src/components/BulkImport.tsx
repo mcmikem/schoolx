@@ -40,6 +40,7 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
   const [error, setError] = useState<string>("");
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [result, setResult] = useState<ImportResult | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const parseCSV = (text: string): ValidatedRow[] => {
     const lines = text.trim().split("\n");
@@ -140,17 +141,12 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
     return processedRows;
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processFile = (file: File) => {
     setError("");
-
-    if (!file.name.endsWith(".csv")) {
-      setError("Please upload a CSV file");
+    if (!file.name.endsWith(".csv") && !file.name.endsWith(".txt")) {
+      setError("Please upload a CSV file (.csv)");
       return;
     }
-
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
@@ -163,6 +159,32 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
   };
 
   const handleImport = async () => {
@@ -328,17 +350,20 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
                 fileInputRef.current?.click();
               }
             }}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
             role="button"
             tabIndex={0}
             aria-label="Upload CSV file"
             style={{
-              border: "2px dashed var(--border)",
+              border: `2px dashed ${isDragOver ? "var(--primary)" : "var(--border)"}`,
               borderRadius: 12,
               padding: 40,
               textAlign: "center",
               cursor: "pointer",
-              background: "var(--bg)",
-              transition: "border-color 0.15s",
+              background: isDragOver ? "var(--primary-light, rgba(0,32,69,0.05))" : "var(--bg)",
+              transition: "border-color 0.15s, background 0.15s",
             }}
           >
             <span
@@ -360,7 +385,7 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
                 marginBottom: 8,
               }}
             >
-              Click to upload CSV file
+              {isDragOver ? "Drop your CSV file here" : "Click to upload CSV file"}
             </p>
             <p style={{ fontSize: 13, color: "var(--t3)" }}>
               Or drag and drop your file here

@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -180,6 +181,7 @@ export default function ParentPortal() {
   }
 
   return (
+    <PageErrorBoundary>
     <div
       style={{
         minHeight: "100vh",
@@ -343,6 +345,7 @@ export default function ParentPortal() {
         </div>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }
 

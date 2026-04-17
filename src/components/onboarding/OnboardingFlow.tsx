@@ -99,10 +99,15 @@ export default function OnboardingFlow({
         { item_key: "grading_config", item_label: "Grading System" },
       ];
 
-      await supabase.from("setup_checklist").upsert(
+      const { error: checklistError } = await supabase
+        .from("setup_checklist")
+        .upsert(
         checklistItems.map((item) => ({ ...item, school_id: school.id })),
         { onConflict: "school_id,item_key" },
       );
+      if (checklistError) {
+        throw checklistError;
+      }
 
       await refreshSchool();
       setLoading(false);

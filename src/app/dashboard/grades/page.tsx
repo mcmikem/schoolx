@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -839,6 +840,7 @@ export default function GradesPage() {
           : "bg-[var(--surface-container)] text-[var(--t2)]";
 
   return (
+    <PageErrorBoundary>
     <div className="space-y-6">
       <PageHeader
         title="Grades & Marks"
@@ -1712,5 +1714,6 @@ export default function GradesPage() {
         </button>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

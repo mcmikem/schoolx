@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useClasses } from "@/lib/hooks";
@@ -410,6 +411,7 @@ export default function AttendancePage() {
   const selectedClassName = filteredClasses.find((c) => c.id === selectedClass);
 
   return (
+    <PageErrorBoundary>
     <>
       <PageHeader
         title="Attendance Center"
@@ -1070,5 +1072,6 @@ export default function AttendancePage() {
         </>
       )}
     </>
+    </PageErrorBoundary>
   );
 }

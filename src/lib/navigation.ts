@@ -1,5 +1,7 @@
 // Navigation configuration for SchoolMate OS
 // Organized by logical groups with collapsible sections
+import { deepFreeze } from "./deep-freeze";
+import type { UserRole } from "./roles";
 
 interface NavItem {
   href: string;
@@ -11,12 +13,34 @@ interface NavItem {
 export interface NavGroup {
   label: string;
   icon?: string;
-  items: NavItem[];
+  items: readonly NavItem[];
   defaultOpen?: boolean;
 }
 
+type NavigationRole = Extract<
+  UserRole,
+  | "super_admin"
+  | "headmaster"
+  | "dean_of_studies"
+  | "bursar"
+  | "teacher"
+  | "admin"
+  | "school_admin"
+  | "secretary"
+  | "dorm_master"
+  | "parent"
+>;
+
+const HEADMASTER_EQUIVALENT_NAV_ROLES = deepFreeze([
+  "admin",
+  "school_admin",
+  "board",
+  "super_admin",
+] as const);
+
 // Define navigation by role
-export const navigationByRole: Record<string, NavGroup[]> = {
+export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
+  deepFreeze({
   super_admin: [
     {
       label: "System Control HUB",
@@ -773,17 +797,14 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       ],
     },
   ],
-};
+  });
 
-export function getNavigationForRole(role: string): NavGroup[] {
-  // Super admin, admin, school_admin and board get full headmaster access
-  if (
-    role === "admin" ||
-    role === "school_admin" ||
-    role === "board" ||
-    role === "super_admin"
-  ) {
+export function getNavigationForRole(role: string): readonly NavGroup[] {
+  if (HEADMASTER_EQUIVALENT_NAV_ROLES.includes(role as UserRole)) {
     return navigationByRole.headmaster;
   }
-  return navigationByRole[role] || navigationByRole.teacher;
+  if (role in navigationByRole) {
+    return navigationByRole[role as NavigationRole];
+  }
+  return navigationByRole.teacher;
 }

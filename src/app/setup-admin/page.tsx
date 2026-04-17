@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -106,6 +107,7 @@ export default function SetupAdminPage() {
   }
 
   return (
+    <PageErrorBoundary>
     <div className="min-h-screen bg-gradient-to-br from-[var(--primary)] to-[var(--primary-700)] flex items-center justify-center px-4">
       <div className="bg-[var(--surface)] rounded-2xl shadow-[var(--sh2)] border border-[var(--border)] w-full max-w-md p-8">
         <div className="text-center mb-8">
@@ -166,5 +168,6 @@ export default function SetupAdminPage() {
         </form>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -190,6 +191,7 @@ export default function UNEBRegistrationPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <PageHeader
         title="UNEB Registration"
@@ -430,5 +432,6 @@ export default function UNEBRegistrationPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

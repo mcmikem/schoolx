@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -1055,6 +1056,7 @@ export default function CommunicationHubPage() {
     status === "sent" ? "success" : "warning";
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Communication Hub"
@@ -2271,5 +2273,6 @@ export default function CommunicationHubPage() {
         )}
       </TabPanel>
     </div>
+    </PageErrorBoundary>
   );
 }

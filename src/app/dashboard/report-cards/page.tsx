@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -558,6 +559,7 @@ export default function ReportCardsPage() {
   );
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Report Cards"
@@ -893,5 +895,6 @@ export default function ReportCardsPage() {
         </Card>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }
