@@ -221,7 +221,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Insert report card
-          const { data: newCard } = await supabase
+          const { data: newCard } = await (supabase as any)
             .from("report_cards")
             .insert({
               school_id: school.schoolId,
@@ -306,7 +306,7 @@ export async function POST(request: NextRequest) {
         .eq("term", term);
 
       // Create term archive record
-      const { data: archive, error: archiveError } = await supabase
+      const { data: archive, error: archiveError } = await (supabase as any)
         .from("term_archives")
         .insert({
           school_id: school.schoolId,

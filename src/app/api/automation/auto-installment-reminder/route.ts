@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { detectInstallmentReminders } from "@/lib/operations";
+import { logger } from "@/lib/logger";
 import {
   requireCronSecretOrDeny,
   createServiceRoleClientOrThrow,
@@ -34,14 +35,14 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Get installments and students
-    const planIds = plans.map((p: any) => p.id);
+    const planIds = activePlans.map((p: any) => p.id);
     const { data: installments } = await supabase
       .from("payment_plan_installments")
       .select("*")
       .in("plan_id", planIds)
       .eq("paid", false);
 
-    const studentIds = Array.from(new Set(plans.map((p) => p.student_id)));
+    const studentIds = Array.from(new Set(activePlans.map((p) => p.student_id)));
     const { data: students } = await supabase
       .from("students")
       .select("id, first_name, last_name, parent_phone")
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     // 3. Detect reminders using lib
     const reminders = detectInstallmentReminders({
-      plans,
+      plans: activePlans,
       installments: installments || [],
       students: students || [],
       daysNotice: daysNotice || 1,
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
         const smsRes = await sendSMS(reminder.parentPhone, reminder.smsMessage);
         if (smsRes.success) {
           // Log success
-          await supabase.from("automated_message_logs").insert({
+          await (supabase as any).from("automated_message_logs").insert({
             school_id: school.schoolId,
             trigger_id: "auto-installment-reminder",
             recipient_id: reminder.parentPhone,
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, summary: results });
   } catch (error) {
-    console.error("Installment reminder error:", error);
+    logger.error("Installment reminder error", { error });
     return NextResponse.json({ error: "Automation failed" }, { status: 500 });
   }
 }
