@@ -48,6 +48,7 @@ function sanitizeDemoRole(raw: unknown): User["role"] {
 }
 
 const DEMO_KEY = "skoolmate_demo_v1";
+const DEMO_MODE_ENABLED = process.env.NEXT_PUBLIC_ENABLE_DEMO_MODE === "true";
 
 function decryptDemoData(encrypted: string): string | null {
   if (typeof window === "undefined") return null;
@@ -60,6 +61,11 @@ function decryptDemoData(encrypted: string): string | null {
 
 function readDemoStorage(): string | null {
   if (typeof window === "undefined") return null;
+  if (!DEMO_MODE_ENABLED) {
+    sessionStorage.removeItem(DEMO_KEY);
+    localStorage.removeItem(DEMO_KEY);
+    return null;
+  }
 
   const sessionValue = sessionStorage.getItem(DEMO_KEY);
   if (sessionValue) return sessionValue;
@@ -148,9 +154,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (!userData) {
           if (retryCount < 3) {
-            console.log(
-              `[Auth] User profile not found for auth_id: ${authId}. Retrying...`,
-            );
+            if (process.env.NODE_ENV === "development") {
+              console.log(
+                `[Auth] User profile not found for auth_id: ${authId}. Retrying...`,
+              );
+            }
             await new Promise((resolve) =>
               setTimeout(resolve, 1000 * (retryCount + 1)),
             );
@@ -262,7 +270,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           }
         } catch (e) {
-          console.error("[Auth] Error parsing demo data:", e);
+          if (process.env.NODE_ENV === "development") {
+            console.error("[Auth] Error parsing demo data:", e);
+          }
           clearDemoStorage();
         }
       }

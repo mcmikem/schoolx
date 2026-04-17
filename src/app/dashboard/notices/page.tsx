@@ -1,12 +1,13 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
-import { DEMO_NOTICES, DEMO_STAFF } from "@/lib/demo-data";
+import { DEMO_NOTICES } from "@/lib/demo-data";
 
 export default function NoticesPage() {
   const { user, school, isDemo } = useAuth();
@@ -22,31 +23,81 @@ export default function NoticesPage() {
     send_sms: false,
   });
 
-  useEffect(() => {
-    if (isDemo) {
-      setNotices(DEMO_NOTICES);
+  const fetchNotices = useCallback(async () => {
+    if (!school?.id) {
+      setNotices([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (isDemo) {
+        setNotices(DEMO_NOTICES.filter((n) => n.school_id === school.id));
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("notices")
+        .select("*")
+        .eq("school_id", school.id)
+        .order("created_at", { ascending: false })
+        .limit(30);
+
+      if (error) throw error;
+      setNotices(data || []);
+    } catch (error) {
+      toast.error("Failed to load notices");
+      setNotices([]);
+    } finally {
       setLoading(false);
     }
-  }, [isDemo]);
+  }, [isDemo, school?.id, toast]);
+
+  useEffect(() => {
+    fetchNotices();
+  }, [fetchNotices]);
 
   const handlePost = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!school?.id || !user?.id) return;
+
     setPosting(true);
-    const newNotice = {
-      id: `notice-${Date.now()}`,
-      title: form.title,
-      content: form.content,
-      category: form.category,
-      priority: form.category === "Emergency" ? "high" : "normal",
-      created_by: user?.id,
-      created_at: new Date().toISOString(),
-      send_sms: form.send_sms,
-    };
-    setNotices([newNotice, ...notices]);
-    setShowPostModal(false);
-    setForm({ title: "", content: "", category: "General", send_sms: false });
-    toast.success("Notice posted successfully");
-    setPosting(false);
+    try {
+      if (isDemo) {
+        const newNotice = {
+          id: `notice-${Date.now()}`,
+          school_id: school.id,
+          title: form.title,
+          content: form.content,
+          type: form.category.toLowerCase(),
+          priority: form.category === "Emergency" ? "high" : "normal",
+          created_at: new Date().toISOString(),
+        };
+        setNotices((prev) => [newNotice, ...prev]);
+      } else {
+        const { error } = await supabase.from("notices").insert({
+          school_id: school.id,
+          title: form.title,
+          content: form.content,
+          type: form.category.toLowerCase(),
+          priority: form.category === "Emergency" ? "high" : "normal",
+          published_by: user.id,
+          publish_date: new Date().toISOString(),
+          is_published: true,
+        });
+        if (error) throw error;
+        await fetchNotices();
+      }
+
+      setShowPostModal(false);
+      setForm({ title: "", content: "", category: "General", send_sms: false });
+      toast.success("Notice posted successfully");
+    } catch {
+      toast.error("Failed to post notice");
+    } finally {
+      setPosting(false);
+    }
   };
 
   return (
@@ -63,9 +114,7 @@ export default function NoticesPage() {
       />
 
       {loading ? (
-        <div className="text-center py-12 text-gray-400">
-          Loading notices...
-        </div>
+        <div className="text-center py-12 text-gray-400">Loading notices...</div>
       ) : notices.length === 0 ? (
         <div className="text-center py-12 text-gray-400">
           <MaterialIcon icon="campaign" className="text-4xl mx-auto mb-2" />
@@ -80,10 +129,12 @@ export default function NoticesPage() {
                 <p className="text-sm text-gray-500 mt-1">{notice.content}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                    {notice.category}
+                    {notice.type || notice.category || "General"}
                   </span>
                   <span className="text-xs text-gray-400">
-                    {new Date(notice.created_at).toLocaleDateString()}
+                    {new Date(
+                      notice.created_at || notice.publish_date || Date.now(),
+                    ).toLocaleDateString()}
                   </span>
                 </div>
               </CardBody>
@@ -99,19 +150,14 @@ export default function NoticesPage() {
             <form onSubmit={handlePost}>
               <div className="space-y-4">
                 <div>
-                  <label
-                    className="text-sm font-medium mb-1 block"
-                    htmlFor="title"
-                  >
+                  <label className="text-sm font-medium mb-1 block" htmlFor="title">
                     Title
                   </label>
                   <input
                     id="title"
                     type="text"
                     value={form.title}
-                    onChange={(e) =>
-                      setForm({ ...form, title: e.target.value })
-                    }
+                    onChange={(e) => setForm({ ...form, title: e.target.value })}
                     className="input w-full"
                     required
                   />
@@ -126,9 +172,7 @@ export default function NoticesPage() {
                   <select
                     id="category"
                     value={form.category}
-                    onChange={(e) =>
-                      setForm({ ...form, category: e.target.value })
-                    }
+                    onChange={(e) => setForm({ ...form, category: e.target.value })}
                     className="input w-full"
                   >
                     <option>General</option>
@@ -147,9 +191,7 @@ export default function NoticesPage() {
                   <textarea
                     id="content"
                     value={form.content}
-                    onChange={(e) =>
-                      setForm({ ...form, content: e.target.value })
-                    }
+                    onChange={(e) => setForm({ ...form, content: e.target.value })}
                     className="input w-full min-h-[120px]"
                     required
                   />

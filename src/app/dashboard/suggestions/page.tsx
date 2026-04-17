@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
@@ -34,17 +34,31 @@ export default function SuggestionBoxPage() {
   });
 
   const fetchSuggestions = async () => {
-    if (!school?.id) return;
+    if (!school?.id) {
+      setSuggestions([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("suggestions")
       .select("*")
       .eq("school_id", school.id)
       .order("created_at", { ascending: false })
       .limit(50);
-    setSuggestions(data || []);
+    if (error) {
+      toast.error("Failed to load suggestions");
+      setSuggestions([]);
+    } else {
+      setSuggestions(data || []);
+    }
     setLoading(false);
   };
+
+  useEffect(() => {
+    fetchSuggestions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [school?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

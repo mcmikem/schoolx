@@ -7,6 +7,7 @@ import {
   validateRequiredFields,
   requireUserWithSchool,
   assertSchoolScopeOrDeny,
+  assertUserRoleOrDeny,
 } from "@/lib/api-utils";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -36,6 +37,24 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await requireUserWithSchool(request);
     if (!auth.ok) return auth.response;
+
+    const isParent = auth.context.user.role === "parent";
+    if (!isParent) {
+      const roleCheck = assertUserRoleOrDeny({
+        userRole: auth.context.user.role,
+        allowedRoles: [
+          "super_admin",
+          "school_admin",
+          "admin",
+          "headmaster",
+          "dean_of_studies",
+          "teacher",
+          "secretary",
+          "bursar",
+        ],
+      });
+      if (!roleCheck.ok) return roleCheck.response;
+    }
 
     const { studentId, schoolId, term, academicYear } = await request.json();
 
@@ -70,6 +89,19 @@ export async function POST(request: NextRequest) {
 
     if (student.school_id !== schoolId) {
       return apiError("Student does not belong to the requested school", 403);
+    }
+
+    if (isParent) {
+      const { data: parentLink, error: parentLinkError } = await supabase
+        .from("parent_students")
+        .select("id")
+        .eq("parent_id", auth.context.user.id)
+        .eq("student_id", studentId)
+        .maybeSingle();
+
+      if (parentLinkError || !parentLink) {
+        return apiError("Forbidden", 403);
+      }
     }
 
     // Fetch school info

@@ -12,7 +12,7 @@ export function useParentPortalGuard() {
     if (loading) return;
 
     if (!user && !isDemo) {
-      router.replace("/login");
+      router.replace("/parent/login");
       return;
     }
 
