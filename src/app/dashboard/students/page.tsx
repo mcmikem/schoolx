@@ -25,6 +25,8 @@ import { DEMO_CLASSES, DEMO_ATTENDANCE } from "@/lib/demo-data";
 import { PageGuidance } from "@/components/PageGuidance";
 import StudentSummaryPulse from "@/components/students/StudentSummaryPulse";
 import { useTablePreferences } from "@/lib/useTablePreferences";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 
 const STUDENT_TEMPLATE_COLUMNS = [
   "student_number",
@@ -142,6 +144,36 @@ export default function StudentHubPage() {
   const [filterDefaulters, setFilterDefaulters] = useState(false);
   const [sortBy, setSortBy] = useState<"name" | "number" | "class">("name");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // Keyboard shortcut refs
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Keyboard shortcuts: Ctrl+N = add student, Ctrl+F = focus search, Escape = close modals
+  useKeyboardShortcuts([
+    {
+      key: "n",
+      ctrl: true,
+      action: () => setShowAddModal(true),
+      description: "Add new student",
+    },
+    {
+      key: "f",
+      ctrl: true,
+      action: () => {
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      },
+      description: "Focus search",
+    },
+    {
+      key: "Escape",
+      action: () => {
+        setShowAddModal(false);
+        setShowEditModal(false);
+      },
+      description: "Close modal",
+    },
+  ]);
 
   const newStudentDraft: any = {
     showRestoreDialog: false,
@@ -1360,6 +1392,7 @@ export default function StudentHubPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Student Hub"
@@ -1852,6 +1885,7 @@ export default function StudentHubPage() {
               </MaterialIcon>
               <input
                 type="text"
+                ref={searchInputRef}
                 placeholder="Search by name, parent, or student number..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -4920,5 +4954,6 @@ export default function StudentHubPage() {
         )}
       </TabPanel>
     </div>
+    </PageErrorBoundary>
   );
 }

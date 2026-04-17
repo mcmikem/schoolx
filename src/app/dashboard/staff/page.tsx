@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
@@ -141,6 +142,7 @@ export default function StaffHubPage() {
         <LeaveTab school={school} user={user} toast={toast} />
       </TabPanel>
     </div>
+    </PageErrorBoundary>
   );
 }
 
@@ -1296,6 +1298,7 @@ function LeaveTab({
   };
 
   return (
+    <PageErrorBoundary>
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>

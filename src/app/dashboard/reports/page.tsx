@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -155,6 +156,7 @@ export default function ReportsPage() {
   );
 
   return (
+    <PageErrorBoundary>
     <div className="space-y-6 pb-24 md:pb-6">
       <PageHeader
         title="Reporting Analytics"
@@ -276,5 +278,6 @@ export default function ReportsPage() {
         </div>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

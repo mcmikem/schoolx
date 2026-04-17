@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
-import { canAccess, type UserRole, type RolePermissions } from "@/lib/roles";
+import { canAccess, type UserRole, type RolePermissions, getRoleLabel } from "@/lib/roles";
 import { useToast } from "@/components/Toast";
 import {
   useStudents,
@@ -202,8 +202,11 @@ export function useAccessControl() {
         const lastDenied = sessionStorage.getItem("lastDeniedPath");
         if (lastDenied !== pathname) {
           sessionStorage.setItem("lastDeniedPath", pathname);
+          const userRoleLabel = getRoleLabel(user.role as UserRole);
+          const pageName = routeKey.split("/").pop()?.replace(/-/g, " ") || "this page";
+          const capitalizedPage = pageName.charAt(0).toUpperCase() + pageName.slice(1);
           toast?.error(
-            `Access denied: ${routeKey.split("/").pop()} requires ${permission} permission`,
+            `${capitalizedPage} requires higher permissions. Your role (${userRoleLabel}) does not have access.`,
           );
         }
         window.history.replaceState(null, "", "/dashboard");

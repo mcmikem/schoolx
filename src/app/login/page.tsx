@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/components/Toast";
 import Link from "next/link";
 import AnimatedLogo from "@/components/AnimatedLogo";
@@ -43,11 +43,36 @@ function MaterialIcon({
 
 export default function LoginPage() {
   const toast = useToast();
-  const { signIn } = useAuth();
+  const { signIn, user, loading: authLoading } = useAuth();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // If user is already authenticated, redirect to dashboard
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (user.role === "super_admin") {
+        window.location.href = "/super-admin";
+      } else if (user.role === "parent") {
+        window.location.href = "/parent-portal";
+      } else {
+        window.location.href = "/dashboard";
+      }
+    }
+  }, [user, authLoading]);
+
+  // Show a spinner while auth state is initializing to prevent flash
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-[var(--t3)]">Loading…</p>
+        </div>
+      </div>
+    );
+  }
   const [phoneError, setPhoneError] = useState("");
 
   const validatePhone = (phone: string): boolean => {
