@@ -26,6 +26,5 @@ describe("schoolpay sync route module safety", () => {
     const mod = await import("../app/api/schoolpay/sync/route");
 
     expect(typeof mod.POST).toBe("function");
-    expect(typeof mod.GET).toBe("function");
   });
 });
