@@ -90,7 +90,10 @@ export async function POST(request: NextRequest) {
       supplementaryPayments: insertedSupplementary,
     });
   } catch (error) {
-    console.error("SchoolPay sync error");
+    console.error(
+      "SchoolPay sync error:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return NextResponse.json(
       { error: "Failed to sync transactions" },
       { status: 500 },
