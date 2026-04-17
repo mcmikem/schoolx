@@ -217,6 +217,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
 
+        setLoading(false);
         return { role: userData.role };
       } catch (error) {
         logger.error("Error fetching user data:", error);
@@ -367,10 +368,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // fetchUserData populates user state AND returns the role — no second query needed
       const userData = await fetchUserData(data.user.id);
-      const userRole: string = userData?.role ?? "school_admin";
 
-      // Don't redirect immediately - let the auth state change listener handle it
-      // This prevents race conditions and ensures state is properly set
+      if (!userData) {
+        // Auth succeeded but no matching profile in the users table
+        await supabase!.auth.signOut();
+        return {
+          error: {
+            message:
+              "No user profile found. Please contact your school administrator.",
+          },
+        };
+      }
+
       return { error: null };
     } catch (error) {
       return { error };
