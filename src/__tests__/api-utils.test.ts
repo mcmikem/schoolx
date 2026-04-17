@@ -74,9 +74,16 @@ describe("api-utils guards", () => {
   describe("requireDevelopmentRouteOrDeny", () => {
     const originalNodeEnv = process.env.NODE_ENV;
     const originalEnableDevRoutes = process.env.ENABLE_DEV_TEST_ROUTES;
+    const setNodeEnv = (value: string | undefined) => {
+      Object.defineProperty(process.env, "NODE_ENV", {
+        value,
+        writable: true,
+        configurable: true,
+      });
+    };
 
     afterEach(() => {
-      process.env.NODE_ENV = originalNodeEnv;
+      setNodeEnv(originalNodeEnv);
       if (originalEnableDevRoutes === undefined) {
         delete process.env.ENABLE_DEV_TEST_ROUTES;
       } else {
@@ -85,14 +92,14 @@ describe("api-utils guards", () => {
     });
 
     test("allows explicitly enabled dev routes", () => {
-      process.env.NODE_ENV = "development";
+      setNodeEnv("development");
       process.env.ENABLE_DEV_TEST_ROUTES = "true";
 
       expect(requireDevelopmentRouteOrDeny()).toEqual({ ok: true });
     });
 
     test("denies routes when not explicitly enabled", async () => {
-      process.env.NODE_ENV = "development";
+      setNodeEnv("development");
       delete process.env.ENABLE_DEV_TEST_ROUTES;
 
       const result = requireDevelopmentRouteOrDeny();

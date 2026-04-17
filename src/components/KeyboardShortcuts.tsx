@@ -23,7 +23,7 @@ function KeyboardShortcutsProvider({
   shortcuts = [],
 }: KeyboardShortcutsProviderProps) {
   const [showHint, setShowHint] = useState(false);
-  const [hintTimeout, setHintTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [hintTimeout, setHintTimeout] = useState<number | null>(null);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -34,10 +34,11 @@ function KeyboardShortcutsProvider({
       const key = e.key.toLowerCase();
 
       // Skip if in input/textarea unless Ctrl is pressed
+      const target = e.target;
       const isInput =
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target.isContentEditable;
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        (target instanceof HTMLElement && target.isContentEditable);
 
       if (isInput && !hasCtrl) return;
 
@@ -70,10 +71,14 @@ function KeyboardShortcutsProvider({
   useEffect(() => {
     // Show hint when user presses ?
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === "?" && (e.shiftKey || e.key === "/")) {
+      if (e.key === "?" && e.shiftKey) {
         setShowHint(true);
-        if (hintTimeout) clearTimeout(hintTimeout);
-        hintTimeout = window.setTimeout(() => setShowHint(false), 5000);
+        setHintTimeout((previousTimeout) => {
+          if (previousTimeout) {
+            window.clearTimeout(previousTimeout);
+          }
+          return window.setTimeout(() => setShowHint(false), 5000);
+        });
       }
     };
 
