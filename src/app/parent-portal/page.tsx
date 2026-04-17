@@ -17,6 +17,7 @@ import {
   normalizeFeeTermItems,
   normalizePayments,
   normalizeGrades,
+  pickPreferredSchemaRows,
   ParentPortalAttendanceRecord,
   ParentPortalChild,
   ParentPortalGradeRecord,
@@ -132,34 +133,26 @@ function ParentDashboardContent() {
           supabase.from("grades").select("id, score, max_score, grade, term, exam_type, teacher_comment, subjects(name)").eq("student_id", scopedChild.id).limit(6),
         ]);
 
-        let normalizedFeeStructure = [];
-        let normalizedPayments = [];
-
-        const [modernFeeTermsRes, modernPaymentsRes] = await Promise.all([
-          supabase
-            .from("student_fee_terms")
-            .select("id, final_amount, academic_year, fee_terms(name)")
-            .eq("student_id", scopedChild.id)
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("fee_payments")
-            .select(
-              "id, amount, payment_date, payment_method, transaction_reference, student_fee_terms!inner(student_id, fee_terms(name))",
-            )
-            .eq("student_fee_terms.student_id", scopedChild.id)
-            .order("payment_date", { ascending: false }),
-        ]);
-
-        if (!modernFeeTermsRes.error || !modernPaymentsRes.error) {
-          normalizedFeeStructure = normalizeFeeTermItems(
-            (modernFeeTermsRes.data || []) as never[],
-          );
-          normalizedPayments = normalizePayments(
-            (modernPaymentsRes.data || []) as never[],
-          );
-        } else {
-          const [payRes, fsRes] = await Promise.all([
-            supabase.from("fee_payments").select("id, amount_paid, payment_date, payment_method, payment_reference").eq("student_id", scopedChild.id),
+        const [modernFeeTermsRes, modernPaymentsRes, legacyPaymentsRes, legacyFeeTermsRes] =
+          await Promise.all([
+            supabase
+              .from("student_fee_terms")
+              .select("id, final_amount, academic_year, fee_terms(name)")
+              .eq("student_id", scopedChild.id)
+              .order("created_at", { ascending: false }),
+            supabase
+              .from("fee_payments")
+              .select(
+                "id, amount, payment_date, payment_method, transaction_reference, student_fee_terms!inner(student_id, fee_terms(name))",
+              )
+              .eq("student_fee_terms.student_id", scopedChild.id)
+              .order("payment_date", { ascending: false }),
+            supabase
+              .from("fee_payments")
+              .select(
+                "id, amount_paid, payment_date, payment_method, payment_reference",
+              )
+              .eq("student_id", scopedChild.id),
             supabase
               .from("fee_structure")
               .select("*")
@@ -168,9 +161,21 @@ function ParentDashboardContent() {
               .or(`class_id.is.null,class_id.eq.${scopedChild.class_id}`),
           ]);
 
-          normalizedFeeStructure = fsRes.data || [];
-          normalizedPayments = normalizePayments((payRes.data || []) as never[]);
-        }
+        const normalizedFeeStructure = pickPreferredSchemaRows({
+          modernRows: normalizeFeeTermItems(
+            (modernFeeTermsRes.data || []) as never[],
+          ),
+          modernError: modernFeeTermsRes.error,
+          legacyRows: legacyFeeTermsRes.data || [],
+          legacyError: legacyFeeTermsRes.error,
+        });
+
+        const normalizedPayments = pickPreferredSchemaRows({
+          modernRows: normalizePayments((modernPaymentsRes.data || []) as never[]),
+          modernError: modernPaymentsRes.error,
+          legacyRows: normalizePayments((legacyPaymentsRes.data || []) as never[]),
+          legacyError: legacyPaymentsRes.error,
+        });
 
         setAttendance(
           (attRes.data || []).map((record) => ({

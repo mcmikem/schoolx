@@ -9,6 +9,7 @@ import {
   normalizeAttendanceRecords,
   normalizeGrades,
   normalizeWalletTransactions,
+  pickPreferredSchemaRows,
   resolveSelectedChild,
 } from "@/lib/parent-portal";
 
@@ -271,5 +272,34 @@ describe("parent portal helpers", () => {
         term: "2026",
       },
     ]);
+  });
+
+  it("prefers modern rows but falls back cleanly when modern schema queries fail", () => {
+    expect(
+      pickPreferredSchemaRows({
+        modernRows: [{ id: "modern" }],
+        modernError: null,
+        legacyRows: [{ id: "legacy" }],
+        legacyError: null,
+      }),
+    ).toEqual([{ id: "modern" }]);
+
+    expect(
+      pickPreferredSchemaRows({
+        modernRows: [{ id: "modern" }],
+        modernError: new Error("modern schema missing"),
+        legacyRows: [{ id: "legacy" }],
+        legacyError: null,
+      }),
+    ).toEqual([{ id: "legacy" }]);
+
+    expect(
+      pickPreferredSchemaRows({
+        modernRows: [{ id: "modern" }],
+        modernError: new Error("modern schema missing"),
+        legacyRows: [{ id: "legacy" }],
+        legacyError: new Error("legacy schema missing"),
+      }),
+    ).toEqual([]);
   });
 });

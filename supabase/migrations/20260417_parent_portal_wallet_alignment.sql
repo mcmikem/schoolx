@@ -40,6 +40,86 @@ CREATE POLICY parent_messages_parent_insert ON parent_messages
         )
     );
 
+ALTER TABLE student_wallets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE wallet_transactions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS parent_linked_wallets_select ON student_wallets;
+CREATE POLICY parent_linked_wallets_select ON student_wallets
+    FOR SELECT USING (
+        student_id IN (
+            SELECT student_id
+            FROM parent_students
+            WHERE parent_id IN (
+                SELECT id FROM users WHERE auth_id = auth.uid()
+            )
+        )
+    );
+
+DROP POLICY IF EXISTS parent_linked_wallets_insert ON student_wallets;
+CREATE POLICY parent_linked_wallets_insert ON student_wallets
+    FOR INSERT WITH CHECK (
+        student_id IN (
+            SELECT student_id
+            FROM parent_students
+            WHERE parent_id IN (
+                SELECT id FROM users WHERE auth_id = auth.uid()
+            )
+        )
+    );
+
+DROP POLICY IF EXISTS parent_linked_wallets_update ON student_wallets;
+CREATE POLICY parent_linked_wallets_update ON student_wallets
+    FOR UPDATE USING (
+        student_id IN (
+            SELECT student_id
+            FROM parent_students
+            WHERE parent_id IN (
+                SELECT id FROM users WHERE auth_id = auth.uid()
+            )
+        )
+    )
+    WITH CHECK (
+        student_id IN (
+            SELECT student_id
+            FROM parent_students
+            WHERE parent_id IN (
+                SELECT id FROM users WHERE auth_id = auth.uid()
+            )
+        )
+    );
+
+DROP POLICY IF EXISTS parent_linked_wallet_transactions_select ON wallet_transactions;
+CREATE POLICY parent_linked_wallet_transactions_select ON wallet_transactions
+    FOR SELECT USING (
+        wallet_id IN (
+            SELECT id
+            FROM student_wallets
+            WHERE student_id IN (
+                SELECT student_id
+                FROM parent_students
+                WHERE parent_id IN (
+                    SELECT id FROM users WHERE auth_id = auth.uid()
+                )
+            )
+        )
+    );
+
+DROP POLICY IF EXISTS parent_linked_wallet_transactions_insert ON wallet_transactions;
+CREATE POLICY parent_linked_wallet_transactions_insert ON wallet_transactions
+    FOR INSERT WITH CHECK (
+        wallet_id IN (
+            SELECT id
+            FROM student_wallets
+            WHERE student_id IN (
+                SELECT student_id
+                FROM parent_students
+                WHERE parent_id IN (
+                    SELECT id FROM users WHERE auth_id = auth.uid()
+                )
+            )
+        )
+    );
+
 ALTER TABLE student_wallets
     ADD COLUMN IF NOT EXISTS school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     ADD COLUMN IF NOT EXISTS daily_spend_limit NUMERIC(12,2),
