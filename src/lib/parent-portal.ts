@@ -323,6 +323,28 @@ export function normalizeFeeTermItems(
   }));
 }
 
+export function pickPreferredSchemaRows<T>({
+  modernRows,
+  modernError,
+  legacyRows,
+  legacyError,
+}: {
+  modernRows?: T[] | null;
+  modernError?: unknown;
+  legacyRows?: T[] | null;
+  legacyError?: unknown;
+}): T[] {
+  if (!modernError) {
+    return modernRows || [];
+  }
+
+  if (!legacyError) {
+    return legacyRows || [];
+  }
+
+  return [];
+}
+
 export function normalizeAttendanceRecords(
   records: Array<{
     id: string;
