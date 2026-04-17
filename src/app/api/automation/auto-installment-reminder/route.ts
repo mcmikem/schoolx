@@ -34,14 +34,14 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Get installments and students
-    const planIds = plans.map((p: any) => p.id);
+    const planIds = activePlans.map((p: any) => p.id);
     const { data: installments } = await supabase
       .from("payment_plan_installments")
       .select("*")
       .in("plan_id", planIds)
       .eq("paid", false);
 
-    const studentIds = Array.from(new Set(plans.map((p) => p.student_id)));
+    const studentIds = Array.from(new Set(activePlans.map((p) => p.student_id)));
     const { data: students } = await supabase
       .from("students")
       .select("id, first_name, last_name, parent_phone")
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     // 3. Detect reminders using lib
     const reminders = detectInstallmentReminders({
-      plans,
+      plans: activePlans,
       installments: installments || [],
       students: students || [],
       daysNotice: daysNotice || 1,

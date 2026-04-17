@@ -57,7 +57,7 @@ const SYNC_ALLOWED_ROLES = [
 ]
 
 async function resolveSchoolOwnership(params: {
-  supabase: ReturnType<typeof createClient>
+  supabase: any
   table: string
   action: SyncItem['action']
   data: Record<string, unknown>
@@ -273,7 +273,7 @@ export async function POST(request: NextRequest) {
         autoRefreshToken: false,
         persistSession: false,
       },
-    })
+    }) as any
 
     let successCount = 0
     let failedCount = 0

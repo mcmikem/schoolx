@@ -2,6 +2,7 @@ import { PLAN_PRICES, PlanType } from "../subscription";
 import { createSupabaseServerClient } from "../supabase/server";
 
 export const PAYMENT_PROVIDERS = {
+  STRIPE: "stripe",
   PAYPAL: "paypal",
   MTN: "mtn",
   AIRTEL: "airtel",
