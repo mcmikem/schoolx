@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
@@ -19,7 +19,7 @@ interface Suggestion {
 }
 
 export default function SuggestionBoxPage() {
-  const { user, school, refreshSchool } = useAuth();
+  const { user, school } = useAuth();
   const toast = useToast();
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +45,10 @@ export default function SuggestionBoxPage() {
     setSuggestions(data || []);
     setLoading(false);
   };
+
+  useEffect(() => {
+    fetchSuggestions();
+  }, [school?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

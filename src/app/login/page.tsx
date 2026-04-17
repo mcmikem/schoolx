@@ -8,6 +8,9 @@ import { Button, Input } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
 const DEMO_KEY = "skoolmate_demo_v1";
+const DEMO_MODE_ENABLED =
+  process.env.NODE_ENV === "development" &&
+  process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
 
 function serializeDemoData(data: object): string {
   try {
@@ -79,35 +82,36 @@ export default function LoginPage() {
     localStorage.removeItem(DEMO_KEY);
 
     try {
-      // Try server-side demo login first
-      const demoResponse = await fetch("/api/demo-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: cleanPhone, password }),
-      });
+      if (DEMO_MODE_ENABLED) {
+        const demoResponse = await fetch("/api/demo-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: cleanPhone, password }),
+        });
 
-      if (demoResponse.ok) {
-        const demoData = await demoResponse.json();
-        if (demoData.success && demoData.demo) {
-          const encoded = serializeDemoData({
-            demoUser: demoData.user,
-            demoSchool: demoData.school,
-          });
-          sessionStorage.setItem(DEMO_KEY, encoded);
-          localStorage.removeItem(DEMO_KEY);
-          toast.success(
-            tWithParams("auth.welcomeDemo", { name: demoData.user.name }),
-          );
+        if (demoResponse.ok) {
+          const demoData = await demoResponse.json();
+          if (demoData.success && demoData.demo) {
+            const encoded = serializeDemoData({
+              demoUser: demoData.user,
+              demoSchool: demoData.school,
+            });
+            sessionStorage.setItem(DEMO_KEY, encoded);
+            localStorage.removeItem(DEMO_KEY);
+            toast.success(
+              tWithParams("auth.welcomeDemo", { name: demoData.user.name }),
+            );
 
-          const redirectPath =
-            demoData.user.role === "super_admin"
-              ? "/super-admin"
-              : demoData.user.role === "parent"
-                ? "/parent-portal"
-                : "/dashboard";
+            const redirectPath =
+              demoData.user.role === "super_admin"
+                ? "/super-admin"
+                : demoData.user.role === "parent"
+                  ? "/parent-portal"
+                  : "/dashboard";
 
-          window.location.href = redirectPath;
-          return;
+            window.location.href = redirectPath;
+            return;
+          }
         }
       }
 
@@ -226,31 +230,35 @@ export default function LoginPage() {
                 {loading ? t("auth.signingIn") : t("auth.signIn")}
               </Button>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-[var(--border)]" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-3 bg-[var(--surface)] text-[var(--t3)]">
-                    Try Demo Account
-                  </span>
-                </div>
-              </div>
+              {DEMO_MODE_ENABLED && (
+                <>
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-[var(--border)]" />
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="px-3 bg-[var(--surface)] text-[var(--t3)]">
+                        Try Demo Account
+                      </span>
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                {demoAccounts.map((demo) => (
-                  <Button
-                    key={demo.phone}
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="w-full justify-center text-xs py-2"
-                    onClick={() => handleDemoClick(demo.phone)}
-                  >
-                    {demo.role}
-                  </Button>
-                ))}
-              </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {demoAccounts.map((demo) => (
+                      <Button
+                        key={demo.phone}
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="w-full justify-center text-xs py-2"
+                        onClick={() => handleDemoClick(demo.phone)}
+                      >
+                        {demo.role}
+                      </Button>
+                    ))}
+                  </div>
+                </>
+              )}
             </form>
           </div>
 

@@ -48,6 +48,9 @@ function sanitizeDemoRole(raw: unknown): User["role"] {
 }
 
 const DEMO_KEY = "skoolmate_demo_v1";
+const DEMO_MODE_ENABLED =
+  process.env.NODE_ENV === "development" &&
+  process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
 
 function decryptDemoData(encrypted: string): string | null {
   if (typeof window === "undefined") return null;
@@ -60,6 +63,10 @@ function decryptDemoData(encrypted: string): string | null {
 
 function readDemoStorage(): string | null {
   if (typeof window === "undefined") return null;
+  if (!DEMO_MODE_ENABLED) {
+    clearDemoStorage();
+    return null;
+  }
 
   const sessionValue = sessionStorage.getItem(DEMO_KEY);
   if (sessionValue) return sessionValue;

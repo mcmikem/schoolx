@@ -8,6 +8,10 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { DEMO_STAFF } from "@/lib/demo-data";
 
+const DEMO_MODE_ENABLED =
+  process.env.NODE_ENV === "development" &&
+  process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
+
 interface LeaveRequest {
   id: string;
   staffName: string;
@@ -33,7 +37,7 @@ export default function LeavePage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (isDemo) {
+    if (DEMO_MODE_ENABLED && isDemo) {
       setIsManager(true);
       setRequests([
         {
@@ -93,6 +97,16 @@ export default function LeavePage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+      {!DEMO_MODE_ENABLED && (
+        <Card className="mb-6">
+          <CardBody className="p-6">
+            <p className="text-sm text-[var(--t2)]">
+              Leave management is temporarily unavailable in this production
+              build while workflow hardening is in progress.
+            </p>
+          </CardBody>
+        </Card>
+      )}
       <PageHeader
         title="Leave Requests"
         subtitle={
@@ -101,7 +115,10 @@ export default function LeavePage() {
             : "Submit and track leave applications"
         }
         actions={
-          <Button onClick={() => setShowModal(true)}>
+          <Button
+            onClick={() => setShowModal(true)}
+            disabled={!DEMO_MODE_ENABLED || !isDemo}
+          >
             <MaterialIcon icon="add" />
             Request Leave
           </Button>
@@ -158,7 +175,7 @@ export default function LeavePage() {
         )}
       </div>
 
-      {showModal && (
+      {DEMO_MODE_ENABLED && isDemo && showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg">
             <h2 className="text-xl font-semibold mb-4">Request Leave</h2>
