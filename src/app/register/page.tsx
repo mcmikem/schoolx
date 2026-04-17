@@ -139,7 +139,7 @@ export default function RegisterPage() {
     const cleanPhone = form.adminPhone.replace(/[^0-9]/g, "");
     if (cleanPhone.length < 10 || cleanPhone.length > 12) {
       setError(
-        "Use a valid Uganda phone number, e.g. 0700000000 or 256700000000",
+        "Use a valid Uganda phone number, e.g. 0700000000 or +256700000000",
       );
       return false;
     }

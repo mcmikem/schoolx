@@ -11,8 +11,9 @@ function getQuickAction(pathname: string | null) {
   if (!pathname || pathname === "/dashboard") {
       return {
         href: "/dashboard/students",
-        label: "Add learner",
+        label: "Add Learner",
         helper: "Start by entering or checking learner records.",
+        cta: "Open learner records",
         icon: "person_add",
       };
   }
@@ -20,8 +21,9 @@ function getQuickAction(pathname: string | null) {
   if (pathname.startsWith("/dashboard/students")) {
     return {
       href: "/dashboard/attendance",
-      label: "Take attendance",
+      label: "Take Attendance",
       helper: "Mark today before lessons move on.",
+      cta: "Open attendance",
       icon: "how_to_reg",
     };
   }
@@ -33,8 +35,9 @@ function getQuickAction(pathname: string | null) {
   ) {
     return {
       href: "/dashboard/fees",
-      label: "Record fees",
+      label: "Record Fees",
       helper: "Capture payments while families are still at school.",
+      cta: "Open fees",
       icon: "payments",
     };
   }
@@ -42,16 +45,18 @@ function getQuickAction(pathname: string | null) {
   if (pathname.startsWith("/dashboard/fees")) {
     return {
       href: "/dashboard/messages",
-      label: "Send reminders",
+      label: "Send Reminders",
       helper: "Reach parents quickly with short follow-up messages.",
+      cta: "Open messages",
       icon: "sms",
     };
   }
 
   return {
     href: "/dashboard",
-    label: "Back to home",
+    label: "Back to Home",
     helper: "Return to the main dashboard for the next task.",
+    cta: "Open dashboard",
     icon: "dashboard",
   };
 }
@@ -215,7 +220,7 @@ export default function DashboardStatusStrip() {
             className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#17325F] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90"
           >
             <MaterialIcon icon={quickAction.icon} size={16} />
-            Open {quickAction.label}
+            {quickAction.cta}
           </Link>
         </div>
       </div>
