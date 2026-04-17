@@ -1,5 +1,6 @@
 // Navigation configuration for SchoolMate OS
 // Organized by logical groups with collapsible sections
+import { deepFreeze } from "./deep-freeze";
 
 interface NavItem {
   href: string;
@@ -11,12 +12,25 @@ interface NavItem {
 export interface NavGroup {
   label: string;
   icon?: string;
-  items: NavItem[];
+  items: readonly NavItem[];
   defaultOpen?: boolean;
 }
 
+type NavigationRole =
+  | "super_admin"
+  | "headmaster"
+  | "dean_of_studies"
+  | "bursar"
+  | "teacher"
+  | "admin"
+  | "school_admin"
+  | "secretary"
+  | "dorm_master"
+  | "parent";
+
 // Define navigation by role
-export const navigationByRole: Record<string, NavGroup[]> = {
+export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
+  deepFreeze({
   super_admin: [
     {
       label: "System Control HUB",
@@ -773,9 +787,9 @@ export const navigationByRole: Record<string, NavGroup[]> = {
       ],
     },
   ],
-};
+  });
 
-export function getNavigationForRole(role: string): NavGroup[] {
+export function getNavigationForRole(role: string): readonly NavGroup[] {
   // Super admin, admin, school_admin and board get full headmaster access
   if (
     role === "admin" ||
@@ -785,5 +799,5 @@ export function getNavigationForRole(role: string): NavGroup[] {
   ) {
     return navigationByRole.headmaster;
   }
-  return navigationByRole[role] || navigationByRole.teacher;
+  return navigationByRole[role as NavigationRole] || navigationByRole.teacher;
 }

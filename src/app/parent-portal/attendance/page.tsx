@@ -7,6 +7,14 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
+import {
+  calculateAttendanceStats,
+  mapParentStudentLinks,
+  normalizeAttendanceRecords,
+  ParentPortalAttendanceRecord,
+  ParentPortalChild,
+  resolveSelectedChild,
+} from "@/lib/parent-portal";
 
 const STATUS_STYLES: Record<string, string> = {
   present: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -18,9 +26,11 @@ const STATUS_STYLES: Record<string, string> = {
 export default function ParentAttendancePage() {
   const { user, isDemo } = useAuth();
   const { isAuthorized, isChecking } = useParentPortalGuard();
-  const [children, setChildren] = useState<any[]>([]);
-  const [selectedChild, setSelectedChild] = useState<any>(null);
-  const [records, setRecords] = useState<any[]>([]);
+  const [children, setChildren] = useState<ParentPortalChild[]>([]);
+  const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(
+    null,
+  );
+  const [records, setRecords] = useState<ParentPortalAttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ present: 0, absent: 0, late: 0, excused: 0, total: 0 });
 
@@ -36,13 +46,17 @@ export default function ParentAttendancePage() {
       .from("parent_students")
       .select("student:students(id, first_name, last_name, class:classes(name))")
       .eq("parent_id", user.id);
-    const list = (data || []).map((d: any) => ({ ...d.student, class_name: d.student.class?.name || "—" }));
+    const list = mapParentStudentLinks(data || []);
     setChildren(list);
-    if (list.length > 0) setSelectedChild(list[0]);
   }, [user?.id, isDemo]);
 
-  const fetchAttendance = useCallback(async (child: any) => {
-    if (!child) return;
+  useEffect(() => {
+    setSelectedChild((current) => resolveSelectedChild(children, current?.id));
+  }, [children]);
+
+  const fetchAttendance = useCallback(async (child: ParentPortalChild | null) => {
+    const scopedChild = resolveSelectedChild(children, child?.id);
+    if (!scopedChild) return;
     setLoading(true);
     if (isDemo) {
       const demoRecords = Array.from({ length: 20 }, (_, i) => ({
@@ -51,31 +65,23 @@ export default function ParentAttendancePage() {
         status: ["present", "present", "present", "absent", "late"][i % 5],
         notes: i % 5 === 3 ? "Parent not informed" : null,
       }));
-      setRecords(demoRecords);
-      computeStats(demoRecords);
+      const normalized = normalizeAttendanceRecords(demoRecords);
+      setRecords(normalized);
+      setStats(calculateAttendanceStats(normalized));
       setLoading(false);
       return;
     }
     const { data } = await supabase
       .from("attendance")
       .select("id, date, status, remarks")
-      .eq("student_id", child.id)
+      .eq("student_id", scopedChild.id)
       .order("date", { ascending: false })
       .limit(60);
-    const normalized = (data || []).map((record: any) => ({
-      ...record,
-      notes: record.remarks,
-    }));
+    const normalized = normalizeAttendanceRecords(data || []);
     setRecords(normalized);
-    computeStats(normalized);
+    setStats(calculateAttendanceStats(normalized));
     setLoading(false);
-  }, [isDemo]);
-
-  const computeStats = (data: any[]) => {
-    const s = { present: 0, absent: 0, late: 0, excused: 0, total: data.length };
-    data.forEach((r) => { if (r.status in s) (s as any)[r.status]++; });
-    setStats(s);
-  };
+  }, [isDemo, children]);
 
   useEffect(() => { fetchChildren(); }, [fetchChildren]);
   useEffect(() => { if (selectedChild) fetchAttendance(selectedChild); }, [selectedChild, fetchAttendance]);

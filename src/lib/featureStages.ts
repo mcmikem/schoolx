@@ -1,3 +1,5 @@
+import { deepFreeze } from "./deep-freeze"
+
 export type ModuleKey =
   | 'dashboard'
   | 'attendance'
@@ -19,10 +21,10 @@ export type FeatureStage = 'core' | 'academic' | 'finance' | 'full'
 interface FeatureStageDefinition {
   label: string
   description: string
-  modules: ModuleKey[]
+  modules: readonly ModuleKey[]
 }
 
-export const FEATURE_STAGES: Record<FeatureStage, FeatureStageDefinition> = {
+export const FEATURE_STAGES: Record<FeatureStage, FeatureStageDefinition> = deepFreeze({
   core: {
     label: 'Core controls',
     description: 'Attendance, student records, basic communication and the dashboards you first need.',
@@ -43,7 +45,7 @@ export const FEATURE_STAGES: Record<FeatureStage, FeatureStageDefinition> = {
     description: 'Unlocks parent portal, dorm, health, analytics, and every module the plan supports.',
     modules: ['dashboard', 'attendance', 'communications', 'marks', 'exam', 'finance', 'reports', 'exports', 'staff', 'operations', 'parentPortal', 'dorm', 'health', 'analytics'],
   },
-}
+})
 
 export const DEFAULT_FEATURE_STAGE: FeatureStage = 'core'
 
