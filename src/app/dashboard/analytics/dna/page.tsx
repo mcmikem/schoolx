@@ -23,6 +23,8 @@ import {
   Tooltip,
 } from "recharts";
 
+const CONDUCT_PENALTY_PER_POINT = 5;
+
 interface StudentDNA {
   academic: number;
   attendance: number;
@@ -125,7 +127,13 @@ export default function PerformanceDNAPage() {
 
         const conductPoints = conduct?.reduce((s, b) => s + (b.points ?? 0), 0) ?? 0;
         // Scale conduct to 0-100 (100 = no incidents, subtract 5 per negative point)
-        const conductScore = Math.max(0, Math.min(100, 100 - Math.abs(conductPoints) * 5));
+        const conductScore = Math.max(
+          0,
+          Math.min(
+            100,
+            100 - Math.abs(conductPoints) * CONDUCT_PENALTY_PER_POINT,
+          ),
+        );
 
         setDnaData({
           academic,

@@ -200,9 +200,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     ) {
       // Only auto-open the post-setup panel once per browser session so that
       // it doesn't interrupt the user on every page refresh.
-      const sessionKey = `post_setup_shown_${school.id}_${user?.id ?? "anonymous"}`;
+      const sessionKey = user?.id
+        ? `post_setup_shown_${school.id}_${user.id}`
+        : null;
       if (
         typeof window !== "undefined" &&
+        sessionKey &&
         !sessionStorage.getItem(sessionKey)
       ) {
         sessionStorage.setItem(sessionKey, "1");
