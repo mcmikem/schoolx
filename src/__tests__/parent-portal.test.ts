@@ -1,4 +1,5 @@
 import {
+  buildReportCardSummaries,
   calculateAttendanceStats,
   calculateFeeStats,
   getUniqueTerms,
@@ -114,5 +115,56 @@ describe("parent portal helpers", () => {
 
     expect(grades[0].subject_name).toBe("Math");
     expect(getUniqueTerms(grades)).toEqual(["Term 1", "Term 2"]);
+  });
+
+  it("builds report-card summaries from grade records", () => {
+    const summaries = buildReportCardSummaries(
+      normalizeGrades([
+        {
+          id: "g1",
+          score: 82,
+          max_score: 100,
+          term: "Term 1",
+          exam_type: "End of Term",
+          teacher_comment: "Strong work",
+          subjects: { name: "Math" },
+        },
+        {
+          id: "g2",
+          score: 70,
+          max_score: 100,
+          term: "Term 1",
+          subjects: { name: "English" },
+        },
+        {
+          id: "g3",
+          score: 90,
+          max_score: 100,
+          term: "Term 2",
+          subjects: { name: "Science" },
+        },
+      ]),
+    );
+
+    expect(summaries).toEqual([
+      {
+        term: "Term 1",
+        averagePercent: 76,
+        subjectCount: 2,
+        strongestSubject: "Math",
+        latestExamType: "End of Term",
+        teacherComment: "Strong work",
+        performanceBand: "good",
+      },
+      {
+        term: "Term 2",
+        averagePercent: 90,
+        subjectCount: 1,
+        strongestSubject: "Science",
+        latestExamType: null,
+        teacherComment: null,
+        performanceBand: "excellent",
+      },
+    ]);
   });
 });
