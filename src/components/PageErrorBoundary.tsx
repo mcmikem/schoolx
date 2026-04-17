@@ -1,6 +1,7 @@
 'use client'
 import React, { Component, ReactNode } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { logger } from '@/lib/logger'
 
 interface Props {
   children: ReactNode
@@ -23,7 +24,7 @@ export class PageErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Page error:', error, errorInfo)
+    logger.error('Page error:', error, errorInfo)
   }
 
   handleReset = () => {
