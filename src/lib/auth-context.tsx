@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { PlanType } from "./payments/subscription-client";
 import { FeatureStage, DEFAULT_FEATURE_STAGE } from "./featureStages";
 import type { User, School } from "@/types";
+import { logger } from "./logger";
 
 // Roles that demo sessions are allowed to assume.
 // super_admin / school_admin are intentionally excluded to prevent privilege injection.
@@ -148,14 +149,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .maybeSingle();
 
         if (userError) {
-          console.error("Error fetching user:", userError);
+          logger.error("Error fetching user:", userError);
           setLoading(false);
           return null;
         }
 
         if (!userData) {
           if (retryCount < 3) {
-            console.log(
+            logger.warn(
               `[Auth] User profile not found for auth_id: ${authId}. Retrying...`,
             );
             await new Promise((resolve) =>
@@ -163,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             );
             return fetchUserData(authId, retryCount + 1);
           }
-          console.error(
+          logger.error(
             "No user profile found for auth_id after retries:",
             authId,
           );
@@ -191,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .single();
 
           if (schoolError) {
-            console.error("Error fetching school profile:", schoolError);
+            logger.error("Error fetching school profile:", schoolError);
           }
 
           if (schoolData) {
@@ -218,7 +219,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         return { role: userData.role };
       } catch (error) {
-        console.error("Error fetching user data:", error);
+        logger.error("Error fetching user data:", error);
         setLoading(false);
         return null;
       }
@@ -269,7 +270,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           }
         } catch (e) {
-          console.error("[Auth] Error parsing demo data:", e);
+          logger.error("[Auth] Error parsing demo data:", e);
           clearDemoStorage();
         }
       }
@@ -411,7 +412,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch (error) {
-      console.error("Error refreshing school:", error);
+      logger.error("Error refreshing school:", error);
     }
   }
 

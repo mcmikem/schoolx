@@ -482,6 +482,15 @@ export default function FinanceHubPage() {
       toast.error("Please fill all required fields");
       return;
     }
+    const parsedAmount = Number(newPayment.amount_paid);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      toast.error("Payment amount must be a positive number");
+      return;
+    }
+    if (parsedAmount > 100_000_000) {
+      toast.error("Payment amount seems too large. Please check and try again.");
+      return;
+    }
     try {
       setSaving(true);
       let reference = newPayment.payment_reference;
@@ -569,6 +578,19 @@ export default function FinanceHubPage() {
     e.preventDefault();
     if (!newFee.name || !newFee.amount) {
       toast.error("Please fill fee name and amount");
+      return;
+    }
+    const parsedFeeAmount = Number(newFee.amount);
+    if (isNaN(parsedFeeAmount) || parsedFeeAmount <= 0) {
+      toast.error("Fee amount must be a positive number");
+      return;
+    }
+    if (parsedFeeAmount > 100_000_000) {
+      toast.error("Fee amount seems too large. Please check and try again.");
+      return;
+    }
+    if (newFee.name.trim().length < 2) {
+      toast.error("Fee name must be at least 2 characters");
       return;
     }
     try {

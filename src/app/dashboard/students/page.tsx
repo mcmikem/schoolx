@@ -24,6 +24,7 @@ import { TableSkeleton } from "@/components/ui/Skeleton";
 import { DEMO_CLASSES, DEMO_ATTENDANCE } from "@/lib/demo-data";
 import { PageGuidance } from "@/components/PageGuidance";
 import StudentSummaryPulse from "@/components/students/StudentSummaryPulse";
+import { useTablePreferences } from "@/lib/useTablePreferences";
 
 const STUDENT_TEMPLATE_COLUMNS = [
   "student_number",
@@ -113,6 +114,9 @@ export default function StudentHubPage() {
   const { students, loading, createStudent, updateStudent, deleteStudent } =
     useStudents(school?.id);
   const { classes } = useClasses(school?.id);
+
+  const { preferences: tablePrefs, updatePreferences: updateTablePrefs } =
+    useTablePreferences("students-registry");
 
   const [activeTab, setActiveTab] = useState("registry");
 
@@ -597,6 +601,22 @@ export default function StudentHubPage() {
     filterPosition,
     sortBy,
   ]);
+
+  // Pagination derived from table preferences
+  const pageSize = tablePrefs.pageSize || 50;
+  const [currentPage, setCurrentPage] = useState(1);
+  // Reset to page 1 whenever filters or page size change
+  const filteredTotal = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(filteredTotal / pageSize));
+  const paginatedStudents = filtered.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedClass, filterGender, filterPosition, sortBy, pageSize]);
 
   const handleStudentTemplateUpload = (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -1941,25 +1961,32 @@ export default function StudentHubPage() {
               <option value="number">Sort by Number</option>
               <option value="class">Sort by Class</option>
             </select>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                updateTablePrefs({ pageSize: Number(e.target.value) });
+                setCurrentPage(1);
+              }}
+              aria-label="Rows per page"
+              style={{
+                padding: "10px 14px",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                background: "var(--surface)",
+                color: "var(--t1)",
+                cursor: "pointer",
+              }}
+            >
+              <option value={20}>20 / page</option>
+              <option value={50}>50 / page</option>
+              <option value={100}>100 / page</option>
+            </select>
           </div>
 
           {loading ? (
-            <div style={{ padding: 20 }}>
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div
-                  key={i}
-                  style={{
-                    padding: 16,
-                    borderBottom: "1px solid var(--border)",
-                  }}
-                >
-                  <div
-                    className="skeleton"
-                    style={{ height: 40, width: "100%" }}
-                  ></div>
-                </div>
-              ))}
-            </div>
+            <TableSkeleton rows={8} />
           ) : filtered.length === 0 ? (
             <div style={{ padding: 40, textAlign: "center" }}>
               <div
@@ -2021,7 +2048,7 @@ export default function StudentHubPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((student) => (
+                  {paginatedStudents.map((student) => (
                     <tr key={student.id}>
                       <td data-label="Student">
                         <Link
@@ -2169,6 +2196,36 @@ export default function StudentHubPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+          {!loading && filtered.length > pageSize && (
+            <div
+              className="flex items-center justify-between px-4 py-3 border-t border-[var(--border)]"
+              style={{ fontSize: 13 }}
+            >
+              <span className="text-[var(--t3)]">
+                Showing {Math.min((currentPage - 1) * pageSize + 1, filteredTotal)}–
+                {Math.min(currentPage * pageSize, filteredTotal)} of {filteredTotal} students
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--t2)] text-xs disabled:opacity-40 hover:bg-[var(--bg)] transition-colors"
+                >
+                  Previous
+                </button>
+                <span className="text-[var(--t2)] text-xs font-medium">
+                  Page {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--t2)] text-xs disabled:opacity-40 hover:bg-[var(--bg)] transition-colors"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           )}
         </div>
