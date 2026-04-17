@@ -126,45 +126,47 @@ export default function LoginPage() {
 
   return (
     <AuthShell
-      badge="School staff sign in"
-      title="Sign in to your school account"
-      description="Enter the phone number and password used by your school so you can open the dashboard."
+      badge="Built for Ugandan schools"
+      title="A calmer sign-in for busy school teams."
+      description="Use the same visual language as the landing page, with large tap targets, simple phone-first fields, and clear demo access for staff testing on mobile."
       quickFacts={[
-        "Use the phone number saved by the school",
-        "Works on phone or computer",
-        "Demo available for training",
+        "Phone-first login for shared devices",
+        "Fast enough for weak networks",
+        "Same look and feel as the public site",
       ]}
       highlights={[
         {
-          icon: "login",
-          title: "What you need",
+          icon: "wifi_off",
+          title: "Low-bandwidth friendly",
           description:
-            "Only two details are needed here: your phone number and your password.",
+            "Short forms and clear feedback help staff complete sign-in quickly when connectivity is unstable.",
         },
         {
           icon: "smartphone",
-          title: "If you are using a phone",
+          title: "Comfortable on phones",
           description:
-            "The form is sized for touch so it is easier to use on smaller Android screens.",
+            "Large controls and simple labels reduce mistakes for staff working on smaller Android screens.",
         },
         {
-          icon: "wifi_off",
-          title: "If internet is weak",
+          icon: "verified",
+          title: "Trusted local workflow",
           description:
-            "Wait a moment and try again. Keep your login short and simple to reduce mistakes.",
+            "School admins, teachers, and bursars can use one familiar entry point instead of jumping between mismatched pages.",
         },
         {
           icon: "group_add",
-          title: "For demos and training",
+          title: "Easy first demo",
           description:
-            "Use the demo buttons below if you are learning the system or showing it to staff.",
+            "Try role-based demo accounts without typing long credentials during onboarding or field visits.",
         },
       ]}
       contentTitle="Sign in to SkoolMate OS"
-      contentDescription="Use the same phone number the school registered for you. If you are only testing, choose a demo role below."
+      contentDescription="Enter the phone number used by your school account. If you are just exploring, choose a demo role below."
       supportNote={
         <div className="space-y-2">
-          <p className="font-semibold text-slate-800">Need another option?</p>
+          <p className="font-semibold text-slate-800">
+            Need a different access route?
+          </p>
           <div className="flex flex-wrap gap-2">
             <Link
               href="/parent/login"
@@ -199,8 +201,8 @@ export default function LoginPage() {
         <div className="grid gap-3 rounded-[24px] border border-slate-200 bg-slate-50/80 p-4 sm:grid-cols-3">
           {[
             "Use your school phone number",
-            "Your password stays hidden",
-            "Demo roles are for practice",
+            "Passwords stay hidden by default",
+            "Demo roles help with training",
           ].map((item) => (
             <div key={item} className="flex items-start gap-2">
               <MaterialIcon

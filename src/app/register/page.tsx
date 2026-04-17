@@ -255,45 +255,47 @@ export default function RegisterPage() {
 
   return (
     <AuthShell
-      badge="Create a school account"
-      title="Register your school"
-      description="Fill in the school details, choose the location, and create the first admin login."
+      badge="Modern onboarding for schools"
+      title="Register your school without feeling lost."
+      description="This flow keeps the landing page look and adds clearer step guidance so head teachers, bursars, and office staff can finish setup comfortably on mobile or desktop."
       quickFacts={[
-        "3 short setup steps",
-        "Uses Uganda phone and district details",
-        "Easy to complete on phone or computer",
+        "3 short steps with progress feedback",
+        "Uganda-friendly phone and district inputs",
+        "Larger controls for office and field use",
       ]}
       highlights={[
         {
           icon: "how_to_reg",
-          title: "Step 1: School details",
+          title: "Simple school-first setup",
           description:
-            "Enter the school name, type, and ownership.",
+            "Start with the essentials only: school type, location, and the first admin account.",
         },
         {
           icon: "location_on",
-          title: "Step 2: Location",
+          title: "Built for peri-urban and rural teams",
           description:
-            "Choose the district and add the main school contacts.",
+            "Short labels and familiar examples reduce confusion for staff joining from paper-based processes.",
         },
         {
-          icon: "person_add",
-          title: "Step 3: Admin login",
+          icon: "smartphone",
+          title: "Easy on smaller screens",
           description:
-            "Create the first staff account that will open the dashboard.",
+            "Readable spacing and strong contrast make form completion easier on shared Android phones.",
         },
         {
           icon: "wifi_off",
-          title: "If network is slow",
+          title: "Low-data aware",
           description:
-            "Finish one step at a time and wait for the account to complete setup before trying again.",
+            "Only the required details are requested, so first-time setup stays focused even on weak internet.",
         },
       ]}
       contentTitle={`Step ${step} of 3 · ${currentStep.label}`}
       contentDescription={currentStep.helper}
       supportNote={
         <div className="space-y-2">
-          <p className="font-semibold text-slate-800">Before you continue</p>
+          <p className="font-semibold text-slate-800">
+            Before you continue
+          </p>
           <ul className="space-y-1 text-sm text-slate-600">
             <li>• Use the main school or administrator phone number.</li>
             <li>• Pick the district where the school operates today.</li>
@@ -394,8 +396,8 @@ export default function RegisterPage() {
                   Good to know
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Use the official school name that appears on reports,
-                  receipts, or registration records.
+                  Start with the official school name you use on reports,
+                  receipts, and registration records.
                 </p>
               </div>
 
@@ -557,8 +559,8 @@ export default function RegisterPage() {
                   After signup
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  After this, you can open the dashboard and start adding
-                  learners, classes, and fees.
+                  You will enter your dashboard and can immediately add students,
+                  classes, and fee structures.
                 </p>
               </div>
 

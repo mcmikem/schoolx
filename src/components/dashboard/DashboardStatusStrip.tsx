@@ -9,21 +9,19 @@ import { useSyncStatus } from "@/lib/useSyncStatus";
 
 function getQuickAction(pathname: string | null) {
   if (!pathname || pathname === "/dashboard") {
-      return {
-        href: "/dashboard/students",
-        label: "Add Learner",
-        helper: "Start by entering or checking learner records.",
-        cta: "Open learner records",
-        icon: "person_add",
-      };
+    return {
+      href: "/dashboard/students",
+      label: "Add learners",
+      helper: "Start by entering or checking student records.",
+      icon: "person_add",
+    };
   }
 
   if (pathname.startsWith("/dashboard/students")) {
     return {
       href: "/dashboard/attendance",
-      label: "Take Attendance",
+      label: "Take attendance",
       helper: "Mark today before lessons move on.",
-      cta: "Open attendance",
       icon: "how_to_reg",
     };
   }
@@ -35,9 +33,8 @@ function getQuickAction(pathname: string | null) {
   ) {
     return {
       href: "/dashboard/fees",
-      label: "Record Fees",
+      label: "Record fees",
       helper: "Capture payments while families are still at school.",
-      cta: "Open fees",
       icon: "payments",
     };
   }
@@ -45,18 +42,16 @@ function getQuickAction(pathname: string | null) {
   if (pathname.startsWith("/dashboard/fees")) {
     return {
       href: "/dashboard/messages",
-      label: "Send Reminders",
+      label: "Send reminders",
       helper: "Reach parents quickly with short follow-up messages.",
-      cta: "Open messages",
       icon: "sms",
     };
   }
 
   return {
     href: "/dashboard",
-    label: "Back to Home",
+    label: "Back to home",
     helper: "Return to the main dashboard for the next task.",
-    cta: "Open dashboard",
     icon: "dashboard",
   };
 }
@@ -220,7 +215,7 @@ export default function DashboardStatusStrip() {
             className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#17325F] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90"
           >
             <MaterialIcon icon={quickAction.icon} size={16} />
-            {quickAction.cta}
+            Open {quickAction.label}
           </Link>
         </div>
       </div>

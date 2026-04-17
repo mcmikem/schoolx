@@ -109,12 +109,12 @@ export default function AuthShell({
 
               <div className="rounded-[28px] border border-[#d7e4fb] bg-white/90 p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#17325F]">
-                  Simple to use on any device
+                  Designed for real school days
                 </p>
                 <p className="mt-3 text-sm leading-6 text-slate-600">
-                  Large buttons and clear labels help staff and parents use the
-                  system on shared phones, office computers, and weaker
-                  internet connections.
+                  Clear labels, large touch targets, and short steps help staff
+                  finish tasks quickly on shared phones, office desktops, and
+                  low-bandwidth connections.
                 </p>
               </div>
             </section>
