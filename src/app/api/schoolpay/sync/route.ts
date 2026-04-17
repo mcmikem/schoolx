@@ -6,7 +6,11 @@ import {
   requireDevelopmentRouteOrDeny,
 } from "@/lib/api-utils";
 
+let supabaseClient: ReturnType<typeof createClient> | null = null;
+
 function getSupabaseClient() {
+  if (supabaseClient) return supabaseClient;
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -16,7 +20,8 @@ function getSupabaseClient() {
     );
   }
 
-  return createClient(supabaseUrl, supabaseKey);
+  supabaseClient = createClient(supabaseUrl, supabaseKey);
+  return supabaseClient;
 }
 
 export async function POST(request: NextRequest) {
