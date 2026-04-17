@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import Papa from "papaparse";
 import { useAuth } from "@/lib/auth-context";
@@ -222,6 +223,7 @@ export default function StudentHubPage() {
     student_number: "",
     ple_index_number: "",
     opening_balance: "0",
+    photo_url: "",
   });
   const [smsTarget, setSmsTarget] = useState<{
     id: string;
@@ -593,12 +595,14 @@ export default function StudentHubPage() {
   };
 
   const filtered = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
     let result = students.filter((s) => {
       const name = `${s.first_name} ${s.last_name}`.toLowerCase();
       const matchesSearch =
-        name.includes(searchTerm.toLowerCase()) ||
-        s.parent_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.student_number?.toLowerCase().includes(searchTerm.toLowerCase());
+        !normalizedSearch ||
+        name.includes(normalizedSearch) ||
+        s.parent_name?.toLowerCase().includes(normalizedSearch) ||
+        s.student_number?.toLowerCase().includes(normalizedSearch);
       const matchesClass =
         selectedClass === "all" || s.class_id === selectedClass;
       const sAny = s as any;
@@ -608,7 +612,15 @@ export default function StudentHubPage() {
         (filterPosition === "monitor" && sAny.is_class_monitor) ||
         (filterPosition === "prefect" &&
           (sAny.prefect_role || sAny.student_council_role));
-      return matchesSearch && matchesClass && matchesGender && matchesPosition;
+      const matchesDefaulters =
+        !filterDefaulters || Number(s.opening_balance || 0) > 0;
+      return (
+        matchesSearch &&
+        matchesClass &&
+        matchesGender &&
+        matchesPosition &&
+        matchesDefaulters
+      );
     });
 
     // Sort
@@ -631,6 +643,7 @@ export default function StudentHubPage() {
     selectedClass,
     filterGender,
     filterPosition,
+    filterDefaulters,
     sortBy,
   ]);
 
@@ -648,7 +661,7 @@ export default function StudentHubPage() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedClass, filterGender, filterPosition, sortBy, pageSize]);
+  }, [searchTerm, selectedClass, filterGender, filterPosition, filterDefaulters, sortBy, pageSize, school?.id]);
 
   const handleStudentTemplateUpload = (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -838,9 +851,12 @@ export default function StudentHubPage() {
       student_number: student.student_number || "",
       ple_index_number: student.ple_index_number || "",
       opening_balance: student.opening_balance?.toString() || "0",
+      photo_url: student.photo_url || "",
     });
-    window.scrollTo(0, 0);
     setShowEditModal(true);
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
   };
 
   const handleUpdateStudent = async (e: React.FormEvent) => {
@@ -1657,10 +1673,10 @@ export default function StudentHubPage() {
             }}
           >
             <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
                 marginBottom: 10,
               }}
             >
@@ -2093,27 +2109,41 @@ export default function StudentHubPage() {
                             gap: 10,
                             textDecoration: "none",
                           }}
-                        >
-                          <div
-                            style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: "50%",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: 12,
-                              fontWeight: 700,
-                              color: "#fff",
-                              background:
-                                student.gender === "M"
-                                  ? "var(--navy)"
-                                  : "var(--red)",
-                            }}
                           >
-                            {student.first_name?.charAt(0)}
-                            {student.last_name?.charAt(0)}
-                          </div>
+                           <div
+                             style={{
+                               width: 36,
+                               height: 36,
+                               borderRadius: "50%",
+                               display: "flex",
+                               alignItems: "center",
+                               justifyContent: "center",
+                               fontSize: 12,
+                               fontWeight: 700,
+                               color: "#fff",
+                               overflow: "hidden",
+                               background:
+                                 student.gender === "M"
+                                   ? "var(--navy)"
+                                   : "var(--red)",
+                             }}
+                           >
+                             {student.photo_url ? (
+                               <Image
+                                 src={student.photo_url}
+                                 alt={`${student.first_name} ${student.last_name}`}
+                                 width={36}
+                                 height={36}
+                                 unoptimized
+                                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                               />
+                             ) : (
+                               <>
+                                 {student.first_name?.charAt(0)}
+                                 {student.last_name?.charAt(0)}
+                               </>
+                             )}
+                           </div>
                           <div>
                             <div
                               style={{ fontWeight: 600, color: "var(--t1)" }}
@@ -3061,10 +3091,13 @@ export default function StudentHubPage() {
                     }}
                     title="Click to upload photo"
                   >
-                    {(editingStudent as any)?.photo_url ? (
-                      <img
-                        src={(editingStudent as any).photo_url}
-                        alt="Student"
+                    {editForm.photo_url ? (
+                      <Image
+                        src={editForm.photo_url}
+                        alt={`${editForm.first_name || "Student"} ${editForm.last_name || ""}`}
+                        width={80}
+                        height={80}
+                        unoptimized
                         style={{
                           width: "100%",
                           height: "100%",
@@ -3072,11 +3105,23 @@ export default function StudentHubPage() {
                         }}
                       />
                     ) : (
-                      <MaterialIcon
-                        style={{ fontSize: 32, color: "var(--t3)" }}
+                      <div
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#fff",
+                          background:
+                            editForm.gender === "M" ? "var(--navy)" : "var(--red)",
+                          fontSize: 24,
+                          fontWeight: 700,
+                        }}
                       >
-                        person
-                      </MaterialIcon>
+                        {(editForm.first_name?.charAt(0) || "S").toUpperCase()}
+                        {(editForm.last_name?.charAt(0) || "").toUpperCase()}
+                      </div>
                     )}
                   </div>
                   <div style={{ flex: 1 }}>
@@ -3110,9 +3155,9 @@ export default function StudentHubPage() {
                                 photo_url: reader.result,
                               };
                               setEditingStudent(updatedStudent);
-                              setEditForm((prev: any) => ({
+                              setEditForm((prev) => ({
                                 ...prev,
-                                photo_url: reader.result,
+                                photo_url: String(reader.result || ""),
                               }));
                               setUploadingPhoto(false);
                             };
