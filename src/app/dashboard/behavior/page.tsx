@@ -90,6 +90,7 @@ export default function BehaviorPage() {
       setLogs(data || []);
     } catch (err) {
       console.error("Error fetching behavior logs:", err);
+      toast.error("Failed to load behaviour records");
       setLogs([]);
     } finally {
       setLoading(false);

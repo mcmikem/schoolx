@@ -1,17 +1,14 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
-import { DEMO_NOTICES, DEMO_STAFF } from "@/lib/demo-data";
-
-const DEMO_MODE_ENABLED =
-  process.env.NODE_ENV === "development" &&
-  process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
+import { DEMO_NOTICES } from "@/lib/demo-data";
 
 export default function NoticesPage() {
   const { user, school, isDemo } = useAuth();
@@ -23,58 +20,96 @@ export default function NoticesPage() {
   const [form, setForm] = useState({
     title: "",
     content: "",
-    category: "General",
+    category: "general",
     send_sms: false,
   });
 
-  useEffect(() => {
-    if (DEMO_MODE_ENABLED && isDemo) {
+  const fetchNotices = useCallback(async () => {
+    if (isDemo) {
       setNotices(DEMO_NOTICES);
+      setLoading(false);
+      return;
     }
-    setLoading(false);
-  }, [isDemo]);
+    if (!school?.id) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("notices")
+        .select("*")
+        .eq("school_id", school.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      setNotices(data || []);
+    } catch {
+      toast.error("Failed to load notices");
+    } finally {
+      setLoading(false);
+    }
+  }, [school?.id, isDemo, toast]);
+
+  useEffect(() => {
+    fetchNotices();
+  }, [fetchNotices]);
 
   const handlePost = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.title.trim() || !form.content.trim()) {
+      toast.error("Title and content are required");
+      return;
+    }
     setPosting(true);
-    const newNotice = {
-      id: `notice-${Date.now()}`,
-      title: form.title,
-      content: form.content,
-      category: form.category,
-      priority: form.category === "Emergency" ? "high" : "normal",
-      created_by: user?.id,
-      created_at: new Date().toISOString(),
-      send_sms: form.send_sms,
-    };
-    setNotices([newNotice, ...notices]);
-    setShowPostModal(false);
-    setForm({ title: "", content: "", category: "General", send_sms: false });
-    toast.success("Notice posted successfully");
-    setPosting(false);
+    try {
+      if (isDemo) {
+        // Demo mode – local state only
+        setNotices([
+          {
+            id: `notice-${Date.now()}`,
+            title: form.title,
+            content: form.content,
+            type: form.category,
+            priority: form.category === "emergency" ? "high" : "normal",
+            published_by: user?.id,
+            created_at: new Date().toISOString(),
+            is_published: true,
+          },
+          ...notices,
+        ]);
+      } else {
+        const { error } = await supabase.from("notices").insert({
+          school_id: school!.id,
+          title: form.title,
+          content: form.content,
+          type: form.category,
+          priority: form.category === "emergency" ? "high" : "normal",
+          published_by: user?.id,
+          publish_date: new Date().toISOString(),
+          is_published: true,
+        });
+        if (error) throw error;
+        await fetchNotices();
+      }
+      setShowPostModal(false);
+      setForm({ title: "", content: "", category: "general", send_sms: false });
+      toast.success("Notice posted successfully");
+    } catch {
+      toast.error("Failed to post notice");
+    } finally {
+      setPosting(false);
+    }
   };
 
   return (
     <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
-      {!DEMO_MODE_ENABLED && (
-        <Card className="mb-6">
-          <CardBody className="p-6">
-            <p className="text-sm text-[var(--t2)]">
-              Notices are temporarily unavailable in this production build while
-              the workflow is being completed.
-            </p>
-          </CardBody>
-        </Card>
-      )}
       <PageHeader
         title="Notices"
         subtitle="Post and manage school notices"
         actions={
-          <Button
-            onClick={() => setShowPostModal(true)}
-            disabled={!DEMO_MODE_ENABLED || !isDemo}
-          >
+          <Button onClick={() => setShowPostModal(true)}>
             <MaterialIcon icon="add" />
             Post Notice
           </Button>
@@ -98,9 +133,14 @@ export default function NoticesPage() {
                 <h2 className="text-lg font-semibold">{notice.title}</h2>
                 <p className="text-sm text-gray-500 mt-1">{notice.content}</p>
                 <div className="flex items-center gap-2 mt-2">
-                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                    {notice.category}
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 capitalize">
+                    {notice.type || notice.category || "General"}
                   </span>
+                  {notice.priority === "high" && (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600">
+                      Urgent
+                    </span>
+                  )}
                   <span className="text-xs text-gray-400">
                     {new Date(notice.created_at).toLocaleDateString()}
                   </span>
@@ -111,7 +151,7 @@ export default function NoticesPage() {
         </div>
       )}
 
-      {DEMO_MODE_ENABLED && isDemo && showPostModal && (
+      {showPostModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg">
             <h2 className="text-xl font-semibold mb-4">Post Notice</h2>
@@ -150,10 +190,10 @@ export default function NoticesPage() {
                     }
                     className="input w-full"
                   >
-                    <option>General</option>
-                    <option>Academic</option>
-                    <option>Event</option>
-                    <option>Emergency</option>
+                    <option value="general">General</option>
+                    <option value="academic">Academic</option>
+                    <option value="event">Event</option>
+                    <option value="emergency">Emergency</option>
                   </select>
                 </div>
                 <div>

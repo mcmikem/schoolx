@@ -1,420 +1,312 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
+import { useStudents, useClasses } from "@/lib/hooks";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
-import { DEMO_STUDENTS } from "@/lib/demo-data";
 
-const DEMO_MODE_ENABLED =
-  process.env.NODE_ENV === "development" &&
-  process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
-
-interface TransferStudent {
+interface Transfer {
   id: string;
-  name: string;
-  class: string;
-  previousSchool?: string;
-  nextSchool?: string;
-  transferDate: string;
+  student_id: string;
+  transfer_type: "in" | "out";
+  previous_school?: string;
+  next_school?: string;
+  transfer_date: string;
   reason: string;
-  status: "pending" | "completed";
+  status: "pending" | "approved" | "rejected" | "completed";
+  created_at: string;
+  students?: { first_name: string; last_name: string; classes?: { name: string } };
 }
 
 export default function StudentTransfersPage() {
-  const { isDemo } = useAuth();
+  const { school, user, isDemo } = useAuth();
   const toast = useToast();
+  const { students } = useStudents(school?.id);
+  const { classes } = useClasses(school?.id);
   const [activeTab, setActiveTab] = useState<"in" | "out">("in");
-  const [transfersIn, setTransfersIn] = useState<TransferStudent[]>([]);
-  const [transfersOut, setTransfersOut] = useState<TransferStudent[]>([]);
+  const [transfers, setTransfers] = useState<Transfer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showTransferOutModal, setShowTransferOutModal] = useState(false);
-  const [form, setForm] = useState({
+  const [submitting, setSubmitting] = useState(false);
+
+  const [formIn, setFormIn] = useState({
     firstName: "",
     lastName: "",
+    gender: "M" as "M" | "F",
     previousSchool: "",
     reason: "Family relocation",
-    class: "S.1",
+    classId: "",
     parentName: "",
     parentPhone: "",
   });
-  const [transferOutForm, setTransferOutForm] = useState({
+
+  const [formOut, setFormOut] = useState({
     studentId: "",
     nextSchool: "",
     reason: "Better opportunity",
   });
-  const [submitting, setSubmitting] = useState(false);
+
+  const fetchTransfers = useCallback(async () => {
+    if (!school?.id) { setLoading(false); return; }
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("student_transfers")
+        .select("*, students(first_name, last_name, classes(name))")
+        .eq("school_id", school.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setTransfers((data as Transfer[]) || []);
+    } catch {
+      toast.error("Failed to load transfer records");
+    } finally {
+      setLoading(false);
+    }
+  }, [school?.id, toast]);
 
   useEffect(() => {
-    if (DEMO_MODE_ENABLED && isDemo) {
-      setTransfersIn([
-        {
-          id: "1",
-          name: "John Doe",
-          class: "S.2",
-          previousSchool: "ABC Primary",
-          transferDate: "2026-04-01",
-          reason: "Family relocation",
-          status: "pending",
-        },
-        {
-          id: "2",
-          name: "Jane Smith",
-          class: "S.1",
-          previousSchool: "XYZ Primary",
-          transferDate: "2026-04-05",
-          reason: "Transfer",
-          status: "completed",
-        },
-      ]);
-      setTransfersOut([
-        {
-          id: "3",
-          name: "Mike Brown",
-          class: "S.3",
-          nextSchool: "Next School",
-          transferDate: "2026-03-15",
-          reason: "Better opportunity",
-          status: "completed",
-        },
-      ]);
-    }
-  }, [isDemo]);
+    fetchTransfers();
+  }, [fetchTransfers]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleTransferIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formIn.firstName || !formIn.lastName || !formIn.parentName || !formIn.parentPhone) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    if (!formIn.classId) {
+      toast.error("Please select a class");
+      return;
+    }
     setSubmitting(true);
-    const newTransfer: TransferStudent = {
-      id: `transfer-${Date.now()}`,
-      name: `${form.firstName} ${form.lastName}`,
-      class: form.class,
-      previousSchool: form.previousSchool,
-      transferDate: new Date().toISOString().split("T")[0],
-      reason: form.reason,
-      status: "pending",
-    };
-    setTransfersIn([newTransfer, ...transfersIn]);
-    setShowModal(false);
-    setForm({
-      firstName: "",
-      lastName: "",
-      previousSchool: "",
-      reason: "Family relocation",
-      class: "S.1",
-      parentName: "",
-      parentPhone: "",
-    });
-    toast.success("Transfer in recorded");
-    setSubmitting(false);
+    try {
+      // 1. Generate a student number
+      const studentNum = `TR-${Date.now().toString().slice(-6)}`;
+
+      // 2. Create the student record
+      const { data: newStudent, error: studentErr } = await supabase
+        .from("students")
+        .insert({
+          school_id: school!.id,
+          first_name: formIn.firstName,
+          last_name: formIn.lastName,
+          gender: formIn.gender,
+          parent_name: formIn.parentName,
+          parent_phone: formIn.parentPhone,
+          class_id: formIn.classId,
+          student_number: studentNum,
+          status: "active",
+        })
+        .select("id")
+        .single();
+      if (studentErr) throw studentErr;
+
+      // 3. Create the transfer record
+      const { error: transferErr } = await supabase
+        .from("student_transfers")
+        .insert({
+          school_id: school!.id,
+          student_id: newStudent.id,
+          transfer_type: "in",
+          previous_school: formIn.previousSchool,
+          transfer_date: new Date().toISOString().split("T")[0],
+          reason: formIn.reason,
+          status: "completed",
+        });
+      if (transferErr) throw transferErr;
+
+      toast.success("Transfer in recorded. Student added.");
+      setShowModal(false);
+      setFormIn({ firstName: "", lastName: "", gender: "M", previousSchool: "", reason: "Family relocation", classId: "", parentName: "", parentPhone: "" });
+      fetchTransfers();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to record transfer in");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleTransferOut = (e: React.FormEvent) => {
+  const handleTransferOut = async (e: React.FormEvent) => {
     e.preventDefault();
-    const selectedStudent = DEMO_STUDENTS.find(
-      (s) => s.id === transferOutForm.studentId,
-    );
-    if (selectedStudent) {
-      const newTransfer: TransferStudent = {
-        id: `transfer-out-${Date.now()}`,
-        name: `${selectedStudent.first_name} ${selectedStudent.last_name}`,
-        class: selectedStudent.classes?.name || "S.1",
-        nextSchool: transferOutForm.nextSchool,
-        transferDate: new Date().toISOString().split("T")[0],
-        reason: transferOutForm.reason,
-        status: "completed",
-      };
-      setTransfersOut([newTransfer, ...transfersOut]);
+    if (!formOut.studentId || !formOut.nextSchool) {
+      toast.error("Please select a student and enter destination school");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      // Create transfer record
+      const { error: transferErr } = await supabase
+        .from("student_transfers")
+        .insert({
+          school_id: school!.id,
+          student_id: formOut.studentId,
+          transfer_type: "out",
+          next_school: formOut.nextSchool,
+          transfer_date: new Date().toISOString().split("T")[0],
+          reason: formOut.reason,
+          status: "completed",
+        });
+      if (transferErr) throw transferErr;
+
+      // Mark student as transferred
+      await supabase
+        .from("students")
+        .update({ status: "transferred" })
+        .eq("id", formOut.studentId);
+
       toast.success("Student transferred out");
       setShowTransferOutModal(false);
-      setTransferOutForm({
-        studentId: "",
-        nextSchool: "",
-        reason: "Better opportunity",
-      });
+      setFormOut({ studentId: "", nextSchool: "", reason: "Better opportunity" });
+      fetchTransfers();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to record transfer out");
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleOpenTransferOut = () => {
-    setTransferOutForm({
-      studentId: "",
-      nextSchool: "",
-      reason: "Better opportunity",
-    });
-    setShowTransferOutModal(true);
-  };
+  const filtered = transfers.filter((t) => t.transfer_type === activeTab);
 
   return (
     <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
-      {!DEMO_MODE_ENABLED && (
-        <Card className="mb-6">
-          <CardBody className="p-6">
-            <p className="text-sm text-[var(--t2)]">
-              Student transfer workflows are temporarily unavailable in this
-              production build while end-to-end persistence is being completed.
-            </p>
-          </CardBody>
-        </Card>
-      )}
       <PageHeader
         title="Student Transfers"
         subtitle="Manage student transfers in and out"
         actions={
           <div className="flex gap-2">
-            <Button
-              onClick={() => setShowModal(true)}
-              disabled={!DEMO_MODE_ENABLED || !isDemo}
-            >
-              <MaterialIcon icon="add" />
-              New Transfer
+            <Button onClick={() => setShowModal(true)}>
+              <MaterialIcon icon="login" />
+              Transfer In
+            </Button>
+            <Button variant="secondary" onClick={() => setShowTransferOutModal(true)}>
+              <MaterialIcon icon="logout" />
+              Transfer Out
             </Button>
           </div>
         }
       />
 
       <div className="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 w-fit">
-        <button
-          onClick={() => setActiveTab("in")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "in" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-        >
-          Transfer In
-        </button>
-        <button
-          onClick={() => setActiveTab("out")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "out" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-        >
-          Transfer Out
-        </button>
+        {(["in", "out"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+          >
+            Transfer {tab === "in" ? "In" : "Out"}
+          </button>
+        ))}
       </div>
 
-      {activeTab === "in" ? (
-        <div className="space-y-4">
-          {transfersIn.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
-              <MaterialIcon
-                icon="swap_horiz"
-                className="text-4xl mx-auto mb-2"
-              />
-              <p>No transfers in</p>
-            </div>
-          ) : (
-            transfersIn.map((t) => (
-              <Card key={t.id}>
-                <CardBody>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold">{t.name}</h3>
-                      <p className="text-sm text-gray-500">
-                        {t.class} • From: {t.previousSchool}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {t.reason} • {t.transferDate}
-                      </p>
-                    </div>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${t.status === "pending" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"}`}
-                    >
-                      {t.status}
-                    </span>
-                  </div>
-                </CardBody>
-              </Card>
-            ))
-          )}
+      {loading ? (
+        <div className="text-center py-12 text-gray-400">Loading...</div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-12 text-gray-400">
+          <MaterialIcon icon="swap_horiz" className="text-4xl mx-auto mb-2" />
+          <p>No {activeTab === "in" ? "transfers in" : "transfers out"} recorded</p>
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex justify-end">
-            <Button
-              onClick={handleOpenTransferOut}
-              disabled={!DEMO_MODE_ENABLED || !isDemo}
-            >
-              <MaterialIcon icon="add" />
-              Transfer Out
-            </Button>
-          </div>
-          {transfersOut.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
-              <MaterialIcon
-                icon="swap_horiz"
-                className="text-4xl mx-auto mb-2"
-              />
-              <p>No transfers out</p>
-            </div>
-          ) : (
-            transfersOut.map((t) => (
-              <Card key={t.id}>
-                <CardBody>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold">{t.name}</h3>
-                      <p className="text-sm text-gray-500">{t.class}</p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        To: {t.nextSchool} • {t.reason} • {t.transferDate}
-                      </p>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                      {t.status}
-                    </span>
+          {filtered.map((t) => (
+            <Card key={t.id}>
+              <CardBody>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold">
+                      {t.students?.first_name} {t.students?.last_name}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {t.students?.classes?.name}
+                      {t.transfer_type === "in" && t.previous_school && ` • From: ${t.previous_school}`}
+                      {t.transfer_type === "out" && t.next_school && ` • To: ${t.next_school}`}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {t.reason} • {t.transfer_date}
+                    </p>
                   </div>
-                </CardBody>
-              </Card>
-            ))
-          )}
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
+                    t.status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                    t.status === "completed" ? "bg-green-100 text-green-700" :
+                    "bg-gray-100 text-gray-600"
+                  }`}>
+                    {t.status}
+                  </span>
+                </div>
+              </CardBody>
+            </Card>
+          ))}
         </div>
       )}
 
-      {DEMO_MODE_ENABLED && isDemo && showModal && (
+      {/* Transfer In Modal */}
+      {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-semibold mb-4">New Transfer In</h2>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleTransferIn}>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label
-                      className="text-sm font-medium mb-1 block"
-                      htmlFor="first-name"
-                    >
-                      First Name
-                    </label>
-                    <input
-                      id="first-name"
-                      type="text"
-                      value={form.firstName}
-                      onChange={(e) =>
-                        setForm({ ...form, firstName: e.target.value })
-                      }
-                      className="input w-full"
-                      required
-                    />
+                    <label className="text-sm font-medium mb-1 block">First Name *</label>
+                    <input type="text" value={formIn.firstName} onChange={(e) => setFormIn({ ...formIn, firstName: e.target.value })} className="input w-full" required />
                   </div>
                   <div>
-                    <label
-                      className="text-sm font-medium mb-1 block"
-                      htmlFor="last-name"
-                    >
-                      Last Name
-                    </label>
-                    <input
-                      id="last-name"
-                      type="text"
-                      value={form.lastName}
-                      onChange={(e) =>
-                        setForm({ ...form, lastName: e.target.value })
-                      }
-                      className="input w-full"
-                      required
-                    />
+                    <label className="text-sm font-medium mb-1 block">Last Name *</label>
+                    <input type="text" value={formIn.lastName} onChange={(e) => setFormIn({ ...formIn, lastName: e.target.value })} className="input w-full" required />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Gender *</label>
+                    <select value={formIn.gender} onChange={(e) => setFormIn({ ...formIn, gender: e.target.value as "M" | "F" })} className="input w-full">
+                      <option value="M">Male</option>
+                      <option value="F">Female</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Class *</label>
+                    <select value={formIn.classId} onChange={(e) => setFormIn({ ...formIn, classId: e.target.value })} className="input w-full" required>
+                      <option value="">Select class</option>
+                      {classes.map((c: any) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
                 <div>
-                  <label
-                    className="text-sm font-medium mb-1 block"
-                    htmlFor="previous-school"
-                  >
-                    Previous School
-                  </label>
-                  <input
-                    id="previous-school"
-                    type="text"
-                    value={form.previousSchool}
-                    onChange={(e) =>
-                      setForm({ ...form, previousSchool: e.target.value })
-                    }
-                    className="input w-full"
-                    required
-                  />
+                  <label className="text-sm font-medium mb-1 block">Previous School</label>
+                  <input type="text" value={formIn.previousSchool} onChange={(e) => setFormIn({ ...formIn, previousSchool: e.target.value })} className="input w-full" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Parent Name *</label>
+                    <input type="text" value={formIn.parentName} onChange={(e) => setFormIn({ ...formIn, parentName: e.target.value })} className="input w-full" required />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Parent Phone *</label>
+                    <input type="tel" value={formIn.parentPhone} onChange={(e) => setFormIn({ ...formIn, parentPhone: e.target.value })} className="input w-full" required />
+                  </div>
                 </div>
                 <div>
-                  <label
-                    className="text-sm font-medium mb-1 block"
-                    htmlFor="transfer-reason"
-                  >
-                    Transfer Reason
-                  </label>
-                  <select
-                    id="transfer-reason"
-                    value={form.reason}
-                    onChange={(e) =>
-                      setForm({ ...form, reason: e.target.value })
-                    }
-                    className="input w-full"
-                  >
+                  <label className="text-sm font-medium mb-1 block">Reason</label>
+                  <select value={formIn.reason} onChange={(e) => setFormIn({ ...formIn, reason: e.target.value })} className="input w-full">
                     <option>Family relocation</option>
                     <option>Better opportunity</option>
                     <option>Academic reasons</option>
                     <option>Other</option>
                   </select>
                 </div>
-                <div>
-                  <label
-                    className="text-sm font-medium mb-1 block"
-                    htmlFor="assign-class"
-                  >
-                    Assign to Class
-                  </label>
-                  <select
-                    id="assign-class"
-                    value={form.class}
-                    onChange={(e) =>
-                      setForm({ ...form, class: e.target.value })
-                    }
-                    className="input w-full"
-                  >
-                    <option>S.1</option>
-                    <option>S.2</option>
-                    <option>S.3</option>
-                    <option>S.4</option>
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">
-                      Parent/Guardian Name
-                    </label>
-                    <input
-                      type="text"
-                      value={form.parentName}
-                      onChange={(e) =>
-                        setForm({ ...form, parentName: e.target.value })
-                      }
-                      className="input w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">
-                      Parent Phone
-                    </label>
-                    <input
-                      type="text"
-                      value={form.parentPhone}
-                      onChange={(e) =>
-                        setForm({ ...form, parentPhone: e.target.value })
-                      }
-                      className="input w-full"
-                    />
-                  </div>
-                </div>
                 <div className="flex gap-3">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setShowModal(false)}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={submitting}
-                    className="flex-1"
-                  >
-                    {submitting ? "Adding..." : "Add Transfer Student"}
-                  </Button>
+                  <Button type="button" variant="secondary" onClick={() => setShowModal(false)} className="flex-1">Cancel</Button>
+                  <Button type="submit" disabled={submitting} className="flex-1">{submitting ? "Saving..." : "Record Transfer In"}</Button>
                 </div>
               </div>
             </form>
@@ -422,78 +314,31 @@ export default function StudentTransfersPage() {
         </div>
       )}
 
-      {DEMO_MODE_ENABLED && isDemo && showTransferOutModal && (
+      {/* Transfer Out Modal */}
+      {showTransferOutModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg">
             <h2 className="text-xl font-semibold mb-4">Transfer Out</h2>
             <form onSubmit={handleTransferOut}>
               <div className="space-y-4">
                 <div>
-                  <label
-                    className="text-sm font-medium mb-1 block"
-                    htmlFor="select-student"
-                  >
-                    Select Student
-                  </label>
-                  <select
-                    id="select-student"
-                    value={transferOutForm.studentId}
-                    onChange={(e) =>
-                      setTransferOutForm({
-                        ...transferOutForm,
-                        studentId: e.target.value,
-                      })
-                    }
-                    className="input w-full"
-                    required
-                  >
+                  <label className="text-sm font-medium mb-1 block">Select Student *</label>
+                  <select value={formOut.studentId} onChange={(e) => setFormOut({ ...formOut, studentId: e.target.value })} className="input w-full" required>
                     <option value="">Select a student</option>
-                    {DEMO_STUDENTS.map((s) => (
+                    {students.filter((s: any) => s.status === "active").map((s: any) => (
                       <option key={s.id} value={s.id}>
-                        {s.first_name} {s.last_name} - {s.classes?.name}
+                        {s.first_name} {s.last_name} — {s.classes?.name || ""}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label
-                    className="text-sm font-medium mb-1 block"
-                    htmlFor="next-school"
-                  >
-                    Transferring To
-                  </label>
-                  <input
-                    id="next-school"
-                    type="text"
-                    value={transferOutForm.nextSchool}
-                    onChange={(e) =>
-                      setTransferOutForm({
-                        ...transferOutForm,
-                        nextSchool: e.target.value,
-                      })
-                    }
-                    className="input w-full"
-                    required
-                  />
+                  <label className="text-sm font-medium mb-1 block">Transferring To *</label>
+                  <input type="text" value={formOut.nextSchool} onChange={(e) => setFormOut({ ...formOut, nextSchool: e.target.value })} className="input w-full" required placeholder="Destination school name" />
                 </div>
                 <div>
-                  <label
-                    className="text-sm font-medium mb-1 block"
-                    htmlFor="out-reason"
-                  >
-                    Reason
-                  </label>
-                  <select
-                    id="out-reason"
-                    value={transferOutForm.reason}
-                    onChange={(e) =>
-                      setTransferOutForm({
-                        ...transferOutForm,
-                        reason: e.target.value,
-                      })
-                    }
-                    className="input w-full"
-                  >
+                  <label className="text-sm font-medium mb-1 block">Reason</label>
+                  <select value={formOut.reason} onChange={(e) => setFormOut({ ...formOut, reason: e.target.value })} className="input w-full">
                     <option>Better opportunity</option>
                     <option>Family relocation</option>
                     <option>Academic reasons</option>
@@ -501,17 +346,8 @@ export default function StudentTransfersPage() {
                   </select>
                 </div>
                 <div className="flex gap-3">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setShowTransferOutModal(false)}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" className="flex-1">
-                    Transfer Out
-                  </Button>
+                  <Button type="button" variant="secondary" onClick={() => setShowTransferOutModal(false)} className="flex-1">Cancel</Button>
+                  <Button type="submit" disabled={submitting} className="flex-1">{submitting ? "Saving..." : "Transfer Out"}</Button>
                 </div>
               </div>
             </form>

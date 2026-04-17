@@ -55,6 +55,7 @@ export default function TimetablePage() {
       setTimetable(data || [])
     } catch (err) {
       console.error('Error fetching timetable:', err)
+      toast.error('Failed to load timetable')
     } finally {
       setLoading(false)
     }

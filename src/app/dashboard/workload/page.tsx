@@ -2,6 +2,7 @@
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
+import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -32,6 +33,7 @@ interface TeacherWorkload {
 
 export default function WorkloadPage() {
   const { school } = useAuth()
+  const toast = useToast()
   const [timetable, setTimetable] = useState<TimetableEntry[]>([])
   const [teachers, setTeachers] = useState<Array<{ id: string; full_name: string }>>([])
   const [loading, setLoading] = useState(true)
@@ -61,6 +63,7 @@ export default function WorkloadPage() {
       if (!tRes.error) setTeachers(tRes.data || [])
     } catch {
       console.error('Error fetching workload data')
+      toast.error('Failed to load workload data')
     } finally {
       setLoading(false)
     }
