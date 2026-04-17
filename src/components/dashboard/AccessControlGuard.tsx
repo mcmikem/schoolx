@@ -18,8 +18,9 @@ import {
   canUseModule,
   ModuleKey,
 } from "@/lib/featureStages";
+import { deepFreeze } from "@/lib/deep-freeze";
 
-const roleBasedRoutes: Record<string, keyof RolePermissions> = {
+const roleBasedRoutes: Record<string, keyof RolePermissions> = deepFreeze({
   "/dashboard/students": "students",
   "/dashboard/attendance": "attendance",
   "/dashboard/grades": "grades",
@@ -83,9 +84,9 @@ const roleBasedRoutes: Record<string, keyof RolePermissions> = {
   "/dashboard/pricing": "settings",
   "/dashboard/audit": "settings",
   "/dashboard/sync-center": "settings",
-};
+});
 
-const MODULE_FOR_ROUTE: Record<string, ModuleKey> = {
+const MODULE_FOR_ROUTE: Record<string, ModuleKey> = deepFreeze({
   "/dashboard": "dashboard",
   "/dashboard/attendance": "attendance",
   "/dashboard/students": "attendance",
@@ -132,11 +133,11 @@ const MODULE_FOR_ROUTE: Record<string, ModuleKey> = {
   "/dashboard/leave-approvals": "staff",
   "/dashboard/transport": "operations",
   "/dashboard/dorm-supplies": "operations",
-};
+});
 
 export { roleBasedRoutes, MODULE_FOR_ROUTE };
 
-const PAGE_TITLE_OVERRIDES: Record<string, string> = {
+const PAGE_TITLE_OVERRIDES: Record<string, string> = deepFreeze({
   "/dashboard": "Dashboard Overview",
   "/dashboard/moes": "MoES Module",
   "/dashboard/moes-reports": "MoES Reports",
@@ -168,7 +169,9 @@ const PAGE_TITLE_OVERRIDES: Record<string, string> = {
   "/dashboard/scheme-of-work": "Scheme of Work",
   "/dashboard/homework-submissions": "Homework Submissions",
   "/dashboard/exam-timetable": "Exam Timetable",
-};
+});
+
+export { PAGE_TITLE_OVERRIDES };
 
 export function getPageTitle(pathname: string): string {
   const basePathname = `/${pathname.split("/").slice(0, 3).join("/").replace(/^\//, "")}`;

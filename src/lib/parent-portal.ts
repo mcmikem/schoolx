@@ -35,6 +35,17 @@ export interface ParentPortalPayment {
   fee_structure?: { name?: string | null } | null;
 }
 
+export type ParentPortalWalletTransactionType = "topup" | "spend" | "refund";
+
+export interface ParentPortalWalletTransaction {
+  id: string;
+  amount: number;
+  type: ParentPortalWalletTransactionType;
+  reference?: string | null;
+  description?: string | null;
+  created_at: string;
+}
+
 export interface ParentPortalFeeStats {
   totalFee: number;
   totalPaid: number;
@@ -72,6 +83,25 @@ export interface ParentPortalGradeRecord {
   term?: string | null;
   exam_type?: string | null;
   teacher_comment?: string | null;
+}
+
+export interface ParentPortalMessageThreadItem {
+  id: string;
+  subject?: string | null;
+  body: string;
+  sender_role: "parent" | "school";
+  created_at: string;
+  is_read: boolean;
+}
+
+export interface ParentPortalReportCardSummary {
+  term: string;
+  averagePercent: number;
+  subjectCount: number;
+  strongestSubject: string;
+  latestExamType?: string | null;
+  teacherComment?: string | null;
+  performanceBand: "excellent" | "good" | "fair" | "attention";
 }
 
 interface ParentStudentLinkRecord {
@@ -226,8 +256,58 @@ export function getUniqueTerms(
   ) as string[];
 }
 
+export function buildReportCardSummaries(
+  grades: ParentPortalGradeRecord[],
+): ParentPortalReportCardSummary[] {
+  return getUniqueTerms(grades).map((term) => {
+    const records = grades.filter((grade) => grade.term === term);
+    const averagePercent =
+      records.length > 0
+        ? Math.round(
+            records.reduce((total, record) => total + toPercent(record), 0) /
+              records.length,
+          )
+        : 0;
+    const strongestRecord = records.reduce<ParentPortalGradeRecord | null>(
+      (best, record) => {
+        if (!best || toPercent(record) > toPercent(best)) {
+          return record;
+        }
+        return best;
+      },
+      null,
+    );
+    const latestComment =
+      records.find((record) => record.teacher_comment)?.teacher_comment || null;
+
+    return {
+      term,
+      averagePercent,
+      subjectCount: records.length,
+      strongestSubject: strongestRecord?.subject_name || "—",
+      latestExamType:
+        records.find((record) => record.exam_type)?.exam_type || null,
+      teacherComment: latestComment,
+      performanceBand: getPerformanceBand(averagePercent),
+    };
+  });
+}
+
 function isAttendanceStatus(status: string): status is ParentAttendanceStatus {
   return ["present", "absent", "late", "excused"].includes(status);
+}
+
+function toPercent(record: ParentPortalGradeRecord) {
+  return Math.round((record.score / (record.max_score || 100)) * 100);
+}
+
+function getPerformanceBand(
+  averagePercent: number,
+): ParentPortalReportCardSummary["performanceBand"] {
+  if (averagePercent >= 80) return "excellent";
+  if (averagePercent >= 65) return "good";
+  if (averagePercent >= 50) return "fair";
+  return "attention";
 }
 
 function resolveRelationName(
