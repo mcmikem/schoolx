@@ -62,6 +62,8 @@ interface Installment {
 
 type FinanceTab = "balances" | "payment-plans" | "invoices" | "cashbook";
 
+const MAX_FINANCE_AMOUNT = 100_000_000;
+
 export default function FinanceHubPage() {
   const { school } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
@@ -509,16 +511,19 @@ export default function FinanceHubPage() {
 
   const handleRecordPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPayment.student_id || !newPayment.amount_paid) {
+    const normalizedAmount = newPayment.amount_paid.trim();
+
+    if (!newPayment.student_id || !normalizedAmount) {
       toast.error("Please fill all required fields");
       return;
     }
-    const parsedAmount = Number(newPayment.amount_paid);
+
+    const parsedAmount = Number(normalizedAmount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       toast.error("Payment amount must be a positive number");
       return;
     }
-    if (parsedAmount > 100_000_000) {
+    if (parsedAmount > MAX_FINANCE_AMOUNT) {
       toast.error("Payment amount seems too large. Please check and try again.");
       return;
     }
@@ -533,7 +538,7 @@ export default function FinanceHubPage() {
       }
       await createPayment({
         student_id: newPayment.student_id,
-        amount_paid: Number(newPayment.amount_paid),
+        amount_paid: parsedAmount,
         payment_method: newPayment.payment_method,
         payment_reference: reference || undefined,
         paid_by: newPayment.paid_by || undefined,
@@ -545,11 +550,8 @@ export default function FinanceHubPage() {
       if (student) {
         setSelectedStudent({
           ...student,
-          paid: student.paid + Number(newPayment.amount_paid),
-          balance: Math.max(
-            0,
-            student.balance - Number(newPayment.amount_paid),
-          ),
+          paid: student.paid + parsedAmount,
+          balance: Math.max(0, student.balance - parsedAmount),
         });
         setShowReceiptModal(true);
       }
@@ -616,7 +618,7 @@ export default function FinanceHubPage() {
       toast.error("Fee amount must be a positive number");
       return;
     }
-    if (parsedFeeAmount > 100_000_000) {
+    if (parsedFeeAmount > MAX_FINANCE_AMOUNT) {
       toast.error("Fee amount seems too large. Please check and try again.");
       return;
     }

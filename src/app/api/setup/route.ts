@@ -333,11 +333,15 @@ export async function POST(request: NextRequest) {
             FROM students
             WHERE id = p_student_id;
 
+            IF v_school_id IS NULL THEN
+              RAISE EXCEPTION 'Student % is not linked to a school', p_student_id;
+            END IF;
+
             -- Ensure wallet exists
             INSERT INTO student_wallets (student_id, school_id, balance, last_topup_at)
             VALUES (p_student_id, v_school_id, p_amount, NOW())
             ON CONFLICT (student_id) DO UPDATE
-            SET school_id = COALESCE(student_wallets.school_id, EXCLUDED.school_id),
+            SET school_id = EXCLUDED.school_id,
                 balance = student_wallets.balance + p_amount,
                 last_topup_at = NOW(),
                 updated_at = NOW()

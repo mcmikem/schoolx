@@ -126,9 +126,13 @@ export default function DashboardRouter() {
     (!school || !school.name || school.name === 'My School')
 
   useEffect(() => {
-    if (!loading && requiresSetup) {
+    if (loading || !requiresSetup) return
+
+    const redirectTimer = window.setTimeout(() => {
       router.replace('/dashboard/setup-wizard')
-    }
+    }, 0)
+
+    return () => window.clearTimeout(redirectTimer)
   }, [loading, requiresSetup, router])
 
   if (loading) {
