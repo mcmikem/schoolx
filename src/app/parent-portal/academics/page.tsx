@@ -7,13 +7,23 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
+import {
+  getUniqueTerms,
+  mapParentStudentLinks,
+  normalizeGrades,
+  ParentPortalChild,
+  ParentPortalGradeRecord,
+  resolveSelectedChild,
+} from "@/lib/parent-portal";
 
 export default function ParentAcademicsPage() {
   const { user, isDemo } = useAuth();
   const { isAuthorized, isChecking } = useParentPortalGuard();
-  const [children, setChildren] = useState<any[]>([]);
-  const [selectedChild, setSelectedChild] = useState<any>(null);
-  const [grades, setGrades] = useState<any[]>([]);
+  const [children, setChildren] = useState<ParentPortalChild[]>([]);
+  const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(
+    null,
+  );
+  const [grades, setGrades] = useState<ParentPortalGradeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTerm, setSelectedTerm] = useState<string>("all");
   const [terms, setTerms] = useState<string[]>([]);
@@ -39,17 +49,18 @@ export default function ParentAcademicsPage() {
         "student:students(id, first_name, last_name, class:classes(name))",
       )
       .eq("parent_id", user.id);
-    const list = (data || []).map((d: any) => ({
-      ...d.student,
-      class_name: d.student.class?.name || "—",
-    }));
+    const list = mapParentStudentLinks(data || []);
     setChildren(list);
-    if (list.length > 0) setSelectedChild(list[0]);
   }, [user?.id, isDemo]);
 
+  useEffect(() => {
+    setSelectedChild((current) => resolveSelectedChild(children, current?.id));
+  }, [children]);
+
   const fetchGrades = useCallback(
-    async (child: any) => {
-      if (!child) return;
+    async (child: ParentPortalChild | null) => {
+      const scopedChild = resolveSelectedChild(children, child?.id);
+      if (!scopedChild) return;
       setLoading(true);
       if (isDemo) {
         const demoGrades = [
@@ -104,8 +115,9 @@ export default function ParentAcademicsPage() {
             teacher_comment: "Outstanding improvement!",
           },
         ];
-        setGrades(demoGrades);
-        setTerms(Array.from(new Set(demoGrades.map((g) => g.term))));
+        const normalized = normalizeGrades(demoGrades);
+        setGrades(normalized);
+        setTerms(getUniqueTerms(normalized));
         setLoading(false);
         return;
       }
@@ -114,19 +126,14 @@ export default function ParentAcademicsPage() {
         .select(
           "id, score, max_score, grade, term, exam_type, teacher_comment, subjects(name)",
         )
-        .eq("student_id", child.id)
+        .eq("student_id", scopedChild.id)
         .order("created_at", { ascending: false });
-      const mapped = (data || []).map((g: any) => ({
-        ...g,
-        subject_name: g.subjects?.name || "Unknown",
-      }));
+      const mapped = normalizeGrades(data || []);
       setGrades(mapped);
-      setTerms(
-        Array.from(new Set(mapped.map((g: any) => g.term).filter(Boolean))),
-      );
+      setTerms(getUniqueTerms(mapped));
       setLoading(false);
     },
-    [isDemo],
+    [isDemo, children],
   );
 
   useEffect(() => {

@@ -8,14 +8,24 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
+import {
+  calculateFeeStats,
+  mapParentStudentLinks,
+  ParentPortalChild,
+  ParentPortalFeeStructureItem,
+  ParentPortalPayment,
+  resolveSelectedChild,
+} from "@/lib/parent-portal";
 
 export default function ParentFeesPage() {
   const { user, isDemo } = useAuth();
   const { isAuthorized, isChecking } = useParentPortalGuard();
-  const [children, setChildren] = useState<any[]>([]);
-  const [selectedChild, setSelectedChild] = useState<any>(null);
-  const [feeStructure, setFeeStructure] = useState<any[]>([]);
-  const [payments, setPayments] = useState<any[]>([]);
+  const [children, setChildren] = useState<ParentPortalChild[]>([]);
+  const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(
+    null,
+  );
+  const [feeStructure, setFeeStructure] = useState<ParentPortalFeeStructureItem[]>([]);
+  const [payments, setPayments] = useState<ParentPortalPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ totalFee: 0, totalPaid: 0, balance: 0 });
 
@@ -33,13 +43,17 @@ export default function ParentFeesPage() {
         "student:students(id, first_name, last_name, school_id, class_id, class:classes(name))",
       )
       .eq("parent_id", user.id);
-    const list = (data || []).map((d: any) => ({ ...d.student, class_name: d.student.class?.name || "—" }));
+    const list = mapParentStudentLinks(data || []);
     setChildren(list);
-    if (list.length > 0) setSelectedChild(list[0]);
   }, [user?.id, isDemo]);
 
-  const fetchFees = useCallback(async (child: any) => {
-    if (!child) return;
+  useEffect(() => {
+    setSelectedChild((current) => resolveSelectedChild(children, current?.id));
+  }, [children]);
+
+  const fetchFees = useCallback(async (child: ParentPortalChild | null) => {
+    const scopedChild = resolveSelectedChild(children, child?.id);
+    if (!scopedChild) return;
     setLoading(true);
     if (isDemo) {
       const demoStructure = [
@@ -63,25 +77,25 @@ export default function ParentFeesPage() {
       supabase
         .from("fee_structure")
         .select("id, name, amount, term")
-        .eq("school_id", child.school_id)
+        .eq("school_id", scopedChild.school_id)
         .is("deleted_at", null)
-        .or(`class_id.is.null,class_id.eq.${child.class_id}`),
+        .or(`class_id.is.null,class_id.eq.${scopedChild.class_id}`),
       supabase
         .from("fee_payments")
         .select(
           "id, amount_paid, payment_date, payment_method, payment_reference, fee_structure:fee_id(name)",
         )
-        .eq("student_id", child.id)
+        .eq("student_id", scopedChild.id)
         .is("deleted_at", null)
         .order("payment_date", { ascending: false }),
     ]);
-    const totalFee = (fs || []).reduce((s: number, f: any) => s + Number(f.amount), 0);
-    const totalPaid = (pays || []).reduce((s: number, p: any) => s + Number(p.amount_paid), 0);
-    setFeeStructure(fs || []);
-    setPayments(pays || []);
-    setStats({ totalFee, totalPaid, balance: Math.max(0, totalFee - totalPaid) });
+    const feeItems = (fs || []) as ParentPortalFeeStructureItem[];
+    const paymentItems = (pays || []) as ParentPortalPayment[];
+    setFeeStructure(feeItems);
+    setPayments(paymentItems);
+    setStats(calculateFeeStats(feeItems, paymentItems));
     setLoading(false);
-  }, [isDemo]);
+  }, [isDemo, children]);
 
   useEffect(() => { fetchChildren(); }, [fetchChildren]);
   useEffect(() => { if (selectedChild) fetchFees(selectedChild); }, [selectedChild, fetchFees]);
