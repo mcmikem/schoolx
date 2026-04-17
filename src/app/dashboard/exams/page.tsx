@@ -1,6 +1,7 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import {
@@ -34,6 +35,7 @@ export default function ExamsPage() {
   const { school, isDemo } = useAuth();
   const { academicYear, currentTerm, isTermLocked } = useAcademic();
   const toast = useToast();
+  const router = useRouter();
 
   const termLocked = isTermLocked
     ? isTermLocked(academicYear, currentTerm)
@@ -258,12 +260,12 @@ export default function ExamsPage() {
                 )}
                 {selectedClass && selectedSubject && (
                   <button
-                    onClick={() => {
-                      const count = filteredStudents.length;
-                      toast.success(
-                        `Generated ${count} unique comments based on student performance`,
-                      );
-                    }}
+                    type="button"
+                    onClick={() =>
+                      router.push(
+                        `/dashboard/comments?class=${selectedClass}&subject=${selectedSubject}`,
+                      )
+                    }
                     className="px-3 py-1 bg-emerald-soft text-emerald-800 rounded-lg text-[10px] font-black uppercase border border-emerald-200 hover:bg-emerald-100 transition-all"
                   >
                     Auto-Comment All
