@@ -121,44 +121,44 @@ export default function ParentLoginPage() {
   return (
     <AuthShell
       badge="Parent portal"
-      title="A parent login that feels part of the same school journey."
-      description="Parents now get the same calm visual system, stronger mobile spacing, and clearer next steps when they still need their child linked."
+      title="Sign in as a parent"
+      description="Use the phone number the school saved for you so you can check your child’s school information."
       quickFacts={[
-        "Phone-first parent access",
-        "Demo path for school walkthroughs",
-        "Clearer first-time linking guidance",
+        "Use the phone number on school records",
+        "Works on mobile phones",
+        "Demo available for school guidance",
       ]}
       highlights={[
         {
           icon: "family_restroom",
-          title: "Built for guardians",
+          title: "What parents can do",
           description:
-            "Parents can check progress from their phones without learning a different interface from the main site.",
+            "Check attendance, notices, fee information, and school updates from one place.",
         },
         {
           icon: "smartphone",
-          title: "Comfortable on mobile",
+          title: "Easy on phones",
           description:
-            "Large buttons and simple copy make the flow easier on smaller devices and shared family phones.",
+            "Large buttons and clear labels make sign-in easier on shared family phones.",
         },
         {
           icon: "sms",
-          title: "School-linked access",
+          title: "If your child is not linked yet",
           description:
-            "If an account exists but is not yet linked, the flow clearly explains what the parent needs next.",
+            "Ask the school office to confirm your phone number and connect your child to your account.",
         },
         {
           icon: "school",
-          title: "Simple demo handoff",
+          title: "For school demonstrations",
           description:
-            "Schools can show parents the experience quickly during meetings and admission days.",
+            "Use the demo option below when the school is showing parents how the portal works.",
         },
       ]}
       contentTitle={linking ? "Link your child" : "Parent sign in"}
       contentDescription={
         linking
           ? "Add the student ID and the parent phone on file so the school can connect this account."
-          : "Use the phone number the school has on record for you. If you are demonstrating the portal, use the demo option below."
+          : "Use the same phone number given to the school. If you are only learning, use the demo option below."
       }
       supportNote={
         <div className="space-y-2">

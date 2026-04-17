@@ -9,12 +9,12 @@ import { useSyncStatus } from "@/lib/useSyncStatus";
 
 function getQuickAction(pathname: string | null) {
   if (!pathname || pathname === "/dashboard") {
-    return {
-      href: "/dashboard/students",
-      label: "Add learners",
-      helper: "Start by entering or checking student records.",
-      icon: "person_add",
-    };
+      return {
+        href: "/dashboard/students",
+        label: "Add learners",
+        helper: "Start by entering or checking learner records.",
+        icon: "person_add",
+      };
   }
 
   if (pathname.startsWith("/dashboard/students")) {
