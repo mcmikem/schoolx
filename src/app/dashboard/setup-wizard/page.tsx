@@ -140,64 +140,74 @@ export default function SetupWizardPage() {
 
     setSaving(true)
     try {
-      // Step 1: Update school info
-      await supabase.from('schools').update({
+      // Step 1: Update school info (without marking onboarding complete yet)
+      const { error: schoolError } = await supabase.from('schools').update({
         phone: schoolInfo.phone,
         district: schoolInfo.district,
         school_motto: schoolInfo.motto,
         primary_color: schoolInfo.primary_color,
-        onboarding_complete: true,
       }).eq('id', schoolId)
+      if (schoolError) throw new Error(`Failed to update school info: ${schoolError.message}`)
 
       // Step 2: Create classes
       for (const className of classes) {
-        await supabase.from('classes').insert({
+        const { error: classError } = await supabase.from('classes').insert({
           school_id: schoolId,
           name: className,
           level: academic.type,
           academic_year: academic.year,
           max_students: 60,
         })
+        if (classError) throw new Error(`Failed to create class "${className}": ${classError.message}`)
       }
 
       // Step 3: Create subjects
       const selectedSubjects = subjects.filter(s => s.selected)
       for (const subject of selectedSubjects) {
-        await supabase.from('subjects').insert({
+        const { error: subjectError } = await supabase.from('subjects').insert({
           school_id: schoolId,
           name: subject.name,
           code: subject.code,
           level: academic.type,
           is_compulsory: subject.compulsory,
         })
+        if (subjectError) throw new Error(`Failed to create subject "${subject.name}": ${subjectError.message}`)
       }
 
       // Step 4: Create staff
       for (const member of staff) {
         if (member.name && member.phone) {
           const cleanPhone = member.phone.replace(/[^0-9]/g, '')
-          await supabase.from('users').insert({
+          const { error: staffError } = await supabase.from('users').insert({
             school_id: schoolId,
             full_name: member.name,
             phone: cleanPhone,
             role: member.role,
             is_active: true,
           })
+          if (staffError) throw new Error(`Failed to create staff member "${member.name}": ${staffError.message}`)
         }
       }
 
       // Step 5: Create fee structure
       for (const fee of fees) {
         if (fee.name && parseFloat(fee.amount) > 0) {
-          await supabase.from('fee_structure').insert({
+          const { error: feeError } = await supabase.from('fee_structure').insert({
             school_id: schoolId,
             name: fee.name,
             amount: parseFloat(fee.amount),
             term: 1,
             academic_year: academic.year,
           })
+          if (feeError) throw new Error(`Failed to create fee "${fee.name}": ${feeError.message}`)
         }
       }
+
+      // Step 6: Mark onboarding complete only after all steps succeed
+      const { error: completeError } = await supabase.from('schools').update({
+        onboarding_complete: true,
+      }).eq('id', schoolId)
+      if (completeError) throw new Error(`Failed to finalize setup: ${completeError.message}`)
 
       toast.success('School setup completed!')
       setProgress({ complete: true })
@@ -208,7 +218,7 @@ export default function SetupWizardPage() {
     } finally {
       setSaving(false)
     }
-  }, [user?.school_id, school?.id, schoolInfo, academic, classes, subjects, staff, fees, toast])
+  }, [user, school, schoolInfo, classes, academic, subjects, staff, fees, supabase])
 
   const stepContent = () => {
     switch (currentStep) {

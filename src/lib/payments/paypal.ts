@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 const paypal: any = require('@paypal/checkout-server-sdk');
 
 let environment: any;
@@ -47,7 +48,7 @@ export async function createPayPalOrder(
     const order = await paypalClient.execute(request);
     return order;
   } catch (error) {
-    console.error('Error creating PayPal order:', error);
+    logger.error('Error creating PayPal order:', error);
     throw new Error('Failed to create PayPal order');
   }
 }
@@ -60,7 +61,7 @@ export async function capturePayPalOrder(orderID: string) {
     const capture = await paypalClient.execute(request);
     return capture;
   } catch (error) {
-    console.error('Error capturing PayPal order:', error);
+    logger.error('Error capturing PayPal order:', error);
     throw new Error('Failed to capture PayPal order');
   }
 }
@@ -72,7 +73,7 @@ export async function getPayPalOrder(orderID: string) {
     const order = await paypalClient.execute(request);
     return order;
   } catch (error) {
-    console.error('Error getting PayPal order:', error);
+    logger.error('Error getting PayPal order:', error);
     throw new Error('Failed to get PayPal order');
   }
 }
@@ -112,7 +113,7 @@ export async function createPayPalSubscription(
     const subscription = await paypalClient.execute(request);
     return subscription;
   } catch (error) {
-    console.error('Error creating PayPal subscription:', error);
+    logger.error('Error creating PayPal subscription:', error);
     throw new Error('Failed to create PayPal subscription');
   }
 }
@@ -124,7 +125,7 @@ export async function activatePayPalSubscription(subscriptionID: string) {
     const subscription = await paypalClient.execute(request);
     return subscription;
   } catch (error) {
-    console.error('Error activating PayPal subscription:', error);
+    logger.error('Error activating PayPal subscription:', error);
     throw new Error('Failed to activate PayPal subscription');
   }
 }
@@ -136,7 +137,7 @@ export async function getPayPalSubscription(subscriptionID: string) {
     const subscription = await paypalClient.execute(request);
     return subscription;
   } catch (error) {
-    console.error('Error getting PayPal subscription:', error);
+    logger.error('Error getting PayPal subscription:', error);
     throw new Error('Failed to get PayPal subscription');
   }
 }
@@ -151,7 +152,7 @@ export async function cancelPayPalSubscription(subscriptionID: string, reason: s
     const subscription = await paypalClient.execute(request);
     return subscription;
   } catch (error) {
-    console.error('Error canceling PayPal subscription:', error);
+    logger.error('Error canceling PayPal subscription:', error);
     throw new Error('Failed to cancel PayPal subscription');
   }
 }
@@ -173,7 +174,7 @@ export async function revisePayPalSubscription(
     const subscription = await paypalClient.execute(request);
     return subscription;
   } catch (error) {
-    console.error('Error revising PayPal subscription:', error);
+    logger.error('Error revising PayPal subscription:', error);
     throw new Error('Failed to revise PayPal subscription');
   }
 }
@@ -186,8 +187,56 @@ export async function verifyPayPalWebhook(
   transmissionTime: string,
   webhookId: string,
   webhookEvent: any
-) {
-  return true;
+): Promise<boolean> {
+  try {
+    const clientId = process.env.PAYPAL_CLIENT_ID;
+    const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+    const mode = process.env.PAYPAL_MODE === 'live' ? 'live' : 'sandbox';
+    const baseUrl = mode === 'live' ? 'https://api.paypal.com' : 'https://api.sandbox.paypal.com';
+
+    if (!clientId || !clientSecret || !webhookId) {
+      if (process.env.NODE_ENV !== 'production') return true;
+      return false;
+    }
+
+    // Step 1: Get OAuth token
+    const tokenResponse = await fetch(`${baseUrl}/v1/oauth2/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+      },
+      body: 'grant_type=client_credentials',
+    });
+
+    if (!tokenResponse.ok) return false;
+    const tokenData = await tokenResponse.json();
+    const accessToken: string = tokenData.access_token;
+
+    // Step 2: Verify webhook signature
+    const verifyResponse = await fetch(`${baseUrl}/v1/notifications/verify-webhook-signature`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        auth_algo: authAlgo,
+        cert_url: certUrl,
+        transmission_id: transmissionId,
+        transmission_sig: transmissionSig,
+        transmission_time: transmissionTime,
+        webhook_id: webhookId,
+        webhook_event: webhookEvent,
+      }),
+    });
+
+    if (!verifyResponse.ok) return false;
+    const verifyData = await verifyResponse.json();
+    return verifyData.verification_status === 'SUCCESS';
+  } catch {
+    return false;
+  }
 }
 
 const paypalApi = {

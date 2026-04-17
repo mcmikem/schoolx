@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
           totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
 
         // Check if report card already exists
-        const { data: existingCards } = await supabase
+        const { data: existingCards } = await (supabase as any)
           .from("report_cards")
           .select("id")
           .eq("student_id", student.id)
@@ -227,7 +227,7 @@ export async function POST(request: NextRequest) {
         if (existingCards && existingCards.length > 0) {
           // Update existing report card
           reportCardId = existingCards[0].id;
-          const { error: updateError } = await supabase
+          const { error: updateError } = await (supabase as any)
             .from("report_cards")
             .update({
               subjects: subjectResults,
@@ -250,7 +250,7 @@ export async function POST(request: NextRequest) {
           }
         } else {
           // Insert new report card
-          const { data: newCard, error: insertError } = await supabase
+          const { data: newCard, error: insertError } = await (supabase as any)
             .from("report_cards")
             .insert({
               school_id: school.schoolId,

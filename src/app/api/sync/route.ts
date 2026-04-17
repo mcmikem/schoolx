@@ -268,12 +268,13 @@ export async function POST(request: NextRequest) {
     const key = supabaseServiceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     if (!key) return apiError('Server configuration error', 500)
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const supabase = createClient(supabaseUrl, key, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
       },
-    })
+    }) as any
 
     let successCount = 0
     let failedCount = 0

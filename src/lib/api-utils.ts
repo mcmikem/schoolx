@@ -411,9 +411,8 @@ export function requireCronSecretOrDeny(
   return { ok: true };
 }
 
-export function createServiceRoleClientOrThrow(): ReturnType<
-  typeof createClient
-> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function createServiceRoleClientOrThrow(): any {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
