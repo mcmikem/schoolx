@@ -71,7 +71,7 @@ function KeyboardShortcutsProvider({
   useEffect(() => {
     // Show hint when user presses ?
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === "?" || e.key === "/") {
+      if (e.key === "?" && e.shiftKey) {
         setShowHint(true);
         setHintTimeout((previousTimeout) => {
           if (previousTimeout) {

@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import {
   apiSuccess,
   apiError,
@@ -57,7 +57,7 @@ const SYNC_ALLOWED_ROLES = [
 ]
 
 async function resolveSchoolOwnership(params: {
-  supabase: any
+  supabase: SupabaseClient<any>
   table: string
   action: SyncItem['action']
   data: Record<string, unknown>
@@ -268,12 +268,12 @@ export async function POST(request: NextRequest) {
     const key = supabaseServiceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     if (!key) return apiError('Server configuration error', 500)
 
-    const supabase = createClient(supabaseUrl, key, {
+    const supabase: SupabaseClient<any> = createClient(supabaseUrl, key, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
       },
-    }) as any
+    })
 
     let successCount = 0
     let failedCount = 0
