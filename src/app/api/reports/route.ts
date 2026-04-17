@@ -107,15 +107,19 @@ export async function POST(request: NextRequest) {
     const attendanceSummary = {
       total: attendanceRecords?.length || 0,
       present:
-        attendanceRecords?.filter((a) => a.status === "present").length || 0,
+        attendanceRecords?.filter((a: { status: string }) => a.status === "present")
+          .length || 0,
       absent:
-        attendanceRecords?.filter((a) => a.status === "absent").length || 0,
-      late: attendanceRecords?.filter((a) => a.status === "late").length || 0,
+        attendanceRecords?.filter((a: { status: string }) => a.status === "absent")
+          .length || 0,
+      late:
+        attendanceRecords?.filter((a: { status: string }) => a.status === "late")
+          .length || 0,
     };
 
     // Organize grades by subject
     const subjectGrades: Record<string, any> = {};
-    grades?.forEach((grade) => {
+    grades?.forEach((grade: any) => {
       const subjectName = grade.subjects?.name || "Unknown";
       if (!subjectGrades[subjectName]) {
         subjectGrades[subjectName] = {

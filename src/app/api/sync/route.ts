@@ -57,7 +57,7 @@ const SYNC_ALLOWED_ROLES = [
 ]
 
 async function resolveSchoolOwnership(params: {
-  supabase: ReturnType<typeof createClient>
+  supabase: any
   table: string
   action: SyncItem['action']
   data: Record<string, unknown>
@@ -268,7 +268,6 @@ export async function POST(request: NextRequest) {
     const key = supabaseServiceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     if (!key) return apiError('Server configuration error', 500)
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const supabase = createClient(supabaseUrl, key, {
       auth: {
         autoRefreshToken: false,
