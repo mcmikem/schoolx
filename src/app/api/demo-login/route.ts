@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireDevelopmentRouteOrDeny } from "@/lib/api-utils";
 
 // Demo credentials - ONLY accessible server-side
 const DEMO_CREDS = {
@@ -29,7 +30,7 @@ const DEMO_CREDS = {
   },
 };
 
-const DEMO_PASSWORD = process.env.DEMO_ADMIN_PASSWORD || "skoolmate_demo_2024";
+const DEMO_PASSWORD = process.env.DEMO_ADMIN_PASSWORD;
 
 const DEMO_SCHOOL = {
   id: "00000000-0000-0000-0000-000000000001",
@@ -44,6 +45,15 @@ const DEMO_SCHOOL = {
 };
 
 export async function POST(request: NextRequest) {
+  const devOnly = requireDevelopmentRouteOrDeny();
+  if (!devOnly.ok) return devOnly.response;
+  if (!DEMO_PASSWORD) {
+    return NextResponse.json(
+      { error: "Demo login is not configured" },
+      { status: 503 },
+    );
+  }
+
   try {
     const { phone, password } = await request.json();
 

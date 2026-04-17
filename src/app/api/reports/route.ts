@@ -1,5 +1,4 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import {
   apiSuccess,
   apiError,
@@ -7,10 +6,18 @@ import {
   validateRequiredFields,
   requireUserWithSchool,
   assertSchoolScopeOrDeny,
+  assertUserRoleOrDeny,
+  createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const REPORT_ALLOWED_ROLES = [
+  "super_admin",
+  "school_admin",
+  "admin",
+  "headmaster",
+  "dean_of_studies",
+  "teacher",
+  "secretary",
+];
 
 function getUNEBGrade(score: number): string {
   if (score >= 80) return "D1";
@@ -37,6 +44,12 @@ export async function POST(request: NextRequest) {
     const auth = await requireUserWithSchool(request);
     if (!auth.ok) return auth.response;
 
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: REPORT_ALLOWED_ROLES,
+    });
+    if (!roleCheck.ok) return roleCheck.response;
+
     const { studentId, schoolId, term, academicYear } = await request.json();
 
     const validationError = validateRequiredFields({ studentId, schoolId }, [
@@ -47,9 +60,7 @@ export async function POST(request: NextRequest) {
       return apiError(validationError, 400);
     }
 
-    const supabase = supabaseServiceKey
-      ? createClient(supabaseUrl, supabaseServiceKey)
-      : createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+    const supabase = createServiceRoleClientOrThrow();
 
     const scope = assertSchoolScopeOrDeny({
       userSchoolId: auth.context.schoolId,

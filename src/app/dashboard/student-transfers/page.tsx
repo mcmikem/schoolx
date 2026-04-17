@@ -8,6 +8,10 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { DEMO_STUDENTS } from "@/lib/demo-data";
 
+const DEMO_MODE_ENABLED =
+  process.env.NODE_ENV === "development" &&
+  process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
+
 interface TransferStudent {
   id: string;
   name: string;
@@ -44,7 +48,7 @@ export default function StudentTransfersPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (isDemo) {
+    if (DEMO_MODE_ENABLED && isDemo) {
       setTransfersIn([
         {
           id: "1",
@@ -143,12 +147,25 @@ export default function StudentTransfersPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+      {!DEMO_MODE_ENABLED && (
+        <Card className="mb-6">
+          <CardBody className="p-6">
+            <p className="text-sm text-[var(--t2)]">
+              Student transfer workflows are temporarily unavailable in this
+              production build while end-to-end persistence is being completed.
+            </p>
+          </CardBody>
+        </Card>
+      )}
       <PageHeader
         title="Student Transfers"
         subtitle="Manage student transfers in and out"
         actions={
           <div className="flex gap-2">
-            <Button onClick={() => setShowModal(true)}>
+            <Button
+              onClick={() => setShowModal(true)}
+              disabled={!DEMO_MODE_ENABLED || !isDemo}
+            >
               <MaterialIcon icon="add" />
               New Transfer
             </Button>
@@ -209,7 +226,10 @@ export default function StudentTransfersPage() {
       ) : (
         <div className="space-y-4">
           <div className="flex justify-end">
-            <Button onClick={handleOpenTransferOut}>
+            <Button
+              onClick={handleOpenTransferOut}
+              disabled={!DEMO_MODE_ENABLED || !isDemo}
+            >
               <MaterialIcon icon="add" />
               Transfer Out
             </Button>
@@ -245,7 +265,7 @@ export default function StudentTransfersPage() {
         </div>
       )}
 
-      {showModal && (
+      {DEMO_MODE_ENABLED && isDemo && showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg">
             <h2 className="text-xl font-semibold mb-4">New Transfer In</h2>
@@ -400,7 +420,7 @@ export default function StudentTransfersPage() {
         </div>
       )}
 
-      {showTransferOutModal && (
+      {DEMO_MODE_ENABLED && isDemo && showTransferOutModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg">
             <h2 className="text-xl font-semibold mb-4">Transfer Out</h2>

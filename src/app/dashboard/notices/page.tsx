@@ -8,6 +8,10 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { DEMO_NOTICES, DEMO_STAFF } from "@/lib/demo-data";
 
+const DEMO_MODE_ENABLED =
+  process.env.NODE_ENV === "development" &&
+  process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
+
 export default function NoticesPage() {
   const { user, school, isDemo } = useAuth();
   const toast = useToast();
@@ -23,10 +27,10 @@ export default function NoticesPage() {
   });
 
   useEffect(() => {
-    if (isDemo) {
+    if (DEMO_MODE_ENABLED && isDemo) {
       setNotices(DEMO_NOTICES);
-      setLoading(false);
     }
+    setLoading(false);
   }, [isDemo]);
 
   const handlePost = async (e: React.FormEvent) => {
@@ -51,11 +55,24 @@ export default function NoticesPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+      {!DEMO_MODE_ENABLED && (
+        <Card className="mb-6">
+          <CardBody className="p-6">
+            <p className="text-sm text-[var(--t2)]">
+              Notices are temporarily unavailable in this production build while
+              the workflow is being completed.
+            </p>
+          </CardBody>
+        </Card>
+      )}
       <PageHeader
         title="Notices"
         subtitle="Post and manage school notices"
         actions={
-          <Button onClick={() => setShowPostModal(true)}>
+          <Button
+            onClick={() => setShowPostModal(true)}
+            disabled={!DEMO_MODE_ENABLED || !isDemo}
+          >
             <MaterialIcon icon="add" />
             Post Notice
           </Button>
@@ -92,7 +109,7 @@ export default function NoticesPage() {
         </div>
       )}
 
-      {showPostModal && (
+      {DEMO_MODE_ENABLED && isDemo && showPostModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg">
             <h2 className="text-xl font-semibold mb-4">Post Notice</h2>
