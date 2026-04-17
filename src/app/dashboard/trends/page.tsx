@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { useStudents, useFeePayments } from "@/lib/hooks";
+import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import {
   LineChart,
@@ -33,6 +34,7 @@ interface TrendData {
 
 export default function TrendAnalyticsPage() {
   const { school } = useAuth();
+  const toast = useToast();
   const { academicYear } = useAcademic();
   const { students } = useStudents(school?.id);
   const { payments } = useFeePayments(school?.id);
@@ -56,8 +58,9 @@ export default function TrendAnalyticsPage() {
       }
     } catch (err) {
       console.error("Error:", err);
+      toast.error("Failed to load trend data");
     }
-  }, [school?.id]);
+  }, [school?.id, toast]);
 
   const fetchHistoricalData = useCallback(async () => {
     if (!school?.id) return;

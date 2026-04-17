@@ -74,6 +74,7 @@ export default function SchemeOfWorkPage() {
       }
     } catch (err) {
       console.error("Failed to load scheme:", err);
+      toast.error("Failed to load scheme of work");
     } finally {
       setLoading(false);
     }

@@ -90,6 +90,7 @@ export default function DisciplinePage() {
       setRecords(data || [])
     } catch (err) {
       console.error('Error:', err)
+      toast.error('Failed to load discipline records')
     } finally {
       setLoading(false)
     }
