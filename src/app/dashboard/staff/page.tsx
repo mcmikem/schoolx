@@ -95,6 +95,7 @@ export default function StaffHubPage() {
   ];
 
   return (
+    <PageErrorBoundary>
     <div className="content">
       <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1298,7 +1299,6 @@ function LeaveTab({
   };
 
   return (
-    <PageErrorBoundary>
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
