@@ -218,7 +218,7 @@ export default function SetupWizardPage() {
     } finally {
       setSaving(false)
     }
-  }, [user?.school_id, school?.id, schoolInfo, classes, academic, subjects, staff, fees, toast])
+  }, [user?.school_id, school?.id, schoolInfo, classes, academic.type, academic.year, subjects, staff, fees, toast])
 
   const stepContent = () => {
     switch (currentStep) {

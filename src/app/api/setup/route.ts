@@ -334,7 +334,7 @@ export async function POST(request: NextRequest) {
             WHERE id = p_student_id;
 
             IF v_school_id IS NULL THEN
-              RAISE EXCEPTION 'Cannot top up wallet: student % does not belong to any school', p_student_id;
+              RAISE EXCEPTION USING MESSAGE = 'Cannot top up wallet: student ' || p_student_id || ' does not belong to any school';
             END IF;
 
             -- Ensure wallet exists
