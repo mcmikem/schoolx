@@ -9,6 +9,9 @@ const demoNames: Record<DemoRole, string> = {
   teacher: 'Mary Teacher',
 }
 
+// Key must match DEMO_KEY in src/lib/auth-context.tsx
+const DEMO_KEY = 'skoolmate_demo_v1'
+
 export async function seedDemoSession(page: Page, role: DemoRole) {
   const payload = {
     demoUser: {
@@ -24,7 +27,7 @@ export async function seedDemoSession(page: Page, role: DemoRole) {
       school_type: 'primary',
       ownership: 'private',
       primary_color: '#17325F',
-      subscription_plan: 'premium',
+      subscription_plan: 'growth',
       subscription_status: 'active',
       feature_stage: 'full',
     },
@@ -33,11 +36,12 @@ export async function seedDemoSession(page: Page, role: DemoRole) {
   const encoded = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64')
 
   await page.addInitScript(
-    ({ value }) => {
-      localStorage.setItem('omuto_demo_v1', value)
+    ({ key, value }) => {
+      // auth-context.tsx reads sessionStorage first, then falls back to localStorage
+      sessionStorage.setItem(key, value)
       localStorage.setItem('academic_year', '2026')
       localStorage.setItem('current_term', '1')
     },
-    { value: encoded }
+    { key: DEMO_KEY, value: encoded }
   )
 }
