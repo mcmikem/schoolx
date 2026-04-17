@@ -1,27 +1,13 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import Link from "next/link";
-import SkoolMateLogo from "@/components/SkoolMateLogo";
-import { logger } from "@/lib/logger";
-import { Button, Input, Select } from "@/components/ui";
 
-function MaterialIcon({
-  icon,
-  className,
-  children,
-}: {
-  icon: string;
-  className?: string;
-  children?: React.ReactNode;
-}) {
-  return (
-    <span className={`material-symbols-outlined ${className || ""}`}>
-      {icon || children}
-    </span>
-  );
-}
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import MaterialIcon from "@/components/MaterialIcon";
+import AuthShell from "@/components/auth/AuthShell";
+import { Button, Input, Select } from "@/components/ui";
+import { logger } from "@/lib/logger";
+import { supabase } from "@/lib/supabase";
 
 const DISTRICTS = [
   "Kampala",
@@ -64,7 +50,25 @@ const OWNERSHIP_OPTIONS = [
 
 const DISTRICT_OPTIONS = [
   { value: "", label: "Select district" },
-  ...DISTRICTS.map((d) => ({ value: d, label: d })),
+  ...DISTRICTS.map((district) => ({ value: district, label: district })),
+];
+
+const STEP_DETAILS = [
+  {
+    number: 1,
+    label: "School setup",
+    helper: "Tell us the kind of school you run.",
+  },
+  {
+    number: 2,
+    label: "Location",
+    helper: "Add the district and school contacts.",
+  },
+  {
+    number: 3,
+    label: "Admin access",
+    helper: "Create the first login for the school.",
+  },
 ];
 
 export default function RegisterPage() {
@@ -72,6 +76,8 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [form, setForm] = useState({
     schoolName: "",
@@ -92,7 +98,6 @@ export default function RegisterPage() {
     if (error) setError("");
   };
 
-  // Validation functions
   const validateStep1 = (): boolean => {
     if (!form.schoolName.trim()) {
       setError("School name is required");
@@ -130,11 +135,10 @@ export default function RegisterPage() {
       setError("Admin phone is required");
       return false;
     }
-    // Uganda phone validation
-    const phoneRegex = /^(0|256|\\+256)[7][0-9]{8}$/;
+
     const cleanPhone = form.adminPhone.replace(/[^0-9]/g, "");
     if (cleanPhone.length < 10 || cleanPhone.length > 12) {
-      setError("Please enter a valid Uganda phone number (e.g., 0700000000)");
+      setError("Use a valid Uganda phone number, e.g. 0700000000");
       return false;
     }
     if (form.password.length < 6) {
@@ -152,22 +156,18 @@ export default function RegisterPage() {
     return true;
   };
 
-  const goToStep = (newStep: number) => {
+  const goToStep = (nextStep: number) => {
     setError("");
-    if (newStep === 2 && !validateStep1()) return;
-    if (newStep === 3 && !validateStep2()) return;
-    setStep(newStep);
+    if (nextStep === 2 && !validateStep1()) return;
+    if (nextStep === 3 && !validateStep2()) return;
+    setStep(nextStep);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (step !== 3) {
-      return;
-    }
-
-    if (!validateStep3()) {
+    if (step !== 3 || !validateStep3()) {
       return;
     }
 
@@ -249,70 +249,129 @@ export default function RegisterPage() {
     }
   };
 
+  const currentStep = STEP_DETAILS[step - 1];
+
   return (
-    <div className="min-h-screen bg-[var(--bg)] flex flex-col justify-center relative overflow-hidden">
-      {/* Decorative Background Elements */}
-      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-[var(--navy-soft)] blur-[120px] rounded-full opacity-50" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-[var(--green-soft)] blur-[120px] rounded-full opacity-30" />
-
-      <div className="relative z-10 w-full max-w-lg mx-auto px-4">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-[24px] bg-white shadow-xl mb-6 ring-1 ring-slate-100">
-            <SkoolMateLogo size="md" />
-          </div>
-          <h2 className="text-3xl font-extrabold text-[var(--t1)] tracking-tight">
-            Start Your School Account
-          </h2>
-          <p className="mt-2 text-[var(--t3)] font-medium">
-            Join Uganda&apos;s leading school operating system
+    <AuthShell
+      badge="Modern onboarding for schools"
+      title="Register your school without feeling lost."
+      description="This flow keeps the landing page look and adds clearer step guidance so head teachers, bursars, and office staff can finish setup comfortably on mobile or desktop."
+      quickFacts={[
+        "3 short steps with progress feedback",
+        "Uganda-friendly phone and district inputs",
+        "Larger controls for office and field use",
+      ]}
+      highlights={[
+        {
+          icon: "how_to_reg",
+          title: "Simple school-first setup",
+          description:
+            "Start with the essentials only: school type, location, and the first admin account.",
+        },
+        {
+          icon: "location_on",
+          title: "Built for peri-urban and rural teams",
+          description:
+            "Short labels and familiar examples reduce confusion for staff joining from paper-based processes.",
+        },
+        {
+          icon: "smartphone",
+          title: "Easy on smaller screens",
+          description:
+            "Readable spacing and strong contrast make form completion easier on shared Android phones.",
+        },
+        {
+          icon: "wifi_off",
+          title: "Low-data aware",
+          description:
+            "Only the required details are requested, so first-time setup stays focused even on weak internet.",
+        },
+      ]}
+      contentTitle={`Step ${step} of 3 · ${currentStep.label}`}
+      contentDescription={currentStep.helper}
+      supportNote={
+        <div className="space-y-2">
+          <p className="font-semibold text-slate-800">
+            Before you continue
           </p>
+          <ul className="space-y-1 text-sm text-slate-600">
+            <li>• Use the main school or administrator phone number.</li>
+            <li>• Pick the district where the school operates today.</li>
+            <li>• You can add students, classes, and staff after signup.</li>
+          </ul>
         </div>
-
-        <div className="mb-6">
+      }
+      footer={
+        <p className="text-center text-sm text-slate-500">
+          Already have an account?{" "}
+          <Link
+            href="/login"
+            className="font-semibold text-[#17325F] transition hover:text-[#2E9448]"
+          >
+            Sign in
+          </Link>
+        </p>
+      }
+    >
+      <div className="space-y-6">
+        <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4">
           <div
             className="flex gap-2"
             role="navigation"
             aria-label="Registration progress"
           >
-            {[1, 2, 3].map((s) => (
+            {STEP_DETAILS.map((item) => (
               <div
-                key={s}
-                className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
-                  s <= step
-                    ? "bg-[var(--primary)] shadow-[0_0_12px_rgba(23,50,95,0.4)]"
-                    : "bg-[var(--border)]"
+                key={item.number}
+                className={`h-2 flex-1 rounded-full transition-all ${
+                  item.number <= step ? "bg-[#17325F]" : "bg-slate-200"
                 }`}
               />
             ))}
           </div>
-          <p className="mt-4 text-center text-[10px] font-bold uppercase tracking-widest text-[var(--t3)]">
-            Step {step} of 3 — Account Setup
-          </p>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            {STEP_DETAILS.map((item) => (
+              <div
+                key={item.number}
+                className={`rounded-[20px] border p-3 transition ${
+                  item.number === step
+                    ? "border-[#17325F]/20 bg-white text-slate-900 shadow-sm"
+                    : "border-transparent bg-transparent text-slate-500"
+                }`}
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.18em]">
+                  Step {item.number}
+                </p>
+                <p className="mt-1 text-sm font-semibold">{item.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="card-premium p-8 md:p-10 shadow-[0_32px_64px_rgba(15,23,42,0.1)]">
-          {error && (
-            <div
-              className="mb-4 p-3 rounded-xl text-sm border bg-[var(--red-soft)] border-[var(--error)]/25 text-[var(--error)]"
-              role="alert"
-            >
-              {error}
-            </div>
-          )}
+        {error ? (
+          <div
+            className="rounded-[22px] border border-[var(--error)]/20 bg-[var(--red-soft)] px-4 py-3 text-sm text-[var(--error)]"
+            role="alert"
+          >
+            {error}
+          </div>
+        ) : null}
 
-          <form onSubmit={handleSubmit}>
-            {step === 1 && (
-              <div className="space-y-5">
-                <Input
-                  label="School Name"
-                  type="text"
-                  placeholder="e.g. St. Mary Primary School"
-                  value={form.schoolName}
-                  onChange={(e) => updateForm("schoolName", e.target.value)}
-                  required
-                  autoComplete="organization"
-                />
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {step === 1 ? (
+            <div className="space-y-5">
+              <Input
+                label="School Name"
+                type="text"
+                placeholder="e.g. St. Mary Primary School"
+                value={form.schoolName}
+                onChange={(e) => updateForm("schoolName", e.target.value)}
+                required
+                autoComplete="organization"
+              />
 
+              <div className="grid gap-4 sm:grid-cols-2">
                 <Select
                   label="School Type"
                   options={SCHOOL_TYPE_OPTIONS}
@@ -328,175 +387,205 @@ export default function RegisterPage() {
                   onChange={(e) => updateForm("ownership", e.target.value)}
                   required
                 />
+              </div>
 
+              <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 p-4">
+                <p className="text-sm font-semibold text-slate-800">
+                  Good to know
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Start with the official school name you use on reports,
+                  receipts, and registration records.
+                </p>
+              </div>
+
+              <Button
+                type="button"
+                variant="primary"
+                className="w-full rounded-2xl py-3 text-base"
+                icon={<MaterialIcon icon="arrow_forward" size={18} />}
+                onClick={() => goToStep(2)}
+              >
+                Continue to location
+              </Button>
+            </div>
+          ) : null}
+
+          {step === 2 ? (
+            <div className="space-y-5">
+              <Select
+                label="District"
+                options={DISTRICT_OPTIONS}
+                value={form.district}
+                onChange={(e) => updateForm("district", e.target.value)}
+                required
+              />
+
+              <Input
+                label="Sub-county"
+                type="text"
+                placeholder="e.g. Central Division"
+                value={form.subcounty}
+                onChange={(e) => updateForm("subcounty", e.target.value)}
+                required
+                autoComplete="address-level2"
+              />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  label="School Phone (Optional)"
+                  type="tel"
+                  placeholder="0700000000"
+                  value={form.phone}
+                  onChange={(e) => updateForm("phone", e.target.value)}
+                  autoComplete="tel"
+                  inputMode="numeric"
+                />
+                <Input
+                  label="School Email (Optional)"
+                  type="email"
+                  placeholder="school@email.com"
+                  value={form.email}
+                  onChange={(e) => updateForm("email", e.target.value)}
+                  autoComplete="email"
+                />
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="flex-1 rounded-2xl py-3 text-base"
+                  icon={<MaterialIcon icon="arrow_back" size={18} />}
+                  onClick={() => setStep(1)}
+                >
+                  Back
+                </Button>
                 <Button
                   type="button"
                   variant="primary"
-                  className="w-full"
-                  icon={
-                    <MaterialIcon icon="arrow_forward" className="text-lg" />
-                  }
-                  onClick={() => setStep(2)}
+                  className="flex-1 rounded-2xl py-3 text-base"
+                  icon={<MaterialIcon icon="arrow_forward" size={18} />}
+                  onClick={() => goToStep(3)}
                 >
-                  Next: Where is the School?
+                  Continue to admin access
                 </Button>
               </div>
-            )}
+            </div>
+          ) : null}
 
-            {step === 2 && (
-              <div className="space-y-5">
-                <Select
-                  label="District"
-                  options={DISTRICT_OPTIONS}
-                  value={form.district}
-                  onChange={(e) => updateForm("district", e.target.value)}
-                  required
-                />
+          {step === 3 ? (
+            <div className="space-y-5">
+              <Input
+                label="Your Full Name"
+                type="text"
+                placeholder="e.g. John Mukasa"
+                value={form.adminName}
+                onChange={(e) => updateForm("adminName", e.target.value)}
+                required
+                autoComplete="name"
+              />
 
-                <Input
-                  label="Sub-county"
-                  type="text"
-                  placeholder="e.g. Central Division"
-                  value={form.subcounty}
-                  onChange={(e) => updateForm("subcounty", e.target.value)}
-                  required
-                  autoComplete="address-level2"
-                />
+              <Input
+                label="Your Phone Number (Login ID)"
+                type="tel"
+                placeholder="e.g. 0700000000"
+                value={form.adminPhone}
+                onChange={(e) => updateForm("adminPhone", e.target.value)}
+                required
+                autoComplete="tel"
+                inputMode="numeric"
+              />
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Input
-                    label="School Phone (Optional)"
-                    type="tel"
-                    placeholder="0700000000"
-                    value={form.phone}
-                    onChange={(e) => updateForm("phone", e.target.value)}
-                    autoComplete="tel"
-                  />
-                  <Input
-                    label="School Email (Optional)"
-                    type="email"
-                    placeholder="school@email.com"
-                    value={form.email}
-                    onChange={(e) => updateForm("email", e.target.value)}
-                    autoComplete="email"
-                  />
-                </div>
-
-                <div className="flex gap-3">
-                  <Button
+              <Input
+                label="Password"
+                type={showPassword ? "text" : "password"}
+                placeholder="At least 6 characters"
+                value={form.password}
+                onChange={(e) => updateForm("password", e.target.value)}
+                required
+                minLength={6}
+                autoComplete="new-password"
+                endAdornment={
+                  <button
                     type="button"
-                    variant="secondary"
-                    className="flex-1"
-                    icon={
-                      <MaterialIcon icon="arrow_back" className="text-lg" />
-                    }
-                    onClick={() => setStep(1)}
+                    onClick={() => setShowPassword((current) => !current)}
+                    className="rounded-lg p-1.5 text-[var(--t3)] hover:bg-[var(--surface-container)] hover:text-[var(--primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/30"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    Back
-                  </Button>
-                  <Button
+                    <MaterialIcon
+                      icon={showPassword ? "visibility_off" : "visibility"}
+                      size={18}
+                    />
+                  </button>
+                }
+              />
+
+              <Input
+                label="Confirm Password"
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="Enter password again"
+                value={form.confirmPassword}
+                onChange={(e) => updateForm("confirmPassword", e.target.value)}
+                required
+                autoComplete="new-password"
+                endAdornment={
+                  <button
                     type="button"
-                    variant="primary"
-                    className="flex-1"
-                    icon={
-                      <MaterialIcon icon="arrow_forward" className="text-lg" />
+                    onClick={() =>
+                      setShowConfirmPassword((current) => !current)
                     }
-                    onClick={() => goToStep(3)}
+                    className="rounded-lg p-1.5 text-[var(--t3)] hover:bg-[var(--surface-container)] hover:text-[var(--primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/30"
+                    aria-label={
+                      showConfirmPassword
+                        ? "Hide confirm password"
+                        : "Show confirm password"
+                    }
                   >
-                    Next: Account
-                  </Button>
-                </div>
+                    <MaterialIcon
+                      icon={
+                        showConfirmPassword ? "visibility_off" : "visibility"
+                      }
+                      size={18}
+                    />
+                  </button>
+                }
+              />
+
+              <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 p-4">
+                <p className="text-sm font-semibold text-slate-800">
+                  After signup
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  You will enter your dashboard and can immediately add students,
+                  classes, and fee structures.
+                </p>
               </div>
-            )}
 
-            {step === 3 && (
-              <div className="space-y-5">
-                <Input
-                  label="Your Full Name"
-                  type="text"
-                  placeholder="e.g. John Mukasa"
-                  value={form.adminName}
-                  onChange={(e) => updateForm("adminName", e.target.value)}
-                  required
-                  autoComplete="name"
-                />
-
-                <Input
-                  label="Your Phone Number (Login ID)"
-                  type="tel"
-                  placeholder="e.g. 0700000000"
-                  value={form.adminPhone}
-                  onChange={(e) => updateForm("adminPhone", e.target.value)}
-                  required
-                  autoComplete="tel"
-                />
-
-                <Input
-                  label="Password"
-                  type="password"
-                  placeholder="Min 6 characters"
-                  value={form.password}
-                  onChange={(e) => updateForm("password", e.target.value)}
-                  required
-                  minLength={6}
-                  autoComplete="new-password"
-                />
-
-                <Input
-                  label="Confirm Password"
-                  type="password"
-                  placeholder="Enter password again"
-                  value={form.confirmPassword}
-                  onChange={(e) =>
-                    updateForm("confirmPassword", e.target.value)
-                  }
-                  required
-                  autoComplete="new-password"
-                />
-
-                <div className="flex gap-3">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="flex-1"
-                    icon={
-                      <MaterialIcon icon="arrow_back" className="text-lg" />
-                    }
-                    onClick={() => goToStep(2)}
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    className="flex-1"
-                    loading={loading}
-                    icon={
-                      !loading ? (
-                        <MaterialIcon icon="check" className="text-lg" />
-                      ) : undefined
-                    }
-                  >
-                    {loading ? "Setting Up..." : "Finish & Start Using"}
-                  </Button>
-                </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="flex-1 rounded-2xl py-3 text-base"
+                  icon={<MaterialIcon icon="arrow_back" size={18} />}
+                  onClick={() => setStep(2)}
+                >
+                  Back
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="flex-1 rounded-2xl py-3 text-base"
+                  loading={loading}
+                  icon={!loading ? <MaterialIcon icon="check" size={18} /> : undefined}
+                >
+                  {loading ? "Creating account..." : "Create school account"}
+                </Button>
               </div>
-            )}
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-[var(--t3)]">
-              Already have an account?{" "}
-              <Link
-                href="/login"
-                className="font-semibold text-[var(--primary)] hover:text-[var(--green)] transition-colors"
-              >
-                Sign in
-              </Link>
-            </p>
-          </div>
-        </div>
+            </div>
+          ) : null}
+        </form>
       </div>
-    </div>
+    </AuthShell>
   );
 }
