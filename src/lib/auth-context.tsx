@@ -325,8 +325,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (isCurrentlyDemo && event !== "SIGNED_OUT") return;
 
-        if (event === "SIGNED_IN" && session && session.user) {
+        if (
+          (event === "SIGNED_IN" ||
+            event === "INITIAL_SESSION" ||
+            event === "TOKEN_REFRESHED") &&
+          session &&
+          session.user
+        ) {
           await fetchUserData(session.user.id);
+          setIsDemo(false);
+          setLoading(false);
+        } else if (event === "INITIAL_SESSION" && !session) {
+          // No session on initial load — clear state and stop loading
+          setUser(null);
+          setSchool(null);
           setIsDemo(false);
           setLoading(false);
         } else if (event === "SIGNED_OUT") {

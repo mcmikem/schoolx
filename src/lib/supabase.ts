@@ -1,4 +1,5 @@
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { SupabaseClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -207,7 +208,7 @@ if (!hasUsableSupabaseConfig && isProd) {
 }
 
 const realClient = hasUsableSupabaseConfig
-  ? createClient(supabaseUrl as string, supabaseAnonKey as string)
+  ? createBrowserClient(supabaseUrl as string, supabaseAnonKey as string)
   : null;
 
 // Debug output
