@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -233,6 +234,7 @@ export default function CanteenPage() {
   }
 
   return (
+    <PageErrorBoundary>
     <div className="content">
       <PageHeader
         title="Canteen Management"
@@ -548,5 +550,6 @@ export default function CanteenPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -96,6 +97,7 @@ export default function ParentMessagesPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto space-y-6 animate-in fade-in duration-500">
       <div className="flex justify-between items-start">
         <PageHeader title="Message School" subtitle="Send messages directly to the school administration" />
@@ -162,5 +164,6 @@ export default function ParentMessagesPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

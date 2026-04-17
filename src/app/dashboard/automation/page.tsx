@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
@@ -178,6 +179,7 @@ export default function AutomationPage() {
         );
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       <PageHeader
         title="SMS Automation"
@@ -340,5 +342,6 @@ export default function AutomationPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

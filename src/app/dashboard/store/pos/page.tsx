@@ -1,5 +1,6 @@
 "use client";
 
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -170,6 +171,7 @@ export default function CanteenPOSPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
       {/* POS Header */}
       <div className="bg-white px-6 py-4 flex justify-between items-center border-b border-slate-100 shrink-0">
@@ -453,5 +455,6 @@ export default function CanteenPOSPage() {
         </div>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

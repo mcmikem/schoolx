@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -92,6 +93,7 @@ export default function ParentFeesPage() {
   const paidPct = stats.totalFee > 0 ? Math.round((stats.totalPaid / stats.totalFee) * 100) : 0;
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
       <PageHeader title="Fees & Receipts" subtitle="View fee balances and payment history" />
 
@@ -189,5 +191,6 @@ export default function ParentFeesPage() {
         </Card>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -496,8 +497,10 @@ function SidebarOverlay() {
 
 export default function ParentPortal() {
   return (
+    <PageErrorBoundary>
     <SidebarProvider>
       <ParentDashboardContent />
     </SidebarProvider>
+    </PageErrorBoundary>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -266,6 +267,7 @@ export default function EarlyWarningsPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Early Warnings"
@@ -409,5 +411,6 @@ export default function EarlyWarningsPage() {
         </Card>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

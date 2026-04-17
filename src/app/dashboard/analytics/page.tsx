@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAnalytics } from "@/lib/hooks";
@@ -97,6 +98,7 @@ export default function AnalyticsPage() {
   }
 
   return (
+    <PageErrorBoundary>
     <div className="p-8 max-w-7xl mx-auto space-y-6">
       <PageHeader
         title="Analytics"
@@ -410,5 +412,6 @@ export default function AnalyticsPage() {
         </Card>
       </TabPanel>
     </div>
+    </PageErrorBoundary>
   );
 }

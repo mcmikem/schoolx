@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -86,6 +87,7 @@ export default function ParentAttendancePage() {
   const attendanceRate = stats.total > 0 ? Math.round(((stats.present + stats.late) / stats.total) * 100) : 0;
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
       <PageHeader title="Attendance" subtitle="Track your child's daily attendance record" />
 
@@ -148,5 +150,6 @@ export default function ParentAttendancePage() {
         </CardBody>
       </Card>
     </div>
+    </PageErrorBoundary>
   );
 }

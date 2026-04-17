@@ -1,5 +1,6 @@
 "use client";
 
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -114,6 +115,7 @@ export default function SMSCenterPage() {
   const smsCount = Math.ceil(charCount / 160);
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-end">
         <div>
@@ -250,5 +252,6 @@ export default function SMSCenterPage() {
         </div>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { format } from "date-fns";
@@ -44,6 +45,7 @@ export default function ConductManagementPage() {
   ];
 
   return (
+    <PageErrorBoundary>
     <div className="p-6 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <div>
@@ -217,5 +219,6 @@ export default function ConductManagementPage() {
         </div>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

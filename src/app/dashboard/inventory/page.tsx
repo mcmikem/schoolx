@@ -1,4 +1,5 @@
 'use client'
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
@@ -67,6 +68,7 @@ export default function InventoryPage() {
   const filteredAssets = assets.filter(a => a.is_consumable)
 
   return (
+    <PageErrorBoundary>
     <div className="p-8 max-w-7xl mx-auto space-y-6">
       <PageHeader 
         title="Inventory & Supplies" 
@@ -240,5 +242,6 @@ export default function InventoryPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   )
 }

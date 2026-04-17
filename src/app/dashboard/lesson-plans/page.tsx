@@ -1,4 +1,5 @@
 'use client'
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useClasses, useSubjects } from '@/lib/hooks'
@@ -157,6 +158,7 @@ export default function LessonPlansPage() {
   }
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Lesson Plans"
@@ -430,5 +432,6 @@ export default function LessonPlansPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   )
 }

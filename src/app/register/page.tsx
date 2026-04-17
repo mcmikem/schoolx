@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -131,9 +132,9 @@ export default function RegisterPage() {
       return false;
     }
     // Uganda phone validation
-    const phoneRegex = /^(0|256|\\+256)[7][0-9]{8}$/;
+    const phoneRegex = /^(0|256|\+256)[7][0-9]{8}$/;
     const cleanPhone = form.adminPhone.replace(/[^0-9]/g, "");
-    if (cleanPhone.length < 10 || cleanPhone.length > 12) {
+    if (!phoneRegex.test(form.adminPhone.trim()) && (cleanPhone.length < 10 || cleanPhone.length > 12)) {
       setError("Please enter a valid Uganda phone number (e.g., 0700000000)");
       return false;
     }
@@ -250,6 +251,7 @@ export default function RegisterPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="min-h-screen bg-[var(--bg)] flex flex-col justify-center relative overflow-hidden">
       {/* Decorative Background Elements */}
       <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-[var(--navy-soft)] blur-[120px] rounded-full opacity-50" />
@@ -336,7 +338,7 @@ export default function RegisterPage() {
                   icon={
                     <MaterialIcon icon="arrow_forward" className="text-lg" />
                   }
-                  onClick={() => setStep(2)}
+                  onClick={() => goToStep(2)}
                 >
                   Next: Where is the School?
                 </Button>
@@ -498,5 +500,6 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

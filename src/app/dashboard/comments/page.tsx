@@ -1,4 +1,5 @@
 'use client'
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useStudents, useClasses, useSubjects } from '@/lib/hooks'
@@ -144,6 +145,7 @@ export default function CommentsPage() {
   }
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       <PageHeader
         title="Auto Comment Generator"
@@ -294,5 +296,6 @@ export default function CommentsPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   )
 }

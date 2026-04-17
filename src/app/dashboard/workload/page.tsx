@@ -1,4 +1,5 @@
 'use client'
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
@@ -107,6 +108,7 @@ export default function WorkloadPage() {
   const overloaded = workloads.filter(w => w.rating === 'Overloaded')
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader title="Teacher Workload" subtitle="Period distribution based on timetable" />
 
@@ -212,5 +214,6 @@ export default function WorkloadPage() {
         </Card>
       )}
     </div>
+    </PageErrorBoundary>
   )
 }

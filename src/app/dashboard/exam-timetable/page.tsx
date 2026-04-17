@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -286,6 +287,7 @@ export default function ExamTimetablePage() {
   }, [checkConflictsWithCurrent, showAddModal]);
 
   return (
+    <PageErrorBoundary>
     <div className="content">
       <div className="page-header">
         <div>
@@ -782,5 +784,6 @@ export default function ExamTimetablePage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

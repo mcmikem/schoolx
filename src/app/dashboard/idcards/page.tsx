@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
@@ -197,6 +198,7 @@ export default function IDCardsPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <PageHeader
         title="Student ID Cards"
@@ -303,5 +305,6 @@ export default function IDCardsPage() {
         />
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

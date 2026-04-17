@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -204,6 +205,7 @@ export default function ExamsPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="content">
       <PageHeader
         title={isSecondary ? "Exam Management" : "Exams & Grades"}
@@ -929,5 +931,6 @@ export default function ExamsPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }
