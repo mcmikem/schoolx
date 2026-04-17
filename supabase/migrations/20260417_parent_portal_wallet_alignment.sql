@@ -129,7 +129,8 @@ UPDATE student_wallets sw
 SET school_id = students.school_id
 FROM students
 WHERE sw.student_id = students.id
-  AND sw.school_id IS NULL;
+  AND sw.school_id IS NULL
+  AND students.school_id IS NOT NULL;
 
 ALTER TABLE wallet_transactions
     ADD COLUMN IF NOT EXISTS school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
