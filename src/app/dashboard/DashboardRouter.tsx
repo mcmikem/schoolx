@@ -1,5 +1,7 @@
 'use client'
 import Link from 'next/link'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import HeadmasterDashboard from './dashboards/HeadmasterDashboard'
 import DeanDashboard from './dashboards/DeanDashboard'
@@ -7,19 +9,23 @@ import BursarDashboard from './dashboards/BursarDashboard'
 import TeacherDashboard from './dashboards/TeacherDashboard'
 import { DashboardSkeleton } from '@/components/Skeletons'
 
+function getFirstName(fullName?: string | null) {
+  return fullName?.trim().split(' ').filter(Boolean)[0] || 'User'
+}
+
 function SecretaryDashboard() {
   const { user, school } = useAuth()
   const currentDate = new Date()
   const greeting = currentDate.getHours() < 12 ? 'Good Morning' : currentDate.getHours() < 17 ? 'Good Afternoon' : 'Good Evening'
 
   return (
-    <div className="content">
-      <div className="page-header">
-        <div>
-          <div className="ph-title truncate">{greeting}, {user?.full_name?.split(' ')[0]}</div>
-          <div className="ph-sub truncate">{school?.name} • Office Dashboard</div>
+      <div className="content">
+        <div className="page-header">
+          <div>
+            <div className="ph-title truncate">{greeting}, {getFirstName(user?.full_name)}</div>
+            <div className="ph-sub truncate">{school?.name} • Office Dashboard</div>
+          </div>
         </div>
-      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Link href="/dashboard/visitors" className="stat-card">
           <div className="stat-accent" style={{ background: 'var(--navy)' }} />
@@ -58,13 +64,13 @@ function DormMasterDashboard() {
   const greeting = currentDate.getHours() < 12 ? 'Good Morning' : currentDate.getHours() < 17 ? 'Good Afternoon' : 'Good Evening'
 
   return (
-    <div className="content">
-      <div className="page-header">
-        <div>
-          <div className="ph-title truncate">{greeting}, {user?.full_name?.split(' ')[0]}</div>
-          <div className="ph-sub truncate">{school?.name} • Dormitory Dashboard</div>
+      <div className="content">
+        <div className="page-header">
+          <div>
+            <div className="ph-title truncate">{greeting}, {getFirstName(user?.full_name)}</div>
+            <div className="ph-sub truncate">{school?.name} • Dormitory Dashboard</div>
+          </div>
         </div>
-      </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Link href="/dashboard/dorm" className="stat-card">
           <div className="stat-accent" style={{ background: 'var(--navy)' }} />
@@ -112,13 +118,29 @@ function DormMasterDashboard() {
 
 export default function DashboardRouter() {
   const { user, school, loading } = useAuth()
+  const router = useRouter()
+
+  const requiresSetup =
+    !!user &&
+    user.role !== 'super_admin' &&
+    (!school || !school.name || school.name === 'My School')
+
+  useEffect(() => {
+    if (loading || !requiresSetup) return
+
+    const redirectTimer = window.setTimeout(() => {
+      router.replace('/dashboard/setup-wizard')
+    }, 0)
+
+    return () => window.clearTimeout(redirectTimer)
+  }, [loading, requiresSetup, router])
 
   if (loading) {
     return <DashboardSkeleton />
   }
 
   if (!user) {
-    return null
+    return <DashboardSkeleton />
   }
 
   // Super admin bypasses school check
@@ -166,9 +188,8 @@ export default function DashboardRouter() {
   }
 
   // Centralized setup check: ensure school is initialized
-  if (!school || !school.name || school.name === 'My School') {
-    window.location.href = '/dashboard/setup-wizard'
-    return null
+  if (requiresSetup) {
+    return <DashboardSkeleton />
   }
 
   const role = user.role as string

@@ -1,4 +1,5 @@
 // User roles and permissions system
+import { deepFreeze } from "./deep-freeze"
 
 export type UserRole = 
   | 'teacher' 
@@ -35,7 +36,7 @@ export interface RolePermissions {
   performance: boolean
 }
 
-export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
+export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = deepFreeze({
   teacher: {
     students: true,
     attendance: true,
@@ -267,9 +268,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     payroll: false,
     performance: false,
   },
-}
+})
 
-export const ROLE_LABELS: Record<UserRole, string> = {
+export const ROLE_LABELS: Record<UserRole, string> = deepFreeze({
   teacher: 'Teacher',
   dean_of_studies: 'Dean of Studies',
   bursar: 'Bursar',
@@ -281,7 +282,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   super_admin: 'Super Admin',
   secretary: 'Secretary',
   dorm_master: 'Dorm Master',
-}
+})
 
 export function canAccess(role: UserRole, feature: keyof RolePermissions): boolean {
   return ROLE_PERMISSIONS[role]?.[feature] ?? false

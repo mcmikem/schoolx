@@ -1,5 +1,6 @@
 "use client";
 
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -49,6 +50,7 @@ export default function AdmissionPackagePage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="p-6 max-w-7xl mx-auto space-y-8">
       <div className="flex justify-between items-end">
         <div>
@@ -176,5 +178,6 @@ export default function AdmissionPackagePage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

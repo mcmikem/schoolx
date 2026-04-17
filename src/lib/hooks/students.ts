@@ -34,6 +34,17 @@ type StudentWithClass = Student & {
   is_class_monitor?: boolean;
 };
 
+const STUDENT_SELECT_FIELDS = `
+  id, school_id, student_number, first_name, last_name, gender,
+  date_of_birth, parent_name, parent_phone, parent_phone2, parent_email, address,
+  class_id, admission_date, ple_index_number, blood_type, religion, nationality,
+  photo_url, status, opening_balance, transfer_from, transfer_to, transfer_reason,
+  dropout_reason, dropout_date, repeating, last_attendance_date,
+  consecutive_absent_days, created_at, house_id, previous_school, district_origin,
+  sub_county, parish, village, boarding_status, games_house, is_class_monitor,
+  classes(id, name, level, stream), houses(id, name, color), prefect_role, student_council_role
+`;
+
 export function useStudents(
   schoolId?: string,
   options?: { limit?: number; offset?: number },
@@ -107,10 +118,7 @@ export function useStudents(
       const data = await withTimeout(
         supabase
           .from("students")
-          .select(
-            `id, school_id, student_number, first_name, last_name, gender, class_id, status, 
-            classes(id, name, level), houses(id, name, color), prefect_role, student_council_role`,
-          )
+          .select(STUDENT_SELECT_FIELDS)
           .eq("school_id", querySchoolId)
           .order("created_at", { ascending: false })
           .range(offset, offset + limit - 1)
@@ -178,13 +186,7 @@ export function useStudents(
       const { data, error: insertError } = await supabase
         .from("students")
         .insert({ ...normalizedStudent, school_id: querySchoolId })
-        .select(
-          `
-          id, school_id, student_number, first_name, last_name, gender, 
-          date_of_birth, parent_name, parent_phone, class_id, admission_date, status, created_at,
-          classes(id, name, level), houses(id, name, color), prefect_role, student_council_role
-        `,
-        )
+        .select(STUDENT_SELECT_FIELDS)
         .single();
       if (insertError) throw insertError;
       setStudents((prev) => [data as unknown as StudentWithClass, ...prev]);
@@ -225,13 +227,7 @@ export function useStudents(
         .from("students")
         .update(normalizedUpdates)
         .eq("id", id)
-        .select(
-          `
-          id, school_id, student_number, first_name, last_name, gender, 
-          date_of_birth, parent_name, parent_phone, class_id, admission_date, status, created_at,
-          classes(id, name, level), houses(id, name, color), prefect_role, student_council_role
-        `,
-        )
+        .select(STUDENT_SELECT_FIELDS)
         .single();
       if (updateError) throw updateError;
       setStudents((prev) =>

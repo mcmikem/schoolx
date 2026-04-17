@@ -1,4 +1,5 @@
 'use client'
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useStudents } from '@/lib/hooks'
@@ -89,6 +90,7 @@ export default function DisciplinePage() {
       setRecords(data || [])
     } catch (err) {
       console.error('Error:', err)
+      toast.error('Failed to load discipline records')
     } finally {
       setLoading(false)
     }
@@ -178,6 +180,7 @@ export default function DisciplinePage() {
   })
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader 
         title="Discipline"
@@ -343,6 +346,7 @@ export default function DisciplinePage() {
         />
       )}
     </div>
+    </PageErrorBoundary>
   )
 
   function renderContent() {

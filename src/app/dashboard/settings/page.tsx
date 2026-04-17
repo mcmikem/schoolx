@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -673,6 +674,7 @@ export default function SettingsPage() {
   ];
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader title="Settings" subtitle="Manage your school settings" />
 
@@ -1898,5 +1900,6 @@ export default function SettingsPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

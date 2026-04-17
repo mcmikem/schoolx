@@ -7,7 +7,7 @@ import { NavGroup } from '@/lib/navigation'
 import { cn } from '@/lib/utils'
 
 interface CollapsibleSidebarProps {
-  groups: NavGroup[]
+  groups: readonly NavGroup[]
   onNavigate?: () => void
 }
 

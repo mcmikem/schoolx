@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyPayPalWebhook } from "@/lib/payments/paypal";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
 
 // Handle PayPal webhook events
 export async function POST(request: Request) {
@@ -82,13 +83,13 @@ export async function POST(request: Request) {
         break;
 
       default:
-        console.log(`Unhandled PayPal event type ${webhookEvent.event_type}`);
+        logger.warn("Unhandled PayPal event type", { event_type: webhookEvent.event_type });
     }
 
     // Return a 200 response to acknowledge receipt of the event
     return NextResponse.json({ received: true }, { status: 200 });
   } catch (error) {
-    console.error("PayPal webhook error:", error);
+    logger.error("PayPal webhook error", { error });
     return NextResponse.json(
       { error: "Failed to process webhook" },
       { status: 500 },
@@ -104,7 +105,7 @@ async function handlePayPalPaymentSuccess(
     // Extract custom ID from payment (we would have stored school ID in custom field)
     const customId = payment.custom;
     if (!customId) {
-      console.error("No custom ID found in PayPal payment");
+      logger.error("No custom ID found in PayPal payment");
       return;
     }
 
@@ -116,7 +117,7 @@ async function handlePayPalPaymentSuccess(
       .single();
 
     if (error) {
-      console.error("Error finding school for PayPal payment:", error);
+      logger.error("Error finding school for PayPal payment:", error);
       return;
     }
 
@@ -134,9 +135,9 @@ async function handlePayPalPaymentSuccess(
       .eq("id", school.id);
 
     // Send receipt email/SMS (implementation would go here)
-    console.log(`PayPal payment successful for school ${school.id}`);
+    logger.log(`PayPal payment successful for school ${school.id}`);
   } catch (error) {
-    console.error("Error handling PayPal payment success:", error);
+    logger.error("Error handling PayPal payment success:", error);
   }
 }
 
@@ -148,7 +149,7 @@ async function handlePayPalPaymentFailure(
     // Extract custom ID from payment
     const customId = payment.custom;
     if (!customId) {
-      console.error("No custom ID found in PayPal payment");
+      logger.error("No custom ID found in PayPal payment");
       return;
     }
 
@@ -160,7 +161,7 @@ async function handlePayPalPaymentFailure(
       .single();
 
     if (error) {
-      console.error("Error finding school for PayPal payment:", error);
+      logger.error("Error finding school for PayPal payment:", error);
       return;
     }
 
@@ -174,9 +175,9 @@ async function handlePayPalPaymentFailure(
       .eq("id", school.id);
 
     // Send failure notification email/SMS (implementation would go here)
-    console.log(`PayPal payment failed for school ${school.id}`);
+    logger.log(`PayPal payment failed for school ${school.id}`);
   } catch (error) {
-    console.error("Error handling PayPal payment failure:", error);
+    logger.error("Error handling PayPal payment failure:", error);
   }
 }
 
@@ -188,7 +189,7 @@ async function handlePayPalSubscriptionActivated(
     // Extract custom ID from subscription
     const customId = subscription.custom_id;
     if (!customId) {
-      console.error("No custom ID found in PayPal subscription");
+      logger.error("No custom ID found in PayPal subscription");
       return;
     }
 
@@ -200,7 +201,7 @@ async function handlePayPalSubscriptionActivated(
       .single();
 
     if (error) {
-      console.error("Error finding school for PayPal subscription:", error);
+      logger.error("Error finding school for PayPal subscription:", error);
       return;
     }
 
@@ -214,9 +215,9 @@ async function handlePayPalSubscriptionActivated(
       })
       .eq("id", school.id);
 
-    console.log(`PayPal subscription activated for school ${school.id}`);
+    logger.log(`PayPal subscription activated for school ${school.id}`);
   } catch (error) {
-    console.error("Error handling PayPal subscription activated:", error);
+    logger.error("Error handling PayPal subscription activated:", error);
   }
 }
 
@@ -228,7 +229,7 @@ async function handlePayPalSubscriptionCancelled(
     // Extract custom ID from subscription
     const customId = subscription.custom_id;
     if (!customId) {
-      console.error("No custom ID found in PayPal subscription");
+      logger.error("No custom ID found in PayPal subscription");
       return;
     }
 
@@ -240,7 +241,7 @@ async function handlePayPalSubscriptionCancelled(
       .single();
 
     if (error) {
-      console.error("Error finding school for PayPal subscription:", error);
+      logger.error("Error finding school for PayPal subscription:", error);
       return;
     }
 
@@ -254,9 +255,9 @@ async function handlePayPalSubscriptionCancelled(
       })
       .eq("id", school.id);
 
-    console.log(`PayPal subscription cancelled for school ${school.id}`);
+    logger.log(`PayPal subscription cancelled for school ${school.id}`);
   } catch (error) {
-    console.error("Error handling PayPal subscription cancelled:", error);
+    logger.error("Error handling PayPal subscription cancelled:", error);
   }
 }
 
@@ -268,7 +269,7 @@ async function handlePayPalSubscriptionSuspended(
     // Extract custom ID from subscription
     const customId = subscription.custom_id;
     if (!customId) {
-      console.error("No custom ID found in PayPal subscription");
+      logger.error("No custom ID found in PayPal subscription");
       return;
     }
 
@@ -280,7 +281,7 @@ async function handlePayPalSubscriptionSuspended(
       .single();
 
     if (error) {
-      console.error("Error finding school for PayPal subscription:", error);
+      logger.error("Error finding school for PayPal subscription:", error);
       return;
     }
 
@@ -292,9 +293,9 @@ async function handlePayPalSubscriptionSuspended(
       })
       .eq("id", school.id);
 
-    console.log(`PayPal subscription suspended for school ${school.id}`);
+    logger.log(`PayPal subscription suspended for school ${school.id}`);
   } catch (error) {
-    console.error("Error handling PayPal subscription suspended:", error);
+    logger.error("Error handling PayPal subscription suspended:", error);
   }
 }
 
@@ -306,7 +307,7 @@ async function handlePayPalSubscriptionPaymentFailed(
     // Extract custom ID from subscription
     const customId = subscription.custom_id;
     if (!customId) {
-      console.error("No custom ID found in PayPal subscription");
+      logger.error("No custom ID found in PayPal subscription");
       return;
     }
 
@@ -318,7 +319,7 @@ async function handlePayPalSubscriptionPaymentFailed(
       .single();
 
     if (error) {
-      console.error("Error finding school for PayPal subscription:", error);
+      logger.error("Error finding school for PayPal subscription:", error);
       return;
     }
 
@@ -331,9 +332,9 @@ async function handlePayPalSubscriptionPaymentFailed(
       })
       .eq("id", school.id);
 
-    console.log(`PayPal subscription payment failed for school ${school.id}`);
+    logger.log(`PayPal subscription payment failed for school ${school.id}`);
   } catch (error) {
-    console.error("Error handling PayPal subscription payment failed:", error);
+    logger.error("Error handling PayPal subscription payment failed:", error);
   }
 }
 

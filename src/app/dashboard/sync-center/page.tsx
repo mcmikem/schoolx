@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { offlineDB } from "@/lib/offline";
@@ -109,6 +110,7 @@ export default function SyncCenterPage() {
   const totalFailed = failed.length;
 
   return (
+    <PageErrorBoundary>
     <div className="content">
       <PageHeader
         title="Sync Center"
@@ -305,5 +307,6 @@ export default function SyncCenterPage() {
         </Card>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

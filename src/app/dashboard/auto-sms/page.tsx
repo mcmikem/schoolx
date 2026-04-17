@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
@@ -179,6 +180,7 @@ export default function AutoSMSPage() {
         );
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       <PageHeader
         title="Smart SMS Triggers"
@@ -406,5 +408,6 @@ export default function AutoSMSPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

@@ -1,4 +1,5 @@
 'use client'
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
@@ -223,6 +224,7 @@ export default function RolloverPage() {
   }
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[#002045]">Academic Rollover</h1>
@@ -400,5 +402,6 @@ export default function RolloverPage() {
         </ul>
       </div>
     </div>
+    </PageErrorBoundary>
   )
 }
