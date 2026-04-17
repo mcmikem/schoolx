@@ -122,6 +122,7 @@ export default function ParentMessagesPage() {
       .insert({
         parent_id: user.id,
         school_id: schoolId,
+        student_id: selectedChild?.id || null,
         subject: trimmedSubject,
         body: trimmedBody,
         sender_role: "parent",

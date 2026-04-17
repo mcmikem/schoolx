@@ -35,7 +35,11 @@ export interface ParentPortalPayment {
   fee_structure?: { name?: string | null } | null;
 }
 
-export type ParentPortalWalletTransactionType = "topup" | "spend" | "refund";
+export type ParentPortalWalletTransactionType =
+  | "topup"
+  | "spend"
+  | "refund"
+  | "adjustment";
 
 export interface ParentPortalWalletTransaction {
   id: string;
@@ -103,6 +107,65 @@ export interface ParentPortalReportCardSummary {
   teacherComment?: string | null;
   performanceBand: "excellent" | "good" | "fair" | "attention";
 }
+
+type ParentPortalLegacyPaymentRecord = {
+  id: string;
+  amount_paid?: number | null;
+  payment_date?: string | null;
+  payment_method?: string | null;
+  payment_reference?: string | null;
+  fee_structure?: { name?: string | null } | null;
+};
+
+type ParentPortalModernPaymentRecord = {
+  id: string;
+  amount?: number | null;
+  payment_date?: string | null;
+  payment_method?: string | null;
+  transaction_reference?: string | null;
+  student_fee_terms?:
+    | {
+        fee_terms?:
+          | { name?: string | null }
+          | Array<{ name?: string | null }>
+          | null;
+      }
+    | Array<{
+        fee_terms?:
+          | { name?: string | null }
+          | Array<{ name?: string | null }>
+          | null;
+      }>
+    | null;
+};
+
+type ParentPortalLegacyWalletTransactionRecord = {
+  id: string;
+  amount?: number | null;
+  type?: string | null;
+  reference?: string | null;
+  description?: string | null;
+  created_at?: string | null;
+};
+
+type ParentPortalModernWalletTransactionRecord = {
+  id: string;
+  amount?: number | null;
+  transaction_type?: string | null;
+  reference_id?: string | null;
+  description?: string | null;
+  created_at?: string | null;
+};
+
+type ParentPortalModernFeeTermRecord = {
+  id: string;
+  final_amount?: number | null;
+  academic_year?: string | null;
+  fee_terms?:
+    | { name?: string | null }
+    | Array<{ name?: string | null }>
+    | null;
+};
 
 interface ParentStudentLinkRecord {
   student?:
@@ -187,6 +250,77 @@ export function calculateFeeStats(
     status:
       totalFee === 0 ? "unknown" : balance === 0 ? "paid" : "pending",
   };
+}
+
+export function normalizePayments(
+  payments: Array<
+    ParentPortalLegacyPaymentRecord | ParentPortalModernPaymentRecord
+  >,
+): ParentPortalPayment[] {
+  return payments.map((payment) => {
+    const modernPayment = payment as ParentPortalModernPaymentRecord;
+    const legacyPayment = payment as ParentPortalLegacyPaymentRecord;
+    const feeTermLink = resolveSingleRelation(modernPayment.student_fee_terms);
+
+    return {
+      id: payment.id,
+      amount_paid: Number(
+        modernPayment.amount ?? legacyPayment.amount_paid ?? 0,
+      ),
+      payment_date:
+        modernPayment.payment_date ||
+        legacyPayment.payment_date ||
+        new Date().toISOString(),
+      payment_method:
+        modernPayment.payment_method || legacyPayment.payment_method || null,
+      payment_reference:
+        modernPayment.transaction_reference ||
+        legacyPayment.payment_reference ||
+        null,
+      fee_structure:
+        legacyPayment.fee_structure ||
+        (feeTermLink
+          ? { name: resolveRelationName(feeTermLink.fee_terms) }
+          : null),
+    };
+  });
+}
+
+export function normalizeWalletTransactions(
+  transactions: Array<
+    | ParentPortalLegacyWalletTransactionRecord
+    | ParentPortalModernWalletTransactionRecord
+  >,
+): ParentPortalWalletTransaction[] {
+  return transactions.map((transaction) => {
+    const modernTransaction =
+      transaction as ParentPortalModernWalletTransactionRecord;
+    const legacyTransaction =
+      transaction as ParentPortalLegacyWalletTransactionRecord;
+    const rawType =
+      modernTransaction.transaction_type || legacyTransaction.type || "refund";
+
+    return {
+      id: transaction.id,
+      amount: Number(transaction.amount || 0),
+      type: isWalletTransactionType(rawType) ? rawType : "refund",
+      reference:
+        modernTransaction.reference_id || legacyTransaction.reference || null,
+      description: transaction.description || null,
+      created_at: transaction.created_at || new Date().toISOString(),
+    };
+  });
+}
+
+export function normalizeFeeTermItems(
+  terms: ParentPortalModernFeeTermRecord[],
+): ParentPortalFeeStructureItem[] {
+  return terms.map((term) => ({
+    id: term.id,
+    name: resolveRelationName(term.fee_terms) || "Fee Term",
+    amount: Number(term.final_amount || 0),
+    term: term.academic_year || null,
+  }));
 }
 
 export function normalizeAttendanceRecords(
@@ -297,6 +431,12 @@ function isAttendanceStatus(status: string): status is ParentAttendanceStatus {
   return ["present", "absent", "late", "excused"].includes(status);
 }
 
+function isWalletTransactionType(
+  status: string,
+): status is ParentPortalWalletTransactionType {
+  return ["topup", "spend", "refund", "adjustment"].includes(status);
+}
+
 function toPercent(record: ParentPortalGradeRecord) {
   return Math.round((record.score / (record.max_score || 100)) * 100);
 }
@@ -321,4 +461,11 @@ function resolveRelationName(
     return relation[0]?.name || "—";
   }
   return relation?.name || "—";
+}
+
+function resolveSingleRelation<T>(relation: T | T[] | null | undefined) {
+  if (Array.isArray(relation)) {
+    return relation[0] || null;
+  }
+  return relation || null;
 }

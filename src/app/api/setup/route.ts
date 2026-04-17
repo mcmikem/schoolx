@@ -271,12 +271,31 @@ export async function POST(request: NextRequest) {
         `,
       },
       {
+        name: "parent_messages",
+        sql: `
+          CREATE TABLE IF NOT EXISTS parent_messages (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+            parent_id UUID REFERENCES users(id) ON DELETE CASCADE,
+            student_id UUID REFERENCES students(id) ON DELETE SET NULL,
+            subject TEXT NOT NULL,
+            body TEXT NOT NULL,
+            sender_role TEXT CHECK (sender_role IN ('parent', 'school')) NOT NULL,
+            is_read BOOLEAN DEFAULT false,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+          );
+        `,
+      },
+      {
         name: "student_wallets",
         sql: `
           CREATE TABLE IF NOT EXISTS student_wallets (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
             student_id UUID REFERENCES students(id) ON DELETE CASCADE UNIQUE,
             balance NUMERIC(12,2) DEFAULT 0,
+            daily_spend_limit NUMERIC(12,2),
+            last_topup_at TIMESTAMPTZ,
             updated_at TIMESTAMPTZ DEFAULT NOW()
           );
         `,
@@ -286,10 +305,11 @@ export async function POST(request: NextRequest) {
         sql: `
           CREATE TABLE IF NOT EXISTS wallet_transactions (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+            school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+            wallet_id UUID REFERENCES student_wallets(id) ON DELETE CASCADE,
             amount NUMERIC(12,2) NOT NULL,
-            type TEXT CHECK (type IN ('topup', 'spend', 'refund')) NOT NULL,
-            reference TEXT,
+            transaction_type TEXT CHECK (transaction_type IN ('topup', 'spend', 'refund', 'adjustment')) NOT NULL,
+            reference_id TEXT,
             description TEXT,
             recorded_by UUID,
             created_at TIMESTAMPTZ DEFAULT NOW()
@@ -305,17 +325,27 @@ export async function POST(request: NextRequest) {
             p_description TEXT,
             p_ref TEXT
           ) RETURNS VOID AS $$
+          DECLARE
+            v_wallet_id UUID;
+            v_school_id UUID;
           BEGIN
+            SELECT school_id INTO v_school_id
+            FROM students
+            WHERE id = p_student_id;
+
             -- Ensure wallet exists
-            INSERT INTO student_wallets (student_id, balance)
-            VALUES (p_student_id, p_amount)
+            INSERT INTO student_wallets (student_id, school_id, balance, last_topup_at)
+            VALUES (p_student_id, v_school_id, p_amount, NOW())
             ON CONFLICT (student_id) DO UPDATE
-            SET balance = student_wallets.balance + p_amount,
-                updated_at = NOW();
+            SET school_id = COALESCE(student_wallets.school_id, EXCLUDED.school_id),
+                balance = student_wallets.balance + p_amount,
+                last_topup_at = NOW(),
+                updated_at = NOW()
+            RETURNING id INTO v_wallet_id;
 
             -- Record transaction
-            INSERT INTO wallet_transactions (student_id, amount, type, description, reference)
-            VALUES (p_student_id, p_amount, 'topup', p_description, p_ref);
+            INSERT INTO wallet_transactions (school_id, wallet_id, amount, transaction_type, description, reference_id)
+            VALUES (v_school_id, v_wallet_id, p_amount, 'topup', p_description, p_ref);
           END;
           $$ LANGUAGE plpgsql;
         `,
@@ -347,6 +377,17 @@ export async function POST(request: NextRequest) {
     const migrations = [
       `ALTER TABLE IF EXISTS classes ADD CONSTRAINT classes_school_id_name_academic_year_key UNIQUE (school_id, name, academic_year);`,
       `ALTER TABLE IF EXISTS fee_structure ADD CONSTRAINT fee_structure_school_id_class_id_name_term_academic_year_key UNIQUE (school_id, class_id, name, term, academic_year);`,
+      `ALTER TABLE IF EXISTS student_wallets ADD COLUMN IF NOT EXISTS school_id UUID REFERENCES schools(id) ON DELETE CASCADE;`,
+      `ALTER TABLE IF EXISTS student_wallets ADD COLUMN IF NOT EXISTS daily_spend_limit NUMERIC(12,2);`,
+      `ALTER TABLE IF EXISTS student_wallets ADD COLUMN IF NOT EXISTS last_topup_at TIMESTAMPTZ;`,
+      `ALTER TABLE IF EXISTS wallet_transactions ADD COLUMN IF NOT EXISTS school_id UUID REFERENCES schools(id) ON DELETE CASCADE;`,
+      `ALTER TABLE IF EXISTS wallet_transactions ADD COLUMN IF NOT EXISTS wallet_id UUID REFERENCES student_wallets(id) ON DELETE CASCADE;`,
+      `ALTER TABLE IF EXISTS wallet_transactions ADD COLUMN IF NOT EXISTS transaction_type TEXT;`,
+      `ALTER TABLE IF EXISTS wallet_transactions ADD COLUMN IF NOT EXISTS reference_id TEXT;`,
+      `UPDATE student_wallets sw SET school_id = students.school_id FROM students WHERE sw.student_id = students.id AND sw.school_id IS NULL;`,
+      `CREATE INDEX IF NOT EXISTS idx_parent_messages_parent_id ON parent_messages(parent_id);`,
+      `CREATE INDEX IF NOT EXISTS idx_student_wallets_school_id ON student_wallets(school_id);`,
+      `CREATE INDEX IF NOT EXISTS idx_wallet_transactions_school_id ON wallet_transactions(school_id);`,
     ];
 
     for (const sql of migrations) {
