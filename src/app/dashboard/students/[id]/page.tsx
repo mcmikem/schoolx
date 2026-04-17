@@ -47,6 +47,17 @@ import { SendSMSModal } from "@/components/SendSMSModal";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 
+type AttendanceRecord = {
+  status: "present" | "absent" | "late";
+  date?: string | null;
+};
+
+type GradeRecord = {
+  subject: string | null;
+  score: number | null;
+  term: string | null;
+};
+
 function useStudentData(studentId: string, isDemo: boolean) {
   const [attendancePct, setAttendancePct] = useState(0);
   const [feePosition, setFeePosition] = useState({ paid: 0, total: 0 });
@@ -56,7 +67,11 @@ function useStudentData(studentId: string, isDemo: boolean) {
   const [subjectScores, setSubjectScores] = useState<
     { subject: string; score: number }[]
   >([]);
-  const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(
+    [],
+  );
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!studentId) return;
@@ -75,59 +90,113 @@ function useStudentData(studentId: string, isDemo: boolean) {
         { subject: "Science", score: 12 },
         { subject: "SST", score: 68 },
       ]);
+      setAttendanceRecords([]);
+      setDetailsError(null);
+      setDetailsLoading(false);
       return;
     }
 
+    let cancelled = false;
+
     async function fetchDetails() {
-      // Fetch attendance
-      const { data: attData } = await supabase
-        .from("attendance")
-        .select("status")
-        .eq("student_id", studentId);
+      try {
+        setDetailsLoading(true);
+        setDetailsError(null);
 
-      if (attData && attData.length > 0) {
-        const present = attData.filter((a) => a.status === "present").length;
-        setAttendancePct(Math.round((present / attData.length) * 100));
-        setAttendanceRecords(attData);
-      }
-
-      // Fetch fees (simplified)
-      const { data: feeData } = await supabase
-        .from("student_fees")
-        .select("amount_paid, total_fees")
-        .eq("student_id", studentId)
-        .maybeSingle();
-
-      if (feeData) {
-        setFeePosition({
-          paid: feeData.amount_paid || 0,
-          total: feeData.total_fees || 0,
-        });
-      }
-
-      // Fetch grades
-      const { data: gradesData } = await supabase
-        .from("grades")
-        .select("subject, score, term")
-        .eq("student_id", studentId);
-
-      if (gradesData) {
-        // Compute history and current
-        setSubjectScores(
-          gradesData.map((g) => ({ subject: g.subject, score: g.score })),
-        );
-        setGradeHistory([
-          {
-            term: "Current",
-            average: Math.round(
-              gradesData.reduce((a, b) => a + b.score, 0) / gradesData.length,
-            ),
-          },
+        const [
+          { data: attData, error: attendanceError },
+          { data: feeData, error: feeError },
+          { data: gradesData, error: gradesError },
+        ] = await Promise.all([
+          supabase
+            .from("attendance")
+            .select("status, date")
+            .eq("student_id", studentId),
+          supabase
+            .from("student_fees")
+            .select("amount_paid, total_fees")
+            .eq("student_id", studentId)
+            .maybeSingle(),
+          supabase
+            .from("grades")
+            .select("subject, score, term")
+            .eq("student_id", studentId),
         ]);
+
+        if (attendanceError) throw attendanceError;
+        if (feeError) throw feeError;
+        if (gradesError) throw gradesError;
+        if (cancelled) return;
+
+        const safeAttendance = (attData || []) as AttendanceRecord[];
+        const present = safeAttendance.filter(
+          (record) => record.status === "present",
+        ).length;
+        setAttendancePct(
+          safeAttendance.length > 0
+            ? Math.round((present / safeAttendance.length) * 100)
+            : 0,
+        );
+        setAttendanceRecords(safeAttendance);
+
+        setFeePosition({
+          paid: Number(feeData?.amount_paid || 0),
+          total: Number(feeData?.total_fees || 0),
+        });
+
+        const safeGrades = (gradesData || []) as GradeRecord[];
+        setSubjectScores(
+          safeGrades
+            .filter(
+              (grade): grade is GradeRecord & { subject: string; score: number } =>
+                typeof grade.subject === "string" &&
+                typeof grade.score === "number",
+            )
+            .map((grade) => ({
+              subject: grade.subject,
+              score: grade.score,
+            })),
+        );
+
+        if (safeGrades.length > 0) {
+          const validScores = safeGrades
+            .map((grade) => Number(grade.score ?? 0))
+            .filter((score) => Number.isFinite(score));
+          setGradeHistory(
+            validScores.length > 0
+              ? [
+                  {
+                    term: "Current",
+                    average: Math.round(
+                      validScores.reduce((sum, score) => sum + score, 0) /
+                        validScores.length,
+                    ),
+                  },
+                ]
+              : [],
+          );
+        } else {
+          setGradeHistory([]);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setDetailsError(
+            error instanceof Error
+              ? error.message
+              : "Unable to load student analytics",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setDetailsLoading(false);
+        }
       }
     }
 
     fetchDetails();
+    return () => {
+      cancelled = true;
+    };
   }, [studentId, isDemo]);
 
   return {
@@ -136,6 +205,8 @@ function useStudentData(studentId: string, isDemo: boolean) {
     gradeHistory,
     subjectScores,
     attendanceRecords,
+    detailsLoading,
+    detailsError,
   };
 }
 
@@ -180,7 +251,7 @@ function AttendanceHeatmap({
   records,
   isDemo,
 }: {
-  records: any[];
+  records: AttendanceRecord[];
   isDemo: boolean;
 }) {
   const days = useMemo(() => {
@@ -200,10 +271,15 @@ function AttendanceHeatmap({
       return result;
     }
 
-    return records.slice(-30).map((r) => ({
-      date: new Date(r.date || Date.now()),
-      status: r.status as "present" | "absent" | "late",
-    }));
+    return records
+      .slice(-30)
+      .map((record) => {
+        const parsedDate = record.date ? new Date(record.date) : new Date();
+        return {
+          date: Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate,
+          status: record.status,
+        };
+      });
   }, [records, isDemo]);
 
   const colorMap = {
@@ -431,6 +507,8 @@ export default function StudentProfilePage({
     gradeHistory,
     subjectScores,
     attendanceRecords,
+    detailsLoading,
+    detailsError,
   } = useStudentData(studentId, isDemo);
 
   const [activeTab, setActiveTab] = useState("overview");
@@ -462,7 +540,13 @@ export default function StudentProfilePage({
 
   return (
     <PageErrorBoundary>
-    <div>
+      <div>
+      {detailsError && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
+          Some student analytics could not be loaded: {detailsError}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
         <div className="flex items-center gap-3 flex-1">
@@ -692,8 +776,14 @@ export default function StudentProfilePage({
             Attendance (Days in School)
           </h3>
           <div className="flex flex-col items-center gap-4">
-            <AttendanceRing percentage={attendancePct} />
-            <AttendanceHeatmap records={attendanceRecords} isDemo={isDemo} />
+            {detailsLoading ? (
+              <p className="text-xs text-[var(--t3)]">Loading attendance…</p>
+            ) : (
+              <>
+                <AttendanceRing percentage={attendancePct} />
+                <AttendanceHeatmap records={attendanceRecords} isDemo={isDemo} />
+              </>
+            )}
           </div>
         </div>
 
@@ -703,7 +793,11 @@ export default function StudentProfilePage({
             <CreditCard className="w-4 h-4 text-yellow-600" />
             Money Owed (Fees)
           </h3>
-          <FeeProgressBar paid={feePosition.paid} total={feePosition.total} />
+          {detailsLoading ? (
+            <p className="text-xs text-[var(--t3)]">Loading fees…</p>
+          ) : (
+            <FeeProgressBar paid={feePosition.paid} total={feePosition.total} />
+          )}
           <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
             <div className="flex items-center gap-2">
               {feePosition.total - feePosition.paid > 0 ? (
@@ -732,7 +826,9 @@ export default function StudentProfilePage({
             Marks Trend (Performance)
           </h3>
           <div className="flex items-center justify-center py-4">
-            {gradeHistory.length > 0 ? (
+            {detailsLoading ? (
+              <p className="text-xs text-[var(--t3)]">Loading grades…</p>
+            ) : gradeHistory.length > 0 ? (
               <GradeSparkline data={gradeHistory} />
             ) : (
               <p className="text-xs text-[var(--t3)]">No grade history yet</p>
