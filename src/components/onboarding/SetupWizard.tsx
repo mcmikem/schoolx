@@ -61,15 +61,14 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
     if (!school?.id) return;
     setLoading(true);
     try {
-      // Save academic year settings
-      await supabase.from("school_settings").upsert({
+      const { error: settingsError } = await supabase.from("school_settings").upsert({
         school_id: school.id,
         key: "academic_year",
         value: JSON.stringify(academicYear),
       });
+      if (settingsError) throw settingsError;
 
-      // Update checklist
-      await supabase.from("setup_checklist").upsert(
+      const { error: checklistError } = await supabase.from("setup_checklist").upsert(
         {
           school_id: school.id,
           item_key: "academic_calendar",
@@ -79,6 +78,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         },
         { onConflict: "school_id,item_key" },
       );
+      if (checklistError) throw checklistError;
 
       toast.success("Academic year saved!");
       setStep(2);
@@ -256,9 +256,8 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
     if (!school?.id) return;
     setLoading(true);
     try {
-      // Save SMS templates
       for (const t of smsTemplates) {
-        await supabase.from("sms_templates").upsert(
+        const { error: templateError } = await supabase.from("sms_templates").upsert(
           {
             school_id: school.id,
             id: t.id,
@@ -268,9 +267,10 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
           },
           { onConflict: "school_id,id" },
         );
+        if (templateError) throw templateError;
       }
 
-      await supabase.from("setup_checklist").upsert(
+      const { error: checklistError } = await supabase.from("setup_checklist").upsert(
         {
           school_id: school.id,
           item_key: "sms_templates",
@@ -280,6 +280,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         },
         { onConflict: "school_id,item_key" },
       );
+      if (checklistError) throw checklistError;
 
       toast.success("SMS templates saved!");
       await refreshSchool();

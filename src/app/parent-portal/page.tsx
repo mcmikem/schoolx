@@ -192,7 +192,7 @@ function ParentDashboardContent() {
 
   const handleSignOut = async () => {
     await signOut();
-    window.location.href = "/login";
+    window.location.href = "/parent/login";
   };
 
   if (isChecking || !isAuthorized) {

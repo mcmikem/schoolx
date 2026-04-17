@@ -7,6 +7,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
 const publicPaths = [
   "/login",
+  "/parent/login",
   "/register",
   "/demo-login",
   "/api/auth",

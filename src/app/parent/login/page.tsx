@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
@@ -10,6 +10,9 @@ import { Button, Input } from "@/components/ui";
 export default function ParentLoginPage() {
   const router = useRouter();
   const toast = useToast();
+  const demoModeEnabled =
+    process.env.NEXT_PUBLIC_ENABLE_DEMO_MODE === "true" &&
+    process.env.NODE_ENV === "development";
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -17,25 +20,14 @@ export default function ParentLoginPage() {
   const [linking, setLinking] = useState(false);
   const [linkStudentId, setLinkStudentId] = useState("");
   const [linkedChildPhone, setLinkedChildPhone] = useState("");
-  const PARENT_DEMO_KEY = "skoolmate_parent_demo";
-
   const DEMO_PASSWORD = "demo1234";
-
-  const demoParent = {
-    phone: "0770000001",
-    password: DEMO_PASSWORD,
-    name: "Jane Parent",
-  };
+  const demoParent = { phone: "0770000001", password: DEMO_PASSWORD };
 
   const handleDemoLogin = () => {
+    if (!demoModeEnabled) return;
     setPhone(demoParent.phone);
     setPassword(demoParent.password);
   };
-
-  useEffect(() => {
-    localStorage.removeItem("parent_session");
-    sessionStorage.removeItem(PARENT_DEMO_KEY);
-  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,26 +40,12 @@ export default function ParentLoginPage() {
     try {
       const cleanPhone = phone.replace(/[^0-9]/g, "");
 
-      if (password === DEMO_PASSWORD && cleanPhone === demoParent.phone) {
-        const demoData = {
-          parent: {
-            id: "demo-parent-1",
-            phone: demoParent.phone,
-            name: demoParent.name,
-            school_id: "00000000-0000-0000-0000-000000000001",
-            children: [
-              {
-                id: "demo-child-1",
-                name: "John Student",
-                class: "P.5A",
-                student_id: "demo-student-1",
-              },
-            ],
-          },
-        };
-        sessionStorage.setItem(PARENT_DEMO_KEY, JSON.stringify(demoData.parent));
-        router.push("/parent/dashboard");
-        setLoading(false);
+      if (
+        demoModeEnabled &&
+        password === DEMO_PASSWORD &&
+        cleanPhone === demoParent.phone
+      ) {
+        router.push("/parent-portal");
         return;
       }
 
@@ -95,7 +73,7 @@ export default function ParentLoginPage() {
         .single();
 
       if (parentData) {
-        router.push("/parent/dashboard");
+        router.push("/parent-portal");
       } else {
         setLinking(true);
       }
@@ -174,25 +152,29 @@ export default function ParentLoginPage() {
                   {loading ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
-              <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-[var(--border)]" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="bg-[var(--surface)] px-3 text-[var(--t3)]">
-                    or
-                  </span>
-                </div>
-              </div>
-              <Button
-                type="button"
-                variant="secondary"
-                className="w-full"
-                icon={<MaterialIcon icon="school" className="text-lg" />}
-                onClick={handleDemoLogin}
-              >
-                Try Demo
-              </Button>
+              {demoModeEnabled && (
+                <>
+                  <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-[var(--border)]" />
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="bg-[var(--surface)] px-3 text-[var(--t3)]">
+                        or
+                      </span>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full"
+                    icon={<MaterialIcon icon="school" className="text-lg" />}
+                    onClick={handleDemoLogin}
+                  >
+                    Try Demo
+                  </Button>
+                </>
+              )}
               <p className="text-center text-sm text-[var(--t3)] mt-4">
                 New parent? Contact your school to get access.
               </p>

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireDevelopmentRouteOrDeny } from "@/lib/api-utils";
 
 // Demo credentials - ONLY accessible server-side
 const DEMO_CREDS = {
@@ -45,6 +46,9 @@ const DEMO_SCHOOL = {
 
 export async function POST(request: NextRequest) {
   try {
+    const devOnly = requireDevelopmentRouteOrDeny();
+    if (!devOnly.ok) return devOnly.response;
+
     const { phone, password } = await request.json();
 
     if (!phone || !password) {

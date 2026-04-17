@@ -102,11 +102,6 @@ export const navigationByRole: Record<string, NavGroup[]> = {
           icon: "id_card",
         },
         {
-          href: "/dashboard/students/conduct",
-          label: "Conduct & Merits",
-          icon: "military_tech",
-        },
-        {
           href: "/dashboard/student-enrollments",
           label: "Enrollments",
           icon: "school",

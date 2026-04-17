@@ -104,13 +104,13 @@ export class FlutterwaveMobileMoney {
     schoolId: string;
     plan: string;
     returnUrl: string;
-  }): Promise<{ link: string; reference: string }> {
-    const reference = `MM_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  }): Promise<{ link: string; txRef: string; reference: string }> {
+    const txRef = `MM_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
     const payload: Record<string, unknown> = {
       amount: request.amount,
       currency: "UGX",
-      tx_ref: reference,
+      tx_ref: txRef,
       payment_type: "mobilemoneyug",
       accountbank: "MTN",
       accountnumber: request.phone.replace(/^256/, ""),
@@ -137,6 +137,7 @@ export class FlutterwaveMobileMoney {
 
     return {
       link: response.data.link,
+      txRef: response.data.tx_ref,
       reference: response.data.tx_ref,
     };
   }
@@ -149,7 +150,7 @@ export class FlutterwaveMobileMoney {
     schoolId: string;
     plan: string;
     returnUrl: string;
-  }): Promise<{ link: string; txRef: string }> {
+  }): Promise<{ link: string; txRef: string; reference: string }> {
     const txRef = `AM_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
     const payload: Record<string, unknown> = {
@@ -183,6 +184,7 @@ export class FlutterwaveMobileMoney {
     return {
       link: response.data.link,
       txRef: response.data.tx_ref,
+      reference: response.data.tx_ref,
     };
   }
 
@@ -281,7 +283,7 @@ export function createMobileMoneyPaymentLink(request: {
   schoolId: string;
   plan: string;
   returnUrl: string;
-}): Promise<{ link: string; txRef: string }> {
+}): Promise<{ link: string; txRef: string; reference: string }> {
   const flutterwave = new FlutterwaveMobileMoney();
 
   if (request.provider === "mtn") {

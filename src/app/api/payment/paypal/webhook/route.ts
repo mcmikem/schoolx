@@ -2,6 +2,19 @@ import { NextResponse } from "next/server";
 import { verifyPayPalWebhook } from "@/lib/payments/paypal";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+function getSchoolIdFromPaymentResource(payment: any): string | null {
+  return (
+    payment?.custom ||
+    payment?.purchase_units?.[0]?.custom_id ||
+    payment?.purchase_units?.[0]?.reference_id ||
+    null
+  );
+}
+
+function getSchoolIdFromSubscriptionResource(subscription: any): string | null {
+  return subscription?.custom_id || subscription?.custom || null;
+}
+
 // Handle PayPal webhook events
 export async function POST(request: Request) {
   try {
@@ -82,7 +95,9 @@ export async function POST(request: Request) {
         break;
 
       default:
-        console.log(`Unhandled PayPal event type ${webhookEvent.event_type}`);
+        if (process.env.NODE_ENV === "development") {
+          console.log(`Unhandled PayPal event type ${webhookEvent.event_type}`);
+        }
     }
 
     // Return a 200 response to acknowledge receipt of the event
@@ -102,7 +117,7 @@ async function handlePayPalPaymentSuccess(
 ) {
   try {
     // Extract custom ID from payment (we would have stored school ID in custom field)
-    const customId = payment.custom;
+    const customId = getSchoolIdFromPaymentResource(payment);
     if (!customId) {
       console.error("No custom ID found in PayPal payment");
       return;
@@ -146,7 +161,7 @@ async function handlePayPalPaymentFailure(
 ) {
   try {
     // Extract custom ID from payment
-    const customId = payment.custom;
+    const customId = getSchoolIdFromPaymentResource(payment);
     if (!customId) {
       console.error("No custom ID found in PayPal payment");
       return;
@@ -186,7 +201,7 @@ async function handlePayPalSubscriptionActivated(
 ) {
   try {
     // Extract custom ID from subscription
-    const customId = subscription.custom_id;
+    const customId = getSchoolIdFromSubscriptionResource(subscription);
     if (!customId) {
       console.error("No custom ID found in PayPal subscription");
       return;
@@ -226,7 +241,7 @@ async function handlePayPalSubscriptionCancelled(
 ) {
   try {
     // Extract custom ID from subscription
-    const customId = subscription.custom_id;
+    const customId = getSchoolIdFromSubscriptionResource(subscription);
     if (!customId) {
       console.error("No custom ID found in PayPal subscription");
       return;
@@ -266,7 +281,7 @@ async function handlePayPalSubscriptionSuspended(
 ) {
   try {
     // Extract custom ID from subscription
-    const customId = subscription.custom_id;
+    const customId = getSchoolIdFromSubscriptionResource(subscription);
     if (!customId) {
       console.error("No custom ID found in PayPal subscription");
       return;
@@ -304,7 +319,7 @@ async function handlePayPalSubscriptionPaymentFailed(
 ) {
   try {
     // Extract custom ID from subscription
-    const customId = subscription.custom_id;
+    const customId = getSchoolIdFromSubscriptionResource(subscription);
     if (!customId) {
       console.error("No custom ID found in PayPal subscription");
       return;

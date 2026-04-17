@@ -187,7 +187,75 @@ export async function verifyPayPalWebhook(
   webhookId: string,
   webhookEvent: any
 ) {
-  return true;
+  if (
+    !authAlgo ||
+    !certUrl ||
+    !transmissionId ||
+    !transmissionSig ||
+    !transmissionTime ||
+    !webhookId ||
+    !webhookEvent
+  ) {
+    return false;
+  }
+
+  const clientId = process.env.PAYPAL_CLIENT_ID;
+  const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return false;
+
+  const baseUrl =
+    process.env.PAYPAL_MODE === "live"
+      ? "https://api-m.paypal.com"
+      : "https://api-m.sandbox.paypal.com";
+
+  try {
+    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+    const tokenResponse = await fetch(`${baseUrl}/v1/oauth2/token`, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${auth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: "grant_type=client_credentials",
+    });
+
+    if (!tokenResponse.ok) {
+      return false;
+    }
+
+    const tokenJson = await tokenResponse.json();
+    const accessToken = tokenJson?.access_token;
+    if (!accessToken) return false;
+
+    const verifyResponse = await fetch(
+      `${baseUrl}/v1/notifications/verify-webhook-signature`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          auth_algo: authAlgo,
+          cert_url: certUrl,
+          transmission_id: transmissionId,
+          transmission_sig: transmissionSig,
+          transmission_time: transmissionTime,
+          webhook_id: webhookId,
+          webhook_event: webhookEvent,
+        }),
+      }
+    );
+
+    if (!verifyResponse.ok) {
+      return false;
+    }
+
+    const verifyJson = await verifyResponse.json();
+    return verifyJson?.verification_status === "SUCCESS";
+  } catch {
+    return false;
+  }
 }
 
 const paypalApi = {
