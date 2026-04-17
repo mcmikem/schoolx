@@ -3,11 +3,11 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Parent Portal | SkoolMate OS",
   description:
-    "Parent portal for SkoolMate OS. Your Digital School Partner. View your child's attendance, grades, fee balance, and school updates in one place.",
+    "Parents can sign in with the phone number saved by the school to check attendance, fees, and school updates.",
   openGraph: {
     title: "Parent Portal | SkoolMate OS",
     description:
-      "Stay connected with your child's school life. View attendance, grades, fees, and receive SMS updates.",
+      "Use the parent phone number on school records to sign in and follow your child's school information.",
     type: "website",
     url: "https://omuto.org/parent",
     images: ["/og-image.png"],

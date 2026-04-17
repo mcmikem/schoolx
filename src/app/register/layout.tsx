@@ -3,11 +3,11 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Register Your School | SkoolMate OS",
   description:
-    "Register your school for a free 30-day trial of SkoolMate OS. Your Digital School Partner.",
+    "Register your school, add location details, and create the first admin login.",
   openGraph: {
     title: "Register Your School | SkoolMate OS",
     description:
-      "Start your free 30-day trial. The all-in-one school management system built for Ugandan schools.",
+      "Create a school account in three steps using your school details, district, and admin phone number.",
     type: "website",
     url: "https://omuto.org/register",
     images: ["/og-image.png"],
