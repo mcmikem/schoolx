@@ -25,9 +25,9 @@ export async function POST(request: NextRequest) {
       .eq("school_id", school.schoolId)
       .eq("status", "active");
 
-    const activePlans: any[] = (plansQuery.data || []) as any[];
+    const plans: any[] = (plansQuery.data || []) as any[];
 
-    if (!activePlans || activePlans.length === 0) {
+    if (plans.length === 0) {
       return NextResponse.json({
         success: true,
         message: "No active plans found",
@@ -35,14 +35,14 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Get installments and students
-    const planIds = activePlans.map((p: any) => p.id);
+    const planIds = plans.map((p: any) => p.id);
     const { data: installments } = await supabase
       .from("payment_plan_installments")
       .select("*")
       .in("plan_id", planIds)
       .eq("paid", false);
 
-    const studentIds = Array.from(new Set(activePlans.map((p) => p.student_id)));
+    const studentIds = Array.from(new Set(plans.map((p) => p.student_id)));
     const { data: students } = await supabase
       .from("students")
       .select("id, first_name, last_name, parent_phone")
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     // 3. Detect reminders using lib
     const reminders = detectInstallmentReminders({
-      plans: activePlans,
+      plans,
       installments: installments || [],
       students: students || [],
       daysNotice: daysNotice || 1,

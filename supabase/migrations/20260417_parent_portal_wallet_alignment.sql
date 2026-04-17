@@ -202,7 +202,7 @@ BEGIN
     WHERE id = p_student_id;
 
     IF v_school_id IS NULL THEN
-        RAISE EXCEPTION 'Cannot top up wallet: student % does not belong to any school', p_student_id;
+        RAISE EXCEPTION USING MESSAGE = 'Cannot top up wallet: student ' || p_student_id || ' does not belong to any school';
     END IF;
 
     INSERT INTO student_wallets (student_id, school_id, balance, last_topup_at)
