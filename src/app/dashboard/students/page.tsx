@@ -117,7 +117,7 @@ export default function StudentHubPage() {
   const searchParams = useSearchParams();
   const { students, loading, createStudent, updateStudent, deleteStudent } =
     useStudents(school?.id);
-  const { classes } = useClasses(school?.id);
+  const { classes, loading: classesLoading } = useClasses(school?.id);
 
   const { preferences: tablePrefs, updatePreferences: updateTablePrefs } =
     useTablePreferences("students-registry");
@@ -2513,7 +2513,35 @@ export default function StudentHubPage() {
                   >
                     Class
                   </label>
-                  {classes.length === 0 ? (
+                  {classesLoading ? (
+                    <div
+                      style={{
+                        background: "var(--navy-soft)",
+                        border: "1px solid rgba(0, 31, 63, 0.12)",
+                        borderRadius: 12,
+                        padding: 16,
+                      }}
+                    >
+                      <p
+                        style={{
+                          color: "var(--t1)",
+                          fontSize: 14,
+                          fontWeight: 600,
+                        }}
+                      >
+                        Loading classes...
+                      </p>
+                      <p
+                        style={{
+                          color: "var(--t3)",
+                          fontSize: 12,
+                          marginTop: 4,
+                        }}
+                      >
+                        The class list is still being fetched for this school.
+                      </p>
+                    </div>
+                  ) : classes.length === 0 ? (
                     <div
                       style={{
                         background: "var(--amber-soft)",

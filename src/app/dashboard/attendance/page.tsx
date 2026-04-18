@@ -487,7 +487,16 @@ export default function AttendancePage() {
                 </span>
               )}
             </label>
-            {classes.length === 0 ? (
+            {classesLoading ? (
+              <div className="bg-[var(--navy-soft)] border border-[rgba(0,31,63,0.12)] rounded-xl p-4">
+                <p className="text-[var(--t1)] text-sm font-medium">
+                  Loading classes...
+                </p>
+                <p className="text-[var(--t3)] text-xs mt-1">
+                  The class list is still being fetched for this school.
+                </p>
+              </div>
+            ) : classes.length === 0 ? (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                 <p className="text-amber-800 text-sm font-medium">
                   No classes found

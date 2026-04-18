@@ -2,20 +2,24 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
-import type { Subject } from '@/types'
+import type { Subject, School } from '@/types'
 import { getQuerySchoolId } from './utils'
 import { isDemoSchool } from '@/lib/demo-utils'
 
 export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [loading, setLoading] = useState(true)
-  const { isDemo } = useAuth()
+  const { isDemo, school } = useAuth()
+
+  const getSchoolType = useCallback(() => {
+    return ((school as School | null)?.school_type || 'primary') as School['school_type']
+  }, [school])
 
   const fetchSubjects = useCallback(async () => {
     if (!schoolId) { setLoading(false); return }
     if (isDemo || isDemoSchool(schoolId)) {
       const { getDefaultSubjects } = await import('@/lib/curriculum')
-      const defaultSubjects = getDefaultSubjects('primary')
+      const defaultSubjects = getDefaultSubjects(getSchoolType())
       setSubjects(defaultSubjects.map(s => ({ ...s, id: `demo-sub-${s.code}`, school_id: schoolId, created_at: new Date().toISOString() })) as unknown as Subject[])
       setLoading(false)
       return
@@ -28,7 +32,7 @@ export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
       let currentSubjects = data || []
       if (currentSubjects.length === 0 && autoSeed) {
         const { getDefaultSubjects } = await import('@/lib/curriculum')
-        const defaultSubjects = getDefaultSubjects('primary')
+        const defaultSubjects = getDefaultSubjects(getSchoolType())
         const seeds = defaultSubjects.map(s => ({ name: s.name, code: s.code, level: s.level, is_compulsory: s.is_compulsory, school_id: querySchoolId }))
         const { data: inserted, error: insertError } = await supabase.from('subjects').insert(seeds).select('id, name, code, level, is_compulsory, school_id, created_at')
         if (!insertError && inserted) currentSubjects = inserted.sort((a: any, b: any) => a.name.localeCompare(b.name))
@@ -36,7 +40,7 @@ export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
       setSubjects(currentSubjects as Subject[])
     } catch (err) { console.error('Error fetching subjects:', err) }
     finally { setLoading(false) }
-  }, [schoolId, autoSeed, isDemo])
+  }, [schoolId, autoSeed, isDemo, getSchoolType])
 
   useEffect(() => { fetchSubjects() }, [fetchSubjects])
   return { subjects, loading }

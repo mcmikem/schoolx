@@ -1,6 +1,6 @@
 'use client'
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useClasses, useSubjects, useTimetableManager, useStaff } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
@@ -33,6 +33,13 @@ export default function TimetablePage() {
   const teachers = staff.filter((s: any) =>
     ['teacher', 'head_teacher', 'dean_of_studies', 'deputy_headteacher'].includes(s.role)
   )
+  const teacherNameById = useMemo(
+    () =>
+      Object.fromEntries(
+        teachers.map((teacher: any) => [teacher.id, teacher.full_name]),
+      ) as Record<string, string>,
+    [teachers],
+  )
 
   const [selectedClassId, setSelectedClassId] = useState('')
   const [timetable, setTimetable] = useState<any[]>([])
@@ -50,8 +57,10 @@ export default function TimetablePage() {
     try {
       const { data, error } = await supabase
         .from('teacher_timetable')
-        .select('*, subjects(name, code), users:teacher_id(full_name)')
+        .select('id, class_id, subject_id, teacher_id, day_of_week, period_number, start_time, end_time, room, academic_year, subjects(name, code)')
         .eq('class_id', selectedClassId)
+        .order('day_of_week')
+        .order('period_number')
       if (error) throw error
       setTimetable(data || [])
     } catch (err) {
@@ -85,6 +94,12 @@ export default function TimetablePage() {
   useEffect(() => {
     if (selectedClassId) fetchTimetable()
   }, [selectedClassId, fetchTimetable])
+
+  useEffect(() => {
+    if (!selectedClassId && classes.length > 0) {
+      setSelectedClassId(classes[0].id)
+    }
+  }, [classes, selectedClassId])
 
   useEffect(() => {
     fetchAllTimetables()
@@ -282,7 +297,7 @@ export default function TimetablePage() {
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-1.5 text-xs text-[var(--t4)]">
                                     <MaterialIcon icon="person" className="text-sm" />
-                                    {entry.users?.full_name || 'Teacher'}
+                                    {teacherNameById[entry.teacher_id] || 'Teacher'}
                                   </div>
                                   <button
                                     onClick={() => handleDeleteEntry(entry.id)}

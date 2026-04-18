@@ -1,6 +1,6 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
@@ -85,7 +85,7 @@ export default function SubstitutionsPage() {
       const { data, error } = await supabase
         .from("teacher_substitutions")
         .select(
-          "*, absent_teacher:absent_teacher_id(full_name), substitute_teacher:substitute_teacher_id(full_name), class:class_id(name)",
+          "id, school_id, absent_teacher_id, substitute_teacher_id, class_id, date, period, reason, status, created_at",
         )
         .eq("school_id", school.id)
         .gte("date", startDate)
@@ -343,10 +343,26 @@ export default function SubstitutionsPage() {
 
   const today = new Date().toISOString().split("T")[0];
   const todaySubs = substitutions.filter((s) => s.date === today);
+  const teacherNameById = useMemo(
+    () =>
+      Object.fromEntries(
+        teachers.map((teacher) => [teacher.id, teacher.full_name]),
+      ) as Record<string, string>,
+    [teachers],
+  );
+  const classNameById = useMemo(
+    () =>
+      Object.fromEntries(
+        classes.map((classItem) => [classItem.id, classItem.name]),
+      ) as Record<string, string>,
+    [classes],
+  );
 
   const teacherSubCounts = new Map<string, number>();
   substitutions.forEach((sub) => {
-    const name = sub.substitute_teacher?.full_name;
+    const name =
+      teacherNameById[sub.substitute_teacher_id] ||
+      sub.substitute_teacher?.full_name;
     if (name) {
       teacherSubCounts.set(name, (teacherSubCounts.get(name) || 0) + 1);
     }
@@ -442,12 +458,12 @@ export default function SubstitutionsPage() {
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="font-medium text-[var(--t1)]">
-                        {sub.absent_teacher?.full_name || "Unknown"} →{" "}
-                        {sub.substitute_teacher?.full_name || "Unknown"}
+                        {teacherNameById[sub.absent_teacher_id] || sub.absent_teacher?.full_name || "Unknown"} →{" "}
+                        {teacherNameById[sub.substitute_teacher_id] || sub.substitute_teacher?.full_name || "Unknown"}
                       </div>
                       <div className="text-sm text-[var(--t3)] mt-1">
                         Period {sub.period} ·{" "}
-                        {sub.class?.name || "Unknown class"}
+                        {classNameById[sub.class_id] || sub.class?.name || "Unknown class"}
                       </div>
                       <div className="mt-2">{getReasonBadge(sub.reason)}</div>
                     </div>
@@ -521,16 +537,16 @@ export default function SubstitutionsPage() {
                         {new Date(sub.date).toLocaleDateString()}
                       </td>
                       <td className="p-4 text-sm text-[var(--t1)]">
-                        {sub.absent_teacher?.full_name || "Unknown"}
+                        {teacherNameById[sub.absent_teacher_id] || sub.absent_teacher?.full_name || "Unknown"}
                       </td>
                       <td className="p-4 text-sm text-[var(--t1)]">
-                        {sub.substitute_teacher?.full_name || "Unknown"}
+                        {teacherNameById[sub.substitute_teacher_id] || sub.substitute_teacher?.full_name || "Unknown"}
                       </td>
                       <td className="p-4 text-sm text-[var(--t1)]">
                         {sub.period}
                       </td>
                       <td className="p-4 text-sm text-[var(--t1)]">
-                        {sub.class?.name || "Unknown"}
+                        {classNameById[sub.class_id] || sub.class?.name || "Unknown"}
                       </td>
                       <td className="p-4">{getReasonBadge(sub.reason)}</td>
                     </tr>

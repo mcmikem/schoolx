@@ -39,20 +39,23 @@ export function useTimetable(classId?: string) {
       try {
         setLoading(true)
         const { data, error } = await supabase
-          .from('timetable')
+          .from('teacher_timetable')
           .select(`
             id,
+            class_id,
             day_of_week,
+            period_number,
             start_time,
             end_time,
             subject_id,
             teacher_id,
-            subjects (name, code),
-            teachers:profiles (full_name)
+            room,
+            academic_year,
+            subjects (name, code)
           `)
           .eq('class_id', classId)
           .order('day_of_week')
-          .order('start_time')
+          .order('period_number')
 
         if (error) {
           if (error.code === '42P01') {
@@ -88,7 +91,7 @@ export function useTimetable(classId?: string) {
     }
     try {
       const { data, error } = await supabase
-        .from('timetable')
+        .from('teacher_timetable')
         .upsert(entry)
         .select()
         .single()
@@ -115,7 +118,7 @@ export function useTimetable(classId?: string) {
       return
     }
     try {
-      const { error } = await supabase.from('timetable').delete().eq('id', id)
+      const { error } = await supabase.from('teacher_timetable').delete().eq('id', id)
       if (error) throw error
       setTimetable(prev => prev.filter(t => t.id !== id))
     } catch (err: any) {

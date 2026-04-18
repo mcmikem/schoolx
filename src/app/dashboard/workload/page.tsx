@@ -44,13 +44,13 @@ export default function WorkloadPage() {
     try {
       const [ttRes, tRes] = await Promise.all([
         supabase
-          .from('timetable')
+          .from('teacher_timetable')
           .select(`
             *,
             subjects (name, code),
-            classes (name)
+            classes!inner (name, school_id)
           `)
-          .eq('school_id', school.id),
+          .eq('classes.school_id', school.id),
         supabase
           .from('users')
           .select('id, full_name')

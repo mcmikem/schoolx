@@ -20,6 +20,7 @@ interface FeeFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   classes: ClassOption[];
+  classesLoading?: boolean;
   onSubmit: (e: React.FormEvent) => void;
   newFee: FeeFormData;
   onFeeChange: (updates: Record<string, unknown>) => void;
@@ -32,6 +33,7 @@ export default function FeeFormModal({
   isOpen,
   onClose,
   classes,
+  classesLoading = false,
   onSubmit,
   newFee,
   onFeeChange,
@@ -112,7 +114,16 @@ export default function FeeFormModal({
             <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
               Class (Optional - leave empty for all)
             </label>
-            {classes.length === 0 ? (
+            {classesLoading ? (
+              <div className="bg-[var(--navy-soft)] border border-[rgba(0,31,63,0.12)] rounded-xl p-4">
+                <p className="text-[var(--t1)] text-sm font-medium">
+                  Loading classes...
+                </p>
+                <p className="text-[var(--t3)] text-xs mt-1">
+                  The class list is still being fetched for this school.
+                </p>
+              </div>
+            ) : classes.length === 0 ? (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                 <p className="text-amber-800 text-sm font-medium">
                   No classes found

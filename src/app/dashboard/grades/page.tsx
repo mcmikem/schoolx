@@ -99,7 +99,7 @@ export default function GradesPage() {
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
   const isOnline = useOnlineStatus();
-  const { classes } = useClasses(school?.id);
+  const { classes, loading: classesLoading } = useClasses(school?.id);
   const { subjects } = useSubjects(school?.id);
   const { staff } = useStaff(school?.id);
 
@@ -1003,7 +1003,16 @@ export default function GradesPage() {
               <label className="block text-sm font-semibold mb-2 text-primary">
                 Target Class
               </label>
-              {classes.length === 0 ? (
+              {classesLoading ? (
+                <div className="bg-[var(--navy-soft)] border border-[rgba(0,31,63,0.12)] rounded-xl p-4">
+                  <p className="text-[var(--t1)] text-sm font-medium">
+                    Loading classes...
+                  </p>
+                  <p className="text-[var(--t3)] text-xs mt-1">
+                    The class list is still being fetched for this school.
+                  </p>
+                </div>
+              ) : classes.length === 0 ? (
                 <div className="bg-[var(--amber-soft)] border border-[var(--amber)]/20 rounded-xl p-4">
                   <p className="text-[var(--t1)] text-sm font-medium">
                     No classes found
