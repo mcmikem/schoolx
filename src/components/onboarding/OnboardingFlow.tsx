@@ -1,6 +1,5 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Button, Input, Select } from "@/components/ui";
@@ -8,15 +7,19 @@ import { useToast } from "@/components/Toast";
 import SkoolMateLogo from "@/components/SkoolMateLogo";
 import MaterialIcon from "@/components/MaterialIcon";
 import { motion, AnimatePresence } from "framer-motion";
-import { t } from "@/i18n";
+import { PLANS, normalizePlanType } from "@/lib/payments/subscription-client";
+import {
+  getDistrictOptions,
+  getParishOptions,
+  getSubcountyOptions,
+} from "@/lib/uganda-admin";
 
 export default function OnboardingFlow({
   onComplete,
 }: {
   onComplete: () => void;
 }) {
-  const router = useRouter();
-  const { school, user, refreshSchool } = useAuth();
+  const { school, refreshSchool } = useAuth();
   const toast = useToast();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -31,11 +34,8 @@ export default function OnboardingFlow({
     name: school?.name || "",
     district: (school as any)?.district || "",
     subcounty: (school as any)?.subcounty || "",
+    parish: (school as any)?.parish || "",
   });
-
-  const [activationChoice, setActivationChoice] = useState<"trial" | "premium">(
-    "trial",
-  );
   const [featureStage, setFeatureStage] = useState<
     "core" | "academic" | "finance" | "full"
   >(
@@ -61,14 +61,9 @@ export default function OnboardingFlow({
         name: schoolDetails.name || school.name,
         district: schoolDetails.district,
         subcounty: schoolDetails.subcounty,
+        parish: schoolDetails.parish,
         primary_color: branding.primary_color,
         feature_stage: featureStage, // Column now exists in DB
-        subscription_status:
-          activationChoice === "premium" ? "active" : "trial",
-        trial_ends_at:
-          activationChoice === "trial"
-            ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-            : null,
         onboarding_completed: true,
         onboarding_completed_at: new Date().toISOString(),
         setup_progress: JSON.stringify({
@@ -112,12 +107,7 @@ export default function OnboardingFlow({
       await refreshSchool();
       setLoading(false);
       onComplete();
-
-      if (activationChoice === "premium") {
-        router.push("/dashboard/settings?tab=subscription");
-      } else {
-        toast.success("Welcome aboard! Your 30-day trial is active.");
-      }
+      toast.success("Setup complete. Your school can start working immediately.");
     } catch (error: any) {
       console.error("Final error:", error);
       toast.error(
@@ -129,11 +119,13 @@ export default function OnboardingFlow({
 
   const steps = [
     { title: "Welcome", icon: "waving_hand" },
-    { title: "Branding", icon: "palette" },
+    { title: "Essentials", icon: "domain" },
     { title: "Curriculum", icon: "auto_stories" },
     { title: "Features", icon: "widgets" },
-    { title: "Activation", icon: "verified" },
+    { title: "Launch", icon: "verified" },
   ];
+
+  const selectedPlan = PLANS[normalizePlanType(school.subscription_plan)];
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[var(--bg)]/90 backdrop-blur-xl p-4 md:p-8">
@@ -261,38 +253,56 @@ export default function OnboardingFlow({
                   </div>
 
                   {/* District */}
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-3">
-                      District
-                    </label>
-                    <Input
-                      value={schoolDetails.district}
-                      onChange={(e) =>
-                        setSchoolDetails({
-                          ...schoolDetails,
-                          district: e.target.value,
-                        })
-                      }
-                      placeholder="Kampala"
-                    />
-                  </div>
+                  <Select
+                    label="District"
+                    options={[
+                      { value: "", label: "Select district" },
+                      ...getDistrictOptions(),
+                    ]}
+                    value={schoolDetails.district}
+                    onChange={(e) =>
+                      setSchoolDetails({
+                        ...schoolDetails,
+                        district: e.target.value,
+                        subcounty: "",
+                        parish: "",
+                      })
+                    }
+                  />
 
-                  {/* Subcounty */}
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-3">
-                      Subcounty / Division
-                    </label>
-                    <Input
-                      value={schoolDetails.subcounty}
-                      onChange={(e) =>
-                        setSchoolDetails({
-                          ...schoolDetails,
-                          subcounty: e.target.value,
-                        })
-                      }
-                      placeholder="Central Division"
-                    />
-                  </div>
+                  <Select
+                    label="Subcounty / Division"
+                    options={[
+                      { value: "", label: "Select subcounty or division" },
+                      ...getSubcountyOptions(schoolDetails.district),
+                    ]}
+                    value={schoolDetails.subcounty}
+                    onChange={(e) =>
+                      setSchoolDetails({
+                        ...schoolDetails,
+                        subcounty: e.target.value,
+                        parish: "",
+                      })
+                    }
+                  />
+
+                  <Select
+                    label="Parish / Ward"
+                    options={[
+                      { value: "", label: "Select parish or ward (optional)" },
+                      ...getParishOptions(
+                        schoolDetails.district,
+                        schoolDetails.subcounty,
+                      ),
+                    ]}
+                    value={schoolDetails.parish}
+                    onChange={(e) =>
+                      setSchoolDetails({
+                        ...schoolDetails,
+                        parish: e.target.value,
+                      })
+                    }
+                  />
 
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-3">
@@ -333,6 +343,10 @@ export default function OnboardingFlow({
                       </div>
                     </div>
                   </div>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 text-sm text-slate-600">
+                  We preload common Uganda district, division, and parish options so school leaders can finish setup quickly even on slow connections.
                 </div>
 
                 <div className="flex gap-4 mt-auto">
@@ -483,7 +497,7 @@ export default function OnboardingFlow({
                     Back
                   </Button>
                   <Button variant="primary" onClick={() => setStep(5)}>
-                    Proceed to Activation
+                    Review & Launch
                   </Button>
                 </div>
               </motion.div>
@@ -498,73 +512,53 @@ export default function OnboardingFlow({
                 className="flex-1 flex flex-col justify-center w-full"
               >
                 <h3 className="text-2xl font-bold text-slate-800 mb-2">
-                  Choose Activation
+                  Launch Ready
                 </h3>
                 <p className="text-slate-500 mb-6">
-                  How would you like to proceed with your subscription?
+                  Your school package, default calendar, and starter setup are already in place so the team can begin working immediately.
                 </p>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                  <div
-                    onClick={() => setActivationChoice("trial")}
-                    className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${activationChoice === "trial" ? "border-teal-500 bg-teal-50/50 shadow-sm" : "border-slate-200 hover:border-slate-300"}`}
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <h4 className="font-bold text-slate-800">
-                        30-Day Free Trial
-                      </h4>
-                      <MaterialIcon
-                        icon={
-                          activationChoice === "trial"
-                            ? "radio_button_checked"
-                            : "radio_button_unchecked"
-                        }
-                        className={
-                          activationChoice === "trial"
-                            ? "text-teal-500"
-                            : "text-slate-300"
-                        }
-                      />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div className="rounded-2xl border border-teal-200 bg-teal-50/70 p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-bold text-slate-800">Chosen Package</h4>
+                      <MaterialIcon icon="workspace_premium" className="text-teal-600" />
                     </div>
-                    <p className="text-sm text-slate-500">
-                      Full access to all features. No credit card or mobile
-                      money required upfront.
+                    <p className="text-sm font-semibold text-slate-800">
+                      {selectedPlan.name}
+                    </p>
+                    <p className="text-sm text-slate-500 mt-2">
+                      The school selected this package during registration. Billing can be refined later in Subscription Settings.
                     </p>
                   </div>
 
-                  <div
-                    onClick={() => setActivationChoice("premium")}
-                    className={`cursor-pointer rounded-2xl border-2 p-5 transition-all relative overflow-hidden ${activationChoice === "premium" ? "border-[var(--primary)] bg-blue-50/50 shadow-sm" : "border-slate-200 hover:border-slate-300"}`}
-                  >
-                    <div className="absolute top-0 right-0 bg-[var(--primary)] text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg">
-                      RECOMMENDED
-                    </div>
-                    <div className="flex justify-between items-start mb-3">
-                      <h4 className="font-bold text-slate-800">
-                        Pay Premium Now
-                      </h4>
-                      <MaterialIcon
-                        icon={
-                          activationChoice === "premium"
-                            ? "radio_button_checked"
-                            : "radio_button_unchecked"
-                        }
-                        className={
-                          activationChoice === "premium"
-                            ? "text-[var(--primary)]"
-                            : "text-slate-300"
-                        }
-                      />
+                  <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-bold text-slate-800">Calendar Ready</h4>
+                      <MaterialIcon icon="calendar_month" className="text-blue-600" />
                     </div>
                     <p className="text-sm text-slate-500">
-                      Pay securely via MTN MoMo or Airtel Money to secure full
-                      licensing for the academic year.
+                      Uganda term dates and holiday windows are preloaded from the latest published school calendar pattern. Headteachers can tweak them later if a circular changes.
                     </p>
                   </div>
                 </div>
 
+                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-5 mb-8">
+                  <div className="flex items-start gap-3">
+                    <MaterialIcon icon="bolt" className="text-amber-500 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-slate-800 mb-1">
+                        Rural-first setup
+                      </p>
+                      <p className="text-sm text-slate-500">
+                        We keep the first-run flow short, preload local school details, and avoid forcing payment or heavy setup before staff can start using the system.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex gap-4 mt-auto">
-                  <Button variant="secondary" onClick={() => setStep(3)}>
+                  <Button variant="secondary" onClick={() => setStep(4)}>
                     Back
                   </Button>
                   <Button
@@ -573,9 +567,7 @@ export default function OnboardingFlow({
                     loading={loading}
                     className="flex-1"
                   >
-                    {activationChoice === "trial"
-                      ? "Start Free Trial"
-                      : "Proceed to Payment"}
+                    Finish Setup
                   </Button>
                 </div>
               </motion.div>
