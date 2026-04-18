@@ -80,11 +80,12 @@ function ParentDashboardContent() {
 
       if (user) {
         try {
+          const parentId = user.id;
           // Fetch linked children
           const { data: parentLinks } = await supabase
             .from("parent_students")
             .select("student:students(*, class:classes(name))")
-            .eq("parent_id", user.id);
+            .eq("parent_id", parentId);
 
           const list = mapParentStudentLinks(parentLinks || []);
           setChildren(list);

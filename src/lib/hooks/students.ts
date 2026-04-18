@@ -13,6 +13,7 @@ import {
   getFeatureLimit,
   getPlanUsageWarning,
   PlanType,
+  normalizePlanType,
 } from "@/lib/payments/subscription-client";
 
 type StudentWithClass = Student & {
@@ -148,7 +149,7 @@ export function useStudents(
 
     // Check plan limit for non-demo schools
     if (!isDemo && !isDemoSchool(schoolId) && school?.subscription_plan) {
-      const plan = school.subscription_plan as PlanType;
+      const plan = normalizePlanType(school.subscription_plan);
       const maxStudents =
         typeof plan === "string"
           ? getFeatureLimit(plan, "maxStudents")

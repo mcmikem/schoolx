@@ -37,11 +37,12 @@ export default function ParentNoticesPage() {
     }
     // Fetch school_id from user's linked student
     let schoolId: string | null = null;
-    if (user?.id) {
+    const parentId = user?.id;
+    if (parentId) {
       const { data: links } = await supabase
         .from("parent_students")
         .select("student:students(school_id)")
-        .eq("parent_id", user.id)
+        .eq("parent_id", parentId)
         .limit(1)
         .single();
       schoolId = (links as any)?.student?.school_id || null;
