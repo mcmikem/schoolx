@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/index'
 import { Card, CardHeader, CardBody } from '@/components/ui/Card'
 import { EmptyState } from '@/components/EmptyState'
 import TermTimeline from '@/components/dashboard/TermTimeline'
+import { getErrorMessage } from '@/lib/validation'
 
 interface SchoolEvent {
   id: string
@@ -74,11 +75,27 @@ export default function CalendarPage() {
   const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!school?.id) return
+
+    if (!newEvent.title.trim()) {
+      toast.error('Event title is required')
+      return
+    }
+
+    if (!newEvent.start_date) {
+      toast.error('Start date is required')
+      return
+    }
+
+    if (newEvent.end_date && newEvent.end_date < newEvent.start_date) {
+      toast.error('End date cannot be earlier than the start date')
+      return
+    }
+
     try {
       const { error } = await supabase.from('events').insert({
         school_id: school.id,
-        title: newEvent.title,
-        description: newEvent.description || null,
+        title: newEvent.title.trim(),
+        description: newEvent.description.trim() || null,
         event_type: newEvent.event_type,
         start_date: newEvent.start_date,
         end_date: newEvent.end_date || null,
@@ -90,7 +107,7 @@ export default function CalendarPage() {
       fetchEvents()
     } catch (err) {
       console.error('Error:', err)
-      toast.error('Failed to add event')
+      toast.error(getErrorMessage(err, 'Failed to add event'))
     }
   }
 
@@ -102,7 +119,7 @@ export default function CalendarPage() {
       toast.success('Event deleted')
       fetchEvents()
     } catch (err) {
-      toast.error('Failed to delete event')
+      toast.error(getErrorMessage(err, 'Failed to delete event'))
     }
   }
 

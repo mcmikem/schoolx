@@ -15,6 +15,7 @@ import {
   buildLessonProcedure,
   splitLessonProcedure,
 } from '@/lib/academics-utils'
+import { getErrorMessage } from '@/lib/validation'
 
 interface LessonPlan {
   id: string
@@ -138,6 +139,18 @@ export default function LessonPlansPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!school?.id || !user?.id) return
+    if (!form.title.trim() || !form.topic.trim()) {
+      toast.error('Lesson title and topic are required')
+      return
+    }
+    if (!form.class_id || !form.subject_id) {
+      toast.error('Class and subject are required')
+      return
+    }
+    if ((parseInt(form.duration) || 0) <= 0) {
+      toast.error('Duration must be greater than zero')
+      return
+    }
     
     setSaving(true)
     try {
@@ -145,19 +158,19 @@ export default function LessonPlansPage() {
         school_id: school.id,
         class_id: form.class_id,
         subject_id: form.subject_id,
-        lesson_title: form.title,
-        topic: form.topic,
-        subtopics: form.subtopic,
-        objectives: form.objectives,
+        lesson_title: form.title.trim(),
+        topic: form.topic.trim(),
+        subtopics: form.subtopic.trim(),
+        objectives: form.objectives.trim(),
         procedure: buildLessonProcedure({
           introduction: form.introduction,
           presentation: form.presentation,
           consolidation: form.consolidation,
           evaluation: form.evaluation,
         }),
-        materials_needed: form.resources,
-        homework: form.homework,
-        assessment: form.notes,
+        materials_needed: form.resources.trim(),
+        homework: form.homework.trim(),
+        assessment: form.notes.trim(),
         duration: parseInt(form.duration),
         teacher_id: user.id,
         lesson_date: form.lesson_date || null,
@@ -180,7 +193,7 @@ export default function LessonPlansPage() {
       fetchPlans()
     } catch (err) {
       console.error('Failed to save lesson plan:', err)
-      toast.error('Failed to save lesson plan')
+      toast.error(getErrorMessage(err, 'Failed to save lesson plan'))
     } finally {
       setSaving(false)
     }

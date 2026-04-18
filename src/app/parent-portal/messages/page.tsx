@@ -16,6 +16,10 @@ import {
   resolveSelectedChild,
 } from "@/lib/parent-portal";
 import { getDemoChildren, getDemoMessages } from "@/lib/parent-portal-demo";
+import { getErrorMessage } from "@/lib/validation";
+
+const MAX_PARENT_MESSAGE_SUBJECT = 200;
+const MAX_PARENT_MESSAGE_BODY = 5000;
 
 export default function ParentMessagesPage() {
   const { user, isDemo } = useAuth();
@@ -97,6 +101,14 @@ export default function ParentMessagesPage() {
       toast.error("No linked school was found for this parent account.");
       return;
     }
+    if (trimmedSubject.length > MAX_PARENT_MESSAGE_SUBJECT) {
+      toast.error(`Subject is too long. Keep it under ${MAX_PARENT_MESSAGE_SUBJECT} characters.`);
+      return;
+    }
+    if (trimmedBody.length > MAX_PARENT_MESSAGE_BODY) {
+      toast.error(`Message is too long. Keep it under ${MAX_PARENT_MESSAGE_BODY} characters.`);
+      return;
+    }
 
     setSending(true);
 
@@ -120,34 +132,37 @@ export default function ParentMessagesPage() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from("parent_messages")
-      .insert({
-        parent_id: parentId,
-        school_id: schoolId,
-        student_id: selectedChild?.id || null,
-        subject: trimmedSubject,
-        body: trimmedBody,
-        sender_role: "parent",
-        is_read: false,
-      })
-      .select("id, subject, body, sender_role, created_at, is_read")
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from("parent_messages")
+        .insert({
+          parent_id: parentId,
+          school_id: schoolId,
+          student_id: selectedChild?.id || null,
+          subject: trimmedSubject,
+          body: trimmedBody,
+          sender_role: "parent",
+          is_read: false,
+        })
+        .select("id, subject, body, sender_role, created_at, is_read")
+        .single();
 
-    if (error) {
-      toast.error(`Failed to send message: ${error.message}`);
-    } else if (data) {
-      setMessages((current) => [
-        ...current,
-        data as ParentPortalMessageThreadItem,
-      ]);
-      toast.success("Message sent to school");
-      setNewMessage("");
-      setSubject("");
-      setShowCompose(false);
+      if (error) throw error;
+      if (data) {
+        setMessages((current) => [
+          ...current,
+          data as ParentPortalMessageThreadItem,
+        ]);
+        toast.success("Message sent to school");
+        setNewMessage("");
+        setSubject("");
+        setShowCompose(false);
+      }
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Failed to send message"));
+    } finally {
+      setSending(false);
     }
-
-    setSending(false);
   };
 
   if (isChecking || !isAuthorized) {

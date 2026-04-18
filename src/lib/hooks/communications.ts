@@ -5,8 +5,11 @@ import { useAuth } from "@/lib/auth-context";
 import { getQuerySchoolId } from "./utils";
 import { DEMO_MESSAGES, DEMO_EVENTS, DEMO_NOTICES } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
+import { getErrorMessage } from "@/lib/validation";
 
 import { Message, CalendarEvent } from "@/types";
+
+const VALID_SMS_TRIGGER_EVENTS = new Set(["student_absent", "fee_overdue"]);
 
 export function useMessages(schoolId?: string) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -244,6 +247,16 @@ export function useSMSTriggers(schoolId?: string) {
     is_active?: boolean;
   }) => {
     if (!schoolId) return { success: false, error: "School ID required" };
+    if (!input.name.trim()) {
+      return { success: false, error: "Rule name is required" };
+    }
+    if (!VALID_SMS_TRIGGER_EVENTS.has(input.event_type)) {
+      return { success: false, error: "Invalid trigger event type" };
+    }
+    if (input.threshold_days < 1 || input.threshold_days > 30) {
+      return { success: false, error: "Threshold days must be between 1 and 30" };
+    }
+
     if (isDemo) {
       const newTrigger = {
         id: `demo-trigger-${Date.now()}`,
@@ -253,6 +266,7 @@ export function useSMSTriggers(schoolId?: string) {
         template_id: null,
         is_active: input.is_active ?? true,
         ...input,
+        name: input.name.trim(),
       };
       setTriggers((prev) => [...prev, newTrigger]);
       return { success: true, data: newTrigger };
@@ -263,7 +277,7 @@ export function useSMSTriggers(schoolId?: string) {
         .from("sms_triggers")
         .insert({
           school_id: schoolId,
-          name: input.name,
+          name: input.name.trim(),
           event_type: input.event_type,
           threshold_days: input.threshold_days,
           is_active: input.is_active ?? true,
@@ -276,8 +290,8 @@ export function useSMSTriggers(schoolId?: string) {
       if (error) throw error;
       setTriggers((prev) => [...prev, data]);
       return { success: true, data };
-    } catch (err: any) {
-      return { success: false, error: err.message };
+    } catch (err: unknown) {
+      return { success: false, error: getErrorMessage(err, "Failed to create trigger") };
     }
   };
 
@@ -285,9 +299,16 @@ export function useSMSTriggers(schoolId?: string) {
     id: string,
     input: { name: string; threshold_days: number; is_active: boolean },
   ) => {
+    if (!input.name.trim()) {
+      return { success: false, error: "Rule name is required" };
+    }
+    if (input.threshold_days < 1 || input.threshold_days > 30) {
+      return { success: false, error: "Threshold days must be between 1 and 30" };
+    }
+
     if (isDemo) {
       setTriggers((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, ...input } : t)),
+        prev.map((t) => (t.id === id ? { ...t, ...input, name: input.name.trim() } : t)),
       );
       return { success: true };
     }
@@ -295,7 +316,7 @@ export function useSMSTriggers(schoolId?: string) {
     try {
       const { data, error } = await supabase
         .from("sms_triggers")
-        .update(input)
+        .update({ ...input, name: input.name.trim() })
         .eq("id", id)
         .select(
           "id, school_id, name, event_type, threshold_days, template_id, is_active, last_run_at, created_at",
@@ -305,8 +326,8 @@ export function useSMSTriggers(schoolId?: string) {
       if (error) throw error;
       setTriggers((prev) => prev.map((t) => (t.id === id ? data : t)));
       return { success: true, data };
-    } catch (err: any) {
-      return { success: false, error: err.message };
+    } catch (err: unknown) {
+      return { success: false, error: getErrorMessage(err, "Failed to update trigger") };
     }
   };
 

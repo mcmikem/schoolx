@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { DEMO_NOTICES } from "@/lib/demo-data";
+import { getErrorMessage } from "@/lib/validation";
 
 export default function NoticesPage() {
   const { user, school, isDemo } = useAuth();
@@ -61,6 +62,11 @@ export default function NoticesPage() {
       toast.error("Title and content are required");
       return;
     }
+    if (form.title.trim().length > 200) {
+      toast.error("Title is too long");
+      return;
+    }
+
     setPosting(true);
     try {
       if (isDemo) {
@@ -81,8 +87,8 @@ export default function NoticesPage() {
       } else {
         const { error } = await supabase.from("notices").insert({
           school_id: school!.id,
-          title: form.title,
-          content: form.content,
+          title: form.title.trim(),
+          content: form.content.trim(),
           type: form.category,
           priority: form.category === "Emergency" ? "high" : "normal",
           published_by: user?.id,
@@ -95,8 +101,8 @@ export default function NoticesPage() {
       setShowPostModal(false);
       setForm({ title: "", content: "", category: "General", send_sms: false });
       toast.success("Notice posted successfully");
-    } catch {
-      toast.error("Failed to post notice");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Failed to post notice"));
     } finally {
       setPosting(false);
     }

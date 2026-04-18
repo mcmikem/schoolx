@@ -9,6 +9,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button, Badge, Select } from "@/components/ui/index";
 import { Modal } from "@/components/ui/Modal";
+import { getErrorMessage } from "@/lib/validation";
 
 interface StudentEnrollment {
   id: string;
@@ -123,18 +124,35 @@ export default function StudentEnrollmentsPage() {
 
   const handleSubmit = async () => {
     if (!school?.id) return;
+    if (!formData.student_id || !formData.class_id || !formData.academic_year) {
+      toast.error("Student, class, and academic year are required");
+      return;
+    }
 
-    const { error } = await supabase.from("student_enrollments").insert({
-      school_id: school.id,
-      ...formData,
-    });
+    try {
+      const { data: existingEnrollment, error: lookupError } = await supabase
+        .from("student_enrollments")
+        .select("id")
+        .eq("school_id", school.id)
+        .eq("student_id", formData.student_id)
+        .eq("academic_year", formData.academic_year)
+        .maybeSingle();
+      if (lookupError) throw lookupError;
+      if (existingEnrollment) {
+        throw new Error("This student is already enrolled for the selected academic year");
+      }
 
-    if (error) {
-      toast.error("Failed to create enrollment");
-    } else {
+      const { error } = await supabase.from("student_enrollments").insert({
+        school_id: school.id,
+        ...formData,
+      });
+
+      if (error) throw error;
       toast.success("Enrollment created");
       setShowModal(false);
       fetchEnrollments();
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Failed to create enrollment"));
     }
   };
 
@@ -153,7 +171,7 @@ export default function StudentEnrollmentsPage() {
       .update(updates)
       .eq("id", id);
     if (error) {
-      toast.error("Failed to update enrollment");
+      toast.error(getErrorMessage(error, "Failed to update enrollment"));
     } else {
       toast.success("Status updated");
       fetchEnrollments();
@@ -167,7 +185,7 @@ export default function StudentEnrollmentsPage() {
       .delete()
       .eq("id", id);
     if (error) {
-      toast.error("Failed to delete");
+      toast.error(getErrorMessage(error, "Failed to delete enrollment"));
     } else {
       toast.success("Enrollment deleted");
       fetchEnrollments();

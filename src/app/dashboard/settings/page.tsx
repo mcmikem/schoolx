@@ -25,6 +25,7 @@ import {
   inferClassLevel,
   type SchoolSetupType,
 } from "@/lib/school-setup";
+import { getErrorMessage } from "@/lib/validation";
 
 const ROLE_OPTIONS: {
   value: UserRole;
@@ -521,36 +522,49 @@ export default function SettingsPage() {
   };
 
   const addHouse = async () => {
-    if (!school?.id || !newHouse.name) return;
+    if (!school?.id || !newHouse.name.trim()) {
+      toast.error("House name is required");
+      return;
+    }
+
     try {
-      const { error } = await supabase.from("houses").insert({
+      const payload = {
         school_id: school.id,
-        name: newHouse.name,
+        name: newHouse.name.trim(),
         color: newHouse.color,
-        motto: newHouse.motto || null,
+        motto: newHouse.motto.trim() || null,
+      };
+
+      const { error } = await supabase.from("houses").insert({
+        ...payload,
       });
       if (error) throw error;
       toast.success("House added");
       setShowAddHouse(false);
       setNewHouse({ name: "", color: "#3b82f6", motto: "" });
-      fetchHouses();
-    } catch (err: any) {
-      toast.error(err.message || "Failed");
+      await fetchHouses();
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to add house"));
     }
   };
 
   const deleteHouse = async (id: string) => {
     try {
-      await supabase.from("houses").delete().eq("id", id);
+      const { error } = await supabase.from("houses").delete().eq("id", id);
+      if (error) throw error;
       toast.success("House deleted");
-      fetchHouses();
-    } catch {
-      toast.error("Failed to delete");
+      await fetchHouses();
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to delete house"));
     }
   };
 
   const handleAddClass = async () => {
-    if (!school?.id || !newClass.name) return;
+    if (!school?.id || !newClass.name.trim()) {
+      toast.error("Class name is required");
+      return;
+    }
+
     try {
       const { error } = await supabase.from("classes").upsert(
         {
@@ -567,8 +581,8 @@ export default function SettingsPage() {
       toast.success("Class added");
       setShowAddClass(false);
       setNewClass({ name: "", stream: "" });
-    } catch (err: any) {
-      toast.error(err.message || "Failed to add class");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to add class"));
     }
   };
 
@@ -586,8 +600,8 @@ export default function SettingsPage() {
       if (error) throw error;
       await refetchClasses();
       toast.success("Standard class structure loaded");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to load classes");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to load classes"));
     }
   };
 
@@ -603,8 +617,8 @@ export default function SettingsPage() {
       if (error) throw error;
       await refetchClasses();
       toast.success("Class deleted");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to delete class");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to delete class"));
     }
   };
 
@@ -630,7 +644,7 @@ export default function SettingsPage() {
       if (error) throw error;
       toast.success("Settings saved");
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to save");
+      toast.error(getErrorMessage(err, "Failed to save"));
     } finally {
       setSaving(false);
     }

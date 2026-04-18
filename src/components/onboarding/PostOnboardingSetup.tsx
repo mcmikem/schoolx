@@ -12,6 +12,7 @@ import {
   getDefaultClassTemplates,
   type SchoolSetupType,
 } from "@/lib/school-setup";
+import { getErrorMessage } from "@/lib/validation";
 
 interface Props {
   onComplete?: () => void;
@@ -137,23 +138,26 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     if (!school?.id) return;
     setLoading(true);
     try {
-      for (const term of terms) {
-        if (term.start && term.end) {
-          await supabase.from("academic_terms").upsert(
-            {
-              school_id: school.id,
-              name: term.name,
-              start_date: term.start,
-              end_date: term.end,
-              academic_year: new Date().getFullYear().toString(),
-            },
-            { onConflict: "school_id,name,academic_year" },
-          );
-        }
+      const termRows = terms
+        .filter((term) => term.start && term.end)
+        .map((term) => ({
+          school_id: school.id,
+          name: term.name,
+          start_date: term.start,
+          end_date: term.end,
+          academic_year: new Date().getFullYear().toString(),
+        }));
+
+      if (termRows.length > 0) {
+        const { error } = await supabase.from("academic_terms").upsert(termRows, {
+          onConflict: "school_id,name,academic_year",
+        });
+        if (error) throw error;
       }
+
       await markComplete("academic_calendar");
-    } catch (err) {
-      toast.error("Failed to save terms");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save terms"));
     } finally {
       setLoading(false);
     }
@@ -163,23 +167,26 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     if (!school?.id) return;
     setLoading(true);
     try {
-      for (const cls of classes) {
-        if (cls.name) {
-          await supabase.from("classes").upsert(
-            {
-              school_id: school.id,
-              name: cls.name,
-              stream: cls.stream || null,
-              level: cls.name.startsWith("P") ? "primary" : "secondary",
-              academic_year: new Date().getFullYear().toString(),
-            },
-            { onConflict: "school_id,name,academic_year" },
-          );
-        }
+      const classRows = classes
+        .filter((cls) => cls.name)
+        .map((cls) => ({
+          school_id: school.id,
+          name: cls.name,
+          stream: cls.stream || null,
+          level: cls.name.startsWith("P") ? "primary" : "secondary",
+          academic_year: new Date().getFullYear().toString(),
+        }));
+
+      if (classRows.length > 0) {
+        const { error } = await supabase.from("classes").upsert(classRows, {
+          onConflict: "school_id,name,academic_year",
+        });
+        if (error) throw error;
       }
+
       await markComplete("class_structure");
-    } catch (err) {
-      toast.error("Failed to save classes");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save classes"));
     } finally {
       setLoading(false);
     }
@@ -189,23 +196,26 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     if (!school?.id) return;
     setLoading(true);
     try {
-      for (const fee of fees) {
-        if (fee.name && parseFloat(fee.amount) > 0) {
-          await supabase.from("fee_structure").upsert(
-            {
-              school_id: school.id,
-              name: fee.name,
-              amount: parseFloat(fee.amount),
-              term: 1,
-              academic_year: new Date().getFullYear().toString(),
-            },
-            { onConflict: "school_id,name,term,academic_year" },
-          );
-        }
+      const feeRows = fees
+        .filter((fee) => fee.name && parseFloat(fee.amount) > 0)
+        .map((fee) => ({
+          school_id: school.id,
+          name: fee.name,
+          amount: parseFloat(fee.amount),
+          term: 1,
+          academic_year: new Date().getFullYear().toString(),
+        }));
+
+      if (feeRows.length > 0) {
+        const { error } = await supabase.from("fee_structure").upsert(feeRows, {
+          onConflict: "school_id,name,term,academic_year",
+        });
+        if (error) throw error;
       }
+
       await markComplete("fee_structure");
-    } catch (err) {
-      toast.error("Failed to save fees");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save fees"));
     } finally {
       setLoading(false);
     }
