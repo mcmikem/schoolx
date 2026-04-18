@@ -53,111 +53,153 @@ export default function TeacherPerformancePage() {
     setLoading(true);
 
     try {
-      // Get all teachers
-      const { data: staffData, error: staffError } = await supabase
-        .from("staff")
-        .select(
-          "id, first_name, last_name, position, subjects(id, name), staff_subjects(subject_id)",
-        )
+      const { data: schoolClasses, error: classError } = await supabase
+        .from("classes")
+        .select("id")
+        .eq("school_id", school.id);
+
+      if (classError) throw classError;
+
+      const classIds = (schoolClasses || []).map((entry) => entry.id);
+
+      const { data: teacherUsers, error: staffError } = await supabase
+        .from("users")
+        .select("id, full_name, role")
         .eq("school_id", school.id)
-        .eq("status", "active")
-        .in("position", [
+        .in("role", [
           "teacher",
           "subject_teacher",
           "head_teacher",
+          "dean_of_studies",
+          "deputy_headteacher",
           "deputy",
         ]);
 
-      const teacherList = staffData || [];
+      if (staffError) throw staffError;
 
-      // Get lesson plans count per teacher
-      const { data: lessonPlans } = await supabase
-        .from("lesson_plans")
-        .select("created_by, id")
-        .eq("school_id", school.id)
-        .eq("term", currentTerm);
+      const teacherList = teacherUsers || [];
+      const teacherIds = teacherList.map((teacher) => teacher.id);
+
+      const [
+        { data: assignments },
+        { data: lessonPlans },
+        { data: gradesData },
+        { data: attendanceData },
+        { data: coverageRows },
+      ] = await Promise.all([
+        teacherIds.length > 0
+          ? supabase
+              .from("teacher_subjects")
+              .select("teacher_id, subjects(name), classes(name)")
+              .in("teacher_id", teacherIds)
+          : Promise.resolve({ data: [] }),
+        supabase
+          .from("lesson_plans")
+          .select("teacher_id, id")
+          .eq("school_id", school.id)
+          .eq("term", currentTerm)
+          .eq("academic_year", academicYear),
+        classIds.length > 0
+          ? supabase
+              .from("grades")
+              .select("recorded_by, id, score")
+              .in("class_id", classIds)
+              .eq("term", currentTerm)
+              .eq("academic_year", academicYear)
+          : Promise.resolve({ data: [] }),
+        classIds.length > 0
+          ? supabase
+              .from("attendance")
+              .select("recorded_by, id")
+              .in("class_id", classIds)
+          : Promise.resolve({ data: [] }),
+        supabase
+          .from("topic_coverage")
+          .select("teacher_id, status, syllabus!inner(school_id, term, academic_year)")
+          .eq("syllabus.school_id", school.id)
+          .eq("syllabus.term", currentTerm)
+          .eq("syllabus.academic_year", academicYear),
+      ]);
 
       const lessonPlanCounts: Record<string, number> = {};
-      lessonPlans?.forEach((lp) => {
-        lessonPlanCounts[lp.created_by] =
-          (lessonPlanCounts[lp.created_by] || 0) + 1;
+      lessonPlans?.forEach((plan: any) => {
+        if (!plan.teacher_id) return;
+        lessonPlanCounts[plan.teacher_id] =
+          (lessonPlanCounts[plan.teacher_id] || 0) + 1;
       });
 
-      // Get grades entered per teacher
-      const { data: gradesData } = await supabase
-        .from("grades")
-        .select("created_by, id, score")
-        .eq("school_id", school.id)
-        .eq("term", currentTerm);
-
-      const gradesByTeacher: Record<
-        string,
-        { count: number; totalScore: number }
-      > = {};
-      gradesData?.forEach((g) => {
-        if (!gradesByTeacher[g.created_by]) {
-          gradesByTeacher[g.created_by] = { count: 0, totalScore: 0 };
+      const gradesByTeacher: Record<string, { count: number; totalScore: number }> = {};
+      gradesData?.forEach((grade: any) => {
+        if (!grade.recorded_by) return;
+        if (!gradesByTeacher[grade.recorded_by]) {
+          gradesByTeacher[grade.recorded_by] = { count: 0, totalScore: 0 };
         }
-        gradesByTeacher[g.created_by].count += 1;
-        gradesByTeacher[g.created_by].totalScore += g.score || 0;
+        gradesByTeacher[grade.recorded_by].count += 1;
+        gradesByTeacher[grade.recorded_by].totalScore += Number(grade.score || 0);
       });
-
-      // Get attendance marked per teacher
-      const { data: attendanceData } = await supabase
-        .from("attendance")
-        .select("marked_by, id")
-        .eq("school_id", school.id)
-        .eq("term", currentTerm);
 
       const attendanceCounts: Record<string, number> = {};
-      attendanceData?.forEach((a) => {
-        if (a.marked_by) {
-          attendanceCounts[a.marked_by] =
-            (attendanceCounts[a.marked_by] || 0) + 1;
+      attendanceData?.forEach((entry: any) => {
+        if (!entry.recorded_by) return;
+        attendanceCounts[entry.recorded_by] =
+          (attendanceCounts[entry.recorded_by] || 0) + 1;
+      });
+
+      const syllabusMap: Record<string, { total: number; covered: number }> = {};
+      coverageRows?.forEach((row: any) => {
+        if (!row.teacher_id) return;
+        if (!syllabusMap[row.teacher_id]) {
+          syllabusMap[row.teacher_id] = { total: 0, covered: 0 };
+        }
+        syllabusMap[row.teacher_id].total += 1;
+        if (row.status === "completed") {
+          syllabusMap[row.teacher_id].covered += 1;
         }
       });
 
-      // Query syllabus topics covered per teacher for real coverage calculation
-      const { data: syllabusTopics } = await supabase
-        .from("syllabus_topics")
-        .select("teacher_id, status")
-        .eq("school_id", school.id)
-        .eq("term", currentTerm);
+      const assignmentMap = new Map<string, { subjects: string[]; classes: string[] }>();
+      (assignments || []).forEach((assignment: any) => {
+        const entry = assignmentMap.get(assignment.teacher_id) || {
+          subjects: [],
+          classes: [],
+        };
 
-      // Build total / covered counts per teacher
-      const syllabusMap: Record<string, { total: number; covered: number }> =
-        {};
-      syllabusTopics?.forEach((t: any) => {
-        if (!t.teacher_id) return;
-        if (!syllabusMap[t.teacher_id])
-          syllabusMap[t.teacher_id] = { total: 0, covered: 0 };
-        syllabusMap[t.teacher_id].total += 1;
-        if (t.status === "covered" || t.status === "completed")
-          syllabusMap[t.teacher_id].covered += 1;
+        const subjectName = assignment.subjects?.name;
+        const className = assignment.classes?.name;
+
+        if (subjectName && !entry.subjects.includes(subjectName)) {
+          entry.subjects.push(subjectName);
+        }
+        if (className && !entry.classes.includes(className)) {
+          entry.classes.push(className);
+        }
+
+        assignmentMap.set(assignment.teacher_id, entry);
       });
 
-      // Calculate stats for each teacher
-      const teacherStats: TeacherStats[] = teacherList.map((t) => {
-        const gradesInfo = gradesByTeacher[t.id] || { count: 0, totalScore: 0 };
+      const teacherStats: TeacherStats[] = teacherList.map((teacher: any) => {
+        const gradesInfo = gradesByTeacher[teacher.id] || { count: 0, totalScore: 0 };
         const avgScore =
           gradesInfo.count > 0 ? gradesInfo.totalScore / gradesInfo.count : 0;
-
-        // Real syllabus coverage from DB; 0 when no data recorded yet
-        const syllabusInfo = syllabusMap[t.id];
+        const syllabusInfo = syllabusMap[teacher.id];
         const coverage =
           syllabusInfo && syllabusInfo.total > 0
             ? Math.round((syllabusInfo.covered / syllabusInfo.total) * 100)
             : 0;
+        const assignmentInfo = assignmentMap.get(teacher.id) || {
+          subjects: [],
+          classes: [],
+        };
 
         return {
-          teacherId: t.id,
-          teacherName: `${t.first_name} ${t.last_name}`,
-          subjects: t.subjects?.map((s: any) => s.name) || [],
-          classes: [],
-          lessonPlansCount: lessonPlanCounts[t.id] || 0,
+          teacherId: teacher.id,
+          teacherName: teacher.full_name || "Teacher",
+          subjects: assignmentInfo.subjects,
+          classes: assignmentInfo.classes,
+          lessonPlansCount: lessonPlanCounts[teacher.id] || 0,
           syllabusCoverage: coverage,
           gradesEntered: gradesInfo.count,
-          attendanceMarked: attendanceCounts[t.id] || 0,
+          attendanceMarked: attendanceCounts[teacher.id] || 0,
           avgGradeScore: Math.round(avgScore),
         };
       });
@@ -169,7 +211,7 @@ export default function TeacherPerformancePage() {
     } finally {
       setLoading(false);
     }
-  }, [school, currentTerm, toast]);
+  }, [school, currentTerm, academicYear, toast]);
 
   useEffect(() => {
     if (!school?.id) return;

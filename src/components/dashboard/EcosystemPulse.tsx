@@ -1,6 +1,7 @@
 "use client";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useMemo } from "react";
+import { buildEcosystemActivities } from "@/lib/dashboard-data";
 
 interface EcosystemPulseProps {
   payments: any[];
@@ -9,48 +10,10 @@ interface EcosystemPulseProps {
 }
 
 export default function EcosystemPulse({ payments, smsStats, loading }: EcosystemPulseProps) {
-  const activities = useMemo(() => {
-    const list: any[] = [];
-    
-    // Add recent payments
-    payments.slice(0, 3).forEach((p, i) => {
-      list.push({
-        id: `pay-${i}`,
-        type: "payment",
-        title: "Fee Payment Received",
-        detail: `UGX ${Number(p.amount_paid).toLocaleString()} from ${p.students?.first_name || "Student"}`,
-        time: "Just now",
-        icon: "payments",
-        color: "var(--green)"
-      });
-    });
-
-    // Add SMS activity
-    if (smsStats?.sentToday > 0) {
-      list.push({
-        id: "sms-today",
-        type: "sms",
-        title: "Communication Sent",
-        detail: `${smsStats.sentToday} SMS messages delivered to parents`,
-        time: "Today",
-        icon: "sms",
-        color: "var(--navy)"
-      });
-    }
-
-    // Default system activity
-    list.push({
-      id: "sys-init",
-      type: "system",
-      title: "Academic Term Active",
-      detail: "Term 1 synchronization complete",
-      time: "Stable",
-      icon: "cloud_done",
-      color: "var(--navy-mid)"
-    });
-
-    return list;
-  }, [payments, smsStats]);
+  const activities = useMemo(
+    () => buildEcosystemActivities({ payments, smsStats }),
+    [payments, smsStats],
+  );
 
   return (
     <div className="glass-premium rounded-[var(--r2)] p-6 overflow-hidden flex flex-col h-full">
@@ -63,7 +26,14 @@ export default function EcosystemPulse({ payments, smsStats, loading }: Ecosyste
       </div>
 
       <div className="flex-1 overflow-y-auto pr-2 no-scrollbar flex flex-col gap-4">
-        {activities.map((act) => (
+        {activities.length === 0 ? (
+          <div className="rounded-[18px] border border-[var(--border)] bg-[var(--surface-container-low)] p-4 text-center">
+            <div className="text-sm font-semibold text-[var(--t1)]">No recent real activity yet</div>
+            <div className="text-[12px] text-[var(--t3)] mt-1">
+              Payments, messages, and other live actions will appear here automatically.
+            </div>
+          </div>
+        ) : activities.map((act) => (
           <div key={act.id} className="flex gap-4 group">
             <div className="flex flex-col items-center">
               <div 

@@ -43,13 +43,12 @@ export default function SidebarShell({
   const navigationGroups = user?.role ? getNavigationForRole(user.role) : [];
 
   const schoolName = school?.name || "My School";
-  const schoolInitial = schoolName.charAt(0).toUpperCase();
 
   const sidebarClasses = `sidebar bg-[var(--surface)] border-r border-[var(--border)] w-[var(--sidebar-width)] min-w-[var(--sidebar-width)] flex flex-col fixed top-0 left-0 bottom-0 z-100 shadow-[var(--sh2)] ${isOpen ? "open" : ""}`;
 
   return (
     <aside className={sidebarClasses}>
-      <div className="px-[18px] pt-[22px] pb-4 border-b border-[var(--border)]">
+      <div className="px-[18px] pt-5 pb-4 border-b border-[var(--border)] bg-[linear-gradient(180deg,rgba(240,247,255,0.5)_0%,rgba(255,255,255,0)_100%)]">
         <div className="flex items-center gap-[10px] mb-4">
           {school?.logo_url ? (
             <Image
@@ -72,8 +71,8 @@ export default function SidebarShell({
             <div className="font-['Sora'] text-base font-bold text-[var(--t1)] tracking-[-.2px] leading-[1.1] truncate">
               {schoolName}
             </div>
-            <div className="text-[10px] text-[var(--t4)] tracking-[.3px] mt-0.5">
-              School Management
+            <div className="text-[10px] text-[var(--t4)] tracking-[.3px] mt-0.5 uppercase">
+              School Operations
             </div>
           </div>
           <button
@@ -88,7 +87,7 @@ export default function SidebarShell({
           </button>
         </div>
 
-        <div className="bg-[var(--bg)] border border-[var(--border)] rounded-[var(--r)] px-3 py-[10px]">
+        <div className="bg-[var(--bg)] border border-[var(--border)] rounded-[var(--r)] px-3 py-2.5">
           <div className="text-[12px] font-semibold text-[var(--t1)] leading-[1.3] truncate">
             {schoolName}
           </div>

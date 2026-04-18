@@ -3,12 +3,18 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useClasses, useSubjects } from '@/lib/hooks'
+import { useAcademic } from '@/lib/academic-context'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
 import { useToast } from '@/components/Toast'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/index'
+import {
+  buildAcademicYear,
+  buildLessonProcedure,
+  splitLessonProcedure,
+} from '@/lib/academics-utils'
 
 interface LessonPlan {
   id: string
@@ -25,7 +31,8 @@ interface LessonPlan {
   resources: string
   homework: string
   notes: string
-  status: 'draft' | 'submitted' | 'approved'
+  lesson_date?: string
+  status: 'draft' | 'completed' | 'cancelled'
   created_at: string
   subjects?: { name: string }
   classes?: { name: string }
@@ -35,6 +42,7 @@ interface LessonPlan {
 export default function LessonPlansPage() {
   const { school, user } = useAuth()
   const toast = useToast()
+  const { academicYear, currentTerm } = useAcademic()
   const { classes } = useClasses(school?.id)
   const { subjects } = useSubjects(school?.id, false)
   
@@ -60,20 +68,47 @@ export default function LessonPlansPage() {
     evaluation: '',
     resources: '',
     homework: '',
-    notes: ''
+    notes: '',
+    lesson_date: ''
   })
 
   const fetchPlans = useCallback(async () => {
     if (!school?.id) return
     setLoading(true)
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('lesson_plans')
-        .select('*, subjects(name), classes(name), users(full_name)')
+        .select('*, subjects(name), classes(name), users:teacher_id(full_name)')
         .eq('school_id', school.id)
         .order('created_at', { ascending: false })
         .limit(20)
-      setPlans(data || [])
+
+      if (error) throw error
+
+      const mapped = (data || []).map((row: any) => ({
+        id: row.id,
+        title: row.lesson_title || row.title || 'Untitled lesson',
+        class_id: row.class_id,
+        subject_id: row.subject_id,
+        week: row.week_number || 1,
+        lesson: row.lesson_number || 1,
+        duration: row.duration || 40,
+        topic: row.topic || '',
+        subtopic: row.subtopics || '',
+        objectives: row.objectives || '',
+        description: row.procedure || '',
+        resources: row.materials_needed || '',
+        homework: row.homework || '',
+        notes: row.assessment || '',
+        lesson_date: row.lesson_date || '',
+        status: row.status || 'draft',
+        created_at: row.created_at,
+        subjects: row.subjects,
+        classes: row.classes,
+        users: row.users,
+      }))
+
+      setPlans(mapped)
     } catch (err) {
       console.error('Failed to fetch lesson plans:', err)
     } finally {
@@ -95,30 +130,41 @@ export default function LessonPlansPage() {
         school_id: school.id,
         class_id: form.class_id,
         subject_id: form.subject_id,
-        title: form.title,
+        lesson_title: form.title,
         topic: form.topic,
-        subtopic: form.subtopic,
+        subtopics: form.subtopic,
         objectives: form.objectives,
-        description: `${form.introduction}\n\n${form.presentation}\n\n${form.consolidation}\n\n${form.evaluation}`,
-        resources: form.resources,
+        procedure: buildLessonProcedure({
+          introduction: form.introduction,
+          presentation: form.presentation,
+          consolidation: form.consolidation,
+          evaluation: form.evaluation,
+        }),
+        materials_needed: form.resources,
         homework: form.homework,
+        assessment: form.notes,
         duration: parseInt(form.duration),
-        week: parseInt(form.week),
-        lesson: parseInt(form.lesson),
-        created_by: user.id,
-        status: 'draft',
-        academic_year: '2026',
-        term: 1
+        teacher_id: user.id,
+        lesson_date: form.lesson_date || null,
+        status: selectedPlan?.status || 'draft',
+        academic_year: buildAcademicYear(academicYear),
+        term: currentTerm || 1,
       }
       
-      const { error } = await supabase.from('lesson_plans').insert(payload)
+      const query = selectedPlan
+        ? supabase.from('lesson_plans').update(payload).eq('id', selectedPlan.id)
+        : supabase.from('lesson_plans').insert(payload)
+
+      const { error } = await query
       if (error) throw error
       
-      toast.success('Lesson plan saved!')
+      toast.success(selectedPlan ? 'Lesson plan updated!' : 'Lesson plan saved!')
       setShowForm(false)
+      setSelectedPlan(null)
       resetForm()
       fetchPlans()
     } catch (err) {
+      console.error('Failed to save lesson plan:', err)
       toast.error('Failed to save lesson plan')
     } finally {
       setSaving(false)
@@ -130,11 +176,12 @@ export default function LessonPlansPage() {
       class_id: '', subject_id: '', week: '1', lesson: '1', duration: '40',
       title: '', topic: '', subtopic: '', objectives: '',
       introduction: '', presentation: '', consolidation: '', evaluation: '',
-      resources: '', homework: '', notes: ''
+      resources: '', homework: '', notes: '', lesson_date: ''
     })
   }
 
   const openEdit = (plan: LessonPlan) => {
+    const sections = splitLessonProcedure(plan.description)
     setSelectedPlan(plan)
     setForm({
       class_id: plan.class_id,
@@ -146,15 +193,34 @@ export default function LessonPlansPage() {
       topic: plan.topic || '',
       subtopic: plan.subtopic || '',
       objectives: plan.objectives || '',
-      introduction: '',
-      presentation: '',
-      consolidation: '',
-      evaluation: '',
+      introduction: sections.introduction,
+      presentation: sections.presentation,
+      consolidation: sections.consolidation,
+      evaluation: sections.evaluation,
       resources: plan.resources || '',
       homework: plan.homework || '',
-      notes: plan.notes || ''
+      notes: plan.notes || '',
+      lesson_date: plan.lesson_date || ''
     })
     setShowForm(true)
+  }
+
+  const handleDeletePlan = async () => {
+    if (!selectedPlan) return
+    if (!confirm('Delete this lesson plan?')) return
+
+    try {
+      const { error } = await supabase.from('lesson_plans').delete().eq('id', selectedPlan.id)
+      if (error) throw error
+      toast.success('Lesson plan deleted')
+      setShowForm(false)
+      setSelectedPlan(null)
+      resetForm()
+      fetchPlans()
+    } catch (err) {
+      console.error('Failed to delete lesson plan:', err)
+      toast.error('Failed to delete lesson plan')
+    }
   }
 
   return (
@@ -164,7 +230,7 @@ export default function LessonPlansPage() {
         title="Lesson Plans"
         subtitle="Detailed lesson plans for effective teaching"
         actions={
-          <Button onClick={() => { resetForm(); setShowForm(true) }}>
+          <Button onClick={() => { resetForm(); setSelectedPlan(null); setShowForm(true) }}>
             <MaterialIcon icon="add" className="text-base" />
             New Lesson Plan
           </Button>
@@ -305,6 +371,16 @@ export default function LessonPlansPage() {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-xs font-medium text-[var(--t3)] mb-1">Lesson Date</label>
+                <input
+                  type="date"
+                  value={form.lesson_date}
+                  onChange={(e) => setForm({ ...form, lesson_date: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-[var(--t3)] mb-1">Topic</label>
@@ -411,6 +487,16 @@ export default function LessonPlansPage() {
               </div>
 
               <div className="flex gap-3 pt-4">
+                {selectedPlan && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="flex-1 !border-red-200 !text-red-700"
+                    onClick={handleDeletePlan}
+                  >
+                    Delete
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant="secondary"
@@ -424,7 +510,7 @@ export default function LessonPlansPage() {
                   className="flex-1"
                   disabled={saving}
                 >
-                  {saving ? 'Saving...' : 'Save Lesson Plan'}
+                  {saving ? 'Saving...' : selectedPlan ? 'Update Lesson Plan' : 'Save Lesson Plan'}
                 </Button>
               </div>
             </form>

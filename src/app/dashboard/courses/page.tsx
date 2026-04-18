@@ -62,6 +62,22 @@ const COURSE_ICONS = [
   "biotech",
 ];
 
+const mapSubjectToCourse = (subject: any): Course => ({
+  id: subject.id,
+  name: subject.name,
+  code: subject.code,
+  description: "",
+  category: subject.level === "secondary" ? "core" : "language",
+  is_active: true,
+  is_elective: !subject.is_compulsory,
+  is_laboratory: false,
+  credit_hours: 0,
+  max_score: 100,
+  passing_score: 50,
+  color: "#3b82f6",
+  icon: "menu_book",
+})
+
 export default function CoursesPage() {
   const { school } = useAuth();
   const toast = useToast();
@@ -89,24 +105,40 @@ export default function CoursesPage() {
     if (!school?.id) return;
     setLoading(true);
 
-    let query = supabase
-      .from("courses")
-      .select("*")
-      .eq("school_id", school.id)
-      .order("name");
+    try {
+      let query = supabase
+        .from("courses")
+        .select("*")
+        .eq("school_id", school.id)
+        .order("name");
 
-    if (filterCategory) {
-      query = query.eq("category", filterCategory);
-    }
+      if (filterCategory) {
+        query = query.eq("category", filterCategory);
+      }
 
-    const { data, error } = await query;
-
-    if (error) {
-      toast.error("Failed to load courses");
-    } else {
+      const { data, error } = await query;
+      if (error) throw error;
       setCourses(data || []);
+    } catch (err: any) {
+      const { data: subjectsData, error: subjectsError } = await supabase
+        .from("subjects")
+        .select("*")
+        .eq("school_id", school.id)
+        .order("name");
+
+      if (subjectsError) {
+        toast.error("Failed to load subjects");
+      } else {
+        const mapped = (subjectsData || []).map(mapSubjectToCourse);
+        setCourses(
+          filterCategory
+            ? mapped.filter((course) => course.category === filterCategory)
+            : mapped,
+        );
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [school?.id, filterCategory, toast]);
 
   useEffect(() => {
@@ -121,26 +153,39 @@ export default function CoursesPage() {
       ...formData,
     };
 
-    if (editingCourse) {
-      const { error } = await supabase
-        .from("courses")
-        .update(payload)
-        .eq("id", editingCourse.id);
-
-      if (error) {
-        toast.error("Failed to update course");
+    try {
+      if (editingCourse) {
+        const { error } = await supabase
+          .from("courses")
+          .update(payload)
+          .eq("id", editingCourse.id);
+        if (error) throw error;
       } else {
-        toast.success("Course updated");
-        setShowModal(false);
-        fetchCourses();
+        const { error } = await supabase.from("courses").insert(payload);
+        if (error) throw error;
       }
-    } else {
-      const { error } = await supabase.from("courses").insert(payload);
 
+      toast.success(editingCourse ? "Course updated" : "Course created");
+      setShowModal(false);
+      fetchCourses();
+    } catch {
+      const subjectPayload = {
+        school_id: school.id,
+        name: formData.name,
+        code: formData.code,
+        level: "both",
+        is_compulsory: !formData.is_elective,
+      };
+
+      const fallbackQuery = editingCourse
+        ? supabase.from("subjects").update(subjectPayload).eq("id", editingCourse.id)
+        : supabase.from("subjects").insert(subjectPayload);
+
+      const { error } = await fallbackQuery;
       if (error) {
-        toast.error("Failed to create course");
+        toast.error(editingCourse ? "Failed to update subject" : "Failed to create subject");
       } else {
-        toast.success("Course created");
+        toast.success(editingCourse ? "Subject updated" : "Subject created");
         setShowModal(false);
         fetchCourses();
       }
@@ -150,23 +195,33 @@ export default function CoursesPage() {
   const deleteCourse = async (id: string) => {
     if (!confirm("Delete this course?")) return;
 
-    const { error } = await supabase.from("courses").delete().eq("id", id);
-
-    if (error) {
-      toast.error("Failed to delete course");
-    } else {
+    try {
+      const { error } = await supabase.from("courses").delete().eq("id", id);
+      if (error) throw error;
       toast.success("Course deleted");
       fetchCourses();
+    } catch {
+      const { error } = await supabase.from("subjects").delete().eq("id", id);
+      if (error) {
+        toast.error("Failed to delete subject");
+      } else {
+        toast.success("Subject deleted");
+        fetchCourses();
+      }
     }
   };
 
   const toggleActive = async (id: string, isActive: boolean) => {
-    const { error } = await supabase
-      .from("courses")
-      .update({ is_active: !isActive })
-      .eq("id", id);
+    try {
+      const { error } = await supabase
+        .from("courses")
+        .update({ is_active: !isActive })
+        .eq("id", id);
 
-    if (!error) {
+      if (error) throw error;
+      fetchCourses();
+    } catch {
+      toast.success("Subject list refreshed");
       fetchCourses();
     }
   };

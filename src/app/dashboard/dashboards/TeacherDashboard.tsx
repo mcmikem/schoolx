@@ -3,7 +3,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
-import { useStudents, useClasses, useSubjects } from "@/lib/hooks";
+import {
+  useStudents,
+  useClasses,
+  useSubjects,
+  useDashboardStats,
+  useFeePayments,
+  useFeeStructure,
+} from "@/lib/hooks";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -20,11 +27,14 @@ import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
 function TeacherDashboardContent() {
   const router = useRouter();
   const toast = useToast();
-  const { school, user } = useAuth();
+  const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
   const { students } = useStudents(school?.id);
   const { classes } = useClasses(school?.id);
   const { subjects } = useSubjects(school?.id);
+  const { stats } = useDashboardStats(school?.id);
+  const { payments } = useFeePayments(school?.id);
+  const { feeStructure } = useFeeStructure(school?.id);
   const [settingUp, setSettingUp] = useState(false);
 
   const currentDate = new Date();
@@ -38,6 +48,27 @@ function TeacherDashboardContent() {
   const myClasses = classes.slice(0, 6);
   const mySubjects = subjects.slice(0, 6);
   const needsSetup = classes.length === 0 || subjects.length === 0;
+  const attendanceRate =
+    stats?.totalStudents > 0
+      ? Math.round((stats.presentToday / stats.totalStudents) * 100)
+      : 0;
+  const totalFeesExpected = students.reduce((total, student) => {
+    const classFees = feeStructure.filter(
+      (fee) => !fee.class_id || fee.class_id === student.class_id,
+    );
+    return (
+      total +
+      classFees.reduce((sum, fee) => sum + Number(fee.amount || 0), 0)
+    );
+  }, 0);
+  const totalFeesCollected = payments.reduce(
+    (sum, payment) => sum + Number(payment.amount_paid || 0),
+    0,
+  );
+  const collectionRate =
+    totalFeesExpected > 0
+      ? Math.round((totalFeesCollected / totalFeesExpected) * 100)
+      : 0;
 
   const runSetup = async () => {
     if (!school?.id) return;
@@ -150,7 +181,7 @@ function TeacherDashboardContent() {
 
   return (
     <div className="content">
-      <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
+      <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="ph-title truncate !text-3xl">
@@ -178,6 +209,20 @@ function TeacherDashboardContent() {
               <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
               <span>Quick Entry</span>
             </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="dashboard-toolbar mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)] mb-1">Teaching focus</div>
+            <div className="text-lg font-bold text-[var(--t1)]">A clearer start-of-day workspace for attendance, grades, homework, and planning</div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="dashboard-pill bg-emerald-50 text-emerald-700">{myClasses.length} classes</span>
+            <span className="dashboard-pill bg-blue-50 text-blue-700">{students.length} learners</span>
+            <span className="dashboard-pill bg-amber-50 text-amber-700">{mySubjects.length} subjects</span>
           </div>
         </div>
       </div>
@@ -223,9 +268,9 @@ function TeacherDashboardContent() {
       </div>
 
       <SmartAdvisor
-        stats={{}}
-        attendanceRate={92}
-        collectionRate={0}
+        stats={stats || {}}
+        attendanceRate={attendanceRate}
+        collectionRate={collectionRate}
         role="teacher"
       />
 
@@ -233,15 +278,16 @@ function TeacherDashboardContent() {
       <div className="hidden xl:block grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8 mt-8">
         <div className="xl:col-span-3">
           <DashboardInsights
-            stats={{}}
-            attendanceRate={92}
-            collectionRate={0}
+            stats={stats || {}}
+            attendanceRate={attendanceRate}
+            collectionRate={collectionRate}
             students={students}
-            payments={[]}
+            payments={payments}
+            isDemo={isDemo}
           />
         </div>
         <div className="xl:col-span-1">
-          <EcosystemPulse payments={[]} />
+          <EcosystemPulse payments={payments} />
         </div>
       </div>
 

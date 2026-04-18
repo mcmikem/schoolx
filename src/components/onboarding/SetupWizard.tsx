@@ -6,6 +6,7 @@ import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button, Input, Select } from "@/components/ui";
+import { normalizeAuthPhone } from "@/lib/validation";
 
 interface SetupWizardProps {
   onComplete?: () => void;
@@ -197,11 +198,19 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
       for (const s of staff) {
         if (!s.name || !s.phone) continue;
 
-        // Create auth user
+        const normalizedPhone = normalizeAuthPhone(s.phone);
+
+        // Create auth user using the same email-alias scheme as normal app login
         const { data: authData, error: authError } = await supabase.auth.signUp(
           {
-            phone: s.phone,
-            password: "Welcome" + s.phone.slice(-4), // Default password
+            email: `${normalizedPhone}@omuto.org`,
+            password: "Welcome" + normalizedPhone.slice(-4),
+            options: {
+              data: {
+                phone: normalizedPhone,
+                full_name: s.name,
+              },
+            },
           },
         );
 
@@ -216,7 +225,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
             auth_id: authData.user.id,
             school_id: school.id,
             full_name: s.name,
-            phone: s.phone,
+            phone: normalizedPhone,
             role: s.role,
           });
 

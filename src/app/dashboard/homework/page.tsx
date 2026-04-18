@@ -63,7 +63,7 @@ export default function HomeworkPage() {
     });
   };
 
-  const fetchHomework = async () => {
+  const fetchHomework = useCallback(async () => {
     if (!school?.id) return;
     setLoading(true);
     try {
@@ -71,6 +71,8 @@ export default function HomeworkPage() {
         .from("homework")
         .select("*, subjects(name, code), classes(name)")
         .eq("school_id", school.id)
+        .eq("academic_year", academicYear)
+        .eq("term", currentTerm)
         .order("due_date", { ascending: false });
 
       if (selectedClass) {
@@ -85,7 +87,13 @@ export default function HomeworkPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [school?.id, academicYear, currentTerm, selectedClass]);
+
+  useEffect(() => {
+    if (school?.id) {
+      fetchHomework();
+    }
+  }, [school?.id, fetchHomework]);
 
   const handleCreateHomework = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,7 +177,6 @@ export default function HomeworkPage() {
           value={selectedClass}
           onChange={(e) => {
             setSelectedClass(e.target.value);
-            fetchHomework();
           }}
           className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium"
         >

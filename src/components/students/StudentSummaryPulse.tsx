@@ -15,53 +15,62 @@ export default function StudentSummaryPulse({
   girlsCount,
   atRiskCount,
 }: StudentSummaryPulseProps) {
+  const cards = [
+    {
+      label: "Total Enrollment",
+      value: totalStudents,
+      icon: "groups",
+      tint: "bg-[var(--navy-soft)] text-[var(--navy)]",
+      note: "Active learners",
+    },
+    {
+      label: "Total Boys",
+      value: boysCount,
+      icon: "male",
+      tint: "bg-blue-50 text-blue-700",
+      note: `${Math.round((boysCount / Math.max(totalStudents, 1)) * 100)}% of school`,
+    },
+    {
+      label: "Total Girls",
+      value: girlsCount,
+      icon: "female",
+      tint: "bg-pink-50 text-pink-700",
+      note: `${Math.round((girlsCount / Math.max(totalStudents, 1)) * 100)}% of school`,
+    },
+    {
+      label: "At Risk / Dropout",
+      value: atRiskCount,
+      icon: "warning",
+      tint: "bg-[var(--red-soft)] text-[var(--red)]",
+      note: atRiskCount > 0 ? "Needs follow-up" : "Stable",
+    },
+  ];
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-      <div className="card-premium p-6 flex flex-col items-center justify-center text-center">
-        <div className="w-12 h-12 rounded-2xl bg-[var(--navy-soft)] flex items-center justify-center mb-4">
-          <MaterialIcon icon="groups" className="text-[var(--navy)] text-2xl" />
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+      {cards.map((card) => (
+        <div
+          key={card.label}
+          className="card-premium p-5 border border-[var(--border)] hover:-translate-y-0.5"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)]">
+                {card.label}
+              </div>
+              <div className="text-3xl font-extrabold text-[var(--t1)] mt-2">
+                {card.value}
+              </div>
+            </div>
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${card.tint}`}>
+              <MaterialIcon icon={card.icon} className="text-[20px]" />
+            </div>
+          </div>
+          <div className="mt-4 text-sm font-medium text-[var(--t3)]">
+            {card.note}
+          </div>
         </div>
-        <div className="text-3xl font-extrabold text-[var(--t1)]">
-          {totalStudents}
-        </div>
-        <div className="text-[10px] font-bold text-[var(--t3)] uppercase tracking-widest mt-1">
-          Total Enrollment
-        </div>
-      </div>
-
-      <div className="card-premium p-6 flex flex-col items-center justify-center text-center">
-        <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
-          <MaterialIcon icon="male" className="text-blue-600 text-2xl" />
-        </div>
-        <div className="text-3xl font-extrabold text-blue-700">{boysCount}</div>
-        <div className="text-[10px] font-bold text-[var(--t3)] uppercase tracking-widest mt-1">
-          Total Boys
-        </div>
-      </div>
-
-      <div className="card-premium p-6 flex flex-col items-center justify-center text-center">
-        <div className="w-12 h-12 rounded-2xl bg-pink-50 flex items-center justify-center mb-4">
-          <MaterialIcon icon="female" className="text-pink-600 text-2xl" />
-        </div>
-        <div className="text-3xl font-extrabold text-pink-700">
-          {girlsCount}
-        </div>
-        <div className="text-[10px] font-bold text-[var(--t3)] uppercase tracking-widest mt-1">
-          Total Girls
-        </div>
-      </div>
-
-      <div className="card-premium p-6 flex flex-col items-center justify-center text-center border-l-4 border-l-[var(--red)]">
-        <div className="w-12 h-12 rounded-2xl bg-[var(--red-soft)] flex items-center justify-center mb-4">
-          <MaterialIcon icon="warning" className="text-[var(--red)] text-2xl" />
-        </div>
-        <div className="text-3xl font-extrabold text-[var(--red)]">
-          {atRiskCount}
-        </div>
-        <div className="text-[10px] font-bold text-[var(--red)] uppercase tracking-widest mt-1">
-          At Risk / Dropout
-        </div>
-      </div>
+      ))}
     </div>
   );
 }

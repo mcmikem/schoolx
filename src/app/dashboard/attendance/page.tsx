@@ -547,7 +547,7 @@ export default function AttendancePage() {
         />
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="dashboard-soft-grid">
             <div
               className="bg-surface-container-lowest rounded-xl border border-outline-variant p-3 text-center"
               style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
@@ -606,7 +606,7 @@ export default function AttendancePage() {
             ]}
           />
 
-          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4">
+          <div className="dashboard-toolbar">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <MaterialIcon icon="mic" className="text-xl text-primary" />

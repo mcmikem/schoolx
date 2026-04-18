@@ -8,6 +8,8 @@ import {
   useClasses,
   useSubjects,
   useDashboardStats,
+  useFeePayments,
+  useFeeStructure,
 } from "@/lib/hooks";
 import MaterialIcon from "@/components/MaterialIcon";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -21,11 +23,13 @@ import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
 
 function DeanDashboardContent() {
   const router = useRouter();
-  const { school, user } = useAuth();
+  const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
   const { students } = useStudents(school?.id);
   const { classes } = useClasses(school?.id);
   const { subjects } = useSubjects(school?.id);
+  const { payments } = useFeePayments(school?.id);
+  const { feeStructure } = useFeeStructure(school?.id);
   const { stats, loading: statsLoading } = useDashboardStats(school?.id);
 
   const currentDate = new Date();
@@ -52,10 +56,27 @@ function DeanDashboardContent() {
     stats.totalStudents > 0
       ? Math.round((stats.presentToday / stats.totalStudents) * 100)
       : 0;
+  const totalFeesExpected = students.reduce((total, student) => {
+    const classFees = feeStructure.filter(
+      (fee) => !fee.class_id || fee.class_id === student.class_id,
+    );
+    return (
+      total +
+      classFees.reduce((sum, fee) => sum + Number(fee.amount || 0), 0)
+    );
+  }, 0);
+  const totalFeesCollected = payments.reduce(
+    (sum, payment) => sum + Number(payment.amount_paid || 0),
+    0,
+  );
+  const collectionRate =
+    totalFeesExpected > 0
+      ? Math.round((totalFeesCollected / totalFeesExpected) * 100)
+      : 0;
 
   return (
     <div className="content">
-      <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
+      <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="ph-title truncate !text-3xl">
@@ -81,9 +102,23 @@ function DeanDashboardContent() {
         </div>
       </div>
 
+      <div className="dashboard-toolbar mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)] mb-1">Academic overview</div>
+            <div className="text-lg font-bold text-[var(--t1)]">Class performance, attendance, and planning tools are now easier to scan and act on</div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="dashboard-pill bg-emerald-50 text-emerald-700">{attendanceRate}% attendance</span>
+            <span className="dashboard-pill bg-blue-50 text-blue-700">{students.length} students</span>
+            <span className="dashboard-pill bg-amber-50 text-amber-700">{subjects.length} subjects</span>
+          </div>
+        </div>
+      </div>
+
       <SmartAdvisor
         stats={stats}
-        collectionRate={0}
+        collectionRate={collectionRate}
         attendanceRate={attendanceRate}
         role="dean"
       />
@@ -93,14 +128,15 @@ function DeanDashboardContent() {
           <DashboardInsights
             stats={stats}
             attendanceRate={attendanceRate}
-            collectionRate={0}
+            collectionRate={collectionRate}
             students={students}
-            payments={[]}
+            payments={payments}
             loading={statsLoading}
+            isDemo={isDemo}
           />
         </div>
         <div className="xl:col-span-1">
-          <EcosystemPulse payments={[]} loading={statsLoading} />
+          <EcosystemPulse payments={payments} loading={statsLoading} />
         </div>
       </div>
 

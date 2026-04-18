@@ -14,6 +14,7 @@ import { FeatureStage, DEFAULT_FEATURE_STAGE } from "./featureStages";
 import type { User, School } from "@/types";
 import { logger } from "./logger";
 import { normalizeAuthPhone } from "./validation";
+import { buildAuthEmailFromPhone, buildAuthLoginAttempts } from "./auth-login";
 
 // Roles that demo sessions are allowed to assume.
 // super_admin / school_admin are intentionally excluded to prevent privilege injection.
@@ -360,31 +361,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signIn(phone: string, password: string) {
     try {
-      const email = `${normalizeAuthPhone(phone)}@omuto.org`;
-      const { data, error } = await supabase!.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const attempts = buildAuthLoginAttempts(phone);
+      let lastError: any = null;
 
-      if (error) return { error };
-      if (!data.user)
-        return { error: { message: "No user returned from Supabase" } };
+      for (const attempt of attempts) {
+        const { data, error } =
+          attempt.type === "email"
+            ? await supabase!.auth.signInWithPassword({
+                email: attempt.value,
+                password,
+              })
+            : await supabase!.auth.signInWithPassword({
+                phone: attempt.value,
+                password,
+              });
 
-      // fetchUserData populates user state AND returns the role — no second query needed
-      const userData = await fetchUserData(data.user.id);
+        if (error) {
+          lastError = error;
+          continue;
+        }
 
-      if (!userData) {
-        // Auth succeeded but no matching profile in the users table
-        await supabase!.auth.signOut();
-        return {
-          error: {
-            message:
-              "No user profile found. Please contact your school administrator.",
-          },
-        };
+        if (!data.user) {
+          lastError = { message: "No user returned from Supabase" };
+          continue;
+        }
+
+        const userData = await fetchUserData(data.user.id);
+
+        if (!userData) {
+          await supabase!.auth.signOut();
+          return {
+            error: {
+              message:
+                "No user profile found. Please contact your school administrator.",
+            },
+          };
+        }
+
+        return { error: null };
       }
 
-      return { error: null };
+      return {
+        error: lastError || { message: "Invalid phone number or password" },
+      };
     } catch (error) {
       return { error };
     }
@@ -393,7 +412,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signUp(phone: string, password: string, name: string) {
     try {
       const normalizedPhone = normalizeAuthPhone(phone);
-      const email = `${normalizedPhone}@omuto.org`;
+      const email = buildAuthEmailFromPhone(normalizedPhone);
       const { data, error } = await supabase!.auth.signUp({
         email,
         password,

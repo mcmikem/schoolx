@@ -17,58 +17,63 @@ export default function FinanceSummaryPulse({
   realizationRate,
   formatValue,
 }: FinanceSummaryPulseProps) {
+  const cards = [
+    {
+      label: "Expected",
+      value: formatValue(totalExpected),
+      icon: "account_balance_wallet",
+      tint: "bg-[var(--navy-soft)] text-[var(--navy)]",
+    },
+    {
+      label: "Collected",
+      value: formatValue(totalPaid),
+      icon: "payments",
+      tint: "bg-[var(--green-soft)] text-[var(--green)]",
+    },
+    {
+      label: "Outstanding",
+      value: formatValue(totalBalance),
+      icon: "pending_actions",
+      tint: "bg-[var(--amber-soft)] text-[var(--amber)]",
+    },
+  ];
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-      <div className="card-premium p-6 border-l-4 border-l-[var(--navy)]">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-8 h-8 rounded-lg bg-[var(--navy-soft)] flex items-center justify-center">
-            <MaterialIcon icon="account_balance_wallet" className="text-[var(--navy)] text-lg" />
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+      {cards.map((card) => (
+        <div key={card.label} className="card-premium p-5 border border-[var(--border)]">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-[11px] font-black text-[var(--t3)] uppercase tracking-[0.24em]">
+                {card.label}
+              </div>
+              <div className="text-2xl font-extrabold text-[var(--t1)] mt-2">
+                {card.value}
+              </div>
+            </div>
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${card.tint}`}>
+              <MaterialIcon icon={card.icon} className="text-[20px]" />
+            </div>
           </div>
-          <span className="text-[10px] font-bold text-[var(--t3)] uppercase tracking-widest">Expected</span>
         </div>
-        <div className="text-2xl font-extrabold text-[var(--t1)]">
-          {formatValue(totalExpected)}
-        </div>
-      </div>
+      ))}
 
-      <div className="card-premium p-6 border-l-4 border-l-[var(--green)]">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-8 h-8 rounded-lg bg-[var(--green-soft)] flex items-center justify-center">
-            <MaterialIcon icon="payments" className="text-[var(--green)] text-lg" />
+      <div className="card-premium p-5 border border-[var(--navy)] bg-[linear-gradient(135deg,var(--navy)_0%,var(--navy-mid)_100%)] text-white">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-[11px] font-black text-white/75 uppercase tracking-[0.24em]">
+              Realization
+            </div>
+            <div className="text-2xl font-extrabold mt-2">{realizationRate}%</div>
           </div>
-          <span className="text-[10px] font-bold text-[var(--t3)] uppercase tracking-widest">Collected</span>
-        </div>
-        <div className="text-2xl font-extrabold text-[var(--green)]">
-          {formatValue(totalPaid)}
-        </div>
-      </div>
-
-      <div className="card-premium p-6 border-l-4 border-l-[var(--amber)]">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-8 h-8 rounded-lg bg-[var(--amber-soft)] flex items-center justify-center">
-            <MaterialIcon icon="pending_actions" className="text-[var(--amber)] text-lg" />
+          <div className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center">
+            <MaterialIcon icon="trending_up" className="text-white text-[20px]" />
           </div>
-          <span className="text-[10px] font-bold text-[var(--t3)] uppercase tracking-widest">Outstanding</span>
         </div>
-        <div className="text-2xl font-extrabold text-[var(--amber)]">
-          {formatValue(totalBalance)}
-        </div>
-      </div>
-
-      <div className="card-premium p-6 border-l-4 border-l-[var(--navy)] bg-[var(--navy-mid)] text-white">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-            <MaterialIcon icon="trending_up" className="text-white text-lg" />
-          </div>
-          <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Realization</span>
-        </div>
-        <div className="text-2xl font-extrabold">
-          {realizationRate}%
-        </div>
-        <div className="w-full bg-white/20 h-1.5 rounded-full mt-3 overflow-hidden">
-          <div 
-            className="bg-white h-full transition-all duration-1000" 
-            style={{ width: `${realizationRate}%` }} 
+        <div className="w-full bg-white/15 h-2 rounded-full mt-4 overflow-hidden">
+          <div
+            className="bg-white h-full transition-all duration-1000"
+            style={{ width: `${realizationRate}%` }}
           />
         </div>
       </div>

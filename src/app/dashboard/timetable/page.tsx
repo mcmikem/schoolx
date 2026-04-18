@@ -65,15 +65,21 @@ export default function TimetablePage() {
   const fetchAllTimetables = useCallback(async () => {
     if (!school?.id) return
     try {
+      const classIds = classes.map((c: any) => c.id)
+      if (classIds.length === 0) {
+        setAllClassTimetables([])
+        return
+      }
+
       const { data } = await supabase
         .from('teacher_timetable')
-        .select('teacher_id, day_of_week, slot_id, class_id')
-        .eq('school_id', school.id)
+        .select('teacher_id, day_of_week, period_number, class_id')
+        .in('class_id', classIds)
       setAllClassTimetables(data || [])
     } catch (err) {
       console.error('Error fetching all timetables:', err)
     }
-  }, [school?.id])
+  }, [school?.id, classes])
 
   useEffect(() => {
     if (selectedClassId) fetchTimetable()
@@ -88,15 +94,15 @@ export default function TimetablePage() {
    * 1. Teacher double-booked: same teacher already assigned to a DIFFERENT class at the same day+slot
    * 2. Slot already filled: same class already has an entry at this day+slot
    */
-  const detectConflicts = useCallback((teacherId: string, day: number, slotId: string): string[] => {
+  const detectConflicts = useCallback((teacherId: string, day: number, periodNumber: number): string[] => {
     const found: string[] = []
 
-    // Check if the teacher is already teaching another class at this slot
+    // Check if the teacher is already teaching another class at this period
     const teacherConflict = allClassTimetables.find(
       (t) =>
         t.teacher_id === teacherId &&
         t.day_of_week === day &&
-        t.slot_id === slotId &&
+        t.period_number === periodNumber &&
         t.class_id !== selectedClassId
     )
     if (teacherConflict) {
@@ -106,7 +112,7 @@ export default function TimetablePage() {
 
     // Check if this class already has an entry at this slot (shouldn't happen via UI but guard anyway)
     const classConflict = timetable.find(
-      (t) => t.day_of_week === day && t.slot_id === slotId
+      (t) => t.day_of_week === day && t.period_number === periodNumber
     )
     if (classConflict) {
       found.push(`This slot is already occupied by ${classConflict.subjects?.name || 'another subject'}`)
@@ -118,7 +124,11 @@ export default function TimetablePage() {
   const handleTeacherChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const teacherId = e.target.value
     if (!teacherId || !selectedSlot) { setConflicts([]); return }
-    const found = detectConflicts(teacherId, selectedDay, selectedSlot.id)
+    const found = detectConflicts(
+      teacherId,
+      selectedDay,
+      selectedSlot.order_number ?? selectedSlot.period_number,
+    )
     setConflicts(found)
   }
 
@@ -128,19 +138,22 @@ export default function TimetablePage() {
     const teacherId = formData.get('teacher_id') as string
 
     // Run conflict check one final time before saving
-    const found = detectConflicts(teacherId, selectedDay, selectedSlot.id)
+    const found = detectConflicts(
+      teacherId,
+      selectedDay,
+      selectedSlot.order_number ?? selectedSlot.period_number,
+    )
     if (found.length > 0) {
       toast.error(`Cannot save: ${found[0]}`)
       return
     }
 
     const entryData = {
-      school_id: school!.id,
       class_id: selectedClassId,
       subject_id: formData.get('subject_id'),
       teacher_id: teacherId,
       day_of_week: selectedDay,
-      slot_id: selectedSlot.id,
+      period_number: selectedSlot.order_number ?? selectedSlot.period_number,
       start_time: selectedSlot.start_time,
       end_time: selectedSlot.end_time,
       academic_year: new Date().getFullYear().toString(),
@@ -172,8 +185,10 @@ export default function TimetablePage() {
     }
   }
 
-  const getEntry = (day: number, slotId: string) => {
-    return timetable.find(t => t.day_of_week === day && t.slot_id === slotId)
+  const getEntry = (day: number, periodNumber: number) => {
+    return timetable.find(
+      (t) => t.day_of_week === day && t.period_number === periodNumber,
+    )
   }
 
   const dayTabs = DAYS.map(day => ({ id: day.value.toString(), label: day.full }))
@@ -241,14 +256,14 @@ export default function TimetablePage() {
                   </thead>
                   <tbody>
                     {slots.map((slot: any) => {
-                      const entry = getEntry(day.value, slot.id)
+                      const entry = getEntry(day.value, slot.order_number ?? slot.period_number)
                       return (
-                        <tr key={slot.id} className={!slot.is_lesson ? 'bg-[var(--surface-container-low)]/50' : ''}>
+                        <tr key={slot.id} className={slot.is_break ? 'bg-[var(--surface-container-low)]/50' : ''}>
                           <td className="p-4 border-b border-r border-[var(--border)]">
                             <p className="text-sm font-semibold text-[var(--t1)]">{slot.name}</p>
                             <p className="text-xs text-[var(--t4)]">{slot.start_time?.slice(0, 5)} – {slot.end_time?.slice(0, 5)}</p>
                           </td>
-                          <td className={`p-2 border-b border-[var(--border)] min-h-[100px] relative ${!slot.is_lesson ? 'opacity-50' : ''}`}>
+                          <td className={`p-2 border-b border-[var(--border)] min-h-[100px] relative ${slot.is_break ? 'opacity-50' : ''}`}>
                             {entry ? (
                               <div className="bg-[var(--primary)]/10 border border-[var(--primary)]/20 rounded-lg p-3 h-full group">
                                 <p className="text-xs font-bold text-[var(--primary)] uppercase tracking-wider mb-1">

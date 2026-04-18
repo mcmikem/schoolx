@@ -310,15 +310,14 @@ function HeadmasterDashboardContent() {
 
   return (
     <div className="content">
-      <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
+      <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="ph-title truncate !text-3xl">
               {greeting}, {user?.full_name?.split(" ")[0]}
             </div>
             <div className="ph-sub truncate !text-sm">
-              {school?.name} • {academicYear} Term {currentTerm} •{" "}
-              {todayDayName}, {todayFormatted}
+              {school?.name} • {academicYear} Term {currentTerm} • {todayDayName}, {todayFormatted}
             </div>
           </div>
           <div className="ph-actions">
@@ -333,6 +332,39 @@ function HeadmasterDashboardContent() {
               <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
               <span className="hidden sm:inline">Enroll Student</span>
             </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="dashboard-toolbar mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)] mb-1">
+              Leadership overview
+            </div>
+            <div className="text-lg font-bold text-[var(--t1)]">
+              Attendance, fees, staffing, and alerts brought into one sharper command view
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="dashboard-pill bg-emerald-50 text-emerald-700">{attendanceRate}% attendance</span>
+            <span className="dashboard-pill bg-blue-50 text-blue-700">{collectionRate}% collection</span>
+            <span className="dashboard-pill bg-amber-50 text-amber-700">{staff.length} staff</span>
+            <span className="dashboard-pill bg-rose-50 text-rose-700">{alertCount} alerts</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+          <div className="dashboard-note-card">
+            <div className="text-xs font-bold uppercase tracking-widest text-[var(--t3)] mb-1">Today</div>
+            <div className="text-sm font-semibold text-[var(--t1)]">{stats.presentToday || 0} learners confirmed in school</div>
+          </div>
+          <div className="dashboard-note-card">
+            <div className="text-xs font-bold uppercase tracking-widest text-[var(--t3)] mb-1">Finance</div>
+            <div className="text-sm font-semibold text-[var(--t1)]">UGX {formatCurrency(totalFeesCollected)} collected so far</div>
+          </div>
+          <div className="dashboard-note-card">
+            <div className="text-xs font-bold uppercase tracking-widest text-[var(--t3)] mb-1">Attention</div>
+            <div className="text-sm font-semibold text-[var(--t1)]">{overdueFeeCount} overdue fee cases and {classesNotMarked} classes still unmarked</div>
           </div>
         </div>
       </div>

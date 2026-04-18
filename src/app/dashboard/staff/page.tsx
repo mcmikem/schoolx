@@ -12,7 +12,7 @@ import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { Card, CardBody } from "@/components/ui/Card";
 import { DEMO_STAFF, DEMO_SCHOOL_ID } from "@/lib/demo-data";
-import { useStaffReviews } from "@/lib/hooks";
+import { useStaffReviews, useDashboardStats } from "@/lib/hooks";
 import { StaffReview } from "@/types";
 import { PageGuidance } from "@/components/PageGuidance";
 import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
@@ -86,7 +86,12 @@ const LEAVE_TYPES = [
 export default function StaffHubPage() {
   const { school, user, isDemo } = useAuth();
   const toast = useToast();
+  const { stats } = useDashboardStats(school?.id);
   const [activeMainTab, setActiveMainTab] = useState("directory");
+  const attendanceRate =
+    stats?.totalStudents > 0
+      ? Math.round((stats.presentToday / stats.totalStudents) * 100)
+      : 0;
 
   const mainTabs = [
     { id: "directory", label: "Directory", icon: "groups" },
@@ -124,7 +129,7 @@ export default function StaffHubPage() {
         </div>
       </div>
 
-      <SmartAdvisor stats={{}} collectionRate={0} attendanceRate={92} role="dean" />
+      <SmartAdvisor stats={stats || {}} collectionRate={0} attendanceRate={attendanceRate} role="dean" />
 
       <Tabs
         tabs={mainTabs}

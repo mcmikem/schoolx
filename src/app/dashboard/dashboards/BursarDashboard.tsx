@@ -2,7 +2,12 @@
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
-import { useStudents, useFeePayments, useFeeStructure } from "@/lib/hooks";
+import {
+  useStudents,
+  useFeePayments,
+  useFeeStructure,
+  useDashboardStats,
+} from "@/lib/hooks";
 import MaterialIcon from "@/components/MaterialIcon";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { StatsGridSkeleton } from "@/components/Skeletons";
@@ -19,6 +24,7 @@ function BursarDashboardContent() {
   const { students } = useStudents(school?.id);
   const { payments } = useFeePayments(school?.id);
   const { feeStructure } = useFeeStructure(school?.id);
+  const { stats } = useDashboardStats(school?.id);
 
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
@@ -83,10 +89,14 @@ function BursarDashboardContent() {
     lastMonthTotal > 0
       ? Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100)
       : 0;
+  const attendanceRate =
+    stats?.totalStudents > 0
+      ? Math.round((stats.presentToday / stats.totalStudents) * 100)
+      : 0;
 
   return (
     <div className="content">
-      <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
+      <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="ph-title truncate !text-3xl">
@@ -105,6 +115,20 @@ function BursarDashboardContent() {
               <MaterialIcon icon="add_card" style={{ fontSize: "16px" }} />
               <span>Record Payment</span>
             </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="dashboard-toolbar mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)] mb-1">Finance status</div>
+            <div className="text-lg font-bold text-[var(--t1)]">Cleaner collections view with faster visibility into cash, arrears, and target progress</div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="dashboard-pill bg-emerald-50 text-emerald-700">UGX {formatCurrency(totalFeesCollected)} in</span>
+            <span className="dashboard-pill bg-blue-50 text-blue-700">{collectionRate}% rate</span>
+            <span className="dashboard-pill bg-amber-50 text-amber-700">UGX {formatCurrency(totalArrears)} due</span>
           </div>
         </div>
       </div>
@@ -142,9 +166,12 @@ function BursarDashboardContent() {
 
       <div className="mb-8">
         <SmartAdvisor
-          stats={{}}
+          stats={{
+            totalFeesExpected,
+            totalFeesCollected,
+          }}
           collectionRate={collectionRate}
-          attendanceRate={0}
+          attendanceRate={attendanceRate}
           role="bursar"
         />
       </div>
@@ -153,8 +180,11 @@ function BursarDashboardContent() {
       <div className="hidden xl:block grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
         <div className="xl:col-span-3">
           <DashboardInsights
-            stats={{}}
-            attendanceRate={0}
+            stats={{
+              totalStudents: students.length,
+              feesBalance: totalArrears,
+            }}
+            attendanceRate={attendanceRate}
             collectionRate={collectionRate}
             students={students}
             payments={payments}
