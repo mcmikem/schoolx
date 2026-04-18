@@ -23,6 +23,7 @@ import {
 } from "@/lib/exams";
 import { getUNEBGrade, getUNEBDivision } from "@/lib/grading";
 import { supabase } from "@/lib/supabase";
+import { loadSchoolSetting } from "@/lib/school-settings";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -83,30 +84,31 @@ export default function ExamsPage() {
       setLoadingWeights(false);
       return;
     }
-    setLoadingWeights(true);
-    const { data, error } = await supabase
-      .from("school_settings")
-      .select("exam_weights")
-      .eq("school_id", school.id)
-      .single();
 
-    if (data?.exam_weights) {
-      const saved = data.exam_weights as any[];
-      const configs: ExamConfig[] = saved
-        .filter((e: any) => e.isActive)
-        .map((e: any) => ({
-          id: e.id,
-          name: e.name,
-          shortName: e.shortName,
-          type: e.id,
-          weight: e.weight,
-          maxScore: 100,
-          isActive: e.isActive,
-        }));
-      setCustomExamWeights(configs);
+    try {
+      setLoadingWeights(true);
+      const saved = await loadSchoolSetting<any[]>(school.id, "exam_weights", []);
+
+      if (Array.isArray(saved) && saved.length > 0) {
+        const configs: ExamConfig[] = saved
+          .filter((e: any) => e.isActive)
+          .map((e: any) => ({
+            id: e.id,
+            name: e.name,
+            shortName: e.shortName,
+            type: e.id,
+            weight: e.weight,
+            maxScore: 100,
+            isActive: e.isActive,
+          }));
+        setCustomExamWeights(configs);
+      } else {
+        setCustomExamWeights([]);
+      }
+    } finally {
+      setLoadingWeights(false);
     }
-    setLoadingWeights(false);
-  }, [school]);
+  }, [school?.id]);
 
   useEffect(() => {
     loadCustomWeights();

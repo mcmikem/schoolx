@@ -2,10 +2,9 @@
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 import { BookOpen, CheckCircle } from "lucide-react";
 import { Button, Input } from "@/components/ui";
-import { normalizeAuthPhone } from "@/lib/validation";
+import { getErrorMessage } from "@/lib/validation";
 
 export default function SetupAdminPage() {
   const [loading, setLoading] = useState(false);
@@ -38,47 +37,21 @@ export default function SetupAdminPage() {
       return;
     }
 
-    if (!supabase?.auth) {
-      setError(
-        "Supabase not configured. Set NEXT_PUBLIC_SUPABASE_URL and key.",
-      );
-      setLoading(false);
-      return;
-    }
-
     try {
-      const cleanPhone = normalizeAuthPhone(form.phone);
-      const email = `${cleanPhone}@omuto.org`;
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password: form.password,
-        options: {
-          data: {
-            full_name: form.name,
-            phone: cleanPhone,
-            role: "super_admin",
-          },
-        },
-      });
+      const response = await fetch('/api/setup-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
 
-      if (authError) throw authError;
-      if (!authData.user?.id) {
-        throw new Error("Sign up did not return a user.");
+      const result = await response.json()
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Setup failed')
       }
-
-      const { error: userError } = await supabase.from("users").insert({
-        auth_id: authData.user.id,
-        full_name: form.name,
-        phone: cleanPhone,
-        role: "super_admin",
-        is_active: true,
-      });
-
-      if (userError) throw userError;
 
       setDone(true);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Setup failed";
+      const message = getErrorMessage(err, 'Setup failed');
       setError(message);
     } finally {
       setLoading(false);

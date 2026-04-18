@@ -6,13 +6,13 @@ import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button, Input, Select } from "@/components/ui";
-import { normalizeAuthPhone } from "@/lib/validation";
 import { buildUgandaAcademicTerms } from "@/lib/uganda-school-calendar";
 import {
   getDefaultClassTemplates,
   inferClassLevel,
   type SchoolSetupType,
 } from "@/lib/school-setup";
+import { saveSchoolSetting } from "@/lib/school-settings";
 
 interface SetupWizardProps {
   onComplete?: () => void;
@@ -94,21 +94,10 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         end_date: academicYear.terms[index]?.end || term.end_date,
       }));
 
-      await supabase.from("school_settings").upsert(
-        [
-          {
-            school_id: school.id,
-            key: "academic_year",
-            value: academicYear.year,
-          },
-          {
-            school_id: school.id,
-            key: "current_term",
-            value: "1",
-          },
-        ],
-        { onConflict: "school_id,key" },
-      );
+          await Promise.all([
+            saveSchoolSetting(school.id, "academic_year", academicYear.year),
+            saveSchoolSetting(school.id, "current_term", "1"),
+          ]);
 
       await supabase.from("academic_terms").upsert(termRows, {
         onConflict: "school_id,academic_year,term_number",
@@ -239,45 +228,38 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
     if (!school?.id) return;
     setLoading(true);
     try {
-      // Create staff users
+      let createdCount = 0;
+      const failures: string[] = [];
+
       for (const s of staff) {
         if (!s.name || !s.phone) continue;
 
-        const normalizedPhone = normalizeAuthPhone(s.phone);
+        const digitsOnly = s.phone.replace(/\D/g, "");
+        const defaultPassword = `Welcome${digitsOnly.slice(-4) || "1234"}`;
 
-        // Create auth user using the same email-alias scheme as normal app login
-        const { data: authData, error: authError } = await supabase.auth.signUp(
-          {
-            email: `${normalizedPhone}@omuto.org`,
-            password: "Welcome" + normalizedPhone.slice(-4),
-            options: {
-              data: {
-                phone: normalizedPhone,
-                full_name: s.name,
-              },
-            },
-          },
-        );
+        const response = await fetch("/api/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            schoolId: school.id,
+            fullName: s.name,
+            phone: s.phone,
+            password: defaultPassword,
+            role: s.role,
+          }),
+        });
 
-        if (authError) {
-          console.error("Auth signup error:", authError);
-          toast.error(`Failed to create staff: ${authError.message}`);
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          failures.push(`${s.name}: ${result.error || "Failed to create staff account"}`);
           continue;
         }
 
-        if (authData?.user) {
-          const { error: userError } = await supabase.from("users").insert({
-            auth_id: authData.user.id,
-            school_id: school.id,
-            full_name: s.name,
-            phone: normalizedPhone,
-            role: s.role,
-          });
+        createdCount += 1;
+      }
 
-          if (userError) {
-            console.error("User insert error:", userError);
-          }
-        }
+      if (createdCount === 0 && failures.length > 0) {
+        throw new Error(failures[0]);
       }
 
       const { error: checklistError } = await supabase
@@ -297,7 +279,11 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         console.error("Checklist update error:", checklistError);
       }
 
-      toast.success("Staff accounts created!");
+      if (failures.length > 0) {
+        toast.error(`Created ${createdCount} staff account(s), ${failures.length} failed`);
+      } else {
+        toast.success("Staff accounts created!");
+      }
       setStep(5);
     } catch (err: any) {
       toast.error(err.message || "Failed to save");

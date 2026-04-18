@@ -451,15 +451,24 @@ export async function POST(request: NextRequest) {
         })),
       });
 
-      // Update academic year/term settings
+      // Update academic year/term settings using the key-value school_settings schema
       await supabase
         .from("school_settings")
-        .update({
-          current_term: nextTerm,
-          academic_year: nextYear,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("school_id", school.schoolId);
+        .upsert(
+          [
+            {
+              school_id: school.schoolId,
+              key: "current_term",
+              value: String(nextTerm),
+            },
+            {
+              school_id: school.schoolId,
+              key: "academic_year",
+              value: nextYear,
+            },
+          ],
+          { onConflict: "school_id,key" },
+        );
 
       // Create next term record if it doesn't exist
       const { data: existingTerm } = await supabase

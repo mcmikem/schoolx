@@ -3,7 +3,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAcademic } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/lib/supabase";
+import { loadSchoolSetting, saveSchoolSetting } from "@/lib/school-settings";
+import { getErrorMessage } from "@/lib/validation";
+import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 
 const DEFAULT_EXAM_WEIGHTS = [
@@ -77,6 +79,7 @@ export default function AcademicSettings() {
   const { academicYear, currentTerm, setAcademicYear, setCurrentTerm } =
     useAcademic();
   const { school } = useAuth();
+  const toast = useToast();
   const [examWeights, setExamWeights] =
     useState<ExamWeight[]>(DEFAULT_EXAM_WEIGHTS);
   const [loadingWeights, setLoadingWeights] = useState(false);
@@ -87,23 +90,28 @@ export default function AcademicSettings() {
     if (!school?.id) {
       return;
     }
-    setLoadingWeights(true);
-    const { data, error } = await supabase
-      .from("school_settings")
-      .select("exam_weights")
-      .eq("school_id", school.id)
-      .single();
 
-    if (data?.exam_weights) {
-      const saved = data.exam_weights as ExamWeight[];
-      const merged = DEFAULT_EXAM_WEIGHTS.map((defaultExam) => {
-        const savedExam = saved.find((s) => s.id === defaultExam.id);
-        return savedExam || defaultExam;
-      });
-      setExamWeights(merged);
+    try {
+      setLoadingWeights(true);
+      const saved = await loadSchoolSetting<ExamWeight[]>(
+        school.id,
+        "exam_weights",
+        DEFAULT_EXAM_WEIGHTS,
+      );
+
+      if (Array.isArray(saved) && saved.length > 0) {
+        const merged = DEFAULT_EXAM_WEIGHTS.map((defaultExam) => {
+          const savedExam = saved.find((s) => s.id === defaultExam.id);
+          return savedExam || defaultExam;
+        });
+        setExamWeights(merged);
+      }
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to load exam weights"));
+    } finally {
+      setLoadingWeights(false);
     }
-    setLoadingWeights(false);
-  }, [school]);
+  }, [school?.id, toast]);
 
   useEffect(() => {
     if (school?.id) {
@@ -113,20 +121,25 @@ export default function AcademicSettings() {
 
   async function saveExamWeights() {
     if (!school?.id) return;
-    setSavingWeights(true);
+
     const activeWeights = examWeights.filter((e) => e.isActive);
     const totalWeight = activeWeights.reduce((sum, e) => sum + e.weight, 0);
 
-    const { error } = await supabase.from("school_settings").upsert(
-      {
-        school_id: school.id,
-        exam_weights: examWeights,
-      },
-      { onConflict: "school_id" },
-    );
+    if (totalWeight !== 100) {
+      toast.error("Active exam weights must total 100%.");
+      return;
+    }
 
-    setSavingWeights(false);
-    setShowSettings(false);
+    try {
+      setSavingWeights(true);
+      await saveSchoolSetting(school.id, "exam_weights", examWeights);
+      toast.success("Exam weighting saved");
+      setShowSettings(false);
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to save exam weights"));
+    } finally {
+      setSavingWeights(false);
+    }
   }
 
   function updateExamWeight(

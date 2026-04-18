@@ -6,6 +6,7 @@ import { useAcademic } from "@/lib/academic-context";
 import { useStudents, useClasses } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
+import { loadSchoolSettings } from "@/lib/school-settings";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -48,30 +49,17 @@ export default function EarlyWarningsPage() {
   const fetchThresholds = useCallback(async () => {
     if (!school?.id) return;
     try {
-      const { data } = await supabase
-        .from("school_settings")
-        .select("key, value")
-        .eq("school_id", school.id)
-        .in("key", [
-          "attendance_threshold",
-          "grade_threshold",
-          "fee_threshold",
-        ]);
+      const map = await loadSchoolSettings(school.id, [
+        "attendance_threshold",
+        "grade_threshold",
+        "fee_threshold",
+      ]);
 
-      if (data) {
-        const map: Record<string, string> = {};
-        data.forEach((s: { key: string; value: string }) => {
-          map[s.key] = s.value;
-        });
-        setThresholds({
-          attendance: parseInt(map.attendance_threshold) || 80,
-          grade: parseInt(map.grade_threshold) || 50,
-          fee: parseInt(map.fee_threshold) || 50000,
-        });
-      }
-    } catch (err) {
-      console.error("Error:", err);
-      setWarnings([]);
+      setThresholds({
+        attendance: parseInt(map.attendance_threshold) || 80,
+        grade: parseInt(map.grade_threshold) || 50,
+        fee: parseInt(map.fee_threshold) || 50000,
+      });
     } finally {
       setLoading(false);
     }
