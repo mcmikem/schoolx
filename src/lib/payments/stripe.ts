@@ -20,48 +20,6 @@ function getStripeWebhookSecretOrThrow() {
   return webhookSecret;
 }
 
-export const stripe = {
-  paymentIntents: {
-    create(...args: Parameters<Stripe["paymentIntents"]["create"]>) {
-      return getStripeClientOrThrow().paymentIntents.create(...args);
-    },
-    confirm(...args: Parameters<Stripe["paymentIntents"]["confirm"]>) {
-      return getStripeClientOrThrow().paymentIntents.confirm(...args);
-    },
-  },
-  subscriptions: {
-    create(...args: Parameters<Stripe["subscriptions"]["create"]>) {
-      return getStripeClientOrThrow().subscriptions.create(...args);
-    },
-    update(...args: Parameters<Stripe["subscriptions"]["update"]>) {
-      return getStripeClientOrThrow().subscriptions.update(...args);
-    },
-    retrieve(...args: Parameters<Stripe["subscriptions"]["retrieve"]>) {
-      return getStripeClientOrThrow().subscriptions.retrieve(...args);
-    },
-  },
-  billingPortal: {
-    sessions: {
-      create(...args: Parameters<Stripe["billingPortal"]["sessions"]["create"]>) {
-        return getStripeClientOrThrow().billingPortal.sessions.create(...args);
-      },
-    },
-  },
-  customers: {
-    create(...args: Parameters<Stripe["customers"]["create"]>) {
-      return getStripeClientOrThrow().customers.create(...args);
-    },
-    retrieve(...args: Parameters<Stripe["customers"]["retrieve"]>) {
-      return getStripeClientOrThrow().customers.retrieve(...args);
-    },
-  },
-  webhooks: {
-    constructEvent(...args: Parameters<Stripe["webhooks"]["constructEvent"]>) {
-      return getStripeClientOrThrow().webhooks.constructEvent(...args);
-    },
-  },
-};
-
 // Create a payment intent for subscription amount
 export async function createPaymentIntent(
   amount: number, // amount in smallest currency unit (e.g., cents for USD)
@@ -69,7 +27,7 @@ export async function createPaymentIntent(
   metadata: Record<string, string> = {}
 ) {
   try {
-    const paymentIntent = await stripe.paymentIntents.create({
+    const paymentIntent = await getStripeClientOrThrow().paymentIntents.create({
       amount,
       currency,
       metadata,
@@ -94,9 +52,12 @@ export async function confirmPaymentIntent(
   paymentMethodId: string
 ) {
   try {
-    const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
-      payment_method: paymentMethodId,
-    });
+    const paymentIntent = await getStripeClientOrThrow().paymentIntents.confirm(
+      paymentIntentId,
+      {
+        payment_method: paymentMethodId,
+      }
+    );
 
     return paymentIntent;
   } catch (error) {
@@ -112,7 +73,7 @@ export async function createSubscription(
   metadata: Record<string, string> = {}
 ) {
   try {
-    const subscription = await stripe.subscriptions.create({
+    const subscription = await getStripeClientOrThrow().subscriptions.create({
       customer: customerId,
       items: [{ price: priceId }],
       metadata,
@@ -133,7 +94,7 @@ export async function updateSubscription(
   prorationBehavior: Stripe.SubscriptionUpdateParams.ProrationBehavior = 'create_prorations'
 ) {
   try {
-    const subscription = await stripe.subscriptions.update(subscriptionId, {
+    const subscription = await getStripeClientOrThrow().subscriptions.update(subscriptionId, {
       items: [{ id: subscriptionId, price: priceId }],
       proration_behavior: prorationBehavior,
     });
@@ -151,7 +112,7 @@ export async function cancelSubscription(
   cancelAtPeriodEnd: boolean = true
 ) {
   try {
-    const subscription = await stripe.subscriptions.update(subscriptionId, {
+    const subscription = await getStripeClientOrThrow().subscriptions.update(subscriptionId, {
       cancel_at_period_end: cancelAtPeriodEnd,
     });
 
@@ -168,7 +129,7 @@ export async function createCustomerPortalSession(
   returnUrl: string
 ) {
   try {
-    const session = await stripe.billingPortal.sessions.create({
+    const session = await getStripeClientOrThrow().billingPortal.sessions.create({
       customer: customerId,
       return_url: returnUrl,
     });
@@ -183,7 +144,7 @@ export async function createCustomerPortalSession(
 // Retrieve a subscription
 export async function getSubscription(subscriptionId: string) {
   try {
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+    const subscription = await getStripeClientOrThrow().subscriptions.retrieve(subscriptionId, {
       expand: ['default_payment_method', 'latest_invoice.payment_intent'],
     });
 
@@ -201,7 +162,7 @@ export async function createCustomer(
   metadata: Record<string, string> = {}
 ) {
   try {
-    const customer = await stripe.customers.create({
+    const customer = await getStripeClientOrThrow().customers.create({
       email,
       name,
       metadata,
@@ -217,7 +178,7 @@ export async function createCustomer(
 // Retrieve a customer
 export async function getCustomer(customerId: string) {
   try {
-    const customer = await stripe.customers.retrieve(customerId);
+    const customer = await getStripeClientOrThrow().customers.retrieve(customerId);
 
     return customer;
   } catch (error) {
@@ -234,7 +195,7 @@ export async function handleWebhookEvent(
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
+    event = getStripeClientOrThrow().webhooks.constructEvent(
       payload,
       sig,
       getStripeWebhookSecretOrThrow()
