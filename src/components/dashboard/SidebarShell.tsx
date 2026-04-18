@@ -47,8 +47,8 @@ export default function SidebarShell({
   const sidebarClasses = `sidebar bg-[var(--surface)] border-r border-[var(--border)] w-[var(--sidebar-width)] min-w-[var(--sidebar-width)] flex flex-col fixed top-0 left-0 bottom-0 z-100 shadow-[var(--sh2)] ${isOpen ? "open" : ""}`;
 
   return (
-    <aside className={sidebarClasses}>
-      <div className="px-[18px] pt-5 pb-4 border-b border-[var(--border)] bg-[linear-gradient(180deg,rgba(240,247,255,0.5)_0%,rgba(255,255,255,0)_100%)]">
+    <aside id="dashboard-sidebar" className={sidebarClasses}>
+      <div className="px-[18px] pt-5 pb-4 border-b border-[var(--border)] bg-[linear-gradient(180deg,rgba(240,247,255,0.88)_0%,rgba(255,255,255,0.6)_100%)]">
         <div className="flex items-center gap-[10px] mb-4">
           {school?.logo_url ? (
             <Image
@@ -96,6 +96,23 @@ export default function SidebarShell({
             {user?.role?.replace("_", " ") || "User"} · Term{" "}
             {currentTerm || "..."}
           </div>
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Link
+            href="/dashboard"
+            onClick={onNavigate}
+            className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-[11px] font-semibold text-[var(--t2)] no-underline hover:bg-[var(--navy-soft)] hover:text-[var(--navy)] transition-colors"
+          >
+            Dashboard home
+          </Link>
+          <Link
+            href="/dashboard/settings"
+            onClick={onNavigate}
+            className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-[11px] font-semibold text-[var(--t2)] no-underline hover:bg-[var(--navy-soft)] hover:text-[var(--navy)] transition-colors"
+          >
+            School settings
+          </Link>
         </div>
       </div>
 

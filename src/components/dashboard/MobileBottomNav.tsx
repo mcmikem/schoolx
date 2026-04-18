@@ -59,6 +59,7 @@ export default function MobileBottomNav() {
       <Link
         href="/dashboard"
         className={`mobile-nav-item ${pathname === "/dashboard" ? "active" : ""}`}
+        aria-current={pathname === "/dashboard" ? "page" : undefined}
       >
         <MaterialIcon icon="dashboard" size={20} />
         <span>Home</span>
@@ -66,6 +67,7 @@ export default function MobileBottomNav() {
       <Link
         href="/dashboard/students"
         className={`mobile-nav-item ${isActive("/dashboard/students") ? "active" : ""}`}
+        aria-current={isActive("/dashboard/students") ? "page" : undefined}
       >
         <MaterialIcon icon="group" size={20} />
         <span>Students</span>
@@ -81,6 +83,7 @@ export default function MobileBottomNav() {
       <Link
         href="/dashboard/fees"
         className={`mobile-nav-item ${isActive("/dashboard/fees") ? "active" : ""}`}
+        aria-current={isActive("/dashboard/fees") ? "page" : undefined}
       >
         <MaterialIcon icon="payments" size={20} />
         <span>Fees</span>

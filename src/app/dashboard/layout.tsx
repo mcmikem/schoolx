@@ -252,7 +252,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       {showPostSetup && !showOnboarding && (
         <PostOnboardingSetup onComplete={() => setShowPostSetup(false)} />
       )}
-      <div className="bg-motif flex min-h-screen bg-[var(--bg)]">
+      <div className="bg-motif dashboard-shell flex min-h-screen bg-[var(--bg)]">
         <SidebarShell onNavigate={handleNavigate} />
         <SidebarOverlay />
 
@@ -262,7 +262,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         >
           <TopBar pageTitle={pageTitle} onSignOut={handleSignOut} />
           {breadcrumbItems.length > 1 && (
-            <div className="px-4 sm:px-6 py-2 border-b border-[var(--border)] bg-[var(--surface)]">
+            <div className="dashboard-breadcrumbs px-4 sm:px-6 py-2.5 border-b border-[var(--border)] bg-[var(--surface)]">
               <Breadcrumbs items={breadcrumbItems} />
             </div>
           )}
