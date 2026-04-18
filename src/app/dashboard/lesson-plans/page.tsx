@@ -39,6 +39,21 @@ interface LessonPlan {
   users?: { full_name: string }
 }
 
+function getStatusBadgeClass(status: LessonPlan['status'] | string) {
+  switch (status) {
+    case 'completed':
+      return 'bg-green-100 text-green-700'
+    case 'cancelled':
+      return 'bg-red-100 text-red-700'
+    default:
+      return 'bg-amber-100 text-amber-700'
+  }
+}
+
+function formatStatusLabel(status: LessonPlan['status'] | string) {
+  return status.replace(/_/g, ' ')
+}
+
 export default function LessonPlansPage() {
   const { school, user } = useAuth()
   const toast = useToast()
@@ -262,12 +277,8 @@ export default function LessonPlansPage() {
                   <h3 className="font-semibold text-[var(--t1)]">{plan.title}</h3>
                   <p className="text-sm text-[var(--t3)]">{plan.subjects?.name} - {plan.classes?.name}</p>
                 </div>
-                <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                  plan.status === 'approved' ? 'bg-green-100 text-green-700' :
-                  plan.status === 'submitted' ? 'bg-blue-100 text-blue-700' :
-                  'bg-gray-100 text-gray-600'
-                }`}>
-                  {plan.status}
+                <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusBadgeClass(plan.status)}`}>
+                  {formatStatusLabel(plan.status)}
                 </span>
               </div>
               <div className="flex items-center gap-4 text-xs text-[var(--t3)] mb-2">

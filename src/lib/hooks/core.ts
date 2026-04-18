@@ -80,13 +80,13 @@ export function useSupabaseMutation<T>(table: string) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const insert = async (data: Partial<T>) => {
+  const insert = async (data: Record<string, unknown>) => {
     try {
       setLoading(true)
       setError(null)
       const { data: result, error: insertError } = await supabase!
         .from(table)
-        .insert(data)
+        .insert(data as never)
         .select()
         .single()
 
@@ -100,13 +100,13 @@ export function useSupabaseMutation<T>(table: string) {
     }
   }
 
-  const update = async (id: string, data: Partial<T>) => {
+  const update = async (id: string, data: Record<string, unknown>) => {
     try {
       setLoading(true)
       setError(null)
       const { data: result, error: updateError } = await supabase!
         .from(table)
-        .update(data)
+        .update(data as never)
         .eq('id', id)
         .select()
         .single()
