@@ -26,6 +26,7 @@ import ActionCenter from "@/components/dashboard/ActionCenter";
 import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
 import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
 import StatCard from "@/components/dashboard/StatCard";
+import { QuickActions } from "@/components/dashboard/QuickActions";
 
 function ProgressRing({
   progress,
@@ -308,16 +309,108 @@ function HeadmasterDashboardContent() {
     return events.slice(0, 5);
   }, [payments, smsStats, pendingLeave]);
 
+  const quickActions = useMemo(
+    () => [
+      {
+        label: "Enroll student",
+        href: "/dashboard/students?action=add",
+        icon: "person_add",
+        color: "navy",
+      },
+      {
+        label: "Take attendance",
+        href: "/dashboard/attendance",
+        icon: "how_to_reg",
+        color: "green",
+      },
+      {
+        label: "Record payment",
+        href: "/dashboard/fees",
+        icon: "payments",
+        color: "amber",
+      },
+      {
+        label: "Send reminder",
+        href: "/dashboard/messages",
+        icon: "sms",
+        color: "purple",
+      },
+    ],
+    [],
+  );
+
+  const executiveSignals = useMemo(
+    () => [
+      {
+        label: "Present now",
+        value: `${stats.presentToday || 0}`,
+        detail: `${absentCount > 0 ? absentCount : 0} absent or unmarked`,
+        tone: "navy",
+      },
+      {
+        label: "Collected today",
+        value: `UGX ${formatCurrency(feesToday)}`,
+        detail: `UGX ${formatCurrency(feesThisWeek)} this week`,
+        tone: "green",
+      },
+      {
+        label: "Teaching strength",
+        value: `${staffOnDuty}`,
+        detail: `${staff.length} total staff on record`,
+        tone: "amber",
+      },
+      {
+        label: "Learner mix",
+        value: `${boysCount} / ${girlsCount}`,
+        detail: "Boys and girls currently enrolled",
+        tone: "purple",
+      },
+    ],
+    [
+      absentCount,
+      boysCount,
+      feesToday,
+      feesThisWeek,
+      girlsCount,
+      staff.length,
+      staffOnDuty,
+      stats.presentToday,
+    ],
+  );
+
   return (
     <div className="content">
-      <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
+      <div className="relative overflow-hidden rounded-[28px] p-6 md:p-7 bg-motif border border-[var(--border)] mb-6 shadow-[var(--sh2)]">
+        <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,var(--navy)_0%,var(--green)_50%,var(--amber)_100%)] opacity-80" />
+        <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-6">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full bg-[var(--surface)]/90 border border-[var(--border)] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-[var(--t3)] shadow-[var(--sh1)] mb-4">
+              <span className="inline-block h-2 w-2 rounded-full bg-[var(--green)] animate-pulse" />
+              Headteacher command centre
+            </div>
             <div className="ph-title truncate !text-3xl">
               {greeting}, {user?.full_name?.split(" ")[0]}
             </div>
             <div className="ph-sub truncate !text-sm">
               {school?.name} • {academicYear} Term {currentTerm} • {todayDayName}, {todayFormatted}
+            </div>
+            <div className="mt-4 text-[15px] leading-7 text-[var(--t2)] max-w-2xl">
+              Attendance, finance, staffing, and urgent follow-up are summarized here so you can move from overview to action without hunting through modules.
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mt-5">
+              {executiveSignals.map((signal) => (
+                <div key={signal.label} className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)]/92 px-4 py-4 shadow-[var(--sh1)] backdrop-blur-sm">
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--t4)]">
+                    {signal.label}
+                  </div>
+                  <div className="mt-2 text-2xl font-black text-[var(--t1)] tracking-tight">
+                    {signal.value}
+                  </div>
+                  <div className="mt-1 text-[12px] text-[var(--t3)]">
+                    {signal.detail}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
           <div className="ph-actions">
@@ -335,6 +428,8 @@ function HeadmasterDashboardContent() {
           </div>
         </div>
       </div>
+
+      <QuickActions actions={quickActions} title="Move quickly" />
 
       <div className="dashboard-toolbar mb-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -423,6 +518,50 @@ function HeadmasterDashboardContent() {
               priority: item.status === "alert" ? "high" : "medium",
             })) as any
           }
+          loading={loadingExtra}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8 xl:hidden">
+        <div className="rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--sh1)]">
+          <div className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--t4)] mb-2">
+            This week
+          </div>
+          <div className="text-2xl font-black text-[var(--t1)]">
+            UGX {formatCurrency(feesThisWeek)}
+          </div>
+          <div className="mt-1 text-[12px] text-[var(--t3)]">
+            UGX {formatCurrency(feesThisTerm)} collected this term so far.
+          </div>
+        </div>
+        <div className="rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--sh1)]">
+          <div className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--t4)] mb-2">
+            Classes today
+          </div>
+          <div className="text-2xl font-black text-[var(--t1)]">
+            {classesToday.length}
+          </div>
+          <div className="mt-1 text-[12px] text-[var(--t3)]">
+            Timetabled classes currently mapped for {todayDayName}.
+          </div>
+        </div>
+        <div className="rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--sh1)]">
+          <div className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--t4)] mb-2">
+            Alerts waiting
+          </div>
+          <div className="text-2xl font-black text-[var(--t1)]">
+            {alertCount}
+          </div>
+          <div className="mt-1 text-[12px] text-[var(--t3)]">
+            Operational items needing attention across attendance, fees, and approvals.
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:hidden gap-6 mb-8">
+        <EcosystemPulse
+          payments={payments}
+          smsStats={smsStats}
           loading={loadingExtra}
         />
       </div>
