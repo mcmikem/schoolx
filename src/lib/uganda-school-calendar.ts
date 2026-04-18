@@ -1,3 +1,6 @@
+// Based on the most recently published Uganda Ministry of Education term pattern
+// surfaced during research on 2026-04-18 (using the official 2024 structure as the
+// latest widely published baseline available to seed new schools consistently).
 const TERM_TEMPLATE = [
   { termNumber: 1, name: "Term 1", code: "T1", startMonth: 2, startDay: 5, endMonth: 5, endDay: 3 },
   { termNumber: 2, name: "Term 2", code: "T2", startMonth: 5, startDay: 27, endMonth: 8, endDay: 23 },
