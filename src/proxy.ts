@@ -24,6 +24,7 @@ const publicPaths = [
   "/favicon.ico",
 ];
 
+// Next.js 16 replaces the deprecated middleware.ts convention with proxy.ts.
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
