@@ -9,7 +9,7 @@ import {
 } from "react";
 import { supabase } from "./supabase";
 import { useRouter } from "next/navigation";
-import { PlanType } from "./payments/subscription-client";
+import { normalizePlanType, PlanType } from "./payments/subscription-client";
 import { FeatureStage, DEFAULT_FEATURE_STAGE } from "./featureStages";
 import type { User, School } from "@/types";
 import { logger } from "./logger";
@@ -130,7 +130,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const getSubscriptionPlan = () => {
-    return school?.subscription_plan as PlanType | null;
+    return school?.subscription_plan
+      ? (normalizePlanType(school.subscription_plan) as PlanType)
+      : null;
   };
 
   const fetchUserData = useCallback(

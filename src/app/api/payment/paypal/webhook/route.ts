@@ -340,14 +340,23 @@ async function resolveSchoolIdFromPayPalResource(
   }
 
   for (const candidate of getPayPalResourceCandidates(resource)) {
-    const { data } = await supabase
+    const { data: transactionMatch } = await supabase
       .from("subscription_payments")
       .select("school_id")
-      .or(`transaction_id.eq.${candidate},subscription_id.eq.${candidate}`)
+      .eq("transaction_id", candidate)
       .limit(1)
       .maybeSingle();
 
-    if (data?.school_id) return data.school_id;
+    if (transactionMatch?.school_id) return transactionMatch.school_id;
+
+    const { data: subscriptionMatch } = await supabase
+      .from("subscription_payments")
+      .select("school_id")
+      .eq("subscription_id", candidate)
+      .limit(1)
+      .maybeSingle();
+
+    if (subscriptionMatch?.school_id) return subscriptionMatch.school_id;
   }
 
   return null;

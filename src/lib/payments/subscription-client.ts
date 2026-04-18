@@ -11,6 +11,13 @@ export type PlanType =
   | "lifetime"
   | "free_trial";
 
+const LEGACY_PLAN_MAP = {
+  basic: "starter",
+  premium: "growth",
+  max: "enterprise",
+  suspended: "free_trial",
+} as const;
+
 export interface PlanFeatures {
   name: string;
   pricePerStudent: number;
@@ -173,6 +180,15 @@ export const order: PlanType[] = [
   "enterprise",
   "lifetime",
 ];
+
+export function normalizePlanType(plan?: string | null): PlanType {
+  if (!plan) return "free_trial";
+  if (plan in PLANS) return plan as PlanType;
+  if (plan in LEGACY_PLAN_MAP) {
+    return LEGACY_PLAN_MAP[plan as keyof typeof LEGACY_PLAN_MAP];
+  }
+  return "free_trial";
+}
 
 // Get next plan in order
 export function getNextPlan(currentPlan: PlanType): PlanType | null {

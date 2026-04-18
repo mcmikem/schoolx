@@ -17,6 +17,12 @@ function getPayPalClientOrThrow() {
   return new paypal.core.PayPalHttpClient(environment);
 }
 
+export const paypalClient = {
+  execute(...args: any[]) {
+    return getPayPalClientOrThrow().execute(...args);
+  },
+} as any;
+
 export async function createPayPalOrder(
   amount: number,
   currency: string = 'USD',
@@ -34,6 +40,8 @@ export async function createPayPalOrder(
         currency_code: currency,
         value: (amount / 100).toFixed(2),
       },
+      // We bind checkout orders to the tenant school so webhook reconciliation can
+      // recover the correct payment record even when PayPal omits nested metadata.
       reference_id: schoolId,
       custom_id: schoolId,
     }],
@@ -258,7 +266,7 @@ const paypalApi = {
   cancelPayPalSubscription,
   revisePayPalSubscription,
   verifyPayPalWebhook,
-  paypalClient: getPayPalClientOrThrow,
+  paypalClient,
 }
 
 export default paypalApi
