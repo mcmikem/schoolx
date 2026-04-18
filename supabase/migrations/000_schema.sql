@@ -1305,7 +1305,7 @@ CREATE TABLE IF NOT EXISTS expense_approvals (
 CREATE TABLE IF NOT EXISTS subscription_payments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE NOT NULL,
-    plan TEXT CHECK (plan IN ('free_trial', 'basic', 'premium', 'max')) NOT NULL,
+    plan TEXT CHECK (plan IN ('free_trial', 'starter', 'growth', 'enterprise', 'lifetime')) NOT NULL,
     amount NUMERIC(12,2) NOT NULL,
     currency TEXT DEFAULT 'UGX',
     provider TEXT CHECK (provider IN ('stripe', 'paypal', 'mtn', 'airtel')) NOT NULL,
@@ -1351,15 +1351,34 @@ CREATE TABLE IF NOT EXISTS pending_mobile_payments (
     amount NUMERIC(12,2) NOT NULL,
     provider TEXT CHECK (provider IN ('mtn', 'airtel')) NOT NULL,
     phone_number TEXT NOT NULL,
-    tx_ref TEXT NOT NULL,
+    reference TEXT NOT NULL,
     status TEXT CHECK (status IN ('pending', 'completed', 'failed', 'expired')) DEFAULT 'pending',
     expires_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(tx_ref)
+    UNIQUE(reference)
 );
 
-CREATE INDEX IF NOT EXISTS idx_pending_mobile_payments_txref ON pending_mobile_payments(tx_ref);
+CREATE INDEX IF NOT EXISTS idx_pending_mobile_payments_reference ON pending_mobile_payments(reference);
 CREATE INDEX IF NOT EXISTS idx_pending_mobile_payments_school ON pending_mobile_payments(school_id);
+
+ALTER TABLE subscription_payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pending_mobile_payments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "School users subscription payments all" ON subscription_payments;
+CREATE POLICY "School users subscription payments all" ON subscription_payments FOR ALL TO authenticated USING (
+  school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid())
+);
+
+DROP POLICY IF EXISTS "School users payment history all" ON payment_history;
+CREATE POLICY "School users payment history all" ON payment_history FOR ALL TO authenticated USING (
+  school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid())
+);
+
+DROP POLICY IF EXISTS "School users pending mobile payments all" ON pending_mobile_payments;
+CREATE POLICY "School users pending mobile payments all" ON pending_mobile_payments FOR ALL TO authenticated USING (
+  school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid())
+);
 
 -- ============================================
 -- ADDITIONAL TABLES FOR PRODUCTION READINESS
@@ -1424,4 +1443,3 @@ CREATE POLICY "School users budget_items all" ON budget_items FOR ALL TO authent
 CREATE POLICY "School users payroll_history all" ON payroll_history FOR ALL TO authenticated USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
 CREATE POLICY "School users library_books all" ON library_books FOR ALL TO authenticated USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
 -- CREATE POLICY "School users library_checkouts all" ON library_checkouts FOR ALL TO authenticated USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
-

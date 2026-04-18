@@ -1,29 +1,30 @@
 import { logger } from "@/lib/logger";
 const paypal: any = require('@paypal/checkout-server-sdk');
 
-let environment: any;
+function getPayPalClientOrThrow() {
+  const clientId = process.env.PAYPAL_CLIENT_ID;
+  const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
 
-if (process.env.PAYPAL_MODE === 'live') {
-  environment = new paypal.core.LiveEnvironment(
-    process.env.PAYPAL_CLIENT_ID!,
-    process.env.PAYPAL_CLIENT_SECRET!
-  );
-} else {
-  environment = new paypal.core.SandboxEnvironment(
-    process.env.PAYPAL_CLIENT_ID!,
-    process.env.PAYPAL_CLIENT_SECRET!
-  );
+  if (!clientId || !clientSecret) {
+    throw new Error("PayPal credentials are not configured");
+  }
+
+  const environment =
+    process.env.PAYPAL_MODE === 'live'
+      ? new paypal.core.LiveEnvironment(clientId, clientSecret)
+      : new paypal.core.SandboxEnvironment(clientId, clientSecret);
+
+  return new paypal.core.PayPalHttpClient(environment);
 }
-
-export const paypalClient = new paypal.core.PayPalHttpClient(environment);
 
 export async function createPayPalOrder(
   amount: number,
   currency: string = 'USD',
-  subscriptionId: string,
+  schoolId: string,
   returnUrl: string,
   cancelUrl: string
 ) {
+  const paypalClient = getPayPalClientOrThrow();
   const request = new paypal.orders.OrdersCreateRequest();
   request.prefer("return=representation");
   request.requestBody({
@@ -33,7 +34,8 @@ export async function createPayPalOrder(
         currency_code: currency,
         value: (amount / 100).toFixed(2),
       },
-      reference_id: subscriptionId,
+      reference_id: schoolId,
+      custom_id: schoolId,
     }],
     application_context: {
       brand_name: 'SkoolMate OS',
@@ -54,6 +56,7 @@ export async function createPayPalOrder(
 }
 
 export async function capturePayPalOrder(orderID: string) {
+  const paypalClient = getPayPalClientOrThrow();
   const request = new paypal.orders.OrdersCaptureRequest(orderID);
   request.requestBody({});
 
@@ -67,6 +70,7 @@ export async function capturePayPalOrder(orderID: string) {
 }
 
 export async function getPayPalOrder(orderID: string) {
+  const paypalClient = getPayPalClientOrThrow();
   const request = new paypal.orders.OrdersGetRequest(orderID);
 
   try {
@@ -102,6 +106,7 @@ export async function createPayPalSubscription(
     };
   }
 ) {
+  const paypalClient = getPayPalClientOrThrow();
   const request = new paypal.billing.SubscriptionsCreateRequest();
    request.requestBody({
      plan_id: planId,
@@ -119,6 +124,7 @@ export async function createPayPalSubscription(
 }
 
 export async function activatePayPalSubscription(subscriptionID: string) {
+  const paypalClient = getPayPalClientOrThrow();
   const request = new paypal.billing.SubscriptionsActivateRequest(subscriptionID);
 
   try {
@@ -131,6 +137,7 @@ export async function activatePayPalSubscription(subscriptionID: string) {
 }
 
 export async function getPayPalSubscription(subscriptionID: string) {
+  const paypalClient = getPayPalClientOrThrow();
   const request = new paypal.billing.SubscriptionsGetRequest(subscriptionID);
 
   try {
@@ -143,6 +150,7 @@ export async function getPayPalSubscription(subscriptionID: string) {
 }
 
 export async function cancelPayPalSubscription(subscriptionID: string, reason: string = 'Customer requested cancellation') {
+  const paypalClient = getPayPalClientOrThrow();
   const request = new paypal.billing.SubscriptionsCancelRequest(subscriptionID);
   request.requestBody({
     reason,
@@ -163,6 +171,7 @@ export async function revisePayPalSubscription(
   shippingAmount: { currency_code: string; value: string } = { currency_code: 'USD', value: '0' },
   taxAmount: { currency_code: string; value: string } = { currency_code: 'USD', value: '0' }
 ) {
+  const paypalClient = getPayPalClientOrThrow();
   const request = new paypal.billing.SubscriptionsReviseRequest(subscriptionID);
   request.requestBody({
     plan_id: planId,
@@ -249,7 +258,7 @@ const paypalApi = {
   cancelPayPalSubscription,
   revisePayPalSubscription,
   verifyPayPalWebhook,
-  paypalClient,
+  paypalClient: getPayPalClientOrThrow,
 }
 
 export default paypalApi

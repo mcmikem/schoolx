@@ -7,6 +7,7 @@ import Link from "next/link";
 import SkoolMateLogo from "@/components/SkoolMateLogo";
 import { logger } from "@/lib/logger";
 import { Button, Input, Select } from "@/components/ui";
+import { normalizeAuthPhone } from "@/lib/validation";
 
 function MaterialIcon({
   icon,
@@ -209,7 +210,7 @@ export default function RegisterPage() {
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      const normalizedPhone = form.adminPhone.replace(/[^0-9]/g, "");
+      const normalizedPhone = normalizeAuthPhone(form.adminPhone);
       const email = `${normalizedPhone}@omuto.org`;
 
       const { error: signInError } = await supabase.auth.signInWithPassword({

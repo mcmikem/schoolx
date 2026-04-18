@@ -8,7 +8,7 @@ import {
   requireUserWithSchool,
   assertSchoolScopeOrDeny,
 } from '@/lib/api-utils'
-import { sanitizeString, sanitizePhone } from '@/lib/validation'
+import { normalizeAuthPhone, sanitizeString } from '@/lib/validation'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     // Sanitize inputs
     const sanitizedName = sanitizeString(fullName)
-    const sanitizedPhone = sanitizePhone(phone)
+    const sanitizedPhone = normalizeAuthPhone(phone)
     
     if (sanitizedName.length < 2) {
       return apiError('Name must be at least 2 characters', 400)
