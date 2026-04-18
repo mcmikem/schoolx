@@ -13,14 +13,34 @@ export async function POST(request: Request) {
     const certUrl = headers.get("paypal-cert-url");
     const authAlgo = headers.get("paypal-auth-algo");
     const transmissionSig = headers.get("paypal-transmission-sig");
-    const webhookId = process.env.PAYPAL_WEBHOOK_ID!;
+    const webhookId = process.env.PAYPAL_WEBHOOK_ID;
+
+    if (
+      !transmissionId ||
+      !transmissionTime ||
+      !certUrl ||
+      !authAlgo ||
+      !transmissionSig
+    ) {
+      return NextResponse.json(
+        { error: "Missing PayPal webhook headers" },
+        { status: 400 },
+      );
+    }
+
+    if (!webhookId) {
+      return NextResponse.json(
+        { error: "PayPal webhook is not configured" },
+        { status: 500 },
+      );
+    }
 
     const isVerified = await verifyPayPalWebhook(
-      authAlgo!,
-      certUrl!,
-      transmissionId!,
-      transmissionSig!,
-      transmissionTime!,
+      authAlgo,
+      certUrl,
+      transmissionId,
+      transmissionSig,
+      transmissionTime,
       webhookId,
       JSON.parse(payload),
     );

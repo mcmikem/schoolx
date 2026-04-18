@@ -1,7 +1,66 @@
 import Stripe from 'stripe';
 
-// Initialize Stripe with secret key from environment
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+function getStripeClientOrThrow() {
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+  if (!stripeSecretKey) {
+    throw new Error("Stripe secret key is not configured");
+  }
+
+  return new Stripe(stripeSecretKey);
+}
+
+function getStripeWebhookSecretOrThrow() {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!webhookSecret) {
+    throw new Error("Stripe webhook secret is not configured");
+  }
+
+  return webhookSecret;
+}
+
+export const stripe = {
+  paymentIntents: {
+    create(...args: Parameters<Stripe["paymentIntents"]["create"]>) {
+      return getStripeClientOrThrow().paymentIntents.create(...args);
+    },
+    confirm(...args: Parameters<Stripe["paymentIntents"]["confirm"]>) {
+      return getStripeClientOrThrow().paymentIntents.confirm(...args);
+    },
+  },
+  subscriptions: {
+    create(...args: Parameters<Stripe["subscriptions"]["create"]>) {
+      return getStripeClientOrThrow().subscriptions.create(...args);
+    },
+    update(...args: Parameters<Stripe["subscriptions"]["update"]>) {
+      return getStripeClientOrThrow().subscriptions.update(...args);
+    },
+    retrieve(...args: Parameters<Stripe["subscriptions"]["retrieve"]>) {
+      return getStripeClientOrThrow().subscriptions.retrieve(...args);
+    },
+  },
+  billingPortal: {
+    sessions: {
+      create(...args: Parameters<Stripe["billingPortal"]["sessions"]["create"]>) {
+        return getStripeClientOrThrow().billingPortal.sessions.create(...args);
+      },
+    },
+  },
+  customers: {
+    create(...args: Parameters<Stripe["customers"]["create"]>) {
+      return getStripeClientOrThrow().customers.create(...args);
+    },
+    retrieve(...args: Parameters<Stripe["customers"]["retrieve"]>) {
+      return getStripeClientOrThrow().customers.retrieve(...args);
+    },
+  },
+  webhooks: {
+    constructEvent(...args: Parameters<Stripe["webhooks"]["constructEvent"]>) {
+      return getStripeClientOrThrow().webhooks.constructEvent(...args);
+    },
+  },
+};
 
 // Create a payment intent for subscription amount
 export async function createPaymentIntent(
@@ -178,7 +237,7 @@ export async function handleWebhookEvent(
     event = stripe.webhooks.constructEvent(
       payload,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      getStripeWebhookSecretOrThrow()
     );
   } catch (err) {
     console.error(`Webhook signature verification failed.`, err);
