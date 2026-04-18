@@ -8,6 +8,7 @@ import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { cardClassName } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { getErrorMessage } from "@/lib/validation";
 
 type Vehicle = {
   id: string;
@@ -49,27 +50,58 @@ export default function TransportPage() {
   useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
 
   const saveVehicle = async () => {
-    if (!form.plate || !school?.id) return;
+    if (!form.plate.trim() || !school?.id) {
+      toast.error("Vehicle plate is required");
+      return;
+    }
+
+    const capacity = parseInt(form.capacity) || 0;
+    const filled = parseInt(form.filled) || 0;
+    if (capacity <= 0) {
+      toast.error("Capacity must be greater than zero");
+      return;
+    }
+    if (filled < 0 || filled > capacity) {
+      toast.error("Filled seats must be between 0 and capacity");
+      return;
+    }
+
     setSaving(true);
-    const { error } = await supabase.from("vehicles").insert({
-      school_id: school.id,
-      plate: form.plate.toUpperCase(),
-      type: form.type,
-      driver: form.driver,
-      driver_phone: form.driver_phone || null,
-      route: form.route,
-      capacity: parseInt(form.capacity) || 50,
-      filled: parseInt(form.filled) || 0,
-      status: form.status,
-    });
-    if (error) toast.error("Failed to save vehicle: " + error.message);
-    else {
+    try {
+      const normalizedPlate = form.plate.trim().toUpperCase();
+      const { data: duplicateVehicle, error: duplicateError } = await supabase
+        .from("vehicles")
+        .select("id")
+        .eq("school_id", school.id)
+        .eq("plate", normalizedPlate)
+        .maybeSingle();
+      if (duplicateError) throw duplicateError;
+      if (duplicateVehicle) {
+        throw new Error("A vehicle with this plate already exists");
+      }
+
+      const { error } = await supabase.from("vehicles").insert({
+        school_id: school.id,
+        plate: normalizedPlate,
+        type: form.type,
+        driver: form.driver.trim(),
+        driver_phone: form.driver_phone.trim() || null,
+        route: form.route.trim(),
+        capacity,
+        filled,
+        status: form.status,
+      });
+      if (error) throw error;
+
       toast.success("Vehicle registered successfully");
       setShowAdd(false);
       setForm({ plate: "", type: "Bus", driver: "", driver_phone: "", route: "", capacity: "50", filled: "0", status: "active" });
       fetchVehicles();
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Failed to save vehicle"));
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const activeCount = vehicles.filter((v) => v.status === "active").length;

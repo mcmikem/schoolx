@@ -24,6 +24,7 @@ import { Card, CardHeader, CardTitle, CardBody } from "@/components/ui/Card";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import Image from "next/image";
 import { PageGuidance } from "@/components/PageGuidance";
+import { getErrorMessage } from "@/lib/validation";
 
 const communicationTabs = [
   { id: "messages", label: "Messages" },
@@ -44,6 +45,9 @@ const recentTabs = [
   { id: "sent", label: "Sent" },
   { id: "failed", label: "Failed" },
 ];
+
+const MAX_SMS_BODY_LENGTH = 640;
+const MAX_TEMPLATE_BODY_LENGTH = 1000;
 
 interface SMSTemplate {
   id: string;
@@ -439,6 +443,11 @@ export default function CommunicationHubPage() {
   // Messages handlers
   const handleSendMessage = async () => {
     if (!message.trim() || !user?.school_id) return;
+    if (message.trim().length > MAX_SMS_BODY_LENGTH) {
+      toast.error(`Message is too long. Keep it under ${MAX_SMS_BODY_LENGTH} characters.`);
+      return;
+    }
+
     setSending(true);
     try {
       let phones: string[] = [];
@@ -526,16 +535,19 @@ export default function CommunicationHubPage() {
       });
       const result = await response.json();
       if (result.success) {
-        await supabase.from("messages").insert({
+        const { error: messageError } = await supabase.from("messages").insert({
           school_id: user.school_id,
           recipient_type: messageType,
           recipient_id: messageType === "class" ? selectedClass : null,
           phone: messageType === "individual" ? phone : null,
-          message,
+          message: message.trim(),
           status: "sent",
           sent_by: user.id,
           sent_at: new Date().toISOString(),
         });
+
+        if (messageError) throw messageError;
+
         toast.success(
           `Sent to ${phones.length} recipient${phones.length > 1 ? "s" : ""}`,
         );
@@ -546,7 +558,7 @@ export default function CommunicationHubPage() {
         toast.error(result.message || "Failed to send");
       }
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to send");
+      toast.error(getErrorMessage(err, "Failed to send"));
     } finally {
       setSending(false);
     }
@@ -596,23 +608,32 @@ export default function CommunicationHubPage() {
       !user?.id
     )
       return;
+    if (bulkMessage.trim().length > MAX_SMS_BODY_LENGTH) {
+      toast.error(`Message is too long. Keep it under ${MAX_SMS_BODY_LENGTH} characters.`);
+      return;
+    }
+
     setBulkSending(true);
     try {
-      const phones = bulkRecipients.students
+      const phones = Array.from(
+        new Set(
+          bulkRecipients.students
         .map((s) => s.parent_phone)
-        .filter(Boolean);
+            .filter(Boolean),
+        ),
+      );
       const response = await fetch("/api/sms", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phones,
-          message: bulkMessage,
+          message: bulkMessage.trim(),
           schoolId: school.id,
         }),
       });
       const result = await response.json();
       if (result.success) {
-        await supabase.from("messages").insert({
+        const { error: messageError } = await supabase.from("messages").insert({
           school_id: school.id,
           recipient_type:
             audience === "all"
@@ -621,12 +642,15 @@ export default function CommunicationHubPage() {
                 ? "class"
                 : "bulk",
           recipient_id: audience === "class" ? bulkSelectedClass : null,
-          message: bulkMessage,
+            message: bulkMessage.trim(),
           status: "sent",
           sent_by: user.id,
           sent_at: new Date().toISOString(),
           recipient_count: bulkRecipients.phoneCount,
         });
+
+          if (messageError) throw messageError;
+
         toast.success(
           `SMS sent to ${bulkRecipients.phoneCount} parent${bulkRecipients.phoneCount > 1 ? "s" : ""}`,
         );
@@ -637,7 +661,7 @@ export default function CommunicationHubPage() {
         toast.error(result.message || "Failed to send SMS");
       }
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to send SMS");
+      toast.error(getErrorMessage(err, "Failed to send SMS"));
     } finally {
       setBulkSending(false);
     }
@@ -690,6 +714,11 @@ export default function CommunicationHubPage() {
       toast.error("Rule name is required");
       return;
     }
+    if (Number(ruleForm.threshold_days) < 1 || Number(ruleForm.threshold_days) > 30) {
+      toast.error("Threshold days must be between 1 and 30");
+      return;
+    }
+
     setSavingRule(true);
     const result = editingTrigger
       ? await updateTrigger(editingTrigger.id, {
@@ -717,52 +746,68 @@ export default function CommunicationHubPage() {
       toast.error("Please fill all fields");
       return;
     }
+    if (newTemplate.message.trim().length > MAX_TEMPLATE_BODY_LENGTH) {
+      toast.error(`Template is too long. Keep it under ${MAX_TEMPLATE_BODY_LENGTH} characters.`);
+      return;
+    }
+
     try {
-      await supabase.from("sms_templates").insert({
+      const { error } = await supabase.from("sms_templates").insert({
         school_id: school?.id,
-        name: newTemplate.name,
+        name: newTemplate.name.trim(),
         category: newTemplate.category,
-        message: newTemplate.message,
+        message: newTemplate.message.trim(),
         is_active: true,
         created_by: user?.id,
       });
+      if (error) throw error;
+
       toast.success("Template created");
       setShowCreateTemplate(false);
       setNewTemplate({ name: "", category: "general", message: "" });
       fetchTemplates();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to create template");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to create template"));
     }
   };
 
   const updateTemplate = async () => {
     if (!editingTemplate) return;
+    if (!editingTemplate.name.trim() || !editingTemplate.message.trim()) {
+      toast.error("Template name and message are required");
+      return;
+    }
+
     try {
-      await supabase
+      const { error } = await supabase
         .from("sms_templates")
         .update({
-          name: editingTemplate.name,
+          name: editingTemplate.name.trim(),
           category: editingTemplate.category,
-          message: editingTemplate.message,
+          message: editingTemplate.message.trim(),
           is_active: editingTemplate.is_active,
         })
         .eq("id", editingTemplate.id);
+      if (error) throw error;
+
       toast.success("Template updated");
       setEditingTemplate(null);
       fetchTemplates();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update template");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to update template"));
     }
   };
 
   const deleteTemplate = async (id: string) => {
     if (!confirm("Delete this template?")) return;
     try {
-      await supabase.from("sms_templates").delete().eq("id", id);
+      const { error } = await supabase.from("sms_templates").delete().eq("id", id);
+      if (error) throw error;
+
       toast.success("Template deleted");
       fetchTemplates();
-    } catch (err) {
-      toast.error("Failed to delete template");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to delete template"));
     }
   };
 
@@ -781,11 +826,13 @@ export default function CommunicationHubPage() {
         toast.success("All default templates already exist");
         return;
       }
-      await supabase.from("sms_templates").insert(templatesToCreate);
+      const { error } = await supabase.from("sms_templates").insert(templatesToCreate);
+      if (error) throw error;
+
       toast.success(`${templatesToCreate.length} default templates created`);
       fetchTemplates();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to create templates");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to create templates"));
     }
   };
 

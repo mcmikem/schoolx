@@ -9,6 +9,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button, Badge } from "@/components/ui/index";
 import { Modal } from "@/components/ui/Modal";
+import { getErrorMessage } from "@/lib/validation";
 
 interface AcademicTerm {
   id: string;
@@ -65,10 +66,24 @@ export default function AcademicTermsPage() {
 
   const handleSubmit = async () => {
     if (!school?.id || !canManageTerms) return;
+    if (!formData.name.trim() || !formData.code.trim()) {
+      toast.error("Term name and code are required");
+      return;
+    }
+    if (!formData.start_date || !formData.end_date) {
+      toast.error("Start and end dates are required");
+      return;
+    }
+    if (formData.end_date < formData.start_date) {
+      toast.error("End date cannot be earlier than the start date");
+      return;
+    }
 
     const payload = {
       school_id: school.id,
       ...formData,
+      name: formData.name.trim(),
+      code: formData.code.trim(),
       term_number: parseInt(formData.term_number.toString()),
     };
 
@@ -79,7 +94,7 @@ export default function AcademicTermsPage() {
         .eq("id", editingTerm.id);
 
       if (error) {
-        toast.error("Failed to update term");
+        toast.error(getErrorMessage(error, "Failed to update term"));
       } else {
         toast.success("Term updated");
         setShowModal(false);
@@ -89,7 +104,7 @@ export default function AcademicTermsPage() {
       const { error } = await supabase.from("academic_terms").insert(payload);
 
       if (error) {
-        toast.error("Failed to create term");
+        toast.error(getErrorMessage(error, "Failed to create term"));
       } else {
         toast.success("Term created");
         setShowModal(false);
@@ -104,7 +119,7 @@ export default function AcademicTermsPage() {
       p_term_id: termId,
     });
     if (error) {
-      toast.error("Failed to set current term");
+      toast.error(getErrorMessage(error, "Failed to set current term"));
     } else {
       toast.success("Current term updated");
       fetchTerms();
@@ -119,7 +134,7 @@ export default function AcademicTermsPage() {
       .delete()
       .eq("id", termId);
     if (error) {
-      toast.error("Failed to delete term");
+      toast.error(getErrorMessage(error, "Failed to delete term"));
     } else {
       toast.success("Term deleted");
       fetchTerms();

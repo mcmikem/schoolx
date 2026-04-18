@@ -15,6 +15,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { getErrorMessage } from "@/lib/validation";
 
 interface Homework {
   id: string;
@@ -98,12 +99,28 @@ export default function HomeworkPage() {
   const handleCreateHomework = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!school?.id || !user?.id) return;
+    if (!newHomework.title.trim() || !newHomework.description.trim()) {
+      toast.error("Title and description are required");
+      return;
+    }
+    if (!newHomework.subject_id || !newHomework.class_id) {
+      toast.error("Subject and class are required");
+      return;
+    }
+    if (!newHomework.due_date) {
+      toast.error("Due date is required");
+      return;
+    }
+    if (newHomework.marks <= 0) {
+      toast.error("Marks must be greater than zero");
+      return;
+    }
 
     try {
       const { error } = await supabase.from("homework").insert({
         school_id: school.id,
-        title: newHomework.title,
-        description: newHomework.description,
+        title: newHomework.title.trim(),
+        description: newHomework.description.trim(),
         subject_id: newHomework.subject_id,
         class_id: newHomework.class_id,
         due_date: newHomework.due_date,
@@ -126,8 +143,8 @@ export default function HomeworkPage() {
         marks: 10,
       });
       fetchHomework();
-    } catch (err) {
-      toast.error("Failed to create homework");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to create homework"));
     }
   };
 

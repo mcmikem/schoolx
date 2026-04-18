@@ -11,6 +11,7 @@ import { Tabs, TabPanel } from '@/components/ui/Tabs'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/index'
 import { TableSkeleton } from '@/components/ui/Skeleton'
+import { getErrorMessage } from '@/lib/validation'
 
 const DAYS = [
   { value: 1, label: 'Mon', full: 'Monday' },
@@ -159,6 +160,11 @@ export default function TimetablePage() {
       academic_year: new Date().getFullYear().toString(),
     }
 
+    if (!entryData.class_id || !entryData.subject_id || !entryData.teacher_id) {
+      toast.error('Class, subject, and teacher are required')
+      return
+    }
+
     try {
       const { error } = await supabase.from('teacher_timetable').insert([entryData])
       if (error) throw error
@@ -167,8 +173,8 @@ export default function TimetablePage() {
       setConflicts([])
       fetchTimetable()
       fetchAllTimetables()
-    } catch (err: any) {
-      toast.error(`Error: ${err.message}`)
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Failed to add timetable entry'))
     }
   }
 
@@ -180,8 +186,8 @@ export default function TimetablePage() {
       toast.success('Entry removed')
       fetchTimetable()
       fetchAllTimetables()
-    } catch (err: any) {
-      toast.error(`Error: ${err.message}`)
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Failed to remove timetable entry'))
     }
   }
 

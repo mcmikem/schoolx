@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { cardClassName } from "@/lib/utils";
 import { useToast } from "@/components/Toast";
+import { getErrorMessage } from "@/lib/validation";
 
 const CATEGORIES = ["All", "Textbooks", "Fiction", "Science", "History", "Reference", "Religious"];
 
@@ -49,16 +50,38 @@ export default function LibraryPage() {
 
   const saveBook = async () => {
     if (!school?.id) return;
+    if (!form.title.trim() || !form.author.trim()) {
+      toast.error("Title and author are required");
+      return;
+    }
+
+    const totalCopies = parseInt(form.total_copies);
+    if (!Number.isFinite(totalCopies) || totalCopies < 1) {
+      toast.error("Total copies must be at least 1");
+      return;
+    }
+
     setSaving(true);
     try {
+      if (form.isbn.trim()) {
+        const { data: duplicateBook, error: duplicateError } = await supabase
+          .from("library_books")
+          .select("id")
+          .eq("school_id", school.id)
+          .eq("isbn", form.isbn.trim())
+          .maybeSingle();
+        if (duplicateError) throw duplicateError;
+        if (duplicateBook) throw new Error("A book with this ISBN already exists");
+      }
+
       const { error } = await supabase.from("library_books").insert({
         school_id: school.id,
-        title: form.title,
-        author: form.author,
-        isbn: form.isbn,
+        title: form.title.trim(),
+        author: form.author.trim(),
+        isbn: form.isbn.trim(),
         category: form.category,
-        total_copies: parseInt(form.total_copies),
-        available_copies: parseInt(form.total_copies)
+        total_copies: totalCopies,
+        available_copies: totalCopies
       });
 
       if (error) throw error;
@@ -67,8 +90,8 @@ export default function LibraryPage() {
       fetchBooks();
       setForm({ title: "", author: "", isbn: "", category: "Textbooks", total_copies: "1" });
       setShowAdd(false);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to add book");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to add book"));
     } finally {
       setSaving(false);
     }

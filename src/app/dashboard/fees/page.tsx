@@ -36,6 +36,7 @@ import { useUndo, UndoNotification } from "@/lib/useUndo";
 import { PageGuidance } from "@/components/PageGuidance";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
+import { getErrorMessage } from "@/lib/validation";
 
 interface PaymentPlan {
   id: string;
@@ -904,10 +905,21 @@ export default function FinanceHubPage() {
   };
 
   const createPlan = async () => {
+    if (!school?.id) {
+      toast.error("School not found");
+      return;
+    }
+
     if (!newPlan.student_id || newPlan.total_amount <= 0) {
       toast.error("Please fill all fields");
       return;
     }
+
+    if (!newPlan.start_date) {
+      toast.error("Plan start date is required");
+      return;
+    }
+
     const installmentAmount = Math.round(
       newPlan.total_amount / newPlan.installments,
     );
@@ -927,6 +939,7 @@ export default function FinanceHubPage() {
         .select()
         .single();
       if (error) throw error;
+
       const installmentData = [];
       for (let i = 0; i < newPlan.installments; i++) {
         const dueDate = new Date(newPlan.start_date);
@@ -938,7 +951,16 @@ export default function FinanceHubPage() {
           paid: false,
         });
       }
-      await supabase.from("payment_plan_installments").insert(installmentData);
+
+      const { error: installmentError } = await supabase
+        .from("payment_plan_installments")
+        .insert(installmentData);
+
+      if (installmentError) {
+        await supabase.from("payment_plans").delete().eq("id", plan.id);
+        throw installmentError;
+      }
+
       toast.success("Payment plan created");
       setShowCreatePlan(false);
       setNewPlan({
@@ -948,30 +970,33 @@ export default function FinanceHubPage() {
         start_date: new Date().toISOString().split("T")[0],
       });
       fetchPlans();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to create plan");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to create plan"));
     }
   };
 
   const markInstallmentPaid = async (installmentId: string) => {
     try {
-      await supabase
+      const { error: paymentError } = await supabase
         .from("payment_plan_installments")
         .update({ paid: true, paid_date: new Date().toISOString() })
         .eq("id", installmentId);
+      if (paymentError) throw paymentError;
+
       const updated = installments.map((i) =>
         i.id === installmentId ? { ...i, paid: true } : i,
       );
       setInstallments(updated);
       if (updated.every((i) => i.paid)) {
-        await supabase
+        const { error: planError } = await supabase
           .from("payment_plans")
           .update({ status: "completed" })
           .eq("id", selectedPlan?.id);
+        if (planError) throw planError;
       }
       toast.success("Payment recorded");
-    } catch {
-      toast.error("Failed to record payment");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to record payment"));
     }
   };
 

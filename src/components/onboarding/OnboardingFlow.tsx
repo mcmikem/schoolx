@@ -23,6 +23,7 @@ import {
   type SchoolSetupType,
 } from "@/lib/school-setup";
 import { saveSchoolSetting } from "@/lib/school-settings";
+import { getErrorMessage } from "@/lib/validation";
 
 export default function OnboardingFlow({
   onComplete,
@@ -118,11 +119,11 @@ export default function OnboardingFlow({
         throw checklistError;
       }
 
-      await Promise.allSettled([
-            Promise.all([
-              saveSchoolSetting(school.id, "academic_year", currentYear),
-              saveSchoolSetting(school.id, "current_term", "1"),
-            ]),
+      await Promise.all([
+        Promise.all([
+          saveSchoolSetting(school.id, "academic_year", currentYear),
+          saveSchoolSetting(school.id, "current_term", "1"),
+        ]),
         (async () => {
           const { count } = await supabase
             .from("classes")
@@ -188,11 +189,9 @@ export default function OnboardingFlow({
       setLoading(false);
       onComplete();
       toast.success("Setup complete. Your school can start working immediately.");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Final error:", error);
-      toast.error(
-        error.message || "Failed to save your setup. Please try again.",
-      );
+      toast.error(getErrorMessage(error, "Failed to save your setup. Please try again."));
       setLoading(false);
     }
   };

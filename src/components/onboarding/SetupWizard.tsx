@@ -13,6 +13,7 @@ import {
   type SchoolSetupType,
 } from "@/lib/school-setup";
 import { saveSchoolSetting } from "@/lib/school-settings";
+import { getErrorMessage } from "@/lib/validation";
 
 interface SetupWizardProps {
   onComplete?: () => void;
@@ -99,12 +100,13 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
             saveSchoolSetting(school.id, "current_term", "1"),
           ]);
 
-      await supabase.from("academic_terms").upsert(termRows, {
+      const { error: termError } = await supabase.from("academic_terms").upsert(termRows, {
         onConflict: "school_id,academic_year,term_number",
       });
+      if (termError) throw termError;
 
       // Update checklist
-      await supabase.from("setup_checklist").upsert(
+      const { error: checklistError } = await supabase.from("setup_checklist").upsert(
         {
           school_id: school.id,
           item_key: "academic_calendar",
@@ -114,11 +116,12 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         },
         { onConflict: "school_id,item_key" },
       );
+      if (checklistError) throw checklistError;
 
       toast.success("Academic year saved!");
       setStep(2);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save academic year"));
     } finally {
       setLoading(false);
     }
@@ -166,9 +169,9 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
 
       toast.success("Classes created!");
       setStep(3);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Save classes exception:", err);
-      toast.error(err.message || "Failed to save");
+      toast.error(getErrorMessage(err, "Failed to save classes"));
     } finally {
       setLoading(false);
     }
@@ -217,8 +220,8 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
       toast.success("Fee structure saved!");
       await refreshSchool();
       setStep(4);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save fee structure"));
     } finally {
       setLoading(false);
     }
@@ -285,8 +288,8 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         toast.success("Staff accounts created!");
       }
       setStep(5);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save staff accounts"));
     } finally {
       setLoading(false);
     }
@@ -296,21 +299,20 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
     if (!school?.id) return;
     setLoading(true);
     try {
-      // Save SMS templates
-      for (const t of smsTemplates) {
-        await supabase.from("sms_templates").upsert(
-          {
-            school_id: school.id,
-            id: t.id,
-            name: t.name,
-            body: t.body,
-            category: t.id === "absentee" ? "Attendance" : "Finance",
-          },
-          { onConflict: "school_id,id" },
-        );
-      }
+      const { error: templateError } = await supabase.from("sms_templates").upsert(
+        smsTemplates.map((t) => ({
+          school_id: school.id,
+          id: t.id,
+          name: t.name,
+          body: t.body,
+          category: t.id === "absentee" ? "Attendance" : "Finance",
+        })),
+        { onConflict: "school_id,id" },
+      );
 
-      await supabase.from("setup_checklist").upsert(
+      if (templateError) throw templateError;
+
+      const { error: checklistError } = await supabase.from("setup_checklist").upsert(
         {
           school_id: school.id,
           item_key: "sms_templates",
@@ -320,12 +322,13 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         },
         { onConflict: "school_id,item_key" },
       );
+      if (checklistError) throw checklistError;
 
       toast.success("SMS templates saved!");
       await refreshSchool();
       onComplete?.();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save SMS templates"));
     } finally {
       setLoading(false);
     }

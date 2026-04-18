@@ -8,6 +8,7 @@ import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { cardClassName } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { getErrorMessage } from "@/lib/validation";
 
 type HealthRecord = {
   id: string;
@@ -86,28 +87,50 @@ export default function HealthPage() {
   };
 
   const admitStudent = async () => {
-    if (!form.condition || !school?.id) return;
+    if (!form.condition.trim() || !school?.id) {
+      toast.error("Condition is required");
+      return;
+    }
+    if (!form.student_id && !form.student_name.trim() && !studentSearch.trim()) {
+      toast.error("Student name is required");
+      return;
+    }
+
     setSaving(true);
-    const { error } = await supabase.from("health_records").insert({
-      school_id: school.id,
-      student_id: form.student_id || null,
-      student_name: form.student_name || studentSearch,
-      condition: form.condition,
-      severity: form.severity,
-      treatment: form.treatment,
-      status: "admitted",
-      admitted_at: new Date().toISOString(),
-    });
-    if (error) {
-      toast.error("Failed to admit student: " + error.message);
-    } else {
+    try {
+      if (form.student_id) {
+        const { data: studentRecord, error: studentError } = await supabase
+          .from("students")
+          .select("id")
+          .eq("id", form.student_id)
+          .eq("school_id", school.id)
+          .maybeSingle();
+        if (studentError) throw studentError;
+        if (!studentRecord) throw new Error("Selected student was not found in this school");
+      }
+
+      const { error } = await supabase.from("health_records").insert({
+        school_id: school.id,
+        student_id: form.student_id || null,
+        student_name: form.student_name.trim() || studentSearch.trim(),
+        condition: form.condition.trim(),
+        severity: form.severity,
+        treatment: form.treatment.trim(),
+        status: "admitted",
+        admitted_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+
       toast.success("Student admitted to sick bay");
       setShowAdd(false);
       setForm({ student_id: "", student_name: "", condition: "", severity: "mild", treatment: "", status: "admitted" });
       setStudentSearch("");
       fetchRecords();
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Failed to admit student"));
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const dischargeStudent = async (id: string, referred = false) => {
@@ -120,7 +143,7 @@ export default function HealthPage() {
       })
       .eq("id", id);
     if (error) {
-      toast.error("Failed to update record");
+      toast.error(getErrorMessage(error, "Failed to update record"));
     } else {
       toast.success(referred ? "Student referred to hospital" : "Student discharged");
       fetchRecords();

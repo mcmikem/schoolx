@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import MaterialIcon from '@/components/MaterialIcon'
+import { getErrorMessage } from '@/lib/validation'
 
 const STEPS = [
   { id: 1, title: 'School Info', icon: 'school' },
@@ -131,6 +132,29 @@ export default function SetupWizardPage() {
     setFees(prev => prev.map((f, idx) => idx === i ? { ...f, [field]: value } : f))
   }
 
+  const createStaffAccount = async (schoolId: string, member: { name: string; phone: string; role: string }) => {
+    const digitsOnly = member.phone.replace(/\D/g, '')
+    const defaultPassword = `Welcome${digitsOnly.slice(-4) || '1234'}`
+
+    const response = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        schoolId,
+        fullName: member.name,
+        phone: member.phone,
+        password: defaultPassword,
+        role: member.role,
+      }),
+    })
+
+    const result = await response.json()
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || `Failed to create staff member "${member.name}"`)
+    }
+  }
+
   // Local submit handler only used by this page; it does not need stable memoization.
   const handleSave = async () => {
     if (!user?.school_id && !school?.id) {
@@ -138,9 +162,46 @@ export default function SetupWizardPage() {
       return
     }
     const schoolId = user?.school_id || school?.id
+    if (!schoolId) {
+      toast.error('No school associated with your account')
+      return
+    }
 
     setSaving(true)
     try {
+      const classRows = classes
+        .map((className) => className.trim())
+        .filter(Boolean)
+        .map((className) => ({
+          school_id: schoolId,
+          name: className,
+          level: academic.type,
+          academic_year: academic.year,
+          max_students: 60,
+        }))
+
+      const subjectRows = subjects
+        .filter((subject) => subject.selected)
+        .map((subject) => ({
+          school_id: schoolId,
+          name: subject.name,
+          code: subject.code,
+          level: academic.type,
+          is_compulsory: subject.compulsory,
+        }))
+
+      const feeRows = fees
+        .filter((fee) => fee.name.trim() && parseFloat(fee.amount) > 0)
+        .map((fee) => ({
+          school_id: schoolId,
+          name: fee.name.trim(),
+          amount: parseFloat(fee.amount),
+          term: 1,
+          academic_year: academic.year,
+        }))
+
+      const staffRows = staff.filter((member) => member.name.trim() && member.phone.trim())
+
       // Step 1: Update school info (without marking onboarding complete yet)
       const { error: schoolError } = await supabase.from('schools').update({
         phone: schoolInfo.phone,
@@ -151,56 +212,59 @@ export default function SetupWizardPage() {
       if (schoolError) throw new Error(`Failed to update school info: ${schoolError.message}`)
 
       // Step 2: Create classes
-      for (const className of classes) {
-        const { error: classError } = await supabase.from('classes').insert({
-          school_id: schoolId,
-          name: className,
-          level: academic.type,
-          academic_year: academic.year,
-          max_students: 60,
-        })
-        if (classError) throw new Error(`Failed to create class "${className}": ${classError.message}`)
+      if (classRows.length > 0) {
+        const { error: classError } = await supabase
+          .from('classes')
+          .upsert(classRows, { onConflict: 'school_id,name,academic_year' })
+
+        if (classError) throw new Error(`Failed to save classes: ${classError.message}`)
       }
 
       // Step 3: Create subjects
-      const selectedSubjects = subjects.filter(s => s.selected)
-      for (const subject of selectedSubjects) {
-        const { error: subjectError } = await supabase.from('subjects').insert({
-          school_id: schoolId,
-          name: subject.name,
-          code: subject.code,
-          level: academic.type,
-          is_compulsory: subject.compulsory,
-        })
-        if (subjectError) throw new Error(`Failed to create subject "${subject.name}": ${subjectError.message}`)
+      if (subjectRows.length > 0) {
+        const { error: subjectError } = await supabase
+          .from('subjects')
+          .upsert(subjectRows, { onConflict: 'school_id,code' })
+
+        if (subjectError) throw new Error(`Failed to save subjects: ${subjectError.message}`)
       }
 
-      // Step 4: Create staff
-      for (const member of staff) {
-        if (member.name && member.phone) {
-          const cleanPhone = member.phone.replace(/[^0-9]/g, '')
-          const { error: staffError } = await supabase.from('users').insert({
-            school_id: schoolId,
-            full_name: member.name,
-            phone: cleanPhone,
-            role: member.role,
-            is_active: true,
-          })
-          if (staffError) throw new Error(`Failed to create staff member "${member.name}": ${staffError.message}`)
-        }
+      // Step 4: Create staff through the hardened provisioning route
+      for (const member of staffRows) {
+        await createStaffAccount(schoolId, member)
       }
 
       // Step 5: Create fee structure
-      for (const fee of fees) {
-        if (fee.name && parseFloat(fee.amount) > 0) {
-          const { error: feeError } = await supabase.from('fee_structure').insert({
-            school_id: schoolId,
-            name: fee.name,
-            amount: parseFloat(fee.amount),
-            term: 1,
-            academic_year: academic.year,
-          })
-          if (feeError) throw new Error(`Failed to create fee "${fee.name}": ${feeError.message}`)
+      if (feeRows.length > 0) {
+        const { error: feeError } = await supabase
+          .from('fee_structure')
+          .upsert(feeRows, { onConflict: 'school_id,name,term,academic_year' })
+
+        if (feeError) throw new Error(`Failed to save fee structure: ${feeError.message}`)
+      }
+
+      const checklistItems = [
+        { item_key: 'academic_calendar', item_label: 'Academic Calendar' },
+        { item_key: 'class_structure', item_label: 'Class & Stream Setup' },
+        { item_key: 'fee_structure', item_label: 'Fee Structure' },
+        { item_key: 'staff_accounts', item_label: 'Staff Accounts' },
+      ]
+
+      if (checklistItems.length > 0) {
+        const { error: checklistError } = await supabase
+          .from('setup_checklist')
+          .upsert(
+            checklistItems.map((item) => ({
+              school_id: schoolId,
+              ...item,
+              is_completed: true,
+              completed_at: new Date().toISOString(),
+            })),
+            { onConflict: 'school_id,item_key' },
+          )
+
+        if (checklistError) {
+          throw new Error(`Failed to update setup checklist: ${checklistError.message}`)
         }
       }
 
@@ -214,7 +278,7 @@ export default function SetupWizardPage() {
       setProgress({ complete: true })
       setCurrentStep(8)
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : 'Failed to save'
+      const msg = getErrorMessage(error, 'Failed to save setup changes')
       toast.error(msg)
     } finally {
       setSaving(false)

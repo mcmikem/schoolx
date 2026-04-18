@@ -8,6 +8,7 @@ import { useToast } from "@/components/Toast";
 import { useStudents } from "@/lib/hooks";
 import MaterialIcon from "@/components/MaterialIcon";
 import { format } from "date-fns";
+import { getErrorMessage } from "@/lib/validation";
 
 interface BehaviorLog {
   id: string;
@@ -76,6 +77,15 @@ export default function ConductManagementPage() {
       toast.error("Student and description are required");
       return;
     }
+    if (!form.category.trim()) {
+      toast.error("Category is required");
+      return;
+    }
+    if (!Number.isFinite(form.points) || Math.abs(form.points) > 100) {
+      toast.error("Points must be between 0 and 100");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const pts = form.incidentType === "positive"
@@ -89,9 +99,9 @@ export default function ConductManagementPage() {
         student_id: form.studentId,
         date: form.date,
         incident_type: form.incidentType,
-        category: form.category,
-        description: form.description,
-        action_taken: form.actionTaken || null,
+        category: form.category.trim(),
+        description: form.description.trim(),
+        action_taken: form.actionTaken.trim() || null,
         points: pts,
         recorded_by: user?.id,
       });
@@ -108,8 +118,8 @@ export default function ConductManagementPage() {
         date: format(new Date(), "yyyy-MM-dd"),
       });
       fetchLogs();
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to log conduct record");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to log conduct record"));
     } finally {
       setSubmitting(false);
     }
