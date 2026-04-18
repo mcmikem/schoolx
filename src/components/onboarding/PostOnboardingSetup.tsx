@@ -7,6 +7,11 @@ import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button, Input, Select } from "@/components/ui";
+import { buildUgandaAcademicTerms } from "@/lib/uganda-school-calendar";
+import {
+  getDefaultClassTemplates,
+  type SchoolSetupType,
+} from "@/lib/school-setup";
 
 interface Props {
   onComplete?: () => void;
@@ -53,17 +58,23 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
   const [completed, setCompleted] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const currentYear = new Date().getFullYear().toString();
+  const schoolType = ((school as any)?.school_type || "primary") as SchoolSetupType;
+
   // Inline form states
-  const [terms, setTerms] = useState([
-    { name: "Term 1", start: "", end: "" },
-    { name: "Term 2", start: "", end: "" },
-    { name: "Term 3", start: "", end: "" },
-  ]);
-  const [classes, setClasses] = useState<{ name: string; stream: string }[]>([
-    { name: "P.1", stream: "" },
-    { name: "P.2", stream: "" },
-    { name: "P.3", stream: "" },
-  ]);
+  const [terms, setTerms] = useState(
+    buildUgandaAcademicTerms("preview", currentYear).map((term) => ({
+      name: term.name,
+      start: term.start_date,
+      end: term.end_date,
+    })),
+  );
+  const [classes, setClasses] = useState<{ name: string; stream: string }[]>(
+    getDefaultClassTemplates(schoolType).map((cls) => ({
+      name: cls.name,
+      stream: cls.stream,
+    })),
+  );
   const [fees, setFees] = useState<{ name: string; amount: string }[]>([
     { name: "Tuition", amount: "150000" },
     { name: "Development", amount: "50000" },
@@ -84,6 +95,24 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
   useEffect(() => {
     checkCompletedItems();
   }, [checkCompletedItems]);
+
+  useEffect(() => {
+    setTerms(
+      buildUgandaAcademicTerms(school?.id || "preview", currentYear).map(
+        (term) => ({
+          name: term.name,
+          start: term.start_date,
+          end: term.end_date,
+        }),
+      ),
+    );
+    setClasses(
+      getDefaultClassTemplates(schoolType).map((cls) => ({
+        name: cls.name,
+        stream: cls.stream,
+      })),
+    );
+  }, [school?.id, schoolType, currentYear]);
 
   const markComplete = async (key: string) => {
     if (!school?.id) return;

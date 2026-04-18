@@ -11,6 +11,10 @@ import {
   buildUgandaCalendarEvents,
 } from "@/lib/uganda-school-calendar";
 import { normalizeAuthPhone } from "@/lib/validation";
+import {
+  buildDefaultClasses,
+  type SchoolSetupType,
+} from "@/lib/school-setup";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -30,27 +34,6 @@ function getDefaultSubjects(schoolType: string) {
   return combined;
 }
 
-// Get default classes based on school type
-function getDefaultClasses(schoolType: string, schoolId: string) {
-  const currentYear = new Date().getFullYear().toString();
-  const mapClasses = (template: any[], level: string) =>
-    template.map((c) => ({
-      school_id: schoolId,
-      name: c.name,
-      level: level,
-      academic_year: currentYear,
-    }));
-
-  if (schoolType === "primary")
-    return mapClasses(PRIMARY_TEMPLATE.classes, "primary");
-  if (schoolType === "secondary")
-    return mapClasses(SECONDARY_TEMPLATE.classes, "secondary");
-
-  return [
-    ...mapClasses(PRIMARY_TEMPLATE.classes, "primary"),
-    ...mapClasses(SECONDARY_TEMPLATE.classes, "secondary"),
-  ];
-}
 
 interface RegisterRequest {
   schoolName: string;
@@ -308,7 +291,11 @@ export async function POST(request: NextRequest) {
       }
 
       // Create classes
-      const defaultClasses = getDefaultClasses(schoolType, schoolData.id);
+      const defaultClasses = buildDefaultClasses(
+        schoolData.id,
+        schoolType as SchoolSetupType,
+        currentYear,
+      );
       if (defaultClasses.length > 0) {
         await supabaseAdmin.from("classes").insert(defaultClasses);
       }

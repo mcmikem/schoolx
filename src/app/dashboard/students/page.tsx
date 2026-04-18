@@ -1,5 +1,6 @@
 "use client";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
@@ -139,6 +140,26 @@ export default function StudentHubPage() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    if (!showAddModal) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const frame = requestAnimationFrame(() => {
+      if (addStudentModalRef.current) {
+        addStudentModalRef.current.scrollTop = 0;
+      }
+      addStudentFirstInputRef.current?.focus();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    return () => {
+      cancelAnimationFrame(frame);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showAddModal]);
+
   // Filters
   const [filterGender, setFilterGender] = useState<"all" | "M" | "F">("all");
   const [filterPosition, setFilterPosition] = useState<string>("all");
@@ -148,6 +169,8 @@ export default function StudentHubPage() {
 
   // Keyboard shortcut refs
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const addStudentFirstInputRef = useRef<HTMLInputElement>(null);
+  const addStudentModalRef = useRef<HTMLDivElement>(null);
 
   // Keyboard shortcuts: Ctrl+N = add student, Ctrl+F = focus search, Escape = close modals
   useKeyboardShortcuts([
@@ -766,9 +789,6 @@ export default function StudentHubPage() {
     }
     try {
       setSaving(true);
-      const studentNumber =
-        newStudent.student_number ||
-        `STU${String(students.length + 1).padStart(5, "0")}`;
       await createStudent({
         first_name: newStudent.first_name.trim(),
         last_name: newStudent.last_name.trim(),
@@ -778,9 +798,20 @@ export default function StudentHubPage() {
         parent_phone: newStudent.parent_phone.trim(),
         parent_phone2: newStudent.parent_phone2?.trim() || undefined,
         class_id: newStudent.class_id,
-        student_number: studentNumber,
+        student_number: newStudent.student_number?.trim() || undefined,
         ple_index_number: newStudent.ple_index_number?.trim() || undefined,
         opening_balance: parseFloat(newStudent.opening_balance || "0"),
+        boarding_status: newStudent.boarding_status,
+        house_id: newStudent.house_id || undefined,
+        previous_school: newStudent.previous_school?.trim() || undefined,
+        district_origin: newStudent.district_origin?.trim() || undefined,
+        sub_county: newStudent.sub_county?.trim() || undefined,
+        parish: newStudent.parish?.trim() || undefined,
+        village: newStudent.village?.trim() || undefined,
+        prefect_role: newStudent.prefect_role || undefined,
+        student_council_role: newStudent.student_council_role || undefined,
+        games_house: newStudent.games_house || undefined,
+        is_class_monitor: newStudent.is_class_monitor,
         status: "active",
       });
       toast.success("Student added successfully");
@@ -2315,15 +2346,19 @@ export default function StudentHubPage() {
         </div>
 
         {/* Add Modal */}
-        {showAddModal && (
-          <div
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowAddModal(false)}
-          >
+        {showAddModal &&
+          typeof document !== "undefined" &&
+          createPortal(
             <div
-              className="bg-[var(--surface)] rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
+              className="fixed inset-0 z-[140] bg-black/60 backdrop-blur-sm overflow-y-auto"
+              onClick={() => setShowAddModal(false)}
             >
+              <div className="min-h-full flex items-start sm:items-center justify-center p-4">
+                <div
+                  ref={addStudentModalRef}
+                  className="bg-[var(--surface)] rounded-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto my-2 shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+                >
               <div className="sticky top-0 bg-[var(--surface)] border-b border-[var(--border)] p-4 flex items-center justify-between">
                 <div
                   style={{ fontFamily: "Sora", fontSize: 16, fontWeight: 700 }}
@@ -2368,6 +2403,7 @@ export default function StudentHubPage() {
                       First Name
                     </label>
                     <input
+                      ref={addStudentFirstInputRef}
                       type="text"
                       value={newStudent.first_name}
                       onChange={(e) =>
@@ -3051,20 +3087,26 @@ export default function StudentHubPage() {
                   </button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )}
 
         {/* Edit Modal */}
-        {showEditModal && editingStudent && (
-          <div
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowEditModal(false)}
-          >
+        {showEditModal &&
+          editingStudent &&
+          typeof document !== "undefined" &&
+          createPortal(
             <div
-              className="bg-[var(--surface)] rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
+              className="fixed inset-0 z-[140] bg-black/60 backdrop-blur-sm overflow-y-auto"
+              onClick={() => setShowEditModal(false)}
             >
+              <div className="min-h-full flex items-start sm:items-center justify-center p-4">
+                <div
+                  className="bg-[var(--surface)] rounded-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto my-2 shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+                >
               <div className="sticky top-0 bg-[var(--surface)] border-b border-[var(--border)] p-4 flex items-center justify-between">
                 <div
                   style={{ fontFamily: "Sora", fontSize: 16, fontWeight: 700 }}
@@ -3495,9 +3537,11 @@ export default function StudentHubPage() {
                   </button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )}
 
         {smsTarget && (
           <SendSMSModal

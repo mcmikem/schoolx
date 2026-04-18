@@ -256,14 +256,15 @@ export default function TimetablePage() {
                   </thead>
                   <tbody>
                     {slots.map((slot: any) => {
+                      const isBreak = slot.is_break ?? slot.is_lesson === false
                       const entry = getEntry(day.value, slot.order_number ?? slot.period_number)
                       return (
-                        <tr key={slot.id} className={slot.is_break ? 'bg-[var(--surface-container-low)]/50' : ''}>
+                        <tr key={slot.id} className={isBreak ? 'bg-[var(--surface-container-low)]/50' : ''}>
                           <td className="p-4 border-b border-r border-[var(--border)]">
                             <p className="text-sm font-semibold text-[var(--t1)]">{slot.name}</p>
                             <p className="text-xs text-[var(--t4)]">{slot.start_time?.slice(0, 5)} – {slot.end_time?.slice(0, 5)}</p>
                           </td>
-                          <td className={`p-2 border-b border-[var(--border)] min-h-[100px] relative ${slot.is_break ? 'opacity-50' : ''}`}>
+                          <td className={`p-2 border-b border-[var(--border)] min-h-[100px] relative ${isBreak ? 'opacity-50' : ''}`}>
                             {entry ? (
                               <div className="bg-[var(--primary)]/10 border border-[var(--primary)]/20 rounded-lg p-3 h-full group">
                                 <p className="text-xs font-bold text-[var(--primary)] uppercase tracking-wider mb-1">
@@ -287,7 +288,7 @@ export default function TimetablePage() {
                                 </div>
                               </div>
                             ) : (
-                              slot.is_lesson && selectedClassId && (
+                              !isBreak && selectedClassId && (
                                 <button
                                   onClick={() => { setSelectedSlot(slot); setSelectedDay(day.value); setConflicts([]); setShowEntryModal(true) }}
                                   className="w-full h-full min-h-[60px] flex items-center justify-center border-2 border-dashed border-[var(--border)] hover:border-[var(--primary)]/30 hover:bg-[var(--primary)]/5 rounded-xl transition-all"
@@ -296,7 +297,7 @@ export default function TimetablePage() {
                                 </button>
                               )
                             )}
-                            {!slot.is_lesson && (
+                            {isBreak && (
                               <div className="flex items-center justify-center text-xs font-bold text-[var(--t4)] uppercase tracking-[0.2em]">
                                 {slot.name}
                               </div>

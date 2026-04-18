@@ -19,6 +19,11 @@ import { Button } from "@/components/ui/index";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import { useClasses } from "@/lib/hooks";
 import SetupChecklist from "@/components/onboarding/SetupChecklist";
+import {
+  buildDefaultClasses,
+  inferClassLevel,
+  type SchoolSetupType,
+} from "@/lib/school-setup";
 
 const ROLE_OPTIONS: {
   value: UserRole;
@@ -88,7 +93,11 @@ interface SchoolSettings {
 export default function SettingsPage() {
   const { school, user, refreshSchool } = useAuth();
   const toast = useToast();
-  const { classes, loading: loadingClasses } = useClasses(school?.id);
+  const {
+    classes,
+    loading: loadingClasses,
+    refetch: refetchClasses,
+  } = useClasses(school?.id);
   const [activeTab, setActiveTab] = useState("general");
   const [saving, setSaving] = useState(false);
   const [users, setUsers] = useState<
@@ -159,6 +168,8 @@ export default function SettingsPage() {
   });
   const [newClass, setNewClass] = useState({ name: "", stream: "" });
   const sc = school as any;
+  const schoolType = ((school as any)?.school_type ||
+    "primary") as SchoolSetupType;
   const selectedRoleOption = ROLE_OPTIONS.find(
     (option) => option.value === newUser.role,
   );
@@ -554,19 +565,42 @@ export default function SettingsPage() {
   const handleAddClass = async () => {
     if (!school?.id || !newClass.name) return;
     try {
-      const { error } = await supabase.from("classes").insert({
-        school_id: school.id,
-        name: newClass.name,
-        stream: newClass.stream || null,
-        level: parseInt(newClass.name.replace(/[^0-9]/g, "")) || 1,
-        academic_year: new Date().getFullYear().toString(),
-      });
+      const { error } = await supabase.from("classes").upsert(
+        {
+          school_id: school.id,
+          name: newClass.name.trim(),
+          stream: newClass.stream.trim() || null,
+          level: inferClassLevel(newClass.name, schoolType),
+          academic_year: new Date().getFullYear().toString(),
+        },
+        { onConflict: "school_id,name,academic_year" },
+      );
       if (error) throw error;
+      await refetchClasses();
       toast.success("Class added");
       setShowAddClass(false);
       setNewClass({ name: "", stream: "" });
     } catch (err: any) {
       toast.error(err.message || "Failed to add class");
+    }
+  };
+
+  const handleSeedDefaultClasses = async () => {
+    if (!school?.id) return;
+    try {
+      const { error } = await supabase.from("classes").upsert(
+        buildDefaultClasses(
+          school.id,
+          schoolType,
+          new Date().getFullYear().toString(),
+        ),
+        { onConflict: "school_id,name,academic_year" },
+      );
+      if (error) throw error;
+      await refetchClasses();
+      toast.success("Standard class structure loaded");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load classes");
     }
   };
 
@@ -578,7 +612,9 @@ export default function SettingsPage() {
     )
       return;
     try {
-      await supabase.from("classes").delete().eq("id", id);
+      const { error } = await supabase.from("classes").delete().eq("id", id);
+      if (error) throw error;
+      await refetchClasses();
       toast.success("Class deleted");
     } catch (err: any) {
       toast.error(err.message || "Failed to delete class");
@@ -962,14 +998,26 @@ export default function SettingsPage() {
           {/* Class List Management */}
           <Card>
             <CardBody>
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4 gap-2">
                 <h2 className="text-lg font-semibold text-[var(--on-surface)]">
                   Manage Classes
                 </h2>
-                <Button size="sm" onClick={() => setShowAddClass(true)}>
-                  <MaterialIcon icon="add" className="text-sm" />
-                  Add Class
-                </Button>
+                <div className="flex items-center gap-2">
+                  {classes.length === 0 && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={handleSeedDefaultClasses}
+                    >
+                      <MaterialIcon icon="auto_awesome" className="text-sm" />
+                      Load Standard Set
+                    </Button>
+                  )}
+                  <Button size="sm" onClick={() => setShowAddClass(true)}>
+                    <MaterialIcon icon="add" className="text-sm" />
+                    Add Class
+                  </Button>
+                </div>
               </div>
               <p className="text-sm text-[var(--t3)] mb-4">
                 Add or remove classes. Use streams (A, B, C) if your school has

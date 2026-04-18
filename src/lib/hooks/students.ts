@@ -5,7 +5,11 @@ import { useAuth } from "@/lib/auth-context";
 import type { Student, CreateStudentInput, Class } from "@/types";
 import { getQuerySchoolId, withTimeout } from "./utils";
 import { getCachedData, setCachedData, invalidateCache } from "./queryCache";
-import { normalizeStudentInput, validateStudentInput } from "@/lib/validation";
+import {
+  getErrorMessage,
+  normalizeStudentInput,
+  validateStudentInput,
+} from "@/lib/validation";
 
 import { DEMO_STUDENTS, DEMO_CLASSES, DemoStudent } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
@@ -43,7 +47,34 @@ const STUDENT_SELECT_FIELDS = `
   dropout_reason, dropout_date, repeating, last_attendance_date,
   consecutive_absent_days, created_at, house_id, previous_school, district_origin,
   sub_county, parish, village, boarding_status, games_house, is_class_monitor,
-  classes(id, name, level, stream), houses(id, name, color), prefect_role, student_council_role
+  prefect_role, student_council_role,
+  classes(id, name, level, stream), houses(id, name, color)
+`;
+
+function buildCoreStudentPayload(student: Record<string, unknown>) {
+  return {
+    school_id: student.school_id,
+    student_number: student.student_number,
+    first_name: student.first_name,
+    last_name: student.last_name,
+    gender: student.gender,
+    date_of_birth: student.date_of_birth,
+    parent_name: student.parent_name,
+    parent_phone: student.parent_phone,
+    parent_phone2: student.parent_phone2,
+    parent_email: student.parent_email,
+    address: student.address,
+    class_id: student.class_id,
+    ple_index_number: student.ple_index_number,
+    status: student.status,
+  }
+}
+
+const STUDENT_SELECT_FIELDS_FALLBACK = `
+  id, school_id, student_number, first_name, last_name, gender,
+  date_of_birth, parent_name, parent_phone, parent_phone2,
+  class_id, admission_date, ple_index_number, status, opening_balance,
+  created_at, classes(id, name, level, stream)
 `;
 
 export function useStudents(
@@ -87,6 +118,23 @@ export function useStudents(
     [schoolId, isDemo],
   );
 
+  const generateUniqueStudentNumber = useCallback(async () => {
+    const year = new Date().getFullYear();
+    let counter = totalCount + 1;
+
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const candidate = `SM/${year}/${String(counter).padStart(4, "0")}`;
+      try {
+        await assertUniqueStudentNumber(candidate);
+        return candidate;
+      } catch {
+        counter += 1;
+      }
+    }
+
+    return `SM/${year}/${Date.now().toString().slice(-6)}`;
+  }, [assertUniqueStudentNumber, totalCount]);
+
   const fetchStudents = useCallback(async () => {
     // Demo mode - check for demo school UUID
     if (isDemo || isDemoSchool(schoolId)) {
@@ -117,16 +165,30 @@ export function useStudents(
         .eq("school_id", querySchoolId);
       setTotalCount(count || 0);
       const data = await withTimeout(
-        supabase
-          .from("students")
-          .select(STUDENT_SELECT_FIELDS)
-          .eq("school_id", querySchoolId)
-          .order("created_at", { ascending: false })
-          .range(offset, offset + limit - 1)
-          .then((r) => {
-            if (r.error) throw r.error;
-            return r.data;
-          }),
+        (async () => {
+          const primary = await supabase
+            .from("students")
+            .select(STUDENT_SELECT_FIELDS)
+            .eq("school_id", querySchoolId)
+            .order("created_at", { ascending: false })
+            .range(offset, offset + limit - 1);
+
+          if (!primary.error) {
+            return primary.data;
+          }
+
+          console.warn("Student extended select failed, using fallback:", primary.error);
+
+          const fallback = await supabase
+            .from("students")
+            .select(STUDENT_SELECT_FIELDS_FALLBACK)
+            .eq("school_id", querySchoolId)
+            .order("created_at", { ascending: false })
+            .range(offset, offset + limit - 1);
+
+          if (fallback.error) throw fallback.error;
+          return fallback.data;
+        })(),
         8000,
         null,
       );
@@ -134,7 +196,7 @@ export function useStudents(
       setStudents(result);
       setCachedData(cacheKey, result);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(getErrorMessage(err, "Failed to load students"));
     } finally {
       setLoading(false);
     }
@@ -183,17 +245,64 @@ export function useStudents(
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
-      await assertUniqueStudentNumber(normalizedStudent.student_number);
-      const { data, error: insertError } = await supabase
+      const studentPayload = {
+        ...normalizedStudent,
+        school_id: querySchoolId,
+        student_number:
+          normalizedStudent.student_number ||
+          (await generateUniqueStudentNumber()),
+      };
+
+      await assertUniqueStudentNumber(studentPayload.student_number);
+
+      let createdRow: { id: string } | null = null;
+
+      const firstInsert = await supabase
         .from("students")
-        .insert({ ...normalizedStudent, school_id: querySchoolId })
-        .select(STUDENT_SELECT_FIELDS)
+        .insert(studentPayload)
+        .select("id")
         .single();
-      if (insertError) throw insertError;
-      setStudents((prev) => [data as unknown as StudentWithClass, ...prev]);
+
+      if (firstInsert.error) {
+        console.warn("Student insert failed with extended payload, retrying core fields:", firstInsert.error);
+
+        const retryInsert = await supabase
+          .from("students")
+          .insert(buildCoreStudentPayload(studentPayload as Record<string, unknown>))
+          .select("id")
+          .single();
+
+        if (retryInsert.error) throw retryInsert.error;
+        createdRow = retryInsert.data;
+      } else {
+        createdRow = firstInsert.data;
+      }
+
+      let createdStudent: StudentWithClass | null = null;
+
+      const fullFetch = await supabase
+        .from("students")
+        .select(STUDENT_SELECT_FIELDS)
+        .eq("id", createdRow.id)
+        .single();
+
+      if (!fullFetch.error && fullFetch.data) {
+        createdStudent = fullFetch.data as unknown as StudentWithClass;
+      } else {
+        const fallbackFetch = await supabase
+          .from("students")
+          .select(STUDENT_SELECT_FIELDS_FALLBACK)
+          .eq("id", createdRow.id)
+          .single();
+
+        if (fallbackFetch.error) throw fallbackFetch.error;
+        createdStudent = fallbackFetch.data as unknown as StudentWithClass;
+      }
+
+      setStudents((prev) => [createdStudent as StudentWithClass, ...prev]);
       setTotalCount((prev) => prev + 1);
       invalidateCache(`students:${schoolId}`);
-      return data as unknown as StudentWithClass;
+      return createdStudent as StudentWithClass;
     } catch (err: unknown) {
       throw new Error(err instanceof Error ? err.message : "Unknown error");
     }
@@ -224,22 +333,38 @@ export function useStudents(
     }
     try {
       await assertUniqueStudentNumber(normalizedUpdates.student_number, id);
-      const { data, error: updateError } = await supabase
+      const firstUpdate = await supabase
         .from("students")
         .update(normalizedUpdates)
         .eq("id", id)
         .select(STUDENT_SELECT_FIELDS)
         .single();
-      if (updateError) throw updateError;
+
+      let updatedStudent: StudentWithClass | null = null;
+
+      if (firstUpdate.error) {
+        console.warn("Student update failed with extended payload, retrying core fields:", firstUpdate.error);
+
+        const retryUpdate = await supabase
+          .from("students")
+          .update(buildCoreStudentPayload(normalizedUpdates as Record<string, unknown>))
+          .eq("id", id)
+          .select(STUDENT_SELECT_FIELDS_FALLBACK)
+          .single();
+
+        if (retryUpdate.error) throw retryUpdate.error;
+        updatedStudent = retryUpdate.data as unknown as StudentWithClass;
+      } else {
+        updatedStudent = firstUpdate.data as unknown as StudentWithClass;
+      }
+
       setStudents((prev) =>
-        prev.map((s) =>
-          s.id === id ? (data as unknown as StudentWithClass) : s,
-        ),
+        prev.map((s) => (s.id === id ? (updatedStudent as StudentWithClass) : s)),
       );
       invalidateCache(`students:${schoolId}`);
-      return data as unknown as StudentWithClass;
+      return updatedStudent as StudentWithClass;
     } catch (err: unknown) {
-      throw new Error(err instanceof Error ? err.message : "Unknown error");
+      throw new Error(getErrorMessage(err, "Failed to update student"));
     }
   };
 

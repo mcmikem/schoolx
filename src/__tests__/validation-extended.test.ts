@@ -187,6 +187,14 @@ describe('Validation - Student Input', () => {
     })
   })
 
+  describe('getErrorMessage', () => {
+    test('reads messages from plain objects', () => {
+      expect(getErrorMessage({ message: 'Column does not exist' })).toBe('Column does not exist')
+      expect(getErrorMessage({ error: 'Permission denied' })).toBe('Permission denied')
+      expect(getErrorMessage('Oops')).toBe('Oops')
+    })
+  })
+
   describe('validateStudentInput', () => {
     test('accepts a valid student payload', () => {
       expect(
@@ -202,7 +210,7 @@ describe('Validation - Student Input', () => {
       ).toEqual([])
     })
 
-    test('rejects future date of birth and negative balance', () => {
+    test('rejects future date of birth but allows negative balance for credits', () => {
       expect(
         validateStudentInput(
           {
@@ -216,10 +224,7 @@ describe('Validation - Student Input', () => {
           },
           { today: new Date('2026-01-01') },
         ),
-      ).toEqual([
-        'Date of birth cannot be in the future',
-        'Opening balance cannot be negative',
-      ])
+      ).toEqual(['Date of birth cannot be in the future'])
     })
 
     test('allows partial updates without required field errors', () => {
