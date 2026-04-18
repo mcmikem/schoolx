@@ -1,6 +1,19 @@
 "use client";
 import MaterialIcon from "@/components/MaterialIcon";
 
+const ACCENT_STYLES: Record<
+  string,
+  {
+    solid: string;
+    soft: string;
+  }
+> = {
+  navy: { solid: "var(--navy)", soft: "var(--navy-soft)" },
+  green: { solid: "var(--green)", soft: "var(--green-soft)" },
+  amber: { solid: "var(--amber)", soft: "var(--amber-soft)" },
+  purple: { solid: "#7c3aed", soft: "#f3e8ff" },
+};
+
 interface StatCardProps {
   label: string;
   value: string | number;
@@ -27,6 +40,7 @@ export default function StatCard({
   trend,
 }: StatCardProps) {
   const isPremium = variant.startsWith("premium");
+  const accent = ACCENT_STYLES[accentColor] || ACCENT_STYLES.navy;
   
   const trendIcon =
     trend?.direction === "up"
@@ -52,21 +66,28 @@ export default function StatCard({
 
   return (
     <div className={cardClass}>
-      {!isPremium && <div className={`stat-accent bg-${accentColor}`} />}
+      {!isPremium && <div className="stat-accent" style={{ background: accent.solid }} />}
       <div className={`stat-inner ${isPremium ? "!p-6" : ""}`}>
         <div className="stat-meta">
           <div className={`stat-label ${isPremium ? "!text-white/80" : ""}`}>{label}</div>
           <div
-            className={`stat-icon-box ${
-              isPremium 
-                ? "bg-white/20 text-white" 
-                : `bg-${accentColor}-soft text-${accentColor}`
-            }`}
+            className={`stat-icon-box ${isPremium ? "bg-white/20 text-white" : ""}`}
+            style={
+              isPremium
+                ? undefined
+                : {
+                    background: accent.soft,
+                    color: accent.solid,
+                  }
+            }
           >
             <MaterialIcon icon={icon} />
           </div>
         </div>
-        <div className={`stat-val ${isPremium ? "!text-white" : `text-${accentColor}`}`}>
+        <div
+          className={`stat-val ${isPremium ? "!text-white" : ""}`}
+          style={isPremium ? undefined : { color: accent.solid }}
+        >
           {loading ? "..." : value}
         </div>
         {trend && (

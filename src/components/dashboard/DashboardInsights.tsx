@@ -143,8 +143,8 @@ export default function DashboardInsights({
   if (loading) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-pulse">
-        <div className="lg:col-span-2 h-[350px] bg-surface-container-low rounded-3xl" />
-        <div className="h-[350px] bg-surface-container-low rounded-3xl" />
+        <div className="lg:col-span-2 h-[350px] bg-[var(--surface-container-low)] rounded-3xl" />
+        <div className="h-[350px] bg-[var(--surface-container-low)] rounded-3xl" />
       </div>
     );
   }
@@ -162,6 +162,14 @@ export default function DashboardInsights({
               How money and attendance changed this year
             </p>
           </div>
+          <div className="hidden md:flex items-center gap-2 flex-wrap justify-end">
+            <span className="rounded-full bg-[var(--navy-soft)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--navy)]">
+              {trendData.filter((item) => item.fees > 0).length} active months
+            </span>
+            <span className="rounded-full bg-[var(--green-soft)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--green)]">
+              {attendanceRate}% attendance
+            </span>
+          </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-[var(--navy)]" />
@@ -174,6 +182,23 @@ export default function DashboardInsights({
               <span className="text-[10px] font-bold text-[var(--t3)] uppercase">
                 Attendance
               </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-[var(--sh1)]">
+            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--t4)]">School health</div>
+            <div className="mt-2 text-xl font-black text-[var(--t1)]">{healthScore}%</div>
+          </div>
+          <div className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-[var(--sh1)]">
+            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--t4)]">Collection rate</div>
+            <div className="mt-2 text-xl font-black text-[var(--t1)]">{collectionRate}%</div>
+          </div>
+          <div className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-[var(--sh1)]">
+            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--t4)]">Outstanding fees</div>
+            <div className="mt-2 text-xl font-black text-[var(--t1)]">
+              UGX {Number(stats?.feesBalance || 0).toLocaleString()}
             </div>
           </div>
         </div>
