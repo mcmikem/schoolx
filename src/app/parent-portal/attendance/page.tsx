@@ -41,11 +41,12 @@ export default function ParentAttendancePage() {
       setSelectedChild(demo[0]);
       return;
     }
-    if (!user?.id) return;
+    const parentId = user?.id;
+    if (!parentId) return;
     const { data } = await supabase
       .from("parent_students")
       .select("student:students(id, first_name, last_name, class:classes(name))")
-      .eq("parent_id", user.id);
+      .eq("parent_id", parentId);
     const list = mapParentStudentLinks(data || []);
     setChildren(list);
   }, [user?.id, isDemo]);

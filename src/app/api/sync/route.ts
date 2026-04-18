@@ -78,13 +78,16 @@ async function resolveSchoolOwnership(params: {
       return { ok: false, error: `Missing id for ${action} on ${table}` }
     }
 
-    const { data: existing, error } = await supabase
+    const { data: existing, error } = await (supabase as any)
       .from(table)
       .select('school_id')
       .eq('id', recordId)
       .maybeSingle()
 
-    if (error || !existing || existing.school_id !== schoolId) {
+    const existingRecord = existing as { school_id?: string | null } | null
+    const existingSchoolId = existingRecord?.school_id
+
+    if (error || !existingSchoolId || existingSchoolId !== schoolId) {
       return { ok: false, error: `Forbidden: school scope mismatch for ${table}` }
     }
 
@@ -102,7 +105,8 @@ async function resolveSchoolOwnership(params: {
           .select('school_id')
           .eq('id', classId)
           .maybeSingle()
-        if (classRow?.school_id === schoolId) return { ok: true }
+        const classSchoolId = (classRow as { school_id?: string | null } | null)?.school_id
+        if (classSchoolId === schoolId) return { ok: true }
       }
 
       if (typeof studentId === 'string') {
@@ -111,7 +115,8 @@ async function resolveSchoolOwnership(params: {
           .select('school_id')
           .eq('id', studentId)
           .maybeSingle()
-        if (studentRow?.school_id === schoolId) return { ok: true }
+        const studentSchoolId = (studentRow as { school_id?: string | null } | null)?.school_id
+        if (studentSchoolId === schoolId) return { ok: true }
       }
 
       return { ok: false, error: 'Forbidden: attendance record is outside school scope' }
@@ -152,7 +157,8 @@ async function resolveSchoolOwnership(params: {
           .select('school_id')
           .eq('id', classId)
           .maybeSingle()
-        if (classRow?.school_id === schoolId) return { ok: true }
+        const classSchoolId = (classRow as { school_id?: string | null } | null)?.school_id
+        if (classSchoolId === schoolId) return { ok: true }
       }
 
       if (typeof studentId === 'string') {
@@ -161,7 +167,8 @@ async function resolveSchoolOwnership(params: {
           .select('school_id')
           .eq('id', studentId)
           .maybeSingle()
-        if (studentRow?.school_id === schoolId) return { ok: true }
+        const studentSchoolId = (studentRow as { school_id?: string | null } | null)?.school_id
+        if (studentSchoolId === schoolId) return { ok: true }
       }
 
       return { ok: false, error: 'Forbidden: grade record is outside school scope' }
@@ -204,7 +211,9 @@ async function resolveSchoolOwnership(params: {
         .eq('id', studentId)
         .maybeSingle()
 
-      return studentRow?.school_id === schoolId
+      const studentSchoolId = (studentRow as { school_id?: string | null } | null)?.school_id
+
+      return studentSchoolId === schoolId
         ? { ok: true }
         : { ok: false, error: 'Forbidden: fee payment is outside school scope' }
     }
@@ -310,7 +319,7 @@ export async function POST(request: NextRequest) {
 
         switch (item.action) {
           case 'create': {
-            const { error } = await supabase.from(item.table).insert(item.data)
+            const { error } = await (supabase as any).from(item.table).insert(item.data)
             if (error) {
               failedCount++
               errors.push(`Create failed for ${item.table}: ${error.message}`)
@@ -328,7 +337,7 @@ export async function POST(request: NextRequest) {
               continue
             }
             const { id, ...updateData } = item.data
-            const query = supabase.from(item.table).update(updateData).eq('id', recordId)
+            const query = (supabase as any).from(item.table).update(updateData).eq('id', recordId)
             const { error } = await query
             if (error) {
               failedCount++
@@ -346,7 +355,7 @@ export async function POST(request: NextRequest) {
               errors.push(`Missing id for delete on ${item.table}`)
               continue
             }
-            const query = supabase.from(item.table)
+            const query = (supabase as any).from(item.table)
             const { error } = SOFT_DELETE_TABLES.has(item.table)
               ? await query.update({ deleted_at: new Date().toISOString() }).eq('id', deleteId)
               : await query.delete().eq('id', deleteId)

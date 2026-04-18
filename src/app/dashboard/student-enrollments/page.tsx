@@ -1,7 +1,7 @@
 "use client";
 
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
@@ -65,14 +65,7 @@ export default function StudentEnrollmentsPage() {
     state: "running",
   });
 
-  useEffect(() => {
-    if (school?.id) {
-      fetchEnrollments();
-      fetchOptions();
-    }
-  }, [school?.id, filterYear, filterClass]);
-
-  const fetchEnrollments = async () => {
+  const fetchEnrollments = useCallback(async () => {
     if (!school?.id) return;
     setLoading(true);
 
@@ -98,9 +91,9 @@ export default function StudentEnrollmentsPage() {
       setEnrollments(data || []);
     }
     setLoading(false);
-  };
+  }, [school?.id, filterYear, filterClass, toast]);
 
-  const fetchOptions = async () => {
+  const fetchOptions = useCallback(async () => {
     if (!school?.id) return;
 
     const [studentsRes, classesRes] = await Promise.all([
@@ -119,7 +112,14 @@ export default function StudentEnrollmentsPage() {
 
     setStudents(studentsRes.data || []);
     setClasses(classesRes.data || []);
-  };
+  }, [school?.id]);
+
+  useEffect(() => {
+    if (school?.id) {
+      fetchEnrollments();
+      fetchOptions();
+    }
+  }, [school?.id, fetchEnrollments, fetchOptions]);
 
   const handleSubmit = async () => {
     if (!school?.id) return;

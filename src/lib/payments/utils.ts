@@ -105,9 +105,10 @@ interface PendingMobilePayment {
   plan: PlanType;
   amount: number;
   provider: string;
-  phone: string;
+  phone_number: string;
   reference: string;
-  status: "pending" | "completed" | "failed";
+  status: "pending" | "completed" | "failed" | "expired";
+  expires_at?: string;
   created_at?: string;
 }
 
@@ -129,9 +130,10 @@ export async function savePendingMobilePayment(params: {
       plan: params.plan,
       amount: params.amount,
       provider: params.provider,
-      phone: params.phone,
+      phone_number: params.phone,
       reference: params.reference,
       status: "pending",
+      expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
     })
     .select()
     .single();

@@ -77,7 +77,7 @@ export default function OnboardingTour() {
       );
       setHasSeenTour(seen === "true");
 
-      if ((!seen || isDemo) && user && school) {
+      if ((!seen || isDemo) && user?.id && school) {
         setIsActive(true);
         setCurrentStep(0);
       }

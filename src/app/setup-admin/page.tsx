@@ -5,6 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { BookOpen, CheckCircle } from "lucide-react";
 import { Button, Input } from "@/components/ui";
+import { normalizeAuthPhone } from "@/lib/validation";
 
 export default function SetupAdminPage() {
   const [loading, setLoading] = useState(false);
@@ -46,7 +47,7 @@ export default function SetupAdminPage() {
     }
 
     try {
-      const cleanPhone = form.phone.replace(/[^0-9]/g, "");
+      const cleanPhone = normalizeAuthPhone(form.phone);
       const email = `${cleanPhone}@omuto.org`;
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -54,7 +55,7 @@ export default function SetupAdminPage() {
         options: {
           data: {
             full_name: form.name,
-            phone: form.phone,
+            phone: cleanPhone,
             role: "super_admin",
           },
         },
@@ -68,7 +69,7 @@ export default function SetupAdminPage() {
       const { error: userError } = await supabase.from("users").insert({
         auth_id: authData.user.id,
         full_name: form.name,
-        phone: form.phone,
+        phone: cleanPhone,
         role: "super_admin",
         is_active: true,
       });

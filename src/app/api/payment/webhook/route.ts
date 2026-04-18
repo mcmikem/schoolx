@@ -9,13 +9,22 @@ import { PlanType } from "@/lib/payments/subscription-client";
 export async function POST(request: Request) {
   const body = await request.text();
   const sig = request.headers.get("stripe-signature") as string;
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+  if (!sig) {
+    return new NextResponse("Missing stripe signature", { status: 400 });
+  }
 
   if (!webhookSecret) {
     return new NextResponse("Webhook secret not configured", { status: 500 });
   }
 
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+  if (!stripeSecretKey) {
+    return new NextResponse("Stripe secret key not configured", { status: 500 });
+  }
+
+  const stripe = new Stripe(stripeSecretKey);
 
   let event;
 

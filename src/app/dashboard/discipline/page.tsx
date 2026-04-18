@@ -94,7 +94,7 @@ export default function DisciplinePage() {
     } finally {
       setLoading(false)
     }
-  }, [school?.id])
+  }, [school?.id, toast])
 
   const fetchExams = useCallback(async () => {
     if (!school?.id) return

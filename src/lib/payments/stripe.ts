@@ -1,7 +1,24 @@
 import Stripe from 'stripe';
 
-// Initialize Stripe with secret key from environment
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+function getStripeClientOrThrow() {
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+  if (!stripeSecretKey) {
+    throw new Error("Stripe secret key is not configured");
+  }
+
+  return new Stripe(stripeSecretKey);
+}
+
+function getStripeWebhookSecretOrThrow() {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!webhookSecret) {
+    throw new Error("Stripe webhook secret is not configured");
+  }
+
+  return webhookSecret;
+}
 
 // Create a payment intent for subscription amount
 export async function createPaymentIntent(
@@ -10,7 +27,7 @@ export async function createPaymentIntent(
   metadata: Record<string, string> = {}
 ) {
   try {
-    const paymentIntent = await stripe.paymentIntents.create({
+    const paymentIntent = await getStripeClientOrThrow().paymentIntents.create({
       amount,
       currency,
       metadata,
@@ -35,9 +52,12 @@ export async function confirmPaymentIntent(
   paymentMethodId: string
 ) {
   try {
-    const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
-      payment_method: paymentMethodId,
-    });
+    const paymentIntent = await getStripeClientOrThrow().paymentIntents.confirm(
+      paymentIntentId,
+      {
+        payment_method: paymentMethodId,
+      }
+    );
 
     return paymentIntent;
   } catch (error) {
@@ -53,7 +73,7 @@ export async function createSubscription(
   metadata: Record<string, string> = {}
 ) {
   try {
-    const subscription = await stripe.subscriptions.create({
+    const subscription = await getStripeClientOrThrow().subscriptions.create({
       customer: customerId,
       items: [{ price: priceId }],
       metadata,
@@ -74,7 +94,7 @@ export async function updateSubscription(
   prorationBehavior: Stripe.SubscriptionUpdateParams.ProrationBehavior = 'create_prorations'
 ) {
   try {
-    const subscription = await stripe.subscriptions.update(subscriptionId, {
+    const subscription = await getStripeClientOrThrow().subscriptions.update(subscriptionId, {
       items: [{ id: subscriptionId, price: priceId }],
       proration_behavior: prorationBehavior,
     });
@@ -92,7 +112,7 @@ export async function cancelSubscription(
   cancelAtPeriodEnd: boolean = true
 ) {
   try {
-    const subscription = await stripe.subscriptions.update(subscriptionId, {
+    const subscription = await getStripeClientOrThrow().subscriptions.update(subscriptionId, {
       cancel_at_period_end: cancelAtPeriodEnd,
     });
 
@@ -109,7 +129,7 @@ export async function createCustomerPortalSession(
   returnUrl: string
 ) {
   try {
-    const session = await stripe.billingPortal.sessions.create({
+    const session = await getStripeClientOrThrow().billingPortal.sessions.create({
       customer: customerId,
       return_url: returnUrl,
     });
@@ -124,7 +144,7 @@ export async function createCustomerPortalSession(
 // Retrieve a subscription
 export async function getSubscription(subscriptionId: string) {
   try {
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+    const subscription = await getStripeClientOrThrow().subscriptions.retrieve(subscriptionId, {
       expand: ['default_payment_method', 'latest_invoice.payment_intent'],
     });
 
@@ -142,7 +162,7 @@ export async function createCustomer(
   metadata: Record<string, string> = {}
 ) {
   try {
-    const customer = await stripe.customers.create({
+    const customer = await getStripeClientOrThrow().customers.create({
       email,
       name,
       metadata,
@@ -158,7 +178,7 @@ export async function createCustomer(
 // Retrieve a customer
 export async function getCustomer(customerId: string) {
   try {
-    const customer = await stripe.customers.retrieve(customerId);
+    const customer = await getStripeClientOrThrow().customers.retrieve(customerId);
 
     return customer;
   } catch (error) {
@@ -175,10 +195,10 @@ export async function handleWebhookEvent(
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
+    event = getStripeClientOrThrow().webhooks.constructEvent(
       payload,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      getStripeWebhookSecretOrThrow()
     );
   } catch (err) {
     console.error(`Webhook signature verification failed.`, err);
