@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -27,7 +27,7 @@ export default function SetupChecklist({ onComplete, showAll = false }: Props) {
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchChecklist = async () => {
+  const fetchChecklist = useCallback(async () => {
     if (!school?.id) return;
     const { data, error } = await supabase
       .from("setup_checklist")
@@ -39,35 +39,37 @@ export default function SetupChecklist({ onComplete, showAll = false }: Props) {
       setItems(data);
       // If no items exist, create defaults
       if (data.length === 0) {
-        await createDefaultChecklist();
+        const defaultItems = [
+          { item_key: "academic_calendar", item_label: "Academic Calendar" },
+          { item_key: "class_structure", item_label: "Class & Stream Setup" },
+          { item_key: "fee_structure", item_label: "Fee Structure" },
+          { item_key: "staff_accounts", item_label: "Staff Accounts" },
+          { item_key: "student_import", item_label: "Import Students" },
+          { item_key: "sms_templates", item_label: "SMS Templates" },
+          { item_key: "payment_methods", item_label: "Payment Methods" },
+          { item_key: "grading_config", item_label: "Grading System" },
+        ];
+
+        const { error: createError } = await supabase
+          .from("setup_checklist")
+          .upsert(
+            defaultItems.map((item) => ({ ...item, school_id: school.id })),
+            { onConflict: "school_id,item_key" },
+          );
+
+        if (!createError) {
+          const { data: refreshed } = await supabase
+            .from("setup_checklist")
+            .select("*")
+            .eq("school_id", school.id)
+            .order("item_key");
+
+          setItems(refreshed || []);
+        }
       }
     }
     setLoading(false);
-  };
-
-  const createDefaultChecklist = async () => {
-    if (!school?.id) return;
-    const defaultItems = [
-      { item_key: "academic_calendar", item_label: "Academic Calendar" },
-      { item_key: "class_structure", item_label: "Class & Stream Setup" },
-      { item_key: "fee_structure", item_label: "Fee Structure" },
-      { item_key: "staff_accounts", item_label: "Staff Accounts" },
-      { item_key: "student_import", item_label: "Import Students" },
-      { item_key: "sms_templates", item_label: "SMS Templates" },
-      { item_key: "payment_methods", item_label: "Payment Methods" },
-      { item_key: "grading_config", item_label: "Grading System" },
-    ];
-
-    const { data, error } = await supabase
-      .from("setup_checklist")
-      .upsert(
-        defaultItems.map((item) => ({ ...item, school_id: school.id })),
-        { onConflict: "school_id,item_key" },
-      )
-      .select();
-
-    if (!error) fetchChecklist();
-  };
+  }, [school?.id]);
 
   const markComplete = async (id: string, key: string) => {
     const { error } = await supabase
@@ -138,7 +140,7 @@ export default function SetupChecklist({ onComplete, showAll = false }: Props) {
 
   useEffect(() => {
     fetchChecklist();
-  }, [school?.id]);
+  }, [fetchChecklist]);
 
   const incompleteItems = items.filter(
     (item) => !item.is_completed && !item.skipped,

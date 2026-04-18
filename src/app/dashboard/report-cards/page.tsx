@@ -1,6 +1,6 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import {
@@ -100,19 +100,19 @@ export default function ReportCardsPage() {
     return feeStructure.reduce((sum, f) => sum + Number(f.amount || 0), 0);
   }, [feeStructure]);
 
-  const getStudentFeeBalance = (studentId: string): number => {
+  const getStudentFeeBalance = useCallback((studentId: string): number => {
     const studentPayments = payments.filter((p) => p.student_id === studentId);
     const paid = studentPayments.reduce(
       (sum, p) => sum + Number(p.amount_paid || 0),
       0,
     );
     return Math.max(0, totalFeePerStudent - paid);
-  };
+  }, [payments, totalFeePerStudent]);
 
   const displayedReports = useMemo(() => {
     if (!hideWithFees) return reports;
     return reports.filter((r) => getStudentFeeBalance(r.studentId) === 0);
-  }, [reports, hideWithFees, payments, totalFeePerStudent]);
+  }, [reports, hideWithFees, getStudentFeeBalance]);
 
   const stats = useMemo(() => {
     if (reports.length === 0) return { avgTotal: 0, div1: 0, withFees: 0 };
@@ -126,7 +126,7 @@ export default function ReportCardsPage() {
       div1,
       withFees
     };
-  }, [reports, payments, totalFeePerStudent]);
+  }, [reports, getStudentFeeBalance]);
 
   const handleGenerate = async () => {
     if (!selectedClass) {

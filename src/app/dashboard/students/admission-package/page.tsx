@@ -1,7 +1,7 @@
 "use client";
 
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { supabase } from "@/lib/supabase";
@@ -25,13 +25,7 @@ export default function AdmissionPackagePage() {
     contentRef: printRef,
   });
 
-  useEffect(() => {
-    if (studentId) {
-      loadStudent(studentId);
-    }
-  }, [studentId]);
-
-  const loadStudent = async (id: string) => {
+  const loadStudent = useCallback(async (id: string) => {
     setLoading(true);
     if (isDemo) {
       const demoS = DEMO_STUDENTS.find((s) => s.id === id) || DEMO_STUDENTS[0];
@@ -47,7 +41,13 @@ export default function AdmissionPackagePage() {
 
     if (data) setStudent(data);
     setLoading(false);
-  };
+  }, [isDemo]);
+
+  useEffect(() => {
+    if (studentId) {
+      loadStudent(studentId);
+    }
+  }, [studentId, loadStudent]);
 
   return (
     <PageErrorBoundary>

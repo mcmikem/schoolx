@@ -38,7 +38,7 @@ export default function StudentLookupPage() {
       else setStudents(data || []);
       setLoading(false);
     },
-    [school?.id],
+    [school?.id, toast],
   );
 
   const handleSMSParent = (student: any) => {

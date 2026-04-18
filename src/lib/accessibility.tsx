@@ -212,7 +212,7 @@ export function KeyboardNavigableGrid<T>({
           break;
       }
     },
-    [items.length, columns, onSelect, focusedIndex],
+    [items, columns, onSelect, focusedIndex],
   );
 
   return (

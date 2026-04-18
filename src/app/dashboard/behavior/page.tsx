@@ -95,7 +95,7 @@ export default function BehaviorPage() {
     } finally {
       setLoading(false);
     }
-  }, [school?.id]);
+  }, [school?.id, toast]);
 
   useEffect(() => {
     fetchLogs();
