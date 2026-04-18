@@ -35,6 +35,37 @@ Thumbs.db
 playwright-report/
 test-results/
 
+# Agent skill install mirrors
+.adal/
+.augment/
+.bob/
+.claude/
+.codebuddy/
+.commandcode/
+.continue/
+.cortex/
+.crush/
+.factory/
+.goose/
+.iflow/
+.junie/
+.kilocode/
+.kiro/
+.kode/
+.mcpjam/
+.mux/
+.neovate/
+.openhands/
+.pi/
+.pochi/
+.qoder/
+.qwen/
+.roo/
+.trae/
+.vibe/
+.windsurf/
+.zencoder/
+
 # Next.js
 next-env.d.ts
 tsconfig.tsbuildinfo

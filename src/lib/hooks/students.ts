@@ -77,6 +77,104 @@ const STUDENT_SELECT_FIELDS_FALLBACK = `
   created_at, classes(id, name, level, stream)
 `;
 
+const STUDENT_SELECT_FIELDS_CORE = `
+  id, school_id, student_number, first_name, last_name, gender,
+  date_of_birth, parent_name, parent_phone, parent_phone2,
+  class_id, admission_date, ple_index_number, status,
+  created_at, classes(id, name, level)
+`;
+
+const STUDENT_SELECT_FIELDS_MINIMAL = `
+  id, school_id, student_number, first_name, last_name, gender,
+  date_of_birth, parent_name, parent_phone, parent_phone2,
+  class_id, admission_date, ple_index_number, status, created_at
+`;
+
+async function fetchStudentsWithFallback(options: {
+  schoolId: string;
+  offset: number;
+  limit: number;
+}) {
+  const selectAttempts = [
+    {
+      fields: STUDENT_SELECT_FIELDS,
+      label: "extended student select",
+    },
+    {
+      fields: STUDENT_SELECT_FIELDS_FALLBACK,
+      label: "fallback student select",
+    },
+    {
+      fields: STUDENT_SELECT_FIELDS_CORE,
+      label: "core student select",
+    },
+    {
+      fields: STUDENT_SELECT_FIELDS_MINIMAL,
+      label: "minimal student select",
+    },
+  ];
+
+  let lastError: unknown = null;
+
+  for (const attempt of selectAttempts) {
+    const result = await supabase
+      .from("students")
+      .select(attempt.fields)
+      .eq("school_id", options.schoolId)
+      .order("created_at", { ascending: false })
+      .range(options.offset, options.offset + options.limit - 1);
+
+    if (!result.error) {
+      return result.data as unknown as StudentWithClass[];
+    }
+
+    lastError = result.error;
+    console.warn(`${attempt.label} failed, trying a smaller shape:`, result.error);
+  }
+
+  throw lastError;
+}
+
+async function fetchStudentByIdWithFallback(studentId: string) {
+  const selectAttempts = [
+    {
+      fields: STUDENT_SELECT_FIELDS,
+      label: "extended student fetch",
+    },
+    {
+      fields: STUDENT_SELECT_FIELDS_FALLBACK,
+      label: "fallback student fetch",
+    },
+    {
+      fields: STUDENT_SELECT_FIELDS_CORE,
+      label: "core student fetch",
+    },
+    {
+      fields: STUDENT_SELECT_FIELDS_MINIMAL,
+      label: "minimal student fetch",
+    },
+  ];
+
+  let lastError: unknown = null;
+
+  for (const attempt of selectAttempts) {
+    const result = await supabase
+      .from("students")
+      .select(attempt.fields)
+      .eq("id", studentId)
+      .single();
+
+    if (!result.error && result.data) {
+      return result.data as unknown as StudentWithClass;
+    }
+
+    lastError = result.error;
+    console.warn(`${attempt.label} failed, trying a smaller shape:`, result.error);
+  }
+
+  throw lastError;
+}
+
 export function useStudents(
   schoolId?: string,
   options?: { limit?: number; offset?: number },
@@ -157,6 +255,12 @@ export function useStudents(
     }
 
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
+    if (!querySchoolId) {
+      setLoading(false);
+      setError("School context is missing. Please reload and try again.");
+      return;
+    }
+
     try {
       setLoading(true);
       const { count } = await supabase
@@ -165,30 +269,11 @@ export function useStudents(
         .eq("school_id", querySchoolId);
       setTotalCount(count || 0);
       const data = await withTimeout(
-        (async () => {
-          const primary = await supabase
-            .from("students")
-            .select(STUDENT_SELECT_FIELDS)
-            .eq("school_id", querySchoolId)
-            .order("created_at", { ascending: false })
-            .range(offset, offset + limit - 1);
-
-          if (!primary.error) {
-            return primary.data;
-          }
-
-          console.warn("Student extended select failed, using fallback:", primary.error);
-
-          const fallback = await supabase
-            .from("students")
-            .select(STUDENT_SELECT_FIELDS_FALLBACK)
-            .eq("school_id", querySchoolId)
-            .order("created_at", { ascending: false })
-            .range(offset, offset + limit - 1);
-
-          if (fallback.error) throw fallback.error;
-          return fallback.data;
-        })(),
+        fetchStudentsWithFallback({
+          schoolId: querySchoolId,
+          offset,
+          limit,
+        }),
         8000,
         null,
       );
@@ -244,6 +329,10 @@ export function useStudents(
       return newStudentData;
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
+    if (!querySchoolId) {
+      throw new Error("School context is missing. Please reload and try again.");
+    }
+
     try {
       const studentPayload = {
         ...normalizedStudent,
@@ -280,23 +369,24 @@ export function useStudents(
 
       let createdStudent: StudentWithClass | null = null;
 
-      const fullFetch = await supabase
-        .from("students")
-        .select(STUDENT_SELECT_FIELDS)
-        .eq("id", createdRow.id)
-        .single();
+      try {
+        createdStudent = await fetchStudentByIdWithFallback(createdRow.id);
+      } catch (fetchError: unknown) {
+        console.warn(
+          "Student was inserted but could not be re-fetched with current schema shape:",
+          fetchError,
+        );
 
-      if (!fullFetch.error && fullFetch.data) {
-        createdStudent = fullFetch.data as unknown as StudentWithClass;
-      } else {
-        const fallbackFetch = await supabase
-          .from("students")
-          .select(STUDENT_SELECT_FIELDS_FALLBACK)
-          .eq("id", createdRow.id)
-          .single();
-
-        if (fallbackFetch.error) throw fallbackFetch.error;
-        createdStudent = fallbackFetch.data as unknown as StudentWithClass;
+        createdStudent = {
+          ...(studentPayload as StudentWithClass),
+          id: createdRow.id,
+          admission_date: new Date().toISOString().split("T")[0],
+          created_at: new Date().toISOString(),
+          opening_balance:
+            typeof studentPayload.opening_balance === "number"
+              ? studentPayload.opening_balance
+              : 0,
+        } as StudentWithClass;
       }
 
       setStudents((prev) => [createdStudent as StudentWithClass, ...prev]);
@@ -304,7 +394,7 @@ export function useStudents(
       invalidateCache(`students:${schoolId}`);
       return createdStudent as StudentWithClass;
     } catch (err: unknown) {
-      throw new Error(err instanceof Error ? err.message : "Unknown error");
+      throw new Error(getErrorMessage(err, "Failed to add student"));
     }
   };
 
@@ -349,7 +439,7 @@ export function useStudents(
           .from("students")
           .update(buildCoreStudentPayload(normalizedUpdates as Record<string, unknown>))
           .eq("id", id)
-          .select(STUDENT_SELECT_FIELDS_FALLBACK)
+          .select(STUDENT_SELECT_FIELDS_MINIMAL)
           .single();
 
         if (retryUpdate.error) throw retryUpdate.error;
@@ -384,7 +474,7 @@ export function useStudents(
       setTotalCount((prev) => prev - 1);
       invalidateCache(`students:${schoolId}`);
     } catch (err: unknown) {
-      throw new Error(err instanceof Error ? err.message : "Unknown error");
+      throw new Error(getErrorMessage(err, "Failed to remove student"));
     }
   };
 
