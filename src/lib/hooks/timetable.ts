@@ -152,6 +152,13 @@ export function useTimetableManager(schoolId?: string) {
 
       const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
+      if (!querySchoolId) {
+        setSlots([])
+        setConstraints([])
+        setLoading(false)
+        return
+      }
+
       try {
         setLoading(true)
         const [slotsRes, constraintsRes] = await Promise.all([
