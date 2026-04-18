@@ -1,7 +1,7 @@
 "use client";
 
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
@@ -85,11 +85,7 @@ export default function CoursesPage() {
     icon: "menu_book",
   });
 
-  useEffect(() => {
-    if (school?.id) fetchCourses();
-  }, [school?.id, filterCategory]);
-
-  const fetchCourses = async () => {
+  const fetchCourses = useCallback(async () => {
     if (!school?.id) return;
     setLoading(true);
 
@@ -111,7 +107,11 @@ export default function CoursesPage() {
       setCourses(data || []);
     }
     setLoading(false);
-  };
+  }, [school?.id, filterCategory, toast]);
+
+  useEffect(() => {
+    if (school?.id) fetchCourses();
+  }, [school?.id, fetchCourses]);
 
   const handleSubmit = async () => {
     if (!school?.id) return;

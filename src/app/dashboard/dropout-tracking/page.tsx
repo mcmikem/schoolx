@@ -131,7 +131,7 @@ export default function DropoutTrackingPage() {
       .limit(20);
     setLogs(logData || []);
     setLoading(false);
-  }, [school?.id]);
+  }, [school?.id, toast]);
 
   useEffect(() => {
     fetchAtRiskStudents();

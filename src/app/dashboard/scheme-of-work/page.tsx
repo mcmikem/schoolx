@@ -79,7 +79,7 @@ export default function SchemeOfWorkPage() {
       setLoading(false);
     }
     setHasChanges(false);
-  }, [school?.id, selectedClass, selectedSubject, term, academicYear, weeks]);
+  }, [school?.id, selectedClass, selectedSubject, term, academicYear, weeks, toast]);
 
   useEffect(() => {
     if (selectedClass && selectedSubject) {

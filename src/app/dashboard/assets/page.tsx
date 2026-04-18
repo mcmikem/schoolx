@@ -68,7 +68,7 @@ export default function AssetsPage() {
     if (error) toast.error("Failed to load assets");
     else setAssets(data || []);
     setLoading(false);
-  }, [school?.id]);
+  }, [school?.id, toast]);
 
   useEffect(() => {
     fetchAssets();

@@ -59,7 +59,7 @@ export default function TimetablePage() {
     } finally {
       setLoading(false)
     }
-  }, [selectedClassId])
+  }, [selectedClassId, toast])
 
   // Fetch ALL class timetables for the school to enable cross-class conflict detection
   const fetchAllTimetables = useCallback(async () => {

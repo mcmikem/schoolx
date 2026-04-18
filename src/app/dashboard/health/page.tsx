@@ -67,7 +67,7 @@ export default function HealthPage() {
       setRecords(data || []);
     }
     setLoading(false);
-  }, [school?.id]);
+  }, [school?.id, toast]);
 
   useEffect(() => {
     fetchRecords();
