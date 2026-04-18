@@ -13,7 +13,6 @@ export async function POST(request: NextRequest) {
 
     const cron = requireCronSecretOrDeny(request);
     if (!cron.ok) return cron.response;
-
     const supabase = createServiceRoleClientOrThrow();
 
     const body = await request.json();
