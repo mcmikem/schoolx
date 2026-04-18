@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import type { Student, CreateStudentInput, Class } from "@/types";
+import type { Student, CreateStudentInput, Class, School } from "@/types";
 import { getQuerySchoolId, withTimeout } from "./utils";
 import { getCachedData, setCachedData, invalidateCache } from "./queryCache";
 import {
@@ -19,6 +19,7 @@ import {
   PlanType,
   normalizePlanType,
 } from "@/lib/payments/subscription-client";
+import { buildDefaultClasses, type SchoolSetupType } from "@/lib/school-setup";
 
 type StudentWithClass = Student & {
   classes?: { id: string; name: string; level: string } | Class;
@@ -545,7 +546,40 @@ export function useStudent(id: string) {
 export function useClasses(schoolId?: string) {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
-  const { isDemo } = useAuth();
+  const { isDemo, school } = useAuth();
+  const autoProvisionAttempted = useRef(false);
+
+  const autoProvisionDefaultClasses = useCallback(
+    async (resolvedSchoolId: string) => {
+      const schoolType =
+        ((school as School | null)?.school_type ?? "primary") as SchoolSetupType;
+      const currentYear = new Date().getFullYear().toString();
+      const defaultClasses = buildDefaultClasses(
+        resolvedSchoolId,
+        schoolType,
+        currentYear,
+      );
+
+      const { error } = await supabase
+        .from("classes")
+        .upsert(defaultClasses, {
+          onConflict: "school_id,name,academic_year",
+        });
+
+      if (error) throw error;
+
+      const { data, error: refetchError } = await supabase
+        .from("classes")
+        .select("id, name, level, school_id, created_at, stream, academic_year")
+        .eq("school_id", resolvedSchoolId)
+        .order("name");
+
+      if (refetchError) throw refetchError;
+
+      return (data as unknown as Class[]) || [];
+    },
+    [school],
+  );
 
   const fetchClasses = useCallback(async () => {
     // Demo mode - check for demo school UUID
@@ -560,21 +594,30 @@ export function useClasses(schoolId?: string) {
       return;
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
+    if (!querySchoolId) {
+      setClasses([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
-      const data = await withTimeout(
-        supabase
-          .from("classes")
-          .select("id, name, level, school_id, created_at")
-          .eq("school_id", querySchoolId)
-          .order("name")
-          .then((r) => {
-            if (r.error) throw r.error;
-            return r.data;
-          }),
-        5000,
-        [] as unknown as Class[],
-      );
+      const { data, error } = await supabase
+        .from("classes")
+        .select("id, name, level, school_id, created_at, stream, academic_year")
+        .eq("school_id", querySchoolId)
+        .order("name");
+
+      if (error) throw error;
+
+      if ((data?.length || 0) === 0 && !autoProvisionAttempted.current) {
+        autoProvisionAttempted.current = true;
+        const provisionedClasses = await autoProvisionDefaultClasses(
+          querySchoolId,
+        );
+        setClasses(provisionedClasses);
+        return;
+      }
+
       setClasses((data as unknown as Class[]) || []);
     } catch (err) {
       console.warn("Classes fetch error:", err);
@@ -582,7 +625,7 @@ export function useClasses(schoolId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [schoolId, isDemo]);
+  }, [schoolId, isDemo, autoProvisionDefaultClasses]);
 
   const createClass = async (newClass: Partial<Class>) => {
     if (isDemo || isDemoSchool(schoolId)) {

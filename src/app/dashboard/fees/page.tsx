@@ -73,7 +73,7 @@ export default function FinanceHubPage() {
   const searchParams = useSearchParams();
 
   const { students } = useStudents(school?.id);
-  const { classes } = useClasses(school?.id);
+  const { classes, loading: classesLoading } = useClasses(school?.id);
   const { payments, createPayment, deletePayment } = useFeePayments(school?.id);
   const { feeStructure, createFeeStructure, deleteFeeStructure } =
     useFeeStructure(school?.id);
@@ -2288,6 +2288,7 @@ export default function FinanceHubPage() {
         isOpen={showFeeModal}
         onClose={() => setShowFeeModal(false)}
         classes={classes}
+        classesLoading={classesLoading}
         onSubmit={handleCreateFee}
         newFee={newFee}
         onFeeChange={handleNewFeeChange}

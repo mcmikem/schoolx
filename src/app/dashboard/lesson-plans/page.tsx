@@ -94,7 +94,7 @@ export default function LessonPlansPage() {
     try {
       const { data, error } = await supabase
         .from('lesson_plans')
-        .select('*, subjects(name), classes(name), users:teacher_id(full_name)')
+        .select('*, subjects(name), classes(name)')
         .eq('school_id', school.id)
         .order('created_at', { ascending: false })
         .limit(20)
@@ -121,7 +121,6 @@ export default function LessonPlansPage() {
         created_at: row.created_at,
         subjects: row.subjects,
         classes: row.classes,
-        users: row.users,
       }))
 
       setPlans(mapped)
