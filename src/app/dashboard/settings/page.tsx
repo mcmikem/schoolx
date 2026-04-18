@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
+import { loadSchoolSettings, saveSchoolSetting } from "@/lib/school-settings";
 import { ROLE_LABELS, type UserRole } from "@/lib/roles";
 import {
   FEATURE_STAGES,
@@ -184,27 +185,18 @@ export default function SettingsPage() {
   const fetchSettings = useCallback(async () => {
     if (!school?.id) return;
     try {
-      const { data } = await supabase
-        .from("school_settings")
-        .select("key, value")
-        .eq("school_id", school.id);
+      const settingsMap = await loadSchoolSettings(school.id);
 
-      if (data) {
-        const settingsMap: Record<string, string> = {};
-        data.forEach((s: { key: string; value: string }) => {
-          settingsMap[s.key] = s.value;
-        });
-        setSettings((prev) => ({
-          ...prev,
-          sms_notifications: settingsMap.sms_notifications !== "false",
-          attendance_alerts: settingsMap.attendance_alerts !== "false",
-          fee_reminders: settingsMap.fee_reminders === "true",
-          attendance_threshold:
-            parseInt(settingsMap.attendance_threshold) || 80,
-          grade_threshold: parseInt(settingsMap.grade_threshold) || 50,
-          fee_threshold: parseInt(settingsMap.fee_threshold) || 50000,
-        }));
-      }
+      setSettings((prev) => ({
+        ...prev,
+        sms_notifications: settingsMap.sms_notifications !== "false",
+        attendance_alerts: settingsMap.attendance_alerts !== "false",
+        fee_reminders: settingsMap.fee_reminders === "true",
+        attendance_threshold:
+          parseInt(settingsMap.attendance_threshold) || 80,
+        grade_threshold: parseInt(settingsMap.grade_threshold) || 50,
+        fee_threshold: parseInt(settingsMap.fee_threshold) || 50000,
+      }));
 
       // Fetch school logo
       const { data: schoolData } = await supabase
@@ -248,12 +240,7 @@ export default function SettingsPage() {
   const saveSettings = async (key: string, value: string) => {
     if (!school?.id) return;
     try {
-      await supabase
-        .from("school_settings")
-        .upsert(
-          { school_id: school.id, key, value },
-          { onConflict: "school_id,key" },
-        );
+      await saveSchoolSetting(school.id, key, value);
     } catch (err) {
       console.error("Error:", err);
     }

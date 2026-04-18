@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
+import { getErrorMessage } from '@/lib/validation'
 
 interface SchoolData {
   id: string
@@ -214,45 +215,29 @@ export default function SchoolsPage() {
     }
 
     try {
-      // Step 1: Create the school
-      const { data: schoolData, error: schoolError } = await supabase.from('schools').insert({
-        ...newSchool,
-        subscription_status: 'trial',
-        trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-      }).select().single()
-
-      if (schoolError) throw schoolError
-
-      // Step 2: Create the admin user via Supabase Auth
-      const cleanPhone = newAdmin.phone.replace(/[^0-9]/g, '')
-      const email = `${cleanPhone}@omuto.org`
-
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password: newAdmin.password,
-        options: {
-          data: { full_name: newAdmin.name, phone: newAdmin.phone, role: 'school_admin' },
-        },
+      const response = await fetch('/api/schools', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newSchool,
+          adminName: newAdmin.name,
+          adminPhone: newAdmin.phone,
+          adminPassword: newAdmin.password,
+        }),
       })
 
-      if (authError) throw authError
+      const result = await response.json()
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to add school')
+      }
 
-      // Step 3: Create the user profile
-      const { error: userError } = await supabase.from('users').insert({
-        auth_id: authData.user!.id,
-        full_name: newAdmin.name,
-        phone: newAdmin.phone,
-        role: 'school_admin',
-        school_id: schoolData.id,
-        is_active: true,
-      })
-
-      if (userError) throw userError
+      const schoolId = result.data?.schoolId as string
+      const schoolName = newSchool.name
 
       // Show confirmation with credentials
       setCreatedSchool({
-        id: schoolData.id,
-        name: schoolData.name,
+        id: schoolId,
+        name: schoolName,
         adminPhone: newAdmin.phone,
         adminPassword: newAdmin.password,
       })
@@ -262,8 +247,8 @@ export default function SchoolsPage() {
       fetchSchools()
       setNewSchool({ name: '', school_code: '', district: '', school_type: 'primary', ownership: 'private', phone: '', subscription_plan: 'starter' })
       setNewAdmin({ name: '', phone: '', password: '' })
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to add school')
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Failed to add school'))
     }
   }
 
@@ -345,34 +330,29 @@ export default function SchoolsPage() {
       return
     }
     try {
-      const cleanPhone = newUserForm.phone.replace(/[^0-9]/g, '')
-      const email = `${cleanPhone}@omuto.org`
-
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password: newUserForm.password,
-        options: {
-          data: { full_name: newUserForm.name, phone: newUserForm.phone, role: newUserForm.role },
-        },
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schoolId: selectedSchool.id,
+          fullName: newUserForm.name,
+          phone: newUserForm.phone,
+          password: newUserForm.password,
+          role: newUserForm.role,
+        }),
       })
-      if (authError) throw authError
 
-      const { error: userError } = await supabase.from('users').insert({
-        auth_id: authData.user!.id,
-        full_name: newUserForm.name,
-        phone: newUserForm.phone,
-        role: newUserForm.role,
-        school_id: selectedSchool.id,
-        is_active: true,
-      })
-      if (userError) throw userError
+      const result = await response.json()
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed')
+      }
 
       toast.success(`User ${newUserForm.name} created`)
       setShowAddUserModal(false)
       setNewUserForm({ name: '', phone: '', role: 'teacher', password: '' })
       await fetchSchoolUsers(selectedSchool.id)
-    } catch (err: any) {
-      toast.error(err.message || 'Failed')
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Failed'))
     }
   }
 

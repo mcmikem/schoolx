@@ -22,6 +22,7 @@ import {
   buildDefaultTimetableSlots,
   type SchoolSetupType,
 } from "@/lib/school-setup";
+import { saveSchoolSetting } from "@/lib/school-settings";
 
 export default function OnboardingFlow({
   onComplete,
@@ -118,13 +119,10 @@ export default function OnboardingFlow({
       }
 
       await Promise.allSettled([
-        supabase.from("school_settings").upsert(
-          [
-            { school_id: school.id, key: "academic_year", value: currentYear },
-            { school_id: school.id, key: "current_term", value: "1" },
-          ],
-          { onConflict: "school_id,key" },
-        ),
+            Promise.all([
+              saveSchoolSetting(school.id, "academic_year", currentYear),
+              saveSchoolSetting(school.id, "current_term", "1"),
+            ]),
         (async () => {
           const { count } = await supabase
             .from("classes")

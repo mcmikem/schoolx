@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
 import { buildRolloverPreview, getNextClassName } from '@/lib/operations'
 import { logAuditEventWithOfflineSupport } from '@/lib/audit'
+import { saveSchoolSetting } from '@/lib/school-settings'
 
 export default function RolloverPage() {
   const router = useRouter()
@@ -175,20 +176,16 @@ export default function RolloverPage() {
       }
 
       if (wizardOptions.archiveSummary) {
-        await supabase.from('school_settings').upsert({
-          school_id: school.id,
-          key: 'last_rollover_summary',
-          value: JSON.stringify({
-            completed_at: new Date().toISOString(),
-            from_year: academicYear,
-            to_year: newAcademicYear,
-            graduated_students: preview.graduatingStudentIds.length,
-            promoted_students: preview.promotableStudentIds.length,
-            carry_forward_balances: wizardOptions.carryForwardBalances,
-            reset_opening_balances: wizardOptions.resetOpeningBalances,
-            archive_grades: wizardOptions.archiveGrades,
-          })
-        }, { onConflict: 'school_id,key' })
+        await saveSchoolSetting(school.id, 'last_rollover_summary', {
+          completed_at: new Date().toISOString(),
+          from_year: academicYear,
+          to_year: newAcademicYear,
+          graduated_students: preview.graduatingStudentIds.length,
+          promoted_students: preview.promotableStudentIds.length,
+          carry_forward_balances: wizardOptions.carryForwardBalances,
+          reset_opening_balances: wizardOptions.resetOpeningBalances,
+          archive_grades: wizardOptions.archiveGrades,
+        })
       }
 
       await setAcademicYear(newAcademicYear)

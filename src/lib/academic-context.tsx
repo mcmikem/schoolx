@@ -1,7 +1,7 @@
 'use client'
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
 import { useAuth } from './auth-context'
-import { supabase } from './supabase'
+import { loadSchoolSettings, saveSchoolSetting } from './school-settings'
 import { getErrorMessage } from './validation'
 
 const getDefaultAcademicYear = () => new Date().getFullYear().toString()
@@ -36,28 +36,21 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
 
   // Load from school settings on mount or when school changes
   const loadAcademicSettings = useCallback(async () => {
-    if (!school?.id || !supabase) {
+    if (!school?.id) {
       setLoading(false)
       return
     }
 
     try {
       setLoading(true)
-      const { data, error } = await supabase
-        .from('school_settings')
-        .select('key, value')
-        .eq('school_id', school.id)
+      const settings = await loadSchoolSettings(school.id)
 
-      if (error) throw error
-      
-      if (data && data.length > 0) {
-        const settings = Object.fromEntries(data.map(s => [s.key, s.value]))
-        
+      if (Object.keys(settings).length > 0) {
         if (settings.academic_year) {
           setAcademicYearState(settings.academic_year)
           localStorage.setItem('academic_year', settings.academic_year)
         }
-        
+
         if (settings.current_term) {
           const newTerm = Number(settings.current_term) as 1 | 2 | 3
           setCurrentTermState(newTerm)
@@ -69,17 +62,13 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
           .map(k => k.replace('term_locked_', ''))
         setLockedTerms(locked)
       } else {
-        // Initialize if empty
         const initialYear = getStoredAcademicYear()
         const initialTerm = String(getStoredCurrentTerm())
-        const { error: seedError } = await supabase.from('school_settings').upsert([
-          { school_id: school.id, key: 'academic_year', value: initialYear },
-          { school_id: school.id, key: 'current_term', value: initialTerm }
-        ], { onConflict: 'school_id,key' })
 
-        if (seedError) {
-          console.warn('Academic settings fallback in use:', getErrorMessage(seedError))
-        }
+        await Promise.all([
+          saveSchoolSetting(school.id, 'academic_year', initialYear),
+          saveSchoolSetting(school.id, 'current_term', initialTerm),
+        ])
       }
     } catch (err) {
       console.warn('Academic settings fallback in use:', getErrorMessage(err))
@@ -97,10 +86,11 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
     setAcademicYearState(year)
     localStorage.setItem('academic_year', year)
     if (school?.id) {
-      const { error } = await supabase
-        .from('school_settings')
-        .upsert({ school_id: school.id, key: 'academic_year', value: year }, { onConflict: 'school_id,key' })
-      if (error) console.warn('Error saving academic year:', getErrorMessage(error))
+      try {
+        await saveSchoolSetting(school.id, 'academic_year', year)
+      } catch (error) {
+        console.warn('Error saving academic year:', getErrorMessage(error))
+      }
     }
   }
 
@@ -108,10 +98,11 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
     setCurrentTermState(term)
     localStorage.setItem('current_term', term.toString())
     if (school?.id) {
-      const { error } = await supabase
-        .from('school_settings')
-        .upsert({ school_id: school.id, key: 'current_term', value: term.toString() }, { onConflict: 'school_id,key' })
-      if (error) console.warn('Error saving current term:', getErrorMessage(error))
+      try {
+        await saveSchoolSetting(school.id, 'current_term', term.toString())
+      } catch (error) {
+        console.warn('Error saving current term:', getErrorMessage(error))
+      }
     }
   }
 
@@ -130,11 +121,11 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
       setLockedTerms(lockedTerms.filter(t => t !== `${year}_${term}`))
     }
 
-    const { error } = await supabase
-      .from('school_settings')
-      .upsert({ school_id: school.id, key, value: val }, { onConflict: 'school_id,key' })
-    
-    if (error) console.warn('Error locking term:', getErrorMessage(error))
+    try {
+      await saveSchoolSetting(school.id, key, val)
+    } catch (error) {
+      console.warn('Error locking term:', getErrorMessage(error))
+    }
   }
 
   return (
