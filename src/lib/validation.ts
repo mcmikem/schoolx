@@ -123,6 +123,28 @@ export function normalizeStudentInput<T extends StudentMutationInput>(
   return normalized
 }
 
+export function getErrorMessage(
+  error: unknown,
+  fallback = "Something went wrong",
+): string {
+  if (error instanceof Error && error.message) return error.message
+
+  if (typeof error === "object" && error !== null) {
+    const maybeMessage = (error as { message?: unknown }).message
+    if (typeof maybeMessage === "string" && maybeMessage.trim()) {
+      return maybeMessage
+    }
+
+    const maybeError = (error as { error?: unknown }).error
+    if (typeof maybeError === "string" && maybeError.trim()) {
+      return maybeError
+    }
+  }
+
+  if (typeof error === "string" && error.trim()) return error
+  return fallback
+}
+
 export function validateStudentInput(
   input: StudentMutationInput,
   options?: { partial?: boolean; today?: Date },
@@ -183,8 +205,6 @@ export function validateStudentInput(
       !Number.isFinite(input.opening_balance)
     ) {
       errors.push("Opening balance must be a valid number")
-    } else if (input.opening_balance < 0) {
-      errors.push("Opening balance cannot be negative")
     }
   }
 

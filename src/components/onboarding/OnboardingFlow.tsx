@@ -13,6 +13,15 @@ import {
   getParishOptions,
   getSubcountyOptions,
 } from "@/lib/uganda-admin";
+import {
+  buildUgandaAcademicTerms,
+  buildUgandaCalendarEvents,
+} from "@/lib/uganda-school-calendar";
+import {
+  buildDefaultClasses,
+  buildDefaultTimetableSlots,
+  type SchoolSetupType,
+} from "@/lib/school-setup";
 
 export default function OnboardingFlow({
   onComplete,
@@ -56,6 +65,10 @@ export default function OnboardingFlow({
   const handleComplete = async () => {
     setLoading(true);
     try {
+      const currentYear = new Date().getFullYear().toString();
+      const schoolType =
+        ((school as any)?.school_type || "primary") as SchoolSetupType;
+
       // Build complete update with all onboarding settings
       const updateData: any = {
         name: schoolDetails.name || school.name,
@@ -63,7 +76,7 @@ export default function OnboardingFlow({
         subcounty: schoolDetails.subcounty,
         parish: schoolDetails.parish,
         primary_color: branding.primary_color,
-        feature_stage: featureStage, // Column now exists in DB
+        feature_stage: featureStage,
         onboarding_completed: true,
         onboarding_completed_at: new Date().toISOString(),
         setup_progress: JSON.stringify({
@@ -82,7 +95,6 @@ export default function OnboardingFlow({
         throw error;
       }
 
-      // Create default setup checklist items
       const checklistItems = [
         { item_key: "academic_calendar", item_label: "Academic Calendar" },
         { item_key: "class_structure", item_label: "Class & Stream Setup" },
@@ -97,12 +109,82 @@ export default function OnboardingFlow({
       const { error: checklistError } = await supabase
         .from("setup_checklist")
         .upsert(
-        checklistItems.map((item) => ({ ...item, school_id: school.id })),
-        { onConflict: "school_id,item_key" },
-      );
+          checklistItems.map((item) => ({ ...item, school_id: school.id })),
+          { onConflict: "school_id,item_key" },
+        );
+
       if (checklistError) {
         throw checklistError;
       }
+
+      await Promise.allSettled([
+        supabase.from("school_settings").upsert(
+          [
+            { school_id: school.id, key: "academic_year", value: currentYear },
+            { school_id: school.id, key: "current_term", value: "1" },
+          ],
+          { onConflict: "school_id,key" },
+        ),
+        (async () => {
+          const { count } = await supabase
+            .from("classes")
+            .select("id", { count: "exact", head: true })
+            .eq("school_id", school.id)
+            .eq("academic_year", currentYear);
+
+          if (!count) {
+            const { error: classError } = await supabase
+              .from("classes")
+              .upsert(buildDefaultClasses(school.id, schoolType, currentYear), {
+                onConflict: "school_id,name,academic_year",
+              });
+            if (classError) throw classError;
+          }
+        })(),
+        (async () => {
+          const { count } = await supabase
+            .from("academic_terms")
+            .select("id", { count: "exact", head: true })
+            .eq("school_id", school.id)
+            .eq("academic_year", currentYear);
+
+          if (!count) {
+            const { error: termError } = await supabase
+              .from("academic_terms")
+              .upsert(buildUgandaAcademicTerms(school.id, currentYear), {
+                onConflict: "school_id,academic_year,term_number",
+              });
+            if (termError) throw termError;
+          }
+        })(),
+        (async () => {
+          const { count } = await supabase
+            .from("events")
+            .select("id", { count: "exact", head: true })
+            .eq("school_id", school.id)
+            .in("event_type", ["academic", "holiday"]);
+
+          if (!count) {
+            const { error: eventError } = await supabase
+              .from("events")
+              .insert(buildUgandaCalendarEvents(school.id, currentYear));
+            if (eventError) throw eventError;
+          }
+        })(),
+        (async () => {
+          const { count } = await supabase
+            .from("timetable_slots")
+            .select("id", { count: "exact", head: true })
+            .eq("school_id", school.id);
+
+          if (!count) {
+            const { error: slotError } = await supabase
+              .from("timetable_slots")
+              .insert(buildDefaultTimetableSlots(school.id));
+            if (slotError) throw slotError;
+          }
+        })(),
+      ]);
 
       await refreshSchool();
       setLoading(false);

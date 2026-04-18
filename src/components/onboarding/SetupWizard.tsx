@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
@@ -7,6 +7,12 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button, Input, Select } from "@/components/ui";
 import { normalizeAuthPhone } from "@/lib/validation";
+import { buildUgandaAcademicTerms } from "@/lib/uganda-school-calendar";
+import {
+  getDefaultClassTemplates,
+  inferClassLevel,
+  type SchoolSetupType,
+} from "@/lib/school-setup";
 
 interface SetupWizardProps {
   onComplete?: () => void;
@@ -17,22 +23,39 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
   const toast = useToast();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const schoolType = ((school as any)?.school_type || "primary") as SchoolSetupType;
+  const currentYear = new Date().getFullYear().toString();
 
   // Academic Year State
-  const [academicYear, setAcademicYear] = useState({
-    year: new Date().getFullYear().toString(),
-    terms: [
-      { name: "Term 1", start: "", end: "" },
-      { name: "Term 2", start: "", end: "" },
-      { name: "Term 3", start: "", end: "" },
-    ],
-  });
+  const [academicYear, setAcademicYear] = useState(() => ({
+    year: currentYear,
+    terms: buildUgandaAcademicTerms("preview", currentYear).map((term) => ({
+      name: term.name,
+      start: term.start_date,
+      end: term.end_date,
+    })),
+  }));
 
   // Class Setup State
-  const [classes, setClasses] = useState([
-    { name: "P.1", level: "primary", stream: "" },
-    { name: "P.2", level: "primary", stream: "" },
-  ]);
+  const [classes, setClasses] = useState(() =>
+    getDefaultClassTemplates(schoolType),
+  );
+
+  useEffect(() => {
+    const year = academicYear.year || currentYear;
+    setClasses(getDefaultClassTemplates(schoolType));
+    setAcademicYear((prev) => ({
+      ...prev,
+      year,
+      terms: buildUgandaAcademicTerms(school?.id || "preview", year).map(
+        (term) => ({
+          name: term.name,
+          start: term.start_date,
+          end: term.end_date,
+        }),
+      ),
+    }));
+  }, [academicYear.year, currentYear, school?.id, schoolType]);
 
   // Fee Setup State
   const [fees, setFees] = useState([
@@ -62,11 +85,33 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
     if (!school?.id) return;
     setLoading(true);
     try {
-      // Save academic year settings
-      await supabase.from("school_settings").upsert({
-        school_id: school.id,
-        key: "academic_year",
-        value: JSON.stringify(academicYear),
+      const termRows = buildUgandaAcademicTerms(
+        school.id,
+        academicYear.year,
+      ).map((term, index) => ({
+        ...term,
+        start_date: academicYear.terms[index]?.start || term.start_date,
+        end_date: academicYear.terms[index]?.end || term.end_date,
+      }));
+
+      await supabase.from("school_settings").upsert(
+        [
+          {
+            school_id: school.id,
+            key: "academic_year",
+            value: academicYear.year,
+          },
+          {
+            school_id: school.id,
+            key: "current_term",
+            value: "1",
+          },
+        ],
+        { onConflict: "school_id,key" },
+      );
+
+      await supabase.from("academic_terms").upsert(termRows, {
+        onConflict: "school_id,academic_year,term_number",
       });
 
       // Update checklist
@@ -104,7 +149,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
 
       const { error: classError } = await supabase
         .from("classes")
-        .insert(classData);
+        .upsert(classData, { onConflict: "school_id,name,academic_year" });
 
       if (classError) {
         console.error("Class insert error:", classError);
@@ -311,7 +356,14 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
   };
 
   const addClass = () =>
-    setClasses([...classes, { name: "", level: "primary", stream: "" }]);
+    setClasses([
+      ...classes,
+      {
+        name: "",
+        level: schoolType === "secondary" ? "S.1" : "P.1",
+        stream: "",
+      },
+    ]);
   const removeClass = (i: number) =>
     setClasses(classes.filter((_, idx) => idx !== i));
   const updateClass = (i: number, field: string, value: string) => {
@@ -411,7 +463,14 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
               <div key={i} className="flex gap-2">
                 <select
                   value={cls.name}
-                  onChange={(e) => updateClass(i, "name", e.target.value)}
+                  onChange={(e) => {
+                    updateClass(i, "name", e.target.value);
+                    updateClass(
+                      i,
+                      "level",
+                      inferClassLevel(e.target.value, schoolType),
+                    );
+                  }}
                   className="flex-1 input"
                 >
                   <option value="">Select Class</option>
@@ -427,6 +486,8 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                     "S.2",
                     "S.3",
                     "S.4",
+                    "S.5",
+                    "S.6",
                   ].map((c) => (
                     <option key={c} value={c}>
                       {c}

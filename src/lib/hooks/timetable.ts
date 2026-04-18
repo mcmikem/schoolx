@@ -6,6 +6,7 @@ import type { TimetableSlot, TimetableConstraint } from '@/types'
 import { getQuerySchoolId } from './utils'
 import { isDemoSchool } from '@/lib/demo-utils'
 import { DEMO_TIMETABLE, DEMO_SUBJECTS, DEMO_STAFF } from '@/lib/demo-data'
+import { buildDefaultTimetableSlots } from '@/lib/school-setup'
 
 export function useTimetable(classId?: string) {
   const [timetable, setTimetable] = useState<any[]>([])
@@ -154,15 +155,46 @@ export function useTimetableManager(schoolId?: string) {
       try {
         setLoading(true)
         const [slotsRes, constraintsRes] = await Promise.all([
-          supabase.from('timetable_slots').select('id, name, start_time, end_time, order_number, is_break').eq('school_id', querySchoolId).order('order_number'),
-          supabase.from('timetable_constraints').select('id, type, value, priority').eq('school_id', querySchoolId)
+          supabase
+            .from('timetable_slots')
+            .select('id, school_id, name, start_time, end_time, order_number, is_lesson, created_at')
+            .eq('school_id', querySchoolId)
+            .order('order_number'),
+          supabase
+            .from('timetable_constraints')
+            .select('id, school_id, teacher_id, day_of_week, slot_id, constraint_type, notes, created_at')
+            .eq('school_id', querySchoolId)
         ])
 
         if (slotsRes.error) throw slotsRes.error
-        if (constraintsRes.error) throw constraintsRes.error
 
-        setSlots((slotsRes.data || []) as unknown as TimetableSlot[])
-        setConstraints((constraintsRes.data || []) as unknown as TimetableConstraint[])
+        let slotRows = (slotsRes.data || []) as Array<Record<string, any>>
+        if (slotRows.length === 0) {
+          const defaults = buildDefaultTimetableSlots(querySchoolId)
+          const { data: inserted, error: insertError } = await supabase
+            .from('timetable_slots')
+            .insert(defaults)
+            .select('id, school_id, name, start_time, end_time, order_number, is_lesson, created_at')
+          if (insertError) {
+            console.warn('Failed to seed timetable slots:', insertError)
+          }
+          slotRows = (inserted || defaults) as Array<Record<string, any>>
+        }
+
+        const normalizedSlots = slotRows.map((slot) => ({
+          ...slot,
+          is_lesson: slot.is_lesson !== false,
+          is_break: slot.is_lesson === false,
+        }))
+
+        if (constraintsRes.error) {
+          console.warn('Timetable constraints fetch error:', constraintsRes.error)
+          setConstraints([])
+        } else {
+          setConstraints((constraintsRes.data || []) as unknown as TimetableConstraint[])
+        }
+
+        setSlots(normalizedSlots as unknown as TimetableSlot[])
       } catch (err) {
         console.error('Error fetching timetable data:', err)
       } finally {

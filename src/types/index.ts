@@ -123,6 +123,18 @@ export interface CreateStudentInput {
   transfer_from?: string;
   transfer_reason?: string;
   repeating?: boolean;
+  parent_email?: string;
+  house_id?: string;
+  previous_school?: string;
+  district_origin?: string;
+  sub_county?: string;
+  parish?: string;
+  village?: string;
+  boarding_status?: "day" | "boarding" | "weekly";
+  games_house?: string;
+  is_class_monitor?: boolean;
+  prefect_role?: string;
+  student_council_role?: string;
 }
 
 // Class types

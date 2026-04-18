@@ -13,6 +13,11 @@ import {
 } from "@/lib/hooks";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import {
+  buildDefaultClasses,
+  buildDefaultTimetableSlots,
+  type SchoolSetupType,
+} from "@/lib/school-setup";
 import MaterialIcon from "@/components/MaterialIcon";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useToast } from "@/components/Toast";
@@ -76,51 +81,16 @@ function TeacherDashboardContent() {
     try {
       const currentYear = new Date().getFullYear().toString();
 
-      const defaultClasses = [
-        {
-          school_id: school.id,
-          name: "P1",
-          level: "primary",
-          academic_year: currentYear,
-        },
-        {
-          school_id: school.id,
-          name: "P2",
-          level: "primary",
-          academic_year: currentYear,
-        },
-        {
-          school_id: school.id,
-          name: "P3",
-          level: "primary",
-          academic_year: currentYear,
-        },
-        {
-          school_id: school.id,
-          name: "P4",
-          level: "primary",
-          academic_year: currentYear,
-        },
-        {
-          school_id: school.id,
-          name: "P5",
-          level: "primary",
-          academic_year: currentYear,
-        },
-        {
-          school_id: school.id,
-          name: "P6",
-          level: "primary",
-          academic_year: currentYear,
-        },
-        {
-          school_id: school.id,
-          name: "P7",
-          level: "primary",
-          academic_year: currentYear,
-        },
-      ];
-      await supabase.from("classes").insert(defaultClasses);
+      const schoolType =
+        ((school as any)?.school_type || "primary") as SchoolSetupType;
+      const defaultClasses = buildDefaultClasses(
+        school.id,
+        schoolType,
+        currentYear,
+      );
+      await supabase
+        .from("classes")
+        .upsert(defaultClasses, { onConflict: "school_id,name,academic_year" });
 
       const defaultSubjects = [
         {
@@ -169,6 +139,17 @@ function TeacherDashboardContent() {
         end_date: `${currentYear}-12-31`,
         is_current: true,
       });
+
+      const { count: slotCount } = await supabase
+        .from("timetable_slots")
+        .select("id", { count: "exact", head: true })
+        .eq("school_id", school.id);
+
+      if (!slotCount) {
+        await supabase
+          .from("timetable_slots")
+          .insert(buildDefaultTimetableSlots(school.id));
+      }
 
       toast?.success("School setup complete!");
       router.refresh();
