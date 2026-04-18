@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { calculateStudentFeePosition } from "@/lib/operations";
+import { normalizeAuthPhone } from "@/lib/validation";
 
 const PARENT_SELECTED_CHILD_KEY = "parent_selected_child_id";
 
@@ -94,14 +95,8 @@ export default function ParentPortal() {
     setError("");
 
     try {
-      // Format phone
-      let formattedPhone = phone.replace(/^0/, "+256");
-      if (phone.startsWith("+256")) {
-        formattedPhone = phone;
-      }
-
       // Verify password using Supabase auth
-      const email = `${formattedPhone}@omuto.org`;
+      const email = `${normalizeAuthPhone(phone)}@omuto.org`;
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,

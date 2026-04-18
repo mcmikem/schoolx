@@ -16,6 +16,7 @@ const publicPaths = [
   "/api/register",
   "/api/setup",
   "/api/payment/webhook",
+  "/api/payment/paypal/webhook",
   "/api/sms",
   "/api/schoolpay",
   "/api/reports",
@@ -23,7 +24,7 @@ const publicPaths = [
   "/favicon.ico",
 ];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public paths without auth check

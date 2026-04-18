@@ -7,6 +7,7 @@ import AnimatedLogo from "@/components/AnimatedLogo";
 import { t, tWithParams } from "@/i18n";
 import { Button, Input } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
+import { normalizeAuthPhone } from "@/lib/validation";
 
 const DEMO_KEY = "skoolmate_demo_v1";
 const DEMO_MODE_ENABLED =
@@ -77,7 +78,7 @@ export default function LoginPage() {
   }
 
   const validatePhone = (phone: string): boolean => {
-    const clean = phone.replace(/[^0-9]/g, "");
+    const clean = normalizeAuthPhone(phone);
     return clean.length >= 10 && clean.length <= 12;
   };
 
@@ -102,7 +103,7 @@ export default function LoginPage() {
 
     setLoading(true);
 
-    const cleanPhone = phone.replace(/[^0-9]/g, "");
+    const cleanPhone = normalizeAuthPhone(phone);
 
     // Clear any previous demo data before login
     localStorage.removeItem(DEMO_KEY);

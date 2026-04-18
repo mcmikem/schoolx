@@ -13,6 +13,7 @@ import { PlanType } from "./payments/subscription-client";
 import { FeatureStage, DEFAULT_FEATURE_STAGE } from "./featureStages";
 import type { User, School } from "@/types";
 import { logger } from "./logger";
+import { normalizeAuthPhone } from "./validation";
 
 // Roles that demo sessions are allowed to assume.
 // super_admin / school_admin are intentionally excluded to prevent privilege injection.
@@ -357,7 +358,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signIn(phone: string, password: string) {
     try {
-      const email = `${phone}@omuto.org`;
+      const email = `${normalizeAuthPhone(phone)}@omuto.org`;
       const { data, error } = await supabase!.auth.signInWithPassword({
         email,
         password,
@@ -389,14 +390,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signUp(phone: string, password: string, name: string) {
     try {
-      const email = `${phone}@omuto.org`;
+      const normalizedPhone = normalizeAuthPhone(phone);
+      const email = `${normalizedPhone}@omuto.org`;
       const { data, error } = await supabase!.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: name,
-            phone: phone,
+            phone: normalizedPhone,
           },
         },
       });

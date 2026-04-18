@@ -5,6 +5,7 @@ import {
   PRIMARY_TEMPLATE,
   SECONDARY_TEMPLATE,
 } from "@/lib/curriculum-templates";
+import { normalizeAuthPhone } from "@/lib/validation";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -140,7 +141,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Normalize phone number (remove spaces, dashes, keep only digits)
-    const normalizedPhone = adminPhone.replace(/[^0-9]/g, "");
+    const normalizedPhone = normalizeAuthPhone(adminPhone);
 
     if (normalizedPhone.length < 10 || normalizedPhone.length > 12) {
       return apiError(

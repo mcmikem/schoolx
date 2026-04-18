@@ -1,5 +1,6 @@
 import {
   isFutureDate,
+  normalizeAuthPhone,
   sanitizeString,
   sanitizePhone,
   sanitizeNumber,
@@ -55,6 +56,14 @@ describe('Validation - String Sanitization', () => {
 
     test('handles empty input', () => {
       expect(sanitizePhone('')).toBe('')
+    })
+  })
+
+  describe('normalizeAuthPhone', () => {
+    test('normalizes local and international Uganda numbers to one auth id', () => {
+      expect(normalizeAuthPhone('0700 000 000')).toBe('256700000000')
+      expect(normalizeAuthPhone('+256700000000')).toBe('256700000000')
+      expect(normalizeAuthPhone('700000000')).toBe('256700000000')
     })
   })
 
