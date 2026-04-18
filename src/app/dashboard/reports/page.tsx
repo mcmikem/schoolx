@@ -174,7 +174,30 @@ export default function ReportsPage() {
         }
       />
 
-      <Card className="p-4 mb-6">
+      <div className="dashboard-soft-grid">
+        <div className="dashboard-kpi-card">
+          <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)]">Students</div>
+          <div className="text-3xl font-extrabold text-[var(--t1)] mt-2">{filteredStudents.length}</div>
+          <div className="text-sm text-[var(--t3)] mt-2">Available for reporting</div>
+        </div>
+        <div className="dashboard-kpi-card">
+          <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)]">Classes</div>
+          <div className="text-3xl font-extrabold text-[var(--t1)] mt-2">{classes.length}</div>
+          <div className="text-sm text-[var(--t3)] mt-2">Selectable report groups</div>
+        </div>
+        <div className="dashboard-kpi-card">
+          <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)]">Current term</div>
+          <div className="text-3xl font-extrabold text-[var(--t1)] mt-2">{currentTerm}</div>
+          <div className="text-sm text-[var(--t3)] mt-2">{academicYear} academic cycle</div>
+        </div>
+        <div className="dashboard-kpi-card">
+          <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)]">Report status</div>
+          <div className="text-3xl font-extrabold text-[var(--t1)] mt-2">{selectedStudentId ? "Ready" : "Idle"}</div>
+          <div className="text-sm text-[var(--t3)] mt-2">Select a learner to preview</div>
+        </div>
+      </div>
+
+      <Card className="dashboard-toolbar mb-6">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <input

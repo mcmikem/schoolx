@@ -2,6 +2,7 @@
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
+import { useAcademic } from '@/lib/academic-context'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import MaterialIcon from '@/components/MaterialIcon'
@@ -15,6 +16,7 @@ interface HomeworkSubmission {
   student_id: string
   submitted_at?: string
   marks?: number
+  marks_obtained?: number
   feedback?: string
   status: 'pending' | 'submitted' | 'graded'
   students?: { first_name: string; last_name: string; classes: { name: string }[] }
@@ -22,6 +24,7 @@ interface HomeworkSubmission {
 
 export default function HomeworkSubmissionsPage() {
   const { school } = useAuth()
+  const { academicYear, currentTerm } = useAcademic()
   const toast = useToast()
   
   const [homeworks, setHomeworks] = useState<any[]>([])
@@ -42,6 +45,8 @@ export default function HomeworkSubmissionsPage() {
       .from('homework')
       .select('*, subjects(name), classes(name), users(full_name)')
       .eq('school_id', school?.id)
+      .eq('academic_year', academicYear)
+      .eq('term', currentTerm)
       .order('due_date', { ascending: false })
 
     if (classFilter) {
@@ -51,7 +56,7 @@ export default function HomeworkSubmissionsPage() {
     const { data } = await query
     setHomeworks(data || [])
     setLoading(false)
-  }, [school?.id, classFilter])
+  }, [school?.id, classFilter, academicYear, currentTerm])
 
   const fetchSubmissions = useCallback(async () => {
     if (!selectedHomework) return
@@ -74,7 +79,7 @@ export default function HomeworkSubmissionsPage() {
       homework_id: selectedHomework.id,
       status: submittedIds.has(student.id) ? 'submitted' : 'pending',
       submitted_at: submissionsData?.find(s => s.student_id === student.id)?.submitted_at,
-      marks: submissionsData?.find(s => s.student_id === student.id)?.marks,
+      marks: submissionsData?.find(s => s.student_id === student.id)?.marks ?? submissionsData?.find(s => s.student_id === student.id)?.marks_obtained,
       students: student
     }))
 
@@ -97,15 +102,16 @@ export default function HomeworkSubmissionsPage() {
   const markSubmission = async (submission: any, marks: number, feedback: string) => {
     if (!submission.id) {
       await supabase.from('homework_submissions').insert({
+        school_id: school?.id,
         homework_id: selectedHomework.id,
         student_id: submission.student_id,
         submitted_at: new Date().toISOString(),
-        marks,
+        marks_obtained: marks,
         feedback,
         status: 'graded'
       })
     } else {
-      await supabase.from('homework_submissions').update({ marks, feedback, status: 'graded' }).eq('id', submission.id)
+      await supabase.from('homework_submissions').update({ marks_obtained: marks, feedback, status: 'graded' }).eq('id', submission.id)
     }
     toast.success('Submission graded')
     fetchSubmissions()
@@ -215,12 +221,12 @@ export default function HomeworkSubmissionsPage() {
                         </td>
                         <td className="p-4 text-sm text-[var(--t3)]">{sub.submitted_at ? new Date(sub.submitted_at).toLocaleDateString() : '-'}</td>
                         <td className="p-4 text-sm">
-                          {sub.marks != null ? `${sub.marks}/${selectedHomework.total_marks}` : '-'}
+                          {sub.marks != null ? `${sub.marks}/${selectedHomework.marks || selectedHomework.total_marks || 0}` : '-'}
                         </td>
                         <td className="p-4">
                           <GradingModal 
                             submission={sub} 
-                            maxMarks={selectedHomework.total_marks}
+                            maxMarks={selectedHomework.marks || selectedHomework.total_marks || 0}
                             onSave={(marks, feedback) => markSubmission(sub, marks, feedback)}
                           />
                         </td>

@@ -1409,7 +1409,7 @@ export default function StudentHubPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Student Hub"
         subtitle={`${students.length} students enrolled in ${academicYear} (${students.filter((s) => s.gender === "M").length} Boys / ${students.filter((s) => s.gender === "F").length} Girls)`}
@@ -1440,6 +1440,33 @@ export default function StudentHubPage() {
         girlsCount={students.filter((s) => s.gender === "F").length}
         atRiskCount={atRiskStudents.length}
       />
+
+      <div className="dashboard-toolbar">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)] mb-1">
+              Registry snapshot
+            </div>
+            <div className="text-lg font-bold text-[var(--t1)]">
+              Admissions, class balance, and risk follow-up at a glance
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="dashboard-pill bg-emerald-50 text-emerald-700">
+              {students.length} enrolled
+            </span>
+            <span className="dashboard-pill bg-blue-50 text-blue-700">
+              {classes.length} classes
+            </span>
+            <span className="dashboard-pill bg-amber-50 text-amber-700">
+              Term {currentTerm || "-"}
+            </span>
+            <span className="dashboard-pill bg-rose-50 text-rose-700">
+              {atRiskStudents.length} follow-up
+            </span>
+          </div>
+        </div>
+      </div>
 
       <PageGuidance
         title="How to Manage Students"
@@ -1515,14 +1542,7 @@ export default function StudentHubPage() {
 
         {students.length === 0 && <OnboardingTips schoolId={school?.id} />}
 
-        <div
-          className="card"
-          style={{
-            padding: "22px",
-            borderRadius: "24px",
-            marginBottom: "20px",
-          }}
-        >
+        <div className="dashboard-surface p-5 sm:p-6 mb-5">
           <div className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--navy)] mb-2">
             Quick import
           </div>

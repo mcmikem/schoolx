@@ -10,6 +10,7 @@ import { useToast } from "@/components/Toast";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
+import { buildAcademicYear, mapSchemeWeekFromRecord } from "@/lib/academics-utils";
 
 interface SchemeWeek {
   week: number;
@@ -18,6 +19,15 @@ interface SchemeWeek {
   objectives: string;
   resources: string;
 }
+
+const createEmptyWeeks = (): SchemeWeek[] =>
+  Array.from({ length: 12 }, (_, i) => ({
+    week: i + 1,
+    topic: "",
+    subtopics: "",
+    objectives: "",
+    resources: "",
+  }));
 
 export default function SchemeOfWorkPage() {
   const { school, user } = useAuth();
@@ -29,64 +39,57 @@ export default function SchemeOfWorkPage() {
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [term, setTerm] = useState("1");
-  const [weeks, setWeeks] = useState<SchemeWeek[]>(
-    Array.from({ length: 12 }, (_, i) => ({
-      week: i + 1,
-      topic: "",
-      subtopics: "",
-      objectives: "",
-      resources: "",
-    })),
-  );
+  const [weeks, setWeeks] = useState<SchemeWeek[]>(createEmptyWeeks());
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
   const loadScheme = useCallback(async () => {
-    if (!school?.id) return;
+    if (!school?.id || !selectedClass || !selectedSubject) return;
     setLoading(true);
     try {
-      const { data } = await supabase
+      const targetYear = buildAcademicYear(academicYear);
+      const { data, error } = await supabase
         .from("scheme_of_work")
         .select("*")
         .eq("school_id", school.id)
         .eq("class_id", selectedClass)
         .eq("subject_id", selectedSubject)
         .eq("term", parseInt(term))
-        .eq("academic_year", academicYear)
-        .order("week");
+        .eq("academic_year", targetYear)
+        .order("week_number");
 
+      if (error) throw error;
+
+      const baseWeeks = createEmptyWeeks();
       if (data && data.length > 0) {
-        const weekMap = new Map(data.map((d) => [d.week, d]));
-        const updated = weeks.map((w) => {
-          const saved = weekMap.get(w.week);
-          return saved
-            ? {
-                week: saved.week,
-                topic: saved.topic || "",
-                subtopics: saved.subtopics || "",
-                objectives: saved.objectives || "",
-                resources: saved.resources || "",
-              }
-            : w;
-        });
-        setWeeks(updated);
+        const weekMap = new Map(
+          data.map((row) => [Number(row.week_number ?? row.week), row]),
+        );
+        setWeeks(
+          baseWeeks.map((week) => {
+            const saved = weekMap.get(week.week);
+            return saved ? mapSchemeWeekFromRecord(saved) : week;
+          }),
+        );
+      } else {
+        setWeeks(baseWeeks);
       }
     } catch (err) {
       console.error("Failed to load scheme:", err);
       toast.error("Failed to load scheme of work");
+      setWeeks(createEmptyWeeks());
     } finally {
       setLoading(false);
+      setHasChanges(false);
     }
-    setHasChanges(false);
-  }, [school?.id, selectedClass, selectedSubject, term, academicYear, weeks, toast]);
+  }, [school?.id, selectedClass, selectedSubject, term, academicYear, toast]);
 
   useEffect(() => {
     if (selectedClass && selectedSubject) {
       loadScheme();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClass, selectedSubject]);
+  }, [selectedClass, selectedSubject, term, loadScheme]);
 
   const updateWeek = (
     index: number,
@@ -107,6 +110,8 @@ export default function SchemeOfWorkPage() {
 
     setSaving(true);
     try {
+      const targetYear = buildAcademicYear(academicYear);
+
       await supabase
         .from("scheme_of_work")
         .delete()
@@ -114,7 +119,7 @@ export default function SchemeOfWorkPage() {
         .eq("class_id", selectedClass)
         .eq("subject_id", selectedSubject)
         .eq("term", parseInt(term))
-        .eq("academic_year", academicYear);
+        .eq("academic_year", targetYear);
 
       const toInsert = weeks
         .filter((w) => w.topic.trim())
@@ -123,7 +128,7 @@ export default function SchemeOfWorkPage() {
           class_id: selectedClass,
           subject_id: selectedSubject,
           term: parseInt(term),
-          academic_year: academicYear,
+          academic_year: targetYear,
           week_number: w.week,
           topic: w.topic,
           subtopics: w.subtopics,

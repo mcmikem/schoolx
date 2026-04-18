@@ -660,13 +660,18 @@ table tr {
 
   /* Mobile Navigation */
   .mobile-bottom-nav {
-    @apply fixed bottom-0 left-0 w-full bg-[var(--surface)] border-t border-[var(--border)] flex items-end justify-around px-1 z-50 sm:hidden shadow-[0_-4px_12px_rgba(0,0,0,0.05)];
-    padding-bottom: max(8px, env(safe-area-inset-bottom));
-    height: auto;
-    min-height: 64px;
+    @apply fixed left-1/2 -translate-x-1/2 bg-[var(--surface)] border border-[var(--border)] flex items-end justify-around px-1 z-50 sm:hidden;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    width: min(96vw, 560px);
+    border-radius: 18px;
+    padding: 6px;
+    box-shadow:
+      0 12px 30px rgba(1, 31, 63, 0.12),
+      0 2px 8px rgba(1, 31, 63, 0.08);
+    backdrop-filter: blur(12px);
   }
   .mobile-nav-item {
-    @apply flex flex-col items-center justify-center gap-0.5 text-[var(--t3)] transition-all rounded-xl min-w-[64px] min-h-[48px] flex-1 max-w-[80px] py-1.5 px-1;
+    @apply flex flex-col items-center justify-center gap-0.5 text-[var(--t3)] transition-all rounded-xl min-w-[62px] min-h-[48px] flex-1 max-w-[88px] py-1.5 px-1;
     text-decoration: none;
     border: none;
     background: transparent;
@@ -689,7 +694,7 @@ table tr {
     opacity: 0.85;
   }
   .mobile-nav-item span {
-    @apply text-[11px] font-bold uppercase tracking-wider truncate w-full text-center;
+    @apply text-[10px] font-bold uppercase tracking-wider truncate w-full text-center;
   }
 
   /* -- BOTTOM SHEET ANIMATION -- */
@@ -858,6 +863,27 @@ table tr {
   min-height: 44px;
 }
 
+.topbar {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.94) 0%,
+    rgba(255, 255, 255, 0.88) 100%
+  );
+  backdrop-filter: blur(10px);
+}
+
+[data-theme="dark"] .topbar {
+  background: linear-gradient(
+    180deg,
+    rgba(26, 33, 41, 0.92) 0%,
+    rgba(26, 33, 41, 0.86) 100%
+  );
+}
+
+.sidebar {
+  transition: transform 220ms var(--ease), box-shadow 220ms var(--ease);
+}
+
 /* Desktop: sidebar always visible */
 @media (min-width: 1024px) {
   .sidebar {
@@ -875,7 +901,9 @@ table tr {
 /* Tablet / mobile: sidebar hidden by default, slides in on toggle */
 @media (max-width: 1023px) {
   .sidebar {
-    display: none !important;
+    display: flex !important;
+    transform: translateX(-105%);
+    pointer-events: none;
   }
   .sidebar.open {
     display: flex !important;
@@ -885,6 +913,8 @@ table tr {
     bottom: 0 !important;
     width: 280px !important;
     z-index: 9999 !important;
+    transform: translateX(0);
+    pointer-events: auto;
   }
   .mobile-menu-btn {
     display: flex !important;
@@ -899,7 +929,8 @@ table tr {
     display: block !important;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
     z-index: 9998;
   }
   .nav-item {
@@ -908,9 +939,9 @@ table tr {
   }
   .main-content {
     margin-left: 0 !important;
-    padding: 0 12px !important;
+    padding: 0 10px !important;
     width: 100% !important;
-    padding-bottom: 90px !important;
+    padding-bottom: 108px !important;
   }
   .topbar {
     padding: 0 12px !important;
@@ -1004,4 +1035,37 @@ h6,
 
 .btn-navy:hover {
   @apply brightness-110 shadow-[var(--sh2)];
+}
+
+.dashboard-surface {
+  @apply bg-[var(--surface)] border border-[var(--border)] rounded-[var(--r2)] shadow-[var(--sh2)];
+}
+
+.dashboard-toolbar {
+  @apply bg-[var(--surface)] border border-[var(--border)] rounded-[18px] p-4 sm:p-5 shadow-[var(--sh1)];
+}
+
+.dashboard-soft-grid {
+  @apply grid gap-4 sm:grid-cols-2 xl:grid-cols-4;
+}
+
+.dashboard-kpi-card {
+  @apply bg-[var(--surface)] border border-[var(--border)] rounded-[18px] p-4 sm:p-5 shadow-[var(--sh1)] transition-all duration-200;
+}
+
+.dashboard-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sh3);
+}
+
+.dashboard-note-card {
+  @apply rounded-[18px] border border-[var(--border)] bg-[var(--surface-container-low)] p-4;
+}
+
+.dashboard-table-wrap {
+  @apply overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)];
+}
+
+.dashboard-pill {
+  @apply inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em];
 }

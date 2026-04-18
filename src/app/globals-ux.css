@@ -5,22 +5,23 @@
  * - Transitions
  */
 
-/* Touch-friendly interactive elements */
+/* Touch-friendly interactive controls */
 button,
 [role="button"],
-a,
 input[type="checkbox"],
 input[type="radio"],
 select,
-[tabindex]:not([tabindex="-1"]) {
+summary,
+.tap-target {
   min-height: 44px;
   min-width: 44px;
 }
 
 /* Focus visible states for accessibility */
 :focus-visible {
-  outline: 2px solid var(--primary, #2563eb);
+  outline: 2px solid var(--primary, #0056d2);
   outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(0, 86, 210, 0.2);
 }
 
 /* Reduce motion for users who prefer it */
@@ -43,8 +44,17 @@ select,
   }
 }
 
-/* Smooth transitions */
-* {
+/* Smooth transitions on interactive UI only */
+a,
+button,
+input,
+select,
+textarea,
+[role="button"],
+.card,
+.stat-card,
+.mobile-nav-item,
+.nav-item {
   transition-property:
     background-color, border-color, color, fill, stroke, opacity, box-shadow,
     transform;

@@ -31,11 +31,11 @@ import {
 
 interface TopicCoverage {
   id: string;
-  subject_id: string;
+  syllabus_id?: string;
   class_id: string;
   topic_name: string;
   status: "not_started" | "in_progress" | "completed";
-  teacher_id: string;
+  teacher_id?: string;
 }
 
 const STANDARD_TOPICS: Record<string, string[]> = {
@@ -726,14 +726,25 @@ export default function GradesPage() {
   const fetchCoverage = useCallback(async () => {
     try {
       setLoading(true);
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("topic_coverage")
-        .select("*")
+        .select("id, syllabus_id, class_id, teacher_id, status, syllabus!inner(topic, subject_id, term, academic_year)")
         .eq("class_id", selectedClass)
-        .eq("subject_id", selectedSubject)
-        .eq("term", currentTerm)
-        .eq("academic_year", academicYear);
-      setCoverage(data || []);
+        .eq("syllabus.subject_id", selectedSubject)
+        .eq("syllabus.term", currentTerm)
+        .eq("syllabus.academic_year", academicYear);
+
+      if (error) throw error;
+
+      const mapped = (data || []).map((row: any) => ({
+        id: row.id,
+        syllabus_id: row.syllabus_id,
+        class_id: row.class_id,
+        teacher_id: row.teacher_id,
+        status: row.status,
+        topic_name: row.syllabus?.topic || "",
+      }));
+      setCoverage(mapped);
     } catch (err) {
       console.error("Error fetching coverage:", err);
     } finally {
@@ -758,19 +769,35 @@ export default function GradesPage() {
           .from("topic_coverage")
           .update({
             status,
-            date_completed:
-              status === "completed" ? new Date().toISOString() : null,
+            teacher_id: user?.id,
+            completed_date:
+              status === "completed" ? new Date().toISOString().split("T")[0] : null,
           })
           .eq("id", existing.id);
       } else {
+        const { data: syllabusRow, error } = await supabase
+          .from("syllabus")
+          .select("id")
+          .eq("school_id", school?.id)
+          .eq("class_id", selectedClass)
+          .eq("subject_id", selectedSubject)
+          .eq("term", currentTerm)
+          .eq("academic_year", academicYear)
+          .eq("topic", topicName)
+          .maybeSingle();
+
+        if (error || !syllabusRow?.id) {
+          toast.error("Add this topic in the syllabus page first");
+          return;
+        }
+
         await supabase.from("topic_coverage").insert({
-          subject_id: selectedSubject,
+          syllabus_id: syllabusRow.id,
           class_id: selectedClass,
-          topic_name: topicName,
-          status,
           teacher_id: user?.id,
-          term: currentTerm,
-          academic_year: academicYear,
+          status,
+          completed_date:
+            status === "completed" ? new Date().toISOString().split("T")[0] : null,
         });
       }
       fetchCoverage();

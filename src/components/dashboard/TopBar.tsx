@@ -68,7 +68,7 @@ function NotificationsPanel({
   if (!open) return null;
 
   return (
-    <div className="absolute top-full right-0 mt-2 bg-[var(--surface)] border border-[var(--border)] rounded-[var(--r)] shadow-[var(--sh3)] min-w-[280px] z-100 overflow-hidden">
+    <div className="absolute top-full right-0 mt-2 bg-[var(--surface)] border border-[var(--border)] rounded-[14px] shadow-[var(--sh3)] min-w-[300px] max-w-[360px] z-100 overflow-hidden">
       <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between">
         <span className="text-[13px] font-semibold text-[var(--t1)]">
           Notifications
@@ -98,7 +98,7 @@ function NotificationsPanel({
           return (
             <div
               key={n.id}
-              className={`flex gap-3 px-4 py-3 border-b border-[var(--border)] hover:bg-[var(--bg)] transition-colors ${!n.read ? 'bg-blue-50/50' : ''}`}
+              className={`flex gap-3 px-4 py-3.5 border-b border-[var(--border)] hover:bg-[var(--bg)] transition-colors ${!n.read ? 'bg-blue-50/50' : ''}`}
               onClick={() => {
                 if (!n.read) onDismiss(n.id);
                 if (n.link) window.location.href = n.link;
@@ -170,7 +170,7 @@ function UserMenu({
   if (!open) return null;
 
   return (
-    <div className="absolute top-full right-0 mt-2 bg-[var(--surface)] border border-[var(--border)] rounded-[var(--r)] shadow-[var(--sh3)] min-w-[160px] z-100 overflow-hidden">
+    <div className="absolute top-full right-0 mt-2 bg-[var(--surface)] border border-[var(--border)] rounded-[14px] shadow-[var(--sh3)] min-w-[180px] z-100 overflow-hidden">
       <Link
         href="/dashboard/settings"
         onClick={onClose}
@@ -227,6 +227,12 @@ export default function TopBar({
 
   const schoolName = school?.name || "My School";
   const currentDate = new Date();
+  const formattedDate = currentDate.toLocaleDateString("en-UG", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
   const routeLabels: Record<string, string> = {
     dashboard: "Home",
@@ -267,7 +273,7 @@ export default function TopBar({
   const nextStep = getNextStep(path || "/dashboard");
 
   return (
-    <header className="topbar bg-[var(--surface)] border-b border-[var(--border)] h-[60px] flex items-center px-8 gap-[18px] sticky top-0 z-50 shadow-[var(--sh1)] flex-shrink-0">
+    <header className="topbar border-b border-[var(--border)] h-[64px] flex items-center px-3 sm:px-5 lg:px-6 gap-2 sm:gap-3 sticky top-0 z-50 shadow-[var(--sh1)] flex-shrink-0">
       <button
         onClick={() => {
           if (isOpen) closeSidebar();
@@ -283,20 +289,15 @@ export default function TopBar({
       </button>
 
       <div className="flex-1 min-w-0">
-        <div className="font-['Sora'] text-[18px] font-bold text-[var(--t1)] tracking-[-.2px] truncate">
+        <div className="font-['Sora'] text-[16px] sm:text-[18px] font-bold text-[var(--t1)] tracking-[-.2px] truncate">
           {pageTitle}
         </div>
-        <div className="text-[12px] text-[var(--t3)] mt-0.5 flex items-center gap-2 truncate">
+        <div className="text-[11px] sm:text-[12px] text-[var(--t3)] mt-0.5 flex items-center gap-2 truncate">
           <span className="truncate">
-            {currentDate.toLocaleDateString("en-UG", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
+            {formattedDate}
           </span>
           <span aria-hidden>•</span>
-          <span className="uppercase tracking-wide text-[10px] truncate flex items-center gap-1.5">
+          <span className="uppercase tracking-wide text-[10px] truncate hidden md:flex items-center gap-1.5">
             {breadcrumbs.map((crumb, i) => (
               <span key={crumb.href} className="flex items-center gap-1.5">
                 {i > 0 && <span className="text-[var(--t4)]">/</span>}
@@ -318,7 +319,7 @@ export default function TopBar({
         </div>
       </div>
 
-      <div className="search-bar flex items-center gap-[10px] bg-[var(--bg)] border border-[var(--border)] rounded-[10px] px-[14px] py-2 text-[13px] text-[var(--t3)] min-w-[240px] cursor-text">
+      <div className="search-bar flex items-center gap-[10px] bg-[var(--bg)] border border-[var(--border)] rounded-[12px] px-[14px] py-2 text-[13px] text-[var(--t3)] min-w-[260px] cursor-text">
         <GlobalSearch />
       </div>
 
@@ -335,10 +336,10 @@ export default function TopBar({
         <MaterialIcon icon="search" style={{ fontSize: 22 }} />
       </button>
 
-      <div className="flex items-center gap-[10px]">
+      <div className="flex items-center gap-2">
         <Link
           href={nextStep.href}
-          className="flex items-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-[10px] bg-[var(--primary)] text-[var(--on-primary)] text-[12px] font-semibold no-underline shadow-[var(--sh1)] hover:opacity-90 transition-opacity"
+          className="flex items-center gap-1.5 h-10 px-2.5 sm:px-3 rounded-[12px] bg-[var(--primary)] text-[var(--on-primary)] text-[12px] font-semibold no-underline shadow-[var(--sh1)] hover:opacity-90 transition-opacity"
           aria-label={`Next step: ${nextStep.label}`}
         >
           <MaterialIcon
@@ -346,13 +347,13 @@ export default function TopBar({
             className="text-[var(--on-primary)]"
             style={{ fontSize: 15 }}
           />
-          <span className="hidden sm:inline">{nextStep.label}</span>
+          <span className="hidden lg:inline">Next: {nextStep.label}</span>
         </Link>
 
         <div className="notif-panel relative">
           <button
             onClick={() => setNotifOpen(!notifOpen)}
-            className="w-9 h-9 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center cursor-pointer shadow-[var(--sh1)] relative hover:bg-[var(--bg)] transition-colors"
+            className="w-10 h-10 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center cursor-pointer shadow-[var(--sh1)] relative hover:bg-[var(--bg)] transition-colors"
             aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
           >
             <MaterialIcon
@@ -373,7 +374,7 @@ export default function TopBar({
 
         <button
           onClick={toggleTheme}
-          className="w-9 h-9 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center cursor-pointer shadow-[var(--sh1)] hover:bg-[var(--bg)] transition-colors"
+          className="w-10 h-10 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center cursor-pointer shadow-[var(--sh1)] hover:bg-[var(--bg)] transition-colors"
           aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
         >
           <MaterialIcon
@@ -384,7 +385,7 @@ export default function TopBar({
 
         <div className="relative">
           <button
-            className="user-menu flex items-center gap-[10px] py-[5px] pr-3 pl-1 bg-[var(--surface)] border border-[var(--border)] rounded-full cursor-pointer shadow-[var(--sh1)] transition-all hover:bg-[var(--bg)]"
+            className="user-menu flex items-center gap-[10px] py-1.5 pr-3 pl-1 bg-[var(--surface)] border border-[var(--border)] rounded-full cursor-pointer shadow-[var(--sh1)] transition-all hover:bg-[var(--bg)]"
             onClick={() => setUserMenuOpen(!userMenuOpen)}
             aria-label="User menu"
             aria-expanded={userMenuOpen}

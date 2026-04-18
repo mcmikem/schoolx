@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { calculateStudentFeePosition } from "@/lib/operations";
-import { normalizeAuthPhone } from "@/lib/validation";
+import { buildAuthLoginAttempts } from "@/lib/auth-login";
 
 const PARENT_SELECTED_CHILD_KEY = "parent_selected_child_id";
 
@@ -95,14 +95,31 @@ export default function ParentPortal() {
     setError("");
 
     try {
-      // Verify password using Supabase auth
-      const email = `${normalizeAuthPhone(phone)}@omuto.org`;
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      let authData: { user: { id: string } } | null = null;
+      let authError: { message?: string } | null = null;
 
-      if (authError) {
+      for (const attempt of buildAuthLoginAttempts(phone)) {
+        const result =
+          attempt.type === "email"
+            ? await supabase.auth.signInWithPassword({
+                email: attempt.value,
+                password,
+              })
+            : await supabase.auth.signInWithPassword({
+                phone: attempt.value,
+                password,
+              });
+
+        if (!result.error && result.data.user) {
+          authData = result.data as { user: { id: string } };
+          authError = null;
+          break;
+        }
+
+        authError = result.error;
+      }
+
+      if (authError || !authData?.user) {
         setError("Invalid credentials");
         setLoading(false);
         return;

@@ -1174,6 +1174,33 @@ export default function FinanceHubPage() {
         formatValue={(val) => formatCurrency(val).split(' ').pop() || '0'}
       />
 
+      <div className="dashboard-toolbar">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)] mb-1">
+              Finance pulse
+            </div>
+            <div className="text-lg font-bold text-[var(--t1)]">
+              Collections, arrears, and payment-plan activity in one cleaner workflow
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="dashboard-pill bg-emerald-50 text-emerald-700">
+              {payments.length} payments
+            </span>
+            <span className="dashboard-pill bg-blue-50 text-blue-700">
+              {activePlanCount} active plans
+            </span>
+            <span className="dashboard-pill bg-amber-50 text-amber-700">
+              {classes.length} classes
+            </span>
+            <span className="dashboard-pill bg-rose-50 text-rose-700">
+              {stats.notPaid} unpaid
+            </span>
+          </div>
+        </div>
+      </div>
+
       <PageGuidance
         title="How to Manage Fees"
         tips={[
@@ -1223,9 +1250,14 @@ export default function FinanceHubPage() {
 
       {tab === "balances" && (
         <>
-          <FeeStats stats={stats} paymentsCount={payments.length} />
+          <FeeStats
+            stats={stats}
+            paymentsCount={payments.length}
+            onFilter={(status) => setStatusFilter(status === "unpaid" ? "unpaid" : status === "paid" ? "paid" : status === "partial" ? "partial" : "all")}
+            activeFilter={statusFilter === "written_off" ? "all" : statusFilter}
+          />
 
-          <div className="bg-surface-container-low rounded-xl p-6 mb-6">
+          <div className="dashboard-toolbar mb-6">
             <div className="flex flex-col lg:flex-row gap-4 items-center">
               <div className="relative w-full lg:flex-1">
                 <MaterialIcon

@@ -23,6 +23,12 @@ import {
   P7_ALL_SUBJECTS,
   NSDCTopic,
 } from "@/lib/ndc-syllabus";
+import {
+  buildAcademicYear,
+  parseStoredSubtopics,
+  resolveCurriculumStage,
+  subjectNamesMatch,
+} from "@/lib/academics-utils";
 
 interface SyllabusTopic {
   id: string;
@@ -45,6 +51,7 @@ export default function SyllabusPage() {
 
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
+  const [selectedTerm, setSelectedTerm] = useState("1");
   const [topics, setTopics] = useState<SyllabusTopic[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -59,43 +66,21 @@ export default function SyllabusPage() {
   });
   const [populating, setPopulating] = useState(false);
 
-  const getClassLevel = (className: string): number => {
-    const match = className.match(/S[1-6]/);
-    if (match) return parseInt(match[0].replace("S", ""));
-    const pMatch = className.match(/P[1-7]/);
-    if (pMatch) return parseInt(pMatch[0].replace("P", ""));
-    return 1;
-  };
-
   const getNDCCTopics = (): NSDCTopic[] => {
-    const level = getClassLevel(
-      classes.find((c) => c.id === selectedClass)?.name || "",
-    );
+    const className = classes.find((c) => c.id === selectedClass)?.name || "";
     const subjectName =
       subjects.find((s) => s.id === selectedSubject)?.name || "";
+    const { stage, level } = resolveCurriculumStage(className);
 
-    if (level >= 1 && level <= 3) {
-      const primaryMap: Record<number, NSDCTopic[]> = {
-        1: P1_ALL_SUBJECTS,
-        2: P2_ALL_SUBJECTS,
-        3: P3_ALL_SUBJECTS,
-      };
-      return (primaryMap[level] || []).filter(
-        (t) => t.subject.toLowerCase() === subjectName.toLowerCase(),
-      );
-    }
-
-    if (level >= 4 && level <= 7) {
-      const upperPrimaryMap: Record<number, NSDCTopic[]> = {
-        4: P4_ALL_SUBJECTS,
-        5: P5_ALL_SUBJECTS,
-        6: P6_ALL_SUBJECTS,
-        7: P7_ALL_SUBJECTS,
-      };
-      return (upperPrimaryMap[level] || []).filter(
-        (t) => t.subject.toLowerCase() === subjectName.toLowerCase(),
-      );
-    }
+    const primaryMap: Record<number, NSDCTopic[]> = {
+      1: P1_ALL_SUBJECTS,
+      2: P2_ALL_SUBJECTS,
+      3: P3_ALL_SUBJECTS,
+      4: P4_ALL_SUBJECTS,
+      5: P5_ALL_SUBJECTS,
+      6: P6_ALL_SUBJECTS,
+      7: P7_ALL_SUBJECTS,
+    };
 
     const secondaryMap: Record<number, NSDCTopic[]> = {
       1: S1_ALL_SUBJECTS,
@@ -105,32 +90,63 @@ export default function SyllabusPage() {
       5: S5_ALL_SUBJECTS,
       6: S6_ALL_SUBJECTS,
     };
-    return (secondaryMap[level] || []).filter(
-      (t) => t.subject.toLowerCase() === subjectName.toLowerCase(),
-    );
+
+    const source =
+      stage === "primary"
+        ? primaryMap[level] || []
+        : stage === "secondary"
+          ? secondaryMap[level] || []
+          : [];
+
+    return source.filter((topic) => subjectNamesMatch(topic.subject, subjectName));
   };
 
   const handleAutoPopulate = async () => {
     if (!school?.id || !selectedClass || !selectedSubject || !user?.id) return;
     setPopulating(true);
     try {
-      const ncdcTopics = getNDCCTopics();
+      const targetYear = buildAcademicYear(academicYear);
+      const termNumber = Number(selectedTerm);
+      const ncdcTopics = getNDCCTopics().filter((topic) => topic.term === termNumber);
+
       if (ncdcTopics.length === 0) {
-        toast.error("No NCDC topics found for this class/subject");
+        toast.error("No NCDC topics found for this class, subject, and term");
         return;
       }
-      const toInsert = ncdcTopics.map((t) => ({
-        school_id: school.id,
-        class_id: selectedClass,
-        subject_id: selectedSubject,
-        topic: t.topic,
-        subtopics: JSON.stringify(t.subtopics),
-        objectives: t.objectives.join("; "),
-        weeks_covered: `Week ${t.weeks}`,
-        term: t.term,
-        academic_year: academicYear || "2026",
-        created_by: user.id,
-      }));
+
+      const { data: existingRows, error: existingError } = await supabase
+        .from("syllabus")
+        .select("topic")
+        .eq("school_id", school.id)
+        .eq("class_id", selectedClass)
+        .eq("subject_id", selectedSubject)
+        .eq("term", termNumber)
+        .eq("academic_year", targetYear);
+
+      if (existingError) throw existingError;
+
+      const existingTopics = new Set((existingRows || []).map((row) => row.topic.trim().toLowerCase()));
+      const toInsert = ncdcTopics
+        .filter((topic) => !existingTopics.has(topic.topic.trim().toLowerCase()))
+        .map((topic) => ({
+          school_id: school.id,
+          class_id: selectedClass,
+          subject_id: selectedSubject,
+          topic: topic.topic,
+          subtopics: JSON.stringify(topic.subtopics || []),
+          objectives: topic.objectives.join("; "),
+          weeks_covered: `Week ${topic.weeks}`,
+          term: termNumber,
+          academic_year: targetYear,
+          created_by: user.id,
+        }));
+
+      if (toInsert.length === 0) {
+        toast.success("NCDC topics are already loaded for this term");
+        fetchSyllabus();
+        return;
+      }
+
       const { error } = await supabase.from("syllabus").insert(toInsert);
       if (error) throw error;
       toast.success(`Added ${toInsert.length} NCDC topics`);
@@ -144,39 +160,45 @@ export default function SyllabusPage() {
   };
 
   const fetchSyllabus = useCallback(async () => {
-    if (!school?.id) return;
+    if (!school?.id || !selectedClass || !selectedSubject) return;
     setLoading(true);
     try {
-      const { data: syllabus } = await supabase
+      const targetYear = buildAcademicYear(academicYear);
+      const termNumber = Number(selectedTerm);
+      const { data: syllabus, error } = await supabase
         .from("syllabus")
         .select("*, topic_coverage(status, completed_date, notes)")
         .eq("school_id", school.id)
         .eq("class_id", selectedClass)
         .eq("subject_id", selectedSubject)
-        .order("weeks_covered");
+        .eq("term", termNumber)
+        .eq("academic_year", targetYear)
+        .order("created_at");
 
-      const processed = (syllabus || []).map((s) => ({
-        ...s,
-        subtopics: s.subtopics ? JSON.parse(s.subtopics) : [],
-        status: s.topic_coverage?.[0]?.status || "not_started",
-        completed_date: s.topic_coverage?.[0]?.completed_date,
-        notes: s.topic_coverage?.[0]?.notes,
+      if (error) throw error;
+
+      const processed = (syllabus || []).map((row) => ({
+        ...row,
+        subtopics: parseStoredSubtopics(row.subtopics),
+        status: row.topic_coverage?.[0]?.status || "not_started",
+        completed_date: row.topic_coverage?.[0]?.completed_date || null,
+        notes: row.topic_coverage?.[0]?.notes || null,
       }));
 
       setTopics(processed);
     } catch (err) {
       console.error("Failed to fetch syllabus:", err);
+      toast.error("Failed to load syllabus");
     } finally {
       setLoading(false);
     }
-  }, [school?.id, selectedClass, selectedSubject]);
+  }, [school?.id, selectedClass, selectedSubject, selectedTerm, academicYear, toast]);
 
   useEffect(() => {
     if (selectedClass && selectedSubject) {
       fetchSyllabus();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClass, selectedSubject]);
+  }, [selectedClass, selectedSubject, selectedTerm, fetchSyllabus]);
 
   const handleAddTopic = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -199,8 +221,8 @@ export default function SyllabusPage() {
           objectives: newTopic.objectives || null,
           weeks_covered: newTopic.weeks_covered || null,
           resources: newTopic.resources || null,
-          term: 1,
-          academic_year: "2026",
+          term: Number(selectedTerm),
+          academic_year: buildAcademicYear(academicYear),
           created_by: user.id,
         })
         .select()
@@ -212,6 +234,7 @@ export default function SyllabusPage() {
       await supabase.from("topic_coverage").insert({
         syllabus_id: syllabus.id,
         class_id: selectedClass,
+        teacher_id: user.id,
         status: "not_started",
       });
 
@@ -238,17 +261,44 @@ export default function SyllabusPage() {
   ) => {
     setSaving(true);
     try {
-      const updateData: any = { status };
-      if (status === "completed") {
-        updateData.completed_date = new Date().toISOString().split("T")[0];
+      const updateData: any = {
+        status,
+        completed_date:
+          status === "completed"
+            ? new Date().toISOString().split("T")[0]
+            : null,
+      };
+
+      const { data: existingCoverage, error: coverageError } = await supabase
+        .from("topic_coverage")
+        .select("id")
+        .eq("syllabus_id", topicId)
+        .limit(1)
+        .maybeSingle();
+
+      if (coverageError) throw coverageError;
+
+      if (existingCoverage?.id) {
+        const { error } = await supabase
+          .from("topic_coverage")
+          .update({
+            ...updateData,
+            teacher_id: user?.id || null,
+          })
+          .eq("id", existingCoverage.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("topic_coverage").insert({
+          syllabus_id: topicId,
+          class_id: selectedClass,
+          teacher_id: user?.id || null,
+          ...updateData,
+        });
+        if (error) throw error;
       }
 
-      await supabase
-        .from("topic_coverage")
-        .update(updateData)
-        .eq("syllabus_id", topicId);
-
       fetchSyllabus();
+      toast.success("Topic progress updated");
     } catch (err) {
       toast.error("Failed to update status");
     } finally {
@@ -319,6 +369,18 @@ export default function SyllabusPage() {
               {s.name}
             </option>
           ))}
+        </select>
+        <select
+          value={selectedTerm}
+          onChange={(e) => {
+            setSelectedTerm(e.target.value);
+            setTopics([]);
+          }}
+          className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium"
+        >
+          <option value="1">Term 1</option>
+          <option value="2">Term 2</option>
+          <option value="3">Term 3</option>
         </select>
         {selectedClass && selectedSubject && (
           <button

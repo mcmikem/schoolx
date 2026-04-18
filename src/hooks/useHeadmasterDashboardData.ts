@@ -119,14 +119,26 @@ export function useHeadmasterDashboardData(
           .filter((s): s is Student => Boolean(s))
           .slice(0, 5);
 
-        // Process Dropout Risk
+        // Process dropout risk from repeated recent absences
         const activeStudentIds = new Set(
           students.filter((s) => s.status === "active").map((s) => s.id),
         );
-        let dropoutCount = 0;
-        // (Logic simplified for brevity; reuse original dropout logic here)
+        const recentAbsencesByStudent: Record<string, number> = {};
+        dropoutAttData?.forEach((record) => {
+          if (!activeStudentIds.has(record.student_id)) return;
+          if (record.status === "absent") {
+            recentAbsencesByStudent[record.student_id] =
+              (recentAbsencesByStudent[record.student_id] || 0) + 1;
+          }
+        });
+        const dropoutCount = Object.values(recentAbsencesByStudent).filter(
+          (count) => count >= 3,
+        ).length;
 
         // Fee totals
+        const overdueFeeCount = students.filter(
+          (student) => Number((student as any).opening_balance || 0) > 0,
+        ).length;
         let todayTotal = 0,
           weekTotal = 0,
           termTotal = 0;
@@ -156,7 +168,7 @@ export function useHeadmasterDashboardData(
           feesThisWeek: weekTotal,
           feesThisTerm: termTotal,
           staffOnDuty: staffAttData?.length || 0,
-          overdueFeeCount: 0, // Placeholder
+          overdueFeeCount,
           lowAttendanceClasses: Object.values(attendanceByClass).filter(
             (c) => c.total > 0 && c.present / c.total < 0.7,
           ).length,

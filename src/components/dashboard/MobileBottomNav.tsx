@@ -7,6 +7,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 
 type QuickStep = {
   label: string;
+  shortLabel: string;
   href: string;
   icon: string;
 };
@@ -20,29 +21,34 @@ export default function MobileBottomNav() {
     if (!pathname)
       return {
         label: "Add Student",
+        shortLabel: "Add",
         href: "/dashboard/students",
         icon: "person_add",
       };
     if (pathname.startsWith("/dashboard/students"))
       return {
         label: "Take Attendance",
+        shortLabel: "Attend",
         href: "/dashboard/attendance",
         icon: "how_to_reg",
       };
     if (pathname.startsWith("/dashboard/attendance"))
       return {
         label: "Record Fees",
+        shortLabel: "Fees",
         href: "/dashboard/fees",
         icon: "payments",
       };
     if (pathname.startsWith("/dashboard/fees"))
       return {
         label: "Send Reminder",
+        shortLabel: "SMS",
         href: "/dashboard/messages",
         icon: "sms",
       };
     return {
       label: "Add Student",
+      shortLabel: "Add",
       href: "/dashboard/students",
       icon: "person_add",
     };
@@ -67,9 +73,10 @@ export default function MobileBottomNav() {
       <Link
         href={quickStep.href}
         className="mobile-nav-item mobile-nav-item-primary"
+        aria-label={quickStep.label}
       >
         <MaterialIcon icon={quickStep.icon} size={20} />
-        <span>{quickStep.label}</span>
+        <span>{quickStep.shortLabel}</span>
       </Link>
       <Link
         href="/dashboard/fees"

@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useMemo } from "react";
+import { buildDashboardTrendData } from "@/lib/dashboard-data";
 
 interface DashboardStats {
   totalStudents?: number;
@@ -48,40 +49,17 @@ export default function DashboardInsights({
     (s) => s.status === "active" || !s.status,
   );
 
-  // Generate trend data for the area chart (last 6 months)
-  const trendData = useMemo(() => {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
-    const totalStudents = stats?.totalStudents || activeStudents.length || 0;
-
-    // If no real data at all, show message
-    if (!isDemo && totalStudents === 0) {
-      return months.map((month) => ({
-        name: month,
-        students: 0,
-        attendance: 0,
-      }));
-    }
-
-    // Use stats if available, otherwise derive meaningful demo curve
-    const currentAttendance = attendanceRate || 85;
-    const baseStudents = totalStudents > 0 ? totalStudents : 100;
-
-    return months.map((month, i) => {
-      // In demo mode with stats, show realistic growth
-      const progress = i / (months.length - 1);
-      const studentNoise = isDemo ? Math.round((Math.random() - 0.5) * 20) : 0;
-      const attendanceNoise = isDemo ? (Math.random() - 0.5) * 5 : 0;
-
-      return {
-        name: month,
-        students: Math.round(baseStudents * progress) + studentNoise,
-        attendance: Math.min(
-          100,
-          Math.max(0, currentAttendance - 5 + progress * 10 + attendanceNoise),
-        ),
-      };
-    });
-  }, [attendanceRate, isDemo, stats?.totalStudents, activeStudents.length]);
+  const trendData = useMemo(
+    () =>
+      buildDashboardTrendData({
+        stats,
+        activeStudentsCount: activeStudents.length,
+        payments: payments as any[],
+        attendanceRate,
+        isDemo,
+      }),
+    [stats, activeStudents.length, payments, attendanceRate, isDemo],
+  );
 
   // Student Demographics Data - Use stats first, fallback to students array
   const demoData = useMemo(() => {
@@ -202,7 +180,7 @@ export default function DashboardInsights({
 
         <div className="flex-1 min-h-0 mt-2 relative">
           {!isDemo &&
-          trendData.every((d) => d.students === 0 && d.attendance === 0) ? (
+          trendData.every((d) => d.fees === 0 && d.attendance == null) ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-[var(--bg)]/50 backdrop-blur-sm rounded-xl border border-dashed border-[var(--border)]">
               <MaterialIcon
                 icon="analytics"
@@ -269,7 +247,7 @@ export default function DashboardInsights({
                 />
                 <Area
                   type="monotone"
-                  dataKey="students"
+                  dataKey="fees"
                   stroke="var(--navy)"
                   strokeWidth={3}
                   fillOpacity={1}
