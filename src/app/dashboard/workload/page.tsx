@@ -67,7 +67,7 @@ export default function WorkloadPage() {
     } finally {
       setLoading(false)
     }
-  }, [school?.id])
+  }, [school?.id, toast])
 
   useEffect(() => {
     if (school?.id) {

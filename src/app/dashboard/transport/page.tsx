@@ -44,7 +44,7 @@ export default function TransportPage() {
     if (error) toast.error("Failed to load vehicles");
     else setVehicles(data || []);
     setLoading(false);
-  }, [school?.id]);
+  }, [school?.id, toast]);
 
   useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
 

@@ -42,13 +42,14 @@ export default function ParentAcademicsPage() {
       setChildren(getDemoChildren());
       return;
     }
-    if (!user?.id) return;
+    const parentId = user?.id;
+    if (!parentId) return;
     const { data } = await supabase
       .from("parent_students")
       .select(
         "student:students(id, first_name, last_name, school_id, class_id, class:classes(name))",
       )
-      .eq("parent_id", user.id);
+      .eq("parent_id", parentId);
     setChildren(mapParentStudentLinks(data || []));
   }, [user?.id, isDemo]);
 

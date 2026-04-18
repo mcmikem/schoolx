@@ -38,13 +38,14 @@ export default function ParentMessagesPage() {
       setChildren(getDemoChildren());
       return;
     }
-    if (!user?.id) return;
+    const parentId = user?.id;
+    if (!parentId) return;
     const { data } = await supabase
       .from("parent_students")
       .select(
         "student:students(id, first_name, last_name, school_id, class_id, class:classes(name))",
       )
-      .eq("parent_id", user.id);
+      .eq("parent_id", parentId);
     setChildren(mapParentStudentLinks(data || []));
   }, [user?.id, isDemo]);
 
@@ -53,7 +54,8 @@ export default function ParentMessagesPage() {
   }, [children]);
 
   const fetchMessages = useCallback(async () => {
-    if (!user?.id && !isDemo) return;
+    const parentId = user?.id;
+    if (!parentId && !isDemo) return;
     setLoading(true);
 
     if (isDemo) {
@@ -65,7 +67,7 @@ export default function ParentMessagesPage() {
     const { data } = await supabase
       .from("parent_messages")
       .select("id, subject, body, sender_role, created_at, is_read")
-      .eq("parent_id", user.id)
+      .eq("parent_id", parentId!)
       .order("created_at", { ascending: true });
 
     setMessages((data || []) as ParentPortalMessageThreadItem[]);
@@ -89,7 +91,8 @@ export default function ParentMessagesPage() {
     const trimmedSubject = subject.trim() || "Message from Parent";
     const schoolId = selectedChild?.school_id || children[0]?.school_id || null;
 
-    if (!trimmedBody || !user?.id) return;
+    const parentId = user?.id;
+    if (!trimmedBody || !parentId) return;
     if (!schoolId && !isDemo) {
       toast.error("No linked school was found for this parent account.");
       return;
@@ -120,7 +123,7 @@ export default function ParentMessagesPage() {
     const { data, error } = await supabase
       .from("parent_messages")
       .insert({
-        parent_id: user.id,
+        parent_id: parentId,
         school_id: schoolId,
         student_id: selectedChild?.id || null,
         subject: trimmedSubject,

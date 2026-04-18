@@ -800,7 +800,11 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
   });
 
 export function getNavigationForRole(role: string): readonly NavGroup[] {
-  if (HEADMASTER_EQUIVALENT_NAV_ROLES.includes(role as UserRole)) {
+  if (
+    HEADMASTER_EQUIVALENT_NAV_ROLES.some(
+      (allowedRole) => allowedRole === role,
+    )
+  ) {
     return navigationByRole.headmaster;
   }
   if (role in navigationByRole) {

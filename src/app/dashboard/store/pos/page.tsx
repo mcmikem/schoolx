@@ -80,7 +80,7 @@ export default function CanteenPOSPage() {
       }
     };
     fetchInventory();
-  }, [school?.id, isOnline]);
+  }, [school?.id, isOnline, toast]);
 
   const addToCart = (item: POSItem) => {
     setCart((prev) => {

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -69,11 +69,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     { name: "Development", amount: "50000" },
   ]);
 
-  useEffect(() => {
-    checkCompletedItems();
-  }, [school?.id]);
-
-  const checkCompletedItems = async () => {
+  const checkCompletedItems = useCallback(async () => {
     if (!school?.id) return;
     const { data } = await supabase
       .from("setup_checklist")
@@ -83,7 +79,11 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     if (data) {
       setCompleted(data.filter((i) => i.is_completed).map((i) => i.item_key));
     }
-  };
+  }, [school?.id]);
+
+  useEffect(() => {
+    checkCompletedItems();
+  }, [checkCompletedItems]);
 
   const markComplete = async (key: string) => {
     if (!school?.id) return;

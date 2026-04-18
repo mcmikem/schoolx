@@ -15,6 +15,17 @@ export function sanitizePhone(input: string): string {
   return input.replace(/[^0-9+]/g, '')
 }
 
+export function normalizeAuthPhone(input: string): string {
+  const digits = sanitizePhone(input).replace(/[^0-9]/g, '')
+
+  if (digits.length === 9) return `256${digits}`
+  if (digits.startsWith('0') && digits.length === 10) {
+    return `256${digits.slice(1)}`
+  }
+
+  return digits
+}
+
 export function sanitizeNumber(input: string): string {
   if (!input) return ''
   return input.replace(/[^0-9.-]/g, '')
