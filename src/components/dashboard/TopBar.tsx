@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -205,24 +205,36 @@ export default function TopBar({
   const path = pathname ?? "";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [dismissedNotifs, setDismissedNotifs] = useState<Set<string>>(
-    new Set(),
-  );
   const { isOpen, open: openSidebar, close: closeSidebar } = useSidebar();
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
+  const notifPanelRef = useRef<HTMLDivElement | null>(null);
 
   const { notifications, unreadCount, markAsRead } = useNotifications();
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (userMenuOpen && !(event.target as Element).closest(".user-menu")) {
+    function handlePointerDown(event: MouseEvent) {
+      const target = event.target as Node;
+      if (userMenuOpen && userMenuRef.current && !userMenuRef.current.contains(target)) {
         setUserMenuOpen(false);
       }
-      if (notifOpen && !(event.target as Element).closest(".notif-panel")) {
+      if (notifOpen && notifPanelRef.current && !notifPanelRef.current.contains(target)) {
         setNotifOpen(false);
       }
     }
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setUserMenuOpen(false);
+        setNotifOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [userMenuOpen, notifOpen]);
 
   const schoolName = school?.name || "My School";
@@ -273,14 +285,19 @@ export default function TopBar({
   const nextStep = getNextStep(path || "/dashboard");
 
   return (
-    <header className="topbar border-b border-[var(--border)] h-[64px] flex items-center px-3 sm:px-5 lg:px-6 gap-2 sm:gap-3 sticky top-0 z-50 shadow-[var(--sh1)] flex-shrink-0">
+    <header
+      data-testid="dashboard-header"
+      className="topbar border-b border-[var(--border)] min-h-[72px] flex items-center px-3 sm:px-5 lg:px-6 gap-2 sm:gap-3 sticky top-0 z-50 shadow-[var(--sh1)] flex-shrink-0"
+    >
       <button
         onClick={() => {
           if (isOpen) closeSidebar();
           else openSidebar();
         }}
-        className="mobile-menu-btn bg-transparent border-none cursor-pointer p-2 mr-2 w-11 h-11 flex items-center justify-center rounded-lg"
+        className="mobile-menu-btn bg-transparent border-none cursor-pointer p-2 mr-2 w-11 h-11 flex items-center justify-center rounded-2xl border border-transparent hover:border-[var(--border)] hover:bg-[var(--surface)] transition-colors"
         aria-label="Toggle sidebar"
+        aria-expanded={isOpen}
+        aria-controls="dashboard-sidebar"
       >
         <MaterialIcon
           icon="menu"
@@ -289,11 +306,18 @@ export default function TopBar({
       </button>
 
       <div className="flex-1 min-w-0">
-        <div className="font-['Sora'] text-[16px] sm:text-[18px] font-bold text-[var(--t1)] tracking-[-.2px] truncate">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="font-['Sora'] text-[16px] sm:text-[19px] font-bold text-[var(--t1)] tracking-[-.3px] truncate">
           {pageTitle}
+          </div>
+          <span className="hidden xl:inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--t3)] shadow-[var(--sh1)]">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--green)]" />
+            Term {currentTerm || "-"}
+          </span>
         </div>
-        <div className="text-[11px] sm:text-[12px] text-[var(--t3)] mt-0.5 flex items-center gap-2 truncate">
-          <span className="truncate">
+        <div className="text-[11px] sm:text-[12px] text-[var(--t3)] mt-1 flex items-center gap-2 truncate">
+          <span className="truncate inline-flex items-center gap-1.5">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--amber)]" />
             {formattedDate}
           </span>
           <span aria-hidden>•</span>
@@ -319,7 +343,7 @@ export default function TopBar({
         </div>
       </div>
 
-      <div className="search-bar flex items-center gap-[10px] bg-[var(--bg)] border border-[var(--border)] rounded-[12px] px-[14px] py-2 text-[13px] text-[var(--t3)] min-w-[260px] cursor-text">
+      <div className="search-bar flex items-center gap-[10px] bg-[var(--surface)] border border-[var(--border)] rounded-[16px] px-[14px] py-2.5 text-[13px] text-[var(--t3)] min-w-[280px] cursor-text shadow-[var(--sh1)]">
         <GlobalSearch />
       </div>
 
@@ -337,9 +361,23 @@ export default function TopBar({
       </button>
 
       <div className="flex items-center gap-2">
+        <div className="hidden lg:flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 shadow-[var(--sh1)] max-w-[220px]">
+          <div className="h-8 w-8 rounded-full bg-[var(--navy-soft)] text-[var(--navy)] flex items-center justify-center flex-shrink-0">
+            <MaterialIcon icon="school" style={{ fontSize: 16 }} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--t4)] font-bold">
+              Active school
+            </div>
+            <div className="text-[12px] text-[var(--t1)] font-semibold truncate">
+              {schoolName}
+            </div>
+          </div>
+        </div>
+
         <Link
           href={nextStep.href}
-          className="flex items-center gap-1.5 h-10 px-2.5 sm:px-3 rounded-[12px] bg-[var(--primary)] text-[var(--on-primary)] text-[12px] font-semibold no-underline shadow-[var(--sh1)] hover:opacity-90 transition-opacity"
+          className="flex items-center gap-1.5 h-10 px-2.5 sm:px-3 rounded-[14px] bg-[var(--primary)] text-[var(--on-primary)] text-[12px] font-semibold no-underline shadow-[var(--sh1)] hover:opacity-90 hover:-translate-y-[1px] transition-all"
           aria-label={`Next step: ${nextStep.label}`}
         >
           <MaterialIcon
@@ -350,11 +388,16 @@ export default function TopBar({
           <span className="hidden lg:inline">Next: {nextStep.label}</span>
         </Link>
 
-        <div className="notif-panel relative">
+        <div ref={notifPanelRef} className="notif-panel relative">
           <button
-            onClick={() => setNotifOpen(!notifOpen)}
-            className="w-10 h-10 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center cursor-pointer shadow-[var(--sh1)] relative hover:bg-[var(--bg)] transition-colors"
+            onClick={() => {
+              setNotifOpen((current) => !current);
+              setUserMenuOpen(false);
+            }}
+            className="w-10 h-10 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center cursor-pointer shadow-[var(--sh1)] relative hover:bg-[var(--bg)] transition-colors"
             aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
+            aria-expanded={notifOpen}
+            aria-haspopup="dialog"
           >
             <MaterialIcon
               icon="notifications"
@@ -374,7 +417,7 @@ export default function TopBar({
 
         <button
           onClick={toggleTheme}
-          className="w-10 h-10 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center cursor-pointer shadow-[var(--sh1)] hover:bg-[var(--bg)] transition-colors"
+          className="w-10 h-10 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center cursor-pointer shadow-[var(--sh1)] hover:bg-[var(--bg)] transition-colors"
           aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
         >
           <MaterialIcon
@@ -383,12 +426,16 @@ export default function TopBar({
           />
         </button>
 
-        <div className="relative">
+        <div ref={userMenuRef} className="relative">
           <button
             className="user-menu flex items-center gap-[10px] py-1.5 pr-3 pl-1 bg-[var(--surface)] border border-[var(--border)] rounded-full cursor-pointer shadow-[var(--sh1)] transition-all hover:bg-[var(--bg)]"
-            onClick={() => setUserMenuOpen(!userMenuOpen)}
+            onClick={() => {
+              setUserMenuOpen((current) => !current);
+              setNotifOpen(false);
+            }}
             aria-label="User menu"
             aria-expanded={userMenuOpen}
+            aria-haspopup="menu"
           >
             <div className="w-[26px] h-[26px] rounded-full bg-[var(--primary)] flex items-center justify-center text-[10px] font-bold text-[var(--on-primary)] font-['Sora']">
               {user?.full_name?.charAt(0) || "U"}
