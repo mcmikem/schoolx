@@ -16,6 +16,7 @@ import {
   validateFeeStructureInput,
   validatePaymentInput,
   validateStudentInput,
+  getErrorMessage,
 } from '../lib/validation'
 
 describe('Validation - String Sanitization', () => {

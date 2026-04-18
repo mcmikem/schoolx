@@ -13,7 +13,7 @@ import { normalizePlanType, PlanType } from "./payments/subscription-client";
 import { FeatureStage, DEFAULT_FEATURE_STAGE } from "./featureStages";
 import type { User, School } from "@/types";
 import { logger } from "./logger";
-import { normalizeAuthPhone } from "./validation";
+import { getErrorMessage, normalizeAuthPhone } from "./validation";
 import { buildAuthEmailFromPhone, buildAuthLoginAttempts } from "./auth-login";
 
 // Roles that demo sessions are allowed to assume.
@@ -54,6 +54,28 @@ const DEMO_KEY = "skoolmate_demo_v1";
 const DEMO_MODE_ENABLED =
   process.env.NODE_ENV === "development" &&
   process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
+
+function buildPhoneLookupCandidates(rawPhone: unknown): string[] {
+  if (typeof rawPhone !== "string" || !rawPhone.trim()) return [];
+
+  const normalized = normalizeAuthPhone(rawPhone);
+  const digits = normalized.replace(/\D/g, "");
+  const candidates = new Set<string>();
+
+  if (normalized) candidates.add(normalized);
+  if (digits.length === 9) {
+    candidates.add(`0${digits}`);
+    candidates.add(`256${digits}`);
+  }
+  if (digits.startsWith("0") && digits.length === 10) {
+    candidates.add(`256${digits.slice(1)}`);
+  }
+  if (digits.startsWith("256") && digits.length === 12) {
+    candidates.add(`0${digits.slice(3)}`);
+  }
+
+  return Array.from(candidates);
+}
 
 function decryptDemoData(encrypted: string): string | null {
   if (typeof window === "undefined") return null;
@@ -146,19 +168,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return null;
       }
       try {
-        const { data: userData, error: userError } = await supabase
+        let userData: any = null;
+        let lastError: unknown = null;
+
+        const profileByAuth = await supabase
           .from("users")
           .select("*")
           .eq("auth_id", authId)
           .maybeSingle();
 
-        if (userError) {
-          logger.error("Error fetching user:", userError);
-          setLoading(false);
-          return null;
+        userData = profileByAuth.data;
+        lastError = profileByAuth.error;
+
+        if (!userData) {
+          const authResult = await supabase.auth.getUser();
+          const authUser = authResult.data.user;
+
+          const phoneCandidates = buildPhoneLookupCandidates(
+            authUser?.phone ?? authUser?.user_metadata?.phone,
+          );
+
+          for (const phoneCandidate of phoneCandidates) {
+            const fallbackProfile = await supabase
+              .from("users")
+              .select("*")
+              .eq("phone", phoneCandidate)
+              .maybeSingle();
+
+            if (fallbackProfile.error) {
+              lastError = fallbackProfile.error;
+              continue;
+            }
+
+            if (fallbackProfile.data) {
+              userData = fallbackProfile.data;
+              lastError = null;
+
+              if (fallbackProfile.data.auth_id !== authId) {
+                const { error: relinkError } = await supabase
+                  .from("users")
+                  .update({ auth_id: authId })
+                  .eq("id", fallbackProfile.data.id);
+
+                if (relinkError) {
+                  logger.warn(
+                    "[Auth] Profile found but auth_id relink failed:",
+                    getErrorMessage(relinkError),
+                  );
+                } else {
+                  userData = { ...fallbackProfile.data, auth_id: authId };
+                }
+              }
+              break;
+            }
+          }
         }
 
         if (!userData) {
+          if (lastError) {
+            logger.warn(
+              "[Auth] Unable to load user profile:",
+              getErrorMessage(lastError),
+            );
+          }
+
           if (retryCount < 3) {
             logger.warn(
               `[Auth] User profile not found for auth_id: ${authId}. Retrying...`,
@@ -168,7 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             );
             return fetchUserData(authId, retryCount + 1);
           }
-          logger.error(
+          logger.warn(
             "No user profile found for auth_id after retries:",
             authId,
           );
@@ -224,7 +297,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
         return { role: userData.role };
       } catch (error) {
-        logger.error("Error fetching user data:", error);
+        logger.error("Error fetching user data:", getErrorMessage(error));
         setLoading(false);
         return null;
       }
