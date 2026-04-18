@@ -9,11 +9,14 @@ const publicPaths = [
   "/login",
   "/register",
   "/demo-login",
+  "/setup",
+  "/setup-admin",
   "/api/auth",
   "/api/demo-login",
   "/api/register",
   "/api/setup",
   "/api/payment/webhook",
+  "/api/payment/paypal/webhook",
   "/api/sms",
   "/api/schoolpay",
   "/api/reports",
@@ -21,7 +24,8 @@ const publicPaths = [
   "/favicon.ico",
 ];
 
-export async function middleware(request: NextRequest) {
+// Next.js 16 replaces the deprecated middleware.ts convention with proxy.ts.
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public paths without auth check

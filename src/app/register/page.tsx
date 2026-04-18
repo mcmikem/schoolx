@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -6,6 +7,12 @@ import Link from "next/link";
 import SkoolMateLogo from "@/components/SkoolMateLogo";
 import { logger } from "@/lib/logger";
 import { Button, Input, Select } from "@/components/ui";
+import {
+  getDistrictOptions,
+  getParishOptions,
+  getSubcountyOptions,
+} from "@/lib/uganda-admin";
+import { normalizeAuthPhone } from "@/lib/validation";
 
 function MaterialIcon({
   icon,
@@ -23,33 +30,6 @@ function MaterialIcon({
   );
 }
 
-const DISTRICTS = [
-  "Kampala",
-  "Wakiso",
-  "Mukono",
-  "Jinja",
-  "Mbale",
-  "Gulu",
-  "Lira",
-  "Masaka",
-  "Mbarara",
-  "Fort Portal",
-  "Kabale",
-  "Soroti",
-  "Arua",
-  "Hoima",
-  "Masindi",
-  "Tororo",
-  "Busia",
-  "Iganga",
-  "Kamuli",
-  "Apac",
-  "Entebbe",
-  "Kasese",
-  "Kitgum",
-  "Moroto",
-];
-
 const SCHOOL_TYPE_OPTIONS = [
   { value: "primary", label: "Primary School" },
   { value: "secondary", label: "Secondary School" },
@@ -64,7 +44,14 @@ const OWNERSHIP_OPTIONS = [
 
 const DISTRICT_OPTIONS = [
   { value: "", label: "Select district" },
-  ...DISTRICTS.map((d) => ({ value: d, label: d })),
+  ...getDistrictOptions(),
+];
+
+const PACKAGE_OPTIONS = [
+  { value: "starter", label: "Starter Trial · best for one campus getting started" },
+  { value: "growth", label: "Growth Trial · adds parent portal and richer workflows" },
+  { value: "enterprise", label: "Enterprise Trial · full school operations suite" },
+  { value: "lifetime", label: "Lifetime Setup Call · for schools ready for full rollout" },
 ];
 
 export default function RegisterPage() {
@@ -77,8 +64,11 @@ export default function RegisterPage() {
     schoolName: "",
     district: "",
     subcounty: "",
+    parish: "",
+    village: "",
     schoolType: "primary" as "primary" | "secondary" | "combined",
     ownership: "private" as "private" | "government" | "government_aided",
+    selectedPackage: "starter",
     phone: "",
     email: "",
     adminName: "",
@@ -88,7 +78,23 @@ export default function RegisterPage() {
   });
 
   const updateForm = (field: string, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => {
+      if (field === "district") {
+        return {
+          ...prev,
+          district: value,
+          subcounty: "",
+          parish: "",
+          village: "",
+        };
+      }
+
+      if (field === "subcounty") {
+        return { ...prev, subcounty: value, parish: "", village: "" };
+      }
+
+      return { ...prev, [field]: value };
+    });
     if (error) setError("");
   };
 
@@ -131,9 +137,9 @@ export default function RegisterPage() {
       return false;
     }
     // Uganda phone validation
-    const phoneRegex = /^(0|256|\\+256)[7][0-9]{8}$/;
+    const phoneRegex = /^(0|256|\+256)[7][0-9]{8}$/;
     const cleanPhone = form.adminPhone.replace(/[^0-9]/g, "");
-    if (cleanPhone.length < 10 || cleanPhone.length > 12) {
+    if (!phoneRegex.test(form.adminPhone.trim()) && (cleanPhone.length < 10 || cleanPhone.length > 12)) {
       setError("Please enter a valid Uganda phone number (e.g., 0700000000)");
       return false;
     }
@@ -186,8 +192,11 @@ export default function RegisterPage() {
           subcounty: form.subcounty,
           schoolType: form.schoolType,
           ownership: form.ownership,
+          selectedPackage: form.selectedPackage,
           phone: form.phone || null,
           email: form.email || null,
+          parish: form.parish || null,
+          village: form.village || null,
           adminName: form.adminName,
           adminPhone: form.adminPhone,
           password: form.password,
@@ -208,7 +217,7 @@ export default function RegisterPage() {
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      const normalizedPhone = form.adminPhone.replace(/[^0-9]/g, "");
+      const normalizedPhone = normalizeAuthPhone(form.adminPhone);
       const email = `${normalizedPhone}@omuto.org`;
 
       const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -250,6 +259,7 @@ export default function RegisterPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="min-h-screen bg-[var(--bg)] flex flex-col justify-center relative overflow-hidden">
       {/* Decorative Background Elements */}
       <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-[var(--navy-soft)] blur-[120px] rounded-full opacity-50" />
@@ -329,6 +339,20 @@ export default function RegisterPage() {
                   required
                 />
 
+                <Select
+                  label="Package"
+                  options={PACKAGE_OPTIONS}
+                  value={form.selectedPackage}
+                  onChange={(e) =>
+                    updateForm("selectedPackage", e.target.value)
+                  }
+                  required
+                />
+
+                <div className="rounded-2xl bg-[var(--surface)]/70 border border-[var(--border)] p-4 text-sm text-[var(--t2)]">
+                  Your school chooses its package up front. We still start you on a guided trial so the team can learn the app before payment is enforced.
+                </div>
+
                 <Button
                   type="button"
                   variant="primary"
@@ -336,7 +360,7 @@ export default function RegisterPage() {
                   icon={
                     <MaterialIcon icon="arrow_forward" className="text-lg" />
                   }
-                  onClick={() => setStep(2)}
+                  onClick={() => goToStep(2)}
                 >
                   Next: Where is the School?
                 </Button>
@@ -354,7 +378,7 @@ export default function RegisterPage() {
                 />
 
                 <Input
-                  label="Sub-county"
+                  label="Sub-county / Division"
                   type="text"
                   placeholder="e.g. Central Division"
                   value={form.subcounty}
@@ -362,6 +386,64 @@ export default function RegisterPage() {
                   required
                   autoComplete="address-level2"
                 />
+
+                {form.district && (
+                  <Select
+                    label="Quick pick common Sub-counties"
+                    options={[
+                      { value: "", label: "Choose a common sub-county (optional)" },
+                      ...getSubcountyOptions(form.district),
+                    ]}
+                    value={
+                      getSubcountyOptions(form.district).some(
+                        (option) => option.value === form.subcounty,
+                      )
+                        ? form.subcounty
+                        : ""
+                    }
+                    onChange={(e) => updateForm("subcounty", e.target.value)}
+                  />
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Input
+                    label="Parish / Ward (Optional)"
+                    type="text"
+                    placeholder="e.g. Nakasero"
+                    value={form.parish}
+                    onChange={(e) => updateForm("parish", e.target.value)}
+                    autoComplete="address-level3"
+                  />
+                  <Input
+                    label="Village / Zone (Optional)"
+                    type="text"
+                    placeholder="e.g. Kisenyi Zone B"
+                    value={form.village}
+                    onChange={(e) => updateForm("village", e.target.value)}
+                  />
+                </div>
+
+                {form.district && form.subcounty && (
+                  <Select
+                    label="Quick pick common Parishes"
+                    options={[
+                      { value: "", label: "Choose a common parish (optional)" },
+                      ...getParishOptions(form.district, form.subcounty),
+                    ]}
+                    value={
+                      getParishOptions(form.district, form.subcounty).some(
+                        (option) => option.value === form.parish,
+                      )
+                        ? form.parish
+                        : ""
+                    }
+                    onChange={(e) => updateForm("parish", e.target.value)}
+                  />
+                )}
+
+                <div className="rounded-2xl bg-[var(--surface)]/70 border border-[var(--border)] p-4 text-sm text-[var(--t2)]">
+                  We preload Uganda district, division, and parish options to reduce typing. If your area is missing, type it and continue.
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input
@@ -498,5 +580,6 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -37,7 +38,7 @@ export default function StudentLookupPage() {
       else setStudents(data || []);
       setLoading(false);
     },
-    [school?.id],
+    [school?.id, toast],
   );
 
   const handleSMSParent = (student: any) => {
@@ -80,6 +81,7 @@ export default function StudentLookupPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       <PageHeader
         title="Student Lookup"
@@ -236,5 +238,6 @@ export default function StudentLookupPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

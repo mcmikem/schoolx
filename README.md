@@ -51,17 +51,63 @@ npm run dev
 
 ## Environment Variables
 
-```
+Public client variables:
+
+```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+Server-only variables:
+
+```env
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+CRON_SECRET=your_cron_secret
+
 STRIPE_SECRET_KEY=sk_live_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
+STRIPE_PRICE_STARTER=price_xxx
+STRIPE_PRICE_GROWTH=price_xxx
+STRIPE_PRICE_ENTERPRISE=price_xxx
+STRIPE_PRICE_LIFETIME=price_xxx
+
+PAYPAL_MODE=live
 PAYPAL_CLIENT_ID=your_client_id
 PAYPAL_CLIENT_SECRET=your_secret
+PAYPAL_WEBHOOK_ID=your_webhook_id
+
 AFRICAS_TALKING_API_KEY=your_api_key
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+AFRICAS_TALKING_USERNAME=your_username
+SMS_API_KEY=your_sms_api_key
+SMS_USERNAME=your_sms_username
+
+RESEND_API_KEY=re_xxx
+EMAIL_FROM=noreply@yourdomain.com
+
+FLUTTERWAVE_PUBLIC_KEY=FLWPUBK-xxx
+FLUTTERWAVE_SECRET_KEY=FLWSECK-xxx
+FLUTTERWAVE_WEBHOOK_SECRET=your_flutterwave_webhook_secret
+
+GEMINI_API_KEY=your_gemini_api_key
+REDIS_URL=redis://username:password@host:port
 ```
+
+Non-production only:
+
+```env
+ENABLE_DEV_TEST_ROUTES=true
+NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES=true
+DEMO_ADMIN_PASSWORD=skoolmate_demo_2024
+```
+
+## Deployment Notes
+
+- Add public env vars to both Vercel and GitHub Actions when CI builds the app.
+- Add all server-only env vars to Vercel before enabling payments, cron jobs, storage setup, imports, or SMS automation.
+- Keep `ENABLE_DEV_TEST_ROUTES` and `NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES` set to `false` in production.
+- Set `CRON_SECRET` in Vercel or scheduled automation routes will return 500.
 
 ## Testing
 

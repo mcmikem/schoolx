@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
@@ -19,7 +20,7 @@ interface Suggestion {
 }
 
 export default function SuggestionBoxPage() {
-  const { user, school, refreshSchool } = useAuth();
+  const { user, school } = useAuth();
   const toast = useToast();
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +34,7 @@ export default function SuggestionBoxPage() {
     category: "feedback" as "feedback" | "feature" | "bug" | "general",
   });
 
-  const fetchSuggestions = async () => {
+  const fetchSuggestions = useCallback(async () => {
     if (!school?.id) return;
     setLoading(true);
     const { data } = await supabase
@@ -44,7 +45,11 @@ export default function SuggestionBoxPage() {
       .limit(50);
     setSuggestions(data || []);
     setLoading(false);
-  };
+  }, [school?.id]);
+
+  useEffect(() => {
+    fetchSuggestions();
+  }, [fetchSuggestions]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,6 +114,7 @@ export default function SuggestionBoxPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <PageHeader
         title="Suggestion Box"
@@ -304,5 +310,6 @@ export default function SuggestionBoxPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

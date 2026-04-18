@@ -17,7 +17,7 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
         .then((registration) => {
-          console.log('Service Worker registered:', registration.scope)
+          logger.log('Service Worker registered:', registration.scope)
           // Check for updates and activate immediately
           registration.addEventListener('updatefound', () => {
             const newWorker = registration.installing
@@ -33,7 +33,7 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
           })
         })
         .catch((error) => {
-          console.error('Service Worker registration failed:', error)
+          logger.error('Service Worker registration failed:', error)
         })
     }
   }, [])

@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import StudentIDCard from "@/components/students/StudentIDCard";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useReactToPrint } from "react-to-print";
 import { useSearchParams } from "next/navigation";
-import { useEffect } from "react";
 import { DEMO_STUDENTS } from "@/lib/demo-data";
 
 export default function IDCardGenerator() {
@@ -20,13 +20,7 @@ export default function IDCardGenerator() {
   const [search, setSearch] = useState("");
   const printRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (studentId) {
-      loadSingleStudent(studentId);
-    }
-  }, [studentId]);
-
-  const loadSingleStudent = async (id: string) => {
+  const loadSingleStudent = useCallback(async (id: string) => {
     setLoading(true);
     if (isDemo) {
       const demoS = DEMO_STUDENTS.find(s => s.id === id) || DEMO_STUDENTS[0];
@@ -42,7 +36,13 @@ export default function IDCardGenerator() {
 
     if (data) setStudents([data]);
     setLoading(false);
-  };
+  }, [isDemo]);
+
+  useEffect(() => {
+    if (studentId) {
+      loadSingleStudent(studentId);
+    }
+  }, [studentId, loadSingleStudent]);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -82,6 +82,7 @@ export default function IDCardGenerator() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="p-6 max-w-7xl mx-auto space-y-8">
       <div className="flex justify-between items-end">
         <div>
@@ -200,5 +201,6 @@ export default function IDCardGenerator() {
         </div>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

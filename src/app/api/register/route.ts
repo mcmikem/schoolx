@@ -5,6 +5,12 @@ import {
   PRIMARY_TEMPLATE,
   SECONDARY_TEMPLATE,
 } from "@/lib/curriculum-templates";
+import { normalizePlanType } from "@/lib/payments/subscription-client";
+import {
+  buildUgandaAcademicTerms,
+  buildUgandaCalendarEvents,
+} from "@/lib/uganda-school-calendar";
+import { normalizeAuthPhone } from "@/lib/validation";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -50,8 +56,11 @@ interface RegisterRequest {
   schoolName: string;
   district: string;
   subcounty: string;
+   parish?: string;
+   village?: string;
   schoolType: "primary" | "secondary" | "combined";
   ownership: "private" | "government" | "government_aided";
+   selectedPackage?: string;
   phone?: string;
   email?: string;
   adminName: string;
@@ -101,8 +110,11 @@ export async function POST(request: NextRequest) {
       schoolName,
       district,
       subcounty,
+      parish,
+      village,
       schoolType,
       ownership,
+      selectedPackage,
       phone,
       email,
       adminName,
@@ -122,6 +134,8 @@ export async function POST(request: NextRequest) {
       return apiError("All required fields must be filled", 400);
     }
 
+    const subscriptionPlan = normalizePlanType(selectedPackage || "starter");
+
     if (schoolName.trim().length < 3) {
       return apiError("School name must be at least 3 characters", 400);
     }
@@ -140,7 +154,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Normalize phone number (remove spaces, dashes, keep only digits)
-    const normalizedPhone = adminPhone.replace(/[^0-9]/g, "");
+    const normalizedPhone = normalizeAuthPhone(adminPhone);
 
     if (normalizedPhone.length < 10 || normalizedPhone.length > 12) {
       return apiError(
@@ -233,11 +247,13 @@ export async function POST(request: NextRequest) {
         school_code: schoolCode,
         district,
         subcounty,
+        parish: parish || null,
+        village: village || null,
         school_type: schoolType,
         ownership,
         phone: phone || null,
         email: email || null,
-        subscription_plan: "free_trial",
+        subscription_plan: subscriptionPlan,
         subscription_status: "trial",
         trial_ends_at: new Date(
           Date.now() + 30 * 24 * 60 * 60 * 1000,
@@ -310,33 +326,31 @@ export async function POST(request: NextRequest) {
 
       // Create terms
       if (academicYear) {
-        await supabaseAdmin.from("terms").insert([
-          {
-            school_id: schoolData.id,
-            academic_year_id: academicYear.id,
-            term_number: 1,
-            start_date: `${currentYear}-02-01`,
-            end_date: `${currentYear}-04-30`,
-            is_current: true,
-          },
-          {
-            school_id: schoolData.id,
-            academic_year_id: academicYear.id,
-            term_number: 2,
-            start_date: `${currentYear}-05-01`,
-            end_date: `${currentYear}-07-31`,
-            is_current: false,
-          },
-          {
-            school_id: schoolData.id,
-            academic_year_id: academicYear.id,
-            term_number: 3,
-            start_date: `${currentYear}-08-01`,
-            end_date: `${currentYear}-11-30`,
-            is_current: false,
-          },
-        ]);
+        const defaultAcademicTerms = buildUgandaAcademicTerms(
+          schoolData.id,
+          currentYear,
+        );
+        const defaultTermRows = defaultAcademicTerms.map((term) => ({
+          school_id: schoolData.id,
+          academic_year_id: academicYear.id,
+          term_number: term.term_number,
+          start_date: term.start_date,
+          end_date: term.end_date,
+          is_current: term.is_current,
+        }));
+
+        await supabaseAdmin.from("terms").insert(defaultTermRows);
+
+        await supabaseAdmin
+          .from("academic_terms")
+          .upsert(defaultAcademicTerms, {
+          onConflict: "school_id,academic_year,term_number",
+        });
       }
+
+      await supabaseAdmin.from("events").insert(
+        buildUgandaCalendarEvents(schoolData.id, currentYear),
+      );
 
       console.log("[Setup] Auto-setup completed for school:", schoolData.id);
     } catch (setupError) {

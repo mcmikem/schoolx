@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import Papa from "papaparse";
 import { useAuth } from "@/lib/auth-context";
@@ -24,6 +25,9 @@ import { TableSkeleton } from "@/components/ui/Skeleton";
 import { DEMO_CLASSES, DEMO_ATTENDANCE } from "@/lib/demo-data";
 import { PageGuidance } from "@/components/PageGuidance";
 import StudentSummaryPulse from "@/components/students/StudentSummaryPulse";
+import { useTablePreferences } from "@/lib/useTablePreferences";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 
 const STUDENT_TEMPLATE_COLUMNS = [
   "student_number",
@@ -114,6 +118,9 @@ export default function StudentHubPage() {
     useStudents(school?.id);
   const { classes } = useClasses(school?.id);
 
+  const { preferences: tablePrefs, updatePreferences: updateTablePrefs } =
+    useTablePreferences("students-registry");
+
   const [activeTab, setActiveTab] = useState("registry");
 
   // ===== REGISTRY STATE =====
@@ -138,6 +145,36 @@ export default function StudentHubPage() {
   const [filterDefaulters, setFilterDefaulters] = useState(false);
   const [sortBy, setSortBy] = useState<"name" | "number" | "class">("name");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // Keyboard shortcut refs
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Keyboard shortcuts: Ctrl+N = add student, Ctrl+F = focus search, Escape = close modals
+  useKeyboardShortcuts([
+    {
+      key: "n",
+      ctrl: true,
+      action: () => setShowAddModal(true),
+      description: "Add new student",
+    },
+    {
+      key: "f",
+      ctrl: true,
+      action: () => {
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      },
+      description: "Focus search",
+    },
+    {
+      key: "Escape",
+      action: () => {
+        setShowAddModal(false);
+        setShowEditModal(false);
+      },
+      description: "Close modal",
+    },
+  ]);
 
   const newStudentDraft: any = {
     showRestoreDialog: false,
@@ -186,6 +223,7 @@ export default function StudentHubPage() {
     student_number: "",
     ple_index_number: "",
     opening_balance: "0",
+    photo_url: "",
   });
   const [smsTarget, setSmsTarget] = useState<{
     id: string;
@@ -557,12 +595,14 @@ export default function StudentHubPage() {
   };
 
   const filtered = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
     let result = students.filter((s) => {
       const name = `${s.first_name} ${s.last_name}`.toLowerCase();
       const matchesSearch =
-        name.includes(searchTerm.toLowerCase()) ||
-        s.parent_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.student_number?.toLowerCase().includes(searchTerm.toLowerCase());
+        !normalizedSearch ||
+        name.includes(normalizedSearch) ||
+        s.parent_name?.toLowerCase().includes(normalizedSearch) ||
+        s.student_number?.toLowerCase().includes(normalizedSearch);
       const matchesClass =
         selectedClass === "all" || s.class_id === selectedClass;
       const sAny = s as any;
@@ -572,7 +612,15 @@ export default function StudentHubPage() {
         (filterPosition === "monitor" && sAny.is_class_monitor) ||
         (filterPosition === "prefect" &&
           (sAny.prefect_role || sAny.student_council_role));
-      return matchesSearch && matchesClass && matchesGender && matchesPosition;
+      const matchesDefaulters =
+        !filterDefaulters || Number(s.opening_balance || 0) > 0;
+      return (
+        matchesSearch &&
+        matchesClass &&
+        matchesGender &&
+        matchesPosition &&
+        matchesDefaulters
+      );
     });
 
     // Sort
@@ -595,8 +643,25 @@ export default function StudentHubPage() {
     selectedClass,
     filterGender,
     filterPosition,
+    filterDefaulters,
     sortBy,
   ]);
+
+  // Pagination derived from table preferences
+  const pageSize = tablePrefs.pageSize || 50;
+  const [currentPage, setCurrentPage] = useState(1);
+  // Reset to page 1 whenever filters or page size change
+  const filteredTotal = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(filteredTotal / pageSize));
+  const paginatedStudents = filtered.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedClass, filterGender, filterPosition, filterDefaulters, sortBy, pageSize, school?.id]);
 
   const handleStudentTemplateUpload = (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -786,9 +851,12 @@ export default function StudentHubPage() {
       student_number: student.student_number || "",
       ple_index_number: student.ple_index_number || "",
       opening_balance: student.opening_balance?.toString() || "0",
+      photo_url: student.photo_url || "",
     });
-    window.scrollTo(0, 0);
     setShowEditModal(true);
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
   };
 
   const handleUpdateStudent = async (e: React.FormEvent) => {
@@ -1340,6 +1408,7 @@ export default function StudentHubPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Student Hub"
@@ -1604,10 +1673,10 @@ export default function StudentHubPage() {
             }}
           >
             <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
                 marginBottom: 10,
               }}
             >
@@ -1832,6 +1901,7 @@ export default function StudentHubPage() {
               </MaterialIcon>
               <input
                 type="text"
+                ref={searchInputRef}
                 placeholder="Search by name, parent, or student number..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -1941,25 +2011,32 @@ export default function StudentHubPage() {
               <option value="number">Sort by Number</option>
               <option value="class">Sort by Class</option>
             </select>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                updateTablePrefs({ pageSize: Number(e.target.value) });
+                setCurrentPage(1);
+              }}
+              aria-label="Rows per page"
+              style={{
+                padding: "10px 14px",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                background: "var(--surface)",
+                color: "var(--t1)",
+                cursor: "pointer",
+              }}
+            >
+              <option value={20}>20 / page</option>
+              <option value={50}>50 / page</option>
+              <option value={100}>100 / page</option>
+            </select>
           </div>
 
           {loading ? (
-            <div style={{ padding: 20 }}>
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div
-                  key={i}
-                  style={{
-                    padding: 16,
-                    borderBottom: "1px solid var(--border)",
-                  }}
-                >
-                  <div
-                    className="skeleton"
-                    style={{ height: 40, width: "100%" }}
-                  ></div>
-                </div>
-              ))}
-            </div>
+            <TableSkeleton rows={8} />
           ) : filtered.length === 0 ? (
             <div style={{ padding: 40, textAlign: "center" }}>
               <div
@@ -2021,7 +2098,7 @@ export default function StudentHubPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((student) => (
+                  {paginatedStudents.map((student) => (
                     <tr key={student.id}>
                       <td data-label="Student">
                         <Link
@@ -2032,27 +2109,41 @@ export default function StudentHubPage() {
                             gap: 10,
                             textDecoration: "none",
                           }}
-                        >
-                          <div
-                            style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: "50%",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: 12,
-                              fontWeight: 700,
-                              color: "#fff",
-                              background:
-                                student.gender === "M"
-                                  ? "var(--navy)"
-                                  : "var(--red)",
-                            }}
                           >
-                            {student.first_name?.charAt(0)}
-                            {student.last_name?.charAt(0)}
-                          </div>
+                           <div
+                             style={{
+                               width: 36,
+                               height: 36,
+                               borderRadius: "50%",
+                               display: "flex",
+                               alignItems: "center",
+                               justifyContent: "center",
+                               fontSize: 12,
+                               fontWeight: 700,
+                               color: "#fff",
+                               overflow: "hidden",
+                               background:
+                                 student.gender === "M"
+                                   ? "var(--navy)"
+                                   : "var(--red)",
+                             }}
+                           >
+                             {student.photo_url ? (
+                               <Image
+                                 src={student.photo_url}
+                                 alt={`${student.first_name} ${student.last_name}`}
+                                 width={36}
+                                 height={36}
+                                 unoptimized
+                                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                               />
+                             ) : (
+                               <>
+                                 {student.first_name?.charAt(0)}
+                                 {student.last_name?.charAt(0)}
+                               </>
+                             )}
+                           </div>
                           <div>
                             <div
                               style={{ fontWeight: 600, color: "var(--t1)" }}
@@ -2169,6 +2260,36 @@ export default function StudentHubPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+          {!loading && filtered.length > pageSize && (
+            <div
+              className="flex items-center justify-between px-4 py-3 border-t border-[var(--border)]"
+              style={{ fontSize: 13 }}
+            >
+              <span className="text-[var(--t3)]">
+                Showing {Math.min((currentPage - 1) * pageSize + 1, filteredTotal)}–
+                {Math.min(currentPage * pageSize, filteredTotal)} of {filteredTotal} students
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--t2)] text-xs disabled:opacity-40 hover:bg-[var(--bg)] transition-colors"
+                >
+                  Previous
+                </button>
+                <span className="text-[var(--t2)] text-xs font-medium">
+                  Page {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--t2)] text-xs disabled:opacity-40 hover:bg-[var(--bg)] transition-colors"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -2970,10 +3091,13 @@ export default function StudentHubPage() {
                     }}
                     title="Click to upload photo"
                   >
-                    {(editingStudent as any)?.photo_url ? (
-                      <img
-                        src={(editingStudent as any).photo_url}
-                        alt="Student"
+                    {editForm.photo_url ? (
+                      <Image
+                        src={editForm.photo_url}
+                        alt={`${editForm.first_name || "Student"} ${editForm.last_name || ""}`}
+                        width={80}
+                        height={80}
+                        unoptimized
                         style={{
                           width: "100%",
                           height: "100%",
@@ -2981,11 +3105,23 @@ export default function StudentHubPage() {
                         }}
                       />
                     ) : (
-                      <MaterialIcon
-                        style={{ fontSize: 32, color: "var(--t3)" }}
+                      <div
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#fff",
+                          background:
+                            editForm.gender === "M" ? "var(--navy)" : "var(--red)",
+                          fontSize: 24,
+                          fontWeight: 700,
+                        }}
                       >
-                        person
-                      </MaterialIcon>
+                        {(editForm.first_name?.charAt(0) || "S").toUpperCase()}
+                        {(editForm.last_name?.charAt(0) || "").toUpperCase()}
+                      </div>
                     )}
                   </div>
                   <div style={{ flex: 1 }}>
@@ -3019,9 +3155,9 @@ export default function StudentHubPage() {
                                 photo_url: reader.result,
                               };
                               setEditingStudent(updatedStudent);
-                              setEditForm((prev: any) => ({
+                              setEditForm((prev) => ({
                                 ...prev,
-                                photo_url: reader.result,
+                                photo_url: String(reader.result || ""),
                               }));
                               setUploadingPhoto(false);
                             };
@@ -4863,5 +4999,6 @@ export default function StudentHubPage() {
         )}
       </TabPanel>
     </div>
+    </PageErrorBoundary>
   );
 }

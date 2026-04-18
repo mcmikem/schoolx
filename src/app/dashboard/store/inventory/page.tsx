@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -13,7 +14,7 @@ export default function InventoryPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [newItem, setNewItem] = useState({ name: '', price: '', category: 'Snacks', stock_quantity: '' });
 
-  const fetchInventory = async () => {
+  const fetchInventory = useCallback(async () => {
     if (!school?.id) return;
     setLoading(true);
     const { data } = await supabase
@@ -24,11 +25,11 @@ export default function InventoryPage() {
     
     if (data) setItems(data);
     setLoading(false);
-  };
+  }, [school?.id]);
 
   useEffect(() => {
     fetchInventory();
-  }, [school?.id]);
+  }, [fetchInventory]);
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +59,7 @@ export default function InventoryPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
       <div className="flex justify-between items-end">
         <div>
@@ -208,5 +210,6 @@ export default function InventoryPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

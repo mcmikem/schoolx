@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { detectInstallmentReminders } from "@/lib/operations";
+import { logger } from "@/lib/logger";
 import {
   requireCronSecretOrDeny,
   createServiceRoleClientOrThrow,
@@ -24,9 +25,9 @@ export async function POST(request: NextRequest) {
       .eq("school_id", school.schoolId)
       .eq("status", "active");
 
-    const activePlans: any[] = (plansQuery.data || []) as any[];
+    const plans: any[] = (plansQuery.data || []) as any[];
 
-    if (!activePlans || activePlans.length === 0) {
+    if (plans.length === 0) {
       return NextResponse.json({
         success: true,
         message: "No active plans found",
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
         const smsRes = await sendSMS(reminder.parentPhone, reminder.smsMessage);
         if (smsRes.success) {
           // Log success
-          await supabase.from("automated_message_logs").insert({
+          await (supabase as any).from("automated_message_logs").insert({
             school_id: school.schoolId,
             trigger_id: "auto-installment-reminder",
             recipient_id: reminder.parentPhone,
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, summary: results });
   } catch (error) {
-    console.error("Installment reminder error:", error);
+    logger.error("Installment reminder error", { error });
     return NextResponse.json({ error: "Automation failed" }, { status: 500 });
   }
 }

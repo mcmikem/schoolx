@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
@@ -59,11 +60,7 @@ export default function FeeTermsPage() {
     },
   ]);
 
-  useEffect(() => {
-    if (school?.id) fetchFeeTerms();
-  }, [school?.id]);
-
-  const fetchFeeTerms = async () => {
+  const fetchFeeTerms = useCallback(async () => {
     if (!school?.id) return;
     setLoading(true);
     const { data, error } = await supabase
@@ -78,7 +75,11 @@ export default function FeeTermsPage() {
       setFeeTerms(data || []);
     }
     setLoading(false);
-  };
+  }, [school?.id, toast]);
+
+  useEffect(() => {
+    if (school?.id) fetchFeeTerms();
+  }, [school?.id, fetchFeeTerms]);
 
   const handleSubmit = async () => {
     if (!school?.id) return;
@@ -247,6 +248,7 @@ export default function FeeTermsPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <>
       <PageHeader
         title="Fee Terms"
@@ -563,5 +565,6 @@ export default function FeeTermsPage() {
         </div>
       </Modal>
     </>
+    </PageErrorBoundary>
   );
 }

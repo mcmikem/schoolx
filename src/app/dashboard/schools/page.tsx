@@ -1,4 +1,5 @@
 'use client'
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
@@ -521,6 +522,7 @@ export default function SchoolsPage() {
   }
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
@@ -1025,5 +1027,6 @@ export default function SchoolsPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   )
 }

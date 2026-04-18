@@ -1,5 +1,6 @@
 "use client";
 
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -130,7 +131,7 @@ export default function DropoutTrackingPage() {
       .limit(20);
     setLogs(logData || []);
     setLoading(false);
-  }, [school?.id]);
+  }, [school?.id, toast]);
 
   useEffect(() => {
     fetchAtRiskStudents();
@@ -164,6 +165,7 @@ export default function DropoutTrackingPage() {
   const atRiskOnly = students.filter((s) => s.riskLevel === "at_risk");
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
       <PageHeader
         title="Dropout Tracking"
@@ -381,5 +383,6 @@ export default function DropoutTrackingPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

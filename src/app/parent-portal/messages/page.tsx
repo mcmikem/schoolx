@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -8,66 +9,109 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
+import {
+  mapParentStudentLinks,
+  ParentPortalChild,
+  ParentPortalMessageThreadItem,
+  resolveSelectedChild,
+} from "@/lib/parent-portal";
+import { getDemoChildren, getDemoMessages } from "@/lib/parent-portal-demo";
 
 export default function ParentMessagesPage() {
   const { user, isDemo } = useAuth();
   const { isAuthorized, isChecking } = useParentPortalGuard();
   const toast = useToast();
-  const [messages, setMessages] = useState<any[]>([]);
+  const [children, setChildren] = useState<ParentPortalChild[]>([]);
+  const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(
+    null,
+  );
+  const [messages, setMessages] = useState<ParentPortalMessageThreadItem[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [subject, setSubject] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [schoolId, setSchoolId] = useState<string | null>(null);
   const [showCompose, setShowCompose] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const fetchSchoolId = useCallback(async () => {
-    if (isDemo) { setSchoolId("demo-school"); setLoading(false); return; }
-    if (!user?.id) return;
+  const fetchChildren = useCallback(async () => {
+    if (isDemo) {
+      setChildren(getDemoChildren());
+      return;
+    }
+    const parentId = user?.id;
+    if (!parentId) return;
     const { data } = await supabase
       .from("parent_students")
-      .select("student:students(school_id)")
-      .eq("parent_id", user.id)
-      .limit(1)
-      .single();
-    setSchoolId((data as any)?.student?.school_id || null);
+      .select(
+        "student:students(id, first_name, last_name, school_id, class_id, class:classes(name))",
+      )
+      .eq("parent_id", parentId);
+    setChildren(mapParentStudentLinks(data || []));
   }, [user?.id, isDemo]);
 
+  useEffect(() => {
+    setSelectedChild((current) => resolveSelectedChild(children, current?.id));
+  }, [children]);
+
   const fetchMessages = useCallback(async () => {
-    if (!user?.id) return;
+    const parentId = user?.id;
+    if (!parentId && !isDemo) return;
     setLoading(true);
+
     if (isDemo) {
-      setMessages([
-        { id: "1", subject: "Fee Inquiry", body: "Hello, I would like to inquire about the Term 2 fee structure.", sender_role: "parent", created_at: new Date(Date.now() - 3 * 86400000).toISOString(), is_read: true },
-        { id: "2", subject: "Re: Fee Inquiry", body: "Dear Parent, thank you for reaching out. The Term 2 fee structure is available on the fees page. Please let us know if you need further assistance.", sender_role: "school", created_at: new Date(Date.now() - 2 * 86400000).toISOString(), is_read: true },
-        { id: "3", subject: "Visitation Day Confirmation", body: "I will be attending visitation day on Saturday. Please reserve a slot for me to meet with the class teacher.", sender_role: "parent", created_at: new Date(Date.now() - 86400000).toISOString(), is_read: false },
-      ]);
+      setMessages(getDemoMessages());
       setLoading(false);
       return;
     }
+
     const { data } = await supabase
       .from("parent_messages")
       .select("id, subject, body, sender_role, created_at, is_read")
-      .eq("parent_id", user.id)
+      .eq("parent_id", parentId!)
       .order("created_at", { ascending: true });
-    setMessages(data || []);
+
+    setMessages((data || []) as ParentPortalMessageThreadItem[]);
     setLoading(false);
   }, [user?.id, isDemo]);
 
-  useEffect(() => { fetchSchoolId(); }, [fetchSchoolId]);
-  useEffect(() => { fetchMessages(); }, [fetchMessages]);
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  useEffect(() => {
+    fetchChildren();
+  }, [fetchChildren]);
 
-  if (isChecking || !isAuthorized) {
-    return null;
-  }
+  useEffect(() => {
+    fetchMessages();
+  }, [fetchMessages]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !user?.id) return;
+    const trimmedBody = newMessage.trim();
+    const trimmedSubject = subject.trim() || "Message from Parent";
+    const schoolId = selectedChild?.school_id || children[0]?.school_id || null;
+
+    const parentId = user?.id;
+    if (!trimmedBody || !parentId) return;
+    if (!schoolId && !isDemo) {
+      toast.error("No linked school was found for this parent account.");
+      return;
+    }
+
     setSending(true);
+
     if (isDemo) {
-      setMessages((prev) => [...prev, { id: `demo-${Date.now()}`, subject: subject || "Message", body: newMessage, sender_role: "parent", created_at: new Date().toISOString(), is_read: false }]);
+      setMessages((current) => [
+        ...current,
+        {
+          id: `demo-${Date.now()}`,
+          subject: trimmedSubject,
+          body: trimmedBody,
+          sender_role: "parent",
+          created_at: new Date().toISOString(),
+          is_read: false,
+        },
+      ]);
       setNewMessage("");
       setSubject("");
       setShowCompose(false);
@@ -75,92 +119,198 @@ export default function ParentMessagesPage() {
       toast.success("Message sent to school");
       return;
     }
-    const { error } = await supabase.from("parent_messages").insert({
-      parent_id: user.id,
-      school_id: schoolId,
-      subject: subject || "Message from Parent",
-      body: newMessage,
-      sender_role: "parent",
-      is_read: false,
-    });
+
+    const { data, error } = await supabase
+      .from("parent_messages")
+      .insert({
+        parent_id: parentId,
+        school_id: schoolId,
+        student_id: selectedChild?.id || null,
+        subject: trimmedSubject,
+        body: trimmedBody,
+        sender_role: "parent",
+        is_read: false,
+      })
+      .select("id, subject, body, sender_role, created_at, is_read")
+      .single();
+
     if (error) {
-      toast.error("Failed to send message: " + error.message);
-    } else {
+      toast.error(`Failed to send message: ${error.message}`);
+    } else if (data) {
+      setMessages((current) => [
+        ...current,
+        data as ParentPortalMessageThreadItem,
+      ]);
       toast.success("Message sent to school");
       setNewMessage("");
       setSubject("");
       setShowCompose(false);
-      fetchMessages();
     }
+
     setSending(false);
   };
 
-  return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <div className="flex justify-between items-start">
-        <PageHeader title="Message School" subtitle="Send messages directly to the school administration" />
-        <Button onClick={() => setShowCompose(true)}>
-          <MaterialIcon icon="edit" /> Compose
-        </Button>
-      </div>
+  if (isChecking || !isAuthorized) {
+    return null;
+  }
 
-      <Card>
-        <CardBody>
-          {loading ? (
-            <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 bg-[var(--surface-container)] rounded-2xl animate-pulse" />)}</div>
-          ) : messages.length === 0 ? (
-            <div className="text-center py-12 text-[var(--on-surface-variant)]">
-              <MaterialIcon icon="chat_bubble_outline" className="text-5xl mb-3 opacity-30" />
-              <p className="font-bold">No messages yet</p>
-              <p className="text-sm">Click Compose to send your first message to the school</p>
-            </div>
-          ) : (
-            <div className="space-y-3 max-h-[500px] overflow-y-auto">
-              {messages.map((m) => (
-                <div key={m.id} className={`p-4 rounded-2xl ${m.sender_role === "parent" ? "bg-[var(--primary)]/10 ml-8" : "bg-[var(--surface-container-low)] mr-8"}`}>
-                  <div className="flex justify-between items-start mb-1">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-[var(--on-surface-variant)]">
-                      {m.sender_role === "parent" ? "You" : "School Administration"}
-                    </p>
-                    <p className="text-[10px] text-[var(--on-surface-variant)]">
-                      {new Date(m.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+  return (
+    <PageErrorBoundary>
+      <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">
+        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
+          <PageHeader
+            title="Message School"
+            subtitle="Keep a written thread with administration and class support staff"
+          />
+          <Button onClick={() => setShowCompose(true)}>
+            <MaterialIcon icon="edit" /> Compose
+          </Button>
+        </div>
+
+        {children.length > 1 && (
+          <div className="flex gap-3 overflow-x-auto pb-1">
+            {children.map((child) => (
+              <button
+                key={child.id}
+                onClick={() => setSelectedChild(child)}
+                className={`px-4 py-2 rounded-2xl text-sm font-bold whitespace-nowrap transition-all ${
+                  selectedChild?.id === child.id
+                    ? "bg-[var(--primary)] text-[var(--on-primary)]"
+                    : "bg-[var(--surface-container)] text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-high)]"
+                }`}
+              >
+                {child.first_name} {child.last_name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <Card>
+          <CardBody>
+            {loading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="h-16 bg-[var(--surface-container)] rounded-2xl animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="text-center py-12 text-[var(--on-surface-variant)]">
+                <MaterialIcon
+                  icon="chat_bubble_outline"
+                  className="text-5xl mb-3 opacity-30"
+                />
+                <p className="font-bold">No messages yet</p>
+                <p className="text-sm">
+                  Click Compose to send your first message to the school
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[520px] overflow-y-auto">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`p-4 rounded-2xl ${
+                      message.sender_role === "parent"
+                        ? "bg-[var(--primary)]/10 ml-8"
+                        : "bg-[var(--surface-container-low)] mr-8"
+                    }`}
+                  >
+                    <div className="flex justify-between items-start gap-4 mb-1">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-wider text-[var(--on-surface-variant)]">
+                          {message.sender_role === "parent"
+                            ? "You"
+                            : "School Administration"}
+                        </p>
+                        {message.subject && (
+                          <p className="font-bold text-sm text-[var(--on-surface)]">
+                            {message.subject}
+                          </p>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-[var(--on-surface-variant)] whitespace-nowrap">
+                        {new Date(message.created_at).toLocaleDateString(
+                          "en-GB",
+                          {
+                            day: "2-digit",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        )}
+                      </p>
+                    </div>
+                    <p className="text-sm text-[var(--on-surface)]">
+                      {message.body}
                     </p>
                   </div>
-                  {m.subject && m.sender_role === "parent" && (
-                    <p className="font-bold text-sm text-[var(--on-surface)] mb-1">{m.subject}</p>
-                  )}
-                  <p className="text-sm text-[var(--on-surface)]">{m.body}</p>
-                </div>
-              ))}
-              <div ref={bottomRef} />
-            </div>
-          )}
-        </CardBody>
-      </Card>
+                ))}
+                <div ref={bottomRef} />
+              </div>
+            )}
+          </CardBody>
+        </Card>
 
-      {showCompose && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="bg-[var(--surface)] rounded-3xl w-full max-w-lg shadow-2xl p-8 space-y-5">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-black text-[var(--on-surface)]">New Message</h2>
-              <button onClick={() => setShowCompose(false)} className="p-2 hover:bg-[var(--surface-container)] rounded-xl">
-                <MaterialIcon icon="close" />
-              </button>
+        {showCompose && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+            <div className="bg-[var(--surface)] rounded-3xl w-full max-w-lg shadow-2xl p-8 space-y-5">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-black text-[var(--on-surface)]">
+                    New Message
+                  </h2>
+                  <p className="text-sm text-[var(--on-surface-variant)]">
+                    {selectedChild
+                      ? `Current learner context: ${selectedChild.first_name} ${selectedChild.last_name}`
+                      : "This message will go to school administration"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowCompose(false)}
+                  className="p-2 hover:bg-[var(--surface-container)] rounded-xl"
+                >
+                  <MaterialIcon icon="close" />
+                </button>
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  value={subject}
+                  onChange={(event) => setSubject(event.target.value)}
+                  placeholder="e.g. Fee Inquiry, Absence Notification..."
+                  className="input w-full"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+                  Message
+                </label>
+                <textarea
+                  value={newMessage}
+                  onChange={(event) => setNewMessage(event.target.value)}
+                  rows={5}
+                  placeholder="Type your message to the school..."
+                  className="w-full px-4 py-3 bg-[var(--surface-container)] border border-[var(--border)] rounded-2xl text-sm outline-none resize-none"
+                />
+              </div>
+              <Button
+                onClick={sendMessage}
+                disabled={!newMessage.trim() || sending}
+                loading={sending}
+                className="w-full"
+              >
+                <MaterialIcon icon="send" /> Send Message
+              </Button>
             </div>
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">Subject</label>
-              <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Fee Inquiry, Absence Notification..." className="input w-full" />
-            </div>
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">Message</label>
-              <textarea value={newMessage} onChange={(e) => setNewMessage(e.target.value)} rows={5} placeholder="Type your message to the school..." className="w-full px-4 py-3 bg-[var(--surface-container)] border border-[var(--border)] rounded-2xl text-sm outline-none resize-none" />
-            </div>
-            <Button onClick={sendMessage} disabled={!newMessage.trim() || sending} loading={sending} className="w-full">
-              <MaterialIcon icon="send" /> Send Message
-            </Button>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </PageErrorBoundary>
   );
 }

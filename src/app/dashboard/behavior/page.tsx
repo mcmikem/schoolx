@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useStudents } from "@/lib/hooks";
@@ -89,11 +90,12 @@ export default function BehaviorPage() {
       setLogs(data || []);
     } catch (err) {
       console.error("Error fetching behavior logs:", err);
+      toast.error("Failed to load behaviour records");
       setLogs([]);
     } finally {
       setLoading(false);
     }
-  }, [school?.id]);
+  }, [school?.id, toast]);
 
   useEffect(() => {
     fetchLogs();
@@ -238,6 +240,7 @@ export default function BehaviorPage() {
   ];
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Behavior Log"
@@ -542,5 +545,6 @@ export default function BehaviorPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

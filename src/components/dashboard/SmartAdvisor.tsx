@@ -119,7 +119,7 @@ export default function SmartAdvisor({
     }
 
     return list;
-  }, [stats, collectionRate, attendanceRate, role]);
+  }, [stats, collectionRate, attendanceRate, role, performanceAlerts, isOsxPartner]);
 
   const [isExpanded, setIsExpanded] = useState(false);
 

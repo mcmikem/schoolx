@@ -1,13 +1,18 @@
 "use client";
-import { useState } from "react";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { useState, useEffect } from "react";
 import { useToast } from "@/components/Toast";
 import Link from "next/link";
 import AnimatedLogo from "@/components/AnimatedLogo";
 import { t, tWithParams } from "@/i18n";
 import { Button, Input } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
+import { normalizeAuthPhone } from "@/lib/validation";
 
 const DEMO_KEY = "skoolmate_demo_v1";
+const DEMO_MODE_ENABLED =
+  process.env.NODE_ENV === "development" &&
+  process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
 
 function serializeDemoData(data: object): string {
   try {
@@ -40,15 +45,40 @@ function MaterialIcon({
 
 export default function LoginPage() {
   const toast = useToast();
-  const { signIn } = useAuth();
+  const { signIn, user, loading: authLoading } = useAuth();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [phoneError, setPhoneError] = useState("");
 
+  // If user is already authenticated, redirect to dashboard
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (user.role === "super_admin") {
+        window.location.href = "/super-admin";
+      } else if (user.role === "parent") {
+        window.location.href = "/parent-portal";
+      } else {
+        window.location.href = "/dashboard";
+      }
+    }
+  }, [user, authLoading]);
+
+  // Show a spinner while auth state is initializing to prevent flash
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-[var(--t3)]">Loading…</p>
+        </div>
+      </div>
+    );
+  }
+
   const validatePhone = (phone: string): boolean => {
-    const clean = phone.replace(/[^0-9]/g, "");
+    const clean = normalizeAuthPhone(phone);
     return clean.length >= 10 && clean.length <= 12;
   };
 
@@ -73,41 +103,42 @@ export default function LoginPage() {
 
     setLoading(true);
 
-    const cleanPhone = phone.replace(/[^0-9]/g, "");
+    const cleanPhone = normalizeAuthPhone(phone);
 
     // Clear any previous demo data before login
     localStorage.removeItem(DEMO_KEY);
 
     try {
-      // Try server-side demo login first
-      const demoResponse = await fetch("/api/demo-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: cleanPhone, password }),
-      });
+      if (DEMO_MODE_ENABLED) {
+        const demoResponse = await fetch("/api/demo-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: cleanPhone, password }),
+        });
 
-      if (demoResponse.ok) {
-        const demoData = await demoResponse.json();
-        if (demoData.success && demoData.demo) {
-          const encoded = serializeDemoData({
-            demoUser: demoData.user,
-            demoSchool: demoData.school,
-          });
-          sessionStorage.setItem(DEMO_KEY, encoded);
-          localStorage.removeItem(DEMO_KEY);
-          toast.success(
-            tWithParams("auth.welcomeDemo", { name: demoData.user.name }),
-          );
+        if (demoResponse.ok) {
+          const demoData = await demoResponse.json();
+          if (demoData.success && demoData.demo) {
+            const encoded = serializeDemoData({
+              demoUser: demoData.user,
+              demoSchool: demoData.school,
+            });
+            sessionStorage.setItem(DEMO_KEY, encoded);
+            localStorage.removeItem(DEMO_KEY);
+            toast.success(
+              tWithParams("auth.welcomeDemo", { name: demoData.user.name }),
+            );
 
-          const redirectPath =
-            demoData.user.role === "super_admin"
-              ? "/super-admin"
-              : demoData.user.role === "parent"
-                ? "/parent-portal"
-                : "/dashboard";
+            const redirectPath =
+              demoData.user.role === "super_admin"
+                ? "/super-admin"
+                : demoData.user.role === "parent"
+                  ? "/parent-portal"
+                  : "/dashboard";
 
-          window.location.href = redirectPath;
-          return;
+            window.location.href = redirectPath;
+            return;
+          }
         }
       }
 
@@ -149,6 +180,7 @@ export default function LoginPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="min-h-screen bg-[var(--bg)] flex relative overflow-hidden">
       <div className="flex-1 flex flex-col justify-center relative z-10 w-full lg:max-w-[45%] xl:max-w-[40%] px-6 lg:px-16 xl:px-24">
         <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-[var(--primary)] blur-[150px] rounded-full opacity-10" />
@@ -226,31 +258,35 @@ export default function LoginPage() {
                 {loading ? t("auth.signingIn") : t("auth.signIn")}
               </Button>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-[var(--border)]" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-3 bg-[var(--surface)] text-[var(--t3)]">
-                    Try Demo Account
-                  </span>
-                </div>
-              </div>
+              {DEMO_MODE_ENABLED && (
+                <>
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-[var(--border)]" />
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="px-3 bg-[var(--surface)] text-[var(--t3)]">
+                        Try Demo Account
+                      </span>
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                {demoAccounts.map((demo) => (
-                  <Button
-                    key={demo.phone}
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="w-full justify-center text-xs py-2"
-                    onClick={() => handleDemoClick(demo.phone)}
-                  >
-                    {demo.role}
-                  </Button>
-                ))}
-              </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {demoAccounts.map((demo) => (
+                      <Button
+                        key={demo.phone}
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="w-full justify-center text-xs py-2"
+                        onClick={() => handleDemoClick(demo.phone)}
+                      >
+                        {demo.role}
+                      </Button>
+                    ))}
+                  </div>
+                </>
+              )}
             </form>
           </div>
 
@@ -343,5 +379,6 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

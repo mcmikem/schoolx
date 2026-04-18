@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -156,6 +157,7 @@ export default function MOESReportsPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="MOES EMIS Reports"
@@ -305,5 +307,6 @@ export default function MOESReportsPage() {
         </>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -36,11 +37,12 @@ export default function ParentNoticesPage() {
     }
     // Fetch school_id from user's linked student
     let schoolId: string | null = null;
-    if (user?.id) {
+    const parentId = user?.id;
+    if (parentId) {
       const { data: links } = await supabase
         .from("parent_students")
         .select("student:students(school_id)")
-        .eq("parent_id", user.id)
+        .eq("parent_id", parentId)
         .limit(1)
         .single();
       schoolId = (links as any)?.student?.school_id || null;
@@ -64,6 +66,7 @@ export default function ParentNoticesPage() {
   }
 
   return (
+    <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
       <PageHeader title="Notice Board" subtitle="Stay up to date with school announcements" />
 
@@ -118,5 +121,6 @@ export default function ParentNoticesPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

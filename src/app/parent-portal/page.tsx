@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -10,6 +11,19 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
 import { useToast } from "@/components/Toast";
+import {
+  calculateFeeStats,
+  mapParentStudentLinks,
+  normalizeFeeTermItems,
+  normalizePayments,
+  normalizeGrades,
+  pickPreferredSchemaRows,
+  ParentPortalAttendanceRecord,
+  ParentPortalChild,
+  ParentPortalGradeRecord,
+  ParentPortalNotice,
+  resolveSelectedChild,
+} from "@/lib/parent-portal";
 
 function ParentDashboardContent() {
   const { user, isDemo, signOut } = useAuth();
@@ -17,16 +31,20 @@ function ParentDashboardContent() {
   const { close: closeSidebar } = useSidebar();
   const router = useRouter();
   const toast = useToast();
-  const [children, setChildren] = useState<any[]>([]);
-  const [selectedChild, setSelectedChild] = useState<any>(null);
+  const [children, setChildren] = useState<ParentPortalChild[]>([]);
+  const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(
+    null,
+  );
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [showTopup, setShowTopup] = useState(false);
   const [topupAmount, setTopupAmount] = useState("");
   const [topupLoading, setTopupLoading] = useState(false);
-  const [notices, setNotices] = useState<any[]>([]);
-  const [attendance, setAttendance] = useState<any[]>([]);
-  const [grades, setGrades] = useState<any[]>([]);
+  const [notices, setNotices] = useState<ParentPortalNotice[]>([]);
+  const [attendance, setAttendance] = useState<ParentPortalAttendanceRecord[]>(
+    [],
+  );
+  const [grades, setGrades] = useState<ParentPortalGradeRecord[]>([]);
   const [feeStats, setFeeStats] = useState({ totalPaid: 0, totalFee: 0, balance: 0, status: 'unknown' });
 
   useEffect(() => {
@@ -62,19 +80,15 @@ function ParentDashboardContent() {
 
       if (user) {
         try {
+          const parentId = user.id;
           // Fetch linked children
           const { data: parentLinks } = await supabase
             .from("parent_students")
             .select("student:students(*, class:classes(name))")
-            .eq("parent_id", user.id);
+            .eq("parent_id", parentId);
 
-          const list = (parentLinks || []).map((item: any) => ({
-            ...item.student,
-            class_name: item.student.class?.name || "Unassigned",
-          }));
+          const list = mapParentStudentLinks(parentLinks || []);
           setChildren(list);
-          const activeChild = list[0];
-          if (activeChild) setSelectedChild(activeChild);
 
           // Fetch Global Notices
           const schoolId = list[0]?.school_id || null;
@@ -102,41 +116,84 @@ function ParentDashboardContent() {
     fetchChildren();
   }, [user, isDemo]);
 
+  useEffect(() => {
+    setSelectedChild((current) => resolveSelectedChild(children, current?.id));
+  }, [children]);
+
   // Fetch student specific data when selected child changes
   useEffect(() => {
     if (!selectedChild || isDemo) return;
+    const selectedChildId = selectedChild.id;
 
     async function fetchStudentData() {
+      const scopedChild = resolveSelectedChild(children, selectedChildId);
+      if (!scopedChild) return;
       try {
-        const [attRes, gradesRes, payRes, fsRes] = await Promise.all([
-          supabase.from("attendance").select("*").eq("student_id", selectedChild.id).limit(10),
-          supabase.from("grades").select("*, subjects(name)").eq("student_id", selectedChild.id).limit(6),
-          supabase.from("fee_payments").select("*").eq("student_id", selectedChild.id),
-          supabase
-            .from("fee_structure")
-            .select("*")
-            .eq("school_id", selectedChild.school_id)
-            .is("deleted_at", null)
-            .or(`class_id.is.null,class_id.eq.${selectedChild.class_id}`)
+        const [attRes, gradesRes] = await Promise.all([
+          supabase.from("attendance").select("id, date, status, remarks").eq("student_id", scopedChild.id).limit(10),
+          supabase.from("grades").select("id, score, max_score, grade, term, exam_type, teacher_comment, subjects(name)").eq("student_id", scopedChild.id).limit(6),
         ]);
 
-        setAttendance(attRes.data || []);
-        setGrades(gradesRes.data || []);
+        const [modernFeeTermsRes, modernPaymentsRes, legacyPaymentsRes, legacyFeeTermsRes] =
+          await Promise.all([
+            supabase
+              .from("student_fee_terms")
+              .select("id, final_amount, academic_year, fee_terms(name)")
+              .eq("student_id", scopedChild.id)
+              .order("created_at", { ascending: false }),
+            supabase
+              .from("fee_payments")
+              .select(
+                "id, amount, payment_date, payment_method, transaction_reference, student_fee_terms!inner(student_id, fee_terms(name))",
+              )
+              .eq("student_fee_terms.student_id", scopedChild.id)
+              .order("payment_date", { ascending: false }),
+            supabase
+              .from("fee_payments")
+              .select(
+                "id, amount_paid, payment_date, payment_method, payment_reference",
+              )
+              .eq("student_id", scopedChild.id),
+            supabase
+              .from("fee_structure")
+              .select("*")
+              .eq("school_id", scopedChild.school_id)
+              .is("deleted_at", null)
+              .or(`class_id.is.null,class_id.eq.${scopedChild.class_id}`),
+          ]);
 
-        const paid = (payRes.data || []).reduce((sum, p) => sum + Number(p.amount_paid), 0);
-        const expected = (fsRes.data || []).reduce((sum, f) => sum + Number(f.amount), 0);
-        setFeeStats({
-          totalPaid: paid,
-          totalFee: expected,
-          balance: Math.max(0, expected - paid),
-          status: paid >= expected ? 'paid' : 'pending'
+        const normalizedFeeStructure = pickPreferredSchemaRows({
+          modernRows: normalizeFeeTermItems(
+            (modernFeeTermsRes.data || []) as never[],
+          ),
+          modernError: modernFeeTermsRes.error,
+          legacyRows: legacyFeeTermsRes.data || [],
+          legacyError: legacyFeeTermsRes.error,
         });
+
+        const normalizedPayments = pickPreferredSchemaRows({
+          modernRows: normalizePayments((modernPaymentsRes.data || []) as never[]),
+          modernError: modernPaymentsRes.error,
+          legacyRows: normalizePayments((legacyPaymentsRes.data || []) as never[]),
+          legacyError: legacyPaymentsRes.error,
+        });
+
+        setAttendance(
+          (attRes.data || []).map((record) => ({
+            id: record.id,
+            date: record.date,
+            status: record.status,
+            notes: record.remarks ?? null,
+          })),
+        );
+        setGrades(normalizeGrades(gradesRes.data || []));
+        setFeeStats(calculateFeeStats(normalizedFeeStructure, normalizedPayments));
       } catch (err) {
         console.error("Fetch student data error:", err);
       }
     }
     fetchStudentData();
-  }, [selectedChild, isDemo]);
+  }, [selectedChild, isDemo, children]);
 
   // Fetch wallet when child changes
   useEffect(() => {
@@ -144,13 +201,15 @@ function ParentDashboardContent() {
       if (isDemo) setWalletBalance(8500); // demo balance
       return;
     }
+    const scopedChild = resolveSelectedChild(children, selectedChild.id);
+    if (!scopedChild) return;
     supabase
       .from("student_wallets")
       .select("balance")
-      .eq("student_id", selectedChild.id)
-      .single()
+      .eq("student_id", scopedChild.id)
+      .maybeSingle()
       .then(({ data }) => setWalletBalance(data?.balance ?? 0));
-  }, [selectedChild, isDemo]);
+  }, [selectedChild, isDemo, children]);
 
   const handleTopup = async () => {
     if (!selectedChild || !topupAmount) return;
@@ -175,8 +234,8 @@ function ParentDashboardContent() {
       setTopupAmount("");
       setShowTopup(false);
       toast.success("Pocket money added successfully.");
-    } catch (err: any) {
-      toast.error(err.message || "Top-up failed");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Top-up failed");
     } finally {
       setTopupLoading(false);
     }
@@ -192,7 +251,7 @@ function ParentDashboardContent() {
 
   const handleSignOut = async () => {
     await signOut();
-    window.location.href = "/login";
+    router.replace("/login");
   };
 
   if (isChecking || !isAuthorized) {
@@ -496,8 +555,10 @@ function SidebarOverlay() {
 
 export default function ParentPortal() {
   return (
+    <PageErrorBoundary>
     <SidebarProvider>
       <ParentDashboardContent />
     </SidebarProvider>
+    </PageErrorBoundary>
   );
 }

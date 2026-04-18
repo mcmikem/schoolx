@@ -1,4 +1,5 @@
 'use client'
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useClasses, useSubjects, useTimetableManager, useStaff } from '@/lib/hooks'
@@ -54,10 +55,11 @@ export default function TimetablePage() {
       setTimetable(data || [])
     } catch (err) {
       console.error('Error fetching timetable:', err)
+      toast.error('Failed to load timetable')
     } finally {
       setLoading(false)
     }
-  }, [selectedClassId])
+  }, [selectedClassId, toast])
 
   // Fetch ALL class timetables for the school to enable cross-class conflict detection
   const fetchAllTimetables = useCallback(async () => {
@@ -186,6 +188,7 @@ export default function TimetablePage() {
   }
 
   return (
+    <PageErrorBoundary>
     <div className="p-8 max-w-7xl mx-auto space-y-6">
       <PageHeader
         title="Timetable"
@@ -353,5 +356,6 @@ export default function TimetablePage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   )
 }

@@ -1,4 +1,5 @@
 "use client";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -70,7 +71,7 @@ export default function TeacherPerformancePage() {
       const teacherList = staffData || [];
 
       // Get lesson plans count per teacher
-      const { data: lessonPlans, error: lessonPlansError } = await supabase
+      const { data: lessonPlans } = await supabase
         .from("lesson_plans")
         .select("created_by, id")
         .eq("school_id", school.id)
@@ -83,7 +84,7 @@ export default function TeacherPerformancePage() {
       });
 
       // Get grades entered per teacher
-      const { data: gradesData, error: gradesError } = await supabase
+      const { data: gradesData } = await supabase
         .from("grades")
         .select("created_by, id, score")
         .eq("school_id", school.id)
@@ -102,7 +103,7 @@ export default function TeacherPerformancePage() {
       });
 
       // Get attendance marked per teacher
-      const { data: attendanceData, error: attendanceError } = await supabase
+      const { data: attendanceData } = await supabase
         .from("attendance")
         .select("marked_by, id")
         .eq("school_id", school.id)
@@ -116,14 +117,37 @@ export default function TeacherPerformancePage() {
         }
       });
 
+      // Query syllabus topics covered per teacher for real coverage calculation
+      const { data: syllabusTopics } = await supabase
+        .from("syllabus_topics")
+        .select("teacher_id, status")
+        .eq("school_id", school.id)
+        .eq("term", currentTerm);
+
+      // Build total / covered counts per teacher
+      const syllabusMap: Record<string, { total: number; covered: number }> =
+        {};
+      syllabusTopics?.forEach((t: any) => {
+        if (!t.teacher_id) return;
+        if (!syllabusMap[t.teacher_id])
+          syllabusMap[t.teacher_id] = { total: 0, covered: 0 };
+        syllabusMap[t.teacher_id].total += 1;
+        if (t.status === "covered" || t.status === "completed")
+          syllabusMap[t.teacher_id].covered += 1;
+      });
+
       // Calculate stats for each teacher
       const teacherStats: TeacherStats[] = teacherList.map((t) => {
         const gradesInfo = gradesByTeacher[t.id] || { count: 0, totalScore: 0 };
         const avgScore =
           gradesInfo.count > 0 ? gradesInfo.totalScore / gradesInfo.count : 0;
 
-        // Mock syllabus coverage (would need actual curriculum tracking)
-        const coverage = Math.min(100, Math.floor(Math.random() * 30) + 70);
+        // Real syllabus coverage from DB; 0 when no data recorded yet
+        const syllabusInfo = syllabusMap[t.id];
+        const coverage =
+          syllabusInfo && syllabusInfo.total > 0
+            ? Math.round((syllabusInfo.covered / syllabusInfo.total) * 100)
+            : 0;
 
         return {
           teacherId: t.id,
@@ -141,11 +165,11 @@ export default function TeacherPerformancePage() {
       setTeachers(teacherList);
       setStats(teacherStats);
     } catch (err) {
-      console.error("Error loading teacher stats:", err);
+      toast.error("Failed to load teacher statistics");
     } finally {
       setLoading(false);
     }
-  }, [school, currentTerm]);
+  }, [school, currentTerm, toast]);
 
   useEffect(() => {
     if (!school?.id) return;
@@ -240,6 +264,7 @@ export default function TeacherPerformancePage() {
   }
 
   return (
+    <PageErrorBoundary>
     <div className="content">
       <PageHeader
         title="Teacher Performance"
@@ -442,5 +467,6 @@ export default function TeacherPerformancePage() {
         </div>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

@@ -14,12 +14,22 @@ import {
 import MaterialIcon from "@/components/MaterialIcon";
 import { useMemo } from "react";
 
+interface DashboardStats {
+  totalStudents?: number;
+  feesBalance?: number;
+}
+
+interface DashboardStudent {
+  status?: string | null;
+  gender?: string | null;
+}
+
 interface DashboardInsightsProps {
-  stats: any;
+  stats: DashboardStats | null;
   attendanceRate: number;
   collectionRate: number;
-  students: any[];
-  payments: any[];
+  students: DashboardStudent[];
+  payments: unknown[];
   loading?: boolean;
   isDemo?: boolean;
 }
@@ -71,7 +81,7 @@ export default function DashboardInsights({
         ),
       };
     });
-  }, [collectionRate, attendanceRate, isDemo, stats, students.length]);
+  }, [attendanceRate, isDemo, stats?.totalStudents, activeStudents.length]);
 
   // Student Demographics Data - Use stats first, fallback to students array
   const demoData = useMemo(() => {
@@ -140,7 +150,7 @@ export default function DashboardInsights({
     }
 
     return results;
-  }, [students, isDemo, stats]);
+  }, [activeStudents, isDemo, stats?.totalStudents]);
 
   // School Health Score (Weighted average)
   const healthScore = useMemo(() => {

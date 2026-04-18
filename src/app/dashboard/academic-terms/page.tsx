@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
@@ -28,6 +29,7 @@ export default function AcademicTermsPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingTerm, setEditingTerm] = useState<AcademicTerm | null>(null);
+  const canManageTerms = user?.role === "headmaster";
 
   const [formData, setFormData] = useState({
     name: "",
@@ -39,11 +41,7 @@ export default function AcademicTermsPage() {
     is_active: true,
   });
 
-  useEffect(() => {
-    if (school?.id) fetchTerms();
-  }, [school?.id]);
-
-  const fetchTerms = async () => {
+  const fetchTerms = useCallback(async () => {
     if (!school?.id) return;
     setLoading(true);
     const { data, error } = await supabase
@@ -59,10 +57,14 @@ export default function AcademicTermsPage() {
       setTerms(data || []);
     }
     setLoading(false);
-  };
+  }, [school?.id, toast]);
+
+  useEffect(() => {
+    if (school?.id) fetchTerms();
+  }, [school?.id, fetchTerms]);
 
   const handleSubmit = async () => {
-    if (!school?.id) return;
+    if (!school?.id || !canManageTerms) return;
 
     const payload = {
       school_id: school.id,
@@ -97,6 +99,7 @@ export default function AcademicTermsPage() {
   };
 
   const setCurrentTerm = async (termId: string) => {
+    if (!canManageTerms) return;
     const { error } = await supabase.rpc("set_current_term", {
       p_term_id: termId,
     });
@@ -109,6 +112,7 @@ export default function AcademicTermsPage() {
   };
 
   const deleteTerm = async (termId: string) => {
+    if (!canManageTerms) return;
     if (!confirm("Delete this term?")) return;
     const { error } = await supabase
       .from("academic_terms")
@@ -159,19 +163,28 @@ export default function AcademicTermsPage() {
   );
 
   return (
+    <PageErrorBoundary>
     <>
       <PageHeader
         title="Academic Terms"
         subtitle="Manage school terms and semesters"
         actions={
-          <Button
-            onClick={() => openModal()}
-            icon={<MaterialIcon icon="add" />}
-          >
-            Add Term
-          </Button>
+          canManageTerms ? (
+            <Button
+              onClick={() => openModal()}
+              icon={<MaterialIcon icon="add" />}
+            >
+              Add Term
+            </Button>
+          ) : undefined
         }
       />
+
+      {!canManageTerms && (
+        <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Uganda term dates are preloaded. Only the headteacher can tweak the school calendar from this page.
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center p-8">
@@ -239,21 +252,23 @@ export default function AcademicTermsPage() {
                         onClick={() =>
                           !term.is_current && setCurrentTerm(term.id)
                         }
-                        className={`p-2 rounded-lg ${term.is_current ? "text-gray-300 cursor-not-allowed" : "text-blue-600 hover:bg-blue-50"}`}
-                        disabled={term.is_current}
+                        className={`p-2 rounded-lg ${term.is_current || !canManageTerms ? "text-gray-300 cursor-not-allowed" : "text-blue-600 hover:bg-blue-50"}`}
+                        disabled={term.is_current || !canManageTerms}
                         title="Set as current term"
                       >
                         <MaterialIcon icon="star" />
                       </button>
                       <button
                         onClick={() => openModal(term)}
-                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                        className={`p-2 rounded-lg ${canManageTerms ? "text-gray-600 hover:bg-gray-100" : "text-gray-300 cursor-not-allowed"}`}
+                        disabled={!canManageTerms}
                       >
                         <MaterialIcon icon="edit" />
                       </button>
                       <button
                         onClick={() => deleteTerm(term.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                        className={`p-2 rounded-lg ${canManageTerms ? "text-red-600 hover:bg-red-50" : "text-gray-300 cursor-not-allowed"}`}
+                        disabled={!canManageTerms}
                       >
                         <MaterialIcon icon="delete" />
                       </button>
@@ -393,5 +408,6 @@ export default function AcademicTermsPage() {
         </div>
       </Modal>
     </>
+    </PageErrorBoundary>
   );
 }
