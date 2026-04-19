@@ -1901,3 +1901,81 @@ Import traces:
 ✓ Compiled in 621ms
 ✓ Compiled in 83ms
 ✓ Compiled in 115ms
+✓ Compiled in 504ms
+✓ Compiled in 122ms
+[Supabase Debug] URL: https://gucxpmgwvnbqykevucbi.supabase.co
+[Supabase Debug] Anon Key: sb_publishable_aiGMJ...
+[Supabase Debug] isValidHttpUrl: true for https://gucxpmgwvnbqykevucbi.supabase.co
+[Supabase Debug] isValidAnonKey: true | sb_publishable_: true | eyJ: false | key: sb_publishable_aiGMJ3qw7yuJW5M...
+[Supabase Debug] hasUsableSupabaseConfig: true
+[Supabase] hasUsableSupabaseConfig: true
+[Supabase] realClient: created
+[Supabase] final supabase: real
+ GET / 200 in 2.3s (next.js: 610ms, proxy.ts: 19ms, application-code: 1649ms)
+ GET /login/ 200 in 312ms (next.js: 216ms, proxy.ts: 15ms, application-code: 80ms)
+○ Compiling /register ...
+ GET /register/ 200 in 13.0s (next.js: 12.9s, proxy.ts: 14ms, application-code: 75ms)
+[Register Error] {
+  code: '23514',
+  details: 'Failing row contains (681562c4-f79e-47e1-bc75-51c714e2e201, st.merse, STMU8049S, Mukono, Goma, Mbalala, test, combined, government_aided, null, null, null, #1e3a5f, null, starter, trial, 2026-05-19 16:21:45.867+00, 2026-04-19 16:21:46.118027+00, #3b82f6, null, null, null, null, null, default, t, t, t, t, null, f, null, null, null, core, f, null, {"skipped": [], "completed": []}).',
+  hint: null,
+  message: 'new row for relation "schools" violates check constraint "schools_subscription_plan_check"'
+}
+ POST /api/register/ 500 in 4.8s (next.js: 1509ms, proxy.ts: 8ms, application-code: 3.3s)
+✓ Compiled in 220ms
+✓ Compiled in 134ms
+✓ Compiled in 977ms
+✓ Compiled in 353ms
+✓ Compiled in 1500ms
+✓ Compiled in 105ms
+ GET / 200 in 966ms (next.js: 151ms, proxy.ts: 90ms, application-code: 725ms)
+ GET /login/ 200 in 125ms (next.js: 36ms, proxy.ts: 19ms, application-code: 70ms)
+ GET /dashboard/ 200 in 3.5s (next.js: 51ms, proxy.ts: 1002ms, application-code: 2.5s)
+[browser] extended student select failed, trying a smaller shape: {
+  code: [32m'42703'[39m,
+  details: [1mnull[22m,
+  hint: [1mnull[22m,
+  message: [32m'column students.blood_type does not exist'[39m
+} (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] extended student select failed, trying a smaller shape: {
+  code: [32m'42703'[39m,
+  details: [1mnull[22m,
+  hint: [1mnull[22m,
+  message: [32m'column students.blood_type does not exist'[39m
+} (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+ GET /login/ 200 in 55ms (next.js: 6ms, proxy.ts: 8ms, application-code: 41ms)
+ GET /login/ 200 in 53ms (next.js: 7ms, proxy.ts: 8ms, application-code: 38ms)
+ POST /api/demo-login/ 404 in 174ms (next.js: 155ms, proxy.ts: 8ms, application-code: 11ms)
+ POST /api/demo-login/ 404 in 27ms (next.js: 7ms, proxy.ts: 7ms, application-code: 13ms)
+ GET /dashboard/ 200 in 3.8s (next.js: 4ms, proxy.ts: 3.6s, application-code: 109ms)
+ GET /dashboard/ 200 in 1132ms (next.js: 6ms, proxy.ts: 859ms, application-code: 267ms)
+[browser] extended student select failed, trying a smaller shape: {
+  code: [32m'42703'[39m,
+  details: [1mnull[22m,
+  hint: [1mnull[22m,
+  message: [32m'column students.blood_type does not exist'[39m
+} (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] extended student select failed, trying a smaller shape: {
+  code: [32m'42703'[39m,
+  details: [1mnull[22m,
+  hint: [1mnull[22m,
+  message: [32m'column students.blood_type does not exist'[39m
+} (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)

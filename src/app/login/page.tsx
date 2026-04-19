@@ -53,6 +53,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [phoneError, setPhoneError] = useState("");
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
 
   // If user is already authenticated, redirect to dashboard
   useEffect(() => {
@@ -108,6 +110,13 @@ export default function LoginPage() {
       return;
     }
 
+    // Client-side rate limiting
+    if (lockoutUntil && Date.now() < lockoutUntil) {
+      const seconds = Math.ceil((lockoutUntil - Date.now()) / 1000);
+      toast.error(`Too many attempts. Try again in ${seconds}s`);
+      return;
+    }
+
     setLoading(true);
 
     const cleanPhone = normalizeAuthPhone(phone);
@@ -151,15 +160,20 @@ export default function LoginPage() {
 
       const { error: authError } = await signIn(cleanPhone, password);
       if (authError) {
-        console.error("Auth error:", authError);
-        if (authError.message.includes("Invalid login credentials")) {
-          toast.error("Invalid phone number or password");
+        const newAttempts = failedAttempts + 1;
+        setFailedAttempts(newAttempts);
+        if (newAttempts >= 5) {
+          const lockDuration = Math.min(30_000 * Math.pow(2, newAttempts - 5), 300_000);
+          setLockoutUntil(Date.now() + lockDuration);
+          toast.error(`Too many failed attempts. Locked for ${Math.ceil(lockDuration / 1000)}s`);
         } else {
-          toast.error(authError.message);
+          toast.error("Invalid phone number or password");
         }
         setLoading(false);
         return;
       }
+      setFailedAttempts(0);
+      setLockoutUntil(null);
 
       toast.success("Login successful!");
     } catch (err: unknown) {

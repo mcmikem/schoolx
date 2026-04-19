@@ -54,6 +54,12 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        // Idempotency: skip if already completed
+        if (pendingPayment.status === "completed") {
+          console.log(`Payment ${txRef} already processed, skipping`);
+          return NextResponse.json({ success: true, message: "Already processed" });
+        }
+
         await updatePendingMobilePayment(txRef, "completed");
 
         await updatePaymentStatus(txRef, "completed", {

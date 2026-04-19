@@ -50,8 +50,8 @@ function sanitizeDemoRole(raw: unknown): User["role"] {
   if (typeof raw === "string" && DEMO_ALLOWED_ROLES.includes(raw)) {
     return raw as User["role"];
   }
-  // Default to headmaster for any other/unknown role
-  return "headmaster";
+  // Default to lowest-privilege role for unknown/invalid input
+  return "teacher";
 }
 
 const DEMO_KEY = "skoolmate_demo_v1";
@@ -332,7 +332,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const checkUser = useCallback(async () => {
-    // Don't use timeout - only set loading false after actual check completes
+    // Safety timeout: never stay in loading state for more than 5 seconds
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
 
     try {
       const demoUserStr = readDemoStorage();
@@ -413,6 +416,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       setIsDemo(false);
       setLoading(false);
+    } finally {
+      clearTimeout(safetyTimer);
     }
   }, [fetchUserData]);
 
@@ -603,18 +608,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
-    // Clear demo data if present
-    clearDemoStorage();
-
-    try {
-      await supabase!.auth.signOut();
-    } catch (e) {
-      // Continue even if signOut fails
-    }
+    // Clear all local state first (before async call) to prevent stale access
     setUser(null);
     setSchool(null);
     setIsDemo(false);
     setIsTrialExpired(false);
+    clearDemoStorage();
+
+    try {
+      // Sign out from all sessions (scope: global) to invalidate tokens
+      await supabase!.auth.signOut({ scope: "global" });
+    } catch (e) {
+      // State already cleared above, so user is effectively logged out locally
+      logger.warn("signOut API call failed, local state already cleared");
+    }
     router.push("/login");
   }
 
