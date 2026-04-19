@@ -25,11 +25,11 @@ export async function GET(request: NextRequest) {
         .select("id, full_name, phone, role, school_id, is_active, created_at")
         .order("created_at", { ascending: false })
         .limit(500),
-      // Count students per school from the users table (role = 'student')
+      // Count active enrolled students per school from the students table (source of truth)
       admin
-        .from("users")
+        .from("students")
         .select("school_id")
-        .eq("role", "student")
+        .eq("status", "active")
         .not("school_id", "is", null),
     ]);
 
