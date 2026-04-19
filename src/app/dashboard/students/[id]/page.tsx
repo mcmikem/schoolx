@@ -1,8 +1,9 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useMemo, useEffect, use } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useParams } from "next/navigation";
 import {
   ArrowLeft,
   Phone,
@@ -480,16 +481,11 @@ function getStatusConfig(status: string) {
   };
 }
 
-export default function StudentProfilePage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const resolvedParams = use(params);
+export default function StudentProfilePage() {
+  const params = useParams<{ id: string }>();
+  const studentId = params?.id || "";
   const { isDemo } = useAuth();
-  const { student, loading: studentLoading, error } = useStudent(
-    resolvedParams.id,
-  );
+  const { student, loading: studentLoading, error } = useStudent(studentId);
   const studentProfile = useMemo(
     () =>
       student
@@ -503,7 +499,7 @@ export default function StudentProfilePage({
     [student],
   );
 
-  const studentId = studentProfile?.id || "";
+  const analyticsStudentId = studentProfile?.id || "";
 
   const {
     attendancePct,
@@ -513,7 +509,7 @@ export default function StudentProfilePage({
     attendanceRecords,
     detailsLoading,
     detailsError,
-  } = useStudentData(studentId, isDemo);
+  } = useStudentData(analyticsStudentId, isDemo);
 
   const [activeTab, setActiveTab] = useState("overview");
   const [smsOpen, setSmsOpen] = useState(false);

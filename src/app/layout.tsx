@@ -55,7 +55,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="light">
+    <html lang="en" className="light" data-scroll-behavior="smooth">
       <head>
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
