@@ -119,9 +119,14 @@
 
 /* Base X Motif Pattern */
 .bg-motif {
-  background-color: #f8fafc;
-  background-image: radial-gradient(var(--navy-soft) 0.5px, transparent 0.5px);
-  background-size: 24px 24px;
+  background-color: #f7f5ef;
+  background-image:
+    linear-gradient(rgba(22, 44, 74, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(22, 44, 74, 0.035) 1px, transparent 1px),
+    radial-gradient(circle at top right, rgba(38, 78, 138, 0.08), transparent 34%),
+    radial-gradient(circle at bottom left, rgba(58, 130, 96, 0.06), transparent 28%);
+  background-size: 32px 32px, 32px 32px, auto, auto;
+  background-position: top left, top left, top right, bottom left;
 }
 
 .bg-motif-fade {
@@ -871,8 +876,8 @@ table tr {
 .topbar {
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.97) 0%,
-    rgba(255, 255, 255, 0.9) 100%
+    rgba(253, 252, 248, 0.96) 0%,
+    rgba(250, 248, 242, 0.92) 100%
   );
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
@@ -890,7 +895,7 @@ table tr {
 .sidebar {
   transition: transform 220ms var(--ease), box-shadow 220ms var(--ease), opacity 220ms var(--ease);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.88) 100%),
+    linear-gradient(180deg, rgba(252, 250, 246, 0.95) 0%, rgba(249, 246, 238, 0.9) 100%),
     var(--surface);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -900,8 +905,19 @@ table tr {
   position: relative;
 }
 
+.dashboard-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at top center, rgba(27, 76, 140, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.26) 0%, transparent 22%);
+  z-index: 0;
+}
+
 .dashboard-breadcrumbs {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.76) 100%);
+  background: linear-gradient(180deg, rgba(252, 249, 243, 0.94) 0%, rgba(250, 247, 240, 0.82) 100%);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }

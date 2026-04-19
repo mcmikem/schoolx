@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/components/Toast";
 import Link from "next/link";
 import AnimatedLogo from "@/components/AnimatedLogo";
+import OwlStage from "@/components/brand/OwlStage";
+import OwlMascot from "@/components/brand/OwlMascot";
 import { t, tWithParams } from "@/i18n";
 import { Button, Input } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
@@ -68,10 +70,15 @@ export default function LoginPage() {
   // Show a spinner while auth state is initializing to prevent flash
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-[var(--t3)]">Loading…</p>
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top,#edf4ff_0%,#f7f4ec_55%,#f4efe4_100%)] flex items-center justify-center px-4">
+        <div className="w-full max-w-xl">
+          <OwlStage
+            align="center"
+            eyebrow="Preparing your workspace"
+            title="The owl is opening SkoolMate"
+            description="Checking your school session, restoring your dashboard state, and preparing a smooth sign-in."
+            chips={["Secure sign-in", "Fast parent follow-up", "Ready for daily operations"]}
+          />
         </div>
       </div>
     );
@@ -181,24 +188,23 @@ export default function LoginPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="min-h-screen bg-[var(--bg)] flex relative overflow-hidden">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#eff5ff_0%,#f7f5ee_52%,#f1ebdf_100%)] flex relative overflow-hidden">
       <div className="flex-1 flex flex-col justify-center relative z-10 w-full lg:max-w-[45%] xl:max-w-[40%] px-6 lg:px-16 xl:px-24">
-        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-[var(--primary)] blur-[150px] rounded-full opacity-10" />
+        <div className="absolute top-[-10%] left-[-10%] h-[60%] w-[60%] rounded-full bg-[#bdd6ff] blur-[150px] opacity-30" />
+        <div className="absolute bottom-0 left-[10%] h-[30%] w-[40%] rounded-full bg-[#dfeeda] blur-[120px] opacity-40" />
 
         <div className="w-full max-w-[420px] mx-auto">
-          <div className="mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-[20px] bg-white shadow-lg mb-6 ring-1 ring-slate-100">
-              <AnimatedLogo type="logo" className="w-10 h-10" />
-            </div>
-            <h2 className="text-4xl font-black text-slate-800 tracking-tight">
-              Welcome Back
-            </h2>
-            <p className="mt-2 text-slate-500 font-medium">
-              Enter your credentials to access your digital campus.
-            </p>
+          <div className="mb-7">
+            <OwlStage
+              compact
+              eyebrow="SkoolMate sign in"
+              title="Welcome back"
+              description="Your school workspace, reports, fees, and messages are waiting. Sign in and continue where the team left off."
+              chips={["Trusted by daily admin teams", "Built for real school operations"]}
+            />
           </div>
 
-          <div className="bg-white/80 backdrop-blur-xl p-8 md:p-10 shadow-[0_32px_64px_rgba(15,23,42,0.06)] rounded-[32px] border border-white/50">
+          <div className="rounded-[32px] border border-white/60 bg-white/82 p-8 shadow-[0_32px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl md:p-10">
             <form onSubmit={handleLogin} className="space-y-5">
               <div>
                 <Input
@@ -304,7 +310,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className="hidden lg:flex flex-1 relative bg-[var(--primary)] text-white overflow-hidden p-12 xl:p-24 flex-col justify-between">
+      <div className="hidden lg:flex flex-1 relative overflow-hidden bg-[linear-gradient(145deg,#0b1c39_0%,#17325f_58%,#1a4b79_100%)] text-white p-12 xl:p-24 flex-col justify-between">
         <div className="absolute top-0 right-0 w-full h-full opacity-40">
           <div
             className="absolute top-[10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-400 blur-[120px] mix-blend-overlay animate-pulse"
@@ -317,15 +323,17 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-8">
-            <MaterialIcon
-              icon="verified"
-              className="text-teal-300"
-              style={{ fontSize: 18 }}
-            />
-            <span className="text-xs font-bold uppercase tracking-widest text-blue-100">
-              Locally Optimized for Uganda
+          <div className="mb-8 flex items-center gap-4">
+            <div className="inline-flex items-center justify-center rounded-[24px] border border-white/12 bg-white/8 p-2 shadow-[0_16px_40px_rgba(0,0,0,0.16)] backdrop-blur-md">
+              <AnimatedLogo type="logo_white" className="h-10 w-28" />
+            </div>
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-blue-100">
+              <MaterialIcon icon="verified" className="text-teal-300" style={{ fontSize: 18 }} />
+              Built for Uganda schools
             </span>
+          </div>
+          <div className="mb-8">
+            <OwlMascot size={94} premium ring glow animated />
           </div>
           <h1 className="text-5xl xl:text-6xl font-black leading-[1.1] tracking-tight mb-6">
             The Operating System
@@ -335,8 +343,7 @@ export default function LoginPage() {
             </span>
           </h1>
           <p className="text-lg xl:text-xl text-blue-100/80 font-medium max-w-lg leading-relaxed">
-            Eliminate paperwork, track fees in real-time, keep parents engaged,
-            and run your entire campus from a single premium dashboard.
+            The owl welcomes staff into a calmer, clearer workspace built for admissions, attendance, fees, report cards, and parent communication.
           </p>
         </div>
 
@@ -358,10 +365,7 @@ export default function LoginPage() {
               desc: "Stop calculating averages by hand. Click one button to print student report cards.",
             },
           ].map((item, i) => (
-            <div
-              key={i}
-              className="p-5 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl flex gap-4"
-            >
+            <div key={i} className="flex gap-4 rounded-[24px] border border-white/18 bg-white/10 p-5 shadow-[0_24px_48px_rgba(3,11,27,0.18)] backdrop-blur-xl">
               <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
                 <MaterialIcon
                   icon={item.icon}

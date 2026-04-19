@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import MaterialIcon from "@/components/MaterialIcon";
+import OwlMascot from "@/components/brand/OwlMascot";
 
 interface HelpItem {
   id: string;
@@ -285,10 +286,10 @@ export function ContextualHelp() {
     return (
       <button
         onClick={help.toggleOpen}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition-colors z-40"
-        aria-label="Open help"
+        className="fixed bottom-6 right-6 rounded-full shadow-[0_18px_40px_rgba(11,28,57,0.24)] flex items-center justify-center transition-transform hover:-translate-y-0.5 z-40"
+        aria-label="Open owl guide"
       >
-        <MaterialIcon icon="help" className="text-white text-xl" />
+        <OwlMascot size={62} premium ring glow />
       </button>
     );
   }
@@ -297,32 +298,35 @@ export function ContextualHelp() {
     return (
       <button
         onClick={help.restore}
-        className="fixed bottom-6 right-6 bg-blue-600 rounded-full shadow-lg flex items-center gap-2 px-4 py-3 hover:bg-blue-700 transition-colors z-40"
+        className="fixed bottom-6 right-6 rounded-full bg-white border border-[var(--border)] shadow-[0_18px_40px_rgba(11,28,57,0.16)] flex items-center gap-3 px-3 py-2 hover:-translate-y-0.5 transition-transform z-40"
       >
-        <MaterialIcon icon="help" className="text-white" />
-        <span className="text-white font-medium">Help</span>
+        <OwlMascot size={40} premium />
+        <span className="text-[var(--t1)] font-medium">Ask the owl</span>
       </button>
     );
   }
 
   return (
-    <div className="fixed bottom-6 right-6 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white">
-        <div className="flex items-center gap-2">
-          <MaterialIcon icon="help" />
-          <span className="font-semibold">Help & Guidance</span>
+    <div className="fixed bottom-6 right-6 w-96 bg-white rounded-[28px] shadow-[0_24px_60px_rgba(11,28,57,0.18)] border border-[#dde4ee] z-50 overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 bg-[linear-gradient(135deg,#0b1c39_0%,#163768_100%)] text-white">
+        <div className="flex items-center gap-3">
+          <OwlMascot size={42} premium />
+          <div>
+            <div className="font-semibold">Ask the Owl</div>
+            <div className="text-[11px] text-white/75">Your built-in school operations guide</div>
+          </div>
         </div>
         <div className="flex items-center gap-1">
           <button
             onClick={help.minimize}
-            className="p-1 hover:bg-blue-700 rounded"
+            className="p-1 hover:bg-white/10 rounded"
             aria-label="Minimize"
           >
             <MaterialIcon icon="minimize" className="text-lg" />
           </button>
           <button
             onClick={() => help.setIsOpen(false)}
-            className="p-1 hover:bg-blue-700 rounded"
+            className="p-1 hover:bg-white/10 rounded"
             aria-label="Close"
           >
             <MaterialIcon icon="close" className="text-lg" />
@@ -338,7 +342,7 @@ export function ContextualHelp() {
           />
           <input
             type="text"
-            placeholder="Search help topics..."
+            placeholder="Search guidance from the owl..."
             value={help.searchQuery}
             onChange={(e) => help.setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
@@ -375,10 +379,9 @@ export function ContextualHelp() {
       <div className="max-h-80 overflow-y-auto">
         {help.helpItems.length === 0 ? (
           <div className="p-6 text-center text-gray-500">
-            <MaterialIcon
-              icon="search_off"
-              className="text-3xl mx-auto mb-2 opacity-50"
-            />
+            <div className="mb-2 flex justify-center">
+              <OwlMascot size={52} premium glow />
+            </div>
             <p className="text-sm">No help topics found</p>
           </div>
         ) : (

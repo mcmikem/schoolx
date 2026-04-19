@@ -62,18 +62,27 @@ const publicPaths = [
   "/api/schoolpay",
   "/api/reports",
   "/_next",
+  "/downloads",
   "/sw.js",
   "/manifest.json",
   "/offline.html",
   "/favicon.ico",
 ];
 
+const PUBLIC_FILE_PATTERN = /\.(?:svg|png|jpg|jpeg|webp|gif|ico|css|js|map|txt|xml|json|woff|woff2|ttf|eot)$/i;
+
 // Next.js 16 replaces the deprecated middleware.ts convention with proxy.ts.
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (PUBLIC_FILE_PATTERN.test(pathname)) {
+    return NextResponse.next({ request });
+  }
+
   // Allow public paths without auth check
-  const isPublicPath = publicPaths.some((path) => pathname.startsWith(path));
+  const isPublicPath =
+    pathname === "/" ||
+    publicPaths.some((path) => pathname.startsWith(path));
   if (isPublicPath) {
     return NextResponse.next({ request });
   }

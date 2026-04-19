@@ -8,6 +8,27 @@ import SkoolMateLogo from "@/components/SkoolMateLogo";
 import AnimatedLogo from "@/components/AnimatedLogo";
 import LaptopMockup from "@/components/LaptopMockup";
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
+type DownloadTarget = {
+  key: string;
+  href?: string;
+  label: string;
+  icon: string;
+  helper: string;
+  badge: string;
+  useInstallPrompt?: boolean;
+};
+
+const ANDROID_APP_URL =
+  process.env.NEXT_PUBLIC_ANDROID_APP_URL ||
+  "/downloads/skoolmate-os-android-debug.apk";
+const WINDOWS_APP_URL = process.env.NEXT_PUBLIC_WINDOWS_APP_URL || "";
+const MAC_APP_URL = process.env.NEXT_PUBLIC_MAC_APP_URL || "";
+
 const HEADLINES = [
   "Save 5+ hours every week",
   "Your school in your hand",
@@ -98,9 +119,16 @@ const trustBadges = [
 
 /* ─── Hero stats (concrete, not vague) ─── */
 const heroStats = [
-  { label: "Save", value: "5+ hours/week" },
-  { label: "Built for", value: "Ugandan schools" },
-  { label: "Powered by", value: "Omuto Foundation" },
+  { label: "Admin time saved", value: "5+ hours every week" },
+  { label: "Core workflows", value: "Admissions, fees, marks, SMS" },
+  { label: "Built for", value: "Ugandan school operations" },
+];
+
+const HERO_OPERATIONS = [
+  { icon: "person_add", label: "Admissions" },
+  { icon: "how_to_reg", label: "Attendance" },
+  { icon: "payments", label: "Fees" },
+  { icon: "fact_check", label: "Report cards" },
 ];
 
 const proofPoints = [
@@ -844,6 +872,16 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 export default function HomePage() {
   const router = useRouter();
   const [headlineIndex, setHeadlineIndex] = useState(0);
+  const [installPrompt, setInstallPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
+  const [deviceTarget, setDeviceTarget] = useState<DownloadTarget>({
+    key: "web",
+    href: "/login",
+    label: "Open web app",
+    icon: "language",
+    helper: "Use the web app on any device. Install it from your browser when supported.",
+    badge: "Browser",
+  });
 
   useEffect(() => {
     // If running in Capacitor (Mobile APK), skip landing page and go straight to login
@@ -861,6 +899,147 @@ export default function HomePage() {
     }, ROTATION_INTERVAL);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isAndroid = /android/.test(userAgent);
+    const isIOS = /iphone|ipad|ipod/.test(userAgent);
+    const isMac = /macintosh|mac os x/.test(userAgent) && !isIOS;
+    const isWindows = /windows/.test(userAgent);
+    const installFromBrowser = {
+      key: "browser",
+      label: "Install on this device",
+      icon: "install_desktop",
+      helper:
+        "Install SkoolMate from your browser for fast access on supported desktop and mobile devices.",
+      badge: "Browser install",
+      useInstallPrompt: true,
+    } satisfies DownloadTarget;
+
+    const nextTarget = (): DownloadTarget => {
+      if (isAndroid && ANDROID_APP_URL) {
+        return {
+          key: "android",
+          href: ANDROID_APP_URL,
+          label: "Get Android app",
+          icon: "android",
+          helper:
+            "Download the Android APK directly to your phone or tablet.",
+          badge: "Android APK",
+        };
+      }
+
+      if (isWindows && WINDOWS_APP_URL) {
+        return {
+          key: "windows",
+          href: WINDOWS_APP_URL,
+          label: "Get Windows app",
+          icon: "desktop_windows",
+          helper: "Install the desktop build for Windows.",
+          badge: "Windows desktop",
+        };
+      }
+
+      if (isMac && MAC_APP_URL) {
+        return {
+          key: "mac",
+          href: MAC_APP_URL,
+          label: "Get Mac app",
+          icon: "laptop_mac",
+          helper: "Install the desktop build for macOS.",
+          badge: "macOS desktop",
+        };
+      }
+
+      if (isIOS) {
+        return {
+          key: "ios",
+          href: "/login",
+          label: "Open on iPhone or iPad",
+          icon: "phone_iphone",
+          helper:
+            "On iPhone or iPad, open the web app in Safari and use Share > Add to Home Screen.",
+          badge: "Safari install",
+        };
+      }
+
+      return installFromBrowser;
+    };
+
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+      setDeviceTarget((current) => {
+        if (current.href && current.href !== "/login") return current;
+        return installFromBrowser;
+      });
+    };
+
+    setDeviceTarget(nextTarget());
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener(
+        "beforeinstallprompt",
+        handleBeforeInstallPrompt,
+      );
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (deviceTarget.useInstallPrompt && installPrompt) {
+      await installPrompt.prompt();
+      await installPrompt.userChoice;
+      setInstallPrompt(null);
+      return;
+    }
+
+    if (deviceTarget.href) {
+      window.location.href = deviceTarget.href;
+    }
+  };
+
+  const installOptions: DownloadTarget[] = [
+    {
+      key: "android",
+      href: ANDROID_APP_URL,
+      label: "Android",
+      icon: "android",
+      helper: "Direct APK install for phones and tablets.",
+      badge: "APK",
+    },
+    {
+      key: "windows",
+      href: WINDOWS_APP_URL || undefined,
+      label: "Windows",
+      icon: "desktop_windows",
+      helper: WINDOWS_APP_URL
+        ? "Desktop installer for office and admin machines."
+        : "Desktop build can be added when your Windows installer is ready.",
+      badge: WINDOWS_APP_URL ? "Installer ready" : "Coming soon",
+    },
+    {
+      key: "mac",
+      href: MAC_APP_URL || undefined,
+      label: "macOS",
+      icon: "laptop_mac",
+      helper: MAC_APP_URL
+        ? "Native desktop download for Mac users."
+        : "Add your macOS package when the desktop build is ready.",
+      badge: MAC_APP_URL ? "Installer ready" : "Coming soon",
+    },
+    {
+      key: "ios",
+      href: "/login",
+      label: "iPhone / iPad",
+      icon: "phone_iphone",
+      helper:
+        "Open in Safari, then use Share > Add to Home Screen.",
+      badge: "PWA install",
+    },
+  ];
 
   return (
     <PageErrorBoundary>
@@ -925,13 +1104,13 @@ export default function HomePage() {
             <div className="max-w-2xl">
               <div className="mb-6 flex animate-fade-in">
                 <div className="px-4 py-1.5 rounded-full bg-[var(--navy-soft)] border border-[var(--navy)]/10 text-[var(--navy)] text-[10px] uppercase font-bold tracking-widest flex items-center gap-2">
-                  <MaterialIcon icon="award_star" className="text-sm" />
-                  Uganda&apos;s Premium School OS
+                  <MaterialIcon icon="school" className="text-sm" />
+                  Built for real school operations
                 </div>
               </div>
               <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--primary)] shadow-sm">
-                <MaterialIcon icon="bolt" className="text-[18px]" />
-                Built from experience on the ground in schools
+                <MaterialIcon icon="fact_check" className="text-[18px]" />
+                Admissions, attendance, fees, reports, and parent follow-up
               </div>
               <h1 className="mt-6 font-['Sora'] text-5xl font-semibold leading-[0.95] tracking-[-0.05em] text-[var(--t1)] sm:text-6xl lg:text-7xl">
                 <span key={headlineIndex} className="animate-fade-in block">
@@ -949,6 +1128,18 @@ export default function HomePage() {
                 spreadsheets.
               </p>
 
+              <div className="mt-6 flex flex-wrap gap-2.5">
+                {HERO_OPERATIONS.map((item) => (
+                  <div
+                    key={item.label}
+                    className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white/92 px-3.5 py-2 text-sm font-medium text-[var(--t2)] shadow-sm"
+                  >
+                    <MaterialIcon icon={item.icon} className="text-[18px] text-[var(--primary)]" />
+                    {item.label}
+                  </div>
+                ))}
+              </div>
+
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href="/register"
@@ -956,17 +1147,123 @@ export default function HomePage() {
                 >
                   Start 30-day free trial
                 </Link>
-                <button
-                  className="btn btn-secondary px-7 py-4 text-base flex items-center gap-2"
-                  onClick={() =>
-                    document
-                      .getElementById("demo-video")
-                      ?.scrollIntoView({ behavior: "smooth" })
-                  }
-                >
-                  <MaterialIcon icon="play_circle" className="text-lg" />
-                  Watch 30-sec demo
-                </button>
+                {deviceTarget.href && !deviceTarget.useInstallPrompt ? (
+                  <Link
+                    href={deviceTarget.href}
+                    className="btn btn-secondary px-7 py-4 text-base flex items-center gap-3"
+                  >
+                    <MaterialIcon icon={deviceTarget.icon} className="text-[22px]" />
+                    {deviceTarget.label}
+                  </Link>
+                ) : (
+                  <button
+                    className="btn btn-secondary px-7 py-4 text-base flex items-center gap-3"
+                    onClick={handleInstallApp}
+                  >
+                    <MaterialIcon icon={deviceTarget.icon} className="text-[22px]" />
+                    {deviceTarget.label}
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-4 rounded-[26px] border border-[var(--border)] bg-white/92 p-5 shadow-[0_18px_44px_rgba(15,23,42,0.08)] backdrop-blur">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--t1)]">
+                      Install SkoolMate on the device you use every day
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-[var(--t2)]">
+                      Recommended now: <span className="font-semibold text-[var(--t1)]">{deviceTarget.badge}</span>
+                    </p>
+                  </div>
+                  <span className="inline-flex items-center gap-2 rounded-full bg-[var(--navy-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--navy)]">
+                    <MaterialIcon icon={deviceTarget.icon} className="text-[16px]" />
+                    {deviceTarget.label}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-[var(--t2)]">
+                  {deviceTarget.helper}
+                </p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  {installOptions.map((option) => {
+                    const isRecommended = option.key === deviceTarget.key;
+
+                    if (option.useInstallPrompt) {
+                      return (
+                        <button
+                          key={option.key}
+                          type="button"
+                          onClick={handleInstallApp}
+                          className={`rounded-[22px] border p-4 text-left transition-all ${
+                            isRecommended
+                              ? "border-[var(--primary)] bg-[var(--navy-soft)]/55 shadow-sm"
+                              : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--primary)]/35"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[var(--primary)] shadow-sm">
+                                <MaterialIcon icon={option.icon} className="text-[22px]" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-[var(--t1)]">
+                                  {option.label}
+                                </p>
+                                <p className="text-xs font-medium text-[var(--t3)]">
+                                  {option.badge}
+                                </p>
+                              </div>
+                            </div>
+                            {isRecommended && (
+                              <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--primary)]">
+                                This device
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-3 text-sm leading-6 text-[var(--t2)]">
+                            {option.helper}
+                          </p>
+                        </button>
+                      );
+                    }
+
+                    return (
+                      <Link
+                        key={option.key}
+                        href={option.href || "/login"}
+                        className={`rounded-[22px] border p-4 text-left transition-all ${
+                          isRecommended
+                            ? "border-[var(--primary)] bg-[var(--navy-soft)]/55 shadow-sm"
+                            : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--primary)]/35"
+                        } ${!option.href && option.key !== "ios" ? "opacity-75" : ""}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[var(--primary)] shadow-sm">
+                              <MaterialIcon icon={option.icon} className="text-[22px]" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-[var(--t1)]">
+                                {option.label}
+                              </p>
+                              <p className="text-xs font-medium text-[var(--t3)]">
+                                {option.badge}
+                              </p>
+                            </div>
+                          </div>
+                          {isRecommended && (
+                            <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--primary)]">
+                              This device
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-3 text-sm leading-6 text-[var(--t2)]">
+                          {option.helper}
+                        </p>
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Trust badges — ABOVE THE FOLD */}

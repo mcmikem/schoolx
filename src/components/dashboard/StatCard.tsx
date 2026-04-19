@@ -65,7 +65,7 @@ export default function StatCard({
   }`;
 
   return (
-    <div className={cardClass}>
+    <div className={`${cardClass} shadow-[0_22px_48px_rgba(15,23,42,0.07)]`}>
       {!isPremium && <div className="stat-accent" style={{ background: accent.solid }} />}
       <div className={`stat-inner ${isPremium ? "!p-6" : ""}`}>
         <div className="stat-meta">

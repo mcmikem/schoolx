@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
+import OwlMascot from "@/components/brand/OwlMascot";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button, Input, Select } from "@/components/ui";
 import { buildUgandaAcademicTerms } from "@/lib/uganda-school-calendar";
@@ -235,9 +236,9 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
         <div className="fixed bottom-6 right-6 z-[85]">
           <button
             onClick={() => setIsOpen(true)}
-            className="flex items-center gap-2 px-4 py-3 bg-[var(--primary)] text-white rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-105"
+            className="flex items-center gap-3 rounded-full border border-[#d7dfea] bg-white px-3 py-2 text-[var(--t1)] shadow-[0_18px_40px_rgba(11,28,57,0.16)] transition-all hover:-translate-y-0.5"
           >
-            <MaterialIcon icon="settings_suggest" />
+            <OwlMascot size={40} premium />
             <span className="font-medium">Setup ({progress}%)</span>
           </button>
         </div>
@@ -245,14 +246,17 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
 
       {/* Slide-over Panel */}
       {isOpen && (
-        <div className="fixed inset-y-0 right-0 z-[85] w-full max-w-md bg-white shadow-2xl transform transition-transform duration-300">
+        <div className="fixed inset-y-0 right-0 z-[85] w-full max-w-md transform bg-[linear-gradient(180deg,#fffdfa_0%,#f7f4ec_100%)] shadow-2xl transition-transform duration-300">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b bg-[var(--surface-container)]">
-            <div>
+          <div className="flex items-center justify-between border-b border-[#e0e6ee] bg-white/84 p-4 backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              <OwlMascot size={46} premium ring glow />
+              <div>
               <h2 className="font-bold text-[var(--on-surface)]">
                 School Setup
               </h2>
               <p className="text-sm text-[var(--t3)]">{progress}% complete</p>
+              </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
@@ -274,11 +278,8 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
           <div className="p-4 overflow-y-auto h-[calc(100vh-120px)] space-y-4">
             {incompleteSteps.length === 0 ? (
               <div className="text-center py-8">
-                <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                  <MaterialIcon
-                    icon="check_circle"
-                    className="text-3xl text-green-600"
-                  />
+                <div className="mx-auto mb-4 flex justify-center">
+                  <OwlMascot size={72} premium ring glow animated />
                 </div>
                 <h3 className="font-bold text-lg mb-2">All Done! 🎉</h3>
                 <p className="text-[var(--t3)] mb-6">
@@ -297,13 +298,10 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
               </div>
             ) : (
               incompleteSteps.map((step, idx) => (
-                <Card
-                  key={step.key}
-                  className={idx === 0 ? "ring-2 ring-[var(--primary)]" : ""}
-                >
+                <Card key={step.key} className={idx === 0 ? "ring-2 ring-[var(--primary)]" : ""}>
                   <CardBody className="p-4">
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-full bg-[var(--primary-soft)] flex items-center justify-center">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-[16px] border border-[#dbe3ed] bg-white shadow-sm">
                         <MaterialIcon
                           icon={step.icon}
                           className="text-[var(--primary)]"

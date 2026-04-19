@@ -4,6 +4,8 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
+import OwlStage from "@/components/brand/OwlStage";
+import OwlMascot from "@/components/brand/OwlMascot";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button, Input, Select } from "@/components/ui";
 import { buildUgandaAcademicTerms } from "@/lib/uganda-school-calendar";
@@ -372,8 +374,16 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
   if (!school) return null;
 
   return (
-    <Card>
+    <Card className="overflow-hidden border-[#dbe3ed] bg-[linear-gradient(180deg,#fffdfa_0%,#f8f5ee_100%)] shadow-[0_24px_56px_rgba(11,28,57,0.08)]">
       <CardBody>
+        <OwlStage
+          compact
+          eyebrow="Guided setup"
+          title="Finish the core school setup"
+          description="The owl keeps this checklist practical: academic year, classes, fees, staff, and parent messaging in a clean sequence."
+          chips={["Academic year", "Classes", "Fees", "Staff", "SMS"]}
+          className="mb-6"
+        />
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-[var(--on-surface)]">
             Quick School Setup
@@ -409,7 +419,10 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
             </div>
             {academicYear.terms.map((term, i) => (
               <div key={i} className="grid grid-cols-3 gap-2">
-                <Input value={term.name} disabled className="bg-slate-100" />
+                <div className="flex items-center gap-2 rounded-[16px] border border-[#dbe3ed] bg-white px-3 py-2 shadow-sm">
+                  <OwlMascot size={26} premium />
+                  <Input value={term.name} disabled className="border-0 bg-transparent p-0 shadow-none" />
+                </div>
                 <Input
                   type="date"
                   value={term.start}

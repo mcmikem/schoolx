@@ -12,6 +12,7 @@ import MobileBottomNav from "@/components/dashboard/MobileBottomNav";
 import WorkflowGuide from "@/components/dashboard/WorkflowGuide";
 import WhatsAppSupport from "@/components/WhatsAppSupport";
 import SkoolMatePromo from "@/components/dashboard/SkoolMatePromo";
+import ContextualHelp from "@/components/ContextualHelp";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import PostOnboardingSetup from "@/components/onboarding/PostOnboardingSetup";
 import {
@@ -274,6 +275,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       </div>
 
       <MobileBottomNav />
+      <ContextualHelp />
       <WhatsAppSupport />
     </ErrorBoundary>
   );

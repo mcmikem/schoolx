@@ -13,10 +13,12 @@ export default function AnimatedLogo({
   className = "",
   autoplay = true,
 }: AnimatedLogoProps) {
-  const src = 
-    type === "opening" ? "/opening.webp" : 
-    type === "logo_white" ? "/SkoolMate logos/SchoolMate White.svg" :
-    "/SkoolMate logos/SchoolMate logo official.svg";
+  const src =
+    type === "opening"
+      ? "/opening.webp"
+      : type === "logo_white"
+        ? "/SkoolMate logos/SchoolMate White.svg"
+        : "/SkoolMate logos/SchoolMate logo official.svg";
 
   return (
     <div className={`relative ${className}`}>
@@ -27,8 +29,7 @@ export default function AnimatedLogo({
         sizes="(max-width: 768px) 256px, 512px"
         className="object-contain"
         priority
-        // Keep animated WebP behavior consistent by serving the original file.
-        unoptimized
+        unoptimized={autoplay}
         style={{ contentVisibility: "auto" }}
       />
     </div>

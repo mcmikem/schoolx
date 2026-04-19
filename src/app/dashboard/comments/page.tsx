@@ -7,6 +7,7 @@ import { useToast } from '@/components/Toast'
 import { generateAutoComment, getGradeLabel } from '@/lib/automation'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
+import OwlMascot from '@/components/brand/OwlMascot'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Button } from '@/components/ui/index'
@@ -209,9 +210,7 @@ export default function CommentsPage() {
                     <CardBody>
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center font-bold text-gray-600 shrink-0">
-                            {student.first_name?.[0]}{student.last_name?.[0]}
-                          </div>
+                          <OwlMascot size={40} premium ring glow className="shrink-0" />
                           <div className="min-w-0">
                             <div className="font-semibold text-gray-900 truncate">{student.first_name} {student.last_name}</div>
                             <div className="text-sm text-gray-500">
@@ -270,7 +269,7 @@ export default function CommentsPage() {
                             <textarea
                               value={comment}
                               onChange={(e) => setComments(prev => ({ ...prev, [studentId]: e.target.value }))}
-                              className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 text-sm text-gray-700 resize-none"
+                              className="w-full resize-none rounded-[16px] border border-[#dce4ee] bg-white p-3 text-sm text-gray-700 shadow-sm outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/12"
                               rows={2}
                             />
                           </div>

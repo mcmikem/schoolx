@@ -21,6 +21,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button, Input, Select, Badge } from "@/components/ui/index";
 import { TableSkeleton, FullPageLoader } from "@/components/ui/Skeleton";
 import { EmptyState, NoData } from "@/components/EmptyState";
+import OwlMascot from "@/components/brand/OwlMascot";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
 import { useOnlineStatus } from "@/lib/offline";
 import {
@@ -1378,16 +1379,7 @@ export default function GradesPage() {
                             >
                               <td className="px-8 py-5">
                                 <div className="flex items-center gap-4">
-                                  <div
-                                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${
-                                      graded
-                                        ? "bg-primary-container text-on-primary-container"
-                                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                                    }`}
-                                  >
-                                    {student.first_name?.charAt(0)}
-                                    {student.last_name?.charAt(0)}
-                                  </div>
+                                  <OwlMascot size={40} premium ring glow={graded} />
                                   <div>
                                     <p className="font-bold text-primary">
                                       {student.first_name} {student.last_name}
@@ -1486,22 +1478,12 @@ export default function GradesPage() {
                   {/* Student Header */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center font-bold ${
-                          isStudentGraded(
-                            filteredStudents[mobileStudentIndex]?.id,
-                          )
-                            ? "bg-primary-container text-on-primary-container"
-                            : "bg-amber-100 text-amber-700"
-                        }`}
-                      >
-                        {filteredStudents[
-                          mobileStudentIndex
-                        ]?.first_name?.charAt(0)}
-                        {filteredStudents[
-                          mobileStudentIndex
-                        ]?.last_name?.charAt(0)}
-                      </div>
+                      <OwlMascot
+                        size={48}
+                        premium
+                        ring
+                        glow={isStudentGraded(filteredStudents[mobileStudentIndex]?.id)}
+                      />
                       <div>
                         <p className="font-bold text-primary text-lg">
                           {filteredStudents[mobileStudentIndex]?.first_name}{" "}
@@ -1631,8 +1613,7 @@ export default function GradesPage() {
                                 : "bg-surface-container text-on-surface-variant"
                           }`}
                         >
-                          {student.first_name?.charAt(0)}
-                          {student.last_name?.charAt(0)}
+                          <OwlMascot size={28} premium />
                         </button>
                       );
                     })}

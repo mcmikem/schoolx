@@ -24,7 +24,7 @@ const nextConfig = {
   trailingSlash: true,
   experimental: {},
   turbopack: {
-    root: path.join(__dirname, ".."),
+    root: __dirname,
   },
   images: {
     unoptimized: true,

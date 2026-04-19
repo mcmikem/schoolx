@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { Printer, Download, Settings } from "lucide-react";
+import OwlMascot from "@/components/brand/OwlMascot";
 
 interface ReportCardProps {
   report: {
@@ -484,10 +485,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
                   unoptimized
                 />
               ) : (
-                <div className="text-xl font-black text-gray-300">
-                  {report.student.first_name?.charAt(0)}
-                  {report.student.last_name?.charAt(0)}
-                </div>
+                <OwlMascot size={56} premium ring glow />
               )}
             </div>
           </div>
