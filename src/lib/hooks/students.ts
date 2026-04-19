@@ -40,6 +40,8 @@ type StudentWithClass = Student & {
   is_class_monitor?: boolean;
 };
 
+let studentPhotoColumnSupported: boolean | null = null;
+
 const STUDENT_SELECT_FIELDS = `
   id, school_id, student_number, first_name, last_name, gender,
   date_of_birth, parent_name, parent_phone, parent_phone2, parent_email, address,
@@ -92,29 +94,67 @@ const STUDENT_SELECT_FIELDS_MINIMAL = `
   class_id, admission_date, ple_index_number, status, photo_url, created_at
 `;
 
+const STUDENT_SELECT_FIELDS_FALLBACK_LEGACY = `
+  id, school_id, student_number, first_name, last_name, gender,
+  date_of_birth, parent_name, parent_phone, parent_phone2,
+  class_id, admission_date, ple_index_number, status,
+  created_at, classes(id, name, level, stream)
+`;
+
+const STUDENT_SELECT_FIELDS_MINIMAL_LEGACY = `
+  id, school_id, student_number, first_name, last_name, gender,
+  date_of_birth, parent_name, parent_phone, parent_phone2,
+  class_id, admission_date, ple_index_number, status, created_at
+`;
+
+function isMissingStudentColumnError(error: unknown, columnName: string) {
+  if (!error || typeof error !== "object") return false;
+
+  const code = "code" in error ? String((error as { code?: unknown }).code || "") : "";
+  const message =
+    "message" in error ? String((error as { message?: unknown }).message || "") : "";
+
+  return code === "42703" && message.includes(`students.${columnName}`);
+}
+
+function buildStudentSelectAttempts(fetchLabel: "select" | "fetch") {
+  const suffix = fetchLabel === "fetch" ? "fetch" : "select";
+
+  const attempts = [] as Array<{ fields: string; label: string }>;
+
+  if (studentPhotoColumnSupported !== false) {
+    attempts.push(
+      { fields: STUDENT_SELECT_FIELDS, label: `extended student ${suffix}` },
+      { fields: STUDENT_SELECT_FIELDS_FALLBACK, label: `fallback student ${suffix}` },
+      { fields: STUDENT_SELECT_FIELDS_CORE, label: `core student ${suffix}` },
+      { fields: STUDENT_SELECT_FIELDS_MINIMAL, label: `minimal student ${suffix}` },
+    );
+  }
+
+  attempts.push(
+    { fields: STUDENT_SELECT_FIELDS_FALLBACK_LEGACY, label: `fallback student ${suffix} (legacy)` },
+    { fields: STUDENT_SELECT_FIELDS_MINIMAL_LEGACY, label: `minimal student ${suffix} (legacy)` },
+  );
+
+  return attempts;
+}
+
+function buildPortableStudentPayload(student: Record<string, unknown>) {
+  const payload = buildCoreStudentPayload(student) as Record<string, unknown>;
+
+  if (studentPhotoColumnSupported === false) {
+    delete payload.photo_url;
+  }
+
+  return payload;
+}
+
 async function fetchStudentsWithFallback(options: {
   schoolId: string;
   offset: number;
   limit: number;
 }) {
-  const selectAttempts = [
-    {
-      fields: STUDENT_SELECT_FIELDS,
-      label: "extended student select",
-    },
-    {
-      fields: STUDENT_SELECT_FIELDS_FALLBACK,
-      label: "fallback student select",
-    },
-    {
-      fields: STUDENT_SELECT_FIELDS_CORE,
-      label: "core student select",
-    },
-    {
-      fields: STUDENT_SELECT_FIELDS_MINIMAL,
-      label: "minimal student select",
-    },
-  ];
+  const selectAttempts = buildStudentSelectAttempts("select");
 
   let lastError: unknown = null;
 
@@ -130,6 +170,11 @@ async function fetchStudentsWithFallback(options: {
       return result.data as unknown as StudentWithClass[];
     }
 
+    if (isMissingStudentColumnError(result.error, "photo_url")) {
+      studentPhotoColumnSupported = false;
+      continue;
+    }
+
     lastError = result.error;
     console.warn(`${attempt.label} failed, trying a smaller shape:`, result.error);
   }
@@ -141,24 +186,7 @@ async function fetchStudentByIdWithFallback(
   studentId: string,
   schoolId?: string,
 ) {
-  const selectAttempts = [
-    {
-      fields: STUDENT_SELECT_FIELDS,
-      label: "extended student fetch",
-    },
-    {
-      fields: STUDENT_SELECT_FIELDS_FALLBACK,
-      label: "fallback student fetch",
-    },
-    {
-      fields: STUDENT_SELECT_FIELDS_CORE,
-      label: "core student fetch",
-    },
-    {
-      fields: STUDENT_SELECT_FIELDS_MINIMAL,
-      label: "minimal student fetch",
-    },
-  ];
+  const selectAttempts = buildStudentSelectAttempts("fetch");
 
   let lastError: unknown = null;
 
@@ -176,6 +204,11 @@ async function fetchStudentByIdWithFallback(
 
     if (!result.error && result.data) {
       return result.data as unknown as StudentWithClass;
+    }
+
+    if (isMissingStudentColumnError(result.error, "photo_url")) {
+      studentPhotoColumnSupported = false;
+      continue;
     }
 
     lastError = result.error;
@@ -367,12 +400,25 @@ export function useStudents(
 
         const retryInsert = await supabase
           .from("students")
-          .insert(buildCoreStudentPayload(studentPayload as Record<string, unknown>))
+          .insert(buildPortableStudentPayload(studentPayload as Record<string, unknown>))
           .select("id")
           .single();
 
-        if (retryInsert.error) throw retryInsert.error;
-        createdRow = retryInsert.data;
+        if (isMissingStudentColumnError(retryInsert.error, "photo_url")) {
+          studentPhotoColumnSupported = false;
+
+          const legacyRetryInsert = await supabase
+            .from("students")
+            .insert(buildPortableStudentPayload(studentPayload as Record<string, unknown>))
+            .select("id")
+            .single();
+
+          if (legacyRetryInsert.error) throw legacyRetryInsert.error;
+          createdRow = legacyRetryInsert.data;
+        } else {
+          if (retryInsert.error) throw retryInsert.error;
+          createdRow = retryInsert.data;
+        }
       } else {
         createdRow = firstInsert.data;
       }
@@ -447,13 +493,31 @@ export function useStudents(
 
         const retryUpdate = await supabase
           .from("students")
-          .update(buildCoreStudentPayload(normalizedUpdates as Record<string, unknown>))
+          .update(buildPortableStudentPayload(normalizedUpdates as Record<string, unknown>))
           .eq("id", id)
-          .select(STUDENT_SELECT_FIELDS_MINIMAL)
+          .select(
+            studentPhotoColumnSupported === false
+              ? STUDENT_SELECT_FIELDS_MINIMAL_LEGACY
+              : STUDENT_SELECT_FIELDS_MINIMAL,
+          )
           .single();
 
-        if (retryUpdate.error) throw retryUpdate.error;
-        updatedStudent = retryUpdate.data as unknown as StudentWithClass;
+        if (isMissingStudentColumnError(retryUpdate.error, "photo_url")) {
+          studentPhotoColumnSupported = false;
+
+          const legacyRetryUpdate = await supabase
+            .from("students")
+            .update(buildPortableStudentPayload(normalizedUpdates as Record<string, unknown>))
+            .eq("id", id)
+            .select(STUDENT_SELECT_FIELDS_MINIMAL_LEGACY)
+            .single();
+
+          if (legacyRetryUpdate.error) throw legacyRetryUpdate.error;
+          updatedStudent = legacyRetryUpdate.data as unknown as StudentWithClass;
+        } else {
+          if (retryUpdate.error) throw retryUpdate.error;
+          updatedStudent = retryUpdate.data as unknown as StudentWithClass;
+        }
       } else {
         updatedStudent = firstUpdate.data as unknown as StudentWithClass;
       }
