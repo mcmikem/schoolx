@@ -868,20 +868,27 @@ function FAQItem({ q, a }: { q: string; a: string }) {
   );
 }
 
+const DEFAULT_DEVICE_TARGET: DownloadTarget = {
+  key: "web",
+  href: "/login",
+  label: "Open web app",
+  icon: "language",
+  helper: "Use the web app on any device. Install it from your browser when supported.",
+  badge: "Browser",
+};
+
 /* ─── HOME PAGE ─── */
 export default function HomePage() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [headlineIndex, setHeadlineIndex] = useState(0);
   const [installPrompt, setInstallPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
-  const [deviceTarget, setDeviceTarget] = useState<DownloadTarget>({
-    key: "web",
-    href: "/login",
-    label: "Open web app",
-    icon: "language",
-    helper: "Use the web app on any device. Install it from your browser when supported.",
-    badge: "Browser",
-  });
+  const [deviceTarget, setDeviceTarget] = useState<DownloadTarget>(DEFAULT_DEVICE_TARGET);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     // If running in Capacitor (Mobile APK), skip landing page and go straight to login
@@ -1147,7 +1154,7 @@ export default function HomePage() {
                 >
                   Start 30-day free trial
                 </Link>
-                {deviceTarget.href && !deviceTarget.useInstallPrompt ? (
+                {mounted && (deviceTarget.href && !deviceTarget.useInstallPrompt ? (
                   <Link
                     href={deviceTarget.href}
                     className="btn btn-secondary px-7 py-4 text-base flex items-center gap-3"
@@ -1163,7 +1170,7 @@ export default function HomePage() {
                     <MaterialIcon icon={deviceTarget.icon} className="text-[22px]" />
                     {deviceTarget.label}
                   </button>
-                )}
+                ))}
               </div>
 
               <div className="mt-4 rounded-[26px] border border-[var(--border)] bg-white/92 p-5 shadow-[0_18px_44px_rgba(15,23,42,0.08)] backdrop-blur">
@@ -1173,7 +1180,7 @@ export default function HomePage() {
                       Install SkoolMate on the device you use every day
                     </p>
                     <p className="mt-1 text-sm leading-6 text-[var(--t2)]">
-                      Recommended now: <span className="font-semibold text-[var(--t1)]">{deviceTarget.badge}</span>
+                      Recommended now: <span className="font-semibold text-[var(--t1)]">{mounted ? deviceTarget.badge : "Browser"}</span>
                     </p>
                   </div>
                   <span className="inline-flex items-center gap-2 rounded-full bg-[var(--navy-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--navy)]">

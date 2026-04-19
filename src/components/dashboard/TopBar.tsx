@@ -287,7 +287,7 @@ export default function TopBar({
   return (
     <header
       data-testid="dashboard-header"
-      className="topbar border-b border-[var(--border)] h-[56px] flex items-center px-3 sm:px-5 lg:px-6 gap-2 sm:gap-3 sticky top-0 z-50 flex-shrink-0"
+      className="topbar h-[56px] flex items-center px-3 sm:px-5 lg:px-6 gap-2 sm:gap-3 sticky top-0 z-50 flex-shrink-0 border-b border-[var(--border)]"
     >
       {/* Hamburger — mobile only */}
       <button
