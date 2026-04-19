@@ -2,7 +2,6 @@
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
-import TopBar from "@/components/dashboard/TopBar";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 
@@ -123,10 +122,7 @@ export default function WorkflowsBuilder() {
 
   return (
     <PageErrorBoundary>
-    <div className="h-full flex flex-col bg-[var(--bg)] w-full">
-      <TopBar pageTitle="Automated Workflows" onSignOut={() => {}} />
-
-      <div className="flex-1 overflow-y-auto p-4 sm:p-8 w-full max-w-6xl mx-auto space-y-8 animate-fade-in custom-scrollbar">
+    <div className="p-4 sm:p-8 w-full max-w-6xl mx-auto space-y-8 animate-fade-in">
         {/* Header Section */}
         <div className="glass-premium rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 border-l-4 border-[var(--primary)] relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-500/20 to-blue-500/20 rounded-full -mr-32 -mt-32 blur-3xl z-0 pointer-events-none" />
@@ -344,7 +340,6 @@ export default function WorkflowsBuilder() {
           })}
         </div>
       </div>
-    </div>
     </PageErrorBoundary>
   );
 }

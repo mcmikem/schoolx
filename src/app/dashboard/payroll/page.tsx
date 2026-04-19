@@ -33,10 +33,10 @@ export default function PayrollPage() {
     if (!school?.id) return;
     setLoading(true);
     supabase
-      .from("staff")
-      .select("id, first_name, last_name, role, department, bank_account")
+      .from("users")
+      .select("id, full_name, role, bank_account")
       .eq("school_id", school.id)
-      .eq("status", "active")
+      .not("role", "in", '("student","parent")')
       .then(({ data }) => {
         setStaff(data || []);
         // Init default payroll grades
@@ -182,11 +182,11 @@ export default function PayrollPage() {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="shrink-0">
-                              <PersonInitials name={`${member.first_name} ${member.last_name}`} size={32} />
+                              <PersonInitials name={member.full_name || "Staff"} size={32} />
                             </div>
                             <div>
-                                <p className="text-xs font-bold text-slate-800">{member.first_name} {member.last_name}</p>
-                                <p className="text-[9px] font-medium text-slate-400">{member.department || "General"}</p>
+                                <p className="text-xs font-bold text-slate-800">{member.full_name}</p>
+                                <p className="text-[9px] font-medium text-slate-400">{member.role || "Staff"}</p>
                             </div>
                           </div>
                         </td>

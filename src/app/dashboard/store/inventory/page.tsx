@@ -6,9 +6,11 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { cardClassName } from "@/lib/utils";
+import { useToast } from "@/components/Toast";
 
 export default function InventoryPage() {
   const { school } = useAuth();
+  const toast = useToast();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -52,7 +54,7 @@ export default function InventoryPage() {
       setShowAdd(false);
       fetchInventory();
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message || "Failed to add item");
     } finally {
       setLoading(false);
     }

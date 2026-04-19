@@ -103,7 +103,7 @@ export default function CanteenPOSPage() {
   const handleCheckout = async () => {
     if (cart.length === 0) return;
     if (paymentMethod === "wallet" && !student) {
-      alert("Please scan student ID for wallet payment");
+      toast.warning("Please scan student ID for wallet payment");
       return;
     }
 
@@ -162,9 +162,9 @@ export default function CanteenPOSPage() {
 
       setCart([]);
       setStudent(null);
-      alert(isOnline ? "Sale successful!" : "Sale stored offline!");
+      toast.success(isOnline ? "Sale recorded successfully!" : "Sale stored offline — will sync when connected");
     } catch (err: any) {
-      alert(err.message || "Failed to process sale");
+      toast.error(err.message || "Failed to process sale");
     } finally {
       setLoading(false);
     }

@@ -2,15 +2,19 @@
 
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { cardClassName } from "@/lib/utils";
+import { useToast } from "@/components/Toast";
 
 export default function BatchReportsPage() {
   const { school } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
+  const router = useRouter();
+  const toast = useToast();
   const [classes, setClasses] = useState<any[]>([]);
   const [selectedClass, setSelectedClass] = useState("");
   const [term, setTerm] = useState<string>(currentTerm?.toString() || "1");
@@ -53,10 +57,9 @@ export default function BatchReportsPage() {
   };
 
   const handleGenerate = () => {
-    // In production: trigger jsPDF batch generation for each student
-    alert(
-      `Generating ${selected.length} report cards for Term ${term}, ${academicYear}.\n\nThis will open a print preview for batch printing.`,
-    );
+    if (selected.length === 0) return;
+    toast.success(`Opening ${selected.length} report card${selected.length > 1 ? "s" : ""} for Term ${term}, ${academicYear}`);
+    router.push(`/dashboard/report-cards?class=${selectedClass}&term=${term}`);
   };
 
   return (
