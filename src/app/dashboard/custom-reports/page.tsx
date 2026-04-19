@@ -1,8 +1,9 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 
 interface DataColumn {
@@ -71,6 +72,9 @@ export default function CustomReportsBuilder() {
   ]);
 
   const [reportTitle, setReportTitle] = useState("Untitled Custom Report");
+  const [previewData, setPreviewData] = useState<Record<string, string>[]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const unselectedColumns = AVAILABLE_COLUMNS.filter(
     (col) => !selectedColumns.find((sc) => sc.id === col.id),
@@ -84,11 +88,133 @@ export default function CustomReportsBuilder() {
     setSelectedColumns(selectedColumns.filter((c) => c.id !== id));
   };
 
-  const handleExport = () => {
-    toast.success(`Exporting "${reportTitle}" to Excel layout...`);
-    setTimeout(() => {
-      toast.info("Download started via Background Job Queue");
-    }, 1500);
+  const loadPreview = useCallback(async () => {
+    if (!school?.id || selectedColumns.length === 0) { setPreviewData([]); return; }
+    setPreviewLoading(true);
+    try {
+      const { data: students } = await supabase
+        .from("students")
+        .select("id, student_number, first_name, last_name, gender, date_of_birth, class_id, canteen_balance, classes(name)")
+        .eq("school_id", school.id)
+        .eq("status", "active")
+        .limit(5);
+      const rows = (students || []).map((s: any) => {
+        const row: Record<string, string> = {};
+        selectedColumns.forEach((col) => {
+          switch (col.id) {
+            case "stu_id": row[col.id] = s.student_number || "-"; break;
+            case "stu_name": row[col.id] = `${s.first_name} ${s.last_name}`; break;
+            case "stu_class": row[col.id] = s.classes?.name || "-"; break;
+            case "stu_gender": row[col.id] = s.gender === "M" ? "Male" : s.gender === "F" ? "Female" : "-"; break;
+            case "stu_dob": row[col.id] = s.date_of_birth ? new Date(s.date_of_birth).toLocaleDateString() : "-"; break;
+            case "fin_wallet": row[col.id] = `UGX ${Number(s.canteen_balance || 0).toLocaleString()}`; break;
+            default: row[col.id] = "…";
+          }
+        });
+        return row;
+      });
+      setPreviewData(rows);
+    } catch { setPreviewData([]); }
+    finally { setPreviewLoading(false); }
+  }, [school?.id, selectedColumns]);
+
+  useEffect(() => { loadPreview(); }, [loadPreview]);
+
+  const handleExport = async () => {
+    if (!school?.id) { toast.error("No school selected"); return; }
+    if (selectedColumns.length === 0) { toast.error("Add at least one column to export"); return; }
+    setExporting(true);
+    try {
+      const { data: students } = await supabase
+        .from("students")
+        .select("id, student_number, first_name, last_name, gender, date_of_birth, class_id, canteen_balance, classes(name)")
+        .eq("school_id", school.id)
+        .eq("status", "active");
+
+      const needsFinance = selectedColumns.some((c) => c.id === "fin_paid" || c.id === "fin_balance");
+      const needsAttendance = selectedColumns.some((c) => c.id === "aca_attendance");
+      const needsGrades = selectedColumns.some((c) => c.id === "aca_average");
+
+      const studentIds = (students || []).map((s: any) => s.id);
+      const paymentsByStudent: Record<string, number> = {};
+      const attendanceByStudent: Record<string, number> = {};
+      const gradesByStudent: Record<string, number> = {};
+      let expectedFee = 0;
+
+      if (needsFinance && studentIds.length > 0) {
+        const [{ data: payments }, { data: feeStructure }] = await Promise.all([
+          supabase.from("fee_payments").select("student_id, amount_paid").in("student_id", studentIds),
+          supabase.from("fee_structure").select("amount").eq("school_id", school.id),
+        ]);
+        (payments || []).forEach((p: any) => {
+          paymentsByStudent[p.student_id] = (paymentsByStudent[p.student_id] || 0) + Number(p.amount_paid);
+        });
+        expectedFee = (feeStructure || []).reduce((s: number, f: any) => s + Number(f.amount), 0);
+      }
+
+      if (needsAttendance && studentIds.length > 0) {
+        const { data: attendance } = await supabase.from("attendance").select("student_id, status").in("student_id", studentIds);
+        const total: Record<string, number> = {};
+        const present: Record<string, number> = {};
+        (attendance || []).forEach((a: any) => {
+          total[a.student_id] = (total[a.student_id] || 0) + 1;
+          if (a.status === "present") present[a.student_id] = (present[a.student_id] || 0) + 1;
+        });
+        studentIds.forEach((id) => {
+          attendanceByStudent[id] = total[id] ? Math.round(((present[id] || 0) / total[id]) * 100) : 0;
+        });
+      }
+
+      if (needsGrades && studentIds.length > 0) {
+        const { data: grades } = await supabase.from("grades").select("student_id, score").in("student_id", studentIds);
+        const sums: Record<string, number> = {};
+        const counts: Record<string, number> = {};
+        (grades || []).forEach((g: any) => {
+          if (g.score != null) {
+            sums[g.student_id] = (sums[g.student_id] || 0) + Number(g.score);
+            counts[g.student_id] = (counts[g.student_id] || 0) + 1;
+          }
+        });
+        studentIds.forEach((id) => {
+          gradesByStudent[id] = counts[id] ? Math.round(sums[id] / counts[id]) : 0;
+        });
+      }
+
+      const headers = selectedColumns.map((c) => c.label);
+      const csvRows = [headers.join(",")];
+      (students || []).forEach((s: any) => {
+        const row = selectedColumns.map((col) => {
+          let val = "";
+          switch (col.id) {
+            case "stu_id": val = s.student_number || ""; break;
+            case "stu_name": val = `${s.first_name} ${s.last_name}`; break;
+            case "stu_class": val = (s.classes as any)?.name || ""; break;
+            case "stu_gender": val = s.gender === "M" ? "Male" : s.gender === "F" ? "Female" : ""; break;
+            case "stu_dob": val = s.date_of_birth || ""; break;
+            case "fin_paid": val = String(paymentsByStudent[s.id] || 0); break;
+            case "fin_balance": val = String(Math.max(0, expectedFee - (paymentsByStudent[s.id] || 0))); break;
+            case "fin_wallet": val = String(s.canteen_balance || 0); break;
+            case "aca_attendance": val = `${attendanceByStudent[s.id] || 0}%`; break;
+            case "aca_average": val = `${gradesByStudent[s.id] || 0}%`; break;
+          }
+          return `"${val.replace(/"/g, '""')}"`;
+        });
+        csvRows.push(row.join(","));
+      });
+
+      const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${reportTitle.replace(/[^a-z0-9]/gi, "_")}_${new Date().toISOString().split("T")[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`Exported ${students?.length || 0} student records to CSV`);
+    } catch (err: any) {
+      toast.error(err?.message || "Export failed");
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -110,10 +236,11 @@ export default function CustomReportsBuilder() {
             </div>
             <button
               onClick={handleExport}
-              className="relative z-10 bg-[var(--surface-container)] text-[var(--t1)] border-[1.5px] border-[var(--border)] hover:border-indigo-500 px-6 py-3 rounded-2xl shadow-sm font-bold transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap"
+              className="relative z-10 bg-[var(--surface-container)] text-[var(--t1)] border-[1.5px] border-[var(--border)] hover:border-indigo-500 px-6 py-3 rounded-2xl shadow-sm font-bold transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap disabled:opacity-60"
+              disabled={exporting || selectedColumns.length === 0}
             >
-              <MaterialIcon icon="download" className="text-indigo-500" />
-              Export Data Target
+              <MaterialIcon icon={exporting ? "hourglass_empty" : "download"} className="text-indigo-500" />
+              {exporting ? "Exporting…" : "Export CSV"}
             </button>
           </div>
 
@@ -199,11 +326,13 @@ export default function CustomReportsBuilder() {
                       Add attributes from the Data Atlas.
                     </p>
                   </div>
+                ) : previewLoading ? (
+                  <div className="h-48 flex items-center justify-center text-[var(--t3)] text-sm font-medium animate-pulse">Loading preview…</div>
                 ) : (
                   <table className="w-full min-w-max border-collapse">
                     <thead>
                       <tr>
-                        {selectedColumns.map((col, index) => (
+                        {selectedColumns.map((col) => (
                           <th
                             key={col.id}
                             className="relative group text-left px-4 py-3 bg-[var(--surface-container)]/80 text-[11px] font-black uppercase tracking-widest text-[var(--t2)] border-y border-[var(--border)] first:border-l first:rounded-tl-2xl last:border-r last:rounded-tr-2xl hover:bg-[var(--surface-container)] transition-colors"
@@ -214,10 +343,7 @@ export default function CustomReportsBuilder() {
                                 onClick={() => removeColumn(col.id)}
                                 className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--red)] p-1 hover:bg-[var(--red)]/10 rounded"
                               >
-                                <MaterialIcon
-                                  icon="close"
-                                  style={{ fontSize: 14 }}
-                                />
+                                <MaterialIcon icon="close" style={{ fontSize: 14 }} />
                               </button>
                             </div>
                           </th>
@@ -225,31 +351,21 @@ export default function CustomReportsBuilder() {
                       </tr>
                     </thead>
                     <tbody>
-                      {[1, 2, 3, 4, 5].map((row) => (
-                        <tr
-                          key={row}
-                          className="border-b border-[var(--border)] hover:bg-[var(--surface-container-low)]/50 transition-colors group"
-                        >
+                      {previewData.length > 0 ? previewData.map((row, i) => (
+                        <tr key={i} className="border-b border-[var(--border)] hover:bg-[var(--surface-container-low)]/50 transition-colors">
                           {selectedColumns.map((col) => (
-                            <td
-                              key={col.id}
-                              className="px-4 py-4 text-sm font-medium text-[var(--t1)]"
-                            >
-                              <div
-                                className="h-2 w-full bg-[var(--surface-container)] rounded animate-pulse group-hover:bg-[var(--border)]"
-                                style={{
-                                  maxWidth:
-                                    col.type === "date"
-                                      ? "80px"
-                                      : col.type === "number"
-                                        ? "40px"
-                                        : "150px",
-                                }}
-                              />
+                            <td key={col.id} className="px-4 py-3 text-sm font-medium text-[var(--t1)]">
+                              {row[col.id] ?? "—"}
                             </td>
                           ))}
                         </tr>
-                      ))}
+                      )) : (
+                        <tr>
+                          <td colSpan={selectedColumns.length} className="px-4 py-8 text-center text-sm text-[var(--t3)]">
+                            No students found
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 )}

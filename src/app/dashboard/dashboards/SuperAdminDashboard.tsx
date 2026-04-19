@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -488,9 +489,11 @@ export default function SuperAdminDashboard() {
                         style={{ background: s.primary_color || "var(--navy)" }}
                       >
                         {s.logo_url ? (
-                          <img
+                          <Image
                             src={s.logo_url}
                             alt={s.name}
+                            width={36}
+                            height={36}
                             className="w-full h-full object-cover"
                           />
                         ) : (

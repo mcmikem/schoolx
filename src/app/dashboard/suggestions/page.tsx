@@ -121,7 +121,7 @@ export default function SuggestionBoxPage() {
     } finally {
       setLoading(false);
     }
-  }, [school?.id]);
+  }, [school?.id, toast]);
 
   useEffect(() => {
     fetchSuggestions();
