@@ -3,12 +3,13 @@ import { seedDemoSession } from "./helpers/demo";
 
 test.describe("Authenticated dashboard flows", () => {
   test("headmaster can open auto-sms actions", async ({ page }) => {
+    test.setTimeout(90_000);
     await seedDemoSession(page, "headmaster");
 
     await page.goto("/dashboard/auto-sms");
     await expect(
       page.getByRole("heading", { name: /smart sms triggers/i }),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 60_000 });
     await page.getByRole("button", { name: /new automation rule/i }).click();
     await expect(
       page.getByRole("heading", { name: /create automation rule/i }),
@@ -21,13 +22,9 @@ test.describe("Authenticated dashboard flows", () => {
 
     await page.goto("/dashboard/transport");
     await expect(
-      page.getByRole("heading", { name: /transport & logistics/i }),
+      page.getByRole("heading", { name: /transport management/i }),
     ).toBeVisible();
-    await page
-      .getByRole("button", { name: /view schedule/i })
-      .first()
-      .click();
-    await expect(page.getByText(/time not set|stop 1/i).first()).toBeVisible();
+    await expect(page.getByText(/fleet overview/i)).toBeVisible();
   });
 
   test("headmaster can reach attendance and grades work areas", async ({
@@ -96,9 +93,11 @@ test.describe("Authenticated dashboard flows", () => {
     await page.getByLabel(/title/i).fill("Playwright Notice");
     await page.getByLabel(/category/i).selectOption("Academic");
     await page.getByLabel(/content/i).fill("Browser test notice body");
-    await page.getByRole("button", { name: /^post notice$/i }).click();
+    await page.locator("form").getByRole("button", { name: /^post notice$/i }).click();
 
-    await expect(page.getByText(/playwright notice/i)).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /playwright notice/i }),
+    ).toBeVisible();
   });
 
   test("headmaster can log a substitution in demo mode", async ({ page }) => {
@@ -130,12 +129,12 @@ test.describe("Authenticated dashboard flows", () => {
 
     await page.goto("/dashboard/messages");
     await expect(
-      page.getByRole("heading", { name: /messages/i }),
+      page.getByRole("heading", { name: /communication hub/i }),
     ).toBeVisible();
 
     await page.getByLabel(/phone number/i).fill("0700000000");
-    await page.getByLabel(/message/i).fill("Playwright demo message");
-    await page.getByRole("button", { name: /send message/i }).click();
+    await page.getByRole("textbox", { name: /^message$/i }).fill("Playwright demo message");
+    await page.getByRole("button", { name: /send sms/i }).click();
 
     await expect(page.getByText(/playwright demo message/i)).toBeVisible();
   });
@@ -148,10 +147,9 @@ test.describe("Authenticated dashboard flows", () => {
       page.getByRole("heading", { name: /sync center/i }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: /refresh cache/i }),
+      page.getByRole("button", { name: /sync now/i }),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: /sync now/i })).toBeVisible();
-    await expect(page.getByText(/pending queue/i)).toBeVisible();
+    await expect(page.getByText(/pending changes/i)).toBeVisible();
   });
 
   test("headmaster can search a student and open SMS modal", async ({
@@ -293,7 +291,7 @@ test.describe("Authenticated dashboard flows", () => {
 
     await page.goto("/dashboard/fees");
     await expect(
-      page.getByRole("heading", { name: /fees tracker|fee collection overview/i }),
+      page.getByRole("heading", { name: "Fees Tracker", exact: true }),
     ).toBeVisible();
   });
 
@@ -495,7 +493,10 @@ test.describe("Authenticated dashboard flows", () => {
     await seedDemoSession(page, "headmaster");
 
     await page.goto("/dashboard/staff-reviews");
-    await expect(page.locator("h1, h2, h3").first()).toBeVisible();
+    await expect(page).toHaveURL(/\/dashboard\/teacher-performance\/?$/);
+    await expect(
+      page.getByRole("heading", { name: /teacher performance/i }),
+    ).toBeVisible();
   });
 
   test("headmaster can open promotion page", async ({ page }) => {

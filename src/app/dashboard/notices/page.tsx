@@ -1,6 +1,6 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
@@ -14,6 +14,7 @@ import { getErrorMessage } from "@/lib/validation";
 export default function NoticesPage() {
   const { user, school, isDemo } = useAuth();
   const toast = useToast();
+  const toastRef = useRef(toast);
   const [notices, setNotices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPostModal, setShowPostModal] = useState(false);
@@ -24,6 +25,10 @@ export default function NoticesPage() {
     category: "General",
     send_sms: false,
   });
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   const fetchNotices = useCallback(async () => {
     if (isDemo) {
@@ -46,11 +51,11 @@ export default function NoticesPage() {
       if (error) throw error;
       setNotices(data || []);
     } catch {
-      toast.error("Failed to load notices");
+      toastRef.current.error("Failed to load notices");
     } finally {
       setLoading(false);
     }
-  }, [school?.id, isDemo, toast]);
+  }, [school?.id, isDemo]);
 
   useEffect(() => {
     fetchNotices();
@@ -71,18 +76,19 @@ export default function NoticesPage() {
     try {
       if (isDemo) {
         // Demo mode – local state only
-        setNotices([
+        setNotices((previous) => [
           {
             id: `notice-${Date.now()}`,
-            title: form.title,
-            content: form.content,
+            title: form.title.trim(),
+            content: form.content.trim(),
             type: form.category,
+            category: form.category,
             priority: form.category === "Emergency" ? "high" : "normal",
             published_by: user?.id,
             created_at: new Date().toISOString(),
             is_published: true,
           },
-          ...notices,
+          ...previous,
         ]);
       } else {
         const { error } = await supabase.from("notices").insert({
