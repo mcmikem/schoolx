@@ -10,6 +10,7 @@ interface ReportCardProps {
       last_name: string;
       student_number: string;
       gender: string;
+      photo_url?: string;
       ple_index_number?: string;
       classes?: { name: string; level: string };
     };
@@ -468,9 +469,28 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
 
         {/* Student Info */}
         <div
-          className="p-4 grid grid-cols-4 gap-4 border-b-2"
+          className="p-4 grid grid-cols-[96px_repeat(4,minmax(0,1fr))] gap-4 border-b-2 items-center"
           style={{ borderColor: primaryColor, backgroundColor: "#fafbfc" }}
         >
+          <div className="flex justify-center">
+            <div className="w-20 h-24 rounded-xl overflow-hidden border border-gray-200 bg-white flex items-center justify-center">
+              {report.student.photo_url ? (
+                <Image
+                  src={report.student.photo_url}
+                  alt={`${report.student.first_name} ${report.student.last_name}`}
+                  width={80}
+                  height={96}
+                  className="w-full h-full object-cover"
+                  unoptimized
+                />
+              ) : (
+                <div className="text-xl font-black text-gray-300">
+                  {report.student.first_name?.charAt(0)}
+                  {report.student.last_name?.charAt(0)}
+                </div>
+              )}
+            </div>
+          </div>
           <div>
             <div className="text-xs text-gray-500 uppercase tracking-wide">
               Student Name

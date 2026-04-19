@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { isSupabaseLockAbortError, withSupabaseLockRetry } from './supabase-lock'
 import { getErrorMessage } from './validation'
 
 export type SchoolSettingsMap = Record<string, string>
@@ -37,12 +38,16 @@ export async function loadSchoolSettings(
       query = query.in('key', keys)
     }
 
-    const { data, error } = await query
+    const { data, error } = await withSupabaseLockRetry(async () => await query)
     if (error) throw error
 
     const entries = (data || []).map((row) => [row.key, row.value ?? ''] as const)
     return Object.fromEntries(entries)
   } catch (error) {
+    if (isSupabaseLockAbortError(error)) {
+      console.warn('School settings temporarily unavailable during auth recovery')
+      return {}
+    }
     console.warn('School settings fallback in use:', getErrorMessage(error))
     return {}
   }
@@ -64,16 +69,18 @@ export async function saveSchoolSetting(
 ): Promise<void> {
   if (!schoolId || !supabase) return
 
-  const { error } = await supabase
-    .from('school_settings')
-    .upsert(
-      {
-        school_id: schoolId,
-        key,
-        value: serializeSettingValue(value),
-      },
-      { onConflict: 'school_id,key' },
-    )
+  const { error } = await withSupabaseLockRetry(async () =>
+    await supabase
+      .from('school_settings')
+      .upsert(
+        {
+          school_id: schoolId,
+          key,
+          value: serializeSettingValue(value),
+        },
+        { onConflict: 'school_id,key' },
+      ),
+  )
 
   if (error) {
     throw error

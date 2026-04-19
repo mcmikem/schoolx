@@ -71,6 +71,7 @@ type StudentMutationInput = Partial<CreateStudentInput> &
       | "student_number"
       | "date_of_birth"
       | "opening_balance"
+      | "photo_url"
       | "class_id"
     >
   >
@@ -109,6 +110,9 @@ export function normalizeStudentInput<T extends StudentMutationInput>(
   }
   if ("class_id" in normalized && typeof normalized.class_id === "string") {
     normalized.class_id = normalized.class_id.trim() as T["class_id"]
+  }
+  if ("photo_url" in normalized && typeof normalized.photo_url === "string") {
+    normalized.photo_url = sanitizeString(normalized.photo_url) as T["photo_url"]
   }
   if ("opening_balance" in normalized) {
     const rawValue = normalized.opening_balance

@@ -6,6 +6,7 @@ import {
   createServiceRoleClientOrThrow,
   requireExistingSchoolOrDeny,
 } from "@/lib/api-utils";
+import { sendAfricasTalkingSMS } from "@/lib/africas-talking";
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,7 +67,11 @@ export async function POST(request: NextRequest) {
 
       // Send SMS
       try {
-        const smsRes = await sendSMS(reminder.parentPhone, reminder.smsMessage);
+        const smsRes = await sendAfricasTalkingSMS(
+          reminder.parentPhone,
+          reminder.smsMessage,
+          { formatUgandaNumber: true },
+        );
         if (smsRes.success) {
           // Log success
           await (supabase as any).from("automated_message_logs").insert({
@@ -92,26 +97,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function sendSMS(phone: string, message: string) {
-  const apiKey = process.env.SMS_API_KEY;
-  const username = process.env.SMS_USERNAME || "sandbox";
-
-  if (!apiKey) {
-    console.log(`[DRY RUN SMS] To: ${phone}, Msg: ${message}`);
-    return { success: true };
-  }
-
-  const response = await fetch(
-    "https://api.africastalking.com/version1/messaging",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        apikey: apiKey,
-      },
-      body: new URLSearchParams({ username, to: phone, message }),
-    },
-  );
-
-  return { success: response.ok };
-}

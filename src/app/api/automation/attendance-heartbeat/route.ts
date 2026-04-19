@@ -4,6 +4,7 @@ import {
   createServiceRoleClientOrThrow,
   requireExistingSchoolOrDeny,
 } from "@/lib/api-utils";
+import { sendAfricasTalkingSMS } from "@/lib/africas-talking";
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,7 +61,11 @@ export async function POST(request: NextRequest) {
         const message = `Friendly Nudge: Attendance for ${cls.name} hasn't been marked yet. Please update the system as soon as possible. - SkoolMate Admin`;
 
         try {
-          const smsRes = await sendSMS(teacherUser.phone, message);
+          const smsRes = await sendAfricasTalkingSMS(
+            teacherUser.phone,
+            message,
+            { formatUgandaNumber: true },
+          );
           if (smsRes.success) {
             results.nudgesSent++;
             await supabase.from("automated_message_logs").insert({
@@ -87,25 +92,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function sendSMS(phone: string, message: string) {
-  const apiKey = process.env.SMS_API_KEY;
-  const username = process.env.SMS_USERNAME || "sandbox";
-  if (!apiKey) return { success: true };
-  const response = await fetch(
-    "https://api.africastalking.com/version1/messaging",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apiKey,
-        username,
-      },
-      body: JSON.stringify({
-        to: [phone],
-        message,
-      }),
-    },
-  );
-  const data = await response.json();
-  return { success: response.ok, data };
-}

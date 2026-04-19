@@ -167,25 +167,32 @@ export function useDashboardExtraData(
 
         // Attendance by class
         const attendanceByClass: Record<string, ClassAttendance> = {};
+        const hasAttendanceMarkedToday = (attendanceRes.data?.length || 0) > 0;
         const studentClassMap: Record<string, string> = {};
         students.forEach((s) => {
           studentClassMap[s.id] = s.class_id;
         });
 
-        attendanceRes.data?.forEach((a) => {
-          const classId = studentClassMap[a.student_id];
-          if (!classId) return;
-          if (!attendanceByClass[classId])
-            attendanceByClass[classId] = { present: 0, total: 0 };
-          attendanceByClass[classId].total++;
-          if (a.status === "present") attendanceByClass[classId].present++;
-        });
-        setClassAttendance(attendanceByClass);
+        if (hasAttendanceMarkedToday) {
+          attendanceRes.data?.forEach((a) => {
+            const classId = studentClassMap[a.student_id];
+            if (!classId) return;
+            if (!attendanceByClass[classId]) {
+              attendanceByClass[classId] = { present: 0, total: 0 };
+            }
+            attendanceByClass[classId].total++;
+            if (a.status === "present") attendanceByClass[classId].present++;
+          });
+        }
+
+        setClassAttendance(hasAttendanceMarkedToday ? attendanceByClass : {});
 
         let lowAtt = 0;
-        Object.values(attendanceByClass).forEach((c) => {
-          if (c.total > 0 && c.present / c.total < 0.7) lowAtt++;
-        });
+        if (hasAttendanceMarkedToday) {
+          Object.values(attendanceByClass).forEach((c) => {
+            if (c.total > 0 && c.present / c.total < 0.7) lowAtt++;
+          });
+        }
         setLowAttendanceClasses(lowAtt);
 
         // At-risk students
@@ -231,12 +238,9 @@ export function useDashboardExtraData(
               }
             });
 
-            let dropoutCount = Object.values(studentAbsenceMap).filter(
+            const dropoutCount = Object.values(studentAbsenceMap).filter(
               (v) => v.allAbsent && v.count >= 14,
             ).length;
-            activeStudentIds.forEach((id) => {
-              if (!studentAbsenceMap[id]) dropoutCount++;
-            });
             setDropoutRiskCount(dropoutCount);
           } catch (err) {
             console.error("Dropout risk calculation error:", err);
@@ -279,11 +283,7 @@ export function useDashboardExtraData(
         setStaffOnDuty(staffAttRes.data?.length || 0);
 
         // Overdue fees
-        const totalExpectedPerStudent = feeStructure.reduce(
-          (sum, f) => sum + Number(f.amount || 0),
-          0,
-        );
-        if (totalExpectedPerStudent > 0) {
+        if (feeStructure.length > 0) {
           const paidByStudent: Record<string, number> = {};
           allPayments?.forEach((p: any) => {
             const sid = p.students?.id || "";
@@ -291,10 +291,25 @@ export function useDashboardExtraData(
               paidByStudent[sid] =
                 (paidByStudent[sid] || 0) + Number(p.amount_paid);
           });
+
           const overdue = students.filter(
-            (s) => (paidByStudent[s.id] || 0) < totalExpectedPerStudent * 0.5,
+            (student) => {
+              const expectedForStudent = feeStructure
+                .filter(
+                  (fee) => !fee.class_id || fee.class_id === student.class_id,
+                )
+                .reduce((sum, fee) => sum + Number(fee.amount || 0), 0);
+
+              if (expectedForStudent <= 0) {
+                return false;
+              }
+
+              return (paidByStudent[student.id] || 0) < expectedForStudent * 0.5;
+            },
           ).length;
           setOverdueFeeCount(overdue);
+        } else {
+          setOverdueFeeCount(0);
         }
       } catch (err) {
         console.error("Error fetching dashboard extra data:", err);

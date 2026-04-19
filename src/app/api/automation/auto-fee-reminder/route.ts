@@ -4,6 +4,7 @@ import {
   createServiceRoleClientOrThrow,
   requireExistingSchoolOrDeny,
 } from "@/lib/api-utils";
+import { sendAfricasTalkingSMS } from "@/lib/africas-talking";
 
 // Auto Fee Reminder SMS Scheduler
 // Automatically sends SMS reminders to parents with outstanding fees
@@ -145,7 +146,11 @@ export async function POST(request: NextRequest) {
                 .replace("{class}", student.classes?.name || "Unknown");
 
               // Send SMS via Africa's Talking or similar provider
-              const smsResult = await sendSMS(student.parent_phone, message);
+              const smsResult = await sendAfricasTalkingSMS(
+                student.parent_phone,
+                message,
+                { formatUgandaNumber: true },
+              );
 
               if (smsResult.success) {
                 // Skip the update as it's causing type issues
@@ -213,50 +218,3 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper function to send SMS
-async function sendSMS(
-  phone: string,
-  message: string,
-): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  try {
-    // Use Africa's Talking API or your SMS provider
-    const apiKey = process.env.SMS_API_KEY;
-    const username = process.env.SMS_USERNAME || "sandbox";
-
-    if (!apiKey) {
-      // In development mode, just log
-      console.log(`[SMS] To: ${phone}, Message: ${message}`);
-      return { success: true, messageId: "dev-mode" };
-    }
-
-    const response = await fetch(
-      "https://api.africastalking.com/version1/messaging",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          apikey: apiKey,
-        },
-        body: new URLSearchParams({
-          username,
-          to: phone,
-          message,
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      return { success: false, error: errorText };
-    }
-
-    const data = await response.json();
-    const messageId = data.SMSMessageData?.Recipients?.[0]?.messageId;
-
-    return { success: true, messageId };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-}

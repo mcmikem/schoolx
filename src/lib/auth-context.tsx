@@ -15,6 +15,10 @@ import type { User, School } from "@/types";
 import { logger } from "./logger";
 import { getErrorMessage, normalizeAuthPhone } from "./validation";
 import { buildAuthEmailFromPhone, buildAuthLoginAttempts } from "./auth-login";
+import {
+  isSupabaseLockAbortError,
+  withSupabaseLockRetry,
+} from "./supabase-lock";
 
 // Roles that demo sessions are allowed to assume.
 // super_admin / school_admin are intentionally excluded to prevent privilege injection.
@@ -168,61 +172,73 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return null;
       }
       try {
-        let userData: any = null;
-        let lastError: unknown = null;
+        const { userData, lastError } = await withSupabaseLockRetry(
+          async () => {
+            let resolvedUserData: any = null;
+            let resolvedLastError: unknown = null;
 
-        const profileByAuth = await supabase
-          .from("users")
-          .select("*")
-          .eq("auth_id", authId)
-          .maybeSingle();
-
-        userData = profileByAuth.data;
-        lastError = profileByAuth.error;
-
-        if (!userData) {
-          const authResult = await supabase.auth.getUser();
-          const authUser = authResult.data.user;
-
-          const phoneCandidates = buildPhoneLookupCandidates(
-            authUser?.phone ?? authUser?.user_metadata?.phone,
-          );
-
-          for (const phoneCandidate of phoneCandidates) {
-            const fallbackProfile = await supabase
+            const profileByAuth = await supabase
               .from("users")
               .select("*")
-              .eq("phone", phoneCandidate)
+              .eq("auth_id", authId)
               .maybeSingle();
 
-            if (fallbackProfile.error) {
-              lastError = fallbackProfile.error;
-              continue;
-            }
+            resolvedUserData = profileByAuth.data;
+            resolvedLastError = profileByAuth.error;
 
-            if (fallbackProfile.data) {
-              userData = fallbackProfile.data;
-              lastError = null;
+            if (!resolvedUserData) {
+              const authResult = await supabase.auth.getUser();
+              const authUser = authResult.data.user;
 
-              if (fallbackProfile.data.auth_id !== authId) {
-                const { error: relinkError } = await supabase
+              const phoneCandidates = buildPhoneLookupCandidates(
+                authUser?.phone ?? authUser?.user_metadata?.phone,
+              );
+
+              for (const phoneCandidate of phoneCandidates) {
+                const fallbackProfile = await supabase
                   .from("users")
-                  .update({ auth_id: authId })
-                  .eq("id", fallbackProfile.data.id);
+                  .select("*")
+                  .eq("phone", phoneCandidate)
+                  .maybeSingle();
 
-                if (relinkError) {
-                  logger.warn(
-                    "[Auth] Profile found but auth_id relink failed:",
-                    getErrorMessage(relinkError),
-                  );
-                } else {
-                  userData = { ...fallbackProfile.data, auth_id: authId };
+                if (fallbackProfile.error) {
+                  resolvedLastError = fallbackProfile.error;
+                  continue;
+                }
+
+                if (fallbackProfile.data) {
+                  resolvedUserData = fallbackProfile.data;
+                  resolvedLastError = null;
+
+                  if (fallbackProfile.data.auth_id !== authId) {
+                    const { error: relinkError } = await supabase
+                      .from("users")
+                      .update({ auth_id: authId })
+                      .eq("id", fallbackProfile.data.id);
+
+                    if (relinkError) {
+                      logger.warn(
+                        "[Auth] Profile found but auth_id relink failed:",
+                        getErrorMessage(relinkError),
+                      );
+                    } else {
+                      resolvedUserData = {
+                        ...fallbackProfile.data,
+                        auth_id: authId,
+                      };
+                    }
+                  }
+                  break;
                 }
               }
-              break;
             }
-          }
-        }
+
+            return {
+              userData: resolvedUserData,
+              lastError: resolvedLastError,
+            };
+          },
+        );
 
         if (!userData) {
           if (lastError) {
@@ -262,11 +278,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (userData.school_id) {
-          const { data: schoolData, error: schoolError } = await supabase
-            .from("schools")
-            .select("*")
-            .eq("id", userData.school_id)
-            .single();
+          const { data: schoolData, error: schoolError } =
+            await withSupabaseLockRetry(async () =>
+              await supabase
+                .from("schools")
+                .select("*")
+                .eq("id", userData.school_id)
+                .single(),
+            );
 
           if (schoolError) {
             logger.error("Error fetching school profile:", schoolError);
@@ -297,6 +316,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
         return { role: userData.role };
       } catch (error) {
+        if (isSupabaseLockAbortError(error) && retryCount < 2) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, 300 * (retryCount + 1)),
+          );
+          return fetchUserData(authId, retryCount + 1);
+        }
+
         logger.error("Error fetching user data:", getErrorMessage(error));
         setLoading(false);
         return null;
@@ -357,10 +383,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (supabase?.auth) {
         try {
           const {
-            data: { session },
-          } = await supabase!.auth.getSession();
-          if (session && session.user) {
-            await fetchUserData(session.user.id);
+            data: { user: authUser },
+          } = await withSupabaseLockRetry(
+            async () => await supabase!.auth.getUser(),
+          );
+          if (authUser) {
+            await fetchUserData(authUser.id);
             setIsDemo(false);
             setLoading(false);
           } else {
@@ -396,35 +424,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const {
         data: { subscription },
       } = supabase!.auth.onAuthStateChange(async (event, session) => {
-        // If we are in demo mode, auth state changes should be ignored
-        // unless it's a sign out that clears the demo.
-        // Note: we don't depend on isDemo here to avoid re-running the effect
-        const isCurrentlyDemo = readDemoStorage() !== null;
+        try {
+          // If we are in demo mode, auth state changes should be ignored
+          // unless it's a sign out that clears the demo.
+          // Note: we don't depend on isDemo here to avoid re-running the effect
+          const isCurrentlyDemo = readDemoStorage() !== null;
 
-        if (isCurrentlyDemo && event !== "SIGNED_OUT") return;
+          if (isCurrentlyDemo && event !== "SIGNED_OUT") return;
 
-        if (
-          (event === "SIGNED_IN" ||
-            event === "INITIAL_SESSION" ||
-            event === "TOKEN_REFRESHED") &&
-          session &&
-          session.user
-        ) {
-          await fetchUserData(session.user.id);
-          setIsDemo(false);
-          setLoading(false);
-        } else if (event === "INITIAL_SESSION" && !session) {
-          // No session on initial load — clear state and stop loading
-          setUser(null);
-          setSchool(null);
-          setIsDemo(false);
-          setLoading(false);
-        } else if (event === "SIGNED_OUT") {
-          setUser(null);
-          setSchool(null);
-          setIsDemo(false);
-          setIsTrialExpired(false);
-          setLoading(false);
+          if (
+            (event === "SIGNED_IN" ||
+              event === "INITIAL_SESSION" ||
+              event === "TOKEN_REFRESHED")
+          ) {
+            const {
+              data: { user: verifiedUser },
+            } = await withSupabaseLockRetry(async () =>
+              await supabase!.auth.getUser(),
+            );
+
+            if (verifiedUser) {
+              await fetchUserData(verifiedUser.id);
+              setIsDemo(false);
+              setLoading(false);
+            } else if (event === "INITIAL_SESSION" && !session) {
+              setUser(null);
+              setSchool(null);
+              setIsDemo(false);
+              setLoading(false);
+            }
+          } else if (event === "SIGNED_OUT") {
+            setUser(null);
+            setSchool(null);
+            setIsDemo(false);
+            setIsTrialExpired(false);
+            setLoading(false);
+          }
+        } catch (error) {
+          if (!isSupabaseLockAbortError(error)) {
+            logger.error(
+              "[Auth] Auth state change handler failed:",
+              getErrorMessage(error),
+            );
+          }
         }
       });
 
@@ -438,7 +480,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       let lastError: any = null;
 
       for (const attempt of attempts) {
-        const { data, error } =
+        const { data, error } = await withSupabaseLockRetry(async () =>
           attempt.type === "email"
             ? await supabase!.auth.signInWithPassword({
                 email: attempt.value,
@@ -447,7 +489,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             : await supabase!.auth.signInWithPassword({
                 phone: attempt.value,
                 password,
-              });
+              }),
+        );
 
         if (error) {
           lastError = error;
@@ -486,16 +529,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const normalizedPhone = normalizeAuthPhone(phone);
       const email = buildAuthEmailFromPhone(normalizedPhone);
-      const { data, error } = await supabase!.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: name,
-            phone: normalizedPhone,
+      const { data, error } = await withSupabaseLockRetry(async () =>
+        await supabase!.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: name,
+              phone: normalizedPhone,
+            },
           },
-        },
-      });
+        }),
+      );
 
       if (error) return { error };
       return { error: null };

@@ -123,6 +123,7 @@ export interface CreateStudentInput {
   transfer_from?: string;
   transfer_reason?: string;
   repeating?: boolean;
+  photo_url?: string;
   parent_email?: string;
   house_id?: string;
   previous_school?: string;
@@ -274,7 +275,7 @@ export interface CalendarEvent {
 export interface ReportCard {
   student: Pick<
     Student,
-    "first_name" | "last_name" | "student_number" | "gender"
+    "first_name" | "last_name" | "student_number" | "gender" | "photo_url"
   > & {
     ple_index_number?: string;
     classes?: Pick<Class, "name" | "level">;

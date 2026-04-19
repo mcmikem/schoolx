@@ -8,6 +8,7 @@ import { getUNEBGrade, getUNEBDivision } from "@/lib/grading";
 import ReportCard from "@/components/reports/ReportCard";
 import type { ReportCard as ReportCardType } from "@/types";
 import { supabase } from "@/lib/supabase";
+import Image from "next/image";
 import { PageHeader } from "@/components/ui/PageHeader";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Button } from "@/components/ui/index";
@@ -123,6 +124,7 @@ export default function ReportsPage() {
             last_name: student.last_name,
             student_number: student.student_number || "N/A",
             gender: student.gender,
+            photo_url: student.photo_url,
             classes: student.classes,
           },
           school: {
@@ -262,11 +264,22 @@ export default function ReportsPage() {
                       : "hover:bg-[var(--surface-container)] border border-transparent"
                   }`}
                 >
-                  <div className="w-10 h-10 bg-[var(--surface-container)] rounded-full flex items-center justify-center">
-                    <span className="text-[var(--primary)] font-semibold text-sm">
-                      {student.first_name?.charAt(0)}
-                      {student.last_name?.charAt(0)}
-                    </span>
+                  <div className="w-10 h-10 bg-[var(--surface-container)] rounded-full flex items-center justify-center overflow-hidden">
+                    {student.photo_url ? (
+                      <Image
+                        src={student.photo_url}
+                        alt={`${student.first_name} ${student.last_name}`}
+                        width={40}
+                        height={40}
+                        unoptimized
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-[var(--primary)] font-semibold text-sm">
+                        {student.first_name?.charAt(0)}
+                        {student.last_name?.charAt(0)}
+                      </span>
+                    )}
                   </div>
                   <div className="flex-1">
                     <div className="font-medium text-[var(--t1)]">

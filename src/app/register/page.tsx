@@ -13,6 +13,7 @@ import {
   getSubcountyOptions,
 } from "@/lib/uganda-admin";
 import { normalizeAuthPhone } from "@/lib/validation";
+import { withSupabaseLockRetry } from "@/lib/supabase-lock";
 
 function MaterialIcon({
   icon,
@@ -220,18 +221,22 @@ export default function RegisterPage() {
       const normalizedPhone = normalizeAuthPhone(form.adminPhone);
       const email = `${normalizedPhone}@omuto.org`;
 
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password: form.password,
-      });
+      const { error: signInError } = await withSupabaseLockRetry(async () =>
+        await supabase.auth.signInWithPassword({
+          email,
+          password: form.password,
+        }),
+      );
 
       if (signInError) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
 
-        const { error: retryError } = await supabase.auth.signInWithPassword({
-          email,
-          password: form.password,
-        });
+        const { error: retryError } = await withSupabaseLockRetry(async () =>
+          await supabase.auth.signInWithPassword({
+            email,
+            password: form.password,
+          }),
+        );
 
         if (retryError) {
           setError("Account created! Please go to login page and sign in.");

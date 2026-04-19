@@ -1,3 +1,5 @@
+const path = require("path");
+
 /** @type {import('next').NextConfig} */
 function supabaseImageHosts() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -21,6 +23,9 @@ const nextConfig = {
   // output: "export", // Disabled to allow Vercel to support API/Cron routes
   trailingSlash: true,
   experimental: {},
+  turbopack: {
+    root: path.join(__dirname, ".."),
+  },
   images: {
     unoptimized: true,
     remotePatterns: [

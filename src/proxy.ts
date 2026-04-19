@@ -65,42 +65,40 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  // Refresh session if expired
+  // Verify the authenticated user from the auth server instead of trusting
+  // session-derived user objects from cookie storage.
   const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
+    data: { user: authUser },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-  if (sessionError) {
-    console.error("Session error:", sessionError);
+  if (userError) {
+    console.error("Auth user error:", userError);
   }
 
-  // No session - redirect to login
-  if (!session) {
+  if (!authUser) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   // Check user is active
-  if (session.user) {
-    const { data: user } = await supabase
-      .from("users")
-      .select("is_active, role")
-      .eq("auth_id", session.user.id)
-      .single();
+  const { data: user } = await supabase
+    .from("users")
+    .select("is_active, role")
+    .eq("auth_id", authUser.id)
+    .single();
 
-    if (user && !user.is_active) {
-      await supabase.auth.signOut();
-      return NextResponse.redirect(
-        new URL("/login?reason=inactive", request.url),
-      );
-    }
-
-    // Add user info to headers for server components
-    supabaseResponse.headers.set("x-user-id", session.user.id);
-    supabaseResponse.headers.set("x-user-role", user?.role || "");
+  if (user && !user.is_active) {
+    await supabase.auth.signOut();
+    return NextResponse.redirect(
+      new URL("/login?reason=inactive", request.url),
+    );
   }
+
+  // Add user info to headers for server components
+  supabaseResponse.headers.set("x-user-id", authUser.id);
+  supabaseResponse.headers.set("x-user-role", user?.role || "");
 
   return supabaseResponse;
 }
