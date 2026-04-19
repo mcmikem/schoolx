@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       admin
         .from("schools")
         .select(
-          "id, name, school_code, district, school_type, ownership, phone, email, logo_url, primary_color, subscription_plan, subscription_status, trial_ends_at, feature_stage, created_at",
+          "id, name, school_code, district, school_type, ownership, phone, email, logo_url, primary_color, subscription_plan, subscription_status, trial_ends_at, feature_stage, created_at, address, motto, principal_name, report_header, report_footer, id_card_style",
         )
         .order("created_at", { ascending: false }),
       admin

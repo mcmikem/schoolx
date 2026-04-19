@@ -21,6 +21,8 @@ async function guardSuperAdmin(request: NextRequest) {
 const SCHOOL_EDITABLE_FIELDS = new Set([
   "name", "district", "phone", "email", "primary_color", "school_type", "ownership",
   "subscription_plan", "subscription_status", "feature_stage", "trial_ends_at",
+  // Report & ID card customization
+  "address", "motto", "principal_name", "report_header", "report_footer", "id_card_style",
 ]);
 
 const USER_EDITABLE_FIELDS = new Set(["is_active", "role"]);
@@ -238,5 +240,35 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
+  // ── delete_school ──────────────────────────────────────────────────────────
+  if (action === "delete_school") {
+    const { id } = body;
+    if (!id || typeof id !== "string") {
+      return NextResponse.json({ success: false, error: "Missing school id" }, { status: 400 });
+    }
+
+    // First verify school exists
+    const { data: school, error: fetchErr } = await admin
+      .from("schools")
+      .select("id, name")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (fetchErr || !school) {
+      return NextResponse.json({ success: false, error: "School not found" }, { status: 404 });
+    }
+
+    // Delete school — cascades to all related data
+    const { error } = await admin.from("schools").delete().eq("id", id);
+    if (error) {
+      console.error("[actions] delete_school error:", error);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ success: true });
+  }
+
   return NextResponse.json({ success: false, error: `Unknown action: ${action}` }, { status: 400 });
 }
+
+
+
