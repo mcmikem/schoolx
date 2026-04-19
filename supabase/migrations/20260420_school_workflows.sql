@@ -60,6 +60,9 @@ CREATE TRIGGER set_school_workflows_updated_at
   BEFORE UPDATE ON school_workflows
   FOR EACH ROW EXECUTE FUNCTION update_school_workflows_updated_at();
 
+-- Ensure student_count column exists on schools
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS student_count INTEGER NOT NULL DEFAULT 0;
+
 -- Trigger to keep schools.student_count in sync
 CREATE OR REPLACE FUNCTION sync_school_student_count()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
