@@ -44,7 +44,7 @@ const OWNERSHIP_OPTIONS = [
 ];
 
 const DISTRICT_OPTIONS = [
-  { value: "", label: "Select district" },
+  { value: "", label: "Choose a common district (optional)" },
   ...getDistrictOptions(),
 ];
 
@@ -139,13 +139,17 @@ export default function RegisterPage() {
     }
     // Uganda phone validation
     const phoneRegex = /^(0|256|\+256)[7][0-9]{8}$/;
-    const cleanPhone = form.adminPhone.replace(/[^0-9]/g, "");
-    if (!phoneRegex.test(form.adminPhone.trim()) && (cleanPhone.length < 10 || cleanPhone.length > 12)) {
-      setError("Please enter a valid Uganda phone number (e.g., 0700000000)");
+    const cleanPhone = form.adminPhone.replace(/[^0-9+]/g, "");
+    if (!phoneRegex.test(cleanPhone) && !(cleanPhone.replace(/\D/g, "").length >= 10 && cleanPhone.replace(/\D/g, "").length <= 12)) {
+      setError("Please enter a valid Uganda phone number (e.g., 0700000000 or +256700000000)");
       return false;
     }
-    if (form.password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (form.password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return false;
+    }
+    if (!/[A-Z]/.test(form.password) || !/[0-9]/.test(form.password)) {
+      setError("Password must contain at least one uppercase letter and one number");
       return false;
     }
     if (form.password !== form.confirmPassword) {
@@ -374,12 +378,27 @@ export default function RegisterPage() {
 
             {step === 2 && (
               <div className="space-y-5">
-                <Select
+                <Input
                   label="District"
-                  options={DISTRICT_OPTIONS}
+                  type="text"
+                  placeholder="e.g. Kampala, Wakiso, Mukono..."
                   value={form.district}
                   onChange={(e) => updateForm("district", e.target.value)}
                   required
+                  autoComplete="address-level1"
+                />
+
+                <Select
+                  label="Quick pick common Districts"
+                  options={DISTRICT_OPTIONS}
+                  value={
+                    DISTRICT_OPTIONS.some(
+                      (option) => option.value === form.district,
+                    )
+                      ? form.district
+                      : ""
+                  }
+                  onChange={(e) => updateForm("district", e.target.value)}
                 />
 
                 <Input

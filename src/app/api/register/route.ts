@@ -133,8 +133,11 @@ export async function POST(request: NextRequest) {
       return apiError("Admin name must be at least 2 characters", 400);
     }
 
-    if (password.length < 6) {
-      return apiError("Password must be at least 6 characters", 400);
+    if (password.length < 8) {
+      return apiError("Password must be at least 8 characters with one uppercase letter and one number", 400);
+    }
+    if (!/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+      return apiError("Password must contain at least one uppercase letter and one number", 400);
     }
 
     // Validate email if provided
@@ -169,13 +172,15 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       return apiError(
-        "This phone number is already registered. Please sign in or use a different number.",
+        "Registration could not be completed. If you already have an account, please sign in.",
         400,
       );
     }
 
     // 2. Generate unique school code
+    // Generate unique school code with timestamp component to avoid race conditions
     let schoolCode = generateSchoolCode(schoolName, district);
+    schoolCode = schoolCode + Date.now().toString(36).slice(-2).toUpperCase();
     let attempts = 0;
     const maxAttempts = 10;
 
@@ -221,7 +226,7 @@ export async function POST(request: NextRequest) {
         authError.message.includes("duplicate")
       ) {
         return apiError(
-          "This phone number is already registered. Please sign in.",
+          "Registration could not be completed. If you already have an account, please sign in.",
           400,
         );
       }
@@ -361,6 +366,19 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error("[Register Error]", error);
+    // Provide more specific error messages for common database issues
+    if (error instanceof Error) {
+      const msg = error.message.toLowerCase();
+      if (msg.includes("duplicate") || msg.includes("unique") || msg.includes("already exists")) {
+        return apiError("Registration could not be completed. If you already have an account, please sign in.", 400);
+      }
+      if (msg.includes("relation") || msg.includes("does not exist")) {
+        return apiError("Database setup incomplete. Please contact support.", 500);
+      }
+      if (msg.includes("permission") || msg.includes("rls") || msg.includes("policy")) {
+        return apiError("Server configuration error. Please contact support.", 500);
+      }
+    }
     return handleApiError(error);
   }
 }

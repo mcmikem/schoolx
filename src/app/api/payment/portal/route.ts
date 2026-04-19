@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   requireUserWithSchool,
   assertUserRoleOrDeny,
+  rateLimit,
 } from "@/lib/api-utils";
 
 const BILLING_ROLES = [
@@ -13,8 +14,25 @@ const BILLING_ROLES = [
   "bursar",
 ];
 
+function validateReturnUrl(url: string | undefined, baseUrl: string): string {
+  if (!url) return `${baseUrl}/dashboard/pricing`;
+  try {
+    const parsed = new URL(url);
+    const base = new URL(baseUrl);
+    if (parsed.origin !== base.origin) return `${baseUrl}/dashboard/pricing`;
+    return url;
+  } catch {
+    return `${baseUrl}/dashboard/pricing`;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
+    const { success: rlOk } = rateLimit(request, 10, 600_000);
+    if (!rlOk) {
+      return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429 });
+    }
+
     const auth = await requireUserWithSchool(request);
     if (!auth.ok) return auth.response;
 
@@ -43,7 +61,7 @@ export async function POST(request: NextRequest) {
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const portalReturnUrl = returnUrl || `${baseUrl}/dashboard/pricing`;
+    const portalReturnUrl = validateReturnUrl(returnUrl, baseUrl);
 
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 

@@ -9,6 +9,7 @@ import {
 import {
   requireUserWithSchool,
   assertUserRoleOrDeny,
+  rateLimit,
 } from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -19,6 +20,18 @@ const BILLING_ROLES = [
   "headmaster",
   "bursar",
 ];
+
+function validateReturnUrl(url: string | undefined, baseUrl: string): string {
+  if (!url) return `${baseUrl}/dashboard/pricing`;
+  try {
+    const parsed = new URL(url);
+    const base = new URL(baseUrl);
+    if (parsed.origin !== base.origin) return `${baseUrl}/dashboard/pricing`;
+    return url;
+  } catch {
+    return `${baseUrl}/dashboard/pricing`;
+  }
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -40,6 +53,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const { success: rlOk } = rateLimit(request, 10, 600_000);
+    if (!rlOk) {
+      return NextResponse.json({ error: "Too many payment requests. Try again later." }, { status: 429 });
+    }
+
     const auth = await requireUserWithSchool(request);
     if (!auth.ok) return auth.response;
 
@@ -80,12 +98,8 @@ export async function POST(request: NextRequest) {
     if (provider === "paypal") {
       const baseUrl =
         process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-      const ppReturnUrl =
-        returnUrl ||
-        `${baseUrl}/dashboard/pricing?success=true&provider=paypal`;
-      const ppCancelUrl =
-        cancelUrl ||
-        `${baseUrl}/dashboard/pricing?canceled=true&provider=paypal`;
+      const ppReturnUrl = validateReturnUrl(returnUrl, baseUrl) + (returnUrl ? "" : "?success=true&provider=paypal");
+      const ppCancelUrl = validateReturnUrl(cancelUrl, baseUrl) + (cancelUrl ? "" : "?canceled=true&provider=paypal");
 
       const orderAmount = Math.round((amount / 4100) * 100) / 100;
 

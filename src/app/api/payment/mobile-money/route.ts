@@ -6,7 +6,7 @@ import {
   recordPayment,
   savePendingMobilePayment,
 } from "@/lib/payments/utils";
-import { requireUserWithSchool, assertUserRoleOrDeny } from "@/lib/api-utils";
+import { requireUserWithSchool, assertUserRoleOrDeny, rateLimit } from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const BILLING_ROLES = [
@@ -19,6 +19,11 @@ const BILLING_ROLES = [
 
 export async function POST(request: NextRequest) {
   try {
+    const { success: rlOk } = rateLimit(request, 10, 600_000);
+    if (!rlOk) {
+      return NextResponse.json({ error: "Too many payment requests. Try again later." }, { status: 429 });
+    }
+
     const auth = await requireUserWithSchool(request);
     if (!auth.ok) return auth.response;
 
@@ -45,6 +50,15 @@ export async function POST(request: NextRequest) {
     if (provider !== "mtn" && provider !== "airtel") {
       return NextResponse.json(
         { error: 'Invalid provider. Use "mtn" or "airtel"' },
+        { status: 400 },
+      );
+    }
+
+    // Validate phone number format
+    const cleanPhone = phoneNumber.replace(/[^0-9]/g, "");
+    if (cleanPhone.length < 10 || cleanPhone.length > 12) {
+      return NextResponse.json(
+        { error: "Invalid phone number format" },
         { status: 400 },
       );
     }

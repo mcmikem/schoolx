@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     if (existingSuperAdmin) {
-      return apiError('Super admin already exists', 409)
+      return apiError('Setup has already been completed', 400)
     }
 
     const account = await createManagedUserAccount({
