@@ -1,6 +1,6 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
@@ -34,6 +34,11 @@ export default function StudentTransfersPage() {
   const [showModal, setShowModal] = useState(false);
   const [showTransferOutModal, setShowTransferOutModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const toastRef = useRef(toast);
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   const [formIn, setFormIn] = useState({
     firstName: "",
@@ -54,6 +59,11 @@ export default function StudentTransfersPage() {
 
   const fetchTransfers = useCallback(async () => {
     if (!school?.id) { setLoading(false); return; }
+    if (isDemo) {
+      setTransfers([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -64,11 +74,11 @@ export default function StudentTransfersPage() {
       if (error) throw error;
       setTransfers((data as Transfer[]) || []);
     } catch {
-      toast.error("Failed to load transfer records");
+      toastRef.current.error("Failed to load transfer records");
     } finally {
       setLoading(false);
     }
-  }, [school?.id, toast]);
+  }, [school?.id, isDemo]);
 
   useEffect(() => {
     fetchTransfers();
@@ -86,6 +96,32 @@ export default function StudentTransfersPage() {
     }
     setSubmitting(true);
     try {
+      if (isDemo) {
+        const transferRecord: Transfer = {
+          id: `demo-transfer-in-${Date.now()}`,
+          student_id: `demo-transfer-student-${Date.now()}`,
+          transfer_type: "in",
+          previous_school: formIn.previousSchool,
+          transfer_date: new Date().toISOString().split("T")[0],
+          reason: formIn.reason,
+          status: "completed",
+          created_at: new Date().toISOString(),
+          students: {
+            first_name: formIn.firstName,
+            last_name: formIn.lastName,
+            classes: {
+              name: classes.find((classItem: any) => classItem.id === formIn.classId)?.name || "",
+            },
+          },
+        };
+
+        setTransfers((prev) => [transferRecord, ...prev]);
+        toast.success("Transfer in recorded. Student added.");
+        setShowModal(false);
+        setFormIn({ firstName: "", lastName: "", gender: "M", previousSchool: "", reason: "Family relocation", classId: "", parentName: "", parentPhone: "" });
+        return;
+      }
+
       // 1. Generate a student number
       const studentNum = `TR-${Date.now().toString().slice(-6)}`;
 
@@ -140,6 +176,33 @@ export default function StudentTransfersPage() {
     }
     setSubmitting(true);
     try {
+      if (isDemo) {
+        const student = students.find((item: any) => item.id === formOut.studentId);
+        const transferRecord: Transfer = {
+          id: `demo-transfer-out-${Date.now()}`,
+          student_id: formOut.studentId,
+          transfer_type: "out",
+          next_school: formOut.nextSchool,
+          transfer_date: new Date().toISOString().split("T")[0],
+          reason: formOut.reason,
+          status: "completed",
+          created_at: new Date().toISOString(),
+          students: {
+            first_name: student?.first_name || "",
+            last_name: student?.last_name || "",
+            classes: {
+              name: (student as any)?.classes?.name || classes.find((classItem: any) => classItem.id === student?.class_id)?.name || "",
+            },
+          },
+        };
+
+        setTransfers((prev) => [transferRecord, ...prev]);
+        toast.success("Student transferred out");
+        setShowTransferOutModal(false);
+        setFormOut({ studentId: "", nextSchool: "", reason: "Better opportunity" });
+        return;
+      }
+
       // Create transfer record
       const { error: transferErr } = await supabase
         .from("student_transfers")
@@ -255,25 +318,25 @@ export default function StudentTransfersPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium mb-1 block">First Name *</label>
-                    <input type="text" value={formIn.firstName} onChange={(e) => setFormIn({ ...formIn, firstName: e.target.value })} className="input w-full" required />
+                    <label htmlFor="transfer-in-first-name" className="text-sm font-medium mb-1 block">First Name *</label>
+                    <input id="transfer-in-first-name" type="text" value={formIn.firstName} onChange={(e) => setFormIn({ ...formIn, firstName: e.target.value })} className="input w-full" required />
                   </div>
                   <div>
-                    <label className="text-sm font-medium mb-1 block">Last Name *</label>
-                    <input type="text" value={formIn.lastName} onChange={(e) => setFormIn({ ...formIn, lastName: e.target.value })} className="input w-full" required />
+                    <label htmlFor="transfer-in-last-name" className="text-sm font-medium mb-1 block">Last Name *</label>
+                    <input id="transfer-in-last-name" type="text" value={formIn.lastName} onChange={(e) => setFormIn({ ...formIn, lastName: e.target.value })} className="input w-full" required />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium mb-1 block">Gender *</label>
-                    <select value={formIn.gender} onChange={(e) => setFormIn({ ...formIn, gender: e.target.value as "M" | "F" })} className="input w-full">
+                    <label htmlFor="transfer-in-gender" className="text-sm font-medium mb-1 block">Gender *</label>
+                    <select id="transfer-in-gender" value={formIn.gender} onChange={(e) => setFormIn({ ...formIn, gender: e.target.value as "M" | "F" })} className="input w-full">
                       <option value="M">Male</option>
                       <option value="F">Female</option>
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm font-medium mb-1 block">Class *</label>
-                    <select value={formIn.classId} onChange={(e) => setFormIn({ ...formIn, classId: e.target.value })} className="input w-full" required>
+                    <label htmlFor="transfer-in-class" className="text-sm font-medium mb-1 block">Class *</label>
+                    <select id="transfer-in-class" value={formIn.classId} onChange={(e) => setFormIn({ ...formIn, classId: e.target.value })} className="input w-full" required>
                       <option value="">Select class</option>
                       {classes.map((c: any) => (
                         <option key={c.id} value={c.id}>{c.name}</option>
@@ -282,22 +345,22 @@ export default function StudentTransfersPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Previous School</label>
-                  <input type="text" value={formIn.previousSchool} onChange={(e) => setFormIn({ ...formIn, previousSchool: e.target.value })} className="input w-full" />
+                  <label htmlFor="transfer-in-previous-school" className="text-sm font-medium mb-1 block">Previous School</label>
+                  <input id="transfer-in-previous-school" type="text" value={formIn.previousSchool} onChange={(e) => setFormIn({ ...formIn, previousSchool: e.target.value })} className="input w-full" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium mb-1 block">Parent Name *</label>
-                    <input type="text" value={formIn.parentName} onChange={(e) => setFormIn({ ...formIn, parentName: e.target.value })} className="input w-full" required />
+                    <label htmlFor="transfer-in-parent-name" className="text-sm font-medium mb-1 block">Parent Name *</label>
+                    <input id="transfer-in-parent-name" type="text" value={formIn.parentName} onChange={(e) => setFormIn({ ...formIn, parentName: e.target.value })} className="input w-full" required />
                   </div>
                   <div>
-                    <label className="text-sm font-medium mb-1 block">Parent Phone *</label>
-                    <input type="tel" value={formIn.parentPhone} onChange={(e) => setFormIn({ ...formIn, parentPhone: e.target.value })} className="input w-full" required />
+                    <label htmlFor="transfer-in-parent-phone" className="text-sm font-medium mb-1 block">Parent Phone *</label>
+                    <input id="transfer-in-parent-phone" type="tel" value={formIn.parentPhone} onChange={(e) => setFormIn({ ...formIn, parentPhone: e.target.value })} className="input w-full" required />
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Reason</label>
-                  <select value={formIn.reason} onChange={(e) => setFormIn({ ...formIn, reason: e.target.value })} className="input w-full">
+                  <label htmlFor="transfer-in-reason" className="text-sm font-medium mb-1 block">Reason</label>
+                  <select id="transfer-in-reason" value={formIn.reason} onChange={(e) => setFormIn({ ...formIn, reason: e.target.value })} className="input w-full">
                     <option>Family relocation</option>
                     <option>Better opportunity</option>
                     <option>Academic reasons</option>
@@ -322,8 +385,8 @@ export default function StudentTransfersPage() {
             <form onSubmit={handleTransferOut}>
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Select Student *</label>
-                  <select value={formOut.studentId} onChange={(e) => setFormOut({ ...formOut, studentId: e.target.value })} className="input w-full" required>
+                  <label htmlFor="transfer-out-student" className="text-sm font-medium mb-1 block">Select Student *</label>
+                  <select id="transfer-out-student" value={formOut.studentId} onChange={(e) => setFormOut({ ...formOut, studentId: e.target.value })} className="input w-full" required>
                     <option value="">Select a student</option>
                     {students.filter((s: any) => s.status === "active").map((s: any) => (
                       <option key={s.id} value={s.id}>
@@ -333,12 +396,12 @@ export default function StudentTransfersPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Transferring To *</label>
-                  <input type="text" value={formOut.nextSchool} onChange={(e) => setFormOut({ ...formOut, nextSchool: e.target.value })} className="input w-full" required placeholder="Destination school name" />
+                  <label htmlFor="transfer-out-school" className="text-sm font-medium mb-1 block">Transferring To *</label>
+                  <input id="transfer-out-school" type="text" value={formOut.nextSchool} onChange={(e) => setFormOut({ ...formOut, nextSchool: e.target.value })} className="input w-full" required placeholder="Destination school name" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Reason</label>
-                  <select value={formOut.reason} onChange={(e) => setFormOut({ ...formOut, reason: e.target.value })} className="input w-full">
+                  <label htmlFor="transfer-out-reason" className="text-sm font-medium mb-1 block">Reason</label>
+                  <select id="transfer-out-reason" value={formOut.reason} onChange={(e) => setFormOut({ ...formOut, reason: e.target.value })} className="input w-full">
                     <option>Better opportunity</option>
                     <option>Family relocation</option>
                     <option>Academic reasons</option>

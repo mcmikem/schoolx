@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
+import { DEMO_CLASSES, DEMO_STUDENTS } from "@/lib/demo-data";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -28,23 +29,69 @@ interface InterventionLog {
   logged_at: string;
 }
 
+type DropoutReasonOption =
+  | "Financial difficulties"
+  | "Family relocation"
+  | "Pregnancy"
+  | "Early marriage"
+  | "Child labor"
+  | "Illness/Disability"
+  | "Lost interest"
+  | "Death"
+  | "Unknown";
+
+function buildDemoAtRiskStudents(): AtRiskStudent[] {
+  const demoEntries = [
+    { studentId: "1", consecutiveAbsence: 8 },
+    { studentId: "2", consecutiveAbsence: 4 },
+    { studentId: "11", consecutiveAbsence: 3 },
+  ];
+
+  return demoEntries.reduce<AtRiskStudent[]>((accumulator, entry) => {
+      const student = DEMO_STUDENTS.find((item) => item.id === entry.studentId);
+      if (!student) return accumulator;
+
+      accumulator.push({
+        id: student.id,
+        name: `${student.first_name} ${student.last_name}`,
+        class:
+          DEMO_CLASSES.find((classItem) => classItem.id === student.class_id)?.name ||
+          "-",
+        consecutiveAbsence: entry.consecutiveAbsence,
+        riskLevel: entry.consecutiveAbsence >= 7 ? "likely_dropout" : "at_risk",
+        lastContact: null,
+      });
+
+      return accumulator;
+    }, []);
+}
+
 export default function DropoutTrackingPage() {
-  const { school } = useAuth();
+  const { school, isDemo } = useAuth();
   const toast = useToast();
   const [students, setStudents] = useState<AtRiskStudent[]>([]);
   const [logs, setLogs] = useState<InterventionLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showDropoutModal, setShowDropoutModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<AtRiskStudent | null>(
     null,
   );
   const [reason, setReason] = useState("");
   const [actionTaken, setActionTaken] = useState("");
+  const [dropoutReason, setDropoutReason] = useState<DropoutReasonOption | "">("");
   const [saving, setSaving] = useState(false);
 
   const fetchAtRiskStudents = useCallback(async () => {
     if (!school?.id) return;
     setLoading(true);
+
+    if (isDemo) {
+      setStudents(buildDemoAtRiskStudents());
+      setLogs([]);
+      setLoading(false);
+      return;
+    }
 
     // Fetch students with 3+ consecutive absences in the last 30 days
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
@@ -131,7 +178,7 @@ export default function DropoutTrackingPage() {
       .limit(20);
     setLogs(logData || []);
     setLoading(false);
-  }, [school?.id, toast]);
+  }, [isDemo, school?.id, toast]);
 
   useEffect(() => {
     fetchAtRiskStudents();
@@ -139,6 +186,24 @@ export default function DropoutTrackingPage() {
 
   const logIntervention = async () => {
     if (!selectedStudent || !reason || !school?.id) return;
+
+    if (isDemo) {
+      const newLog: InterventionLog = {
+        id: `demo-log-${Date.now()}`,
+        student_id: selectedStudent.id,
+        student_name: selectedStudent.name,
+        reason,
+        action_taken: actionTaken,
+        logged_at: new Date().toISOString(),
+      };
+      setLogs((prev) => [newLog, ...prev]);
+      setShowModal(false);
+      setReason("");
+      setActionTaken("");
+      toast.success("Intervention logged successfully");
+      return;
+    }
+
     setSaving(true);
     const { error } = await supabase.from("dropout_interventions").insert({
       school_id: school.id,
@@ -154,6 +219,57 @@ export default function DropoutTrackingPage() {
       setShowModal(false);
       setReason("");
       setActionTaken("");
+      fetchAtRiskStudents();
+    }
+    setSaving(false);
+  };
+
+  const handleContactParent = () => {
+    if (!selectedStudent) return;
+    toast.success(`Parent contact initiated for ${selectedStudent.name}`);
+  };
+
+  const handleMarkDropout = async () => {
+    if (!selectedStudent || !dropoutReason) return;
+
+    if (isDemo) {
+      setStudents((prev) => prev.filter((student) => student.id !== selectedStudent.id));
+      setLogs((prev) => [
+        {
+          id: `demo-dropout-${Date.now()}`,
+          student_id: selectedStudent.id,
+          student_name: selectedStudent.name,
+          reason: dropoutReason,
+          action_taken: "Marked as dropout",
+          logged_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+      setShowDropoutModal(false);
+      setDropoutReason("");
+      setSelectedStudent(null);
+      toast.success("Student marked as dropout");
+      return;
+    }
+
+    setSaving(true);
+    const { error } = await supabase
+      .from("students")
+      .update({
+        status: "dropped",
+        dropout_reason: dropoutReason,
+        dropout_date: new Date().toISOString().split("T")[0],
+      })
+      .eq("id", selectedStudent.id)
+      .eq("school_id", school?.id);
+
+    if (error) {
+      toast.error("Failed to mark student as dropout");
+    } else {
+      toast.success("Student marked as dropout");
+      setShowDropoutModal(false);
+      setDropoutReason("");
+      setSelectedStudent(null);
       fetchAtRiskStudents();
     }
     setSaving(false);
@@ -270,10 +386,30 @@ export default function DropoutTrackingPage() {
                       variant="ghost"
                       onClick={() => {
                         setSelectedStudent(s);
+                        handleContactParent();
+                      }}
+                    >
+                      Contact
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setSelectedStudent(s);
                         setShowModal(true);
                       }}
                     >
-                      Log Intervention
+                      Intervention
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setSelectedStudent(s);
+                        setShowDropoutModal(true);
+                      }}
+                    >
+                      Dropout
                     </Button>
                   </div>
                 </div>
@@ -348,10 +484,14 @@ export default function DropoutTrackingPage() {
               </p>
             </div>
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+              <label
+                htmlFor="dropout-intervention-reason"
+                className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2"
+              >
                 Reason for Absence
               </label>
               <textarea
+                id="dropout-intervention-reason"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 rows={3}
@@ -360,10 +500,14 @@ export default function DropoutTrackingPage() {
               />
             </div>
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+              <label
+                htmlFor="dropout-intervention-action"
+                className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2"
+              >
                 Action Taken
               </label>
               <textarea
+                id="dropout-intervention-action"
                 value={actionTaken}
                 onChange={(e) => setActionTaken(e.target.value)}
                 rows={2}
@@ -379,6 +523,69 @@ export default function DropoutTrackingPage() {
             >
               Save Intervention
             </Button>
+          </div>
+        </div>
+      )}
+
+      {showDropoutModal && selectedStudent && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[var(--surface)] rounded-3xl w-full max-w-md shadow-2xl p-8 space-y-5">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-black text-[var(--on-surface)]">
+                Mark as Dropout
+              </h2>
+              <button
+                onClick={() => setShowDropoutModal(false)}
+                className="p-2 hover:bg-[var(--surface-container)] rounded-xl"
+              >
+                <MaterialIcon icon="close" />
+              </button>
+            </div>
+            <div className="p-3 bg-red-50 rounded-2xl border border-red-200">
+              <p className="font-bold text-red-800">{selectedStudent.name}</p>
+              <p className="text-xs text-red-600">
+                {selectedStudent.class} · {selectedStudent.consecutiveAbsence} consecutive days absent
+              </p>
+            </div>
+            <div>
+              <label
+                htmlFor="dropout-reason"
+                className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2"
+              >
+                Reason for Dropout
+              </label>
+              <select
+                id="dropout-reason"
+                value={dropoutReason}
+                onChange={(e) => setDropoutReason(e.target.value as DropoutReasonOption | "")}
+                className="w-full px-4 py-3 bg-[var(--surface-container)] border border-[var(--border)] rounded-2xl text-sm font-medium outline-none"
+              >
+                <option value="">Select reason...</option>
+                <option value="Financial difficulties">Financial difficulties</option>
+                <option value="Family relocation">Family relocation</option>
+                <option value="Pregnancy">Pregnancy</option>
+                <option value="Early marriage">Early marriage</option>
+                <option value="Child labor">Child labor</option>
+                <option value="Illness/Disability">Illness/Disability</option>
+                <option value="Lost interest">Lost interest</option>
+                <option value="Death">Death</option>
+                <option value="Unknown">Unknown</option>
+              </select>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="ghost" className="flex-1" onClick={() => setShowDropoutModal(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                className="flex-1"
+                onClick={handleMarkDropout}
+                disabled={!dropoutReason || saving}
+                loading={saving}
+              >
+                Mark as Dropout
+              </Button>
+            </div>
           </div>
         </div>
       )}

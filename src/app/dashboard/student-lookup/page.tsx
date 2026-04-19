@@ -4,12 +4,13 @@ import { useState, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
+import { DEMO_CLASSES, DEMO_STUDENTS } from "@/lib/demo-data";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/index";
 
 export default function StudentLookupPage() {
-  const { school } = useAuth();
+  const { school, isDemo } = useAuth();
   const toast = useToast();
   const [search, setSearch] = useState("");
   const [students, setStudents] = useState<any[]>([]);
@@ -22,7 +23,43 @@ export default function StudentLookupPage() {
   const handleSearch = useCallback(
     async (q: string) => {
       setSearch(q);
-      if (q.length < 2 || !school?.id) return;
+      if (q.length < 2 || !school?.id) {
+        setStudents([]);
+        return;
+      }
+
+      if (isDemo) {
+        const normalizedQuery = q.trim().toLowerCase();
+        const demoResults = DEMO_STUDENTS.filter((student) => {
+          const fullName = `${student.first_name} ${student.last_name}`.toLowerCase();
+          return (
+            fullName.includes(normalizedQuery) ||
+            student.first_name.toLowerCase().includes(normalizedQuery) ||
+            student.last_name.toLowerCase().includes(normalizedQuery) ||
+            student.student_number.toLowerCase().includes(normalizedQuery)
+          );
+        })
+          .slice(0, 20)
+          .map((student) => ({
+            id: student.id,
+            first_name: student.first_name,
+            last_name: student.last_name,
+            admission_number: student.student_number,
+            gender: student.gender,
+            classes: {
+              name:
+                DEMO_CLASSES.find((classItem) => classItem.id === student.class_id)
+                  ?.name || "-",
+            },
+            parent_phone: student.parent_phone,
+            parent_name: student.parent_name,
+            fee_balance: student.opening_balance,
+          }));
+
+        setStudents(demoResults);
+        return;
+      }
+
       setLoading(true);
       const { data, error } = await supabase
         .from("students")
@@ -34,11 +71,13 @@ export default function StudentLookupPage() {
           `first_name.ilike.%${q}%,last_name.ilike.%${q}%,admission_number.ilike.%${q}%`,
         )
         .limit(20);
-      if (error) toast.error("Search failed");
-      else setStudents(data || []);
+      if (error) {
+        toast.error("Search failed");
+        setStudents([]);
+      } else setStudents(data || []);
       setLoading(false);
     },
-    [school?.id, toast],
+    [isDemo, school?.id, toast],
   );
 
   const handleSMSParent = (student: any) => {
@@ -55,6 +94,14 @@ export default function StudentLookupPage() {
 
   const sendSMS = async () => {
     if (!message || !selectedStudent?.parent_phone) return;
+
+    if (isDemo) {
+      toast.success("SMS queued for parent (Demo Mode)");
+      setShowModal(false);
+      setSending(false);
+      return;
+    }
+
     setSending(true);
     const res = await fetch("/api/sms", {
       method: "POST",
@@ -190,7 +237,7 @@ export default function StudentLookupPage() {
           <div className="bg-[var(--surface)] rounded-3xl w-full max-w-md shadow-2xl p-8 space-y-5">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-black text-[var(--on-surface)]">
-                Send SMS to Parent
+                SMS Parent of {selectedStudent.first_name} {selectedStudent.last_name}
               </h2>
               <button
                 onClick={() => setShowModal(false)}
@@ -212,10 +259,14 @@ export default function StudentLookupPage() {
               Use Fee Reminder Template
             </Button>
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+              <label
+                htmlFor="student-lookup-message"
+                className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2"
+              >
                 Message
               </label>
               <textarea
+                id="student-lookup-message"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={4}
@@ -226,14 +277,19 @@ export default function StudentLookupPage() {
                 {message.length} characters
               </p>
             </div>
-            <Button
-              onClick={sendSMS}
-              disabled={!message || sending}
-              className="w-full"
-              loading={sending}
-            >
-              Send SMS
-            </Button>
+            <div className="flex gap-3">
+              <Button variant="ghost" onClick={() => setShowModal(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button
+                onClick={sendSMS}
+                disabled={!message || sending}
+                className="flex-1"
+                loading={sending}
+              >
+                Send SMS
+              </Button>
+            </div>
           </div>
         </div>
       )}

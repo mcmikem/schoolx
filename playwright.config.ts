@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const shouldUseManagedWebServer =
+  process.env.PLAYWRIGHT_USE_EXISTING_SERVER !== "true";
+
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
@@ -24,14 +27,16 @@ export default defineConfig({
   // NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES=true is required so that the
   // demo-session storage mechanism in auth-context is active, which the
   // authenticated test helpers rely on.
-  webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
-    // Reuse an already-running server to avoid slow restarts during development.
-    reuseExistingServer: true,
-    timeout: 120 * 1000,
-    env: {
-      NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES: "true",
-    },
-  },
+  webServer: shouldUseManagedWebServer
+    ? {
+        command: "npm run dev",
+        url: "http://localhost:3000",
+        // Reuse an already-running server to avoid slow restarts during development.
+        reuseExistingServer: true,
+        timeout: 120 * 1000,
+        env: {
+          NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES: "true",
+        },
+      }
+    : undefined,
 });

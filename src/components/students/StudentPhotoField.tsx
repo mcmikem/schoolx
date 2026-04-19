@@ -137,7 +137,7 @@ export default function StudentPhotoField({
             ? "Uploading passport photo..."
             : photoUrl
               ? "Photo attached. Click the avatar to replace it."
-              : "Click the avatar area to upload a passport photo."}
+              : "Click the avatar area to upload a passport photo. Large images are auto-shrunk below 5MB where possible."}
         </div>
       </div>
     </div>

@@ -149,6 +149,21 @@ function buildPortableStudentPayload(student: Record<string, unknown>) {
   return payload;
 }
 
+function getStudentSelectTimeoutFallback(
+  cachedData: StudentWithClass[] | null,
+  previousData: StudentWithClass[],
+) {
+  if (cachedData && cachedData.length > 0) {
+    return cachedData;
+  }
+
+  if (previousData.length > 0) {
+    return previousData;
+  }
+
+  return null;
+}
+
 async function fetchStudentsWithFallback(options: {
   schoolId: string;
   offset: number;
@@ -172,7 +187,7 @@ async function fetchStudentsWithFallback(options: {
 
     if (isMissingStudentColumnError(result.error, "photo_url")) {
       studentPhotoColumnSupported = false;
-      continue;
+      return fetchStudentsWithFallback(options);
     }
 
     lastError = result.error;
@@ -208,7 +223,7 @@ async function fetchStudentByIdWithFallback(
 
     if (isMissingStudentColumnError(result.error, "photo_url")) {
       studentPhotoColumnSupported = false;
-      continue;
+      return fetchStudentByIdWithFallback(studentId, schoolId);
     }
 
     lastError = result.error;
@@ -230,6 +245,7 @@ export function useStudents(
   const [totalCount, setTotalCount] = useState(0);
   const { isDemo, school } = useAuth();
   const hasInitialized = useRef(false);
+  const lastResolvedStudentsRef = useRef<StudentWithClass[]>([]);
 
   const cacheKey = `students:${schoolId}:${limit}:${offset}`;
 
@@ -306,11 +322,24 @@ export function useStudents(
 
     try {
       setLoading(true);
-      const { count } = await supabase
-        .from("students")
-        .select("*", { count: "exact", head: true })
-        .eq("school_id", querySchoolId);
-      setTotalCount(count || 0);
+      const countResult = await withTimeout(
+        supabase
+          .from("students")
+          .select("id", { count: "exact", head: true })
+          .eq("school_id", querySchoolId),
+        5000,
+        null,
+      );
+
+      if (countResult && typeof countResult.count === "number") {
+        setTotalCount(countResult.count || 0);
+      }
+
+      const timeoutFallback = getStudentSelectTimeoutFallback(
+        cached,
+        lastResolvedStudentsRef.current,
+      );
+
       const data = await withTimeout(
         fetchStudentsWithFallback({
           schoolId: querySchoolId,
@@ -318,10 +347,11 @@ export function useStudents(
           limit,
         }),
         8000,
-        null,
+        timeoutFallback,
       );
       const result = (data as unknown as StudentWithClass[]) || [];
       setStudents(result);
+      lastResolvedStudentsRef.current = result;
       setCachedData(cacheKey, result);
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Failed to load students"));
