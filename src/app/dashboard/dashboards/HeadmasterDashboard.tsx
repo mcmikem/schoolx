@@ -308,13 +308,29 @@ function HeadmasterDashboardContent() {
   return (
     <div className="content">
       {/* Greeting — compact, no hero banner */}
-      <div className="mb-6">
-        <h1 className="font-['Sora'] text-xl sm:text-2xl font-bold text-[var(--t1)] tracking-tight">
-          {greeting}, {user?.full_name?.split(" ")[0]}
-        </h1>
-        <p className="text-[13px] text-[var(--t3)] mt-1">
-          {school?.name} · {academicYear} Term {currentTerm} · {todayDayName}, {todayFormatted}
-        </p>
+      <div className="mb-6 flex items-center gap-4">
+        {school?.logo_url ? (
+          <img
+            src={school.logo_url}
+            alt={school.name || "School Badge"}
+            className="w-14 h-14 rounded-2xl object-cover shadow-md border border-[var(--border)] flex-shrink-0"
+          />
+        ) : (
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md border border-[var(--border)]"
+            style={{ background: "var(--navy)", color: "white" }}
+          >
+            <MaterialIcon icon="school" style={{ fontSize: 28 }} />
+          </div>
+        )}
+        <div>
+          <h1 className="font-['Sora'] text-xl sm:text-2xl font-bold text-[var(--t1)] tracking-tight">
+            {greeting}, {user?.full_name?.split(" ")[0]}
+          </h1>
+          <p className="text-[13px] text-[var(--t3)] mt-1">
+            {school?.name} · {academicYear} Term {currentTerm} · {todayDayName}, {todayFormatted}
+          </p>
+        </div>
       </div>
 
       {/* 4 Key Numbers — the only stat display, no duplicates */}
