@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import {
@@ -310,9 +311,11 @@ function HeadmasterDashboardContent() {
       {/* Greeting — compact, no hero banner */}
       <div className="mb-6 flex items-center gap-4">
         {school?.logo_url ? (
-          <img
+          <Image
             src={school.logo_url}
             alt={school.name || "School Badge"}
+            width={56}
+            height={56}
             className="w-14 h-14 rounded-2xl object-cover shadow-md border border-[var(--border)] flex-shrink-0"
           />
         ) : (

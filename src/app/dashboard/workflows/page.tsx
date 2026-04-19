@@ -60,7 +60,7 @@ export default function WorkflowsBuilder() {
     } finally {
       setLoading(false);
     }
-  }, [school?.id]);
+  }, [school?.id, toast]);
 
   useEffect(() => {
     if (isDemo) {
