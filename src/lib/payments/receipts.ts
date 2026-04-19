@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import { createSupabaseServerClient } from "../supabase/server";
+import { sendAfricasTalkingSMS } from "@/lib/africas-talking";
 
 export interface ReceiptData {
   schoolName: string;
@@ -233,25 +234,12 @@ export async function sendSMSReceipt(
 
     const message = `SKOOLMATE: Payment of UGX ${receiptData.amount.toLocaleString()} for ${receiptData.plan.toUpperCase()} plan received. Receipt: ${receiptData.receiptNumber}. Thank you!`;
 
-    const response = await fetch(
-      `https://api.africastalking.com/version1/messaging`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          apiKey: smsApiKey,
-        },
-        body: new URLSearchParams({
-          username: smsUsername,
-          to: school.phone,
-          message: message,
-        }),
-      },
-    );
+    const smsResult = await sendAfricasTalkingSMS(school.phone, message, {
+      formatUgandaNumber: true,
+    });
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error("Africa's Talking API error:", error);
+    if (!smsResult.success) {
+      console.error("Africa's Talking API error:", smsResult.error);
       return { success: false, message: "Failed to send SMS" };
     }
 

@@ -3,6 +3,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
+import Image from "next/image";
 import {
   useClasses,
   useStudents,
@@ -24,6 +25,7 @@ interface StudentReport {
   name: string;
   studentNumber: string;
   gender: string;
+  photoUrl?: string;
   className: string;
   subjects: {
     name: string;
@@ -232,6 +234,7 @@ export default function ReportCardsPage() {
           name: `${student.first_name} ${student.last_name}`,
           studentNumber: student.student_number || "",
           gender: student.gender,
+          photoUrl: student.photo_url,
           className: selectedClassName,
           subjects: allSubjectDetails,
           totalMarks,
@@ -326,6 +329,9 @@ export default function ReportCardsPage() {
            <strong style="color:#dc2626">Fees outstanding: UGX ${report.feeBalance.toLocaleString()}</strong>
          </div>`
         : "";
+    const photoBlock = report.photoUrl
+      ? `<div style="display:flex;justify-content:center;margin:12px 0 4px"><img src="${escapeHtml(report.photoUrl)}" alt="${escapeHtml(report.name)}" style="width:88px;height:108px;object-fit:cover;border-radius:12px;border:1px solid #ddd" /></div>`
+      : "";
 
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
@@ -359,6 +365,7 @@ export default function ReportCardsPage() {
         <div class="report-title">STUDENT REPORT CARD</div>
         <div class="school-info">Term ${currentTerm}, ${academicYear}</div>
       </div>
+      ${photoBlock}
       <div class="info-grid">
         <div><span class="info-label">Student Name:</span> <span class="info-value">${escapeHtml(report.name)}</span></div>
         <div><span class="info-label">Student No:</span> <span class="info-value">${escapeHtml(report.studentNumber)}</span></div>
@@ -433,6 +440,9 @@ export default function ReportCardsPage() {
              <strong style="color:#dc2626">Fees outstanding: UGX ${report.feeBalance.toLocaleString()}</strong>
            </div>`
           : "";
+      const photoBlock = report.photoUrl
+        ? `<div style="display:flex;justify-content:center;margin:12px 0 4px"><img src="${escapeHtml(report.photoUrl)}" alt="${escapeHtml(report.name)}" style="width:88px;height:108px;object-fit:cover;border-radius:12px;border:1px solid #ddd" /></div>`
+        : "";
 
       allHtml += `
         <div class="report-page ${index > 0 ? 'page-break' : ''}">
@@ -443,6 +453,7 @@ export default function ReportCardsPage() {
             <div class="report-title">STUDENT REPORT CARD</div>
             <div class="school-info">Term ${currentTerm}, ${academicYear}</div>
           </div>
+          ${photoBlock}
           <div class="info-grid">
             <div><span class="info-label">Student Name:</span> <span class="info-value text-nowrap">${escapeHtml(report.name)}</span></div>
             <div><span class="info-label">Student No:</span> <span class="info-value">${escapeHtml(report.studentNumber)}</span></div>
@@ -729,7 +740,7 @@ export default function ReportCardsPage() {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div
-                              className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white"
+                              className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white overflow-hidden"
                               style={{
                                 background:
                                   report.gender === "M"
@@ -737,11 +748,22 @@ export default function ReportCardsPage() {
                                     : "#c0392b",
                               }}
                             >
-                              {report.name
-                                .split(" ")
-                                .map((n) => n.charAt(0))
-                                .join("")
-                                .slice(0, 2)}
+                              {report.photoUrl ? (
+                                <Image
+                                  src={report.photoUrl}
+                                  alt={report.name}
+                                  width={36}
+                                  height={36}
+                                  unoptimized
+                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                />
+                              ) : (
+                                report.name
+                                  .split(" ")
+                                  .map((n) => n.charAt(0))
+                                  .join("")
+                                  .slice(0, 2)
+                              )}
                             </div>
                             <div>
                               <div className="font-semibold text-sm text-[var(--primary)]">

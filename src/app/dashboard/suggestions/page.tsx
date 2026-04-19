@@ -8,6 +8,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
+import { getErrorMessage } from "@/lib/validation";
 
 interface Suggestion {
   id: string;
@@ -18,6 +19,72 @@ interface Suggestion {
   created_at: string;
   created_by_name?: string;
 }
+
+type SuggestionRow = {
+  id: string;
+  title: string;
+  description: string;
+  category?: string | null;
+  status?: string | null;
+  created_at: string;
+};
+
+const normalizeCategory = (
+  category?: string | null,
+): Suggestion["category"] => {
+  switch (category) {
+    case "feature":
+      return "feature";
+    case "bug":
+      return "bug";
+    case "feedback":
+    case "improvement":
+      return "feedback";
+    default:
+      return "general";
+  }
+};
+
+const normalizeStatus = (status?: string | null): Suggestion["status"] => {
+  switch (status) {
+    case "open":
+    case "pending":
+      return "pending";
+    case "under_review":
+    case "reviewed":
+    case "rejected":
+      return "reviewed";
+    case "planned":
+      return "planned";
+    case "implemented":
+    case "completed":
+      return "completed";
+    default:
+      return "pending";
+  }
+};
+
+const mapSuggestionRow = (row: SuggestionRow): Suggestion => ({
+  id: row.id,
+  title: row.title,
+  description: row.description,
+  category: normalizeCategory(row.category),
+  status: normalizeStatus(row.status),
+  created_at: row.created_at,
+});
+
+const toLegacyCategory = (category: Suggestion["category"]) => {
+  switch (category) {
+    case "feature":
+      return "feature";
+    case "bug":
+      return "bug";
+    case "feedback":
+      return "improvement";
+    default:
+      return "other";
+  }
+};
 
 export default function SuggestionBoxPage() {
   const { user, school } = useAuth();
@@ -37,14 +104,23 @@ export default function SuggestionBoxPage() {
   const fetchSuggestions = useCallback(async () => {
     if (!school?.id) return;
     setLoading(true);
-    const { data } = await supabase
-      .from("suggestions")
-      .select("*")
-      .eq("school_id", school.id)
-      .order("created_at", { ascending: false })
-      .limit(50);
-    setSuggestions(data || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from("suggestions")
+        .select("id, title, description, category, status, created_at")
+        .eq("school_id", school.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      setSuggestions(((data as SuggestionRow[]) || []).map(mapSuggestionRow));
+    } catch (error: unknown) {
+      setSuggestions([]);
+      toast.error(getErrorMessage(error, "Failed to load suggestions"));
+    } finally {
+      setLoading(false);
+    }
   }, [school?.id]);
 
   useEffect(() => {
@@ -53,28 +129,48 @@ export default function SuggestionBoxPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!school?.id || !user) {
+      toast.error("You must be signed in to submit a suggestion");
+      return;
+    }
     if (!form.title || !form.description) {
       toast.error("Please fill in all fields");
       return;
     }
     setSubmitting(true);
 
-    const { error } = await supabase.from("suggestions").insert({
-      school_id: school!.id,
-      title: form.title,
-      description: form.description,
-      category: form.category,
-      status: "pending",
-      created_by: user!.id,
-    });
+    try {
+      const legacyInsert = await supabase.from("suggestions").insert({
+        school_id: school.id,
+        user_id: user.id,
+        title: form.title.trim(),
+        description: form.description.trim(),
+        category: toLegacyCategory(form.category),
+        status: "open",
+      });
 
-    if (error) {
-      toast.error("Failed to submit suggestion");
-    } else {
+      let insertError = legacyInsert.error;
+
+      if (insertError) {
+        const modernInsert = await supabase.from("suggestions").insert({
+          school_id: school.id,
+          created_by: user.auth_id,
+          title: form.title.trim(),
+          description: form.description.trim(),
+          category: form.category,
+          status: "pending",
+        });
+        insertError = modernInsert.error;
+      }
+
+      if (insertError) throw insertError;
+
       toast.success("Thank you for your feedback!");
       setShowModal(false);
       setForm({ title: "", description: "", category: "feedback" });
       fetchSuggestions();
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Failed to submit suggestion"));
     }
     setSubmitting(false);
   };
@@ -176,7 +272,12 @@ export default function SuggestionBoxPage() {
 
       {/* Suggestions List */}
       <div className="space-y-3">
-        {suggestions
+        {loading ? (
+          <Card className="p-8 text-center">
+            <p className="text-[var(--t2)]">Loading suggestions...</p>
+          </Card>
+        ) : (
+          suggestions
           .filter((s) => filter === "all" || s.status === filter)
           .map((suggestion) => (
             <Card
@@ -219,9 +320,10 @@ export default function SuggestionBoxPage() {
                 </div>
               </CardBody>
             </Card>
-          ))}
+          ))
+        )}
 
-        {suggestions.length === 0 && (
+        {!loading && suggestions.length === 0 && (
           <Card className="p-8 text-center">
             <MaterialIcon
               icon="inbox"

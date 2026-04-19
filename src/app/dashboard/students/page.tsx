@@ -1,8 +1,6 @@
 "use client";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
-import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import Papa from "papaparse";
 import { useAuth } from "@/lib/auth-context";
@@ -13,7 +11,6 @@ import { supabase } from "@/lib/supabase";
 import { useFormDraft } from "@/lib/useAutoSave";
 import { SendSMSModal } from "@/components/SendSMSModal";
 import MaterialIcon from "@/components/MaterialIcon";
-import OnboardingTips from "@/components/OnboardingTips";
 import { PageHeader, PageSection } from "@/components/ui/PageHeader";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import { Modal, ModalFooter } from "@/components/ui/Modal";
@@ -22,13 +19,17 @@ import { Card, CardHeader, CardBody, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { EmptyState, NoData, SearchEmpty } from "@/components/EmptyState";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { TableSkeleton } from "@/components/ui/Skeleton";
 import { DEMO_CLASSES, DEMO_ATTENDANCE } from "@/lib/demo-data";
-import { PageGuidance } from "@/components/PageGuidance";
-import StudentSummaryPulse from "@/components/students/StudentSummaryPulse";
+import StudentPhotoField from "@/components/students/StudentPhotoField";
+import StudentRegistryPanel from "@/components/students/StudentRegistryPanel";
+import StudentWorkspaceShell from "@/components/students/StudentWorkspaceShell";
+import StudentTransfersPanel from "@/components/students/StudentTransfersPanel";
+import StudentRetentionPanel from "@/components/students/StudentRetentionPanel";
+import StudentPromotionPanel from "@/components/students/StudentPromotionPanel";
 import { useTablePreferences } from "@/lib/useTablePreferences";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
+import { uploadStudentPhoto } from "@/lib/student-photos";
 
 const STUDENT_TEMPLATE_COLUMNS = [
   "student_number",
@@ -55,6 +56,7 @@ const TRANSFER_REASONS = [
 ];
 
 type TransferTab = "in" | "out";
+type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "promotion";
 
 interface TransferOutRecord {
   id: string;
@@ -122,7 +124,7 @@ export default function StudentHubPage() {
   const { preferences: tablePrefs, updatePreferences: updateTablePrefs } =
     useTablePreferences("students-registry");
 
-  const [activeTab, setActiveTab] = useState("registry");
+  const [activeTab, setActiveTab] = useState<StudentWorkspaceTab>("registry");
 
   // ===== REGISTRY STATE =====
   const [searchTerm, setSearchTerm] = useState("");
@@ -229,11 +231,84 @@ export default function StudentHubPage() {
     prefect_role: "",
     student_council_role: "",
     games_house: "",
+    photo_url: "",
   });
 
   const handleNewStudentChange = (updates: Partial<typeof newStudent>) => {
     setNewStudent((prev) => ({ ...prev, ...updates }));
   };
+  const resetNewStudentForm = useCallback(() => {
+    setNewStudent({
+      first_name: "",
+      last_name: "",
+      gender: "M",
+      date_of_birth: "",
+      parent_name: "",
+      parent_phone: "",
+      parent_phone2: "",
+      class_id: "",
+      student_number: "",
+      ple_index_number: "",
+      opening_balance: "0",
+      boarding_status: "day",
+      house_id: "",
+      previous_school: "",
+      district_origin: "",
+      sub_county: "",
+      parish: "",
+      village: "",
+      is_class_monitor: false,
+      prefect_role: "",
+      student_council_role: "",
+      games_house: "",
+      photo_url: "",
+    });
+  }, []);
+
+  const handleStudentPhotoUpload = useCallback(
+    async (file: File, mode: "new" | "edit") => {
+      if (isDemo) {
+        await new Promise<void>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = String(reader.result || "");
+            if (mode === "new") {
+              setNewStudent((prev) => ({ ...prev, photo_url: result }));
+            } else {
+              setEditForm((prev) => ({ ...prev, photo_url: result }));
+              setEditingStudent((prev: any) =>
+                prev ? { ...prev, photo_url: result } : prev,
+              );
+            }
+            resolve();
+          };
+          reader.onerror = () => reject(new Error("Failed to read image"));
+          reader.readAsDataURL(file);
+        });
+        return;
+      }
+
+      if (!school?.id) {
+        throw new Error("School context missing. Reload and try again.");
+      }
+
+      const { publicUrl } = await uploadStudentPhoto({
+        file,
+        schoolId: school.id,
+        studentId: mode === "edit" ? editingStudent?.id : undefined,
+      });
+
+      if (mode === "new") {
+        setNewStudent((prev) => ({ ...prev, photo_url: publicUrl }));
+      } else {
+        setEditForm((prev) => ({ ...prev, photo_url: publicUrl }));
+        setEditingStudent((prev: any) =>
+          prev ? { ...prev, photo_url: publicUrl } : prev,
+        );
+      }
+    },
+    [editingStudent?.id, isDemo, school?.id],
+  );
   const [editForm, setEditForm] = useState({
     first_name: "",
     last_name: "",
@@ -812,35 +887,13 @@ export default function StudentHubPage() {
         student_council_role: newStudent.student_council_role || undefined,
         games_house: newStudent.games_house || undefined,
         is_class_monitor: newStudent.is_class_monitor,
+        photo_url: newStudent.photo_url || undefined,
         status: "active",
       });
       toast.success("Student added successfully");
       setShowAddModal(false);
       newStudentDraft.clearSaved();
-      setNewStudent({
-        first_name: "",
-        last_name: "",
-        gender: "M",
-        date_of_birth: "",
-        parent_name: "",
-        parent_phone: "",
-        parent_phone2: "",
-        class_id: "",
-        student_number: "",
-        ple_index_number: "",
-        opening_balance: "0",
-        boarding_status: "day",
-        house_id: "",
-        previous_school: "",
-        district_origin: "",
-        sub_county: "",
-        parish: "",
-        village: "",
-        is_class_monitor: false,
-        prefect_role: "",
-        student_council_role: "",
-        games_house: "",
-      });
+      resetNewStudentForm();
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to add student";
@@ -1445,905 +1498,75 @@ export default function StudentHubPage() {
         title="Student Hub"
         subtitle={`${students.length} students enrolled in ${academicYear} (${students.filter((s) => s.gender === "M").length} Boys / ${students.filter((s) => s.gender === "F").length} Girls)`}
         variant="premium"
-        actions={
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowBulkImportModal(true)}
-              className="btn btn-navy btn-sm"
-            >
-              <MaterialIcon icon="cloud_upload" />
-              Import
-            </button>
-            <Link
-              href="/dashboard/students/add"
-              className="btn btn-primary btn-sm"
-            >
-              <MaterialIcon icon="add" />
-              New Student
-            </Link>
-          </div>
-        }
       />
 
-      <StudentSummaryPulse
+      <StudentWorkspaceShell
         totalStudents={students.length}
-        boysCount={students.filter((s) => s.gender === "M").length}
-        girlsCount={students.filter((s) => s.gender === "F").length}
-        atRiskCount={atRiskStudents.length}
-      />
-
-      <div className="dashboard-toolbar">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
-            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)] mb-1">
-              Registry snapshot
-            </div>
-            <div className="text-lg font-bold text-[var(--t1)]">
-              Admissions, class balance, and risk follow-up at a glance
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <span className="dashboard-pill bg-emerald-50 text-emerald-700">
-              {students.length} enrolled
-            </span>
-            <span className="dashboard-pill bg-blue-50 text-blue-700">
-              {classes.length} classes
-            </span>
-            <span className="dashboard-pill bg-amber-50 text-amber-700">
-              Term {currentTerm || "-"}
-            </span>
-            <span className="dashboard-pill bg-rose-50 text-rose-700">
-              {atRiskStudents.length} follow-up
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <PageGuidance
-        title="How to Manage Students"
-        tips={[
-          {
-            icon: "person_add",
-            text: "Add Student: Click 'Add Student' to register new students",
-          },
-          {
-            icon: "upload",
-            text: "Bulk Import: Use CSV import for multiple students at once",
-          },
-          {
-            icon: "search",
-            text: "Search: Use filters to find students by name, class, or status",
-          },
-          {
-            icon: "edit",
-            text: "Edit: Click a student row to view/edit details, marks, attendance",
-          },
-          {
-            icon: "trending_up",
-            text: "Promote: Use Promotion tab to move students to next class",
-          },
-        ]}
-      />
-
-      <Tabs
-        tabs={[
-          { id: "registry", label: "Registry", count: students.length },
-          {
-            id: "transfers",
-            label: "Transfers",
-            count: transferredInCount + transferredOutCount,
-          },
-          {
-            id: "dropouts",
-            label: "Dropouts",
-            count: atRiskCount + likelyDropoutCount,
-          },
-          { id: "promotion", label: "Promotion" },
-        ]}
+        boysCount={boysCount}
+        girlsCount={girlsCount}
+        activeStudents={activeStudents.length}
+        classesCount={classes.length}
+        currentTerm={currentTerm}
+        academicYear={academicYear}
+        transferredCount={transferredInCount + transferredOutCount}
+        atRiskCount={atRiskCount}
+        likelyDropoutCount={likelyDropoutCount}
         activeTab={activeTab}
-        onChange={setActiveTab}
-        className="mb-6"
+        onTabChange={setActiveTab}
+        onImport={() => setShowBulkImportModal(true)}
+        onAddStudent={() => setShowAddModal(true)}
+        onGeneratePle={generatePLEIndexNumbers}
+        onExport={handleExport}
       />
 
       {/* ===== REGISTRY TAB ===== */}
       <TabPanel activeTab={activeTab} tabId="registry">
-        <div className="page-header mb-6">
-          <div>
-            <div className="ph-title">Student Registry</div>
-            <div className="ph-sub">{students.length} students enrolled</div>
-          </div>
-          <div className="ph-actions">
-            <button onClick={generatePLEIndexNumbers} className="btn btn-ghost">
-              <MaterialIcon icon="tag" style={{ fontSize: "16px" }} />
-              Generate PLE Index
-            </button>
-            <button onClick={handleExport} className="btn btn-ghost">
-              <MaterialIcon icon="download" style={{ fontSize: "16px" }} />
-              Export
-            </button>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="btn btn-primary"
-            >
-              <MaterialIcon icon="person_add" style={{ fontSize: "16px" }} />
-              Add Student
-            </button>
-          </div>
-        </div>
-
-        {students.length === 0 && <OnboardingTips schoolId={school?.id} />}
-
-        <div className="dashboard-surface p-5 sm:p-6 mb-5">
-          <div className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--navy)] mb-2">
-            Quick import
-          </div>
-          <div className="flex flex-wrap gap-3 text-sm text-[var(--t3)]">
-            <p className="flex-1 min-w-[220px]">
-              Download the structured templates, drop your data, and we&apos;ll
-              auto-map columns to fields. Preview before confirming.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <a
-                href="/templates/classes-template.csv"
-                download
-                target="_blank"
-                className="btn btn-ghost btn-sm"
-              >
-                Class template
-              </a>
-              <a
-                href="/templates/staff-template.csv"
-                download
-                target="_blank"
-                className="btn btn-ghost btn-sm"
-              >
-                Staff template
-              </a>
-              <a
-                href="/templates/students-template.csv"
-                download
-                target="_blank"
-                className="btn btn-ghost btn-sm"
-              >
-                Student template
-              </a>
-            </div>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 mt-6">
-            <div className="space-y-3 rounded-[20px] border border-[var(--border)] bg-[var(--surface)]/60 p-4">
-              <div className="text-sm font-semibold text-[var(--t1)]">
-                Upload student list
-              </div>
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                onChange={handleStudentTemplateUpload}
-                className="w-full text-sm text-slate-600"
-                disabled={templateStatus === "parsing"}
-              />
-              <p className="text-xs text-[var(--t3)]">
-                We auto-map Excel columns using simple heuristics; add headers
-                exactly as shown.
-              </p>
-              {templateStatus === "parsing" && (
-                <p className="text-xs text-[var(--green)]">Parsing file...</p>
-              )}
-              {templateErrors && (
-                <p className="text-xs text-[var(--amber)]">{templateErrors}</p>
-              )}
-              {templateStatus === "ready" && (
-                <button
-                  onClick={handleSeedStudentsFromTemplate}
-                  className="btn btn-primary btn-sm"
-                  disabled={importingTemplate}
-                >
-                  {importingTemplate ? (
-                    <span className="flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Seeding {templateRows.length} students...
-                    </span>
-                  ) : (
-                    "Seed students from template"
-                  )}
-                </button>
-              )}
-              {importingTemplate && (
-                <div className="w-full bg-surface-container rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-[var(--primary)] h-full transition-all duration-300"
-                    style={{
-                      width: `${((importSummary?.success || 0) / templateRows.length) * 100}%`,
-                    }}
-                  />
-                </div>
-              )}
-              {importSummary && (
-                <p className="text-xs text-[var(--navy)]">
-                  Imported {importSummary.success}/{importSummary.total}{" "}
-                  students ({importSummary.failed} failed).
-                </p>
-              )}
-            </div>
-            <div className="rounded-[20px] border border-[var(--border)] bg-[var(--navy-soft)] p-4 space-y-3">
-              <div className="text-sm font-semibold text-[var(--t1)]">
-                Preview & AI hints
-              </div>
-              {templatePreviewRows.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr>
-                        {Object.keys(templatePreviewRows[0]).map((col) => (
-                          <th
-                            key={col}
-                            className="px-2 py-1 text-left text-[11px] uppercase tracking-[0.2em] text-[var(--t3)]"
-                          >
-                            {col}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {templatePreviewRows.map((row, index) => (
-                        <tr
-                          key={index}
-                          className="border-t border-[var(--border)]"
-                        >
-                          {Object.values(row).map((value, idx) => (
-                            <td
-                              key={`${index}-${idx}`}
-                              className="px-2 py-1 truncate max-w-[120px]"
-                            >
-                              {value || "\u2014"}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-xs text-[var(--t3)]">
-                  Upload a file to preview the parsed rows.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="grid grid-cols-1 md:grid-cols-4 gap-4"
-          style={{ marginBottom: 20 }}
-        >
-          <div
-            className="card"
-            style={{
-              padding: 16,
-              boxShadow:
-                "0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
-            }}
-          >
-            <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 10,
-                marginBottom: 10,
-              }}
-            >
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 8,
-                  background: "var(--navy-soft)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <MaterialIcon style={{ fontSize: 18, color: "var(--navy)" }}>
-                  group
-                </MaterialIcon>
-              </div>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: ".7px",
-                  textTransform: "uppercase",
-                  color: "var(--t3)",
-                }}
-              >
-                Total
-              </span>
-            </div>
-            <div
-              style={{
-                fontFamily: "Sora",
-                fontSize: 28,
-                fontWeight: 800,
-                color: "var(--navy)",
-              }}
-            >
-              {students.length}
-            </div>
-          </div>
-          <div
-            className="card"
-            style={{
-              padding: 16,
-              boxShadow:
-                "0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                marginBottom: 10,
-              }}
-            >
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 8,
-                  background: "rgba(23,50,95,.1)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <MaterialIcon style={{ fontSize: 18, color: "var(--navy)" }}>
-                  male
-                </MaterialIcon>
-              </div>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: ".7px",
-                  textTransform: "uppercase",
-                  color: "var(--t3)",
-                }}
-              >
-                Boys
-              </span>
-            </div>
-            <div
-              style={{
-                fontFamily: "Sora",
-                fontSize: 28,
-                fontWeight: 800,
-                color: "var(--navy)",
-              }}
-            >
-              {boysCount}
-            </div>
-          </div>
-          <div className="card" style={{ padding: 16 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                marginBottom: 10,
-              }}
-            >
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 8,
-                  background: "rgba(192,57,43,.1)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <MaterialIcon style={{ fontSize: 18, color: "var(--red)" }}>
-                  female
-                </MaterialIcon>
-              </div>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: ".7px",
-                  textTransform: "uppercase",
-                  color: "var(--t3)",
-                }}
-              >
-                Girls
-              </span>
-            </div>
-            <div
-              style={{
-                fontFamily: "Sora",
-                fontSize: 28,
-                fontWeight: 800,
-                color: "var(--navy)",
-              }}
-            >
-              {girlsCount}
-            </div>
-          </div>
-          <div
-            className="card"
-            style={{
-              padding: 16,
-              boxShadow:
-                "0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                marginBottom: 10,
-              }}
-            >
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 8,
-                  background: "var(--green-soft)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <MaterialIcon style={{ fontSize: 18, color: "var(--green)" }}>
-                  school
-                </MaterialIcon>
-              </div>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: ".7px",
-                  textTransform: "uppercase",
-                  color: "var(--t3)",
-                }}
-              >
-                Classes
-              </span>
-            </div>
-            <div
-              style={{
-                fontFamily: "Sora",
-                fontSize: 28,
-                fontWeight: 800,
-                color: "var(--navy)",
-              }}
-            >
-              {classes.length}
-            </div>
-          </div>
-        </div>
-
-        <div className="card" style={{ padding: 0, marginBottom: 20 }}>
-          <div
-            style={{
-              padding: 14,
-              borderBottom: "1px solid var(--border)",
-              display: "flex",
-              gap: 12,
-              alignItems: "center",
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ flex: 1, minWidth: 200, position: "relative" }}>
-              <MaterialIcon
-                style={{
-                  position: "absolute",
-                  left: 12,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  fontSize: 16,
-                  color: "var(--t3)",
-                }}
-              >
-                search
-              </MaterialIcon>
-              <input
-                type="text"
-                ref={searchInputRef}
-                placeholder="Search by name, parent, or student number..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "10px 12px 10px 38px",
-                  border: "1px solid var(--border)",
-                  borderRadius: 8,
-                  fontSize: 13,
-                  background: "var(--bg)",
-                  color: "var(--t1)",
-                }}
-              />
-            </div>
-            <select
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-              style={{
-                padding: "10px 14px",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                background: "var(--surface)",
-                color: "var(--t1)",
-                minWidth: 140,
-                cursor: "pointer",
-              }}
-            >
-              <option value="all">All Classes</option>
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                  {c.stream ? ` ${c.stream}` : ""}
-                </option>
-              ))}
-            </select>
-            <select
-              value={filterGender}
-              onChange={(e) => setFilterGender(e.target.value as any)}
-              style={{
-                padding: "10px 14px",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                background: "var(--surface)",
-                color: "var(--t1)",
-                cursor: "pointer",
-              }}
-            >
-              <option value="all">All Genders</option>
-              <option value="M">Boys only</option>
-              <option value="F">Girls only</option>
-            </select>
-            <select
-              value={filterPosition}
-              onChange={(e) => setFilterPosition(e.target.value)}
-              style={{
-                padding: "10px 14px",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                background: "var(--surface)",
-                color: "var(--t1)",
-                cursor: "pointer",
-              }}
-            >
-              <option value="all">All Positions</option>
-              <option value="monitor">Class Monitors</option>
-              <option value="prefect">Prefects</option>
-            </select>
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                cursor: "pointer",
-                fontSize: 12,
-                fontWeight: 600,
-                color: "var(--t1)",
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={filterDefaulters}
-                onChange={(e) => setFilterDefaulters(e.target.checked)}
-              />
-              Defaulters
-            </label>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              style={{
-                padding: "10px 14px",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                background: "var(--surface)",
-                color: "var(--t1)",
-                cursor: "pointer",
-              }}
-            >
-              <option value="name">Sort by Name</option>
-              <option value="number">Sort by Number</option>
-              <option value="class">Sort by Class</option>
-            </select>
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                updateTablePrefs({ pageSize: Number(e.target.value) });
-                setCurrentPage(1);
-              }}
-              aria-label="Rows per page"
-              style={{
-                padding: "10px 14px",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                background: "var(--surface)",
-                color: "var(--t1)",
-                cursor: "pointer",
-              }}
-            >
-              <option value={20}>20 / page</option>
-              <option value={50}>50 / page</option>
-              <option value={100}>100 / page</option>
-            </select>
-          </div>
-
-          {loading ? (
-            <TableSkeleton rows={8} />
-          ) : filtered.length === 0 ? (
-            <div style={{ padding: 40, textAlign: "center" }}>
-              <div
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 12,
-                  background: "var(--bg)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  margin: "0 auto 12px",
-                }}
-              >
-                <MaterialIcon style={{ fontSize: 24, color: "var(--t3)" }}>
-                  group
-                </MaterialIcon>
-              </div>
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: "var(--t1)",
-                  marginBottom: 4,
-                }}
-              >
-                No students found
-              </div>
-              <div style={{ fontSize: 12, color: "var(--t3)" }}>
-                {searchTerm
-                  ? "Try a different search term"
-                  : "Add your first student to get started"}
-              </div>
-              {!searchTerm && (
-                <button
-                  onClick={() => setShowAddModal(true)}
-                  className="btn btn-primary"
-                  style={{ marginTop: 16 }}
-                >
-                  <MaterialIcon
-                    icon="person_add"
-                    style={{ fontSize: "16px" }}
-                  />
-                  Add Student
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="tbl-wrap table-responsive">
-              <table>
-                <thead>
-                  <tr>
-                    <th data-label="Student">Student</th>
-                    <th data-label="Number">Number</th>
-                    <th data-label="Class">Class</th>
-                    <th data-label="Parent">Parent</th>
-                    <th data-label="Phone">Phone</th>
-                    <th data-label="Actions"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedStudents.map((student) => (
-                    <tr key={student.id}>
-                      <td data-label="Student">
-                        <Link
-                          href={`/dashboard/students/${student.id}`}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 10,
-                            textDecoration: "none",
-                          }}
-                          >
-                           <div
-                             style={{
-                               width: 36,
-                               height: 36,
-                               borderRadius: "50%",
-                               display: "flex",
-                               alignItems: "center",
-                               justifyContent: "center",
-                               fontSize: 12,
-                               fontWeight: 700,
-                               color: "#fff",
-                               overflow: "hidden",
-                               background:
-                                 student.gender === "M"
-                                   ? "var(--navy)"
-                                   : "var(--red)",
-                             }}
-                           >
-                             {student.photo_url ? (
-                               <Image
-                                 src={student.photo_url}
-                                 alt={`${student.first_name} ${student.last_name}`}
-                                 width={36}
-                                 height={36}
-                                 unoptimized
-                                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                               />
-                             ) : (
-                               <>
-                                 {student.first_name?.charAt(0)}
-                                 {student.last_name?.charAt(0)}
-                               </>
-                             )}
-                           </div>
-                          <div>
-                            <div
-                              style={{ fontWeight: 600, color: "var(--t1)" }}
-                            >
-                              {student.first_name} {student.last_name}
-                            </div>
-                            <div style={{ fontSize: 11, color: "var(--t3)" }}>
-                              {student.gender === "M" ? "Male" : "Female"}
-                            </div>
-                          </div>
-                        </Link>
-                      </td>
-                      <td
-                        data-label="Number"
-                        style={{ fontFamily: "DM Mono", fontSize: 12 }}
-                      >
-                        {student.student_number || "-"}
-                      </td>
-                      <td data-label="Class">
-                        <span
-                          style={{
-                            padding: "4px 10px",
-                            background: "var(--bg)",
-                            borderRadius: 20,
-                            fontSize: 11,
-                            fontWeight: 600,
-                          }}
-                        >
-                          {student.classes?.name}
-                          {student.classes?.stream
-                            ? ` ${student.classes.stream}`
-                            : ""}
-                          {(student as any).boarding_status &&
-                            (student as any).boarding_status !== "day" && (
-                              <span
-                                style={{
-                                  marginLeft: 4,
-                                  fontSize: 9,
-                                  padding: "1px 5px",
-                                  background: "rgba(155,89,182,0.15)",
-                                  color: "#0d9488",
-                                  borderRadius: 8,
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {(student as any).boarding_status}
-                              </span>
-                            )}
-                        </span>
-                      </td>
-                      <td data-label="Parent" style={{ fontSize: 13 }}>
-                        {student.parent_name || "-"}
-                      </td>
-                      <td
-                        data-label="Phone"
-                        style={{ fontSize: 13, fontFamily: "DM Mono" }}
-                      >
-                        {student.parent_phone || "-"}
-                      </td>
-                      <td data-label="Actions">
-                        <div style={{ display: "flex", gap: 4 }}>
-                          <button
-                            onClick={() => setSmsTarget(student)}
-                            title="SMS Parent"
-                            style={{
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              padding: 6,
-                              borderRadius: 6,
-                            }}
-                          >
-                            <MaterialIcon
-                              style={{ fontSize: 16, color: "var(--t3)" }}
-                            >
-                              sms
-                            </MaterialIcon>
-                          </button>
-                          <button
-                            onClick={() => openEditModal(student)}
-                            style={{
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              padding: 6,
-                              borderRadius: 6,
-                            }}
-                          >
-                            <MaterialIcon
-                              style={{ fontSize: 16, color: "var(--t3)" }}
-                            >
-                              edit
-                            </MaterialIcon>
-                          </button>
-                          <button
-                            onClick={() => confirmDelete(student.id)}
-                            style={{
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              padding: 6,
-                              borderRadius: 6,
-                            }}
-                          >
-                            <MaterialIcon
-                              style={{ fontSize: 16, color: "var(--t3)" }}
-                            >
-                              delete
-                            </MaterialIcon>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {!loading && filtered.length > pageSize && (
-            <div
-              className="flex items-center justify-between px-4 py-3 border-t border-[var(--border)]"
-              style={{ fontSize: 13 }}
-            >
-              <span className="text-[var(--t3)]">
-                Showing {Math.min((currentPage - 1) * pageSize + 1, filteredTotal)}–
-                {Math.min(currentPage * pageSize, filteredTotal)} of {filteredTotal} students
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--t2)] text-xs disabled:opacity-40 hover:bg-[var(--bg)] transition-colors"
-                >
-                  Previous
-                </button>
-                <span className="text-[var(--t2)] text-xs font-medium">
-                  Page {currentPage} / {totalPages}
-                </span>
-                <button
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--t2)] text-xs disabled:opacity-40 hover:bg-[var(--bg)] transition-colors"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        <StudentRegistryPanel
+          schoolId={school?.id}
+          totalStudents={students.length}
+          boysCount={boysCount}
+          girlsCount={girlsCount}
+          classesCount={classes.length}
+          classes={classes as any}
+          templateStatus={templateStatus}
+          templateErrors={templateErrors}
+          templateRowsCount={templateRows.length}
+          templatePreviewRows={templatePreviewRows}
+          importingTemplate={importingTemplate}
+          importSummary={importSummary}
+          onTemplateUpload={handleStudentTemplateUpload}
+          onSeedTemplate={handleSeedStudentsFromTemplate}
+          searchInputRef={searchInputRef}
+          searchTerm={searchTerm}
+          onSearchTermChange={setSearchTerm}
+          selectedClass={selectedClass}
+          onSelectedClassChange={setSelectedClass}
+          filterGender={filterGender}
+          onFilterGenderChange={setFilterGender}
+          filterPosition={filterPosition}
+          onFilterPositionChange={setFilterPosition}
+          filterDefaulters={filterDefaulters}
+          onFilterDefaultersChange={setFilterDefaulters}
+          sortBy={sortBy}
+          onSortByChange={setSortBy}
+          pageSize={pageSize}
+          onPageSizeChange={(value) => {
+            updateTablePrefs({ pageSize: value });
+            setCurrentPage(1);
+          }}
+          loading={loading}
+          filteredCount={filtered.length}
+          filteredTotal={filteredTotal}
+          paginatedStudents={paginatedStudents as any}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPreviousPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+          onNextPage={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+          onAddStudent={() => setShowAddModal(true)}
+          onSmsParent={(student) => setSmsTarget(student as any)}
+          onEditStudent={(student) => openEditModal(student)}
+          onDeleteStudent={confirmDelete}
+        />
 
         {/* Add Modal */}
         {showAddModal &&
@@ -2380,6 +1603,28 @@ export default function StudentHubPage() {
                 </button>
               </div>
               <form onSubmit={handleCreateStudent} style={{ padding: 20 }}>
+                <StudentPhotoField
+                  photoUrl={newStudent.photo_url}
+                  firstName={newStudent.first_name}
+                  lastName={newStudent.last_name}
+                  gender={newStudent.gender}
+                  uploading={uploadingPhoto}
+                  onUpload={async (file) => {
+                    try {
+                      setUploadingPhoto(true);
+                      await handleStudentPhotoUpload(file, "new");
+                      toast.success("Passport photo added");
+                    } catch (error: unknown) {
+                      toast.error(
+                        error instanceof Error
+                          ? error.message
+                          : "Failed to upload passport photo",
+                      );
+                    } finally {
+                      setUploadingPhoto(false);
+                    }
+                  }}
+                />
                 <div
                   style={{
                     display: "grid",
@@ -3156,117 +2401,30 @@ export default function StudentHubPage() {
                 </button>
               </div>
               <form onSubmit={handleUpdateStudent} style={{ padding: 20 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 16,
-                    marginBottom: 20,
-                    paddingBottom: 16,
-                    borderBottom: "1px solid var(--border)",
+                <StudentPhotoField
+                  photoUrl={editForm.photo_url}
+                  firstName={editForm.first_name}
+                  lastName={editForm.last_name}
+                  gender={editForm.gender}
+                  uploading={uploadingPhoto}
+                  title="Student Photo"
+                  onUpload={async (file) => {
+                    try {
+                      setUploadingPhoto(true);
+                      await handleStudentPhotoUpload(file, "edit");
+                      toast.success("Student photo updated");
+                    } catch (error: unknown) {
+                      toast.error(
+                        error instanceof Error
+                          ? error.message
+                          : "Failed to upload student photo",
+                      );
+                    } finally {
+                      setUploadingPhoto(false);
+                    }
                   }}
-                >
-                  <div
-                    style={{
-                      width: 80,
-                      height: 80,
-                      borderRadius: "50%",
-                      background: "var(--bg)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      overflow: "hidden",
-                      border: "2px dashed var(--border)",
-                      cursor: "pointer",
-                    }}
-                    title="Click to upload photo"
-                  >
-                    {editForm.photo_url ? (
-                      <Image
-                        src={editForm.photo_url}
-                        alt={`${editForm.first_name || "Student"} ${editForm.last_name || ""}`}
-                        width={80}
-                        height={80}
-                        unoptimized
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                        }}
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#fff",
-                          background:
-                            editForm.gender === "M" ? "var(--navy)" : "var(--red)",
-                          fontSize: 24,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {(editForm.first_name?.charAt(0) || "S").toUpperCase()}
-                        {(editForm.last_name?.charAt(0) || "").toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        letterSpacing: ".5px",
-                        textTransform: "uppercase",
-                        color: "var(--t3)",
-                        marginBottom: 6,
-                        display: "block",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Student Photo
-                      <input
-                        type="file"
-                        accept="image/*"
-                        disabled={uploadingPhoto}
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          setUploadingPhoto(true);
-                          // In demo mode, just simulate upload
-                          if (isDemo) {
-                            const reader = new FileReader();
-                            reader.onload = () => {
-                              const updatedStudent = {
-                                ...editingStudent,
-                                photo_url: reader.result,
-                              };
-                              setEditingStudent(updatedStudent);
-                              setEditForm((prev) => ({
-                                ...prev,
-                                photo_url: String(reader.result || ""),
-                              }));
-                              setUploadingPhoto(false);
-                            };
-                            reader.readAsDataURL(file);
-                          } else {
-                            // Real upload would go to Supabase storage
-                            setUploadingPhoto(false);
-                          }
-                        }}
-                        style={{ display: "none" }}
-                      />
-                    </label>
-                    <p style={{ fontSize: 11, color: "var(--t3)" }}>
-                      {uploadingPhoto
-                        ? "Uploading..."
-                        : "Click to upload new photo"}
-                    </p>
-                  </div>
-                </div>
+                  size={80}
+                />
                 <div
                   style={{
                     display: "grid",
@@ -3582,1455 +2740,95 @@ export default function StudentHubPage() {
 
       {/* ===== TRANSFERS TAB ===== */}
       <TabPanel activeTab={activeTab} tabId="transfers">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Card className="p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center">
-                <MaterialIcon className="text-blue-600">group</MaterialIcon>
-              </div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">
-                Active
-              </span>
-            </div>
-            <div className="text-3xl font-bold text-blue-600">
-              {activeStudents.length}
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-9 h-9 rounded-lg bg-green-100 flex items-center justify-center">
-                <MaterialIcon className="text-green-600">login</MaterialIcon>
-              </div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">
-                Transferred In
-              </span>
-            </div>
-            <div className="text-3xl font-bold text-green-600">
-              {transferredInCount}
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center">
-                <MaterialIcon className="text-red-600">logout</MaterialIcon>
-              </div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">
-                Transferred Out
-              </span>
-            </div>
-            <div className="text-3xl font-bold text-red-600">
-              {transferredOutCount}
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center">
-                <MaterialIcon className="text-gray-500">
-                  swap_horiz
-                </MaterialIcon>
-              </div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">
-                Total Moves
-              </span>
-            </div>
-            <div className="text-3xl font-bold text-[var(--on-surface)]">
-              {transferredInCount + transferredOutCount}
-            </div>
-          </Card>
-        </div>
-
-        <Tabs
-          tabs={[
-            { id: "in", label: "Transfer In" },
-            { id: "out", label: "Transfer Out" },
-          ]}
-          activeTab={transferActiveTab}
-          onChange={(v) => setTransferActiveTab(v as TransferTab)}
-          className="mb-6"
-        />
-
-        {transferActiveTab === "in" && (
-          <Card>
-            <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
-              <h3 className="font-semibold text-[var(--on-surface)]">
-                Students Transferred In
-              </h3>
-              <Button onClick={() => setShowTransferInModal(true)}>
-                <MaterialIcon icon="person_add" className="text-base" />
-                New Transfer
-              </Button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-[var(--surface-container)]">
-                    <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">
-                      Student
-                    </th>
-                    <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">
-                      Student No.
-                    </th>
-                    <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">
-                      Class
-                    </th>
-                    <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">
-                      Previous School
-                    </th>
-                    <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">
-                      Reason
-                    </th>
-                    <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">
-                      Parent Phone
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transferredIn.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="text-center py-8 text-[var(--t3)]"
-                      >
-                        No transfer-in students recorded yet
-                      </td>
-                    </tr>
-                  ) : (
-                    transferredIn.map((student) => (
-                      <tr
-                        key={student.id}
-                        className="border-b border-[var(--border)]"
-                      >
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                              style={{
-                                background:
-                                  student.gender === "M"
-                                    ? "var(--navy)"
-                                    : "var(--red)",
-                              }}
-                            >
-                              {student.first_name?.charAt(0)}
-                              {student.last_name?.charAt(0)}
-                            </div>
-                            <div>
-                              <div className="font-semibold text-sm">
-                                {student.first_name} {student.last_name}
-                              </div>
-                              <div className="text-xs text-[var(--t3)]">
-                                {student.gender === "M" ? "Male" : "Female"}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-4 text-sm font-mono">
-                          {student.student_number || "-"}
-                        </td>
-                        <td className="p-4">
-                          <span className="px-2.5 py-1 bg-gray-100 rounded-full text-xs font-semibold">
-                            {student.classes?.name || "-"}
-                          </span>
-                        </td>
-                        <td className="p-4 text-sm">
-                          {student.transfer_from || "-"}
-                        </td>
-                        <td className="p-4 text-sm">
-                          {student.transfer_reason || "-"}
-                        </td>
-                        <td className="p-4 text-sm font-mono">
-                          {student.parent_phone || "-"}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        )}
-
-        {transferActiveTab === "out" && (
-          <Card>
-            <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
-              <h3 className="font-semibold text-[var(--on-surface)]">
-                Students Transferred Out
-              </h3>
-              <Button onClick={() => setShowTransferOutModal(true)}>
-                <MaterialIcon icon="swap_horiz" className="text-base" />
-                Transfer Out
-              </Button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-[var(--surface-container)]">
-                    <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">
-                      Student
-                    </th>
-                    <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">
-                      Student No.
-                    </th>
-                    <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">
-                      Former Class
-                    </th>
-                    <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">
-                      Transferred To
-                    </th>
-                    <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">
-                      Reason
-                    </th>
-                    <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">
-                      Date
-                    </th>
-                    <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transferHistory.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={7}
-                        className="text-center py-8 text-[var(--t3)]"
-                      >
-                        No transfer-out records yet
-                      </td>
-                    </tr>
-                  ) : (
-                    transferHistory.map((record) => (
-                      <tr
-                        key={record.id}
-                        className="border-b border-[var(--border)]"
-                      >
-                        <td className="p-4 font-semibold text-sm">
-                          {record.student_name}
-                        </td>
-                        <td className="p-4 text-sm font-mono">
-                          {record.student_number || "-"}
-                        </td>
-                        <td className="p-4">
-                          <span className="px-2.5 py-1 bg-gray-100 rounded-full text-xs font-semibold">
-                            {record.class_name}
-                          </span>
-                        </td>
-                        <td className="p-4 text-sm">{record.transfer_to}</td>
-                        <td className="p-4 text-sm">{record.reason || "-"}</td>
-                        <td className="p-4 text-sm">
-                          {record.transfer_date
-                            ? new Date(
-                                record.transfer_date,
-                              ).toLocaleDateString()
-                            : "-"}
-                        </td>
-                        <td className="p-4">
-                          <button
-                            onClick={() => {
-                              setPrintData(record);
-                              setTimeout(handlePrint, 200);
-                            }}
-                            className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-                          >
-                            <MaterialIcon icon="print" className="text-sm" />
-                            Letter
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        )}
-
-        {/* Transfer In Modal */}
-        {showTransferInModal && (
-          <div
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowTransferInModal(false)}
-          >
-            <div
-              className="bg-[var(--surface)] rounded-2xl w-full max-w-lg"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
-                <h2 className="text-lg font-bold text-[var(--on-surface)]">
-                  New Transfer In
-                </h2>
-                <button
-                  onClick={() => setShowTransferInModal(false)}
-                  className="p-1 hover:bg-[var(--surface-container)] rounded-lg"
-                >
-                  <MaterialIcon className="text-xl text-[var(--t3)]">
-                    close
-                  </MaterialIcon>
-                </button>
-              </div>
-              <form onSubmit={handleTransferIn} className="p-5">
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
-                      First Name
-                    </label>
-                    <input
-                      type="text"
-                      value={transferInForm.first_name}
-                      onChange={(e) =>
-                        setTransferInForm({
-                          ...transferInForm,
-                          first_name: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
-                      Last Name
-                    </label>
-                    <input
-                      type="text"
-                      value={transferInForm.last_name}
-                      onChange={(e) =>
-                        setTransferInForm({
-                          ...transferInForm,
-                          last_name: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
-                      Gender
-                    </label>
-                    <select
-                      value={transferInForm.gender}
-                      onChange={(e) =>
-                        setTransferInForm({
-                          ...transferInForm,
-                          gender: e.target.value as "M" | "F",
-                        })
-                      }
-                      className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                    >
-                      <option value="M">Male</option>
-                      <option value="F">Female</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
-                      Date of Birth
-                    </label>
-                    <input
-                      type="date"
-                      value={transferInForm.date_of_birth}
-                      onChange={(e) =>
-                        setTransferInForm({
-                          ...transferInForm,
-                          date_of_birth: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                    />
-                  </div>
-                </div>
-                <div className="mb-4">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
-                    Previous School
-                  </label>
-                  <input
-                    type="text"
-                    value={transferInForm.previous_school}
-                    onChange={(e) =>
-                      setTransferInForm({
-                        ...transferInForm,
-                        previous_school: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                    required
-                    placeholder="Name of previous school"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
-                    Transfer Reason
-                  </label>
-                  <select
-                    value={transferInForm.reason}
-                    onChange={(e) =>
-                      setTransferInForm({
-                        ...transferInForm,
-                        reason: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                    required
-                  >
-                    <option value="">Select reason</option>
-                    {TRANSFER_REASONS.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="mb-4">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
-                    Assign to Class
-                  </label>
-                  <select
-                    value={transferInForm.class_id}
-                    onChange={(e) =>
-                      setTransferInForm({
-                        ...transferInForm,
-                        class_id: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                    required
-                  >
-                    <option value="">Select class</option>
-                    {classes.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="mb-4">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
-                    Parent/Guardian Name
-                  </label>
-                  <input
-                    type="text"
-                    value={transferInForm.parent_name}
-                    onChange={(e) =>
-                      setTransferInForm({
-                        ...transferInForm,
-                        parent_name: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3 mb-5">
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
-                      Parent Phone
-                    </label>
-                    <input
-                      type="tel"
-                      placeholder="0700000000"
-                      value={transferInForm.parent_phone}
-                      onChange={(e) =>
-                        setTransferInForm({
-                          ...transferInForm,
-                          parent_phone: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
-                      Alt. Phone
-                    </label>
-                    <input
-                      type="tel"
-                      placeholder="0700000000"
-                      value={transferInForm.parent_phone2}
-                      onChange={(e) =>
-                        setTransferInForm({
-                          ...transferInForm,
-                          parent_phone2: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <Button
-                    variant="ghost"
-                    className="flex-1"
-                    onClick={() => setShowTransferInModal(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button className="flex-1" disabled={transferSaving}>
-                    {transferSaving ? "Adding..." : "Add Transfer Student"}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Transfer Out Modal */}
-        {showTransferOutModal && (
-          <div
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowTransferOutModal(false)}
-          >
-            <div
-              className="bg-[var(--surface)] rounded-2xl w-full max-w-md"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
-                <h2 className="text-lg font-bold text-[var(--on-surface)]">
-                  Transfer Student Out
-                </h2>
-                <button
-                  onClick={() => setShowTransferOutModal(false)}
-                  className="p-1 hover:bg-[var(--surface-container)] rounded-lg"
-                >
-                  <MaterialIcon className="text-xl text-[var(--t3)]">
-                    close
-                  </MaterialIcon>
-                </button>
-              </div>
-              <form onSubmit={handleTransferOut} className="p-5">
-                <div className="mb-4">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
-                    Select Student
-                  </label>
-                  {activeStudents.length === 0 ? (
-                    <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
-                      No active students
-                    </div>
-                  ) : (
-                    <select
-                      value={transferOutForm.student_id}
-                      onChange={(e) =>
-                        setTransferOutForm({
-                          ...transferOutForm,
-                          student_id: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                      required
-                    >
-                      <option value="">Select student...</option>
-                      {activeStudents.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.first_name} {s.last_name} -{" "}
-                          {s.classes?.name || "No class"}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-                <div className="mb-4">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
-                    Transferring To (School Name)
-                  </label>
-                  <input
-                    type="text"
-                    value={transferOutForm.transfer_to}
-                    onChange={(e) =>
-                      setTransferOutForm({
-                        ...transferOutForm,
-                        transfer_to: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                    required
-                    placeholder="Name of new school"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
-                    Reason
-                  </label>
-                  <select
-                    value={transferOutForm.reason}
-                    onChange={(e) =>
-                      setTransferOutForm({
-                        ...transferOutForm,
-                        reason: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                    required
-                  >
-                    <option value="">Select reason</option>
-                    {TRANSFER_REASONS.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="mb-5">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
-                    Transfer Date
-                  </label>
-                  <input
-                    type="date"
-                    value={transferOutForm.transfer_date}
-                    onChange={(e) =>
-                      setTransferOutForm({
-                        ...transferOutForm,
-                        transfer_date: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                    required
-                  />
-                </div>
-                <div className="flex gap-3">
-                  <Button
-                    variant="ghost"
-                    className="flex-1"
-                    onClick={() => setShowTransferOutModal(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button className="flex-1" disabled={transferSaving}>
-                    {transferSaving ? "Processing..." : "Transfer Out"}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {printData && (
-          <div className="hidden">
-            <div ref={transferPrintRef}>
-              <div className="letterhead">
-                <h1>{school?.name || "School Name"}</h1>
-                <p>
-                  {school?.district ? `${school.district} District` : ""}{" "}
-                  {school?.phone ? `| Tel: ${school.phone}` : ""}
-                </p>
-                <p>{school?.email || ""}</p>
-              </div>
-              <div className="title">TRANSFER LETTER</div>
-              <div className="content">
-                <p>
-                  Date:{" "}
-                  <span className="field">
-                    {new Date().toLocaleDateString("en-UG", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </span>
-                </p>
-                <p>&nbsp;</p>
-                <p>To Whom It May Concern,</p>
-                <p>&nbsp;</p>
-                <p>
-                  This is to certify that{" "}
-                  <span className="field">{printData.student_name}</span> (
-                  {printData.gender === "M" ? "Male" : "Female"}) was a student
-                  at{" "}
-                  <span className="field">{school?.name || "our school"}</span>.
-                </p>
-                <p>&nbsp;</p>
-                <p>
-                  <strong>Student Details:</strong>
-                </p>
-                <p>
-                  Student Number:{" "}
-                  <span className="field">
-                    {printData.student_number || "N/A"}
-                  </span>
-                </p>
-                <p>
-                  Class: <span className="field">{printData.class_name}</span>
-                </p>
-                <p>
-                  Period of Study:{" "}
-                  <span className="field">
-                    {printData.admission_date
-                      ? new Date(printData.admission_date).toLocaleDateString(
-                          "en-UG",
-                          { year: "numeric", month: "long" },
-                        )
-                      : "N/A"}{" "}
-                    -{" "}
-                    {new Date(printData.transfer_date).toLocaleDateString(
-                      "en-UG",
-                      { year: "numeric", month: "long", day: "numeric" },
-                    )}
-                  </span>
-                </p>
-                <p>
-                  Reason for Transfer:{" "}
-                  <span className="field">
-                    {printData.reason || "Not specified"}
-                  </span>
-                </p>
-                <p>
-                  Transferring To:{" "}
-                  <span className="field">{printData.transfer_to}</span>
-                </p>
-                <p>&nbsp;</p>
-                <p>
-                  We wish the student all the best in their future academic
-                  endeavors.
-                </p>
-                <p>&nbsp;</p>
-                <p>Yours faithfully,</p>
-              </div>
-              <div className="signatures">
-                <div className="sig-block">
-                  <div className="stamp-area">School Stamp</div>
-                </div>
-                <div className="sig-block">
-                  <div className="sig-line">Head Teacher&apos;s Signature</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+          <StudentTransfersPanel
+            activeStudents={activeStudents as any}
+            transferredIn={transferredIn as any}
+            transferredInCount={transferredInCount}
+            transferredOutCount={transferredOutCount}
+            transferHistory={transferHistory}
+            transferActiveTab={transferActiveTab}
+            onTransferTabChange={setTransferActiveTab}
+            showTransferInModal={showTransferInModal}
+            onShowTransferInModal={setShowTransferInModal}
+            showTransferOutModal={showTransferOutModal}
+            onShowTransferOutModal={setShowTransferOutModal}
+            transferSaving={transferSaving}
+            transferInForm={transferInForm}
+            setTransferInForm={setTransferInForm}
+            transferOutForm={transferOutForm}
+            setTransferOutForm={setTransferOutForm}
+            classes={classes}
+            transferReasons={TRANSFER_REASONS}
+            onTransferIn={handleTransferIn}
+            onTransferOut={handleTransferOut}
+            printData={printData}
+            onPreparePrint={(record) => {
+              setPrintData(record);
+              setTimeout(handlePrint, 200);
+            }}
+            onPrint={handlePrint}
+            transferPrintRef={transferPrintRef}
+            school={school}
+          />
       </TabPanel>
 
       {/* ===== DROPOUTS TAB ===== */}
       <TabPanel activeTab={activeTab} tabId="dropouts">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Card className="p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center">
-                <MaterialIcon className="text-amber-600">warning</MaterialIcon>
-              </div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">
-                At Risk
-              </span>
-            </div>
-            <div className="text-3xl font-bold text-amber-600">
-              {atRiskCount}
-            </div>
-            <div className="text-xs text-[var(--t3)]">14-29 days absent</div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center">
-                <MaterialIcon className="text-red-600">error</MaterialIcon>
-              </div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">
-                Likely Dropout
-              </span>
-            </div>
-            <div className="text-3xl font-bold text-red-600">
-              {likelyDropoutCount}
-            </div>
-            <div className="text-xs text-[var(--t3)]">30+ days absent</div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center">
-                <MaterialIcon className="text-blue-600">group</MaterialIcon>
-              </div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">
-                Active
-              </span>
-            </div>
-            <div className="text-3xl font-bold text-blue-600">
-              {students.filter((s) => s.status === "active").length}
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center">
-                <MaterialIcon className="text-gray-500">
-                  person_off
-                </MaterialIcon>
-              </div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">
-                Dropouts
-              </span>
-            </div>
-            <div className="text-3xl font-bold text-gray-600">
-              {students.filter((s) => s.status === "dropped").length}
-            </div>
-          </Card>
-        </div>
-
-        <div className="flex gap-4 mb-4 items-center">
-          <select
-            aria-label="Class filter"
-            value={dropoutClassFilter}
-            onChange={(e) => setDropoutClassFilter(e.target.value)}
-            className="px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium"
-          >
-            <option value="all">All Classes</option>
-            {classes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          <Button variant="ghost" size="sm" onClick={fetchAtRiskStudents}>
-            <MaterialIcon icon="refresh" className="text-base" />
-            Refresh
-          </Button>
-        </div>
-
-        <Card>
-          <div className="p-4 border-b border-[var(--border)]">
-            <h3 className="font-semibold text-[var(--on-surface)]">
-              {atRiskCount + likelyDropoutCount > 0
-                ? `${filteredAtRisk.length} student${filteredAtRisk.length !== 1 ? "s" : ""} at risk of dropout`
-                : "No at-risk students found"}
-            </h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-[var(--surface-container)]">
-                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">
-                    Student
-                  </th>
-                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">
-                    Class
-                  </th>
-                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">
-                    Days Absent
-                  </th>
-                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">
-                    Last Attendance
-                  </th>
-                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">
-                    Risk Level
-                  </th>
-                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">
-                    Parent Phone
-                  </th>
-                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {loadingAtRisk ? (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="text-center py-8 text-[var(--t3)]"
-                    >
-                      Loading...
-                    </td>
-                  </tr>
-                ) : filteredAtRisk.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="text-center py-8 text-[var(--t3)]"
-                    >
-                      No at-risk students found
-                    </td>
-                  </tr>
-                ) : (
-                  filteredAtRisk.map((student) => (
-                    <tr
-                      key={student.id}
-                      className="border-b border-[var(--border)]"
-                    >
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                            style={{
-                              background:
-                                student.gender === "M"
-                                  ? "var(--navy)"
-                                  : "var(--red)",
-                            }}
-                          >
-                            {student.first_name?.charAt(0)}
-                            {student.last_name?.charAt(0)}
-                          </div>
-                          <div>
-                            <div className="font-semibold text-sm">
-                              {student.first_name} {student.last_name}
-                            </div>
-                            <div className="text-xs text-[var(--t3)]">
-                              {student.student_number || "-"}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <span className="px-2.5 py-1 bg-gray-100 rounded-full text-xs font-semibold">
-                          {student.class_name}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <span
-                          className="font-bold"
-                          style={{
-                            color:
-                              student.consecutive_absent >= 30
-                                ? "#e74c3c"
-                                : "#f39c12",
-                          }}
-                        >
-                          {student.consecutive_absent} days
-                        </span>
-                      </td>
-                      <td className="p-4 text-sm">
-                        {student.last_attendance_date
-                          ? new Date(
-                              student.last_attendance_date,
-                            ).toLocaleDateString()
-                          : "No record"}
-                      </td>
-                      <td className="p-4">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-semibold ${student.risk_level === "likely_dropout" ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"}`}
-                        >
-                          {student.risk_level === "likely_dropout"
-                            ? "Likely Dropout"
-                            : "At Risk"}
-                        </span>
-                      </td>
-                      <td className="p-4 text-sm font-mono">
-                        {student.parent_phone || "-"}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => handleContactParent(student)}
-                            disabled={
-                              sendingSms === student.id || !student.parent_phone
-                            }
-                            className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-40"
-                            title="Send SMS to parent"
-                          >
-                            <MaterialIcon
-                              icon="sms"
-                              className="text-sm mr-0.5"
-                            />
-                            {sendingSms === student.id
-                              ? "Sending..."
-                              : "Contact"}
-                          </button>
-                          <button
-                            onClick={() => setShowDropoutModal(student.id)}
-                            className="px-2 py-1 rounded-lg text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
-                            title="Mark as dropout"
-                          >
-                            <MaterialIcon
-                              icon="person_remove"
-                              className="text-sm mr-0.5"
-                            />
-                            Dropout
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-
-        {showDropoutModal && (
-          <div
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowDropoutModal(null)}
-          >
-            <div
-              className="bg-[var(--surface)] rounded-2xl w-full max-w-md"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
-                <h2 className="text-lg font-bold text-[var(--on-surface)]">
-                  Mark as Dropout
-                </h2>
-                <button
-                  onClick={() => setShowDropoutModal(null)}
-                  className="p-1 hover:bg-[var(--surface-container)] rounded-lg"
-                >
-                  <MaterialIcon className="text-xl text-[var(--t3)]">
-                    close
-                  </MaterialIcon>
-                </button>
-              </div>
-              <div className="p-5">
-                <p className="text-sm text-[var(--t3)] mb-4">
-                  This will set the student status to &quot;dropped&quot;.
-                  Please provide a reason.
-                </p>
-                <div className="mb-5">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
-                    Reason for Dropout
-                  </label>
-                  <select
-                    value={dropoutReason}
-                    onChange={(e) => setDropoutReason(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                    required
-                  >
-                    <option value="">Select reason...</option>
-                    <option value="Financial difficulties">
-                      Financial difficulties
-                    </option>
-                    <option value="Family relocation">Family relocation</option>
-                    <option value="Pregnancy">Pregnancy</option>
-                    <option value="Early marriage">Early marriage</option>
-                    <option value="Child labor">Child labor</option>
-                    <option value="Illness/Disability">
-                      Illness/Disability
-                    </option>
-                    <option value="Lost interest">Lost interest</option>
-                    <option value="Death">Death</option>
-                    <option value="Unknown">Unknown</option>
-                  </select>
-                </div>
-                <div className="flex gap-3">
-                  <Button
-                    variant="ghost"
-                    className="flex-1"
-                    onClick={() => setShowDropoutModal(null)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="danger"
-                    className="flex-1"
-                    onClick={handleMarkDropout}
-                    disabled={!dropoutReason}
-                  >
-                    Mark as Dropout
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+          <StudentRetentionPanel
+            atRiskCount={atRiskCount}
+            likelyDropoutCount={likelyDropoutCount}
+            activeStudentsCount={students.filter((s) => s.status === "active").length}
+            droppedStudentsCount={students.filter((s) => s.status === "dropped").length}
+            dropoutClassFilter={dropoutClassFilter}
+            setDropoutClassFilter={setDropoutClassFilter}
+            classes={classes}
+            onRefresh={fetchAtRiskStudents}
+            filteredAtRisk={filteredAtRisk}
+            loadingAtRisk={loadingAtRisk}
+            sendingSms={sendingSms}
+            onContactParent={handleContactParent as any}
+            showDropoutModal={showDropoutModal}
+            setShowDropoutModal={setShowDropoutModal}
+            dropoutReason={dropoutReason}
+            setDropoutReason={setDropoutReason}
+            onMarkDropout={handleMarkDropout}
+          />
       </TabPanel>
 
       {/* ===== PROMOTION TAB ===== */}
       <TabPanel activeTab={activeTab} tabId="promotion">
-        <div className="flex gap-3 mb-6 flex-wrap">
-          <Button
-            onClick={handleAutoPromote}
-            disabled={autoPromoting}
-            className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white"
-          >
-            <MaterialIcon icon="auto_fix_high" style={{ fontSize: 18 }} />
-            {autoPromoting ? "Auto-Promoting..." : "Auto-Promote All Students"}
-          </Button>
-        </div>
+          <StudentPromotionPanel
+            onAutoPromote={handleAutoPromote}
+            autoPromoting={autoPromoting}
+            autoPromoteResult={autoPromoteResult}
+            selectedStudents={selectedStudents}
+            actionCounts={actionCounts}
+            promotionClasses={promotionClasses}
+            fromClass={fromClass}
+            setFromClass={setFromClass}
+            toClass={toClass}
+            setToClass={setToClass}
+            processPromotions={processPromotions}
+            promoting={promoting}
+            getNextClassOptions={getNextClassOptions}
+            getPrevClassOptions={getPrevClassOptions}
+            toggleAll={toggleAll}
+            promotionStudents={promotionStudents as any}
+            promotionLoading={promotionLoading}
+            toggleStudent={toggleStudent}
+            studentActions={studentActions as any}
+            setAction={setAction as any}
+            promotionHistory={promotionHistory}
+            showDemoteModal={showDemoteModal}
+            setShowDemoteModal={setShowDemoteModal}
+            demoteClass={demoteClass}
+            setDemoteClass={setDemoteClass}
+            demoteReason={demoteReason}
+            setDemoteReason={setDemoteReason}
+            confirmDemote={confirmDemote}
+          />
+      </TabPanel>
 
-        {autoPromoteResult && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Auto-Promotion Results</CardTitle>
-            </CardHeader>
-            <CardBody>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div className="text-center p-3 rounded-xl bg-green-50">
-                  <div className="text-2xl font-bold text-green-600">
-                    {autoPromoteResult.summary.promoted}
-                  </div>
-                  <div className="text-xs text-green-700">Promoted</div>
-                </div>
-                <div className="text-center p-3 rounded-xl bg-yellow-50">
-                  <div className="text-2xl font-bold text-yellow-600">
-                    {autoPromoteResult.summary.retained}
-                  </div>
-                  <div className="text-xs text-yellow-700">Retained</div>
-                </div>
-                <div className="text-center p-3 rounded-xl bg-red-50">
-                  <div className="text-2xl font-bold text-red-600">
-                    {autoPromoteResult.summary.errors}
-                  </div>
-                  <div className="text-xs text-red-700">Errors</div>
-                </div>
-                <div className="text-center p-3 rounded-xl bg-blue-50">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {autoPromoteResult.summary.total}
-                  </div>
-                  <div className="text-xs text-blue-700">Total Processed</div>
-                </div>
-              </div>
-              {autoPromoteResult.results.promoted.length > 0 && (
-                <div className="mb-4">
-                  <h4 className="text-sm font-semibold text-green-700 mb-2">
-                    Promoted Students
-                  </h4>
-                  <div className="max-h-40 overflow-y-auto space-y-1">
-                    {autoPromoteResult.results.promoted.map(
-                      (p: any, i: number) => (
-                        <div
-                          key={i}
-                          className="text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-lg"
-                        >
-                          {p.name}: {p.fromClass} &rarr; {p.toClass}
-                        </div>
-                      ),
-                    )}
-                  </div>
-                </div>
-              )}
-              {autoPromoteResult.results.retained.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-semibold text-yellow-700 mb-2">
-                    Retained Students
-                  </h4>
-                  <div className="max-h-40 overflow-y-auto space-y-1">
-                    {autoPromoteResult.results.retained.map(
-                      (r: any, i: number) => (
-                        <div
-                          key={i}
-                          className="text-sm text-yellow-600 bg-yellow-50 px-3 py-1.5 rounded-lg"
-                        >
-                          {r.name}: {r.reason}
-                        </div>
-                      ),
-                    )}
-                  </div>
-                </div>
-              )}
-            </CardBody>
-          </Card>
-        )}
-
-        {selectedStudents.size > 0 && (
-          <div className="flex gap-2 mb-4 flex-wrap">
-            {actionCounts.promote > 0 && (
-              <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                {actionCounts.promote} to promote
-              </span>
-            )}
-            {actionCounts.repeat > 0 && (
-              <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
-                {actionCounts.repeat} repeating
-              </span>
-            )}
-            {actionCounts.demote > 0 && (
-              <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">
-                {actionCounts.demote} to demote
-              </span>
-            )}
-          </div>
-        )}
-
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Select Students</CardTitle>
-          </CardHeader>
-          <CardBody>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-medium mb-1 text-[var(--on-surface)]">
-                  From Class
-                </label>
-                {promotionClasses.length === 0 ? (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
-                    No classes available
-                  </div>
-                ) : (
-                  <select
-                    value={fromClass}
-                    onChange={(e) => setFromClass(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
-                  >
-                    <option value="">Select class...</option>
-                    {promotionClasses.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-[var(--on-surface)]">
-                  Promote To Class
-                </label>
-                {promotionClasses.length === 0 ? (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
-                    No classes available
-                  </div>
-                ) : (
-                  <select
-                    value={toClass}
-                    onChange={(e) => setToClass(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
-                  >
-                    <option value="">Select target class...</option>
-                    {getNextClassOptions().map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-[var(--on-surface)]">
-                  &nbsp;
-                </label>
-                <Button
-                  onClick={processPromotions}
-                  disabled={promoting || selectedStudents.size === 0}
-                  loading={promoting}
-                  className="w-full"
-                >
-                  <MaterialIcon icon="upgrade" style={{ fontSize: 18 }} />
-                  {promoting
-                    ? "Processing..."
-                    : `Process ${selectedStudents.size} Students`}
-                </Button>
-              </div>
-            </div>
-
-            {fromClass && (
-              <div className="mt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={
-                        selectedStudents.size === promotionStudents.length &&
-                        promotionStudents.length > 0
-                      }
-                      onChange={toggleAll}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-sm font-medium">
-                      Select All ({promotionStudents.length} students)
-                    </span>
-                  </label>
-                  <span className="text-sm text-[var(--t3)]">
-                    {selectedStudents.size} selected
-                  </span>
-                </div>
-
-                {promotionLoading ? (
-                  <TableSkeleton rows={5} />
-                ) : (
-                  <div className="table-wrapper">
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th style={{ width: 40 }}>#</th>
-                          <th>Name</th>
-                          <th>Gender</th>
-                          <th>Current Status</th>
-                          <th>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {promotionStudents.map((student) => {
-                          const action =
-                            studentActions[student.id]?.action || "promote";
-                          return (
-                            <tr key={student.id}>
-                              <td>
-                                <input
-                                  type="checkbox"
-                                  checked={selectedStudents.has(student.id)}
-                                  onChange={() => toggleStudent(student.id)}
-                                  className="w-4 h-4"
-                                />
-                              </td>
-                              <td className="font-medium text-sm">
-                                {student.first_name} {student.last_name}
-                              </td>
-                              <td className="text-sm">{student.gender}</td>
-                              <td>
-                                <span
-                                  className={`px-2.5 py-1 rounded-full text-xs font-semibold ${student.repeating ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"}`}
-                                >
-                                  {student.repeating ? "Repeating" : "Active"}
-                                </span>
-                              </td>
-                              <td>
-                                <div className="flex gap-1">
-                                  <button
-                                    onClick={() =>
-                                      setAction(student.id, "promote")
-                                    }
-                                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${action === "promote" ? "bg-green-100 border-green-300 text-green-800" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}
-                                  >
-                                    Promote
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      setAction(student.id, "repeat")
-                                    }
-                                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${action === "repeat" ? "bg-yellow-100 border-yellow-300 text-yellow-800" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}
-                                  >
-                                    Repeat
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      setAction(student.id, "demote")
-                                    }
-                                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${action === "demote" ? "bg-red-100 border-red-300 text-red-800" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}
-                                  >
-                                    Demote
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                        {promotionStudents.length === 0 && (
-                          <tr>
-                            <td colSpan={5}>
-                              <EmptyState
-                                icon="group"
-                                title="No active students in this class"
-                                description="Select a class with active students to proceed"
-                              />
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Promotion History</CardTitle>
-          </CardHeader>
-          <CardBody>
-            {promotionHistory.length === 0 ? (
-              <EmptyState
-                icon="history"
-                title="No promotion history"
-                description="Promotions will appear here once processed"
-              />
-            ) : (
-              <div className="table-wrapper">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Student</th>
-                      <th>From</th>
-                      <th>To</th>
-                      <th>Type</th>
-                      <th>By</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {promotionHistory.map((p, idx) => (
-                      <tr key={idx}>
-                        <td className="text-sm">
-                          {new Date(p.promoted_at).toLocaleDateString()}
-                        </td>
-                        <td className="text-sm">
-                          {p.student_id?.substring(0, 8)}...
-                        </td>
-                        <td className="text-sm">{p.from_classes?.name}</td>
-                        <td className="text-sm">{p.to_classes?.name}</td>
-                        <td>
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-xs font-semibold ${p.promotion_type === "repeating" ? "bg-yellow-100 text-yellow-800" : p.promotion_type === "demoted" ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}`}
-                          >
-                            {p.promotion_type || "promoted"}
-                          </span>
-                        </td>
-                        <td className="text-sm">
-                          {p.users?.full_name || "System"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardBody>
-        </Card>
-
-        {showDemoteModal && (
-          <div
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowDemoteModal(null)}
-          >
-            <div
-              className="bg-[var(--surface)] rounded-2xl shadow-xl max-w-md w-full"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
-                <div className="font-semibold text-[var(--t1)]">
-                  Demote Student
-                </div>
-                <button
-                  onClick={() => setShowDemoteModal(null)}
-                  className="p-1 hover:bg-[var(--surface-container)] rounded-lg"
-                >
-                  <MaterialIcon className="text-xl text-[var(--t3)]">
-                    close
-                  </MaterialIcon>
-                </button>
-              </div>
-              <div className="p-6">
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2 text-[var(--on-surface)]">
-                    Demote to Class
-                  </label>
-                  <select
-                    value={demoteClass}
-                    onChange={(e) => setDemoteClass(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                    required
-                  >
-                    <option value="">Select class...</option>
-                    {getPrevClassOptions().map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="mb-5">
-                  <label className="block text-sm font-medium mb-2 text-[var(--on-surface)]">
-                    Reason
-                  </label>
-                  <textarea
-                    value={demoteReason}
-                    onChange={(e) => setDemoteReason(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] resize-none"
-                    rows={3}
-                    placeholder="Reason for demotion..."
-                  />
-                </div>
-                <div className="flex gap-3">
-                  <Button
-                    variant="ghost"
-                    onClick={() => setShowDemoteModal(null)}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={confirmDemote}
-                    disabled={!demoteClass}
-                    className="flex-1"
-                  >
-                    Confirm Demote
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
         {showBulkImportModal && (
           <Modal
             isOpen={showBulkImportModal}
@@ -5071,9 +2869,7 @@ export default function StudentHubPage() {
               <div className="flex gap-3">
                 <Button
                   variant="ghost"
-                  onClick={() =>
-                    setDeleteConfirm({ open: false, studentId: null })
-                  }
+                  onClick={() => setDeleteConfirm({ open: false, studentId: null })}
                   className="flex-1"
                 >
                   Cancel
@@ -5089,7 +2885,6 @@ export default function StudentHubPage() {
             </div>
           </div>
         )}
-      </TabPanel>
     </div>
     </PageErrorBoundary>
   );

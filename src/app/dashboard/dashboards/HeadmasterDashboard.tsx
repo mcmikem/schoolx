@@ -146,9 +146,12 @@ function HeadmasterDashboardContent() {
         : 0;
   const absentCount = students.length - stats.presentToday;
 
-  const classesNotMarked = classes.filter(
-    (c: any) => !classAttendance[c.id] || classAttendance[c.id].total === 0,
-  ).length;
+  const hasAttendanceSignals = Object.keys(classAttendance).length > 0;
+  const classesNotMarked = hasAttendanceSignals
+    ? classes.filter(
+        (c: any) => !classAttendance[c.id] || classAttendance[c.id].total === 0,
+      ).length
+    : 0;
 
   const totalPendingApprovals = pendingExpenses + pendingLeave;
 
@@ -459,7 +462,11 @@ function HeadmasterDashboardContent() {
           </div>
           <div className="dashboard-note-card">
             <div className="text-xs font-bold uppercase tracking-widest text-[var(--t3)] mb-1">Attention</div>
-            <div className="text-sm font-semibold text-[var(--t1)]">{overdueFeeCount} overdue fee cases and {classesNotMarked} classes still unmarked</div>
+            <div className="text-sm font-semibold text-[var(--t1)]">
+              {hasAttendanceSignals
+                ? `${overdueFeeCount} overdue fee cases and ${classesNotMarked} classes still unmarked`
+                : `${overdueFeeCount} overdue fee cases. Attendance alerts will appear after real registers are marked.`}
+            </div>
           </div>
         </div>
       </div>

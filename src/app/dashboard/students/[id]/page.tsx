@@ -1,7 +1,8 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, use } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowLeft,
   Phone,
@@ -482,10 +483,13 @@ function getStatusConfig(status: string) {
 export default function StudentProfilePage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const resolvedParams = use(params);
   const { isDemo } = useAuth();
-  const { student, loading: studentLoading, error } = useStudent(params.id);
+  const { student, loading: studentLoading, error } = useStudent(
+    resolvedParams.id,
+  );
   const studentProfile = useMemo(
     () =>
       student
@@ -611,10 +615,21 @@ export default function StudentProfilePage({
             {/* Photo */}
             <div className="relative">
               <div className="w-24 h-24 bg-primary-100 dark:bg-primary-900/50 rounded-full border-4 border-white dark:border-gray-800 shadow-lg flex items-center justify-center">
-                <span className="text-3xl font-bold text-primary-700 dark:text-primary-300">
-                  {student.first_name?.[0] || "?"}
-                  {student.last_name?.[0] || "?"}
-                </span>
+                {student.photo_url ? (
+                  <Image
+                    src={student.photo_url}
+                    alt={`${student.first_name || "Student"} ${student.last_name || ""}`}
+                    width={96}
+                    height={96}
+                    unoptimized
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-3xl font-bold text-primary-700 dark:text-primary-300">
+                    {student.first_name?.[0] || "?"}
+                    {student.last_name?.[0] || "?"}
+                  </span>
+                )}
               </div>
               <div
                 className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white dark:border-gray-800 ${statusCfg.dot}`}

@@ -8,9 +8,9 @@ import {
   assertSchoolScopeOrDeny,
   assertUserRoleOrDeny,
 } from '@/lib/api-utils'
+import { formatUgandaPhone, getAfricasTalkingConfig, sendAfricasTalkingSMS } from '@/lib/africas-talking'
 
-const AFRICAS_TALKING_API_KEY = process.env.AFRICAS_TALKING_API_KEY || ''
-const AFRICAS_TALKING_USERNAME = process.env.AFRICAS_TALKING_USERNAME || 'sandbox'
+const { apiKey: AFRICAS_TALKING_API_KEY } = getAfricasTalkingConfig()
 const SMS_ALLOWED_ROLES = [
   'super_admin',
   'school_admin',
@@ -26,79 +26,6 @@ interface SMSRequest {
   schoolId: string
   studentId?: string
   type: 'individual' | 'class' | 'all'
-}
-
-function formatUgandaPhone(phone: string): string {
-  // Remove all non-digit characters
-  let formatted = phone.replace(/\D/g, '')
-  
-  // Validate it's a reasonable Uganda number
-  // Must be 9 digits (without country code) or 12 digits (with +256)
-  if (formatted.startsWith('256')) {
-    // Already has country code
-    if (formatted.length !== 12) {
-      throw new Error('Invalid phone number: must be 12 digits with country code')
-    }
-    return '+' + formatted
-  } else if (formatted.startsWith('0')) {
-    // Leading zero - convert to country code
-    formatted = formatted.substring(1)
-    if (formatted.length !== 9) {
-      throw new Error('Invalid phone number: must be 9 digits after leading zero')
-    }
-    return '+256' + formatted
-  } else if (formatted.length === 9) {
-    // Direct 9 digit number
-    return '+256' + formatted
-  } else {
-    throw new Error('Invalid phone number format')
-  }
-}
-
-async function sendSMS(to: string, message: string): Promise<{ success: boolean; messageId?: string; statusCode?: number; error?: string }> {
-  if (!AFRICAS_TALKING_API_KEY) {
-    // Demo mode - log instead of sending
-    console.log(`[SMS Demo] To: ${to}, Message: ${message}`)
-    return { success: true, messageId: 'demo-' + Date.now(), statusCode: 101 }
-  }
-
-  try {
-    const response = await fetch('https://api.africastalking.com/version1/messaging', {
-      method: 'POST',
-      headers: {
-        apiKey: AFRICAS_TALKING_API_KEY,
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Accept: 'application/json',
-      },
-      body: new URLSearchParams({
-        username: AFRICAS_TALKING_USERNAME,
-        to,
-        message,
-        from: 'SKOOLMATE', // Registered sender ID
-      }),
-    })
-
-    const result = await response.json()
-    
-    // Africa's Talking returns SMSMessageData with Recipients array
-    const recipient = result.SMSMessageData?.Recipients?.[0]
-    
-    if (recipient) {
-      // Status codes: 101 = Sent, 102 = Queued, others = failed
-      const success = recipient.statusCode === 101 || recipient.statusCode === 102
-      return { 
-        success, 
-        messageId: recipient.messageId,
-        statusCode: recipient.statusCode,
-        error: success ? undefined : recipient.status
-      }
-    }
-    
-    return { success: false, error: result.SMSMessageData?.Message || 'Unknown error' }
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Network error'
-    return { success: false, error: errorMessage }
-  }
 }
 
 async function handlePost(request: NextRequest) {
@@ -134,7 +61,7 @@ async function handlePost(request: NextRequest) {
     }
 
     const formattedPhone = formatUgandaPhone(phone)
-    const result = await sendSMS(formattedPhone, message)
+    const result = await sendAfricasTalkingSMS(formattedPhone, message, { from: 'SKOOLMATE' })
 
     if (result.success) {
       return apiSuccess({
@@ -195,7 +122,7 @@ async function handlePut(request: NextRequest) {
     const results = []
 
     for (const phone of formattedPhones) {
-      const result = await sendSMS(phone, message)
+      const result = await sendAfricasTalkingSMS(phone, message, { from: 'SKOOLMATE' })
       results.push({ phone, ...result })
     }
 

@@ -9,6 +9,7 @@ import {
   createServiceRoleClientOrThrow,
   requireExistingSchoolOrDeny,
 } from "@/lib/api-utils";
+import { sendAfricasTalkingSMS } from "@/lib/africas-talking";
 
 export async function POST(request: NextRequest) {
   try {
@@ -140,7 +141,11 @@ export async function POST(request: NextRequest) {
 
       // Send SMS to parent
       try {
-        const smsResult = await sendSMS(alert.parentPhone, alert.smsMessage);
+        const smsResult = await sendAfricasTalkingSMS(
+          alert.parentPhone,
+          alert.smsMessage,
+          { formatUgandaNumber: true },
+        );
 
         if (smsResult.success) {
           // Log the message
@@ -210,48 +215,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function sendSMS(
-  phone: string,
-  message: string,
-): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  try {
-    const apiKey = process.env.SMS_API_KEY;
-    const username = process.env.SMS_USERNAME || "sandbox";
-
-    if (!apiKey) {
-      console.log(`[SMS] To: ${phone}, Message: ${message}`);
-      return { success: true, messageId: "dev-mode" };
-    }
-
-    const response = await fetch(
-      "https://api.africastalking.com/version1/messaging",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          apikey: apiKey,
-        },
-        body: new URLSearchParams({
-          username,
-          to: phone,
-          message,
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      return { success: false, error: errorText };
-    }
-
-    const data = await response.json();
-    const messageId = data.SMSMessageData?.Recipients?.[0]?.messageId;
-
-    return { success: true, messageId };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-}

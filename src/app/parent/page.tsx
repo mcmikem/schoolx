@@ -5,6 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { calculateStudentFeePosition } from "@/lib/operations";
 import { buildAuthLoginAttempts } from "@/lib/auth-login";
+import { withSupabaseLockRetry } from "@/lib/supabase-lock";
 
 const PARENT_SELECTED_CHILD_KEY = "parent_selected_child_id";
 
@@ -41,7 +42,7 @@ export default function ParentPortal() {
     async function restoreSessionFromAuth() {
       try {
         const { data: authData, error: authError } =
-          await supabase.auth.getUser();
+          await withSupabaseLockRetry(async () => await supabase.auth.getUser());
         if (authError || !authData.user) {
           return;
         }
@@ -101,14 +102,18 @@ export default function ParentPortal() {
       for (const attempt of buildAuthLoginAttempts(phone)) {
         const result =
           attempt.type === "email"
-            ? await supabase.auth.signInWithPassword({
-                email: attempt.value,
-                password,
-              })
-            : await supabase.auth.signInWithPassword({
-                phone: attempt.value,
-                password,
-              });
+            ? await withSupabaseLockRetry(() =>
+                supabase.auth.signInWithPassword({
+                  email: attempt.value,
+                  password,
+                }),
+              )
+            : await withSupabaseLockRetry(() =>
+                supabase.auth.signInWithPassword({
+                  phone: attempt.value,
+                  password,
+                }),
+              );
 
         if (!result.error && result.data.user) {
           authData = result.data as { user: { id: string } };

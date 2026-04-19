@@ -44,12 +44,12 @@ const STUDENT_SELECT_FIELDS = `
   id, school_id, student_number, first_name, last_name, gender,
   date_of_birth, parent_name, parent_phone, parent_phone2, parent_email, address,
   class_id, admission_date, ple_index_number, blood_type, religion, nationality,
-  photo_url, status, opening_balance, transfer_from, transfer_to, transfer_reason,
+  photo_url, status, transfer_from, transfer_to, transfer_reason,
   dropout_reason, dropout_date, repeating, last_attendance_date,
   consecutive_absent_days, created_at, house_id, previous_school, district_origin,
   sub_county, parish, village, boarding_status, games_house, is_class_monitor,
   prefect_role, student_council_role,
-  classes(id, name, level, stream), houses(id, name, color)
+  classes(id, name, level, stream)
 `;
 
 function buildCoreStudentPayload(student: Record<string, unknown>) {
@@ -67,28 +67,29 @@ function buildCoreStudentPayload(student: Record<string, unknown>) {
     address: student.address,
     class_id: student.class_id,
     ple_index_number: student.ple_index_number,
+    photo_url: student.photo_url,
     status: student.status,
-  }
+  };
 }
 
 const STUDENT_SELECT_FIELDS_FALLBACK = `
   id, school_id, student_number, first_name, last_name, gender,
   date_of_birth, parent_name, parent_phone, parent_phone2,
-  class_id, admission_date, ple_index_number, status, opening_balance,
+  class_id, admission_date, ple_index_number, status, photo_url,
   created_at, classes(id, name, level, stream)
 `;
 
 const STUDENT_SELECT_FIELDS_CORE = `
   id, school_id, student_number, first_name, last_name, gender,
   date_of_birth, parent_name, parent_phone, parent_phone2,
-  class_id, admission_date, ple_index_number, status,
-  created_at, classes(id, name, level)
+  class_id, admission_date, ple_index_number, status, photo_url,
+  created_at, classes(id, name, level, stream)
 `;
 
 const STUDENT_SELECT_FIELDS_MINIMAL = `
   id, school_id, student_number, first_name, last_name, gender,
   date_of_birth, parent_name, parent_phone, parent_phone2,
-  class_id, admission_date, ple_index_number, status, created_at
+  class_id, admission_date, ple_index_number, status, photo_url, created_at
 `;
 
 async function fetchStudentsWithFallback(options: {
@@ -136,7 +137,10 @@ async function fetchStudentsWithFallback(options: {
   throw lastError;
 }
 
-async function fetchStudentByIdWithFallback(studentId: string) {
+async function fetchStudentByIdWithFallback(
+  studentId: string,
+  schoolId?: string,
+) {
   const selectAttempts = [
     {
       fields: STUDENT_SELECT_FIELDS,
@@ -159,11 +163,16 @@ async function fetchStudentByIdWithFallback(studentId: string) {
   let lastError: unknown = null;
 
   for (const attempt of selectAttempts) {
-    const result = await supabase
+    let query = supabase
       .from("students")
       .select(attempt.fields)
-      .eq("id", studentId)
-      .single();
+      .eq("id", studentId);
+
+    if (schoolId) {
+      query = query.eq("school_id", schoolId);
+    }
+
+    const result = await query.single();
 
     if (!result.error && result.data) {
       return result.data as unknown as StudentWithClass;
@@ -499,11 +508,16 @@ export function useStudent(id: string) {
   const [student, setStudent] = useState<StudentWithClass | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { isDemo } = useAuth();
+  const { isDemo, school } = useAuth();
 
   useEffect(() => {
     async function fetchStudent() {
-      if (!id) return;
+      if (!id) {
+        setStudent(null);
+        setError(null);
+        setLoading(false);
+        return;
+      }
 
       // Demo mode - use demo data
       if (isDemo) {
@@ -519,26 +533,20 @@ export function useStudent(id: string) {
 
       try {
         setLoading(true);
-        const { data, error } = await supabase
-          .from("students")
-          .select(
-            `
-            *,
-            classes(id, name, level), houses(id, name, color), prefect_role, student_council_role
-          `,
-          )
-          .eq("id", id)
-          .single();
-        if (error) throw error;
-        setStudent(data as unknown as StudentWithClass);
+        setError(null);
+
+        const querySchoolId = getQuerySchoolId(school?.id, isDemo);
+        const data = await fetchStudentByIdWithFallback(id, querySchoolId);
+        setStudent(data as StudentWithClass);
       } catch (err: unknown) {
+        setStudent(null);
         setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
         setLoading(false);
       }
     }
     fetchStudent();
-  }, [id, isDemo]);
+  }, [id, isDemo, school?.id]);
 
   return { student, loading, error };
 }
