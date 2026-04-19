@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { Card } from "@/components/ui/Card";
-import OwlMascot from "@/components/brand/OwlMascot";
+import PersonInitials from "@/components/ui/PersonInitials";
 
 export default function ReportsPage() {
   const { school } = useAuth();
@@ -276,7 +276,7 @@ export default function ReportsPage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <OwlMascot size={40} premium ring glow />
+                      <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />
                     )}
                   </div>
                   <div className="flex-1">

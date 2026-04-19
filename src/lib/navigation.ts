@@ -268,34 +268,6 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
       ],
     },
     {
-      label: "School Xperience",
-      icon: "rocket_launch",
-      defaultOpen: false,
-      items: [
-        { href: "/dashboard/osx", label: "Chapter Home", icon: "home" },
-        {
-          href: "/dashboard/osx?tab=leadership",
-          label: "SLF Leadership",
-          icon: "military_tech",
-        },
-        {
-          href: "/dashboard/osx?tab=red",
-          label: "RED Dignity",
-          icon: "female",
-        },
-        {
-          href: "/dashboard/osx?tab=green",
-          label: "GreenSchools",
-          icon: "eco",
-        },
-        {
-          href: "/dashboard/osx?tab=water",
-          label: "PureWater",
-          icon: "water_drop",
-        },
-      ],
-    },
-    {
       label: "System",
       icon: "settings",
       defaultOpen: false,
@@ -384,20 +356,6 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
         },
       ],
     },
-    {
-      label: "School Xperience",
-      icon: "rocket_launch",
-      defaultOpen: false,
-      items: [
-        { href: "/dashboard/osx", label: "OSX Activities", icon: "home" },
-        {
-          href: "/dashboard/osx?tab=leadership",
-          label: "SLF Training",
-          icon: "military_tech",
-        },
-        { href: "/dashboard/osx?tab=green", label: "Green Teams", icon: "eco" },
-      ],
-    },
   ],
 
   bursar: [
@@ -445,19 +403,6 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           href: "/dashboard/fees?tab=payment-plans",
           label: "Payment Plans",
           icon: "calendar_month",
-        },
-      ],
-    },
-    {
-      label: "School Xperience",
-      icon: "rocket_launch",
-      defaultOpen: false,
-      items: [
-        { href: "/dashboard/osx", label: "Chapter Home", icon: "home" },
-        {
-          href: "/dashboard/store/inventory",
-          label: "Service Catalog",
-          icon: "inventory",
         },
       ],
     },

@@ -287,70 +287,40 @@ export default function TopBar({
   return (
     <header
       data-testid="dashboard-header"
-      className="topbar border-b border-[var(--border)] min-h-[72px] flex items-center px-3 sm:px-5 lg:px-6 gap-2 sm:gap-3 sticky top-0 z-50 shadow-[var(--sh1)] flex-shrink-0"
+      className="topbar border-b border-[var(--border)] h-[56px] flex items-center px-3 sm:px-5 lg:px-6 gap-2 sm:gap-3 sticky top-0 z-50 flex-shrink-0"
     >
+      {/* Hamburger — mobile only */}
       <button
         onClick={() => {
           if (isOpen) closeSidebar();
           else openSidebar();
         }}
-        className="mobile-menu-btn bg-transparent border-none cursor-pointer p-2 mr-2 w-11 h-11 flex items-center justify-center rounded-2xl border border-transparent hover:border-[var(--border)] hover:bg-[var(--surface)] transition-colors"
+        className="mobile-menu-btn bg-transparent border-none cursor-pointer p-1.5 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[var(--bg)] transition-colors"
         aria-label="Toggle sidebar"
         aria-expanded={isOpen}
         aria-controls="dashboard-sidebar"
       >
         <MaterialIcon
           icon="menu"
-          style={{ fontSize: 24, color: "var(--t1)" }}
+          style={{ fontSize: 22, color: "var(--t1)" }}
         />
       </button>
 
+      {/* Page title + date */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="hidden xl:inline-flex items-center gap-1.5 rounded-full border border-[#d7dfeb] bg-[#f8fbff] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#34507a] shadow-sm">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--green)]" />
-            {schoolName}
-          </span>
-          <div className="font-['Sora'] text-[16px] sm:text-[19px] font-bold text-[var(--t1)] tracking-[-.3px] truncate">
+        <div className="font-['Sora'] text-[15px] sm:text-[17px] font-bold text-[var(--t1)] tracking-[-.2px] truncate leading-tight">
           {pageTitle}
-          </div>
-          <span className="hidden xl:inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--t3)] shadow-[var(--sh1)]">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--green)]" />
-            Term {currentTerm || "-"}
-          </span>
         </div>
-        <div className="text-[11px] sm:text-[12px] text-[var(--t3)] mt-1 flex items-center gap-2 truncate">
-          <span className="truncate inline-flex items-center gap-1.5">
-            <MaterialIcon icon="calendar_today" style={{ fontSize: 13, color: "var(--t3)" }} />
-            {formattedDate}
-          </span>
-          <span aria-hidden>•</span>
-          <span className="uppercase tracking-wide text-[10px] truncate hidden md:flex items-center gap-1.5">
-            {breadcrumbs.map((crumb, i) => (
-              <span key={crumb.href} className="flex items-center gap-1.5">
-                {i > 0 && <span className="text-[var(--t4)]">/</span>}
-                {i === breadcrumbs.length - 1 ? (
-                  <span className="text-[var(--t1)] font-medium">
-                    {crumb.label}
-                  </span>
-                ) : (
-                  <Link
-                    href={crumb.href}
-                    className="text-[var(--primary)] hover:underline transition-colors"
-                  >
-                    {crumb.label}
-                  </Link>
-                )}
-              </span>
-            ))}
-          </span>
+        <div className="text-[11px] text-[var(--t3)] truncate leading-tight mt-0.5 hidden sm:block">
+          {formattedDate}
+          {currentTerm ? ` · Term ${currentTerm}` : ""}
         </div>
       </div>
 
-      <div className="search-bar flex items-center gap-[10px] bg-[var(--surface)] border border-[#d8dee8] rounded-[18px] px-[14px] py-2.5 text-[13px] text-[var(--t3)] min-w-[280px] cursor-text shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+      {/* Search — desktop inline, mobile icon */}
+      <div className="search-bar hidden sm:flex items-center gap-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl px-3 py-2 text-[13px] text-[var(--t3)] min-w-[200px] lg:min-w-[260px] cursor-text">
         <GlobalSearch />
       </div>
-
       <button
         onClick={() => {
           const trigger = document.querySelector(
@@ -358,57 +328,31 @@ export default function TopBar({
           ) as HTMLButtonElement | null;
           trigger?.click();
         }}
-        className="sm:hidden bg-transparent border-none cursor-pointer p-2 w-11 h-11 flex items-center justify-center rounded-lg text-[var(--t2)] hover:bg-[var(--bg)] transition-colors"
+        className="sm:hidden bg-transparent border-none cursor-pointer p-1.5 w-9 h-9 flex items-center justify-center rounded-lg text-[var(--t2)] hover:bg-[var(--bg)] transition-colors"
         aria-label="Search"
       >
-        <MaterialIcon icon="search" style={{ fontSize: 22 }} />
+        <MaterialIcon icon="search" style={{ fontSize: 20 }} />
       </button>
 
-      <div className="flex items-center gap-2">
-        <div className="hidden lg:flex items-center gap-2 rounded-[18px] border border-[#d8dee8] bg-[var(--surface)] px-3 py-2 shadow-[0_8px_24px_rgba(15,23,42,0.06)] max-w-[220px]">
-          <div className="h-8 w-8 rounded-full bg-[var(--navy-soft)] text-[var(--navy)] flex items-center justify-center flex-shrink-0">
-            <MaterialIcon icon="school" style={{ fontSize: 16 }} />
-          </div>
-          <div className="min-w-0">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--t4)] font-bold">
-              Workspace
-            </div>
-            <div className="text-[12px] text-[var(--t1)] font-semibold truncate">
-              {schoolName}
-            </div>
-          </div>
-        </div>
-
-        <Link
-          href={nextStep.href}
-          className="flex items-center gap-1.5 h-10 px-2.5 sm:px-3 rounded-[14px] bg-[var(--primary)] text-[var(--on-primary)] text-[12px] font-semibold no-underline shadow-[0_10px_22px_rgba(10,72,160,0.16)] hover:opacity-90 hover:-translate-y-[1px] transition-all"
-          aria-label={`Open ${nextStep.label}`}
-        >
-          <MaterialIcon
-            icon={nextStep.icon}
-            className="text-[var(--on-primary)]"
-            style={{ fontSize: 15 }}
-          />
-          <span className="hidden lg:inline">Open {nextStep.label}</span>
-        </Link>
-
+      {/* Right actions */}
+      <div className="flex items-center gap-1.5">
         <div ref={notifPanelRef} className="notif-panel relative">
           <button
             onClick={() => {
               setNotifOpen((current) => !current);
               setUserMenuOpen(false);
             }}
-            className="w-10 h-10 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center cursor-pointer shadow-[var(--sh1)] relative hover:bg-[var(--bg)] transition-colors"
+            className="w-9 h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center cursor-pointer relative hover:bg-[var(--bg)] transition-colors"
             aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
             aria-expanded={notifOpen}
             aria-haspopup="dialog"
           >
             <MaterialIcon
               icon="notifications"
-              style={{ fontSize: 16, color: "var(--t2)" }}
+              style={{ fontSize: 18, color: "var(--t2)" }}
             />
             {unreadCount > 0 && (
-              <div className="absolute top-1.5 right-1.5 w-[7px] h-[7px] rounded-full bg-[var(--red)] border-[1.5px] border-[var(--surface)]" />
+              <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[var(--red)] border border-[var(--surface)]" />
             )}
           </button>
           <NotificationsPanel
@@ -421,18 +365,18 @@ export default function TopBar({
 
         <button
           onClick={toggleTheme}
-          className="w-10 h-10 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center cursor-pointer shadow-[var(--sh1)] hover:bg-[var(--bg)] transition-colors"
+          className="hidden sm:flex w-9 h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] items-center justify-center cursor-pointer hover:bg-[var(--bg)] transition-colors"
           aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
         >
           <MaterialIcon
             icon={theme === "dark" ? "light_mode" : "dark_mode"}
-            style={{ fontSize: 16, color: "var(--t2)" }}
+            style={{ fontSize: 18, color: "var(--t2)" }}
           />
         </button>
 
         <div ref={userMenuRef} className="relative">
           <button
-            className="user-menu flex items-center gap-[10px] py-1.5 pr-3 pl-1 bg-[var(--surface)] border border-[var(--border)] rounded-full cursor-pointer shadow-[var(--sh1)] transition-all hover:bg-[var(--bg)]"
+            className="user-menu flex items-center gap-2 py-1 pr-2.5 pl-1 bg-[var(--surface)] border border-[var(--border)] rounded-full cursor-pointer transition-colors hover:bg-[var(--bg)]"
             onClick={() => {
               setUserMenuOpen((current) => !current);
               setNotifOpen(false);
@@ -441,17 +385,12 @@ export default function TopBar({
             aria-expanded={userMenuOpen}
             aria-haspopup="menu"
           >
-            <div className="w-[26px] h-[26px] rounded-full bg-[var(--primary)] flex items-center justify-center text-[10px] font-bold text-[var(--on-primary)] font-['Sora']">
+            <div className="w-7 h-7 rounded-full bg-[var(--primary)] flex items-center justify-center text-[11px] font-bold text-[var(--on-primary)] font-['Sora']">
               {user?.full_name?.charAt(0) || "U"}
             </div>
-            <div className="text-left hidden sm:block">
-              <div className="text-[13px] font-semibold text-[var(--t1)]">
-                {user?.full_name?.split(" ")[0] || "User"}
-              </div>
-              <div className="text-[11px] text-[var(--t3)]">
-                {schoolName.split(" ")[0]}
-              </div>
-            </div>
+            <span className="hidden sm:block text-[13px] font-medium text-[var(--t1)] max-w-[100px] truncate">
+              {user?.full_name?.split(" ")[0] || "User"}
+            </span>
           </button>
           <UserMenu
             open={userMenuOpen}

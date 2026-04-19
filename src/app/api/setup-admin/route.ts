@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { apiError, apiSuccess, handleApiError, validateRequiredFields } from '@/lib/api-utils'
+import { apiError, apiSuccess, handleApiError, validateRequiredFields, rateLimit } from '@/lib/api-utils'
 import { createManagedUserAccount, createSupabaseAdminClient } from '@/lib/server/user-provisioning'
 
 interface SetupAdminRequest {
@@ -10,6 +10,12 @@ interface SetupAdminRequest {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 3 attempts per IP per hour
+    const { success } = rateLimit(request, 3, 3_600_000);
+    if (!success) {
+      return apiError("Too many attempts. Please try again later.", 429);
+    }
+
     const body: SetupAdminRequest = await request.json()
     const validationError = validateRequiredFields(body as unknown as Record<string, unknown>, [
       'name',

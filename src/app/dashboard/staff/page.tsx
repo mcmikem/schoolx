@@ -248,6 +248,20 @@ function DirectoryTab({
 
     if (!school?.id) return;
 
+    // Validate before API call
+    if (!newStaff.full_name.trim() || newStaff.full_name.trim().length < 2) {
+      toast.error("Full name must be at least 2 characters");
+      return;
+    }
+    if (!newStaff.phone || newStaff.phone.replace(/[^0-9]/g, "").length < 9) {
+      toast.error("Please enter a valid phone number");
+      return;
+    }
+    if (!newStaff.password || newStaff.password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
     try {
       setSaving(true);
 

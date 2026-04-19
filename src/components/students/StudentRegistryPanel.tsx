@@ -6,7 +6,7 @@ import Link from "next/link";
 import OnboardingTips from "@/components/OnboardingTips";
 import MaterialIcon from "@/components/MaterialIcon";
 import { TableSkeleton } from "@/components/ui/Skeleton";
-import OwlMascot from "@/components/brand/OwlMascot";
+import PersonInitials from "@/components/ui/PersonInitials";
 
 interface StudentClassInfo {
   id: string;
@@ -501,7 +501,7 @@ export default function StudentRegistryPanel({
                               style={{ width: "100%", height: "100%", objectFit: "cover" }}
                             />
                           ) : (
-                            <OwlMascot size={36} premium ring glow />
+                            <PersonInitials name={`${student.first_name} ${student.last_name}`} size={36} />
                           )}
                         </div>
                         <div>

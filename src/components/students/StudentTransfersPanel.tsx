@@ -2,7 +2,7 @@
 
 import type { MutableRefObject } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
-import OwlMascot from "@/components/brand/OwlMascot";
+import PersonInitials from "@/components/ui/PersonInitials";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui";
 import { Tabs } from "@/components/ui/Tabs";
@@ -221,7 +221,7 @@ export default function StudentTransfersPanel({
                     <tr key={student.id} className="border-b border-[var(--border)]">
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <OwlMascot size={32} premium ring glow />
+                          <PersonInitials name={`${student.first_name} ${student.last_name}`} size={32} />
                           <div>
                             <div className="font-semibold text-sm">
                               {student.first_name} {student.last_name}

@@ -37,8 +37,8 @@ export async function POST(request: NextRequest) {
         `
         id, first_name, last_name, class_id, student_number, school_id,
         classes (id, name, level),
-        student_grades (subject_id, ca1, ca2, ca3, exam_score, subjects (name)),
-        student_attendance (status)
+        grades (subject_id, ca1, ca2, ca3, exam_score, subjects (name)),
+        attendance (status)
       `,
       )
       .eq("school_id", school.schoolId)
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        const grades = student.student_grades || [];
+        const grades = student.grades || [];
         const validGrades = grades.filter(
           (g: any) =>
             g.ca1 !== null &&
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
           }).length;
         }
 
-        const attendanceRecords = student.student_attendance || [];
+        const attendanceRecords = student.attendance || [];
         const totalDays = attendanceRecords.length;
         const presentDays = attendanceRecords.filter((r: any) =>
           ["present", "late"].includes(r.status),

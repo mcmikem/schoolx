@@ -474,6 +474,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [checkUser, fetchUserData]);
 
+  // Refresh session when tab regains focus (catches expired tokens after backgrounding)
+  useEffect(() => {
+    if (!supabase) return;
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === "visible") {
+        try {
+          const { data: { user: freshUser } } = await supabase!.auth.getUser();
+          if (!freshUser && user) {
+            // Session expired while tab was backgrounded
+            setUser(null);
+            setSchool(null);
+            setLoading(false);
+            router.push("/login");
+          }
+        } catch {
+          // Silently ignore — network offline etc.
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [user, router]);
+
   async function signIn(phone: string, password: string) {
     try {
       const attempts = buildAuthLoginAttempts(phone);

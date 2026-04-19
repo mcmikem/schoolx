@@ -1,7 +1,6 @@
 "use client";
 
 import { useId } from "react";
-import OwlMascot from "@/components/brand/OwlMascot";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost" | "danger";
@@ -173,18 +172,25 @@ export function Avatar({ src, name, size = "md" }: AvatarProps) {
     lg: "w-14 h-14 text-lg",
   };
 
-  const iconSizes = {
-    sm: 32,
-    md: 40,
-    lg: 56,
-  };
-
   const initials = name
     .split(" ")
     .map((n) => n[0])
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  // Deterministic color from name
+  const colors = [
+    "bg-emerald-100 text-emerald-700",
+    "bg-blue-100 text-blue-700",
+    "bg-amber-100 text-amber-700",
+    "bg-rose-100 text-rose-700",
+    "bg-purple-100 text-purple-700",
+    "bg-teal-100 text-teal-700",
+    "bg-orange-100 text-orange-700",
+    "bg-indigo-100 text-indigo-700",
+  ];
+  const colorIndex = name.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) % colors.length;
 
   if (src) {
     return (
@@ -198,9 +204,10 @@ export function Avatar({ src, name, size = "md" }: AvatarProps) {
   }
 
   return (
-    <div className="inline-flex items-center justify-center">
-      <OwlMascot size={iconSizes[size]} premium ring glow={size !== "sm"} />
-      <span className="sr-only">{initials}</span>
+    <div
+      className={`${sizes[size]} ${colors[colorIndex]} rounded-full inline-flex items-center justify-center font-semibold select-none`}
+    >
+      {initials}
     </div>
   );
 }

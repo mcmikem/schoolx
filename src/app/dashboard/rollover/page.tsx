@@ -154,6 +154,7 @@ export default function RolloverPage() {
 
       // 4. Promote Students (Batch update class_id)
       const activeStudents = students.filter(s => s.status === 'active' && s.class_id)
+      const promotionsByClass: Record<string, string[]> = {}
       for (const student of activeStudents) {
         const currentClassName = student.classes?.name || ''
         if (currentClassName.includes('P.7') || currentClassName.includes('S.6')) continue
@@ -162,8 +163,13 @@ export default function RolloverPage() {
         const nextClassId = newClassesMap.get(nextClassName)
 
         if (nextClassId) {
-          await supabase.from('students').update({ class_id: nextClassId }).eq('id', student.id)
+          if (!promotionsByClass[nextClassId]) promotionsByClass[nextClassId] = []
+          promotionsByClass[nextClassId].push(student.id)
         }
+      }
+
+      for (const [nextClassId, studentIds] of Object.entries(promotionsByClass)) {
+        await supabase.from('students').update({ class_id: nextClassId }).in('id', studentIds)
       }
 
       // 5. Update global academic state

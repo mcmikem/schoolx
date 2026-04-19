@@ -1,132 +1,125 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card, CardBody } from "@/components/ui/Card";
-import { DEMO_STAFF } from "@/lib/demo-data";
 
 interface Activity {
   id: string;
-  staffName: string;
+  user_name: string;
   action: string;
-  target: string;
-  timestamp: string;
-  type: "attendance" | "grade" | "note" | "leave";
+  module: string;
+  description: string;
+  created_at: string;
 }
 
 export default function StaffActivityPage() {
-  const { isDemo } = useAuth();
+  const { school } = useAuth();
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
 
+  const fetchActivities = useCallback(async () => {
+    if (!school?.id) return;
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("audit_log")
+      .select("id, user_name, action, module, description, created_at")
+      .eq("school_id", school.id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (!error && data) setActivities(data);
+    setLoading(false);
+  }, [school?.id]);
+
   useEffect(() => {
-    if (isDemo) {
-      setActivities([
-        {
-          id: "1",
-          staffName: "Mary Johnson",
-          action: "Marked attendance",
-          target: "S.1 Blue",
-          timestamp: "2026-04-10 08:15",
-          type: "attendance",
-        },
-        {
-          id: "2",
-          staffName: "John Smith",
-          action: "Submitted grades",
-          target: "S.2 Mathematics",
-          timestamp: "2026-04-10 09:30",
-          type: "grade",
-        },
-        {
-          id: "3",
-          staffName: "Sarah Davis",
-          action: "Posted notice",
-          target: "Exam Schedule",
-          timestamp: "2026-04-09 14:00",
-          type: "note",
-        },
-        {
-          id: "4",
-          staffName: "Mike Brown",
-          action: "Requested leave",
-          target: "Apr 20-22",
-          timestamp: "2026-04-09 10:00",
-          type: "leave",
-        },
-      ]);
-    }
-  }, [isDemo]);
+    fetchActivities();
+  }, [fetchActivities]);
 
   const filtered =
-    filter === "all" ? activities : activities.filter((a) => a.type === filter);
+    filter === "all" ? activities : activities.filter((a) => a.module === filter);
 
-  const getIcon = (type: string) => {
-    switch (type) {
-      case "attendance":
-        return "check_circle";
-      case "grade":
-        return "grade";
-      case "note":
-        return "campaign";
-      case "leave":
-        return "event_busy";
-      default:
-        return "history";
+  const modules = Array.from(new Set(activities.map((a) => a.module)));
+
+  const getIcon = (module: string) => {
+    switch (module) {
+      case "attendance": return "check_circle";
+      case "grades": return "grade";
+      case "students": return "group";
+      case "fees": return "payments";
+      case "staff": return "badge";
+      default: return "history";
+    }
+  };
+
+  const getColor = (action: string) => {
+    switch (action) {
+      case "create": return "var(--green)";
+      case "update": return "var(--navy)";
+      case "delete": return "var(--red, #dc2626)";
+      default: return "var(--t3)";
     }
   };
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+    <div className="content">
       <PageHeader
         title="Staff Activity"
-        subtitle="Track recent staff actions and updates"
+        subtitle="Recent staff actions across the system"
       />
 
-      <div className="flex gap-2 mb-6">
-        {["all", "attendance", "grade", "note", "leave"].map((f) => (
+      <div className="flex flex-wrap gap-2 mb-6">
+        <button
+          onClick={() => setFilter("all")}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${filter === "all" ? "bg-[var(--primary)] text-[var(--on-primary)]" : "bg-[var(--surface)] text-[var(--t2)] hover:bg-[var(--bg)]"}`}
+        >
+          All
+        </button>
+        {modules.map((m) => (
           <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === f ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+            key={m}
+            onClick={() => setFilter(m)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${filter === m ? "bg-[var(--primary)] text-[var(--on-primary)]" : "bg-[var(--surface)] text-[var(--t2)] hover:bg-[var(--bg)]"}`}
           >
-            {f.charAt(0).toUpperCase() + f.slice(1)}
+            {m}
           </button>
         ))}
       </div>
 
-      <div className="space-y-4">
-        {filtered.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <MaterialIcon icon="history" className="text-4xl mx-auto mb-2" />
-            <p>No activity recorded</p>
+      <div className="space-y-2">
+        {loading ? (
+          <div className="p-8 text-center text-[var(--t3)]">Loading activity…</div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-12">
+            <MaterialIcon icon="history" className="text-4xl text-[var(--t3)] opacity-30 mb-2" />
+            <p className="text-sm font-medium text-[var(--t2)]">No activity recorded</p>
+            <p className="text-xs text-[var(--t3)] mt-1">Actions like attendance, grading, and fee payments will appear here</p>
           </div>
         ) : (
-          filtered.map((activity) => (
-            <Card key={activity.id}>
-              <CardBody>
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
-                    <MaterialIcon
-                      icon={getIcon(activity.type)}
-                      className="text-gray-600"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{activity.staffName}</h3>
-                    <p className="text-sm text-gray-500">
-                      {activity.action} • {activity.target}
-                    </p>
-                  </div>
-                  <span className="text-xs text-gray-400">
-                    {activity.timestamp}
-                  </span>
-                </div>
-              </CardBody>
-            </Card>
+          filtered.map((a) => (
+            <div key={a.id} className="card !p-4 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: `color-mix(in srgb, ${getColor(a.action)} 10%, transparent)`, color: getColor(a.action) }}>
+                <MaterialIcon icon={getIcon(a.module)} style={{ fontSize: 18 }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[var(--t1)] truncate">{a.user_name || "System"}</p>
+                <p className="text-xs text-[var(--t3)] truncate">
+                  {a.description || `${a.action} in ${a.module}`}
+                </p>
+              </div>
+              <div className="text-right shrink-0">
+                <span className="text-[10px] font-medium text-[var(--t3)]">
+                  {new Date(a.created_at).toLocaleDateString("en-UG", { month: "short", day: "numeric" })}
+                </span>
+                <br />
+                <span className="text-[10px] text-[var(--t3)]">
+                  {new Date(a.created_at).toLocaleTimeString("en-UG", { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </div>
+            </div>
           ))
         )}
       </div>

@@ -8,18 +8,13 @@ import { useAcademic } from "@/lib/academic-context";
 import { useStudents, useClasses } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
-import { useFormDraft } from "@/lib/useAutoSave";
 import { SendSMSModal } from "@/components/SendSMSModal";
 import MaterialIcon from "@/components/MaterialIcon";
-import { PageHeader, PageSection } from "@/components/ui/PageHeader";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
-import { Modal, ModalFooter } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import BulkImport from "@/components/BulkImport";
-import { Card, CardHeader, CardBody, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
-import { EmptyState, NoData, SearchEmpty } from "@/components/EmptyState";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { DEMO_CLASSES, DEMO_ATTENDANCE } from "@/lib/demo-data";
 import StudentPhotoField from "@/components/students/StudentPhotoField";
 import StudentRegistryPanel from "@/components/students/StudentRegistryPanel";
 import StudentWorkspaceShell from "@/components/students/StudentWorkspaceShell";
@@ -30,20 +25,11 @@ import { useTablePreferences } from "@/lib/useTablePreferences";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { uploadStudentPhoto } from "@/lib/student-photos";
+import { useStudentTransfers } from "@/hooks/useStudentTransfers";
+import { useStudentDropouts } from "@/hooks/useStudentDropouts";
+import { useStudentPromotion } from "@/hooks/useStudentPromotion";
 
-const STUDENT_TEMPLATE_COLUMNS = [
-  "student_number",
-  "first_name",
-  "last_name",
-  "gender",
-  "class_name",
-  "class_id",
-  "ple_index_number",
-  "parent_name",
-  "parent_phone",
-  "parent_phone2",
-  "opening_balance",
-];
+
 
 const TRANSFER_REASONS = [
   "Family relocation",
@@ -125,6 +111,17 @@ export default function StudentHubPage() {
     useTablePreferences("students-registry");
 
   const [activeTab, setActiveTab] = useState<StudentWorkspaceTab>("registry");
+
+  // ===== EXTRACTED HOOKS =====
+  const transfers = useStudentTransfers(
+    school?.id, students, isDemo, createStudent, updateStudent, toast,
+  );
+  const dropouts = useStudentDropouts(
+    school?.id, students, isDemo, updateStudent, toast, user,
+  );
+  const promotion = useStudentPromotion(
+    school?.id, students, isDemo, updateStudent, toast, academicYear, user,
+  );
 
   // ===== REGISTRY STATE =====
   const [searchTerm, setSearchTerm] = useState("");
@@ -350,66 +347,6 @@ export default function StudentHubPage() {
     studentId: string | null;
   }>({ open: false, studentId: null });
 
-  // ===== TRANSFERS STATE =====
-  const transferPrintRef = useRef<HTMLDivElement>(null);
-  const [transferActiveTab, setTransferActiveTab] = useState<TransferTab>("in");
-  const [showTransferInModal, setShowTransferInModal] = useState(false);
-  const [showTransferOutModal, setShowTransferOutModal] = useState(false);
-  const [transferSaving, setTransferSaving] = useState(false);
-  const [transferHistory, setTransferHistory] = useState<TransferOutRecord[]>(
-    [],
-  );
-  const [loadingTransferHistory, setLoadingTransferHistory] = useState(true);
-  const [printData, setPrintData] = useState<TransferOutRecord | null>(null);
-
-  const [transferInForm, setTransferInForm] = useState({
-    first_name: "",
-    last_name: "",
-    gender: "M" as "M" | "F",
-    date_of_birth: "",
-    previous_school: "",
-    reason: "",
-    class_id: "",
-    parent_name: "",
-    parent_phone: "",
-    parent_phone2: "",
-  });
-
-  const [transferOutForm, setTransferOutForm] = useState({
-    student_id: "",
-    transfer_to: "",
-    reason: "",
-    transfer_date: new Date().toISOString().split("T")[0],
-  });
-
-  // ===== DROPOUT STATE =====
-  const [atRiskStudents, setAtRiskStudents] = useState<AtRiskStudent[]>([]);
-  const [loadingAtRisk, setLoadingAtRisk] = useState(true);
-  const [dropoutClassFilter, setDropoutClassFilter] = useState("all");
-  const [showDropoutModal, setShowDropoutModal] = useState<string | null>(null);
-  const [dropoutReason, setDropoutReason] = useState("");
-  const [sendingSms, setSendingSms] = useState<string | null>(null);
-
-  // ===== PROMOTION STATE =====
-  const [promotionClasses, setPromotionClasses] = useState<ClassData[]>([]);
-  const [fromClass, setFromClass] = useState("");
-  const [toClass, setToClass] = useState("");
-  const [promotionStudents, setPromotionStudents] = useState<
-    PromotionStudent[]
-  >([]);
-  const [selectedStudents, setSelectedStudents] = useState<Set<string>>(
-    new Set(),
-  );
-  const [studentActions, setStudentActions] = useState<StudentActionMap>({});
-  const [promotionLoading, setPromotionLoading] = useState(false);
-  const [promoting, setPromoting] = useState(false);
-  const [promotionHistory, setPromotionHistory] = useState<any[]>([]);
-  const [showDemoteModal, setShowDemoteModal] = useState<string | null>(null);
-  const [demoteReason, setDemoteReason] = useState("");
-  const [demoteClass, setDemoteClass] = useState("");
-  const [autoPromoting, setAutoPromoting] = useState(false);
-  const [autoPromoteResult, setAutoPromoteResult] = useState<any>(null);
-
   // ===== EFFECTS =====
   useEffect(() => {
     if (!school?.id) return;
@@ -423,266 +360,6 @@ export default function StudentHubPage() {
       });
   }, [school?.id]);
 
-  const fetchTransferHistory = useCallback(async () => {
-    if (!school?.id) return;
-    setLoadingTransferHistory(true);
-    try {
-      if (isDemo) {
-        const records: TransferOutRecord[] = students
-          .filter((student) => student.status === "transferred")
-          .map((student) => ({
-            id: student.id,
-            student_id: student.id,
-            transfer_to: student.transfer_to || "Unknown",
-            reason: student.transfer_reason || "",
-            transfer_date:
-              student.dropout_date || student.created_at?.split("T")[0] || "",
-            student_name: `${student.first_name} ${student.last_name}`,
-            class_name:
-              student.classes?.name ||
-              DEMO_CLASSES.find((c) => c.id === student.class_id)?.name ||
-              "-",
-            student_number: student.student_number || "",
-            gender: student.gender || "",
-            admission_date:
-              student.admission_date || student.created_at?.split("T")[0] || "",
-          }));
-        setTransferHistory(records);
-        return;
-      }
-      const { data, error } = await supabase
-        .from("students")
-        .select("*, classes(name)")
-        .eq("school_id", school.id)
-        .eq("status", "transferred")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      const records: TransferOutRecord[] = (data || []).map((s: any) => ({
-        id: s.id,
-        student_id: s.id,
-        transfer_to: s.transfer_to || "Unknown",
-        reason: s.transfer_reason || "",
-        transfer_date: s.dropout_date || s.created_at?.split("T")[0] || "",
-        student_name: `${s.first_name} ${s.last_name}`,
-        class_name: s.classes?.name || "-",
-        student_number: s.student_number || "",
-        gender: s.gender || "",
-        admission_date: s.admission_date || s.created_at?.split("T")[0] || "",
-      }));
-      setTransferHistory(records);
-    } catch (err) {
-      console.error("Error fetching transfer history:", err);
-    } finally {
-      setLoadingTransferHistory(false);
-    }
-  }, [school?.id, students, isDemo]);
-
-  useEffect(() => {
-    if (school?.id) fetchTransferHistory();
-  }, [school?.id, fetchTransferHistory]);
-
-  const fetchAtRiskStudents = useCallback(async () => {
-    if (!school?.id) return;
-    setLoadingAtRisk(true);
-    try {
-      if (isDemo) {
-        const activeStudents = students.filter((s) => s.status === "active");
-        const demoRiskList: AtRiskStudent[] = activeStudents
-          .slice(0, 4)
-          .map((student, index) => ({
-            id: student.id,
-            first_name: student.first_name,
-            last_name: student.last_name,
-            gender: student.gender,
-            student_number: student.student_number || "",
-            class_id: student.class_id,
-            class_name: student.classes?.name || "-",
-            parent_name: student.parent_name || "",
-            parent_phone: student.parent_phone || "",
-            consecutive_absent:
-              index === 0 ? 32 : index === 1 ? 21 : index === 2 ? 16 : 14,
-            last_attendance_date:
-              index === 0
-                ? null
-                : DEMO_ATTENDANCE.find(
-                    (r) => r.student_id === student.id && r.status !== "absent",
-                  )?.date || null,
-            risk_level: index === 0 ? "likely_dropout" : "at_risk",
-          }));
-        setAtRiskStudents(demoRiskList);
-        return;
-      }
-      const today = new Date();
-      const thirtyDaysAgo = new Date(today);
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const todayStr = today.toISOString().split("T")[0];
-      const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split("T")[0];
-      const { data: attendanceData, error } = await supabase
-        .from("attendance")
-        .select("student_id, date, status")
-        .gte("date", thirtyDaysAgoStr)
-        .lte("date", todayStr)
-        .order("date", { ascending: false });
-      if (error) throw error;
-      const studentAtt: Record<string, { date: string; status: string }[]> = {};
-      attendanceData?.forEach((record: any) => {
-        if (!studentAtt[record.student_id]) studentAtt[record.student_id] = [];
-        studentAtt[record.student_id].push({
-          date: record.date,
-          status: record.status,
-        });
-      });
-      const activeStudents = students.filter((s) => s.status === "active");
-      const atRiskList: AtRiskStudent[] = [];
-      for (const student of activeStudents) {
-        const records = studentAtt[student.id];
-        if (!records || records.length === 0) {
-          atRiskList.push({
-            id: student.id,
-            first_name: student.first_name,
-            last_name: student.last_name,
-            gender: student.gender,
-            student_number: student.student_number || "",
-            class_id: student.class_id,
-            class_name: student.classes?.name || "-",
-            parent_name: student.parent_name || "",
-            parent_phone: student.parent_phone || "",
-            consecutive_absent: 30,
-            last_attendance_date: null,
-            risk_level: "likely_dropout",
-          });
-          continue;
-        }
-        const sorted = records.sort((a, b) => b.date.localeCompare(a.date));
-        let consecutiveAbsent = 0;
-        let lastAttendanceDate: string | null = null;
-        for (const rec of sorted) {
-          if (rec.status === "absent") {
-            consecutiveAbsent++;
-          } else {
-            lastAttendanceDate = rec.date;
-            break;
-          }
-        }
-        if (!lastAttendanceDate && sorted.length > 0) {
-          consecutiveAbsent = sorted.length;
-        }
-        if (consecutiveAbsent >= 14) {
-          atRiskList.push({
-            id: student.id,
-            first_name: student.first_name,
-            last_name: student.last_name,
-            gender: student.gender,
-            student_number: student.student_number || "",
-            class_id: student.class_id,
-            class_name: student.classes?.name || "-",
-            parent_name: student.parent_name || "",
-            parent_phone: student.parent_phone || "",
-            consecutive_absent: consecutiveAbsent,
-            last_attendance_date: lastAttendanceDate,
-            risk_level: consecutiveAbsent >= 30 ? "likely_dropout" : "at_risk",
-          });
-        }
-      }
-      setAtRiskStudents(
-        atRiskList.sort((a, b) => b.consecutive_absent - a.consecutive_absent),
-      );
-    } catch (err) {
-      console.error("Error computing at-risk students:", err);
-    } finally {
-      setLoadingAtRisk(false);
-    }
-  }, [school?.id, students, isDemo]);
-
-  useEffect(() => {
-    fetchAtRiskStudents();
-  }, [fetchAtRiskStudents]);
-
-  const fetchPromotionClasses = useCallback(async () => {
-    if (!school?.id) return;
-    if (isDemo) {
-      setPromotionClasses(DEMO_CLASSES as any);
-      return;
-    }
-    const { data } = await supabase
-      .from("classes")
-      .select("*")
-      .eq("school_id", school?.id)
-      .order("level", { ascending: true });
-    setPromotionClasses(data || []);
-  }, [school?.id, isDemo]);
-
-  const fetchPromotionStudents = useCallback(async () => {
-    if (!school?.id || !fromClass) return;
-    setPromotionLoading(true);
-    if (isDemo) {
-      const classStudents = students.filter((s) => s.class_id === fromClass);
-      setPromotionStudents(classStudents as any);
-      setSelectedStudents(new Set(classStudents.map((s) => s.id)));
-      const defaultActions: StudentActionMap = {};
-      classStudents.forEach((s) => {
-        defaultActions[s.id] = { action: "promote" };
-      });
-      setStudentActions(defaultActions);
-      setPromotionLoading(false);
-      return;
-    }
-    const { data } = await supabase
-      .from("students")
-      .select("*, classes(*)")
-      .eq("school_id", school?.id)
-      .eq("class_id", fromClass)
-      .eq("status", "active")
-      .order("first_name");
-    setPromotionStudents(data || []);
-    setSelectedStudents(new Set(data?.map((s) => s.id) || []));
-    const defaultActions: StudentActionMap = {};
-    data?.forEach((s) => {
-      defaultActions[s.id] = { action: "promote" };
-    });
-    setStudentActions(defaultActions);
-    setPromotionLoading(false);
-  }, [school?.id, fromClass, isDemo, students]);
-
-  const fetchPromotionHistory = useCallback(async () => {
-    if (!school?.id) return;
-    if (isDemo) {
-      setPromotionHistory([
-        {
-          id: "demo-h1",
-          from_classes: { name: "P.4" },
-          to_classes: { name: "P.5" },
-          academic_year: academicYear,
-          promotion_type: "promoted",
-          promoted_at: new Date().toISOString(),
-          users: { full_name: user?.full_name || "Admin" },
-          student_count: 32,
-        },
-      ]);
-      return;
-    }
-    const { data } = await supabase
-      .from("student_promotions")
-      .select("*, from_classes(name), to_classes(name), users(full_name)")
-      .eq("school_id", school?.id)
-      .order("promoted_at", { ascending: false })
-      .limit(20);
-    setPromotionHistory(data || []);
-  }, [school?.id, isDemo, academicYear, user?.full_name]);
-
-  useEffect(() => {
-    if (school?.id) fetchPromotionClasses();
-  }, [school?.id, fetchPromotionClasses]);
-
-  useEffect(() => {
-    if (fromClass) fetchPromotionStudents();
-  }, [fromClass, fetchPromotionStudents]);
-
-  useEffect(() => {
-    if (school?.id) fetchPromotionHistory();
-  }, [school?.id, fetchPromotionHistory]);
-
-  // ===== REGISTRY LOGIC =====
   const resolveClassId = (row: Record<string, string>) => {
     if (row.class_id) return row.class_id;
     if (!row.class_name) return "";
@@ -1035,462 +712,6 @@ export default function StudentHubPage() {
     }
   };
 
-  // ===== TRANSFERS LOGIC =====
-  const activeStudents = students.filter((s) => s.status === "active");
-  const transferredIn = students.filter(
-    (s) => s.status === "active" && s.transfer_from,
-  );
-
-  const handleTransferIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!school?.id) return;
-    if (!transferInForm.class_id) {
-      toast.error("Please assign a class");
-      return;
-    }
-    setTransferSaving(true);
-    try {
-      const studentCount = students.length + 1;
-      const studentNumber = `TRF${String(studentCount).padStart(5, "0")}`;
-      await createStudent({
-        first_name: transferInForm.first_name,
-        last_name: transferInForm.last_name,
-        gender: transferInForm.gender,
-        date_of_birth: transferInForm.date_of_birth,
-        parent_name: transferInForm.parent_name,
-        parent_phone: transferInForm.parent_phone,
-        parent_phone2: transferInForm.parent_phone2,
-        class_id: transferInForm.class_id,
-        student_number: studentNumber,
-        status: "active",
-        transfer_from: transferInForm.previous_school,
-        transfer_reason: transferInForm.reason,
-      });
-      toast.success("Transfer-in student added successfully");
-      setShowTransferInModal(false);
-      setTransferInForm({
-        first_name: "",
-        last_name: "",
-        gender: "M",
-        date_of_birth: "",
-        previous_school: "",
-        reason: "",
-        class_id: "",
-        parent_name: "",
-        parent_phone: "",
-        parent_phone2: "",
-      });
-    } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to add transfer student";
-      toast.error(errorMessage);
-    } finally {
-      setTransferSaving(false);
-    }
-  };
-
-  const handleTransferOut = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!transferOutForm.student_id) {
-      toast.error("Please select a student");
-      return;
-    }
-    setTransferSaving(true);
-    try {
-      const student = students.find((s) => s.id === transferOutForm.student_id);
-      if (!student) throw new Error("Student not found");
-      await updateStudent(transferOutForm.student_id, {
-        status: "transferred",
-        transfer_to: transferOutForm.transfer_to,
-        transfer_reason: transferOutForm.reason,
-        dropout_date: transferOutForm.transfer_date,
-      });
-      const record: TransferOutRecord = {
-        id: transferOutForm.student_id,
-        student_id: transferOutForm.student_id,
-        transfer_to: transferOutForm.transfer_to,
-        reason: transferOutForm.reason,
-        transfer_date: transferOutForm.transfer_date,
-        student_name: `${student.first_name} ${student.last_name}`,
-        class_name: student.classes?.name || "-",
-        student_number: student.student_number || "",
-        gender: student.gender || "",
-        admission_date:
-          student.admission_date || student.created_at?.split("T")[0] || "",
-      };
-      setPrintData(record);
-      if (isDemo) {
-        setTransferHistory((prev) => [
-          record,
-          ...prev.filter((entry) => entry.student_id !== record.student_id),
-        ]);
-      }
-      toast.success("Student transferred out successfully");
-      setShowTransferOutModal(false);
-      setTransferOutForm({
-        student_id: "",
-        transfer_to: "",
-        reason: "",
-        transfer_date: new Date().toISOString().split("T")[0],
-      });
-      if (!isDemo) fetchTransferHistory();
-    } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Transfer failed";
-      toast.error(errorMessage);
-    } finally {
-      setTransferSaving(false);
-    }
-  };
-
-  const handlePrint = () => {
-    if (!transferPrintRef.current) return;
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-    const content = transferPrintRef.current.innerHTML;
-    printWindow.document.write(`
-      <html><head><title>Transfer Letter</title>
-      <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #1a1a1a; }
-        .letterhead { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #1e3a5f; padding-bottom: 20px; }
-        .letterhead h1 { margin: 0; font-size: 22px; color: #1e3a5f; }
-        .letterhead p { margin: 4px 0; font-size: 13px; color: #555; }
-        .title { text-align: center; font-size: 18px; font-weight: 700; margin: 20px 0; text-decoration: underline; }
-        .content { line-height: 1.8; font-size: 14px; }
-        .content p { margin: 8px 0; }
-        .field { font-weight: 600; }
-        .signatures { display: flex; justify-content: space-between; margin-top: 60px; }
-        .sig-block { text-align: center; width: 200px; }
-        .sig-line { border-top: 1px solid #333; margin-top: 50px; padding-top: 5px; font-size: 12px; }
-        .stamp-area { width: 100px; height: 100px; border: 2px dashed #aaa; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999; margin: 0 auto; }
-        @media print { body { padding: 20px; } }
-      </style>
-      </head><body>${content}</body></html>
-    `);
-    printWindow.document.close();
-    printWindow.print();
-  };
-
-  const transferredOutCount = transferHistory.length;
-  const transferredInCount = transferredIn.length;
-
-  // ===== DROPOUT LOGIC =====
-  const handleContactParent = async (student: AtRiskStudent) => {
-    if (!student.parent_phone) {
-      toast.error("No parent phone number on file");
-      return;
-    }
-    setSendingSms(student.id);
-    try {
-      const message = `Dear ${student.parent_name || "Parent/Guardian"}, your child ${student.first_name} ${student.last_name} has been absent from school for ${student.consecutive_absent} consecutive days. Please contact the school urgently.`;
-      if (isDemo) {
-        toast.success(`SMS queued to ${student.parent_phone}`);
-        return;
-      }
-      await supabase.from("messages").insert({
-        school_id: school?.id,
-        recipient_type: "individual",
-        phone: student.parent_phone,
-        message,
-        status: "pending",
-        sent_by: user?.id,
-      });
-      toast.success(`SMS queued to ${student.parent_phone}`);
-    } catch (err) {
-      toast.error("Failed to send SMS");
-    } finally {
-      setSendingSms(null);
-    }
-  };
-
-  const handleMarkDropout = async () => {
-    if (!showDropoutModal || !dropoutReason) {
-      toast.error("Please provide a reason");
-      return;
-    }
-    try {
-      await updateStudent(showDropoutModal, {
-        status: "dropped",
-        dropout_reason: dropoutReason,
-        dropout_date: new Date().toISOString().split("T")[0],
-      });
-      toast.success("Student marked as dropout");
-      setShowDropoutModal(null);
-      setDropoutReason("");
-      if (isDemo) {
-        setAtRiskStudents((prev) =>
-          prev.filter((s) => s.id !== showDropoutModal),
-        );
-      } else {
-        fetchAtRiskStudents();
-      }
-    } catch (err) {
-      toast.error("Failed to update student");
-    }
-  };
-
-  const filteredAtRisk =
-    dropoutClassFilter === "all"
-      ? atRiskStudents
-      : atRiskStudents.filter((s) => s.class_id === dropoutClassFilter);
-
-  const atRiskCount = atRiskStudents.filter(
-    (s) => s.risk_level === "at_risk",
-  ).length;
-  const likelyDropoutCount = atRiskStudents.filter(
-    (s) => s.risk_level === "likely_dropout",
-  ).length;
-
-  // ===== PROMOTION LOGIC =====
-  const toggleStudent = (id: string) => {
-    const newSelected = new Set(selectedStudents);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-      setStudentActions((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
-    } else {
-      newSelected.add(id);
-      setStudentActions((prev) => ({ ...prev, [id]: { action: "promote" } }));
-    }
-    setSelectedStudents(newSelected);
-  };
-
-  const toggleAll = () => {
-    if (selectedStudents.size === promotionStudents.length) {
-      setSelectedStudents(new Set());
-      setStudentActions({});
-    } else {
-      const newSet = new Set(promotionStudents.map((s) => s.id));
-      const newActions: StudentActionMap = {};
-      promotionStudents.forEach((s) => {
-        newActions[s.id] = { action: "promote" };
-      });
-      setSelectedStudents(newSet);
-      setStudentActions(newActions);
-    }
-  };
-
-  const setAction = (studentId: string, action: StudentAction) => {
-    if (action === "demote") {
-      setShowDemoteModal(studentId);
-      return;
-    }
-    setStudentActions((prev) => ({
-      ...prev,
-      [studentId]: {
-        ...prev[studentId],
-        action,
-        targetClassId: undefined,
-        reason: undefined,
-      },
-    }));
-  };
-
-  const confirmDemote = () => {
-    if (!showDemoteModal || !demoteClass) {
-      toast.error("Please select a class to demote to");
-      return;
-    }
-    setStudentActions((prev) => ({
-      ...prev,
-      [showDemoteModal]: {
-        action: "demote",
-        targetClassId: demoteClass,
-        reason: demoteReason,
-      },
-    }));
-    setShowDemoteModal(null);
-    setDemoteReason("");
-    setDemoteClass("");
-  };
-
-  const processPromotions = async () => {
-    const selectedArray = Array.from(selectedStudents);
-    if (selectedArray.length === 0) {
-      toast.error("No students selected");
-      return;
-    }
-    const promoteStudents = selectedArray.filter(
-      (id) => studentActions[id]?.action === "promote",
-    );
-    if (promoteStudents.length > 0 && !toClass) {
-      toast.error("Please select a target class for promoted students");
-      return;
-    }
-    setPromoting(true);
-    try {
-      let user_id = "demo-user";
-      if (!isDemo) {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        user_id = user?.id || user_id;
-      }
-
-      let promoted = 0,
-        repeating = 0,
-        demoted = 0;
-
-      for (const studentId of selectedArray) {
-        const actionData = studentActions[studentId];
-        if (!actionData) continue;
-        const action = actionData.action;
-
-        if (isDemo) {
-          if (action === "promote") {
-            await updateStudent(studentId, { class_id: toClass });
-            promoted++;
-          } else if (action === "repeat") {
-            await updateStudent(studentId, { repeating: true });
-            repeating++;
-          } else if (action === "demote") {
-            const targetClass = actionData.targetClassId || fromClass;
-            await updateStudent(studentId, { class_id: targetClass });
-            demoted++;
-          }
-          continue;
-        }
-
-        if (action === "promote") {
-          await supabase
-            .from("students")
-            .update({ class_id: toClass, repeating: false })
-            .eq("id", studentId);
-          await supabase.from("student_promotions").insert({
-            school_id: school?.id,
-            student_id: studentId,
-            from_class_id: fromClass,
-            to_class_id: toClass,
-            academic_year: academicYear,
-            promotion_type: "promoted",
-            promoted_by: user_id,
-            promoted_at: new Date().toISOString(),
-          });
-          promoted++;
-        } else if (action === "repeat") {
-          await supabase
-            .from("students")
-            .update({ repeating: true })
-            .eq("id", studentId);
-          await supabase.from("student_promotions").insert({
-            school_id: school?.id,
-            student_id: studentId,
-            from_class_id: fromClass,
-            to_class_id: fromClass,
-            academic_year: academicYear,
-            promotion_type: "repeating",
-            notes: "Repeating class",
-            promoted_by: user_id,
-            promoted_at: new Date().toISOString(),
-          });
-          repeating++;
-        } else if (action === "demote") {
-          const targetClass = actionData.targetClassId || fromClass;
-          await supabase
-            .from("students")
-            .update({ class_id: targetClass, repeating: false })
-            .eq("id", studentId);
-          await supabase.from("student_promotions").insert({
-            school_id: school?.id,
-            student_id: studentId,
-            from_class_id: fromClass,
-            to_class_id: targetClass,
-            academic_year: academicYear,
-            promotion_type: "demoted",
-            notes: actionData.reason || "Demoted",
-            promoted_by: user_id,
-            promoted_at: new Date().toISOString(),
-          });
-          demoted++;
-        }
-      }
-      const summaryParts: string[] = [];
-      if (promoted > 0) summaryParts.push(`${promoted} promoted`);
-      if (repeating > 0) summaryParts.push(`${repeating} repeating`);
-      if (demoted > 0) summaryParts.push(`${demoted} demoted`);
-      toast.success(summaryParts.join(", ") + " successfully");
-      fetchPromotionStudents();
-      fetchPromotionHistory();
-      setSelectedStudents(new Set());
-      setStudentActions({});
-    } catch (err: any) {
-      toast.error(err.message || "Processing failed");
-    } finally {
-      setPromoting(false);
-    }
-  };
-
-  const getNextClassOptions = () => {
-    if (!fromClass) return [];
-    const currentClass = promotionClasses.find((c) => c.id === fromClass);
-    if (!currentClass) return [];
-    const levelNum = parseInt(currentClass.level.replace(/\D/g, ""));
-    if (currentClass.level === "P.7" || currentClass.level.includes("P7"))
-      return promotionClasses.filter(
-        (c) => c.level.includes("S.1") || c.level.includes("S1"),
-      );
-    if (currentClass.level === "S.4" || currentClass.level.includes("S4"))
-      return promotionClasses.filter(
-        (c) => c.level.includes("S.5") || c.level.includes("S5"),
-      );
-    const nextLevel = levelNum + 1;
-    return promotionClasses.filter(
-      (c) => parseInt(c.level.replace(/\D/g, "")) === nextLevel,
-    );
-  };
-
-  const getPrevClassOptions = () => {
-    if (!fromClass) return [];
-    const currentClass = promotionClasses.find((c) => c.id === fromClass);
-    if (!currentClass) return [];
-    const levelNum = parseInt(currentClass.level.replace(/\D/g, ""));
-    if (levelNum <= 1) return [];
-    const prevLevel = levelNum - 1;
-    return promotionClasses.filter(
-      (c) => parseInt(c.level.replace(/\D/g, "")) === prevLevel,
-    );
-  };
-
-  const actionCounts = {
-    promote: Object.values(studentActions).filter((a) => a.action === "promote")
-      .length,
-    repeat: Object.values(studentActions).filter((a) => a.action === "repeat")
-      .length,
-    demote: Object.values(studentActions).filter((a) => a.action === "demote")
-      .length,
-  };
-
-  const handleAutoPromote = async () => {
-    if (!school?.id) {
-      toast.error("No school selected");
-      return;
-    }
-    const year = academicYear || new Date().getFullYear().toString();
-    setAutoPromoting(true);
-    setAutoPromoteResult(null);
-    try {
-      const res = await fetch("/api/automation/auto-promote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ schoolId: school.id, academicYear: year }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Auto-promotion failed");
-      setAutoPromoteResult(data);
-      toast.success(
-        `Auto-promotion complete: ${data.summary.promoted} promoted, ${data.summary.retained} retained`,
-      );
-      fetchPromotionHistory();
-    } catch (err: any) {
-      toast.error(err.message || "Auto-promotion failed");
-    } finally {
-      setAutoPromoting(false);
-    }
-  };
-
   return (
     <PageErrorBoundary>
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
@@ -1504,13 +725,13 @@ export default function StudentHubPage() {
         totalStudents={students.length}
         boysCount={boysCount}
         girlsCount={girlsCount}
-        activeStudents={activeStudents.length}
+        activeStudents={students.filter((s) => s.status === "active").length}
         classesCount={classes.length}
         currentTerm={currentTerm}
         academicYear={academicYear}
-        transferredCount={transferredInCount + transferredOutCount}
-        atRiskCount={atRiskCount}
-        likelyDropoutCount={likelyDropoutCount}
+        transferredCount={(transfers.transferredInCount || 0) + (transfers.transferredOutCount || 0)}
+        atRiskCount={dropouts.atRiskCount}
+        likelyDropoutCount={dropouts.likelyDropoutCount}
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onImport={() => setShowBulkImportModal(true)}
@@ -2741,33 +1962,33 @@ export default function StudentHubPage() {
       {/* ===== TRANSFERS TAB ===== */}
       <TabPanel activeTab={activeTab} tabId="transfers">
           <StudentTransfersPanel
-            activeStudents={activeStudents as any}
-            transferredIn={transferredIn as any}
-            transferredInCount={transferredInCount}
-            transferredOutCount={transferredOutCount}
-            transferHistory={transferHistory}
-            transferActiveTab={transferActiveTab}
-            onTransferTabChange={setTransferActiveTab}
-            showTransferInModal={showTransferInModal}
-            onShowTransferInModal={setShowTransferInModal}
-            showTransferOutModal={showTransferOutModal}
-            onShowTransferOutModal={setShowTransferOutModal}
-            transferSaving={transferSaving}
-            transferInForm={transferInForm}
-            setTransferInForm={setTransferInForm}
-            transferOutForm={transferOutForm}
-            setTransferOutForm={setTransferOutForm}
+            activeStudents={transfers.activeStudents as any}
+            transferredIn={transfers.transferredIn as any}
+            transferredInCount={transfers.transferredInCount}
+            transferredOutCount={transfers.transferredOutCount}
+            transferHistory={transfers.transferHistory}
+            transferActiveTab={transfers.transferActiveTab}
+            onTransferTabChange={transfers.setTransferActiveTab}
+            showTransferInModal={transfers.showTransferInModal}
+            onShowTransferInModal={transfers.setShowTransferInModal}
+            showTransferOutModal={transfers.showTransferOutModal}
+            onShowTransferOutModal={transfers.setShowTransferOutModal}
+            transferSaving={transfers.transferSaving}
+            transferInForm={transfers.transferInForm}
+            setTransferInForm={transfers.setTransferInForm}
+            transferOutForm={transfers.transferOutForm}
+            setTransferOutForm={transfers.setTransferOutForm}
             classes={classes}
-            transferReasons={TRANSFER_REASONS}
-            onTransferIn={handleTransferIn}
-            onTransferOut={handleTransferOut}
-            printData={printData}
-            onPreparePrint={(record) => {
-              setPrintData(record);
-              setTimeout(handlePrint, 200);
+            transferReasons={transfers.TRANSFER_REASONS}
+            onTransferIn={transfers.handleTransferIn}
+            onTransferOut={transfers.handleTransferOut}
+            printData={transfers.printData}
+            onPreparePrint={(record: any) => {
+              transfers.setPrintData(record);
+              setTimeout(transfers.handlePrint, 200);
             }}
-            onPrint={handlePrint}
-            transferPrintRef={transferPrintRef}
+            onPrint={transfers.handlePrint}
+            transferPrintRef={transfers.transferPrintRef}
             school={school}
           />
       </TabPanel>
@@ -2775,57 +1996,57 @@ export default function StudentHubPage() {
       {/* ===== DROPOUTS TAB ===== */}
       <TabPanel activeTab={activeTab} tabId="dropouts">
           <StudentRetentionPanel
-            atRiskCount={atRiskCount}
-            likelyDropoutCount={likelyDropoutCount}
+            atRiskCount={dropouts.atRiskCount}
+            likelyDropoutCount={dropouts.likelyDropoutCount}
             activeStudentsCount={students.filter((s) => s.status === "active").length}
             droppedStudentsCount={students.filter((s) => s.status === "dropped").length}
-            dropoutClassFilter={dropoutClassFilter}
-            setDropoutClassFilter={setDropoutClassFilter}
+            dropoutClassFilter={dropouts.dropoutClassFilter}
+            setDropoutClassFilter={dropouts.setDropoutClassFilter}
             classes={classes}
-            onRefresh={fetchAtRiskStudents}
-            filteredAtRisk={filteredAtRisk}
-            loadingAtRisk={loadingAtRisk}
-            sendingSms={sendingSms}
-            onContactParent={handleContactParent as any}
-            showDropoutModal={showDropoutModal}
-            setShowDropoutModal={setShowDropoutModal}
-            dropoutReason={dropoutReason}
-            setDropoutReason={setDropoutReason}
-            onMarkDropout={handleMarkDropout}
+            onRefresh={dropouts.fetchAtRiskStudents}
+            filteredAtRisk={dropouts.filteredAtRisk}
+            loadingAtRisk={dropouts.loadingAtRisk}
+            sendingSms={dropouts.sendingSms}
+            onContactParent={dropouts.handleContactParent as any}
+            showDropoutModal={dropouts.showDropoutModal}
+            setShowDropoutModal={dropouts.setShowDropoutModal}
+            dropoutReason={dropouts.dropoutReason}
+            setDropoutReason={dropouts.setDropoutReason}
+            onMarkDropout={dropouts.handleMarkDropout}
           />
       </TabPanel>
 
       {/* ===== PROMOTION TAB ===== */}
       <TabPanel activeTab={activeTab} tabId="promotion">
           <StudentPromotionPanel
-            onAutoPromote={handleAutoPromote}
-            autoPromoting={autoPromoting}
-            autoPromoteResult={autoPromoteResult}
-            selectedStudents={selectedStudents}
-            actionCounts={actionCounts}
-            promotionClasses={promotionClasses}
-            fromClass={fromClass}
-            setFromClass={setFromClass}
-            toClass={toClass}
-            setToClass={setToClass}
-            processPromotions={processPromotions}
-            promoting={promoting}
-            getNextClassOptions={getNextClassOptions}
-            getPrevClassOptions={getPrevClassOptions}
-            toggleAll={toggleAll}
-            promotionStudents={promotionStudents as any}
-            promotionLoading={promotionLoading}
-            toggleStudent={toggleStudent}
-            studentActions={studentActions as any}
-            setAction={setAction as any}
-            promotionHistory={promotionHistory}
-            showDemoteModal={showDemoteModal}
-            setShowDemoteModal={setShowDemoteModal}
-            demoteClass={demoteClass}
-            setDemoteClass={setDemoteClass}
-            demoteReason={demoteReason}
-            setDemoteReason={setDemoteReason}
-            confirmDemote={confirmDemote}
+            onAutoPromote={promotion.handleAutoPromote}
+            autoPromoting={promotion.autoPromoting}
+            autoPromoteResult={promotion.autoPromoteResult}
+            selectedStudents={promotion.selectedStudents}
+            actionCounts={promotion.actionCounts}
+            promotionClasses={promotion.promotionClasses}
+            fromClass={promotion.fromClass}
+            setFromClass={promotion.setFromClass}
+            toClass={promotion.toClass}
+            setToClass={promotion.setToClass}
+            processPromotions={promotion.processPromotions}
+            promoting={promotion.promoting}
+            getNextClassOptions={promotion.getNextClassOptions}
+            getPrevClassOptions={promotion.getPrevClassOptions}
+            toggleAll={promotion.toggleAll}
+            promotionStudents={promotion.promotionStudents as any}
+            promotionLoading={promotion.promotionLoading}
+            toggleStudent={promotion.toggleStudent}
+            studentActions={promotion.studentActions as any}
+            setAction={promotion.setAction as any}
+            promotionHistory={promotion.promotionHistory}
+            showDemoteModal={promotion.showDemoteModal}
+            setShowDemoteModal={promotion.setShowDemoteModal}
+            demoteClass={promotion.demoteClass}
+            setDemoteClass={promotion.setDemoteClass}
+            demoteReason={promotion.demoteReason}
+            setDemoteReason={promotion.setDemoteReason}
+            confirmDemote={promotion.confirmDemote}
           />
       </TabPanel>
 

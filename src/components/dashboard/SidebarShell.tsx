@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -48,31 +47,33 @@ export default function SidebarShell({
 
   return (
     <aside id="dashboard-sidebar" className={sidebarClasses}>
-      <div className="px-[18px] pt-5 pb-4 border-b border-[var(--border)] bg-[linear-gradient(180deg,rgba(240,247,255,0.88)_0%,rgba(255,255,255,0.6)_100%)]">
-        <div className="flex items-center gap-[10px] mb-4">
+      <div className="px-4 pt-4 pb-3 border-b border-[var(--border)]">
+        <div className="flex items-center gap-2.5 mb-3">
           {school?.logo_url ? (
             <Image
               src={school.logo_url}
               alt={schoolName}
-              width={36}
-              height={36}
-              className="w-[var(--logo-size)] h-[var(--logo-size)] rounded-[10px] object-cover"
+              width={32}
+              height={32}
+              className="w-8 h-8 rounded-lg object-cover flex-shrink-0"
             />
           ) : (
             <Image
               src="/SkoolMate logos/SchoolMate logo official.svg"
               alt="SkoolMate OS Logo"
-              width={36}
-              height={36}
-              className="w-[var(--logo-size)] h-[var(--logo-size)] object-contain"
+              width={32}
+              height={32}
+              className="w-8 h-8 object-contain flex-shrink-0"
             />
           )}
           <div className="flex-1 min-w-0">
-            <div className="font-['Sora'] text-base font-bold text-[var(--t1)] tracking-[-.2px] leading-[1.1] truncate">
+            <div className="font-['Sora'] text-[14px] font-bold text-[var(--t1)] tracking-[-.15px] leading-tight truncate">
               {schoolName}
             </div>
-            <div className="text-[10px] text-[var(--t4)] tracking-[.3px] mt-0.5 uppercase">
-              School Operations
+            <div className="text-[11px] text-[var(--t3)] mt-0.5 flex items-center gap-1.5">
+              <span className="inline-block w-[5px] h-[5px] rounded-full bg-[var(--green)] flex-shrink-0" />
+              {user?.role?.replace("_", " ") || "User"}
+              {currentTerm ? ` · Term ${currentTerm}` : ""}
             </div>
           </div>
           <button
@@ -82,37 +83,9 @@ export default function SidebarShell({
           >
             <MaterialIcon
               icon="close"
-              style={{ fontSize: 20, color: "var(--t2)" }}
+              style={{ fontSize: 18, color: "var(--t2)" }}
             />
           </button>
-        </div>
-
-        <div className="bg-[var(--bg)] border border-[var(--border)] rounded-[var(--r)] px-3 py-2.5">
-          <div className="text-[12px] font-semibold text-[var(--t1)] leading-[1.3] truncate">
-            {schoolName}
-          </div>
-          <div className="text-[11px] text-[var(--t3)] mt-[3px] flex items-center gap-[5px]">
-            <span className="inline-block w-[6px] h-[6px] rounded-full bg-[var(--green)] flex-shrink-0" />
-            {user?.role?.replace("_", " ") || "User"} · Term{" "}
-            {currentTerm || "..."}
-          </div>
-        </div>
-
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <Link
-            href="/dashboard"
-            onClick={onNavigate}
-            className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-[11px] font-semibold text-[var(--t2)] no-underline hover:bg-[var(--navy-soft)] hover:text-[var(--navy)] transition-colors"
-          >
-            Dashboard home
-          </Link>
-          <Link
-            href="/dashboard/settings"
-            onClick={onNavigate}
-            className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-[11px] font-semibold text-[var(--t2)] no-underline hover:bg-[var(--navy-soft)] hover:text-[var(--navy)] transition-colors"
-          >
-            School settings
-          </Link>
         </div>
       </div>
 

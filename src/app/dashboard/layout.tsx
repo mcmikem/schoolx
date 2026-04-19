@@ -9,10 +9,6 @@ import TrialBanner from "@/components/dashboard/TrialBanner";
 import SidebarShell from "@/components/dashboard/SidebarShell";
 import TopBar from "@/components/dashboard/TopBar";
 import MobileBottomNav from "@/components/dashboard/MobileBottomNav";
-import WorkflowGuide from "@/components/dashboard/WorkflowGuide";
-import WhatsAppSupport from "@/components/WhatsAppSupport";
-import SkoolMatePromo from "@/components/dashboard/SkoolMatePromo";
-import ContextualHelp from "@/components/ContextualHelp";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import PostOnboardingSetup from "@/components/onboarding/PostOnboardingSetup";
 import {
@@ -263,20 +259,16 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         >
           <TopBar pageTitle={pageTitle} onSignOut={handleSignOut} />
           {breadcrumbItems.length > 1 && (
-            <div className="dashboard-breadcrumbs px-4 sm:px-6 py-2.5 border-b border-[var(--border)] bg-[var(--surface)]">
+            <div className="dashboard-breadcrumbs px-4 sm:px-6 py-2 border-b border-[var(--border)] bg-[var(--surface)]">
               <Breadcrumbs items={breadcrumbItems} />
             </div>
           )}
           <TrialBanner />
-          <SkoolMatePromo />
-          <WorkflowGuide />
           {children}
         </main>
       </div>
 
       <MobileBottomNav />
-      <ContextualHelp />
-      <WhatsAppSupport />
     </ErrorBoundary>
   );
 }

@@ -15,8 +15,6 @@ import { StatsGridSkeleton } from "@/components/Skeletons";
 import StatCard from "@/components/dashboard/StatCard";
 import DashboardInsights from "@/components/dashboard/DashboardInsights";
 import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
-import ActionCenter from "@/components/dashboard/ActionCenter";
-import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
 
 function BursarDashboardContent() {
   const { school, user, isDemo } = useAuth();
@@ -96,51 +94,24 @@ function BursarDashboardContent() {
 
   return (
     <div className="content">
-      <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="ph-title truncate !text-3xl">
-              {greeting}, {user?.full_name?.split(" ")[0]}
-            </div>
-            <div className="ph-sub truncate !text-sm">
-              Bursar · {school?.name} • {academicYear} Term {currentTerm}
-            </div>
-          </div>
-          <div className="ph-actions">
-            <Link href="/dashboard/reports" className="btn btn-ghost shadow-sm">
-              <MaterialIcon icon="download" style={{ fontSize: "16px" }} />
-              <span>Financial Report</span>
-            </Link>
-            <Link href="/dashboard/fees" className="btn btn-primary shadow-md">
-              <MaterialIcon icon="add_card" style={{ fontSize: "16px" }} />
-              <span>Record Payment</span>
-            </Link>
-          </div>
-        </div>
+      {/* Greeting */}
+      <div className="mb-6">
+        <h1 className="font-['Sora'] text-xl sm:text-2xl font-bold text-[var(--t1)] tracking-tight">
+          {greeting}, {user?.full_name?.split(" ")[0]}
+        </h1>
+        <p className="text-[13px] text-[var(--t3)] mt-1">
+          Bursar · {school?.name} · {academicYear} Term {currentTerm}
+        </p>
       </div>
 
-      <div className="dashboard-toolbar mb-6">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
-            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)] mb-1">Finance status</div>
-            <div className="text-lg font-bold text-[var(--t1)]">Cleaner collections view with faster visibility into cash, arrears, and target progress</div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <span className="dashboard-pill bg-emerald-50 text-emerald-700">UGX {formatCurrency(totalFeesCollected)} in</span>
-            <span className="dashboard-pill bg-blue-50 text-blue-700">{collectionRate}% rate</span>
-            <span className="dashboard-pill bg-amber-50 text-amber-700">UGX {formatCurrency(totalArrears)} due</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      {/* Key financial numbers */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <StatCard
-          label="Total Collected"
+          label="Collected"
           value={`UGX ${formatCurrency(totalFeesCollected)}`}
-          subValue={`${collectionRate}% Collection Rate`}
+          subValue={`${collectionRate}% of target`}
           icon="account_balance"
           accentColor="green"
-          variant="premium-navy"
           trend={{
             value: Math.abs(collectionTrend),
             direction: collectionTrend >= 0 ? "up" : "down",
@@ -148,36 +119,76 @@ function BursarDashboardContent() {
           }}
         />
         <StatCard
-          label="Total Arrears"
+          label="Arrears"
           value={`UGX ${formatCurrency(totalArrears)}`}
-          subValue={`${students.length} pending`}
+          subValue={`${students.length} students`}
           icon="warning"
-          accentColor="red"
-          variant="premium-amber"
+          accentColor="amber"
         />
         <StatCard
           label="Target"
           value={`UGX ${formatCurrency(totalFeesExpected)}`}
-          subValue={`Term ${currentTerm} goal`}
+          subValue={`Term ${currentTerm}`}
           icon="calculate"
           accentColor="navy"
         />
-      </div>
-
-      <div className="mb-8">
-        <SmartAdvisor
-          stats={{
-            totalFeesExpected,
-            totalFeesCollected,
-          }}
-          collectionRate={collectionRate}
-          attendanceRate={attendanceRate}
-          role="bursar"
+        <StatCard
+          label="Attendance"
+          value={`${attendanceRate}%`}
+          subValue={`${stats?.presentToday || 0} present`}
+          icon="groups"
+          accentColor="purple"
         />
       </div>
 
-      {/* Visual Insights - hidden on mobile */}
-      <div className="hidden xl:block grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
+      {/* Quick Financial Ops */}
+      <div className="mb-6">
+        <h3 className="text-sm font-bold text-[var(--t1)] mb-3 flex items-center gap-2">
+          <MaterialIcon icon="bolt" className="text-[var(--amber)]" style={{ fontSize: 16 }} />
+          Quick actions
+        </h3>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Link href="/dashboard/fees" className="qa-item group">
+            <div className="qa-icon" style={{ background: "var(--green-soft)", color: "var(--green)" }}>
+              <MaterialIcon icon="add_card" />
+            </div>
+            <div className="mt-2">
+              <div className="text-[13px] font-bold text-[var(--t1)]">Payments</div>
+              <div className="text-[11px] text-[var(--t4)]">Record fees</div>
+            </div>
+          </Link>
+          <Link href="/dashboard/invoicing" className="qa-item group">
+            <div className="qa-icon" style={{ background: "var(--navy-soft)", color: "var(--navy)" }}>
+              <MaterialIcon icon="description" />
+            </div>
+            <div className="mt-2">
+              <div className="text-[13px] font-bold text-[var(--t1)]">Invoicing</div>
+              <div className="text-[11px] text-[var(--t4)]">Generate bills</div>
+            </div>
+          </Link>
+          <Link href="/dashboard/cashbook" className="qa-item group">
+            <div className="qa-icon" style={{ background: "var(--amber-soft)", color: "var(--amber)" }}>
+              <MaterialIcon icon="book" />
+            </div>
+            <div className="mt-2">
+              <div className="text-[13px] font-bold text-[var(--t1)]">Cashbook</div>
+              <div className="text-[11px] text-[var(--t4)]">Daily tracking</div>
+            </div>
+          </Link>
+          <Link href="/dashboard/budget" className="qa-item group">
+            <div className="qa-icon" style={{ background: "var(--navy-soft)", color: "var(--navy)" }}>
+              <MaterialIcon icon="account_balance_wallet" />
+            </div>
+            <div className="mt-2">
+              <div className="text-[13px] font-bold text-[var(--t1)]">Budgets</div>
+              <div className="text-[11px] text-[var(--t4)]">Plan spending</div>
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      {/* Charts & Activity */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 mb-6">
         <div className="xl:col-span-3">
           <DashboardInsights
             stats={{
@@ -193,74 +204,6 @@ function BursarDashboardContent() {
         </div>
         <div className="xl:col-span-1">
           <EcosystemPulse payments={payments} />
-        </div>
-      </div>
-
-      {/* Action Hub */}
-      <div className="mb-4 mt-8">
-        <h3 className="text-sm font-bold text-[var(--t1)] mb-4 flex items-center gap-2">
-          <MaterialIcon icon="bolt" className="text-[var(--amber)]" />
-          Quick Financial Ops
-        </h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link href="/dashboard/fees" className="qa-item group">
-            <div
-              className="qa-icon"
-              style={{ background: "var(--green-soft)", color: "var(--green)" }}
-            >
-              <MaterialIcon icon="add_card" />
-            </div>
-            <div className="mt-2">
-              <div className="text-[14px] font-bold text-[var(--t1)]">
-                Payments
-              </div>
-              <div className="text-[11px] text-[var(--t4)]">
-                Record student fees
-              </div>
-            </div>
-          </Link>
-          <Link href="/dashboard/invoicing" className="qa-item group">
-            <div
-              className="qa-icon"
-              style={{ background: "var(--navy-soft)", color: "var(--navy)" }}
-            >
-              <MaterialIcon icon="description" />
-            </div>
-            <div className="mt-2">
-              <div className="text-[14px] font-bold text-[var(--t1)]">
-                Invoicing
-              </div>
-              <div className="text-[11px] text-[var(--t4)]">Generate bills</div>
-            </div>
-          </Link>
-          <Link href="/dashboard/cashbook" className="qa-item group">
-            <div
-              className="qa-icon"
-              style={{ background: "var(--amber-soft)", color: "var(--amber)" }}
-            >
-              <MaterialIcon icon="book" />
-            </div>
-            <div className="mt-2">
-              <div className="text-[14px] font-bold text-[var(--t1)]">
-                Cashbook
-              </div>
-              <div className="text-[11px] text-[var(--t4)]">Daily tracking</div>
-            </div>
-          </Link>
-          <Link href="/dashboard/budget" className="qa-item group">
-            <div
-              className="qa-icon"
-              style={{ background: "var(--blue-soft)", color: "var(--blue)" }}
-            >
-              <MaterialIcon icon="account_balance_wallet" />
-            </div>
-            <div className="mt-2">
-              <div className="text-[14px] font-bold text-[var(--t1)]">
-                Budgets
-              </div>
-              <div className="text-[11px] text-[var(--t4)]">Plan spending</div>
-            </div>
-          </Link>
         </div>
       </div>
     </div>

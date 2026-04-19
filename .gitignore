@@ -66,6 +66,9 @@ test-results/
 .windsurf/
 .zencoder/
 
+# Secrets
+secrets/
+
 # Next.js
 next-env.d.ts
 tsconfig.tsbuildinfo
