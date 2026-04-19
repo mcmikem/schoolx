@@ -7,6 +7,7 @@ import HeadmasterDashboard from './dashboards/HeadmasterDashboard'
 import DeanDashboard from './dashboards/DeanDashboard'
 import BursarDashboard from './dashboards/BursarDashboard'
 import TeacherDashboard from './dashboards/TeacherDashboard'
+import SuperAdminDashboard from './dashboards/SuperAdminDashboard'
 import { DashboardSkeleton } from '@/components/Skeletons'
 
 function getFirstName(fullName?: string | null) {
@@ -145,46 +146,7 @@ export default function DashboardRouter() {
 
   // Super admin bypasses school check
   if (user.role === 'super_admin') {
-    // Show super admin dashboard or redirect to schools
-    return (
-      <div className="content">
-        <div className="page-header">
-          <div>
-            <div className="ph-title">Super Admin Dashboard</div>
-            <div className="ph-sub">System Administration</div>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Link href="/dashboard/schools" className="stat-card">
-            <div className="stat-accent" style={{ background: 'var(--navy)' }} />
-            <div className="stat-inner">
-              <div className="stat-meta">
-                <div className="stat-label">Manage Schools</div>
-              </div>
-              <div className="stat-val" style={{ color: 'var(--navy)' }}>Schools</div>
-            </div>
-          </Link>
-          <Link href="/dashboard/users" className="stat-card">
-            <div className="stat-accent" style={{ background: 'var(--green)' }} />
-            <div className="stat-inner">
-              <div className="stat-meta">
-                <div className="stat-label">System Users</div>
-              </div>
-              <div className="stat-val" style={{ color: 'var(--green)' }}>Users</div>
-            </div>
-          </Link>
-          <Link href="/dashboard/feedback" className="stat-card">
-            <div className="stat-accent" style={{ background: 'var(--amber)' }} />
-            <div className="stat-inner">
-              <div className="stat-meta">
-                <div className="stat-label">Support Tickets</div>
-              </div>
-              <div className="stat-val" style={{ color: 'var(--amber)' }}>Feedback</div>
-            </div>
-          </Link>
-        </div>
-      </div>
-    )
+    return <SuperAdminDashboard />
   }
 
   // Centralized setup check: ensure school is initialized

@@ -370,11 +370,18 @@ table tr {
   }
 
   .stat-card {
-    @apply relative bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-[var(--sh1)] overflow-hidden flex flex-col transition-colors hover:bg-[var(--bg)];
+    @apply relative bg-[var(--surface)] border border-[var(--border)] rounded-2xl overflow-hidden flex flex-col transition-all duration-200 ease-out cursor-default;
+    box-shadow: 0 1px 3px rgba(15,23,42,0.06), 0 4px 12px rgba(15,23,42,0.04);
+  }
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(15,23,42,0.10), 0 12px 32px rgba(15,23,42,0.07);
+    @apply border-[var(--border2)];
   }
 
   .stat-accent {
-    @apply absolute top-0 left-0 w-full h-1;
+    @apply absolute top-0 left-0 w-full;
+    height: 3px;
   }
 
   .stat-inner {
@@ -386,15 +393,15 @@ table tr {
   }
 
   .stat-label {
-    @apply text-[12px] font-bold uppercase tracking-widest text-[var(--t3)];
+    @apply text-[11px] font-bold uppercase tracking-widest text-[var(--t3)];
   }
 
   .stat-icon-box {
-    @apply w-8 h-8 rounded-lg flex items-center justify-center;
+    @apply w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0;
   }
 
   .stat-val {
-    @apply text-2xl font-extrabold tracking-tight leading-none;
+    @apply text-[28px] font-extrabold tracking-tight leading-none;
     font-family: "Sora", sans-serif;
   }
 
