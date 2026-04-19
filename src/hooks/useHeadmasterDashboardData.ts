@@ -52,21 +52,25 @@ export function useHeadmasterDashboardData(
           supabase
             .from("attendance")
             .select("student_id, class_id, status")
-            .eq("date", today),
+            .eq("date", today)
+            .limit(2000),
           supabase
             .from("grades")
             .select("student_id, score, term, academic_year")
             .eq("term", currentTerm || 1)
-            .eq("academic_year", academicYear || "2026"),
+            .eq("academic_year", academicYear || "2026")
+            .limit(5000),
           supabase
             .from("attendance")
             .select("student_id, status, date")
-            .order("date", { ascending: false }),
+            .order("date", { ascending: false })
+            .limit(5000),
           supabase
             .from("messages")
             .select("status, created_at")
             .eq("school_id", schoolId)
-            .gte("created_at", today),
+            .gte("created_at", today)
+            .limit(1000),
           supabase
             .from("expenses")
             .select("*", { count: "exact", head: true })
@@ -80,13 +84,15 @@ export function useHeadmasterDashboardData(
           supabase
             .from("fee_payments")
             .select("amount_paid, payment_date, students!inner(school_id)")
-            .eq("students.school_id", schoolId),
+            .eq("students.school_id", schoolId)
+            .limit(10000),
           supabase
             .from("staff_attendance")
             .select("status")
             .eq("school_id", schoolId)
             .eq("date", today)
-            .in("status", ["present", "late"]),
+            .in("status", ["present", "late"])
+            .limit(500),
         ]);
 
         // Process Class Attendance

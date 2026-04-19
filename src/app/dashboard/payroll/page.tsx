@@ -9,7 +9,7 @@ import { cardClassName } from "@/lib/utils";
 import { format } from "date-fns";
 import { calculateUgandaPayrollTaxes } from "@/lib/operations";
 import { useToast } from "@/components/Toast";
-import OwlMascot from "@/components/brand/OwlMascot";
+import PersonInitials from "@/components/ui/PersonInitials";
 
 const GRADES = ["Scale 1 – UGX 400k", "Scale 2 – UGX 600k", "Scale 3 – UGX 800k", "Scale 4 – UGX 1.0M", "Scale 5 – UGX 1.4M", "Custom"];
 const GRADE_VALUES: Record<string, number> = {
@@ -164,6 +164,15 @@ export default function PayrollPage() {
                       <td colSpan={7} className="px-6 py-4"><div className="h-4 bg-slate-50 rounded-lg animate-pulse" /></td>
                     </tr>
                   ))
+                : staff.length === 0
+                ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-16 text-center">
+                        <p className="text-sm font-medium text-[var(--t2)]">No staff members found</p>
+                        <p className="text-xs text-[var(--t3)] mt-1">Add staff in the Staff page to manage payroll</p>
+                      </td>
+                    </tr>
+                  )
                 : staff.map((member) => {
                     const config = payroll[member.id] || { grade: GRADES[1], customGross: 0, deductions: 0 };
                     const pay = calculateStaffPay(member.id);
@@ -173,7 +182,7 @@ export default function PayrollPage() {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="shrink-0">
-                              <OwlMascot size={32} premium />
+                              <PersonInitials name={`${member.first_name} ${member.last_name}`} size={32} />
                             </div>
                             <div>
                                 <p className="text-xs font-bold text-slate-800">{member.first_name} {member.last_name}</p>

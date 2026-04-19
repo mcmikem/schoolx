@@ -47,7 +47,7 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
             <p className="text-gray-500 text-sm mb-6">
               An unexpected error occurred. Please try refreshing the page.
             </p>
-            {this.state.error && (
+            {this.state.error && process.env.NODE_ENV === "development" && (
               <div className="bg-gray-50 rounded-xl p-4 mb-6 text-left">
                 <p className="text-xs font-mono text-gray-600 break-all">
                   {this.state.error.message}

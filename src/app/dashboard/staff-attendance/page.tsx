@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import MaterialIcon from "@/components/MaterialIcon";
-import OwlMascot from "@/components/brand/OwlMascot";
+import PersonInitials from "@/components/ui/PersonInitials";
 
 interface StaffMember {
   id: string;
@@ -243,7 +243,7 @@ export default function StaffAttendancePage() {
               <Card key={member.id}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <OwlMascot size={40} premium ring glow />
+                    <PersonInitials name={member.full_name} size={40} />
                     <div>
                       <div className="font-medium text-[#191c1d]">
                         {member.full_name}

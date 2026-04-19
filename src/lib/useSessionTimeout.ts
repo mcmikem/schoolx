@@ -22,27 +22,37 @@ export function useSessionTimeout({
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const warningRef = useRef<NodeJS.Timeout | null>(null);
   const lastActivityRef = useRef(Date.now());
-
-  const resetTimer = useCallback(() => {
-    lastActivityRef.current = Date.now();
-    setShowWarning(false);
-    setRemainingTime(timeoutMs);
-  }, [timeoutMs]);
+  const onTimeoutRef = useRef(onTimeout);
+  onTimeoutRef.current = onTimeout;
 
   const clearAllTimers = useCallback(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (warningRef.current) clearTimeout(warningRef.current);
   }, []);
 
-  const handleTimeout = useCallback(() => {
+  const startTimers = useCallback(() => {
     clearAllTimers();
+    warningRef.current = setTimeout(() => {
+      setShowWarning(true);
+      setRemainingTime(warningMs);
+    }, timeoutMs - warningMs);
+    timeoutRef.current = setTimeout(() => {
+      clearAllTimers();
+      setShowWarning(false);
+      if (onTimeoutRef.current) {
+        onTimeoutRef.current();
+      } else {
+        router.push("/login?timeout=true");
+      }
+    }, timeoutMs);
+  }, [clearAllTimers, warningMs, timeoutMs, router]);
+
+  const resetTimer = useCallback(() => {
+    lastActivityRef.current = Date.now();
     setShowWarning(false);
-    if (onTimeout) {
-      onTimeout();
-    } else {
-      router.push("/login?timeout=true");
-    }
-  }, [clearAllTimers, onTimeout, router]);
+    setRemainingTime(timeoutMs);
+    startTimers();
+  }, [timeoutMs, startTimers]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -52,38 +62,32 @@ export function useSessionTimeout({
       "keydown",
       "scroll",
       "touchstart",
-      "mousemove",
-    ];
+    ] as const;
 
+    // Throttle activity resets to once per 30s to avoid excessive timer restarts
+    let throttleTimer: NodeJS.Timeout | null = null;
     const handleActivity = () => {
+      if (throttleTimer) return;
+      throttleTimer = setTimeout(() => {
+        throttleTimer = null;
+      }, 30_000);
       resetTimer();
     };
 
     activityEvents.forEach((event) => {
-      window.addEventListener(event, handleActivity);
+      window.addEventListener(event, handleActivity, { passive: true });
     });
 
-    warningRef.current = setTimeout(() => {
-      setShowWarning(true);
-      setRemainingTime(warningMs);
-    }, timeoutMs - warningMs);
-
-    timeoutRef.current = setTimeout(handleTimeout, timeoutMs);
+    startTimers();
 
     return () => {
       activityEvents.forEach((event) => {
         window.removeEventListener(event, handleActivity);
       });
+      if (throttleTimer) clearTimeout(throttleTimer);
       clearAllTimers();
     };
-  }, [
-    enabled,
-    timeoutMs,
-    warningMs,
-    resetTimer,
-    clearAllTimers,
-    handleTimeout,
-  ]);
+  }, [enabled, startTimers, resetTimer, clearAllTimers]);
 
   useEffect(() => {
     if (!showWarning || !enabled) return;

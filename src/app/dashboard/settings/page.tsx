@@ -26,7 +26,7 @@ import {
   type SchoolSetupType,
 } from "@/lib/school-setup";
 import { getErrorMessage } from "@/lib/validation";
-import OwlMascot from "@/components/brand/OwlMascot";
+import PersonInitials from "@/components/ui/PersonInitials";
 
 const ROLE_OPTIONS: {
   value: UserRole;
@@ -1173,7 +1173,7 @@ export default function SettingsPage() {
                   <CardBody>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <OwlMascot size={48} premium ring glow />
+                        <PersonInitials name={u.full_name} size={48} />
                         <div>
                           <div className="font-medium text-[var(--on-surface)]">
                             {u.full_name}

@@ -9,7 +9,7 @@ import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
 import { DEMO_ATTENDANCE, DEMO_STUDENTS } from "@/lib/demo-data";
 import MaterialIcon from "@/components/MaterialIcon";
-import OwlMascot from "@/components/brand/OwlMascot";
+import PersonInitials from "@/components/ui/PersonInitials";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import { Button } from "@/components/ui/index";
@@ -17,6 +17,7 @@ import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { Modal } from "@/components/ui/Modal";
 import { PageGuidance } from "@/components/PageGuidance";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
   normalizeAttendanceInput,
   validateAttendanceInput,
@@ -78,6 +79,7 @@ export default function AttendancePage() {
   const [saving, setSaving] = useState(false);
   const [offlineCount, setOfflineCount] = useState(0);
   const [allMarked, setAllMarked] = useState(false);
+  const [confirmMarkAll, setConfirmMarkAll] = useState(false);
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const [rollCallMode, setRollCallMode] = useState(false);
   const [showQuickAbsentModal, setShowQuickAbsentModal] = useState(false);
@@ -250,13 +252,7 @@ export default function AttendancePage() {
       markAll("absent");
       toast.info("Reset all to absent");
     } else {
-      const confirmed = window.confirm(
-        `Mark all ${students.length} students as present?`,
-      );
-      if (confirmed) {
-        markAll("present");
-        toast.success("All marked present");
-      }
+      setConfirmMarkAll(true);
     }
   };
 
@@ -730,7 +726,7 @@ export default function AttendancePage() {
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <div className="flex-shrink-0">
-                          <OwlMascot size={40} premium ring glow={status !== "absent"} />
+                          <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />
                         </div>
                         <div className="min-w-0">
                           <div className="font-bold text-on-surface text-base truncate">
@@ -822,7 +818,7 @@ export default function AttendancePage() {
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <OwlMascot size={40} premium ring glow />
+                            <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />
                             <div>
                               <div className="font-bold text-primary">
                                 {student.first_name} {student.last_name}
@@ -879,7 +875,7 @@ export default function AttendancePage() {
                         className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none"
                       >
                         <div className="flex items-center gap-3">
-                          <OwlMascot size={40} premium ring glow />
+                          <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />
                           <div>
                             <div className="font-bold text-primary text-sm">
                               {student.first_name} {student.last_name}
@@ -1064,6 +1060,15 @@ export default function AttendancePage() {
           </Modal>
         </>
       )}
+      <ConfirmDialog
+        isOpen={confirmMarkAll}
+        onClose={() => setConfirmMarkAll(false)}
+        onConfirm={() => { markAll("present"); toast.success("All marked present"); setConfirmMarkAll(false); }}
+        title="Mark All Present"
+        message={`Mark all ${students.length} students as present?`}
+        confirmLabel="Mark All Present"
+        variant="info"
+      />
     </>
     </PageErrorBoundary>
   );

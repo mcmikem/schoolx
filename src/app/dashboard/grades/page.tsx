@@ -21,7 +21,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button, Input, Select, Badge } from "@/components/ui/index";
 import { TableSkeleton, FullPageLoader } from "@/components/ui/Skeleton";
 import { EmptyState, NoData } from "@/components/EmptyState";
-import OwlMascot from "@/components/brand/OwlMascot";
+import PersonInitials from "@/components/ui/PersonInitials";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
 import { useOnlineStatus } from "@/lib/offline";
 import {
@@ -1379,7 +1379,7 @@ export default function GradesPage() {
                             >
                               <td className="px-8 py-5">
                                 <div className="flex items-center gap-4">
-                                  <OwlMascot size={40} premium ring glow={graded} />
+                                  <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />
                                   <div>
                                     <p className="font-bold text-primary">
                                       {student.first_name} {student.last_name}
@@ -1478,11 +1478,9 @@ export default function GradesPage() {
                   {/* Student Header */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <OwlMascot
+                      <PersonInitials
+                        name={`${filteredStudents[mobileStudentIndex]?.first_name || ''} ${filteredStudents[mobileStudentIndex]?.last_name || ''}`}
                         size={48}
-                        premium
-                        ring
-                        glow={isStudentGraded(filteredStudents[mobileStudentIndex]?.id)}
                       />
                       <div>
                         <p className="font-bold text-primary text-lg">
@@ -1613,7 +1611,7 @@ export default function GradesPage() {
                                 : "bg-surface-container text-on-surface-variant"
                           }`}
                         >
-                          <OwlMascot size={28} premium />
+                          <PersonInitials name={`${student.first_name} ${student.last_name}`} size={28} />
                         </button>
                       );
                     })}

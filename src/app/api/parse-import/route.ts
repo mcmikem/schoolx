@@ -32,6 +32,11 @@ async function handlePost(request: NextRequest) {
       return apiError('Raw text is required for parsing', 400)
     }
 
+    // Prevent excessive payload sizes (50KB max)
+    if (rawText.length > 50_000) {
+      return apiError('Text too large. Please limit to 50KB or fewer rows.', 400)
+    }
+
     if (!process.env.GEMINI_API_KEY) {
       return apiError('Gemini API key is not configured on the server', 500)
     }

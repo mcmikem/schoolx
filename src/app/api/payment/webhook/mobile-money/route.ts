@@ -20,8 +20,8 @@ export async function POST(request: NextRequest) {
       signature,
     );
 
-    // Always enforce signature verification unless explicitly disabled for local dev.
-    const allowInsecure = process.env.ALLOW_INSECURE_WEBHOOKS === "true";
+    // Enforce signature verification — no bypass in production
+    const allowInsecure = process.env.NODE_ENV === "development" && process.env.ALLOW_INSECURE_WEBHOOKS === "true";
     if (!isValidSignature && !allowInsecure) {
       console.error("Invalid webhook signature");
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });

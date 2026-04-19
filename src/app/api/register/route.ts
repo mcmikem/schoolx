@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { apiSuccess, apiError, handleApiError } from "@/lib/api-utils";
+import { apiSuccess, apiError, handleApiError, rateLimit } from "@/lib/api-utils";
 import {
   PRIMARY_TEMPLATE,
   SECONDARY_TEMPLATE,
@@ -81,6 +81,12 @@ function generateSchoolCode(schoolName: string, district: string): string {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 5 registrations per IP per 10 minutes
+    const { success } = rateLimit(request, 5, 600_000);
+    if (!success) {
+      return apiError("Too many registration attempts. Please try again later.", 429);
+    }
+
     if (!supabaseServiceKey) {
       return apiError(
         "Server configuration error: SUPABASE_SERVICE_ROLE_KEY not set",

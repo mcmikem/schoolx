@@ -14,7 +14,7 @@ import {
 import { useToast } from "@/components/Toast";
 import { DEMO_GRADES, DEMO_SUBJECTS } from "@/lib/demo-data";
 import MaterialIcon from "@/components/MaterialIcon";
-import OwlMascot from "@/components/brand/OwlMascot";
+import PersonInitials from "@/components/ui/PersonInitials";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
@@ -751,7 +751,7 @@ export default function ReportCardsPage() {
                                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
                                 />
                               ) : (
-                                <OwlMascot size={36} premium ring glow />
+                                <PersonInitials name={report.name} size={36} />
                               )}
                             </div>
                             <div>

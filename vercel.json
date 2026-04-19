@@ -4,6 +4,26 @@
     {
       "path": "/api/cron/sms-reminders",
       "schedule": "0 8 * * 1-5"
+    },
+    {
+      "path": "/api/automation/attendance-heartbeat",
+      "schedule": "30 9 * * 1-5"
+    },
+    {
+      "path": "/api/automation/auto-attendance-followup",
+      "schedule": "0 11 * * 1-5"
+    },
+    {
+      "path": "/api/automation/auto-fee-reminder",
+      "schedule": "0 10 * * 1"
+    },
+    {
+      "path": "/api/automation/auto-installment-reminder",
+      "schedule": "0 9 1,15 * *"
+    },
+    {
+      "path": "/api/automation/auto-inventory-alerts",
+      "schedule": "0 7 * * 1"
     }
   ]
 }

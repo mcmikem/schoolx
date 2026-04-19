@@ -22,7 +22,7 @@
   --sidebar-width: 264px;
   --logo-size: 36px;
   --shell-max-width: 1680px;
-  --topbar-height: 72px;
+  --topbar-height: 56px;
   --bg: #f4f7f9; /* Clean subtle gray */
   --surface: #ffffff;
   --border: #e8ecef; /* Motif Gray relative */
@@ -91,9 +91,9 @@
   --mm: 24px;
   --ml: 32px;
 
-  --sh1: 0 4px 12px rgba(44, 62, 80, 0.05), 0 1px 2px rgba(44, 62, 80, 0.03);
-  --sh2: 0 12px 32px rgba(44, 62, 80, 0.12), 0 4px 12px rgba(0, 86, 210, 0.06);
-  --sh3: 0 20px 40px rgba(44, 62, 80, 0.16), 0 6px 16px rgba(0, 86, 210, 0.1);
+  --sh1: 0 1px 3px rgba(44, 62, 80, 0.06);
+  --sh2: 0 4px 12px rgba(44, 62, 80, 0.08);
+  --sh3: 0 8px 24px rgba(44, 62, 80, 0.1);
 
   --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --dur: 200ms;
@@ -299,7 +299,7 @@ table tr {
 @layer components {
   /* -- LEGACY CLASS SHIMS (To be refactored into components) -- */
   .content {
-    @apply p-8 flex flex-col gap-8 max-w-[1600px] mx-auto w-full;
+    @apply p-4 sm:p-6 flex flex-col gap-6 max-w-[1400px] mx-auto w-full;
   }
 
   .page-header {
@@ -345,7 +345,7 @@ table tr {
   }
 
   .card {
-    @apply bg-[var(--surface)] border border-[var(--border)] rounded-[var(--r2)] shadow-[var(--sh2)] overflow-hidden transition-shadow duration-[var(--dur)] ease-[var(--ease)] hover:shadow-[var(--sh3)];
+    @apply bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-[var(--sh1)] overflow-hidden;
   }
 
   .card-header {
@@ -370,7 +370,7 @@ table tr {
   }
 
   .stat-card {
-    @apply relative bg-[var(--surface)] border border-[var(--border)] rounded-[var(--r2)] shadow-[var(--sh2)] overflow-hidden cursor-pointer transition-all duration-[var(--dur)] ease-[var(--ease)] flex flex-col hover:shadow-[var(--sh3)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] animate-[rise_0.35s_var(--ease)_both];
+    @apply relative bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-[var(--sh1)] overflow-hidden flex flex-col transition-colors hover:bg-[var(--bg)];
   }
 
   .stat-accent {
@@ -874,30 +874,18 @@ table tr {
 }
 
 .topbar {
-  background: linear-gradient(
-    180deg,
-    rgba(253, 252, 248, 0.96) 0%,
-    rgba(250, 248, 242, 0.92) 100%
-  );
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: var(--surface);
+  height: var(--topbar-height);
   min-height: var(--topbar-height);
 }
 
 [data-theme="dark"] .topbar {
-  background: linear-gradient(
-    180deg,
-    rgba(26, 33, 41, 0.92) 0%,
-    rgba(26, 33, 41, 0.86) 100%
-  );
+  background: var(--surface);
 }
 
 .sidebar {
-  transition: transform 220ms var(--ease), box-shadow 220ms var(--ease), opacity 220ms var(--ease);
-  background:
-    linear-gradient(180deg, rgba(252, 250, 246, 0.95) 0%, rgba(249, 246, 238, 0.9) 100%),
-    var(--surface);
-  backdrop-filter: blur(16px);
+  transition: transform 220ms var(--ease), opacity 220ms var(--ease);
+  background: var(--surface);
   -webkit-backdrop-filter: blur(16px);
 }
 
@@ -906,20 +894,11 @@ table tr {
 }
 
 .dashboard-shell::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at top center, rgba(27, 76, 140, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.26) 0%, transparent 22%);
-  z-index: 0;
+  display: none;
 }
 
 .dashboard-breadcrumbs {
-  background: linear-gradient(180deg, rgba(252, 249, 243, 0.94) 0%, rgba(250, 247, 240, 0.82) 100%);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--surface);
 }
 
 /* Desktop: sidebar always visible */

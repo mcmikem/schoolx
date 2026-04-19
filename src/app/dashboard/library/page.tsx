@@ -152,6 +152,14 @@ export default function LibraryPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {loading
           ? Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-40 bg-slate-50 rounded-3xl animate-pulse" />)
+          : filtered.length === 0
+          ? (
+              <div className="col-span-full py-16 text-center">
+                <MaterialIcon icon="auto_stories" className="text-4xl text-[var(--t3)] opacity-30 mb-2" />
+                <p className="text-sm font-medium text-[var(--t2)]">No books found</p>
+                <p className="text-xs text-[var(--t3)] mt-1">{category !== "All" ? `No books in the "${category}" category` : "Add books to your library to get started"}</p>
+              </div>
+            )
           : filtered.map((book) => {
               const pct = book.total_copies > 0 ? Math.round((book.available_copies / book.total_copies) * 100) : 0;
               return (

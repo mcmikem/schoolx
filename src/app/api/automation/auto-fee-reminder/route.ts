@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       },
     ];
 
-    // Get all students with outstanding fees
+    // Get all active students with their class info and parent phone
     const { data: studentsWithFees, error: studentsError } = await supabase
       .from("students")
       .select(
@@ -49,12 +49,8 @@ export async function POST(request: NextRequest) {
         first_name,
         last_name,
         parent_phone,
-        classes (name),
-        fee_balances (
-          balance,
-          due_date,
-          last_reminder_sent
-        )
+        class_id,
+        classes (name)
       `,
       )
       .eq("school_id", school.schoolId)
@@ -70,17 +66,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const results: {
-      remindersSent: any[];
-      skipped: any[];
-      errors: any[];
-    } = {
-      remindersSent: [],
-      skipped: [],
-      errors: [],
-    };
+    // Fetch fee structure and payments to calculate balances
+    const { data: feeStructure } = await supabase
+      .from("fee_structure")
+      .select("id, class_id, amount, due_date")
+      .eq("school_id", school.schoolId);
+
+    const { data: feePayments } = await supabase
+      .from("fee_payments")
+      .select("student_id, amount_paid")
+      .in("student_id", (studentsWithFees || []).map((s: any) => s.id));
+
+    // Build payment totals per student
+    const paymentsByStudent = new Map<string, number>();
+    for (const p of feePayments || []) {
+      paymentsByStudent.set(p.student_id, (paymentsByStudent.get(p.student_id) || 0) + Number(p.amount_paid || 0));
+    }
 
     const now = new Date();
+
+    const results = {
+      remindersSent: [] as { studentId: string; name: string; phone: string; balance: number; daysOverdue: number; triggerDays: number; messageId?: string }[],
+      skipped: [] as { studentId: string; name: string; reason: string }[],
+      errors: [] as { studentId: string; name: string; error?: string; reason?: string }[],
+    };
 
     for (const student of studentsWithFees as any[]) {
       try {
@@ -93,8 +102,19 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        const feeBalance = student.fee_balances?.[0];
-        if (!feeBalance || feeBalance.balance <= 0) {
+        // Calculate balance: total fees for student's class minus payments
+        const classFees = (feeStructure || []).filter(
+          (f: any) => !f.class_id || f.class_id === student.class_id,
+        );
+        const totalExpected = classFees.reduce((s: number, f: any) => s + Number(f.amount || 0), 0);
+        const totalPaid = paymentsByStudent.get(student.id) || 0;
+        const balance = totalExpected - totalPaid;
+        const earliestDueDate = classFees
+          .filter((f: any) => f.due_date)
+          .map((f: any) => new Date(f.due_date))
+          .sort((a: Date, b: Date) => a.getTime() - b.getTime())[0] || now;
+
+        if (balance <= 0) {
           results.skipped.push({
             studentId: student.id,
             name: `${student.first_name} ${student.last_name}`,
@@ -104,7 +124,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Calculate days overdue
-        const dueDate = new Date(feeBalance.due_date);
+        const dueDate = earliestDueDate;
         const daysOverdue = Math.floor(
           (now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24),
         );
@@ -121,27 +141,13 @@ export async function POST(request: NextRequest) {
         // Check which triggers apply
         for (const trigger of reminderTriggers) {
           if (daysOverdue >= trigger.days) {
-            // Check if reminder was already sent for this trigger
-            const lastReminder = feeBalance.last_reminder_sent
-              ? new Date(feeBalance.last_reminder_sent)
-              : null;
-
-            const daysSinceLastReminder = lastReminder
-              ? Math.floor(
-                  (now.getTime() - lastReminder.getTime()) /
-                    (1000 * 60 * 60 * 24),
-                )
-              : 999;
-
-            // Only send if we haven't sent this reminder recently (within trigger days)
-            if (daysSinceLastReminder >= trigger.days) {
               // Format the message with variables
               const message = trigger.message
                 .replace(
                   "{student_name}",
                   `${student.first_name} ${student.last_name}`,
                 )
-                .replace("{balance}", feeBalance.balance.toLocaleString())
+                .replace("{balance}", balance.toLocaleString())
                 .replace("{due_date}", dueDate.toLocaleDateString())
                 .replace("{class}", student.classes?.name || "Unknown");
 
@@ -171,7 +177,7 @@ export async function POST(request: NextRequest) {
                   studentId: student.id,
                   name: `${student.first_name} ${student.last_name}`,
                   phone: student.parent_phone,
-                  balance: feeBalance.balance,
+                  balance: balance,
                   daysOverdue,
                   triggerDays: trigger.days,
                   messageId: smsResult.messageId,
@@ -183,7 +189,6 @@ export async function POST(request: NextRequest) {
                   reason: `SMS failed: ${smsResult.error}`,
                 });
               }
-            }
           }
         }
       } catch (err) {

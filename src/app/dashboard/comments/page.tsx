@@ -7,7 +7,7 @@ import { useToast } from '@/components/Toast'
 import { generateAutoComment, getGradeLabel } from '@/lib/automation'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
-import OwlMascot from '@/components/brand/OwlMascot'
+import PersonInitials from '@/components/ui/PersonInitials'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Button } from '@/components/ui/index'
@@ -210,7 +210,7 @@ export default function CommentsPage() {
                     <CardBody>
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <OwlMascot size={40} premium ring glow className="shrink-0" />
+                          <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} className="shrink-0" />
                           <div className="min-w-0">
                             <div className="font-semibold text-gray-900 truncate">{student.first_name} {student.last_name}</div>
                             <div className="text-sm text-gray-500">

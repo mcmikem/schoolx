@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { EmptyState } from "@/components/EmptyState";
-import OwlMascot from "@/components/brand/OwlMascot";
+import PersonInitials from "@/components/ui/PersonInitials";
 
 const PERIODS = [
   "Period 1",
@@ -200,7 +200,7 @@ export default function PeriodAttendancePage() {
               <Card key={student.id} className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <OwlMascot size={40} premium ring glow />
+                    <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />
                     <div>
                       <div className="font-medium text-[var(--t1)]">
                         {student.first_name} {student.last_name}

@@ -1,0 +1,1903 @@
+▲ Next.js 16.2.4 (Turbopack)
+- Local:         http://localhost:3015
+- Network:       http://10.0.0.5:3015
+- Environments: .env.local
+✓ Ready in 1177ms
+
+○ Compiling / ...
+[Supabase Debug] URL: https://gucxpmgwvnbqykevucbi.supabase.co
+[Supabase Debug] Anon Key: sb_publishable_aiGMJ...
+[Supabase Debug] isValidHttpUrl: true for https://gucxpmgwvnbqykevucbi.supabase.co
+[Supabase Debug] isValidAnonKey: true | sb_publishable_: true | eyJ: false | key: sb_publishable_aiGMJ3qw7yuJW5M...
+[Supabase Debug] hasUsableSupabaseConfig: true
+[Supabase] hasUsableSupabaseConfig: true
+[Supabase] realClient: created
+[Supabase] final supabase: real
+ HEAD / 200 in 5.8s (next.js: 4.7s, proxy.ts: 10ms, application-code: 1111ms)
+ HEAD / 200 in 167ms (next.js: 7ms, proxy.ts: 5ms, application-code: 155ms)
+ HEAD / 200 in 136ms (next.js: 7ms, proxy.ts: 6ms, application-code: 123ms)
+○ Compiling /login ...
+ GET /login/ 200 in 3.7s (next.js: 3.1s, proxy.ts: 8ms, application-code: 592ms)
+✓ Compiled in 1118ms
+ GET / 200 in 347ms (next.js: 18ms, proxy.ts: 149ms, application-code: 180ms)
+ GET /login/ 200 in 194ms (next.js: 27ms, proxy.ts: 17ms, application-code: 151ms)
+ GET / 200 in 712ms (next.js: 83ms, proxy.ts: 44ms, application-code: 585ms)
+ GET /login/ 200 in 705ms (next.js: 407ms, proxy.ts: 71ms, application-code: 226ms)
+ GET /login/?redirect=%2Fdashboard%2Fstore%2Fpos%2F 200 in 101ms (next.js: 6ms, proxy.ts: 7ms, application-code: 89ms)
+ POST /api/demo-login/ 404 in 1886ms (next.js: 1809ms, proxy.ts: 18ms, application-code: 58ms)
+○ Compiling /dashboard ...
+ GET /dashboard/ 200 in 11.9s (next.js: 9.1s, proxy.ts: 2.0s, application-code: 764ms)
+ GET /dashboard/ 200 in 1672ms (next.js: 7ms, proxy.ts: 1389ms, application-code: 277ms)
+[browser] extended student select failed, trying a smaller shape: {
+  code: [32m'42703'[39m,
+  details: [1mnull[22m,
+  hint: [1mnull[22m,
+  message: [32m'column students.blood_type does not exist'[39m
+} (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] extended student select failed, trying a smaller shape: {
+  code: [32m'42703'[39m,
+  details: [1mnull[22m,
+  hint: [1mnull[22m,
+  message: [32m'column students.blood_type does not exist'[39m
+} (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+○ Compiling /dashboard/settings ...
+ GET /dashboard/settings/?tab=config 200 in 4.2s (next.js: 3.2s, proxy.ts: 846ms, application-code: 163ms)
+ GET /dashboard/ 200 in 936ms (next.js: 16ms, proxy.ts: 872ms, application-code: 48ms)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+✓ Compiled in 4.2s
+[Supabase Debug] URL: https://gucxpmgwvnbqykevucbi.supabase.co
+[Supabase Debug] Anon Key: sb_publishable_aiGMJ...
+[Supabase Debug] isValidHttpUrl: true for https://gucxpmgwvnbqykevucbi.supabase.co
+[Supabase Debug] isValidAnonKey: true | sb_publishable_: true | eyJ: false | key: sb_publishable_aiGMJ3qw7yuJW5M...
+[Supabase Debug] hasUsableSupabaseConfig: true
+[Supabase] hasUsableSupabaseConfig: true
+[Supabase] realClient: created
+[Supabase] final supabase: real
+ GET /dashboard/ 200 in 5.0s (next.js: 462ms, proxy.ts: 1915ms, application-code: 2.6s)
+ GET /dashboard/ 200 in 4.2s (next.js: 61ms, proxy.ts: 1877ms, application-code: 2.3s)
+ GET /dashboard/ 200 in 3.8s (next.js: 18ms, proxy.ts: 3.4s, application-code: 339ms)
+ GET /dashboard/ 200 in 1531ms (next.js: 32ms, proxy.ts: 1264ms, application-code: 235ms)
+ GET /dashboard/ 200 in 1431ms (next.js: 21ms, proxy.ts: 1111ms, application-code: 300ms)
+ GET /dashboard/ 200 in 1252ms (next.js: 105ms, proxy.ts: 914ms, application-code: 233ms)
+ GET /dashboard/ 200 in 1363ms (next.js: 9ms, proxy.ts: 910ms, application-code: 443ms)
+ GET /dashboard/ 200 in 1371ms (next.js: 29ms, proxy.ts: 997ms, application-code: 346ms)
+ GET /dashboard/ 200 in 1292ms (next.js: 16ms, proxy.ts: 1164ms, application-code: 113ms)
+ GET /dashboard/ 200 in 921ms (next.js: 7ms, proxy.ts: 806ms, application-code: 108ms)
+ GET /dashboard/ 200 in 924ms (next.js: 10ms, proxy.ts: 846ms, application-code: 68ms)
+✓ Finished filesystem cache database compaction in 12.9s
+[browser] extended student select failed, trying a smaller shape: {
+  code: [32m'42703'[39m,
+  details: [1mnull[22m,
+  hint: [1mnull[22m,
+  message: [32m'column students.blood_type does not exist'[39m
+} (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] extended student select failed, trying a smaller shape: {
+  code: [32m'42703'[39m,
+  details: [1mnull[22m,
+  hint: [1mnull[22m,
+  message: [32m'column students.blood_type does not exist'[39m
+} (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+✓ Compiled in 1026ms
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+○ Compiling /dashboard/students ...
+ GET /dashboard/students/ 200 in 15.2s (next.js: 13.2s, proxy.ts: 1829ms, application-code: 184ms)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+✓ Finished filesystem cache database compaction in 12.9s
+○ Compiling /dashboard/attendance ...
+ GET /dashboard/attendance/ 200 in 10.6s (next.js: 9.2s, proxy.ts: 1403ms, application-code: 63ms)
+ GET /dashboard/students/ 200 in 2.0s (next.js: 197ms, proxy.ts: 1245ms, application-code: 588ms)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+✓ Compiled in 1804ms
+✓ Compiled in 476ms
+✓ Compiled in 1121ms
+ GET /dashboard/students/ 200 in 4.7s (next.js: 312ms, proxy.ts: 4.2s, application-code: 170ms)
+ GET /dashboard/students/ 200 in 1839ms (next.js: 6ms, proxy.ts: 1773ms, application-code: 60ms)
+✓ Compiled in 674ms
+[browser] ./src/app/dashboard/attendance/page.tsx:839:32
+Expected '</', got 'ident'
+  837 |                             </div>
+  838 |                           </div>
+> 839 |                           <div className="flex gap-2">
+      |                                ^^^^^^^^^
+  840 |                             {STATUS_CYCLE.map((s) => {
+  841 |                               const sConfig = STATUS_CONFIG[s];
+  842 |                               const isActive = status === s;
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/attendance/page.tsx [Client Component Browser]
+    ./src/app/dashboard/attendance/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/attendance/page.tsx [Client Component SSR]
+    ./src/app/dashboard/attendance/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/attendance/page.tsx:839:32
+Expected '</', got 'ident'
+  837 |                             </div>
+  838 |                           </div>
+> 839 |                           <div className="flex gap-2">
+      |                                ^^^^^^^^^
+  840 |                             {STATUS_CYCLE.map((s) => {
+  841 |                               const sConfig = STATUS_CONFIG[s];
+  842 |                               const isActive = status === s;
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/attendance/page.tsx [Client Component Browser]
+    ./src/app/dashboard/attendance/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/attendance/page.tsx [Client Component SSR]
+    ./src/app/dashboard/attendance/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+✓ Compiled in 395ms
+[browser] ./src/app/dashboard/attendance/page.tsx:888:26
+Unterminated regexp literal
+  886 |                             </div>
+  887 |                           </div>
+> 888 |                         </div>
+      |                          ^^^^^
+  889 |                         <div className="flex items-center gap-2">
+  890 |                           {config && (
+  891 |                             <span className="text-xs font-medium text...
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/attendance/page.tsx [Client Component Browser]
+    ./src/app/dashboard/attendance/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/attendance/page.tsx [Client Component SSR]
+    ./src/app/dashboard/attendance/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+✓ Compiled in 608ms
+ GET /dashboard/students/ 200 in 1908ms (next.js: 187ms, proxy.ts: 1449ms, application-code: 272ms)
+ GET /dashboard/students/ 200 in 1042ms (next.js: 14ms, proxy.ts: 866ms, application-code: 162ms)
+ GET /dashboard/students/ 200 in 1230ms (next.js: 10ms, proxy.ts: 1102ms, application-code: 118ms)
+ GET /dashboard/students/ 200 in 791ms (next.js: 4ms, proxy.ts: 747ms, application-code: 40ms)
+ GET /dashboard/students/ 200 in 1573ms (next.js: 147ms, proxy.ts: 1187ms, application-code: 239ms)
+ GET /dashboard/students/ 200 in 960ms (next.js: 4ms, proxy.ts: 906ms, application-code: 49ms)
+✓ Compiled in 137ms
+[browser] Error caught by boundary: ReferenceError: Cannot access 'clearAllTimers' before initialization
+    at useSessionTimeout (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/src_lib_119y735._.js?id=%255Bproject%255D%252Fsrc%252Flib%252FuseSessionTimeout.ts+%255Bapp-client%255D+%2528ecmascript%2529:34:9)
+    at DashboardContent (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/src_0g4gnaq._.js:459:215)
+    at Object.react_stack_bottom_frame (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:15037:24)
+    at renderWithHooks (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:4620:24)
+    at updateFunctionComponent (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:6081:21)
+    at beginWork (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:6691:24)
+    at runWithFiberInDEV (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:965:74)
+    at performUnitOfWork (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9555:97)
+    at workLoopSync (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9449:40)
+    at renderRootSync (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9433:13)
+    at performWorkOnRoot (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9098:47)
+    at performSyncWorkOnRoot (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10263:9)
+    at flushSyncWorkAcrossRoots_impl (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10179:316)
+    at flushSyncWork$1 (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9230:86)
+    at Object.scheduleRefresh (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:299:13)
+    at <unknown> (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_0rpq4pf._.js:391:33)
+    at Set.forEach (<anonymous>)
+    at Object.performReactRefresh (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_0rpq4pf._.js:384:38)
+    at applyUpdate (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_0rpq4pf._.js:878:31)
+    at <unknown> (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_0rpq4pf._.js:886:13)
+    at Providers (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/src_05jikro._.js:2822:214)
+    at RootLayout (about://React/Server/file:///Users/user/Downloads/Omuto%20School%20Management%20System/schoolx/.next/dev/server/chunks/ssr/_0k41r.f._.js?11:259:272) {
+  componentStack: [32m'\n'[39m +
+    [32m'    at DashboardContent (http://localhost:3015/_next/static/chunks/src_0g4gnaq._.js:392:29)\n'[39m +
+    [32m'    at SidebarProvider (http://localhost:3015/_next/static/chunks/src_0g4gnaq._.js:18:28)\n'[39m +
+    [32m'    at DashboardLayout (http://localhost:3015/_next/static/chunks/src_0g4gnaq._.js:666:28)\n'[39m +
+    [32m'    at ClientSegmentRoot (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:26843:30)\n'[39m +
+    [32m'    at SegmentViewNode (http://localhost:3015/_next/static/chunks/node_modules_next_dist_115brz8._.js:3492:28)\n'[39m +
+    [32m'    at LoadingBoundaryProvider (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:22875:36)\n'[39m +
+    [32m'    at InnerLayoutRouter (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:22792:34)\n'[39m +
+    [32m'    at RedirectErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:12545:9)\n'[39m +
+    [32m'    at RedirectBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:12587:29)\n'[39m +
+    [32m'    at HTTPAccessFallbackErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13006:9)\n'[39m +
+    [32m'    at HTTPAccessFallbackBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13081:39)\n'[39m +
+    [32m'    at LoadingBoundary (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:22913:32)\n'[39m +
+    [32m'    at ErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:1567:26)\n'[39m +
+    [32m'    at InnerScrollAndFocusHandlerOld (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:22627:9)\n'[39m +
+    [32m'    at ScrollAndMaybeFocusHandler (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:22775:39)\n'[39m +
+    [32m'    at RenderFromTemplateContext (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:23165:44)\n'[39m +
+    [32m'    at SegmentStateProvider (http://localhost:3015/_next/static/chunks/node_modules_next_dist_115brz8._.js:3508:33)\n'[39m +
+    [32m'    at OuterLayoutRouter (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:22939:30)\n'[39m +
+    [32m'    at NotificationsProvider (http://localhost:3015/_next/static/chunks/src_05jikro._.js:1903:34)\n'[39m +
+    [32m'    at BrandProvider (http://localhost:3015/_next/static/chunks/src_05jikro._.js:2700:26)\n'[39m +
+    [32m'    at AcademicProvider (http://localhost:3015/_next/static/chunks/src_05jikro._.js:1655:29)\n'[39m +
+    [32m'    at LoadingChecker (http://localhost:3015/_next/static/chunks/src_05jikro._.js:2814:27)\n'[39m +
+    [32m'    at AuthProvider (http://localhost:3015/_next/static/chunks/src_05jikro._.js:1126:25)\n'[39m +
+    [32m'    at ServiceWorkerRegistration (http://localhost:3015/_next/static/chunks/src_05jikro._.js:2771:38)\n'[39m +
+    [32m'    at ThemeProvider (http://localhost:3015/_next/static/chunks/src_05jikro._.js:1822:26)\n'[39m +
+    [32m'    at ToastProvider (http://localhost:3015/_next/static/chunks/src_05jikro._.js:2474:26)\n'[39m +
+    [32m'    at ErrorBoundary (http://localhost:3015/_next/static/chunks/src_05jikro._.js:2312:9)\n'[39m +
+    [32m'    at Providers (http://localhost:3015/_next/static/chunks/src_05jikro._.js:2821:22)\n'[39m +
+    [32m'    at body (<anonymous>)\n'[39m +
+    [32m'    at html (<anonymous>)\n'[39m +
+    [32m'    at RootLayout [Server] (<anonymous>)\n'[39m +
+    [32m'    at SegmentViewNode (http://localhost:3015/_next/static/chunks/node_modules_next_dist_115brz8._.js:3492:28)\n'[39m +
+    [32m'    at __next_root_layout_boundary__ (http://localhost:3015/_next/static/chunks/node_modules_next_dist_115brz8._.js:2215:64)\n'[39m +
+    [32m'    at RedirectErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:12545:9)\n'[39m +
+    [32m'    at RedirectBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:12587:29)\n'[39m +
+    [32m'    at HTTPAccessFallbackErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13006:9)\n'[39m +
+    [32m'    at HTTPAccessFallbackBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13081:39)\n'[39m +
+    [32m'    at DevRootHTTPAccessFallbackBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13150:46)\n'[39m +
+    [32m'    at AppDevOverlayErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_115brz8._.js:3612:9)\n'[39m +
+    [32m'    at HotReload (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:14113:22)\n'[39m +
+    [32m'    at Router (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:14271:23)\n'[39m +
+    [32m'    at ErrorBoundaryHandler (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:1495:9)\n'[39m +
+    [32m'    at ErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:1567:26)\n'[39m +
+    [32m'    at RootErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:12832:30)\n'[39m +
+    [32m'    at AppRouter (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:14601:22)\n'[39m +
+    [32m'    at ServerRoot (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:15086:23)\n'[39m +
+    [32m'    at Root (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:15104:17)'[39m
+} (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/src_05jikro._.js:556:17)
+[browser] Error caught by boundary: ReferenceError: Cannot access 'clearAllTimers' before initialization
+    at useSessionTimeout (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/src_lib_119y735._.js?id=%255Bproject%255D%252Fsrc%252Flib%252FuseSessionTimeout.ts+%255Bapp-client%255D+%2528ecmascript%2529:34:9)
+    at DashboardContent (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/src_0g4gnaq._.js:459:215)
+    at Object.react_stack_bottom_frame (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:15037:24)
+    at renderWithHooks (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:4620:24)
+    at updateFunctionComponent (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:6081:21)
+    at beginWork (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:6691:24)
+    at runWithFiberInDEV (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:965:74)
+    at performUnitOfWork (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9555:97)
+    at workLoopSync (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9449:40)
+    at renderRootSync (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9433:13)
+    at performWorkOnRoot (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9098:47)
+    at performSyncWorkOnRoot (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10263:9)
+    at flushSyncWorkAcrossRoots_impl (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10179:316)
+    at flushSyncWork$1 (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9230:86)
+    at Object.scheduleRefresh (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:299:13)
+    at <unknown> (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_0rpq4pf._.js:391:33)
+    at Set.forEach (<anonymous>)
+    at Object.performReactRefresh (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_0rpq4pf._.js:384:38)
+    at applyUpdate (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_0rpq4pf._.js:878:31)
+    at <unknown> (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_0rpq4pf._.js:886:13)
+    at Providers (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/src_05jikro._.js:2822:214)
+    at RootLayout (about://React/Server/file:///Users/user/Downloads/Omuto%20School%20Management%20System/schoolx/.next/dev/server/chunks/ssr/_0k41r.f._.js?11:259:272) {
+  componentStack: [32m'\n'[39m +
+    [32m'    at DashboardContent (http://localhost:3015/_next/static/chunks/src_0g4gnaq._.js:392:29)\n'[39m +
+    [32m'    at SidebarProvider (http://localhost:3015/_next/static/chunks/src_0g4gnaq._.js:18:28)\n'[39m +
+    [32m'    at DashboardLayout (http://localhost:3015/_next/static/chunks/src_0g4gnaq._.js:666:28)\n'[39m +
+    [32m'    at ClientSegmentRoot (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:26843:30)\n'[39m +
+    [32m'    at SegmentViewNode (http://localhost:3015/_next/static/chunks/node_modules_next_dist_115brz8._.js:3492:28)\n'[39m +
+    [32m'    at LoadingBoundaryProvider (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:22875:36)\n'[39m +
+    [32m'    at InnerLayoutRouter (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:22792:34)\n'[39m +
+    [32m'    at RedirectErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:12545:9)\n'[39m +
+    [32m'    at RedirectBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:12587:29)\n'[39m +
+    [32m'    at HTTPAccessFallbackErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13006:9)\n'[39m +
+    [32m'    at HTTPAccessFallbackBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13081:39)\n'[39m +
+    [32m'    at LoadingBoundary (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:22913:32)\n'[39m +
+    [32m'    at ErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:1567:26)\n'[39m +
+    [32m'    at InnerScrollAndFocusHandlerOld (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:22627:9)\n'[39m +
+    [32m'    at ScrollAndMaybeFocusHandler (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:22775:39)\n'[39m +
+    [32m'    at RenderFromTemplateContext (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:23165:44)\n'[39m +
+    [32m'    at SegmentStateProvider (http://localhost:3015/_next/static/chunks/node_modules_next_dist_115brz8._.js:3508:33)\n'[39m +
+    [32m'    at OuterLayoutRouter (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:22939:30)\n'[39m +
+    [32m'    at NotificationsProvider (http://localhost:3015/_next/static/chunks/src_05jikro._.js:1903:34)\n'[39m +
+    [32m'    at BrandProvider (http://localhost:3015/_next/static/chunks/src_05jikro._.js:2700:26)\n'[39m +
+    [32m'    at AcademicProvider (http://localhost:3015/_next/static/chunks/src_05jikro._.js:1655:29)\n'[39m +
+    [32m'    at LoadingChecker (http://localhost:3015/_next/static/chunks/src_05jikro._.js:2814:27)\n'[39m +
+    [32m'    at AuthProvider (http://localhost:3015/_next/static/chunks/src_05jikro._.js:1126:25)\n'[39m +
+    [32m'    at ServiceWorkerRegistration (http://localhost:3015/_next/static/chunks/src_05jikro._.js:2771:38)\n'[39m +
+    [32m'    at ThemeProvider (http://localhost:3015/_next/static/chunks/src_05jikro._.js:1822:26)\n'[39m +
+    [32m'    at ToastProvider (http://localhost:3015/_next/static/chunks/src_05jikro._.js:2474:26)\n'[39m +
+    [32m'    at ErrorBoundary (http://localhost:3015/_next/static/chunks/src_05jikro._.js:2312:9)\n'[39m +
+    [32m'    at Providers (http://localhost:3015/_next/static/chunks/src_05jikro._.js:2821:22)\n'[39m +
+    [32m'    at body (<anonymous>)\n'[39m +
+    [32m'    at html (<anonymous>)\n'[39m +
+    [32m'    at RootLayout [Server] (<anonymous>)\n'[39m +
+    [32m'    at SegmentViewNode (http://localhost:3015/_next/static/chunks/node_modules_next_dist_115brz8._.js:3492:28)\n'[39m +
+    [32m'    at __next_root_layout_boundary__ (http://localhost:3015/_next/static/chunks/node_modules_next_dist_115brz8._.js:2215:64)\n'[39m +
+    [32m'    at RedirectErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:12545:9)\n'[39m +
+    [32m'    at RedirectBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:12587:29)\n'[39m +
+    [32m'    at HTTPAccessFallbackErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13006:9)\n'[39m +
+    [32m'    at HTTPAccessFallbackBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13081:39)\n'[39m +
+    [32m'    at DevRootHTTPAccessFallbackBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13150:46)\n'[39m +
+    [32m'    at AppDevOverlayErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_115brz8._.js:3612:9)\n'[39m +
+    [32m'    at HotReload (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:14113:22)\n'[39m +
+    [32m'    at Router (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:14271:23)\n'[39m +
+    [32m'    at ErrorBoundaryHandler (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:1495:9)\n'[39m +
+    [32m'    at ErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:1567:26)\n'[39m +
+    [32m'    at RootErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:12832:30)\n'[39m +
+    [32m'    at AppRouter (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:14601:22)\n'[39m +
+    [32m'    at ServerRoot (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:15086:23)\n'[39m +
+    [32m'    at Root (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:15104:17)'[39m
+} (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/src_05jikro._.js:556:17)
+✓ Compiled in 43ms
+[Supabase Debug] URL: https://gucxpmgwvnbqykevucbi.supabase.co
+[Supabase Debug] Anon Key: sb_publishable_aiGMJ...
+[Supabase Debug] isValidHttpUrl: true for https://gucxpmgwvnbqykevucbi.supabase.co
+[Supabase Debug] isValidAnonKey: true | sb_publishable_: true | eyJ: false | key: sb_publishable_aiGMJ3qw7yuJW5M...
+[Supabase Debug] hasUsableSupabaseConfig: true
+[Supabase] hasUsableSupabaseConfig: true
+[Supabase] realClient: created
+[Supabase] final supabase: real
+⨯ ReferenceError: Cannot access 'clearAllTimers' before initialization
+    at useSessionTimeout (src/lib/useSessionTimeout.ts:33:7)
+    at DashboardContent (src/app/dashboard/layout.tsx:183:74)
+  31 |     }, timeoutMs - warningMs);
+  32 |     timeoutRef.current = setTimeout(handleTimeout, timeoutMs);
+> 33 |   }, [clearAllTimers, warningMs, timeoutMs, handleTimeout]);
+     |       ^
+  34 |
+  35 |   const resetTimer = useCallback(() => {
+  36 |     lastActivityRef.current = Date.now(); {
+  digest: '456476897'
+}
+ GET /dashboard/ 500 in 3.9s (next.js: 185ms, proxy.ts: 1848ms, application-code: 1876ms)
+[browser] extended student select failed, trying a smaller shape: {
+  code: [32m'42703'[39m,
+  details: [1mnull[22m,
+  hint: [1mnull[22m,
+  message: [32m'column students.blood_type does not exist'[39m
+} (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] extended student select failed, trying a smaller shape: {
+  code: [32m'42703'[39m,
+  details: [1mnull[22m,
+  hint: [1mnull[22m,
+  message: [32m'column students.blood_type does not exist'[39m
+} (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] ./src/app/dashboard/students/page.tsx:34:13
+Expected ';', '}' or <eof>
+  32 | type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "pr...
+  33 |       key: "Escape",
+> 34 |       action: () => {
+     |             ^
+  35 |         setShowAddModal(false);
+  36 |         setShowEditModal(false);
+  37 |       },
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/students/page.tsx:34:13
+Expected ';', '}' or <eof>
+  32 | type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "pr...
+  33 |       key: "Escape",
+> 34 |       action: () => {
+     |             ^
+  35 |         setShowAddModal(false);
+  36 |         setShowEditModal(false);
+  37 |       },
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/students/page.tsx:34:13
+Expected ';', '}' or <eof>
+  32 | type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "pr...
+  33 |       key: "Escape",
+> 34 |       action: () => {
+     |             ^
+  35 |         setShowAddModal(false);
+  36 |         setShowEditModal(false);
+  37 |       },
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/students/page.tsx:34:13
+Expected ';', '}' or <eof>
+  32 | type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "pr...
+  33 |       key: "Escape",
+> 34 |       action: () => {
+     |             ^
+  35 |         setShowAddModal(false);
+  36 |         setShowEditModal(false);
+  37 |       },
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/students/page.tsx:34:13
+Expected ';', '}' or <eof>
+  32 | type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "pr...
+  33 |       key: "Escape",
+> 34 |       action: () => {
+     |             ^
+  35 |         setShowAddModal(false);
+  36 |         setShowEditModal(false);
+  37 |       },
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/students/page.tsx:34:13
+Expected ';', '}' or <eof>
+  32 | type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "pr...
+  33 |       key: "Escape",
+> 34 |       action: () => {
+     |             ^
+  35 |         setShowAddModal(false);
+  36 |         setShowEditModal(false);
+  37 |       },
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/students/page.tsx:34:13
+Expected ';', '}' or <eof>
+  32 | type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "pr...
+  33 |       key: "Escape",
+> 34 |       action: () => {
+     |             ^
+  35 |         setShowAddModal(false);
+  36 |         setShowEditModal(false);
+  37 |       },
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/students/page.tsx:34:13
+Expected ';', '}' or <eof>
+  32 | type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "pr...
+  33 |       key: "Escape",
+> 34 |       action: () => {
+     |             ^
+  35 |         setShowAddModal(false);
+  36 |         setShowEditModal(false);
+  37 |       },
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/students/page.tsx:34:13
+Expected ';', '}' or <eof>
+  32 | type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "pr...
+  33 |       key: "Escape",
+> 34 |       action: () => {
+     |             ^
+  35 |         setShowAddModal(false);
+  36 |         setShowEditModal(false);
+  37 |       },
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/students/page.tsx:34:13
+Expected ';', '}' or <eof>
+  32 | type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "pr...
+  33 |       key: "Escape",
+> 34 |       action: () => {
+     |             ^
+  35 |         setShowAddModal(false);
+  36 |         setShowEditModal(false);
+  37 |       },
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/students/page.tsx:34:13
+Expected ';', '}' or <eof>
+  32 | type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "pr...
+  33 |       key: "Escape",
+> 34 |       action: () => {
+     |             ^
+  35 |         setShowAddModal(false);
+  36 |         setShowEditModal(false);
+  37 |       },
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/students/page.tsx:34:13
+Expected ';', '}' or <eof>
+  32 | type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "pr...
+  33 |       key: "Escape",
+> 34 |       action: () => {
+     |             ^
+  35 |         setShowAddModal(false);
+  36 |         setShowEditModal(false);
+  37 |       },
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/students/page.tsx:34:13
+Expected ';', '}' or <eof>
+  32 | type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "pr...
+  33 |       key: "Escape",
+> 34 |       action: () => {
+     |             ^
+  35 |         setShowAddModal(false);
+  36 |         setShowEditModal(false);
+  37 |       },
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/students/page.tsx:34:13
+Expected ';', '}' or <eof>
+  32 | type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "pr...
+  33 |       key: "Escape",
+> 34 |       action: () => {
+     |             ^
+  35 |         setShowAddModal(false);
+  36 |         setShowEditModal(false);
+  37 |       },
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/students/page.tsx:34:13
+Expected ';', '}' or <eof>
+  32 | type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "pr...
+  33 |       key: "Escape",
+> 34 |       action: () => {
+     |             ^
+  35 |         setShowAddModal(false);
+  36 |         setShowEditModal(false);
+  37 |       },
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/students/page.tsx:34:13
+Expected ';', '}' or <eof>
+  32 | type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "pr...
+  33 |       key: "Escape",
+> 34 |       action: () => {
+     |             ^
+  35 |         setShowAddModal(false);
+  36 |         setShowEditModal(false);
+  37 |       },
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+✓ Compiled in 1589ms
+ GET /dashboard/ 200 in 2.8s (next.js: 27ms, proxy.ts: 2.6s, application-code: 175ms)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+ GET /dashboard/ 200 in 2.6s (next.js: 451ms, proxy.ts: 2.0s, application-code: 119ms)
+ GET /dashboard/ 200 in 1000ms (next.js: 23ms, proxy.ts: 889ms, application-code: 89ms)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] ./src/app/dashboard/students/page.tsx:406:31
+await isn't allowed in non-async function
+  404 |         return;
+  405 |       }
+> 406 |       const { data, error } = await supabase
+      |                               ^^^^^
+  407 |         .from("students")
+  408 |         .select("*, classes(name)")
+  409 |         .eq("school_id", school.id)
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+✓ Compiled in 570ms
+ GET /dashboard/ 200 in 1587ms (next.js: 6ms, proxy.ts: 1542ms, application-code: 40ms)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+✓ Compiled in 270ms
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+✓ Finished filesystem cache database compaction in 11.8s
+✓ Compiled in 1251ms
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[Server HMR] Update failed, full reload needed: SyntaxError: Identifier 'activeStudents' has already been declared
+    at eval (<anonymous>)
+[Server HMR] Listener error: SyntaxError: Identifier 'activeStudents' has already been declared
+    at eval (<anonymous>)
+[browser] ./src/hooks/useStudentDropouts.ts:94:13
+the name `activeStudents` is defined multiple times
+  92 |         });
+  93 |       });
+> 94 |       const activeStudents = students.filter((s) => s.status === "acti...
+     |             ^^^^^^^^^^^^^^
+  95 |       const atRiskList: AtRiskStudent[] = [];
+  96 |       for (const student of activeStudents) {
+  97 |         const records = studentAtt[student.id];
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/useStudentDropouts.ts [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/useStudentDropouts.ts [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/hooks/useStudentDropouts.ts:94:13
+the name `activeStudents` is defined multiple times
+  92 |         });
+  93 |       });
+> 94 |       const activeStudents = students.filter((s) => s.status === "acti...
+     |             ^^^^^^^^^^^^^^
+  95 |       const atRiskList: AtRiskStudent[] = [];
+  96 |       for (const student of activeStudents) {
+  97 |         const records = studentAtt[student.id];
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/useStudentDropouts.ts [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/useStudentDropouts.ts [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/hooks/useStudentDropouts.ts:94:13
+the name `activeStudents` is defined multiple times
+  92 |         });
+  93 |       });
+> 94 |       const activeStudents = students.filter((s) => s.status === "acti...
+     |             ^^^^^^^^^^^^^^
+  95 |       const atRiskList: AtRiskStudent[] = [];
+  96 |       for (const student of activeStudents) {
+  97 |         const records = studentAtt[student.id];
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/useStudentDropouts.ts [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/useStudentDropouts.ts [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/hooks/useStudentDropouts.ts:94:13
+the name `activeStudents` is defined multiple times
+  92 |         });
+  93 |       });
+> 94 |       const activeStudents = students.filter((s) => s.status === "acti...
+     |             ^^^^^^^^^^^^^^
+  95 |       const atRiskList: AtRiskStudent[] = [];
+  96 |       for (const student of activeStudents) {
+  97 |         const records = studentAtt[student.id];
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/useStudentDropouts.ts [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/useStudentDropouts.ts [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+○ Compiling /_error ...
+[browser] ./src/hooks/useStudentDropouts.ts:94:13
+the name `activeStudents` is defined multiple times
+  92 |         });
+  93 |       });
+> 94 |       const activeStudents = students.filter((s) => s.status === "acti...
+     |             ^^^^^^^^^^^^^^
+  95 |       const atRiskList: AtRiskStudent[] = [];
+  96 |       for (const student of activeStudents) {
+  97 |         const records = studentAtt[student.id];
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/useStudentDropouts.ts [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/useStudentDropouts.ts [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+ GET /dashboard/ 500 in 12.7s (next.js: 8.3s, proxy.ts: 3.7s, application-code: 669ms)
+ GET /dashboard/ 500 in 1198ms (next.js: 21ms, proxy.ts: 1136ms, application-code: 40ms)
+[browser] ./src/hooks/useStudentDropouts.ts:94:13
+the name `activeStudents` is defined multiple times
+  92 |         });
+  93 |       });
+> 94 |       const activeStudents = students.filter((s) => s.status === "acti...
+     |             ^^^^^^^^^^^^^^
+  95 |       const atRiskList: AtRiskStudent[] = [];
+  96 |       for (const student of activeStudents) {
+  97 |         const records = studentAtt[student.id];
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/useStudentDropouts.ts [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/useStudentDropouts.ts [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] Uncaught Error: ./src/hooks/useStudentDropouts.ts:94:13
+the name `activeStudents` is defined multiple times
+  92 |         });
+  93 |       });
+> 94 |       const activeStudents = students.filter((s) => s.status === "acti...
+     |             ^^^^^^^^^^^^^^
+  95 |       const atRiskList: AtRiskStudent[] = [];
+  96 |       for (const student of activeStudents) {
+  97 |         const records = studentAtt[student.id];
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/useStudentDropouts.ts [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/useStudentDropouts.ts [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+
+    at <unknown> (Error: ./src/hooks/useStudentDropouts.ts:94:13)
+    at <unknown> (Error: (./src/hooks/useStudentDropouts.ts:94:13)
+[browser] ./src/hooks/useStudentDropouts.ts:94:13
+the name `activeStudents` is defined multiple times
+  92 |         });
+  93 |       });
+> 94 |       const activeStudents = students.filter((s) => s.status === "acti...
+     |             ^^^^^^^^^^^^^^
+  95 |       const atRiskList: AtRiskStudent[] = [];
+  96 |       for (const student of activeStudents) {
+  97 |         const records = studentAtt[student.id];
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/useStudentDropouts.ts [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/useStudentDropouts.ts [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2781:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2842:28)
+    at <unknown> (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2687:13)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2332:17) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2781:21)
+[browser] ./src/hooks/useStudentDropouts.ts:94:13
+the name `activeStudents` is defined multiple times
+  92 |         });
+  93 |       });
+> 94 |       const activeStudents = students.filter((s) => s.status === "acti...
+     |             ^^^^^^^^^^^^^^
+  95 |       const atRiskList: AtRiskStudent[] = [];
+  96 |       for (const student of activeStudents) {
+  97 |         const records = studentAtt[student.id];
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/useStudentDropouts.ts [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/useStudentDropouts.ts [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2781:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2842:28)
+    at <unknown> (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2687:13)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2332:17) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2781:21)
+[browser] ./src/hooks/useStudentDropouts.ts:94:13
+the name `activeStudents` is defined multiple times
+  92 |         });
+  93 |       });
+> 94 |       const activeStudents = students.filter((s) => s.status === "acti...
+     |             ^^^^^^^^^^^^^^
+  95 |       const atRiskList: AtRiskStudent[] = [];
+  96 |       for (const student of activeStudents) {
+  97 |         const records = studentAtt[student.id];
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/useStudentDropouts.ts [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Client Component Browser]
+    ./src/app/dashboard/students/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/useStudentDropouts.ts [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Client Component SSR]
+    ./src/app/dashboard/students/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2781:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2842:28)
+    at <unknown> (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2687:13)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2332:17) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2781:21)
+✓ Compiled in 78ms
+[Supabase Debug] URL: https://gucxpmgwvnbqykevucbi.supabase.co
+[Supabase Debug] Anon Key: sb_publishable_aiGMJ...
+[Supabase Debug] isValidHttpUrl: true for https://gucxpmgwvnbqykevucbi.supabase.co
+[Supabase Debug] isValidAnonKey: true | sb_publishable_: true | eyJ: false | key: sb_publishable_aiGMJ3qw7yuJW5M...
+[Supabase Debug] hasUsableSupabaseConfig: true
+[Supabase] hasUsableSupabaseConfig: true
+[Supabase] realClient: created
+[Supabase] final supabase: real
+ GET /dashboard/ 200 in 3.4s (next.js: 367ms, proxy.ts: 1264ms, application-code: 1791ms)
+ GET /dashboard/ 200 in 1192ms (next.js: 15ms, proxy.ts: 859ms, application-code: 318ms)
+[browser] Error caught by boundary: ReferenceError: Cannot access 'clearAllTimers' before initialization
+    at useSessionTimeout (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/src_lib_119y735._.js:13455:9)
+    at DashboardContent (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/src_0g4gnaq._.js:459:215)
+    at Object.react_stack_bottom_frame (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:15037:24)
+    at renderWithHooks (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:4620:24)
+    at updateFunctionComponent (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:6081:21)
+    at beginWork (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:6691:24)
+    at runWithFiberInDEV (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:965:74)
+    at performUnitOfWork (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9555:97)
+    at workLoopSync (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9449:40)
+    at renderRootSync (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9433:13)
+    at performWorkOnRoot (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9098:47)
+    at performWorkOnRootViaSchedulerTask (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10255:9)
+    at MessagePort.performWorkUntilDeadline (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_compiled_0rpq4pf._.js:2647:64)
+    at Providers (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/src_05jikro._.js:2822:214)
+    at RootLayout (about://React/Server/file:///Users/user/Downloads/Omuto%20School%20Management%20System/schoolx/.next/dev/server/chunks/ssr/_0k41r.f._.js?11:259:272) {
+  componentStack: [32m'\n'[39m +
+    [32m'    at DashboardContent (http://localhost:3015/_next/static/chunks/src_0g4gnaq._.js:392:29)\n'[39m +
+    [32m'    at SidebarProvider (http://localhost:3015/_next/static/chunks/src_0g4gnaq._.js:18:28)\n'[39m +
+    [32m'    at DashboardLayout (http://localhost:3015/_next/static/chunks/src_0g4gnaq._.js:666:28)\n'[39m +
+    [32m'    at ClientSegmentRoot (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:26843:30)\n'[39m +
+    [32m'    at SegmentViewNode (http://localhost:3015/_next/static/chunks/node_modules_next_dist_115brz8._.js:3492:28)\n'[39m +
+    [32m'    at LoadingBoundaryProvider (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:22875:36)\n'[39m +
+    [32m'    at InnerLayoutRouter (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:22792:34)\n'[39m +
+    [32m'    at RedirectErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:12545:9)\n'[39m +
+    [32m'    at RedirectBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:12587:29)\n'[39m +
+    [32m'    at HTTPAccessFallbackErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13006:9)\n'[39m +
+    [32m'    at HTTPAccessFallbackBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13081:39)\n'[39m +
+    [32m'    at LoadingBoundary (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:22913:32)\n'[39m +
+    [32m'    at ErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:1567:26)\n'[39m +
+    [32m'    at InnerScrollAndFocusHandlerOld (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:22627:9)\n'[39m +
+    [32m'    at ScrollAndMaybeFocusHandler (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:22775:39)\n'[39m +
+    [32m'    at RenderFromTemplateContext (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:23165:44)\n'[39m +
+    [32m'    at SegmentStateProvider (http://localhost:3015/_next/static/chunks/node_modules_next_dist_115brz8._.js:3508:33)\n'[39m +
+    [32m'    at OuterLayoutRouter (http://localhost:3015/_next/static/chunks/node_modules_01k.v19._.js:22939:30)\n'[39m +
+    [32m'    at NotificationsProvider (http://localhost:3015/_next/static/chunks/src_05jikro._.js:1903:34)\n'[39m +
+    [32m'    at BrandProvider (http://localhost:3015/_next/static/chunks/src_05jikro._.js:2700:26)\n'[39m +
+    [32m'    at AcademicProvider (http://localhost:3015/_next/static/chunks/src_05jikro._.js:1655:29)\n'[39m +
+    [32m'    at LoadingChecker (http://localhost:3015/_next/static/chunks/src_05jikro._.js:2814:27)\n'[39m +
+    [32m'    at AuthProvider (http://localhost:3015/_next/static/chunks/src_05jikro._.js:1126:25)\n'[39m +
+    [32m'    at ServiceWorkerRegistration (http://localhost:3015/_next/static/chunks/src_05jikro._.js:2771:38)\n'[39m +
+    [32m'    at ThemeProvider (http://localhost:3015/_next/static/chunks/src_05jikro._.js:1822:26)\n'[39m +
+    [32m'    at ToastProvider (http://localhost:3015/_next/static/chunks/src_05jikro._.js:2474:26)\n'[39m +
+    [32m'    at ErrorBoundary (http://localhost:3015/_next/static/chunks/src_05jikro._.js:2312:9)\n'[39m +
+    [32m'    at Providers (http://localhost:3015/_next/static/chunks/src_05jikro._.js:2821:22)\n'[39m +
+    [32m'    at body (<anonymous>)\n'[39m +
+    [32m'    at html (<anonymous>)\n'[39m +
+    [32m'    at RootLayout [Server] (<anonymous>)\n'[39m +
+    [32m'    at SegmentViewNode (http://localhost:3015/_next/static/chunks/node_modules_next_dist_115brz8._.js:3492:28)\n'[39m +
+    [32m'    at __next_root_layout_boundary__ (http://localhost:3015/_next/static/chunks/node_modules_next_dist_115brz8._.js:2215:64)\n'[39m +
+    [32m'    at RedirectErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:12545:9)\n'[39m +
+    [32m'    at RedirectBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:12587:29)\n'[39m +
+    [32m'    at HTTPAccessFallbackErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13006:9)\n'[39m +
+    [32m'    at HTTPAccessFallbackBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13081:39)\n'[39m +
+    [32m'    at DevRootHTTPAccessFallbackBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13150:46)\n'[39m +
+    [32m'    at AppDevOverlayErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_115brz8._.js:3612:9)\n'[39m +
+    [32m'    at HotReload (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:14113:22)\n'[39m +
+    [32m'    at Router (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:14271:23)\n'[39m +
+    [32m'    at ErrorBoundaryHandler (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:1495:9)\n'[39m +
+    [32m'    at ErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:1567:26)\n'[39m +
+    [32m'    at RootErrorBoundary (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:12832:30)\n'[39m +
+    [32m'    at AppRouter (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:14601:22)\n'[39m +
+    [32m'    at ServerRoot (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:15086:23)\n'[39m +
+    [32m'    at Root (http://localhost:3015/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:15104:17)'[39m
+} (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/src_05jikro._.js:556:17)
+ GET /dashboard/ 200 in 1937ms (next.js: 6ms, proxy.ts: 1543ms, application-code: 389ms)
+[browser] extended student select failed, trying a smaller shape: {
+  code: [32m'42703'[39m,
+  details: [1mnull[22m,
+  hint: [1mnull[22m,
+  message: [32m'column students.blood_type does not exist'[39m
+} (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] extended student select failed, trying a smaller shape: {
+  code: [32m'42703'[39m,
+  details: [1mnull[22m,
+  hint: [1mnull[22m,
+  message: [32m'column students.blood_type does not exist'[39m
+} (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+ GET /dashboard/students/ 200 in 1062ms (next.js: 52ms, proxy.ts: 946ms, application-code: 64ms)
+○ Compiling /dashboard/students/[id] ...
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 11.1s (next.js: 9.9s, proxy.ts: 1066ms, application-code: 82ms)
+✓ Compiled in 2.1s
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 2.6s (next.js: 233ms, proxy.ts: 2.1s, application-code: 343ms)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 1424ms (next.js: 22ms, proxy.ts: 1229ms, application-code: 174ms)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 1058ms (next.js: 29ms, proxy.ts: 886ms, application-code: 143ms)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 1004ms (next.js: 17ms, proxy.ts: 846ms, application-code: 141ms)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 1073ms (next.js: 21ms, proxy.ts: 881ms, application-code: 171ms)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 1033ms (next.js: 15ms, proxy.ts: 887ms, application-code: 132ms)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 965ms (next.js: 20ms, proxy.ts: 834ms, application-code: 111ms)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 1470ms (next.js: 16ms, proxy.ts: 1333ms, application-code: 121ms)
+✓ Compiled in 5.7s
+✓ Finished writing to filesystem cache in 10.6s
+✓ Compiled in 16.4s
+✓ Compiled in 69.6s
+✓ Finished writing to filesystem cache in 76s
+✓ Finished writing to filesystem cache in 15.2s
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 3.2min (next.js: 95s, proxy.ts: 41s, application-code: 59s)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 2.8min (next.js: 39.4s, proxy.ts: 2.6s, application-code: 2.1min)
+✓ Compiled in 178s
+✓ Compiled in 110.7s
+✓ Finished filesystem cache database compaction in 8.6min
+✓ Compiled in 108.5s
+✓ Compiled in 1527ms
+[browser] @supabase/gotrue-js: Lock "lock:sb-gucxpmgwvnbqykevucbi-auth-token" was not released within 5000ms. This may indicate an orphaned lock from a component unmount (e.g., React Strict Mode). Forcefully acquiring the lock to recover. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] @supabase/gotrue-js: Lock "lock:sb-gucxpmgwvnbqykevucbi-auth-token" was not released within 5000ms. This may indicate an orphaned lock from a component unmount (e.g., React Strict Mode). Forcefully acquiring the lock to recover. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[Supabase Debug] URL: https://gucxpmgwvnbqykevucbi.supabase.co
+[Supabase Debug] Anon Key: sb_publishable_aiGMJ...
+[Supabase Debug] isValidHttpUrl: true for https://gucxpmgwvnbqykevucbi.supabase.co
+[Supabase Debug] isValidAnonKey: true | sb_publishable_: true | eyJ: false | key: sb_publishable_aiGMJ3qw7yuJW5M...
+[Supabase Debug] hasUsableSupabaseConfig: true
+[Supabase] hasUsableSupabaseConfig: true
+[Supabase] realClient: created
+[Supabase] final supabase: real
+✓ Compiled in 1ms
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 98s (next.js: 4.5s, proxy.ts: 26.7s, application-code: 67s)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 72s (next.js: 56s, proxy.ts: 7.7s, application-code: 9.2s)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 94s (next.js: 2.4s, proxy.ts: 28.4s, application-code: 63s)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 73s (next.js: 2.4s, proxy.ts: 66s, application-code: 5.4s)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 73s (next.js: 3.3s, proxy.ts: 65s, application-code: 4.5s)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 72s (next.js: 2.7s, proxy.ts: 65s, application-code: 4.5s)
+✓ Finished filesystem cache database compaction in 3.9min
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 23.3s (next.js: 686ms, proxy.ts: 2.1s, application-code: 20.4s)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 22.8s (next.js: 1665ms, proxy.ts: 1651ms, application-code: 19.5s)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 24.0s (next.js: 16.4s, proxy.ts: 3.4s, application-code: 4.2s)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 21.7s (next.js: 2.7s, proxy.ts: 18.7s, application-code: 313ms)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 22.8s (next.js: 2.2s, proxy.ts: 18.0s, application-code: 2.7s)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 23.0s (next.js: 1969ms, proxy.ts: 18.0s, application-code: 3.1s)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 1028ms (next.js: 12ms, proxy.ts: 954ms, application-code: 62ms)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 1139ms (next.js: 10ms, proxy.ts: 1032ms, application-code: 98ms)
+[browser] extended student fetch failed, trying a smaller shape: {
+  code: [32m'42703'[39m,
+  details: [1mnull[22m,
+  hint: [1mnull[22m,
+  message: [32m'column students.blood_type does not exist'[39m
+} (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] extended student fetch failed, trying a smaller shape: {
+  code: [32m'42703'[39m,
+  details: [1mnull[22m,
+  hint: [1mnull[22m,
+  message: [32m'column students.blood_type does not exist'[39m
+} (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+✓ Compiled in 2.3s
+✓ Compiled in 2.2s
+✓ Compiled in 2s
+✓ Compiled in 2.3s
+✓ Compiled in 2s
+[browser] ./src/app/dashboard/dashboards/DeanDashboard.tsx:183:12
+Expected ',', got 'ident'
+  181 |       </div>
+  182 |
+> 183 |       <div className="card">
+      |            ^^^^^^^^^
+  184 |         <div className="card-header">
+  185 |           <div>
+  186 |             <div className="card-title">
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component Browser]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component SSR]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/dashboards/DeanDashboard.tsx:183:12
+Expected ',', got 'ident'
+  181 |       </div>
+  182 |
+> 183 |       <div className="card">
+      |            ^^^^^^^^^
+  184 |         <div className="card-header">
+  185 |           <div>
+  186 |             <div className="card-title">
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component Browser]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component SSR]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/dashboards/DeanDashboard.tsx:183:12
+Expected ',', got 'ident'
+  181 |       </div>
+  182 |
+> 183 |       <div className="card">
+      |            ^^^^^^^^^
+  184 |         <div className="card-header">
+  185 |           <div>
+  186 |             <div className="card-title">
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component Browser]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component SSR]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/dashboards/DeanDashboard.tsx:183:12
+Expected ',', got 'ident'
+  181 |       </div>
+  182 |
+> 183 |       <div className="card">
+      |            ^^^^^^^^^
+  184 |         <div className="card-header">
+  185 |           <div>
+  186 |             <div className="card-title">
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component Browser]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component SSR]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/dashboards/DeanDashboard.tsx:183:12
+Expected ',', got 'ident'
+  181 |       </div>
+  182 |
+> 183 |       <div className="card">
+      |            ^^^^^^^^^
+  184 |         <div className="card-header">
+  185 |           <div>
+  186 |             <div className="card-title">
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component Browser]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component SSR]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/dashboards/DeanDashboard.tsx:183:12
+Expected ',', got 'ident'
+  181 |       </div>
+  182 |
+> 183 |       <div className="card">
+      |            ^^^^^^^^^
+  184 |         <div className="card-header">
+  185 |           <div>
+  186 |             <div className="card-title">
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component Browser]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component SSR]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+✓ Compiled in 715ms
+[browser] ./src/app/dashboard/dashboards/DeanDashboard.tsx:183:12
+Expected ',', got 'ident'
+  181 |       </div>
+  182 |
+> 183 |       <div className="card">
+      |            ^^^^^^^^^
+  184 |         <div className="card-header">
+  185 |           <div>
+  186 |             <div className="card-title">
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component Browser]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component SSR]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/dashboards/DeanDashboard.tsx:118:9
+Expression expected
+  116 |             </div>
+  117 |           </Link>
+> 118 |         </div>
+      |         ^
+  119 |       </div>
+  120 |
+  121 |       <div className="card">
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component Browser]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component SSR]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/dashboards/DeanDashboard.tsx:40:5
+Return statement is not allowed here
+  38 |
+  39 |   if (statsLoading) {
+> 40 |     return (
+     |     ^^^^^^^
+> 41 |       <div className="content">
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 42 |         <StatsGridSkeleton cols={3} />
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 43 |       </div>
+     | ^^^^^^^^^^^^
+> 44 |     );
+     | ^^^^^^
+  45 |   }
+  46 |
+  47 |   const getStudentCountForClass = (classId: string) => {
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component Browser]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component SSR]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/dashboards/DeanDashboard.tsx:118:10
+Unterminated regexp literal
+  116 |             </div>
+  117 |           </Link>
+> 118 |         </div>
+      |          ^^^^^
+  119 |       </div>
+  120 |
+  121 |       <div className="card">
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component Browser]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component SSR]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/dashboards/DeanDashboard.tsx:118:9
+Expression expected
+  116 |             </div>
+  117 |           </Link>
+> 118 |         </div>
+      |         ^
+  119 |       </div>
+  120 |
+  121 |       <div className="card">
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component Browser]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component SSR]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/dashboards/DeanDashboard.tsx:40:5
+Return statement is not allowed here
+  38 |
+  39 |   if (statsLoading) {
+> 40 |     return (
+     |     ^^^^^^^
+> 41 |       <div className="content">
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 42 |         <StatsGridSkeleton cols={3} />
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 43 |       </div>
+     | ^^^^^^^^^^^^
+> 44 |     );
+     | ^^^^^^
+  45 |   }
+  46 |
+  47 |   const getStudentCountForClass = (classId: string) => {
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component Browser]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component SSR]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+[browser] ./src/app/dashboard/dashboards/DeanDashboard.tsx:118:10
+Unterminated regexp literal
+  116 |             </div>
+  117 |           </Link>
+> 118 |         </div>
+      |          ^^^^^
+  119 |       </div>
+  120 |
+  121 |       <div className="card">
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component Browser]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/dashboards/DeanDashboard.tsx [Client Component SSR]
+    ./src/app/dashboard/DashboardRouter.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Server Component] 
+    at handleErrors (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+    at processMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13899:21)
+    at WebSocket.handleMessage (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13343:52) (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13836:21)
+✓ Compiled in 1071ms
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 7.2s (next.js: 441ms, proxy.ts: 5.9s, application-code: 810ms)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 3.4s (next.js: 25ms, proxy.ts: 3.3s, application-code: 84ms)
+ GET /dashboard/students/4652787c-749e-4e09-b575-7a431a562636/ 200 in 903ms (next.js: 14ms, proxy.ts: 809ms, application-code: 81ms)
+ GET /dashboard/ 200 in 2.3s (next.js: 57ms, proxy.ts: 2.0s, application-code: 195ms)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+○ Compiling /dashboard/analytics/dna ...
+ GET /dashboard/analytics/dna/ 200 in 7.4s (next.js: 6.0s, proxy.ts: 1342ms, application-code: 56ms)
+ GET /dashboard/analytics/dna/ 200 in 16.8s (next.js: 14.8s, proxy.ts: 1127ms, application-code: 901ms)
+✓ Compiled in 22s
+ GET /dashboard/analytics/dna/ 200 in 2.2s (next.js: 148ms, proxy.ts: 1701ms, application-code: 383ms)
+ GET /dashboard/analytics/dna/ 200 in 1558ms (next.js: 5ms, proxy.ts: 1461ms, application-code: 92ms)
+ GET /dashboard/analytics/dna/ 200 in 875ms (next.js: 7ms, proxy.ts: 791ms, application-code: 77ms)
+ GET /dashboard/analytics/dna/ 200 in 948ms (next.js: 4ms, proxy.ts: 854ms, application-code: 90ms)
+ GET /dashboard/analytics/dna/ 200 in 1013ms (next.js: 6ms, proxy.ts: 897ms, application-code: 110ms)
+ GET /dashboard/analytics/dna/ 200 in 807ms (next.js: 5ms, proxy.ts: 736ms, application-code: 66ms)
+ GET /dashboard/analytics/dna/ 200 in 959ms (next.js: 5ms, proxy.ts: 894ms, application-code: 60ms)
+ GET /dashboard/analytics/dna/ 200 in 951ms (next.js: 7ms, proxy.ts: 868ms, application-code: 76ms)
+ GET /dashboard/analytics/dna/ 200 in 877ms (next.js: 4ms, proxy.ts: 791ms, application-code: 81ms)
+ GET /dashboard/analytics/dna/ 200 in 867ms (next.js: 5ms, proxy.ts: 784ms, application-code: 78ms)
+ GET /dashboard/analytics/dna/ 200 in 922ms (next.js: 7ms, proxy.ts: 857ms, application-code: 58ms)
+ GET /dashboard/analytics/dna/ 200 in 1007ms (next.js: 10ms, proxy.ts: 865ms, application-code: 131ms)
+ GET /dashboard/analytics/dna/ 200 in 1014ms (next.js: 3ms, proxy.ts: 924ms, application-code: 86ms)
+ GET /dashboard/analytics/dna/ 200 in 886ms (next.js: 8ms, proxy.ts: 804ms, application-code: 74ms)
+ GET /dashboard/analytics/dna/ 200 in 863ms (next.js: 7ms, proxy.ts: 763ms, application-code: 93ms)
+ GET /dashboard/analytics/dna/ 200 in 877ms (next.js: 4ms, proxy.ts: 772ms, application-code: 100ms)
+ GET /dashboard/analytics/dna/ 200 in 966ms (next.js: 7ms, proxy.ts: 892ms, application-code: 68ms)
+ GET /dashboard/analytics/dna/ 200 in 931ms (next.js: 6ms, proxy.ts: 859ms, application-code: 65ms)
+ GET /dashboard/analytics/dna/ 200 in 880ms (next.js: 7ms, proxy.ts: 801ms, application-code: 72ms)
+ GET /dashboard/analytics/dna/ 200 in 800ms (next.js: 4ms, proxy.ts: 732ms, application-code: 65ms)
+ GET /dashboard/analytics/dna/ 200 in 852ms (next.js: 4ms, proxy.ts: 782ms, application-code: 66ms)
+ GET /dashboard/analytics/dna/ 200 in 913ms (next.js: 15ms, proxy.ts: 781ms, application-code: 117ms)
+✓ Compiled in 0ms
+ GET /dashboard/analytics/dna/ 200 in 1594ms (next.js: 12ms, proxy.ts: 1514ms, application-code: 67ms)
+ GET /dashboard/analytics/dna/ 200 in 1587ms (next.js: 8ms, proxy.ts: 1521ms, application-code: 58ms)
+ GET /dashboard/analytics/dna/ 200 in 1635ms (next.js: 13ms, proxy.ts: 1548ms, application-code: 74ms)
+ GET /dashboard/analytics/dna/ 200 in 1964ms (next.js: 8ms, proxy.ts: 1738ms, application-code: 218ms)
+ GET /dashboard/analytics/dna/ 200 in 1002ms (next.js: 6ms, proxy.ts: 854ms, application-code: 141ms)
+ GET /dashboard/analytics/dna/ 200 in 1918ms (next.js: 8ms, proxy.ts: 1818ms, application-code: 91ms)
+ GET /dashboard/analytics/dna/ 200 in 956ms (next.js: 6ms, proxy.ts: 880ms, application-code: 70ms)
+ GET /dashboard/analytics/dna/ 200 in 978ms (next.js: 4ms, proxy.ts: 819ms, application-code: 154ms)
+ GET /dashboard/analytics/dna/ 200 in 902ms (next.js: 10ms, proxy.ts: 795ms, application-code: 98ms)
+✓ Compiled in 750ms
+[Supabase Debug] URL: https://gucxpmgwvnbqykevucbi.supabase.co
+[Supabase Debug] Anon Key: sb_publishable_aiGMJ...
+[Supabase Debug] isValidHttpUrl: true for https://gucxpmgwvnbqykevucbi.supabase.co
+[Supabase Debug] isValidAnonKey: true | sb_publishable_: true | eyJ: false | key: sb_publishable_aiGMJ3qw7yuJW5M...
+[Supabase Debug] hasUsableSupabaseConfig: true
+[Supabase] hasUsableSupabaseConfig: true
+[Supabase] realClient: created
+[Supabase] final supabase: real
+ GET /dashboard/analytics/dna/ 200 in 3.4s (next.js: 231ms, proxy.ts: 1625ms, application-code: 1507ms)
+[browser] extended student select failed, trying a smaller shape: {
+  code: [32m'42703'[39m,
+  details: [1mnull[22m,
+  hint: [1mnull[22m,
+  message: [32m'column students.blood_type does not exist'[39m
+} (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] extended student select failed, trying a smaller shape: {
+  code: [32m'42703'[39m,
+  details: [1mnull[22m,
+  hint: [1mnull[22m,
+  message: [32m'column students.blood_type does not exist'[39m
+} (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+ GET /dashboard/ 200 in 1402ms (next.js: 326ms, proxy.ts: 896ms, application-code: 180ms)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+ GET /dashboard/students/ 200 in 1241ms (next.js: 162ms, proxy.ts: 1021ms, application-code: 59ms)
+ GET /dashboard/ 200 in 2.1s (next.js: 7ms, proxy.ts: 1997ms, application-code: 46ms)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+✓ Compiled in 1219ms
+ GET /dashboard/ 200 in 3.3s (next.js: 427ms, proxy.ts: 2.2s, application-code: 698ms)
+ GET /dashboard/ 200 in 1726ms (next.js: 196ms, proxy.ts: 1465ms, application-code: 65ms)
+✓ Compiled in 621ms
+✓ Compiled in 83ms
+✓ Compiled in 115ms
