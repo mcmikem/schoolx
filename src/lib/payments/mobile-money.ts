@@ -54,13 +54,9 @@ export class FlutterwaveMobileMoney {
 
   constructor() {
     this.config = {
-      publicKey: process.env.FLUTTERWAVE_PUBLIC_KEY!,
-      secretKey: process.env.FLUTTERWAVE_SECRET_KEY!,
+      publicKey: process.env.FLUTTERWAVE_PUBLIC_KEY || "",
+      secretKey: process.env.FLUTTERWAVE_SECRET_KEY || "",
     };
-
-    if (!this.config.publicKey || !this.config.secretKey) {
-      throw new Error("Flutterwave API keys are not configured");
-    }
   }
 
   private async makeRequest(
@@ -68,6 +64,12 @@ export class FlutterwaveMobileMoney {
     method: "GET" | "POST" = "POST",
     body?: Record<string, unknown>,
   ): Promise<unknown> {
+    if (!this.config.publicKey || !this.config.secretKey) {
+      throw new Error(
+        "Mobile money payments are not yet configured. Please add FLUTTERWAVE_PUBLIC_KEY and FLUTTERWAVE_SECRET_KEY to your environment variables.",
+      );
+    }
+
     const url = `${FLUTTERWAVE_BASE_URL}${endpoint}`;
 
     const headers: Record<string, string> = {

@@ -21,6 +21,7 @@ import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { useSessionTimeout } from "@/lib/useSessionTimeout";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import MaterialIcon from "@/components/MaterialIcon";
+import OwlAssistant from "@/components/OwlAssistant";
 
 const SECTION_LABELS: Record<string, { label: string; icon: string }> = {
   students: { label: "Students", icon: "group" },
@@ -265,10 +266,19 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           )}
           <TrialBanner />
           {children}
+          <footer className="mt-auto px-4 py-3 border-t border-[var(--border)] bg-[var(--surface)] text-center">
+            <p className="text-[11px] text-[var(--t4)]">
+              Developed by{" "}
+              <span className="font-semibold text-[var(--t3)]">IMAC Enterprises</span>
+              {" "}·{" "}Powered by{" "}
+              <span className="font-semibold text-[var(--t3)]">Omuto Foundation</span>
+            </p>
+          </footer>
         </main>
       </div>
 
       <MobileBottomNav />
+      <OwlAssistant />
     </ErrorBoundary>
   );
 }

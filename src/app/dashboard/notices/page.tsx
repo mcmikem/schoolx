@@ -19,6 +19,7 @@ export default function NoticesPage() {
   const [loading, setLoading] = useState(true);
   const [showPostModal, setShowPostModal] = useState(false);
   const [posting, setPosting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: "",
     content: "",
@@ -60,6 +61,25 @@ export default function NoticesPage() {
   useEffect(() => {
     fetchNotices();
   }, [fetchNotices]);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this notice?")) return;
+    setDeletingId(id);
+    try {
+      if (isDemo) {
+        setNotices((prev) => prev.filter((n) => n.id !== id));
+      } else {
+        const { error } = await supabase.from("notices").delete().eq("id", id);
+        if (error) throw error;
+        setNotices((prev) => prev.filter((n) => n.id !== id));
+      }
+      toast.success("Notice deleted");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Failed to delete notice"));
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const handlePost = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,6 +176,17 @@ export default function NoticesPage() {
                   <span className="text-xs text-gray-400">
                     {new Date(notice.created_at).toLocaleDateString()}
                   </span>
+                </div>
+                <div className="flex justify-end mt-3">
+                  <button
+                    onClick={() => handleDelete(notice.id)}
+                    disabled={deletingId === notice.id}
+                    className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50 flex items-center gap-1"
+                    title="Delete notice"
+                  >
+                    <MaterialIcon icon="delete" className="text-sm" />
+                    {deletingId === notice.id ? "Deleting..." : "Delete"}
+                  </button>
                 </div>
               </CardBody>
             </Card>

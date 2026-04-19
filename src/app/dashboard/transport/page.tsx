@@ -28,6 +28,7 @@ export default function TransportPage() {
   const [routes, setRoutes] = useState<TransportRoute[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({
     route_name: "",
@@ -95,6 +96,25 @@ export default function TransportPage() {
     }
   };
 
+  const deleteRoute = async (id: string, studentCount: number) => {
+    if (studentCount > 0) {
+      toast.error(`Cannot delete route with ${studentCount} enrolled student${studentCount > 1 ? 's' : ''}. Remove students first.`);
+      return;
+    }
+    if (!confirm("Delete this transport route?")) return;
+    setDeletingId(id);
+    try {
+      const { error } = await supabase.from("transport_routes").delete().eq("id", id);
+      if (error) throw error;
+      setRoutes((prev) => prev.filter((r) => r.id !== id));
+      toast.success("Route deleted");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Failed to delete route"));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const totalStudents = routes.reduce((s, r) => s + (r._student_count || 0), 0);
 
   return (
@@ -148,7 +168,7 @@ export default function TransportPage() {
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-[var(--border)]">
-                    {["Route", "Vehicle", "Driver", "Students", "Monthly Fee"].map((h) => (
+                    {["Route", "Vehicle", "Driver", "Students", "Monthly Fee", ""].map((h) => (
                       <th key={h} className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-[var(--t3)]">{h}</th>
                     ))}
                   </tr>
@@ -165,6 +185,16 @@ export default function TransportPage() {
                       <td className="px-4 py-3 font-medium text-[var(--t1)]">{r._student_count || 0}</td>
                       <td className="px-4 py-3 text-[var(--t2)]">
                         {r.monthly_fee ? `UGX ${Number(r.monthly_fee).toLocaleString()}` : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => deleteRoute(r.id, r._student_count || 0)}
+                          disabled={deletingId === r.id}
+                          className="p-1.5 hover:bg-red-50 rounded-lg text-[var(--t3)] hover:text-red-500 disabled:opacity-50 transition-colors"
+                          title="Delete route"
+                        >
+                          <MaterialIcon icon={deletingId === r.id ? "hourglass_empty" : "delete"} style={{ fontSize: 16 }} />
+                        </button>
                       </td>
                     </tr>
                   ))}
