@@ -3,6 +3,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/Toast";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import AnimatedLogo from "@/components/AnimatedLogo";
 import OwlStage from "@/components/brand/OwlStage";
 import OwlMascot from "@/components/brand/OwlMascot";
@@ -47,6 +48,7 @@ function MaterialIcon({
 
 export default function LoginPage() {
   const toast = useToast();
+  const router = useRouter();
   const { signIn, user, loading: authLoading } = useAuth();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -56,35 +58,16 @@ export default function LoginPage() {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
 
-  // If user is already authenticated, redirect to dashboard
+  // Redirect already-logged-in users away from the login page
   useEffect(() => {
     if (!authLoading && user) {
-      if (user.role === "super_admin") {
-        window.location.href = "/super-admin";
-      } else if (user.role === "parent") {
-        window.location.href = "/parent-portal";
-      } else {
-        window.location.href = "/dashboard";
-      }
+      const dest =
+        user.role === "super_admin" ? "/super-admin"
+        : user.role === "parent" ? "/parent-portal"
+        : "/dashboard";
+      router.replace(dest);
     }
-  }, [user, authLoading]);
-
-  // Show a spinner while auth state is initializing to prevent flash
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top,#edf4ff_0%,#f7f4ec_55%,#f4efe4_100%)] flex items-center justify-center px-4">
-        <div className="w-full max-w-xl">
-          <OwlStage
-            align="center"
-            eyebrow="Preparing your workspace"
-            title="The owl is opening SkoolMate"
-            description="Checking your school session, restoring your dashboard state, and preparing a smooth sign-in."
-            chips={["Secure sign-in", "Fast parent follow-up", "Ready for daily operations"]}
-          />
-        </div>
-      </div>
-    );
-  }
+  }, [user, authLoading, router]);
 
   const validatePhone = (phone: string): boolean => {
     const clean = normalizeAuthPhone(phone);
@@ -152,13 +135,13 @@ export default function LoginPage() {
                   ? "/parent-portal"
                   : "/dashboard";
 
-            window.location.href = redirectPath;
+            router.replace(redirectPath);
             return;
           }
         }
       }
 
-      const { error: authError } = await signIn(cleanPhone, password);
+      const { error: authError, role } = await signIn(cleanPhone, password);
       if (authError) {
         const newAttempts = failedAttempts + 1;
         setFailedAttempts(newAttempts);
@@ -175,13 +158,16 @@ export default function LoginPage() {
       setFailedAttempts(0);
       setLockoutUntil(null);
 
-      toast.success("Login successful!");
+      // setLoading(false) so React re-renders; the useEffect below will then
+      // call router.replace() after the render — this is more reliable than
+      // calling router.replace() from inside an async handler after an await.
+      setLoading(false);
+      return;
     } catch (err: unknown) {
       console.error("Login exception:", err);
       const errorMessage =
         err instanceof Error ? err.message : "An error occurred";
       toast.error(errorMessage);
-    } finally {
       setLoading(false);
     }
   };
@@ -202,6 +188,14 @@ export default function LoginPage() {
 
   return (
     <PageErrorBoundary>
+    {/* Guard: if user is known (just logged in or already authenticated),
+        show a plain spinner so there's no flash of the form while router
+        is processing the redirect from the useEffect below. */}
+    {(authLoading || user) ? (
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top,#eff5ff_0%,#f7f5ee_52%,#f1ebdf_100%)] flex items-center justify-center">
+        <div className="w-8 h-8 border-[3px] border-[#3b82f6] border-t-transparent rounded-full animate-spin" />
+      </div>
+    ) : (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,#eff5ff_0%,#f7f5ee_52%,#f1ebdf_100%)] flex relative overflow-hidden">
       <div className="flex-1 flex flex-col justify-center relative z-10 w-full lg:max-w-[45%] xl:max-w-[40%] px-6 lg:px-16 xl:px-24">
         <div className="absolute top-[-10%] left-[-10%] h-[60%] w-[60%] rounded-full bg-[#bdd6ff] blur-[150px] opacity-30" />
@@ -397,6 +391,7 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+    )}
     </PageErrorBoundary>
   );
 }

@@ -125,7 +125,7 @@ interface AuthContextType {
   loading: boolean;
   isDemo: boolean;
   isTrialExpired: boolean;
-  signIn: (phone: string, password: string) => Promise<{ error: any }>;
+  signIn: (phone: string, password: string) => Promise<{ error: any; role?: string }>;
   signUp: (
     phone: string,
     password: string,
@@ -253,7 +253,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               `[Auth] User profile not found for auth_id: ${authId}. Retrying...`,
             );
             await new Promise((resolve) =>
-              setTimeout(resolve, 1000 * (retryCount + 1)),
+              setTimeout(resolve, 300 * (retryCount + 1)),
             );
             return fetchUserData(authId, retryCount + 1);
           }
@@ -332,10 +332,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const checkUser = useCallback(async () => {
-    // Safety timeout: never stay in loading state for more than 5 seconds
+    // Safety timeout: never stay in loading state for more than 2.5 seconds
     const safetyTimer = setTimeout(() => {
       setLoading(false);
-    }, 5000);
+    }, 2500);
 
     try {
       const demoUserStr = readDemoStorage();
@@ -385,6 +385,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check for real auth session
       if (supabase?.auth) {
         try {
+          // Fast path: getSession() reads from localStorage — no network call.
+          // If null, there are no tokens stored and the user is definitely not
+          // logged in. Skip the getUser() server round-trip entirely.
+          const { data: { session } } = await supabase!.auth.getSession();
+          if (!session) {
+            setUser(null);
+            setSchool(null);
+            setIsDemo(false);
+            setLoading(false);
+            return;
+          }
+          // Session tokens exist locally — validate with the server.
           const {
             data: { user: authUser },
           } = await withSupabaseLockRetry(
@@ -395,7 +407,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setIsDemo(false);
             setLoading(false);
           } else {
-            // No valid session - clear user and redirect
+            // Token was invalid / revoked
             setUser(null);
             setSchool(null);
             setIsDemo(false);
@@ -542,7 +554,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           };
         }
 
-        return { error: null };
+        return { error: null, role: userData.role };
       }
 
       return {

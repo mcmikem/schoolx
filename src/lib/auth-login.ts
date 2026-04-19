@@ -45,14 +45,17 @@ export function buildAuthLoginAttempts(input: string): AuthLoginAttempt[] {
         ? `0${digitOnly}`
         : digitOnly;
 
+  // Accounts are stored as phone@omuto.org emails — try email format first
+  // to avoid wasting round-trips on phone attempts that always fail.
+  addAttempt(attempts, seen, "email", `${localPhone}@omuto.org`);
+  addAttempt(attempts, seen, "email", `${normalized}@omuto.org`);
+  addAttempt(attempts, seen, "email", `${digitOnly}@omuto.org`);
+
+  // Phone fallbacks (for legacy accounts stored with phone format)
   addAttempt(attempts, seen, "phone", trimmed);
   addAttempt(attempts, seen, "phone", localPhone);
   addAttempt(attempts, seen, "phone", normalized);
   addAttempt(attempts, seen, "phone", normalized ? `+${normalized}` : null);
-
-  addAttempt(attempts, seen, "email", `${localPhone}@omuto.org`);
-  addAttempt(attempts, seen, "email", `${digitOnly}@omuto.org`);
-  addAttempt(attempts, seen, "email", `${normalized}@omuto.org`);
 
   return attempts;
 }
