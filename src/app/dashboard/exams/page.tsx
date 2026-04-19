@@ -561,9 +561,8 @@ export default function ExamsPage() {
                             <button
                               onClick={() => {
                                 const score = getStudentTotal(student.id);
-                                alert(
-                                  `AI Advice for ${student.first_name}: ${score > 80 ? "Excellent progress, keep it up!" : score > 50 ? "Solid performance, focus on improving speed." : "Needs urgent review on core concepts."}`,
-                                );
+                                const advice = score > 80 ? "Excellent progress, keep it up!" : score > 50 ? "Solid performance, focus on improving speed." : "Needs urgent review on core concepts.";
+                                toast.info(`${student.first_name}: ${advice}`);
                               }}
                               className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center opacity-0 group-hover/student:opacity-100 transition-all hover:bg-amber-100"
                               title="Generate AI Advice"

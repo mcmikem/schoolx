@@ -1979,3 +1979,23 @@ Import traces:
        please check the style of container, or the props width(100%) and height(100%),
        or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
        height and width. (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+ GET /dashboard/analytics/dna/ 200 in 3.3s (next.js: 468ms, proxy.ts: 2.7s, application-code: 194ms)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] [hooks] Timeout — returning fallback (file:///Users/user/Downloads/Omuto School Management System/schoolx/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+ GET /login/?redirect=%2Fdashboard%2F 200 in 361ms (next.js: 32ms, proxy.ts: 13ms, application-code: 316ms)
+ GET /login/ 200 in 451ms (next.js: 17ms, proxy.ts: 17ms, application-code: 416ms)
+ GET / 200 in 463ms (next.js: 105ms, proxy.ts: 19ms, application-code: 338ms)
+ GET /login/?redirect=%2Fdashboard%2Fstore%2Fpos%2F 200 in 147ms (next.js: 7ms, proxy.ts: 10ms, application-code: 130ms)
+ GET /register/ 200 in 354ms (next.js: 265ms, proxy.ts: 9ms, application-code: 79ms)
+[Register Error] {
+  code: '23514',
+  details: 'Failing row contains (87e93af1-8974-4022-a1f1-821180ba0e78, test, TEMP3765U, Mpigi, Muduuma, null, null, combined, government_aided, null, null, null, #1e3a5f, null, growth, trial, 2026-05-19 17:13:44.031+00, 2026-04-19 17:13:44.337426+00, #3b82f6, null, null, null, null, null, default, t, t, t, t, null, f, null, null, null, core, f, null, {"skipped": [], "completed": []}).',
+  hint: null,
+  message: 'new row for relation "schools" violates check constraint "schools_subscription_plan_check"'
+}
+ POST /api/register/ 500 in 6.5s (next.js: 555ms, proxy.ts: 227ms, application-code: 5.7s)
+✓ Finished writing to filesystem cache in 31.5s
+ GET /login/ 200 in 175ms (next.js: 34ms, proxy.ts: 38ms, application-code: 104ms)
+[?25h

@@ -2,7 +2,6 @@
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
-import TopBar from "@/components/dashboard/TopBar";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 
@@ -94,11 +93,7 @@ export default function CustomReportsBuilder() {
 
   return (
     <PageErrorBoundary>
-    <div className="h-full flex flex-col bg-[var(--bg)] w-full">
-      <TopBar pageTitle="Report Builder Canvas" onSignOut={() => {}} />
-
-      <div className="flex-1 overflow-y-auto w-full custom-scrollbar">
-        <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
+    <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
           <div className="glass-premium rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 border-l-4 border-indigo-500 shadow-xl shadow-indigo-500/5 relative overflow-hidden group">
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-indigo-500/10 to-transparent z-0 pointer-events-none opacity-50" />
             <div className="relative z-10 flex-1">
@@ -262,8 +257,6 @@ export default function CustomReportsBuilder() {
             </div>
           </div>
         </div>
-      </div>
-    </div>
     </PageErrorBoundary>
   );
 }
