@@ -35,6 +35,17 @@ export async function seedDemoSession(page: Page, role: DemoRole) {
 
   const encoded = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64')
 
+  await page.context().addCookies([
+    {
+      name: DEMO_KEY,
+      value: encoded,
+      domain: 'localhost',
+      path: '/',
+      httpOnly: false,
+      sameSite: 'Lax',
+    },
+  ])
+
   await page.addInitScript(
     ({ key, value }) => {
       // auth-context.tsx reads sessionStorage first, then falls back to localStorage

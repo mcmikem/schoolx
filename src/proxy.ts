@@ -4,6 +4,47 @@ import { type NextRequest, NextResponse } from "next/server";
 // Use optional chaining with safe defaults for env vars
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const DEMO_KEY = "skoolmate_demo_v1";
+const DEMO_MODE_ENABLED =
+  process.env.NODE_ENV === "development" &&
+  process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
+const DEMO_ALLOWED_ROLES = new Set([
+  "headmaster",
+  "dean_of_studies",
+  "bursar",
+  "teacher",
+  "secretary",
+  "dorm_master",
+]);
+
+function hasValidDemoSession(request: NextRequest) {
+  if (!DEMO_MODE_ENABLED) {
+    return false;
+  }
+
+  const cookieValue = request.cookies.get(DEMO_KEY)?.value;
+  if (!cookieValue) {
+    return false;
+  }
+
+  try {
+    const decoded = Buffer.from(cookieValue, "base64").toString("utf8");
+    const parsed = JSON.parse(decoded) as {
+      demoUser?: { role?: unknown; name?: unknown };
+      demoSchool?: { id?: unknown; name?: unknown };
+    };
+
+    return Boolean(
+      parsed.demoSchool?.id &&
+        parsed.demoSchool?.name &&
+        typeof parsed.demoUser?.name === "string" &&
+        typeof parsed.demoUser?.role === "string" &&
+        DEMO_ALLOWED_ROLES.has(parsed.demoUser.role),
+    );
+  } catch {
+    return false;
+  }
+}
 
 const publicPaths = [
   "/login",
@@ -21,6 +62,9 @@ const publicPaths = [
   "/api/schoolpay",
   "/api/reports",
   "/_next",
+  "/sw.js",
+  "/manifest.json",
+  "/offline.html",
   "/favicon.ico",
 ];
 
@@ -31,6 +75,10 @@ export async function proxy(request: NextRequest) {
   // Allow public paths without auth check
   const isPublicPath = publicPaths.some((path) => pathname.startsWith(path));
   if (isPublicPath) {
+    return NextResponse.next({ request });
+  }
+
+  if (hasValidDemoSession(request) && pathname.startsWith("/dashboard")) {
     return NextResponse.next({ request });
   }
 

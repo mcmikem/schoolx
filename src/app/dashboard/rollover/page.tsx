@@ -168,11 +168,21 @@ export default function RolloverPage() {
 
       // 5. Update global academic state
       if (wizardOptions.resetOpeningBalances) {
-        await supabase
+        const { error: balanceResetError } = await supabase
           .from('students')
           .update({ opening_balance: 0 })
           .eq('school_id', school.id)
           .in('status', ['active', 'completed'])
+
+        if (balanceResetError) {
+          const isMissingOpeningBalanceColumn =
+            balanceResetError.code === '42703' &&
+            balanceResetError.message.includes('students.opening_balance')
+
+          if (!isMissingOpeningBalanceColumn) {
+            throw balanceResetError
+          }
+        }
       }
 
       if (wizardOptions.archiveSummary) {

@@ -42,10 +42,10 @@ test.describe("Authenticated dashboard flows", () => {
     const classSelect = page.locator("select").first();
     await classSelect.selectOption("4");
     await expect(
-      page.getByRole("button", { name: /mark all present|reset all/i }),
+      page.getByRole("button", { name: /mark all in school|reset all/i }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: /save attendance|save offline/i }),
+      page.getByRole("button", { name: "Save Changes", exact: true }),
     ).toBeVisible();
 
     await page.goto("/dashboard/grades");
@@ -64,7 +64,7 @@ test.describe("Authenticated dashboard flows", () => {
 
     await page.goto("/dashboard/fees");
     await expect(
-      page.getByRole("heading", { name: /fee management/i }),
+      page.getByRole("heading", { name: "Fees Tracker", exact: true }),
     ).toBeVisible();
 
     await page.getByRole("button", { name: /add payment/i }).click();
@@ -73,7 +73,9 @@ test.describe("Authenticated dashboard flows", () => {
     ).toBeVisible();
     await page.getByRole("button", { name: /cancel/i }).click();
 
-    await page.getByRole("button", { name: /add adjustment/i }).click();
+    await page
+      .getByRole("button", { name: "Scholarship/Discount", exact: true })
+      .click();
     await expect(
       page.getByRole("heading", { name: /record fee adjustment/i }),
     ).toBeVisible();
@@ -222,24 +224,24 @@ test.describe("Authenticated dashboard flows", () => {
       page.getByRole("heading", { name: /student transfers/i }),
     ).toBeVisible();
 
-    await page.getByRole("button", { name: /new transfer/i }).click();
+    await page.getByRole("button", { name: /^transfer in$/i }).first().click();
     await expect(
       page.getByRole("heading", { name: /new transfer in/i }),
     ).toBeVisible();
     await page.getByLabel(/first name/i).fill("Play");
     await page.getByLabel(/last name/i).fill("Transfer");
     await page.getByLabel(/previous school/i).fill("Demo Primary");
-    await page.getByLabel(/transfer reason/i).selectOption("Family relocation");
-    await page.getByLabel(/assign to class/i).selectOption("4");
-    await page.getByLabel(/parent\/guardian name/i).fill("Test Parent");
-    await page.getByLabel(/^parent phone$/i).fill("0700000011");
-    await page.getByRole("button", { name: /add transfer student/i }).click();
+    await page.getByLabel(/^reason$/i).selectOption("Family relocation");
+    await page.getByLabel(/^class/i).selectOption("4");
+    await page.getByLabel(/parent name/i).fill("Test Parent");
+    await page.getByLabel(/parent phone/i).fill("0700000011");
+    await page.getByRole("button", { name: /record transfer in/i }).click();
     await expect(page.getByText(/play transfer/i)).toBeVisible();
 
-    await page.getByRole("tab", { name: /^transfer out$/i }).click();
-    await expect(
-      page.getByRole("heading", { name: /students transferred out/i }),
-    ).toBeVisible();
+    await page
+      .getByRole("button", { name: /transfer out/i })
+      .nth(1)
+      .click();
     await page
       .getByRole("button", { name: /transfer out/i })
       .first()
@@ -251,9 +253,7 @@ test.describe("Authenticated dashboard flows", () => {
       .getByRole("button", { name: /transfer out/i })
       .last()
       .click();
-    await expect(
-      page.getByRole("cell", { name: /next school/i }),
-    ).toBeVisible();
+    await expect(page.getByText(/next school/i)).toBeVisible();
   });
 
   test("headmaster can generate report cards in demo mode", async ({
@@ -267,7 +267,7 @@ test.describe("Authenticated dashboard flows", () => {
     ).toBeVisible();
 
     await page.getByLabel(/select class/i).selectOption("4");
-    await page.getByRole("button", { name: /generate report cards/i }).click();
+    await page.getByRole("button", { name: /generate now|generate report cards/i }).click();
 
     await expect(page.getByText(/class average/i)).toBeVisible();
     await expect(
@@ -293,7 +293,7 @@ test.describe("Authenticated dashboard flows", () => {
 
     await page.goto("/dashboard/fees");
     await expect(
-      page.getByRole("heading", { name: "Fee Collection Overview" }),
+      page.getByRole("heading", { name: /fees tracker|fee collection overview/i }),
     ).toBeVisible();
   });
 
@@ -303,14 +303,11 @@ test.describe("Authenticated dashboard flows", () => {
     await seedDemoSession(page, "headmaster");
 
     await page.goto("/dashboard/students");
-    // Wait longer for page to load and avoid redirect
-    await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
-    // Check we're still on the students page (not redirected to login)
     expect(page.url()).toContain("/dashboard/students");
-    await expect(page.locator("h1, h2, h3").first()).toBeVisible({
+    await expect(page.getByRole("heading", { name: /student hub/i })).toBeVisible({
       timeout: 10000,
     });
+    await expect(page.getByRole("button", { name: /register student/i }).first()).toBeVisible();
   });
 
   test("teacher can open teacher dashboard and sub-pages", async ({ page }) => {

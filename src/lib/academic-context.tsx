@@ -28,7 +28,7 @@ interface AcademicContextType {
 const AcademicContext = createContext<AcademicContextType | undefined>(undefined)
 
 export function AcademicProvider({ children }: { children: ReactNode }) {
-  const { school } = useAuth()
+  const { school, isDemo } = useAuth()
   const [academicYear, setAcademicYearState] = useState<string>(getStoredAcademicYear)
   const [currentTerm, setCurrentTermState] = useState<1 | 2 | 3>(getStoredCurrentTerm)
   const [lockedTerms, setLockedTerms] = useState<string[]>([])
@@ -37,6 +37,14 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
   // Load from school settings on mount or when school changes
   const loadAcademicSettings = useCallback(async () => {
     if (!school?.id) {
+      setLoading(false)
+      return
+    }
+
+    if (isDemo) {
+      setAcademicYearState(getStoredAcademicYear())
+      setCurrentTermState(getStoredCurrentTerm())
+      setLockedTerms([])
       setLoading(false)
       return
     }
@@ -75,7 +83,7 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [school?.id])
+  }, [school?.id, isDemo])
 
   useEffect(() => {
     loadAcademicSettings()
@@ -85,7 +93,7 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
   const setAcademicYear = async (year: string) => {
     setAcademicYearState(year)
     localStorage.setItem('academic_year', year)
-    if (school?.id) {
+    if (school?.id && !isDemo) {
       try {
         await saveSchoolSetting(school.id, 'academic_year', year)
       } catch (error) {
@@ -97,7 +105,7 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
   const setCurrentTerm = async (term: 1 | 2 | 3) => {
     setCurrentTermState(term)
     localStorage.setItem('current_term', term.toString())
-    if (school?.id) {
+    if (school?.id && !isDemo) {
       try {
         await saveSchoolSetting(school.id, 'current_term', term.toString())
       } catch (error) {
@@ -111,7 +119,7 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
   }
 
   const lockTerm = async (year: string, term: 1 | 2 | 3, locked: boolean) => {
-    if (!school?.id) return
+    if (!school?.id || isDemo) return
     const key = `term_locked_${year}_${term}`
     const val = locked ? 'true' : 'false'
     
