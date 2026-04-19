@@ -307,12 +307,8 @@ table tr {
   }
 
   .ph-title {
-    @apply text-lg sm:text-xl md:text-2xl font-extrabold tracking-tight leading-none truncate;
+    @apply text-lg sm:text-xl md:text-2xl font-extrabold text-[var(--t1)] tracking-tight leading-none truncate;
     font-family: "Sora", sans-serif;
-    background: linear-gradient(120deg, var(--navy) 0%, #0d9488 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
   }
 
   .ph-sub {
@@ -329,8 +325,7 @@ table tr {
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, #001F3F 0%, #0f766e 90%);
-    @apply text-[var(--on-primary)] shadow-[0_2px_8px_rgba(0,31,63,0.22)] hover:shadow-[0_4px_16px_rgba(0,31,63,0.3)] hover:brightness-[1.07];
+    @apply bg-[var(--primary)] text-[var(--on-primary)] shadow-[var(--sh1)] hover:bg-[var(--navy-mid)] active:bg-[var(--navy)];
   }
 
   .btn-secondary {

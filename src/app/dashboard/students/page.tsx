@@ -29,6 +29,36 @@ import { useStudentTransfers } from "@/hooks/useStudentTransfers";
 import { useStudentDropouts } from "@/hooks/useStudentDropouts";
 import { useStudentPromotion } from "@/hooks/useStudentPromotion";
 
+/* ── FieldHint: small ? button that reveals a help tip ── */
+function FieldHint({ tip }: { tip: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-block ml-1.5 align-middle">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-4 h-4 rounded-full bg-[var(--navy-soft)] text-[var(--navy)] flex items-center justify-center text-[9px] font-black leading-none border border-[var(--border)] hover:bg-[var(--navy)] hover:text-white transition-colors"
+        aria-label="Help"
+        title={tip}
+      >
+        ?
+      </button>
+      {open && (
+        <div className="absolute left-6 top-0 z-50 w-56 rounded-xl border border-[var(--border)] bg-white p-3 text-[12px] text-[var(--t2)] leading-5 shadow-lg">
+          {tip}
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="mt-2 block text-[11px] font-semibold text-[var(--primary)] hover:underline"
+          >
+            Got it
+          </button>
+        </div>
+      )}
+    </span>
+  );
+}
+
 
 
 const TRANSFER_REASONS = [
@@ -1150,6 +1180,7 @@ export default function StudentHubPage() {
                     }}
                   >
                     Opening Balance (Previous Debt/Credit)
+                    <FieldHint tip="Enter fees owed from a previous term. Use 0 if this is a new student with no debt. Positive = owes money, negative = paid in advance." />
                   </label>
                   <div style={{ position: "relative" }}>
                     <span
@@ -1218,6 +1249,7 @@ export default function StudentHubPage() {
                         }}
                       >
                         Boarding Status
+                        <FieldHint tip="Day Scholar = student goes home daily after school. Boarding = student sleeps in the school dormitory every night. Weekly = boarder who goes home on weekends." />
                       </label>
                       <select
                         value={newStudent.boarding_status}
@@ -1355,6 +1387,7 @@ export default function StudentHubPage() {
                         }}
                       >
                         District of Origin
+                        <FieldHint tip="The student's home district. Used for UNEB registration and government reports. Example: Kampala, Wakiso, Gulu, Mbale." />
                       </label>
                       <input
                         type="text"

@@ -136,7 +136,7 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
                         className={cn(
                           "flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] transition-all min-h-[36px] group relative tap-effect",
                           isActive 
-                            ? "bg-gradient-to-r from-[#001F3F] to-[#0f766e] text-white font-semibold shadow-[0_2px_10px_rgba(0,31,63,0.22)]" 
+                            ? "bg-[var(--primary)] text-white font-semibold shadow-[var(--sh1)]" 
                             : "text-[var(--t2)] hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)]"
                         )}
                         aria-current={isActive ? 'page' : undefined}
