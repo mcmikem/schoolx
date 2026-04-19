@@ -307,8 +307,12 @@ table tr {
   }
 
   .ph-title {
-    @apply text-lg sm:text-xl md:text-2xl font-extrabold text-[var(--t1)] tracking-tight leading-none truncate;
+    @apply text-lg sm:text-xl md:text-2xl font-extrabold tracking-tight leading-none truncate;
     font-family: "Sora", sans-serif;
+    background: linear-gradient(120deg, var(--navy) 0%, #0d9488 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   .ph-sub {
@@ -325,7 +329,8 @@ table tr {
   }
 
   .btn-primary {
-    @apply bg-[var(--primary)] text-[var(--on-primary)] shadow-[var(--sh1)] hover:opacity-90;
+    background: linear-gradient(135deg, #001F3F 0%, #0f766e 90%);
+    @apply text-[var(--on-primary)] shadow-[0_2px_8px_rgba(0,31,63,0.22)] hover:shadow-[0_4px_16px_rgba(0,31,63,0.3)] hover:brightness-[1.07];
   }
 
   .btn-secondary {
@@ -877,6 +882,18 @@ table tr {
   background: var(--surface);
   height: var(--topbar-height);
   min-height: var(--topbar-height);
+  position: relative;
+}
+.topbar::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #001F3F 0%, #0d9488 50%, transparent 90%);
+  opacity: 0.22;
+  pointer-events: none;
 }
 
 [data-theme="dark"] .topbar {
@@ -1088,4 +1105,34 @@ h6,
 
 .dashboard-pill {
   @apply inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em];
+}
+
+/* ── SIDEBAR BRAND HEADER ─────────────────────────────────────
+   Dark navy header area at top of sidebar. School identity is
+   presented on the brand gradient, not generic white surface.
+───────────────────────────────────────────────────────────── */
+.sidebar-brand-header {
+  background: linear-gradient(145deg, #001020 0%, #001F3F 55%, #002e52 100%);
+  padding: 16px 16px 14px;
+  position: relative;
+  flex-shrink: 0;
+}
+.sidebar-brand-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-image: linear-gradient(90deg,
+    #b45309 0%, #b45309 25%,
+    #0d9488 25%, #0d9488 50%,
+    #334e68 50%, #334e68 75%,
+    #b45309 75%, #b45309 100%);
+  background-size: 32px 100%;
+  opacity: 0.65;
+}
+
+[data-theme="dark"] .sidebar-brand-header {
+  background: linear-gradient(145deg, #000a14 0%, #001428 55%, #001f3d 100%);
 }
