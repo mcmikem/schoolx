@@ -9,6 +9,7 @@ import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
 import { DEMO_ATTENDANCE, DEMO_STUDENTS } from "@/lib/demo-data";
 import MaterialIcon from "@/components/MaterialIcon";
+import OwlMascot from "@/components/brand/OwlMascot";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import { Button } from "@/components/ui/index";
@@ -728,15 +729,8 @@ export default function AttendancePage() {
                       className={`${bgColor} rounded-xl border ${borderColor} p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none min-h-[56px]`}
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${config.bg}`}
-                        >
-                          <span
-                            className={`font-bold text-sm ${status === "present" ? "text-on-secondary-container" : status === "absent" ? "text-on-error-container" : "text-on-tertiary-container"}`}
-                          >
-                            {student.first_name?.charAt(0)}
-                            {student.last_name?.charAt(0)}
-                          </span>
+                        <div className="flex-shrink-0">
+                          <OwlMascot size={40} premium ring glow={status !== "absent"} />
                         </div>
                         <div className="min-w-0">
                           <div className="font-bold text-on-surface text-base truncate">
@@ -828,12 +822,7 @@ export default function AttendancePage() {
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-primary-container rounded-full flex items-center justify-center">
-                              <span className="text-on-primary-container font-bold text-sm">
-                                {student.first_name?.charAt(0)}
-                                {student.last_name?.charAt(0)}
-                              </span>
-                            </div>
+                            <OwlMascot size={40} premium ring glow />
                             <div>
                               <div className="font-bold text-primary">
                                 {student.first_name} {student.last_name}
@@ -890,12 +879,7 @@ export default function AttendancePage() {
                         className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-primary-container rounded-full flex items-center justify-center">
-                            <span className="text-on-primary-container font-bold text-sm">
-                              {student.first_name?.charAt(0)}
-                              {student.last_name?.charAt(0)}
-                            </span>
-                          </div>
+                          <OwlMascot size={40} premium ring glow />
                           <div>
                             <div className="font-bold text-primary text-sm">
                               {student.first_name} {student.last_name}

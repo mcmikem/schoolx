@@ -1,13 +1,17 @@
 'use client'
 
 // Loading skeleton components
+import OwlMascot from "@/components/brand/OwlMascot"
 
 export function DashboardSkeleton() {
   return (
     <div className="animate-pulse space-y-6 p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="h-8 bg-[var(--surface-container)] rounded w-48 overflow-hidden shimmer"></div>
+        <div className="flex items-center gap-3">
+          <OwlMascot size={46} premium ring glow />
+          <div className="h-8 bg-[var(--surface-container)] rounded w-48 overflow-hidden shimmer"></div>
+        </div>
         <div className="h-10 bg-[var(--surface-container)] rounded w-32 overflow-hidden shimmer"></div>
       </div>
       
@@ -123,7 +127,9 @@ export function QuickActionsSkeleton() {
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} className="bg-[var(--surface)] rounded-xl p-4 border border-[var(--border)] animate-pulse">
-          <div className="h-10 w-10 bg-[var(--surface-container)] rounded-full mx-auto mb-2"></div>
+          <div className="mx-auto mb-2 flex justify-center">
+            <OwlMascot size={40} premium />
+          </div>
           <div className="h-3 bg-[var(--surface-container)] rounded w-16 mx-auto"></div>
         </div>
       ))}

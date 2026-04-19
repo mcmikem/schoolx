@@ -6,6 +6,8 @@ import { Button, Input, Select } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 import SkoolMateLogo from "@/components/SkoolMateLogo";
 import MaterialIcon from "@/components/MaterialIcon";
+import OwlStage from "@/components/brand/OwlStage";
+import OwlMascot from "@/components/brand/OwlMascot";
 import { motion, AnimatePresence } from "framer-motion";
 import { PLANS, normalizePlanType } from "@/lib/payments/subscription-client";
 import {
@@ -208,15 +210,18 @@ export default function OnboardingFlow({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[var(--bg)]/90 backdrop-blur-xl p-4 md:p-8">
-      <div className="w-full max-w-4xl bg-white shadow-2xl rounded-3xl overflow-hidden flex flex-col md:flex-row relative ring-1 ring-black/5">
+      <div className="relative flex w-full max-w-5xl flex-col overflow-hidden rounded-[36px] bg-white shadow-[0_38px_90px_rgba(15,23,42,0.16)] ring-1 ring-black/5 md:flex-row">
         {/* Left Side: Progress & Info */}
-        <div className="hidden md:flex flex-col w-1/3 bg-gradient-to-br from-[var(--primary)] to-[var(--navy-soft)] p-10 text-white relative overflow-hidden">
+        <div className="relative hidden w-1/3 flex-col overflow-hidden bg-[linear-gradient(160deg,#0b1c39_0%,#17325f_54%,#1a4b79_100%)] p-10 text-white md:flex">
           <div className="absolute top-0 right-0 w-full h-full opacity-30 pointer-events-none">
             <div className="absolute top-[10%] right-[-20%] w-[150%] h-[50%] bg-teal-400 blur-[80px] rounded-full mix-blend-overlay"></div>
           </div>
 
           <div className="relative z-10">
-            <SkoolMateLogo size="md" className="mb-12 brightness-0 invert" />
+            <SkoolMateLogo size="md" className="mb-8 brightness-0 invert" />
+            <div className="mb-8">
+              <OwlMascot size={84} premium ring glow animated />
+            </div>
 
             <h2 className="text-3xl font-bold mb-8">Setup Your Campus</h2>
 
@@ -270,21 +275,13 @@ export default function OnboardingFlow({
                 exit={{ opacity: 0, x: -20 }}
                 className="flex-1 flex flex-col justify-center max-w-md"
               >
-                <div className="w-16 h-16 rounded-2xl bg-teal-50 flex items-center justify-center mb-6">
-                  <MaterialIcon
-                    icon="rocket_launch"
-                    className="text-3xl text-teal-600"
-                  />
-                </div>
-                <h3 className="text-2xl font-bold text-slate-800 mb-2">
-                  Welcome to SkoolMate OS
-                </h3>
-                <p className="text-slate-500 mb-8 leading-relaxed">
-                  You are now running on Africa's most advanced school operating
-                  system. Let's get your campus configured in the next 60
-                  seconds so you can start managing fees, students, and teachers
-                  instantly.
-                </p>
+                <OwlStage
+                  eyebrow="Launch setup"
+                  title="Welcome to SkoolMate OS"
+                  description="The owl will walk you through school essentials, curriculum defaults, feature activation, and launch settings in one clear flow."
+                  chips={["School identity", "Curriculum defaults", "Launch-ready modules"]}
+                  className="mb-8"
+                />
                 <Button
                   variant="primary"
                   onClick={() => setStep(2)}
@@ -304,14 +301,14 @@ export default function OnboardingFlow({
                 exit={{ opacity: 0, x: -20 }}
                 className="flex-1 flex flex-col justify-center max-w-md"
               >
-                <h3 className="text-2xl font-bold text-slate-800 mb-2">
-                  School Branding
-                </h3>
-                <p className="text-slate-500 mb-8 leading-relaxed">
-                  Personalize the dashboard with your school's official colors.
-                  This color will appear on receipts, report cards, and parent
-                  SMS links.
-                </p>
+                <OwlStage
+                  compact
+                  eyebrow="School identity"
+                  title="School branding"
+                  description="Set the details staff and parents recognize immediately. These choices carry through receipts, report cards, and daily communication."
+                  chips={["Official school name", "Local area details", "Primary theme color"]}
+                  className="mb-8"
+                />
 
                 <div className="space-y-6 mb-8">
                   {/* School Name */}
@@ -424,7 +421,7 @@ export default function OnboardingFlow({
                   </div>
                 </div>
 
-                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 text-sm text-slate-600">
+                <div className="rounded-[24px] border border-[#e2e8f0] bg-[linear-gradient(180deg,#fbfcfe_0%,#f5f7fb_100%)] p-4 text-sm text-slate-600 shadow-sm">
                   We preload common Uganda district, division, and parish options so school leaders can finish setup quickly even on slow connections.
                 </div>
 
@@ -447,22 +444,16 @@ export default function OnboardingFlow({
                 exit={{ opacity: 0, x: -20 }}
                 className="flex-1 flex flex-col justify-center max-w-md"
               >
-                <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mb-6">
-                  <MaterialIcon
-                    icon="verified"
-                    className="text-3xl text-blue-600"
-                  />
-                </div>
-                <h3 className="text-2xl font-bold text-slate-800 mb-2">
-                  Curriculum Preloaded
-                </h3>
-                <p className="text-slate-500 mb-6 leading-relaxed">
-                  We've done the heavy lifting. Standard Ugandan curriculum
-                  subjects and classes have been automatically generated for{" "}
-                  <strong>{school.name}</strong>.
-                </p>
+                <OwlStage
+                  compact
+                  eyebrow="Curriculum ready"
+                  title="Curriculum preloaded"
+                  description={`Standard Ugandan curriculum classes and subjects are already prepared for ${school.name}. The owl is confirming the academic structure so your team starts from a usable baseline.`}
+                  chips={["Classes ready", "Subjects prepared"]}
+                  className="mb-6"
+                />
 
-                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 mb-8">
+                <div className="mb-8 rounded-[24px] border border-slate-100 bg-[linear-gradient(180deg,#fbfcfe_0%,#f6f8fb_100%)] p-5 shadow-sm">
                   <div className="flex items-center gap-3 mb-4">
                     <MaterialIcon
                       icon="check_circle"
@@ -503,19 +494,14 @@ export default function OnboardingFlow({
                 exit={{ opacity: 0, x: -20 }}
                 className="flex-1 flex flex-col justify-center max-w-md"
               >
-                <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center mb-6">
-                  <MaterialIcon
-                    icon="widgets"
-                    className="text-3xl text-purple-600"
-                  />
-                </div>
-                <h3 className="text-2xl font-bold text-slate-800 mb-2">
-                  Select Your Features
-                </h3>
-                <p className="text-slate-500 mb-6 leading-relaxed">
-                  Choose which modules to enable now. You can always add more
-                  features later from Settings.
-                </p>
+                <OwlStage
+                  compact
+                  eyebrow="Module access"
+                  title="Select your features"
+                  description="Turn on the modules your school needs immediately. Start lean or go full-suite, then expand later without losing continuity."
+                  chips={[selectedPlan.name, "Flexible rollout"]}
+                  className="mb-6"
+                />
 
                 <div className="space-y-3 mb-8">
                   {[

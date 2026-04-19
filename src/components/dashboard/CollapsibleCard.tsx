@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import OwlMascot from "@/components/brand/OwlMascot";
 
 interface CollapsibleCardProps {
   title: string;
@@ -23,15 +24,20 @@ export default function CollapsibleCard({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
-    <div className={`card p-0 ${className}`}>
+    <div className={`card overflow-hidden p-0 shadow-[0_18px_40px_rgba(15,23,42,0.06)] ${className}`}>
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-4 text-left hover:bg-surface-bright transition-colors"
+        className="w-full flex items-center justify-between p-4 text-left transition-colors hover:bg-[rgba(248,250,252,0.8)]"
       >
         <div className="flex items-center gap-3">
           {icon && (
-            <div className="w-8 h-8 rounded-lg bg-surface-dim flex items-center justify-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-[#dde5ef] bg-white shadow-sm">
               <MaterialIcon icon={icon} className="text-sm" />
+            </div>
+          )}
+          {!icon && (
+            <div className="flex h-10 w-10 items-center justify-center">
+              <OwlMascot size={36} premium />
             </div>
           )}
           <span className="font-medium">{title}</span>
@@ -67,7 +73,7 @@ export function ResponsiveCard({
   children,
   className = "",
 }: ResponsiveGridProps) {
-  return <div className={`card p-4 ${className}`}>{children}</div>;
+  return <div className={`card p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)] ${className}`}>{children}</div>;
 }
 
 export function MobileStack({ children }: { children: React.ReactNode }) {

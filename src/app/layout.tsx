@@ -15,8 +15,8 @@ export const metadata: Metadata = {
     "The all-in-one school management system built for Ugandan schools. Track attendance, grades, fees, and send parent SMS — all from one dashboard. Start your free 30-day trial today.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/SkoolMate logos/SkoolMate icon.svg",
-    apple: "/SkoolMate logos/SkoolMate icon.svg",
+    icon: "/SkoolMate logos/SchoolMate icon.svg",
+    apple: "/SkoolMate logos/SchoolMate icon.svg",
   },
   appleWebApp: {
     capable: true,
@@ -75,11 +75,11 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="SkoolMate OS" />
         <link
           rel="apple-touch-icon"
-          href="/SkoolMate logos/SkoolMate icon.svg"
+          href="/SkoolMate logos/SchoolMate icon.svg"
         />
         <link
           rel="icon"
-          href="/SkoolMate logos/SkoolMate icon.svg"
+          href="/SkoolMate logos/SchoolMate icon.svg"
           type="image/svg+xml"
         />
       </head>

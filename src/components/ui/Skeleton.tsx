@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import OwlMascot from "@/components/brand/OwlMascot";
 
 interface SkeletonProps {
   className?: string;
@@ -74,7 +75,7 @@ export function StatSkeleton() {
 export function PageLoader({ message = "Loading..." }: { message?: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-12">
-      <div className="w-8 h-8 border-3 border-[var(--primary)] border-t-transparent rounded-full animate-spin mb-4" />
+      <OwlMascot size={52} premium ring glow animated className="mb-4" />
       <p className="text-sm text-[var(--t3)]">{message}</p>
     </div>
   );
@@ -87,7 +88,16 @@ export function FullPageLoader({
 }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[400px]">
-      <div className="w-10 h-10 border-3 border-[var(--primary)] border-t-transparent rounded-full animate-spin mb-4" />
+      <OwlMascot
+        size={68}
+        premium
+        ring
+        glow
+        animated
+        label="SkoolMate is preparing your workspace"
+        subtitle="Loading your school records, navigation, and recent activity."
+        className="mb-4 flex-col"
+      />
       <p className="text-sm text-[var(--t3)]">{message}</p>
     </div>
   );
@@ -97,7 +107,13 @@ export function DashboardSkeleton() {
   return (
     <div className="flex min-h-screen bg-[var(--bg)]">
       <div className="w-[var(--sidebar-width)] bg-[var(--surface)] border-r border-[var(--border)] p-4 space-y-4">
-        <Skeleton className="h-9 w-full rounded-lg" />
+        <div className="flex items-center gap-3 px-2 py-2">
+          <OwlMascot size={44} premium ring glow />
+          <div className="space-y-2 flex-1">
+            <Skeleton className="h-4 w-24 rounded-lg" />
+            <Skeleton className="h-3 w-32 rounded-lg" />
+          </div>
+        </div>
         <Skeleton className="h-16 w-full rounded-lg" />
         {Array.from({ length: 6 }).map((_, i) => (
           <Skeleton key={i} className="h-10 w-full rounded-lg" />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useId } from "react";
+import OwlMascot from "@/components/brand/OwlMascot";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost" | "danger";
@@ -172,6 +173,12 @@ export function Avatar({ src, name, size = "md" }: AvatarProps) {
     lg: "w-14 h-14 text-lg",
   };
 
+  const iconSizes = {
+    sm: 32,
+    md: 40,
+    lg: 56,
+  };
+
   const initials = name
     .split(" ")
     .map((n) => n[0])
@@ -191,10 +198,9 @@ export function Avatar({ src, name, size = "md" }: AvatarProps) {
   }
 
   return (
-    <div
-      className={`${sizes[size]} rounded-full bg-[var(--primary)]/10 text-[var(--primary)] font-semibold flex items-center justify-center`}
-    >
-      {initials}
+    <div className="inline-flex items-center justify-center">
+      <OwlMascot size={iconSizes[size]} premium ring glow={size !== "sm"} />
+      <span className="sr-only">{initials}</span>
     </div>
   );
 }

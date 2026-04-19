@@ -14,6 +14,7 @@ import {
 import { useToast } from "@/components/Toast";
 import { DEMO_GRADES, DEMO_SUBJECTS } from "@/lib/demo-data";
 import MaterialIcon from "@/components/MaterialIcon";
+import OwlMascot from "@/components/brand/OwlMascot";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
@@ -739,15 +740,7 @@ export default function ReportCardsPage() {
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div
-                              className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white overflow-hidden"
-                              style={{
-                                background:
-                                  report.gender === "M"
-                                    ? "var(--navy, #002045)"
-                                    : "#c0392b",
-                              }}
-                            >
+                            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full">
                               {report.photoUrl ? (
                                 <Image
                                   src={report.photoUrl}
@@ -758,11 +751,7 @@ export default function ReportCardsPage() {
                                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
                                 />
                               ) : (
-                                report.name
-                                  .split(" ")
-                                  .map((n) => n.charAt(0))
-                                  .join("")
-                                  .slice(0, 2)
+                                <OwlMascot size={36} premium ring glow />
                               )}
                             </div>
                             <div>
@@ -825,7 +814,7 @@ export default function ReportCardsPage() {
                                     e.target.value,
                                   )
                                 }
-                                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-container)] text-sm border-none"
+                                className="w-full rounded-[14px] border border-[#dce4ee] bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/12"
                                 placeholder="Class teacher comment..."
                               />
                             </div>
@@ -843,7 +832,7 @@ export default function ReportCardsPage() {
                                     e.target.value,
                                   )
                                 }
-                                className="w-full px-3 py-2 rounded-lg bg-[var(--surface-container)] text-sm border-none"
+                                className="w-full rounded-[14px] border border-[#dce4ee] bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/12"
                                 placeholder="HM comment..."
                               />
                             </div>

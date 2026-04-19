@@ -307,6 +307,10 @@ export default function TopBar({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 min-w-0">
+          <span className="hidden xl:inline-flex items-center gap-1.5 rounded-full border border-[#d7dfeb] bg-[#f8fbff] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#34507a] shadow-sm">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--green)]" />
+            {schoolName}
+          </span>
           <div className="font-['Sora'] text-[16px] sm:text-[19px] font-bold text-[var(--t1)] tracking-[-.3px] truncate">
           {pageTitle}
           </div>
@@ -317,7 +321,7 @@ export default function TopBar({
         </div>
         <div className="text-[11px] sm:text-[12px] text-[var(--t3)] mt-1 flex items-center gap-2 truncate">
           <span className="truncate inline-flex items-center gap-1.5">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--amber)]" />
+            <MaterialIcon icon="calendar_today" style={{ fontSize: 13, color: "var(--t3)" }} />
             {formattedDate}
           </span>
           <span aria-hidden>•</span>
@@ -343,7 +347,7 @@ export default function TopBar({
         </div>
       </div>
 
-      <div className="search-bar flex items-center gap-[10px] bg-[var(--surface)] border border-[var(--border)] rounded-[16px] px-[14px] py-2.5 text-[13px] text-[var(--t3)] min-w-[280px] cursor-text shadow-[var(--sh1)]">
+      <div className="search-bar flex items-center gap-[10px] bg-[var(--surface)] border border-[#d8dee8] rounded-[18px] px-[14px] py-2.5 text-[13px] text-[var(--t3)] min-w-[280px] cursor-text shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
         <GlobalSearch />
       </div>
 
@@ -361,13 +365,13 @@ export default function TopBar({
       </button>
 
       <div className="flex items-center gap-2">
-        <div className="hidden lg:flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 shadow-[var(--sh1)] max-w-[220px]">
+        <div className="hidden lg:flex items-center gap-2 rounded-[18px] border border-[#d8dee8] bg-[var(--surface)] px-3 py-2 shadow-[0_8px_24px_rgba(15,23,42,0.06)] max-w-[220px]">
           <div className="h-8 w-8 rounded-full bg-[var(--navy-soft)] text-[var(--navy)] flex items-center justify-center flex-shrink-0">
             <MaterialIcon icon="school" style={{ fontSize: 16 }} />
           </div>
           <div className="min-w-0">
             <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--t4)] font-bold">
-              Active school
+              Workspace
             </div>
             <div className="text-[12px] text-[var(--t1)] font-semibold truncate">
               {schoolName}
@@ -377,15 +381,15 @@ export default function TopBar({
 
         <Link
           href={nextStep.href}
-          className="flex items-center gap-1.5 h-10 px-2.5 sm:px-3 rounded-[14px] bg-[var(--primary)] text-[var(--on-primary)] text-[12px] font-semibold no-underline shadow-[var(--sh1)] hover:opacity-90 hover:-translate-y-[1px] transition-all"
-          aria-label={`Next step: ${nextStep.label}`}
+          className="flex items-center gap-1.5 h-10 px-2.5 sm:px-3 rounded-[14px] bg-[var(--primary)] text-[var(--on-primary)] text-[12px] font-semibold no-underline shadow-[0_10px_22px_rgba(10,72,160,0.16)] hover:opacity-90 hover:-translate-y-[1px] transition-all"
+          aria-label={`Open ${nextStep.label}`}
         >
           <MaterialIcon
             icon={nextStep.icon}
             className="text-[var(--on-primary)]"
             style={{ fontSize: 15 }}
           />
-          <span className="hidden lg:inline">Next: {nextStep.label}</span>
+          <span className="hidden lg:inline">Open {nextStep.label}</span>
         </Link>
 
         <div ref={notifPanelRef} className="notif-panel relative">

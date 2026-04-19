@@ -9,6 +9,7 @@ import { cardClassName } from "@/lib/utils";
 import { format } from "date-fns";
 import { calculateUgandaPayrollTaxes } from "@/lib/operations";
 import { useToast } from "@/components/Toast";
+import OwlMascot from "@/components/brand/OwlMascot";
 
 const GRADES = ["Scale 1 – UGX 400k", "Scale 2 – UGX 600k", "Scale 3 – UGX 800k", "Scale 4 – UGX 1.0M", "Scale 5 – UGX 1.4M", "Custom"];
 const GRADE_VALUES: Record<string, number> = {
@@ -171,8 +172,8 @@ export default function PayrollPage() {
                       <tr key={member.id} className="hover:bg-slate-50/30 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-[10px] shrink-0">
-                                {member.first_name?.[0]}{member.last_name?.[0]}
+                            <div className="shrink-0">
+                              <OwlMascot size={32} premium />
                             </div>
                             <div>
                                 <p className="text-xs font-bold text-slate-800">{member.first_name} {member.last_name}</p>

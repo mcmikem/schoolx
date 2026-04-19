@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import OwlMascot from "@/components/brand/OwlMascot";
 
 interface StudentPhotoFieldProps {
   photoUrl?: string;
@@ -27,8 +28,6 @@ export default function StudentPhotoField({
   size = 88,
   circular = true,
 }: StudentPhotoFieldProps) {
-  const initials = `${firstName?.charAt(0) || "S"}${lastName?.charAt(0) || ""}`.toUpperCase();
-
   return (
     <div
       style={{
@@ -88,13 +87,13 @@ export default function StudentPhotoField({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "#fff",
-              background: gender === "M" ? "var(--navy)" : "var(--red)",
-              fontSize: circular ? 26 : 22,
-              fontWeight: 800,
+              background:
+                gender === "M"
+                  ? "linear-gradient(180deg, rgba(11,28,57,0.08), rgba(46,148,72,0.06))"
+                  : "linear-gradient(180deg, rgba(11,28,57,0.08), rgba(190,67,89,0.06))",
             }}
           >
-            {initials}
+            <OwlMascot size={Math.max(42, Math.round(size * 0.62))} premium ring glow />
           </div>
         )}
       </label>
@@ -137,7 +136,7 @@ export default function StudentPhotoField({
             ? "Uploading passport photo..."
             : photoUrl
               ? "Photo attached. Click the avatar to replace it."
-              : "Click the avatar area to upload a passport photo. Large images are auto-shrunk below 5MB where possible."}
+              : "Click the owl avatar area to upload a passport photo. Large images are auto-shrunk below 5MB where possible."}
         </div>
       </div>
     </div>
