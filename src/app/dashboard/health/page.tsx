@@ -44,6 +44,7 @@ export default function HealthPage() {
   const [studentSearch, setStudentSearch] = useState("");
   const [students, setStudents] = useState<any[]>([]);
   const [discharging, setDischarging] = useState<string | null>(null);
+  const [deletingHealthId, setDeletingHealthId] = useState<string | null>(null);
   const [form, setForm] = useState({
     student_id: "",
     student_name: "",
@@ -151,6 +152,21 @@ export default function HealthPage() {
     setDischarging(null);
   };
 
+  const deleteRecord = async (id: string) => {
+    if (!confirm("Delete this health record? This cannot be undone.")) return;
+    setDeletingHealthId(id);
+    try {
+      const { error } = await supabase.from("health_records").delete().eq("id", id);
+      if (error) throw error;
+      setRecords((prev) => prev.filter((r) => r.id !== id));
+      toast.success("Record deleted");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Failed to delete record"));
+    } finally {
+      setDeletingHealthId(null);
+    }
+  };
+
   const admitted = records.filter((r) => r.status === "admitted");
   const discharged = records.filter((r) => r.status === "discharged");
   const referred = records.filter((r) => r.status === "referred");
@@ -239,24 +255,34 @@ export default function HealthPage() {
                       {new Date(r.admitted_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                     </td>
                     <td className="px-6 py-4">
-                      {r.status === "admitted" && (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => dischargeStudent(r.id, false)}
-                            disabled={discharging === r.id}
-                            className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 transition-colors disabled:opacity-50"
-                          >
-                            Discharge
-                          </button>
-                          <button
-                            onClick={() => dischargeStudent(r.id, true)}
-                            disabled={discharging === r.id}
-                            className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition-colors disabled:opacity-50"
-                          >
-                            Refer
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex gap-2">
+                        {r.status === "admitted" && (
+                          <>
+                            <button
+                              onClick={() => dischargeStudent(r.id, false)}
+                              disabled={discharging === r.id}
+                              className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                            >
+                              Discharge
+                            </button>
+                            <button
+                              onClick={() => dischargeStudent(r.id, true)}
+                              disabled={discharging === r.id}
+                              className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition-colors disabled:opacity-50"
+                            >
+                              Refer
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => deleteRecord(r.id)}
+                          disabled={deletingHealthId === r.id}
+                          title="Delete record"
+                          className="p-1.5 hover:bg-red-50 rounded-xl text-slate-300 hover:text-red-500 disabled:opacity-50 transition-colors"
+                        >
+                          <MaterialIcon icon={deletingHealthId === r.id ? "hourglass_empty" : "delete"} style={{ fontSize: 16 }} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

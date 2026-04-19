@@ -123,9 +123,11 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error("Mobile money payment error:", error);
+    const message = error instanceof Error ? error.message : "Failed to initialize mobile money payment";
+    const isConfigError = message.includes("not yet configured") || message.includes("environment variables");
     return NextResponse.json(
-      { error: "Failed to initialize mobile money payment" },
-      { status: 500 },
+      { error: isConfigError ? message : "Failed to initialize mobile money payment. Please try again or contact support." },
+      { status: isConfigError ? 503 : 500 },
     );
   }
 }

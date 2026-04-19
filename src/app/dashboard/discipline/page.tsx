@@ -166,6 +166,18 @@ export default function DisciplinePage() {
     }
   }
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this discipline record? This cannot be undone.')) return
+    try {
+      const { error } = await supabase.from('discipline').delete().eq('id', id)
+      if (error) throw error
+      setRecords(records.filter(r => r.id !== id))
+      toast.success('Record deleted')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete')
+    }
+  }
+
   const tabs = [
     { id: 'all', label: 'All', count: records.length },
     { id: 'pending', label: 'Pending', count: records.filter(r => !r.resolved).length },
@@ -415,6 +427,15 @@ export default function DisciplinePage() {
                     onClick={() => toggleResolved(record.id, record.resolved)}
                   >
                     {record.resolved ? 'Reopen' : 'Resolve'}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleDelete(record.id)}
+                    title="Delete record"
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <MaterialIcon icon="delete" className="text-sm" />
                   </Button>
                 </div>
               </div>

@@ -42,6 +42,7 @@ export default function HomeworkPage() {
   const [homework, setHomework] = useState<Homework[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedClass, setSelectedClass] = useState("");
 
   // Auto-save for homework form
@@ -145,6 +146,21 @@ export default function HomeworkPage() {
       fetchHomework();
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to create homework"));
+    }
+  };
+
+  const handleDeleteHomework = async (id: string) => {
+    if (!confirm("Delete this homework assignment?")) return;
+    setDeletingId(id);
+    try {
+      const { error } = await supabase.from("homework").delete().eq("id", id);
+      if (error) throw error;
+      setHomework((prev) => prev.filter((hw) => hw.id !== id));
+      toast.success("Homework deleted");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to delete homework"));
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -284,9 +300,14 @@ export default function HomeworkPage() {
                     {hw.marks} marks
                   </span>
                 </div>
-                <button className="p-2 hover:bg-gray-100 rounded-lg">
-                  <MaterialIcon className="text-gray-400">
-                    chevron_right
+                <button
+                  onClick={() => handleDeleteHomework(hw.id)}
+                  disabled={deletingId === hw.id}
+                  className="p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 disabled:opacity-50 transition-colors"
+                  title="Delete homework"
+                >
+                  <MaterialIcon className="text-sm">
+                    {deletingId === hw.id ? "hourglass_empty" : "delete"}
                   </MaterialIcon>
                 </button>
               </div>
