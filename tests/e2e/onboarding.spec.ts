@@ -15,8 +15,10 @@ async function reachStep3(page: Page) {
   await page.goto("/register");
   await page.getByLabel(/school name/i).fill("Test School");
   await page.getByRole("button", { name: /next.*where/i }).click();
-  await page.getByLabel(/district/i).selectOption("Kampala");
-  await page.getByLabel(/sub-county/i).fill("Central Division");
+  // Use exact label to avoid matching "Quick pick common Districts" <select>
+  await page.getByLabel("District", { exact: true }).fill("Kampala");
+  // Use exact label to avoid matching "Quick pick common Sub-counties" <select>
+  await page.getByLabel("Sub-county / Division", { exact: true }).fill("Central Division");
   await page.getByRole("button", { name: /next.*account/i }).click();
   await expect(page.getByText(/step 3 of 3/i)).toBeVisible();
 }
@@ -86,7 +88,7 @@ test.describe("Registration / Onboarding flow", () => {
     await page.getByLabel(/school name/i).fill("Test School");
     await page.getByRole("button", { name: /next.*where/i }).click();
 
-    await page.getByLabel(/district/i).selectOption("Kampala");
+    await page.getByLabel("District", { exact: true }).fill("Kampala");
     await page.getByRole("button", { name: /next.*account/i }).click();
     await expect(
       page.getByText(/sub-county is required/i),
@@ -115,8 +117,8 @@ test.describe("Registration / Onboarding flow", () => {
     await page.getByLabel(/school name/i).fill("Test School");
     await page.getByRole("button", { name: /next.*where/i }).click();
 
-    await page.getByLabel(/district/i).selectOption("Kampala");
-    await page.getByLabel(/sub-county/i).fill("Central Division");
+    await page.getByLabel("District", { exact: true }).fill("Kampala");
+    await page.getByLabel("Sub-county / Division", { exact: true }).fill("Central Division");
     await page.getByRole("button", { name: /next.*account/i }).click();
 
     await expect(page.getByText(/step 3 of 3/i)).toBeVisible();
@@ -142,7 +144,7 @@ test.describe("Registration / Onboarding flow", () => {
     await page.locator('input[type="password"]').nth(1).fill("abc");
     await page.getByRole("button", { name: /finish.*start/i }).click();
     await expect(
-      page.getByText(/password must be at least 6/i),
+      page.getByText(/password must be at least 8/i),
     ).toBeVisible();
   });
 
@@ -150,8 +152,10 @@ test.describe("Registration / Onboarding flow", () => {
     await reachStep3(page);
     await page.getByLabel(/your full name/i).fill("John Admin");
     await page.getByLabel(/your phone number/i).fill("0700000000");
-    await page.locator('input[type="password"]').first().fill("secret123");
-    await page.locator('input[type="password"]').nth(1).fill("different456");
+    // Passwords must have uppercase + number to pass the strength check
+    // and reach the mismatch validation branch
+    await page.locator('input[type="password"]').first().fill("SecretPass1");
+    await page.locator('input[type="password"]').nth(1).fill("DifferentPass1");
     await page.getByRole("button", { name: /finish.*start/i }).click();
     await expect(
       page.getByText(/passwords do not match/i),
