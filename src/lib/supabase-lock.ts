@@ -22,13 +22,25 @@ export function isSupabaseLockAbortError(error: unknown): boolean {
         ? String((error as { name?: unknown }).name || "")
         : "";
 
-  return [message, details, name].some(
-    (value) =>
-      value.includes(LOCK_BROKEN_MESSAGE) ||
-      (value.includes("AbortError") &&
-        (message.includes("Request was aborted") ||
-          details.includes("Request was aborted"))),
-  );
+  // Matches: "Lock broken by another request with the 'steal' option."
+  if (message.includes(LOCK_BROKEN_MESSAGE) || details.includes(LOCK_BROKEN_MESSAGE)) {
+    return true;
+  }
+
+  // Any AbortError that is lock-related (name === 'AbortError' + steal/lock keywords)
+  if (name === "AbortError" || name.includes("AbortError")) {
+    const combined = `${message} ${details}`.toLowerCase();
+    if (
+      combined.includes("lock") ||
+      combined.includes("steal") ||
+      combined.includes("request was aborted") ||
+      combined === " " // bare AbortError with no message — also from lock contention
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export async function withSupabaseLockRetry<T>(

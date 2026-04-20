@@ -38,9 +38,21 @@ export function setupErrorLogging() {
   })
 
   window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason
+    const message: string = reason?.message || ''
+    const name: string = reason?.name || ''
+    // Supabase Web Locks: thrown when another tab steals the auth storage lock.
+    // This is expected multi-tab behaviour — suppress entirely.
+    if (
+      message.includes("Lock broken by another request with the 'steal' option") ||
+      (name === 'AbortError' && (message.includes('lock') || message.includes('steal') || message === ''))
+    ) {
+      event.preventDefault()
+      return
+    }
     logError({
-      message: event.reason?.message || 'Unhandled promise rejection',
-      stack: event.reason?.stack,
+      message: message || 'Unhandled promise rejection',
+      stack: reason?.stack,
       severity: 'warning',
     })
   })

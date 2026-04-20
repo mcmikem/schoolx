@@ -24,9 +24,10 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
             if (newWorker) {
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New version available - skip waiting and reload
-                  newWorker.postMessage({ type: 'SKIP_WAITING' })
-                  window.location.reload()
+                  // Notify the UI that an update is available — let the user
+                  // decide when to reload rather than forcing it mid-session,
+                  // which can steal Supabase auth Web Locks.
+                  window.dispatchEvent(new CustomEvent('sw-update-available', { detail: { registration } }))
                 }
               })
             }

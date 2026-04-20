@@ -3,60 +3,28 @@ import { createBrowserClient } from "@supabase/ssr";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const isProd = process.env.NODE_ENV === "production";
-const isDev = process.env.NODE_ENV === "development";
 const allowMockClient =
   process.env.NODE_ENV === "test" ||
   process.env.ALLOW_SUPABASE_MOCK === "true";
-const debugLog = (...args: unknown[]) => {
-  if (isDev) console.log(...args);
-};
-
-// Debug logging
-debugLog("[Supabase Debug] URL:", supabaseUrl);
-debugLog(
-  "[Supabase Debug] Anon Key:",
-  supabaseAnonKey ? supabaseAnonKey.substring(0, 20) + "..." : "null",
-);
-
 const isValidHttpUrl = (value?: string | null) => {
   if (!value || value.includes("your-supabase-url")) return false;
   try {
     const parsed = new URL(value);
-    const result = parsed.protocol === "http:" || parsed.protocol === "https:";
-    debugLog("[Supabase Debug] isValidHttpUrl:", result, "for", value);
-    return result;
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
   } catch {
-    debugLog("[Supabase Debug] isValidHttpUrl: false (exception)");
     return false;
   }
 };
 
 const isValidAnonKey = (key?: string) => {
-  if (!key) {
-    debugLog("[Supabase Debug] isValidAnonKey: false (null/empty)");
-    return false;
-  }
+  if (!key) return false;
   const sbPublishable = key.startsWith("sb_publishable_") && key.length > 20;
   const eyJ = key.startsWith("eyJ") && key.length > 50;
-  const result = sbPublishable || eyJ;
-  debugLog(
-    "[Supabase Debug] isValidAnonKey:",
-    result,
-    "| sb_publishable_:",
-    sbPublishable,
-    "| eyJ:",
-    eyJ,
-    "| key:",
-    key.substring(0, 30) + "...",
-  );
-  return result;
+  return sbPublishable || eyJ;
 };
 
 const hasUsableSupabaseConfig =
   isValidHttpUrl(supabaseUrl) && isValidAnonKey(supabaseAnonKey);
-
-debugLog("[Supabase Debug] hasUsableSupabaseConfig:", hasUsableSupabaseConfig);
 
 const createMockQueryBuilder = () => {
   const listResult = { data: [], error: null, count: 0 };
@@ -197,7 +165,7 @@ const createUnavailableClient = (): SupabaseClient => {
 // Export a flag so application boundaries can show a setup screen instead of crashing
 export const isSupabaseConfigured = hasUsableSupabaseConfig;
 
-if (!hasUsableSupabaseConfig && isProd) {
+if (!hasUsableSupabaseConfig && process.env.NODE_ENV === "production") {
   // Log a clear error but do NOT throw at module evaluation time.
   // Throwing here causes the entire Next.js app to crash with a 500 error
   // rather than rendering a user-friendly configuration page.
@@ -212,17 +180,6 @@ const realClient = hasUsableSupabaseConfig
   : null;
 
 // Debug output
-debugLog("[Supabase] hasUsableSupabaseConfig:", hasUsableSupabaseConfig);
-debugLog("[Supabase] realClient:", realClient ? "created" : "null");
-debugLog(
-  "[Supabase] final supabase:",
-  realClient
-    ? "real"
-    : allowMockClient
-      ? "mock"
-      : "unavailable-config",
-);
-
 export const supabase =
   realClient ||
   (allowMockClient ? createMockClient() : createUnavailableClient());

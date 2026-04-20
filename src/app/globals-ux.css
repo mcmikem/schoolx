@@ -5,13 +5,7 @@
  * - Transitions
  */
 
-/* Touch-friendly interactive controls */
-button,
-[role="button"],
-input[type="checkbox"],
-input[type="radio"],
-select,
-summary,
+/* Touch-friendly interactive controls — explicit tap targets only */
 .tap-target {
   min-height: 44px;
   min-width: 44px;
@@ -19,9 +13,9 @@ summary,
 
 /* Focus visible states for accessibility */
 :focus-visible {
-  outline: 2px solid var(--primary, #0056d2);
+  outline: 2px solid var(--navy, #001F3F);
   outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(0, 86, 210, 0.2);
+  box-shadow: 0 0 0 4px rgba(0, 31, 63, 0.15);
 }
 
 /* Reduce motion for users who prefer it */
@@ -63,9 +57,7 @@ textarea,
 }
 
 /* Better scrolling */
-html {
-  scroll-behavior: smooth;
-}
+/* Note: scroll-behavior: smooth is also set in globals.css — one source of truth */
 
 ::-webkit-scrollbar {
   width: 8px;

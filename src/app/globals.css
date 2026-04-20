@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scroll-behavior: smooth;
+}
+
 /* -- TOKENS ----------------------------------------------- */
 :root {
   /* SkoolMate OS Brand Colors - Aligned with SkoolMate OS Official Logo */
@@ -271,7 +275,7 @@ table tr {
   body {
     background: var(--bg);
     color: var(--t1);
-    @apply antialiased min-h-screen overflow-x-auto w-full;
+    @apply antialiased min-h-screen overflow-x-hidden w-full;
     font-family:
       "Lato",
       system-ui,
@@ -319,9 +323,16 @@ table tr {
     @apply flex flex-wrap items-center gap-3;
   }
 
+  .story-card {
+    @apply transition-shadow duration-200;
+  }
+  .story-card:hover {
+    @apply shadow-md;
+  }
+
   .btn {
     @apply inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-[var(--r)] text-[13px] font-semibold cursor-pointer border-none transition-all duration-[var(--dur)] ease-[var(--ease)] tracking-tight whitespace-nowrap active:scale-[0.97];
-    font-family: "Lato", sans-serif;
+    font-family: "DM Sans", sans-serif;
   }
 
   .btn-primary {
@@ -921,7 +932,7 @@ table tr {
 }
 
 /* Desktop: sidebar always visible */
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .sidebar {
     display: flex !important;
     left: 0 !important;
@@ -936,7 +947,7 @@ table tr {
 }
 
 /* Tablet / mobile: sidebar hidden by default, slides in on toggle */
-@media (max-width: 1023px) {
+@media (max-width: 1279px) {
   .sidebar {
     display: flex !important;
     transform: translateX(-105%);
@@ -988,6 +999,13 @@ table tr {
   }
   .search-bar {
     display: none !important;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
   }
 }
 

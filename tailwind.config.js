@@ -74,15 +74,12 @@ module.exports = {
       fontFamily: {
         headline: ['Sora', 'sans-serif'],
         heading: ['Sora', 'sans-serif'],
-        body: ['Lato', 'system-ui', '-apple-system', 'sans-serif'],
-        label: ['Lato', 'sans-serif'],
-        sans: ['Lato', 'system-ui', '-apple-system', 'sans-serif'],
+        body: ['DM Sans', 'system-ui', '-apple-system', 'sans-serif'],
+        label: ['DM Sans', 'sans-serif'],
+        sans: ['DM Sans', 'system-ui', '-apple-system', 'sans-serif'],
       },
-      borderRadius: {
-        DEFAULT: '0.125rem',
-        lg: '0.25rem',
-        xl: '0.5rem',
-        full: '0.75rem',
+      spacing: {
+        '18': '4.5rem',
       },
       boxShadow: {
         'xl': '0 10px 40px -4px rgba(0, 32, 69, 0.06)',

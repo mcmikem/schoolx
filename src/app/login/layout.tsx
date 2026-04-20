@@ -10,7 +10,6 @@ export const metadata: Metadata = {
       "Access your school dashboard. Track attendance, grades, fees, and send parent SMS from one place.",
     type: "website",
     url: "https://omuto.org/login",
-    images: ["/og-image.png"],
   },
 };
 

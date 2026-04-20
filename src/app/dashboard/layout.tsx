@@ -256,7 +256,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
         <main
           id="main-content"
-          className="main-content mobile-container ml-[var(--sidebar-width)] flex-1 flex flex-col min-h-screen w-[calc(100%-var(--sidebar-width))] overflow-hidden"
+          className="main-content mobile-container xl:ml-[var(--sidebar-width)] flex-1 flex flex-col min-h-screen xl:w-[calc(100%-var(--sidebar-width))] overflow-hidden"
         >
           <TopBar pageTitle={pageTitle} onSignOut={handleSignOut} />
           {breadcrumbItems.length > 1 && (

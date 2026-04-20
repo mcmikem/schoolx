@@ -4,13 +4,12 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
-import SkoolMateLogo from "@/components/SkoolMateLogo";
+
 import { logger } from "@/lib/logger";
 import { Button, Input, Select } from "@/components/ui";
 import {
   getDistrictOptions,
   getParishOptions,
-  getSubcountyOptions,
 } from "@/lib/uganda-admin";
 import { normalizeAuthPhone } from "@/lib/validation";
 import { withSupabaseLockRetry } from "@/lib/supabase-lock";
@@ -48,12 +47,7 @@ const DISTRICT_OPTIONS = [
   ...getDistrictOptions(),
 ];
 
-const PACKAGE_OPTIONS = [
-  { value: "starter", label: "Starter Trial · best for one campus getting started" },
-  { value: "growth", label: "Growth Trial · adds parent portal and richer workflows" },
-  { value: "enterprise", label: "Enterprise Trial · full school operations suite" },
-  { value: "lifetime", label: "Lifetime Setup Call · for schools ready for full rollout" },
-];
+// Package is always defaulted to starter at registration; user upgrades later
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -275,15 +269,36 @@ export default function RegisterPage() {
       <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-[var(--green-soft)] blur-[120px] rounded-full opacity-30" />
 
       <div className="relative z-10 w-full max-w-lg mx-auto px-4">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-[24px] bg-white shadow-xl mb-6 ring-1 ring-slate-100">
-            <SkoolMateLogo size="md" />
+        <div className="mb-4">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--t3)] hover:text-[var(--primary)] transition-colors"
+          >
+            <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+            Back to home
+          </Link>
+        </div>
+        <div className="mb-8">
+          <div className="mb-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--navy)]/10 bg-[var(--navy-soft)] px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--navy)]">
+              <MaterialIcon icon="school" className="text-sm" />
+              Register your school
+            </div>
           </div>
-          <h2 className="text-3xl font-extrabold text-[var(--t1)] tracking-tight">
-            Start Your School Account
-          </h2>
-          <p className="mt-2 text-[var(--t3)] font-medium">
+          <h1 className="font-['Sora'] text-[30px] font-semibold tracking-[-0.03em] text-[#102341] mb-3">
+            Start your school account
+          </h1>
+          <p className="text-[15px] leading-6 text-[#53657f] mb-4">
             Join Uganda&apos;s leading school operating system
+          </p>
+          <p className="text-sm text-[var(--t3)]">
+            Already have an account?{" "}
+            <Link
+              href="/login"
+              className="font-semibold text-[var(--primary)] hover:text-[var(--green)] transition-colors"
+            >
+              Sign in
+            </Link>
           </p>
         </div>
 
@@ -305,7 +320,7 @@ export default function RegisterPage() {
             ))}
           </div>
           <p className="mt-4 text-center text-[10px] font-bold uppercase tracking-widest text-[var(--t3)]">
-            Step {step} of 3 — Account Setup
+            {step === 1 ? "Step 1 of 3 — Your School" : step === 2 ? "Step 2 of 3 — Location" : "Step 3 of 3 — Admin Account"}
           </p>
         </div>
 
@@ -348,20 +363,6 @@ export default function RegisterPage() {
                   required
                 />
 
-                <Select
-                  label="Package"
-                  options={PACKAGE_OPTIONS}
-                  value={form.selectedPackage}
-                  onChange={(e) =>
-                    updateForm("selectedPackage", e.target.value)
-                  }
-                  required
-                />
-
-                <div className="rounded-2xl bg-[var(--surface)]/70 border border-[var(--border)] p-4 text-sm text-[var(--t2)]">
-                  Your school chooses its package up front. We still start you on a guided trial so the team can learn the app before payment is enforced.
-                </div>
-
                 <Button
                   type="button"
                   variant="primary"
@@ -378,28 +379,35 @@ export default function RegisterPage() {
 
             {step === 2 && (
               <div className="space-y-5">
-                <Input
-                  label="District"
-                  type="text"
-                  placeholder="e.g. Kampala, Wakiso, Mukono..."
-                  value={form.district}
-                  onChange={(e) => updateForm("district", e.target.value)}
-                  required
-                  autoComplete="address-level1"
-                />
-
                 <Select
-                  label="Quick pick common Districts"
+                  label="District"
                   options={DISTRICT_OPTIONS}
                   value={
                     DISTRICT_OPTIONS.some(
-                      (option) => option.value === form.district,
+                      (option) => option.value === form.district && option.value !== "",
                     )
                       ? form.district
-                      : ""
+                      : form.district ? "_other" : ""
                   }
-                  onChange={(e) => updateForm("district", e.target.value)}
+                  onChange={(e) => {
+                    if (e.target.value === "_other") {
+                      updateForm("district", "");
+                    } else {
+                      updateForm("district", e.target.value);
+                    }
+                  }}
+                  required
                 />
+                {(!DISTRICT_OPTIONS.some((o) => o.value === form.district && o.value !== "") ) && (
+                  <Input
+                    label="District name (type if not in list above)"
+                    type="text"
+                    placeholder="e.g. Omoro, Kween, Butebo..."
+                    value={form.district}
+                    onChange={(e) => updateForm("district", e.target.value)}
+                    autoComplete="address-level1"
+                  />
+                )}
 
                 <Input
                   label="Sub-county / Division"
@@ -410,24 +418,6 @@ export default function RegisterPage() {
                   required
                   autoComplete="address-level2"
                 />
-
-                {form.district && (
-                  <Select
-                    label="Quick pick common Sub-counties"
-                    options={[
-                      { value: "", label: "Choose a common sub-county (optional)" },
-                      ...getSubcountyOptions(form.district),
-                    ]}
-                    value={
-                      getSubcountyOptions(form.district).some(
-                        (option) => option.value === form.subcounty,
-                      )
-                        ? form.subcounty
-                        : ""
-                    }
-                    onChange={(e) => updateForm("subcounty", e.target.value)}
-                  />
-                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input
@@ -589,18 +579,6 @@ export default function RegisterPage() {
               </div>
             )}
           </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-[var(--t3)]">
-              Already have an account?{" "}
-              <Link
-                href="/login"
-                className="font-semibold text-[var(--primary)] hover:text-[var(--green)] transition-colors"
-              >
-                Sign in
-              </Link>
-            </p>
-          </div>
         </div>
       </div>
     </div>

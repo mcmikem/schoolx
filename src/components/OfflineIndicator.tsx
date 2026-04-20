@@ -96,6 +96,12 @@ export function OfflineIndicator() {
       }
     };
 
+    const handleSwMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'SYNC_REQUESTED') {
+        syncData();
+      }
+    };
+
     checkPending();
     const interval = setInterval(checkPending, 10000);
 
@@ -103,6 +109,9 @@ export function OfflineIndicator() {
     window.addEventListener("offline", handleOffline);
     window.addEventListener("sw-update-available", handleSwUpdate);
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", handleSwMessage);
+    }
 
     setIsOnline(navigator.onLine);
     if (!navigator.onLine) setShowIndicator(true);
@@ -112,6 +121,9 @@ export function OfflineIndicator() {
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("sw-update-available", handleSwUpdate);
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener("message", handleSwMessage);
+      }
       clearInterval(interval);
     };
   }, [syncData]);
