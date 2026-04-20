@@ -454,6 +454,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               event === "INITIAL_SESSION" ||
               event === "TOKEN_REFRESHED")
           ) {
+            // Mark loading before async work so any route guard (e.g. DashboardRouter)
+            // that renders concurrently sees loading=true instead of loading=false+user=null.
+            if (session) setLoading(true);
             const {
               data: { user: verifiedUser },
             } = await withSupabaseLockRetry(async () =>
