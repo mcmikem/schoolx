@@ -164,7 +164,7 @@ test.describe("Auth – login form", () => {
     await page.getByRole("button", { name: /sign in/i }).click();
 
     await expect(
-      page.getByText(/invalid.*credentials|wrong.*password|not found|sign in failed|check your/i),
+      page.getByText(/invalid phone|phone.*or.*password|invalid.*credentials|wrong.*password/i),
     ).toBeVisible({ timeout: 10_000 });
   });
 
@@ -222,9 +222,14 @@ test.describe("Auth – register validation (no backend)", () => {
     await page.locator('input[type="password"]').nth(1).fill("abc");
     await page.getByRole("button", { name: /finish.*start/i }).click();
 
-    await expect(
-      page.getByText(/password must be at least 8/i),
-    ).toBeVisible();
+    // The password input has minLength={8} so HTML5 constraint validation
+    // blocks the submit before React's onSubmit fires. Verify the input is
+    // in an invalid state (browser reports constraint violation).
+    const isInvalid = await page
+      .locator('input[type="password"]')
+      .first()
+      .evaluate((el: HTMLInputElement) => !el.validity.valid);
+    expect(isInvalid).toBe(true);
   });
 
   test("shows error when passwords do not match", async ({ page }) => {
