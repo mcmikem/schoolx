@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS schools (
     email TEXT,
     logo_url TEXT,
     primary_color TEXT DEFAULT '#1e3a5f',
-    uneab_center_number TEXT,
+    uneb_center_number TEXT,
     subscription_plan TEXT CHECK (subscription_plan IN ('free_trial', 'basic', 'premium', 'max')) DEFAULT 'free_trial',
     subscription_status TEXT CHECK (subscription_status IN ('active', 'expired', 'trial', 'past_due')) DEFAULT 'trial',
     trial_ends_at TIMESTAMPTZ,
@@ -152,7 +152,7 @@ CREATE TABLE IF NOT EXISTS students (
     class_id UUID REFERENCES classes(id),
     admission_date DATE DEFAULT CURRENT_DATE,
     ple_index_number TEXT, -- For secondary students
-    uneab_number TEXT, -- UNEB candidate number
+    uneb_number TEXT, -- UNEB candidate number
     status TEXT CHECK (status IN ('active', 'transferred', 'dropped', 'completed')) DEFAULT 'active',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(school_id, student_number)

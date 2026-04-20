@@ -11,18 +11,9 @@ const PAGES_TO_CACHE = [
   '/forgot-password',
   '/manifest.json',
   '/offline.html',
-  '/dashboard',
-  '/dashboard/attendance',
-  '/dashboard/students',
-  '/dashboard/fees',
-  '/dashboard/grades',
-  '/dashboard/messages',
-  '/dashboard/notices',
-  '/dashboard/timetable',
-  '/dashboard/settings',
-  '/dashboard/classes',
-  '/dashboard/reports',
-  '/dashboard/store/pos',
+  // Auth-gated dashboard routes are intentionally NOT pre-cached.
+  // Caching them offline would produce blank shells with no session or data.
+  // They are served network-first with an offline fallback instead.
 ];
 
 self.addEventListener('install', (event) => {

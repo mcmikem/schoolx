@@ -350,7 +350,10 @@ export async function POST(request: NextRequest) {
         buildUgandaCalendarEvents(schoolData.id, currentYear),
       );
 
-      console.log("[Setup] Auto-setup completed for school:", schoolData.id);
+      // Setup complete
+      if (process.env.NODE_ENV !== "production") {
+        console.log("[Setup] Auto-setup completed for new school");
+      }
     } catch (setupError) {
       console.error("[Setup] Auto-setup failed:", setupError);
     }

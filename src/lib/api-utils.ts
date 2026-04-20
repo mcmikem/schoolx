@@ -71,11 +71,106 @@ export function validateRequiredFields(
   return null;
 }
 
-// Rate limiting
+// Rate limiting — hybrid approach:
+// Primary: Supabase `rate_limit` table (persists across serverless cold starts).
+// Fallback: in-memory Map (used when Supabase is unavailable or misconfigured).
+// The Supabase table should be created via migration if it doesn't exist yet;
+// the in-memory fallback ensures nothing breaks during cold-start races.
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 let lastCleanup = Date.now();
-const CLEANUP_INTERVAL = 60000; // Cleanup every minute
-const MAX_MAP_SIZE = 10000; // Prevent unbounded growth
+const CLEANUP_INTERVAL = 60000;
+const MAX_MAP_SIZE = 10000;
+
+async function rateLimitViaSupabase(
+  key: string,
+  limit: number,
+  windowMs: number,
+): Promise<{ success: boolean; remaining: number; resetTime: number } | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceKey) return null;
+
+  try {
+    const sb = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    const now = new Date();
+    const windowStart = new Date(Date.now() - windowMs);
+
+    // Count existing hits for this key within the current window
+    const { count, error } = await sb
+      .from("rate_limit_log")
+      .select("*", { count: "exact", head: true })
+      .eq("key", key)
+      .gte("created_at", windowStart.toISOString());
+
+    if (error) return null; // fall back to in-memory
+
+    const hits = count ?? 0;
+    if (hits >= limit) {
+      return { success: false, remaining: 0, resetTime: Date.now() + windowMs };
+    }
+
+    // Record this hit
+    await sb.from("rate_limit_log").insert({ key, created_at: now.toISOString() });
+
+    return {
+      success: true,
+      remaining: limit - hits - 1,
+      resetTime: Date.now() + windowMs,
+    };
+  } catch {
+    return null; // fall back to in-memory
+  }
+}
+
+function rateLimitInMemory(
+  key: string,
+  limit: number,
+  windowMs: number,
+): { success: boolean; remaining: number; resetTime: number } {
+  const now = Date.now();
+
+  if (rateLimitMap.size > MAX_MAP_SIZE || now - lastCleanup > CLEANUP_INTERVAL) {
+    rateLimitMap.forEach((v, k) => { if (now > v.resetTime) rateLimitMap.delete(k); });
+    lastCleanup = now;
+  }
+
+  if (rateLimitMap.size >= MAX_MAP_SIZE) {
+    return { success: false, remaining: 0, resetTime: now + windowMs };
+  }
+
+  const record = rateLimitMap.get(key);
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(key, { count: 1, resetTime: now + windowMs });
+    return { success: true, remaining: limit - 1, resetTime: now + windowMs };
+  }
+
+  if (record.count >= limit) {
+    return { success: false, remaining: 0, resetTime: record.resetTime };
+  }
+
+  record.count++;
+  return { success: true, remaining: limit - record.count, resetTime: record.resetTime };
+}
+
+export async function rateLimitAsync(
+  request: NextRequest,
+  limit: number = 100,
+  windowMs: number = 60000,
+): Promise<{ success: boolean; remaining: number; resetTime: number }> {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown";
+  const key = `rl:${ip}`;
+
+  const supabaseResult = await rateLimitViaSupabase(key, limit, windowMs);
+  if (supabaseResult !== null) return supabaseResult;
+
+  return rateLimitInMemory(key, limit, windowMs);
+}
 
 export function rateLimit(
   request: NextRequest,
