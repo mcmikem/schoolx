@@ -540,11 +540,11 @@ export default function RegisterPage() {
                 <Input
                   label="Password"
                   type="password"
-                  placeholder="Min 6 characters"
+                  placeholder="Min 8 characters"
                   value={form.password}
                   onChange={(e) => updateForm("password", e.target.value)}
                   required
-                  minLength={6}
+                  minLength={8}
                   autoComplete="new-password"
                 />
 

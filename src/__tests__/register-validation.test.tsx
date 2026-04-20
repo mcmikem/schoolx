@@ -23,10 +23,10 @@ function advanceToStep2() {
 
 function advanceToStep3() {
   advanceToStep2();
-  fireEvent.change(screen.getByLabelText(/district/i), {
+  fireEvent.change(screen.getByLabelText("District"), {
     target: { value: "Kampala" },
   });
-  fireEvent.change(screen.getByLabelText(/sub-county/i), {
+  fireEvent.change(screen.getByLabelText("Sub-county / Division"), {
     target: { value: "Central Division" },
   });
   fireEvent.click(screen.getByRole("button", { name: /next.*account/i }));
@@ -98,8 +98,8 @@ describe("RegisterPage – step 2 (Location)", () => {
   it("shows step 2 fields after advancing from step 1", () => {
     advanceToStep2();
     expect(screen.getByText(/step 2 of 3/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/district/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/sub-county/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("District")).toBeInTheDocument();
+    expect(screen.getByLabelText("Sub-county / Division")).toBeInTheDocument();
   });
 
   it("shows an error when district is not selected", () => {
@@ -112,7 +112,7 @@ describe("RegisterPage – step 2 (Location)", () => {
 
   it("shows an error when sub-county is empty", () => {
     advanceToStep2();
-    fireEvent.change(screen.getByLabelText(/district/i), {
+    fireEvent.change(screen.getByLabelText("District"), {
       target: { value: "Kampala" },
     });
     fireEvent.click(screen.getByRole("button", { name: /next.*account/i }));
@@ -132,10 +132,10 @@ describe("RegisterPage – step 2 (Location)", () => {
 
   it("advances to step 3 with valid district and sub-county", () => {
     advanceToStep2();
-    fireEvent.change(screen.getByLabelText(/district/i), {
+    fireEvent.change(screen.getByLabelText("District"), {
       target: { value: "Kampala" },
     });
-    fireEvent.change(screen.getByLabelText(/sub-county/i), {
+    fireEvent.change(screen.getByLabelText("Sub-county / Division"), {
       target: { value: "Central Division" },
     });
     fireEvent.click(screen.getByRole("button", { name: /next.*account/i }));
@@ -150,7 +150,7 @@ describe("RegisterPage – step 3 (Account Setup)", () => {
     expect(screen.getByLabelText(/your full name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/your phone number/i)).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText(/min 6 characters/i),
+      screen.getByPlaceholderText(/min 8 characters/i),
     ).toBeInTheDocument();
     expect(
       screen.getByPlaceholderText(/enter password again/i),
@@ -187,7 +187,7 @@ describe("RegisterPage – step 3 (Account Setup)", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows an error when password is fewer than 6 characters", () => {
+  it("shows an error when password is fewer than 8 characters", () => {
     advanceToStep3();
     fireEvent.change(screen.getByLabelText(/your full name/i), {
       target: { value: "John Admin" },
@@ -195,7 +195,7 @@ describe("RegisterPage – step 3 (Account Setup)", () => {
     fireEvent.change(screen.getByLabelText(/your phone number/i), {
       target: { value: "0700000000" },
     });
-    fireEvent.change(screen.getByPlaceholderText(/min 6 characters/i), {
+    fireEvent.change(screen.getByPlaceholderText(/min 8 characters/i), {
       target: { value: "abc" },
     });
     fireEvent.change(
@@ -204,7 +204,7 @@ describe("RegisterPage – step 3 (Account Setup)", () => {
     );
     submitStep3();
     expect(
-      screen.getByText(/password must be at least 6/i),
+      screen.getByText(/password must be at least 8/i),
     ).toBeInTheDocument();
   });
 
@@ -216,12 +216,12 @@ describe("RegisterPage – step 3 (Account Setup)", () => {
     fireEvent.change(screen.getByLabelText(/your phone number/i), {
       target: { value: "0700000000" },
     });
-    fireEvent.change(screen.getByPlaceholderText(/min 6 characters/i), {
-      target: { value: "secret123" },
+    fireEvent.change(screen.getByPlaceholderText(/min 8 characters/i), {
+      target: { value: "SecretPass1" },
     });
     fireEvent.change(
       screen.getByPlaceholderText(/enter password again/i),
-      { target: { value: "different456" } },
+      { target: { value: "Different456" } },
     );
     submitStep3();
     expect(
