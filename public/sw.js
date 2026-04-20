@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'schoolx-v5';
+const CACHE_VERSION = 'skoolmate-v6';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -24,8 +24,6 @@ const PAGES_TO_CACHE = [
   '/dashboard/reports',
   '/dashboard/store/pos',
 ];
-
-const SUPABASE_URL = 'https://pgbfrmqteduyxjlgafkb.supabase.co';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

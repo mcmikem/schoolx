@@ -77,14 +77,7 @@ export default function ForgotPasswordPage() {
                 </div>
                 <h3 className="text-lg font-bold text-[var(--t1)]">Check your phone</h3>
                 <p className="mt-2 text-sm text-[var(--t2)] leading-6">
-                  If that number is registered, you&apos;ll receive a password reset message shortly. Contact your school admin or WhatsApp us at{" "}
-                  <a
-                    href="https://wa.me/256700000000"
-                    className="font-semibold text-[var(--primary)] hover:text-[var(--green)] transition-colors"
-                  >
-                    +256 700 000 000
-                  </a>{" "}
-                  if you don&apos;t receive it.
+                  If that number is registered, you&apos;ll receive a password reset message shortly. If you don&apos;t receive it within a few minutes, contact your school admin for assistance.
                 </p>
                 <div className="mt-6">
                   <Link

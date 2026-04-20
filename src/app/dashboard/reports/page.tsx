@@ -136,7 +136,7 @@ export default function ReportsPage() {
           academicYear: academicYear,
           subjects,
           attendance: {
-            total: totalAttendanceDays || 90,
+            total: totalAttendanceDays,
             present: presentDays,
             absent: absentDays,
             late: lateDays,

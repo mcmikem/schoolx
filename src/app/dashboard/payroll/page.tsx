@@ -26,6 +26,7 @@ export default function PayrollPage() {
   const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [month] = useState(format(new Date(), "MMMM yyyy"));
   const [payroll, setPayroll] = useState<Record<string, { grade: string; customGross: number; deductions: number }>>({});
 
@@ -69,8 +70,7 @@ export default function PayrollPage() {
   }, { gross: 0, nssf: 0, paye: 0, other: 0, net: 0 });
 
   const handleProcessPayroll = async () => {
-    if (!confirm(`Process payroll for ${staff.length} staff?\nTotal Net: UGX ${totals.net.toLocaleString()}`)) return;
-    
+    setConfirmOpen(false);
     setProcessing(true);
     try {
       const records = staff.map(s => {
@@ -84,7 +84,7 @@ export default function PayrollPage() {
           paye_tax: pay.paye,
           other_deductions: payroll[s.id]?.deductions || 0,
           net_pay: pay.net,
-          status: "paid",
+          status: "processed",
           processed_by: user?.id
         };
       });
@@ -92,9 +92,9 @@ export default function PayrollPage() {
       const { error } = await supabase.from("payroll_history").upsert(records, { onConflict: "staff_id, month" });
       if (error) throw error;
 
-      toast.success(`✅ Payroll processed for ${month}. Slips generated.`);
+      toast.success(`Payroll recorded for ${month}. Disburse net salaries manually or via your bank.`);
     } catch (err: any) {
-      toast.error(err.message || "Failed to process payroll");
+      toast.error(err.message || "Failed to record payroll");
     } finally {
       setProcessing(false);
     }
@@ -109,7 +109,7 @@ export default function PayrollPage() {
           <p className="text-slate-500 font-medium">Smart Salary Manager for <span className="font-bold text-slate-700">{month}</span></p>
         </div>
         <button
-          onClick={handleProcessPayroll}
+          onClick={() => setConfirmOpen(true)}
           disabled={staff.length === 0 || processing}
           className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-600/20 hover:scale-105 transition-all disabled:opacity-40 disabled:scale-100"
         >
@@ -117,8 +117,25 @@ export default function PayrollPage() {
             ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             : <MaterialIcon icon="account_balance" />
           }
-          Process & Disburse
+          Record Payroll
         </button>
+
+        {/* Inline confirmation modal */}
+        {confirmOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+              <h3 className="text-lg font-bold text-slate-800 mb-2">Record payroll for {month}?</h3>
+              <p className="text-sm text-slate-500 mb-1">{staff.length} staff members &bull; Net total: <span className="font-semibold text-slate-700">UGX {totals.net.toLocaleString()}</span></p>
+              <p className="text-xs text-amber-600 bg-amber-50 rounded-xl p-3 mt-3">
+                This records payroll in the system. You must still disburse salaries manually or via your bank.
+              </p>
+              <div className="flex gap-3 mt-5">
+                <button onClick={() => setConfirmOpen(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">Cancel</button>
+                <button onClick={handleProcessPayroll} className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition">Confirm & Record</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Summary Cards */}

@@ -37,6 +37,8 @@ export default function ParentPortal() {
   const [error, setError] = useState("");
   const [studentData, setStudentData] = useState<any>(null);
   const [parentName, setParentName] = useState("");
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
 
   useEffect(() => {
     async function restoreSessionFromAuth() {
@@ -92,8 +94,16 @@ export default function ParentPortal() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
+
+    // Client-side rate limiting / lockout
+    if (lockoutUntil && Date.now() < lockoutUntil) {
+      const seconds = Math.ceil((lockoutUntil - Date.now()) / 1000);
+      setError(`Too many failed attempts. Try again in ${seconds}s`);
+      return;
+    }
+
+    setLoading(true);
 
     try {
       let authData: { user: { id: string } } | null = null;
@@ -125,10 +135,20 @@ export default function ParentPortal() {
       }
 
       if (authError || !authData?.user) {
-        setError("Invalid credentials");
+        const newAttempts = failedAttempts + 1;
+        setFailedAttempts(newAttempts);
+        if (newAttempts >= 5) {
+          const lockDuration = Math.min(30_000 * Math.pow(2, newAttempts - 5), 300_000);
+          setLockoutUntil(Date.now() + lockDuration);
+          setError(`Too many failed attempts. Locked for ${Math.ceil(lockDuration / 1000)}s`);
+        } else {
+          setError("Invalid credentials");
+        }
         setLoading(false);
         return;
       }
+      setFailedAttempts(0);
+      setLockoutUntil(null);
 
       const { data: parentUser, error: parentError } = await supabase
         .from("users")
