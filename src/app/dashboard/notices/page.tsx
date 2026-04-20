@@ -26,6 +26,8 @@ export default function NoticesPage() {
     category: "General",
     send_sms: false,
   });
+  // Note: send_sms is stored but SMS dispatch requires Africa's Talking
+  // credentials configured in production (AFRICAS_TALKING_API_KEY).
 
   useEffect(() => {
     toastRef.current = toast;
@@ -120,6 +122,7 @@ export default function NoticesPage() {
           published_by: user?.id,
           publish_date: new Date().toISOString(),
           is_published: true,
+          // send_sms: form.send_sms — requires Africa's Talking in production
         });
         if (error) throw error;
         await fetchNotices();

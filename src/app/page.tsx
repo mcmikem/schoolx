@@ -1372,11 +1372,13 @@ export default function HomePage() {
   const installOptions: DownloadTarget[] = [
     {
       key: "android",
-      href: ANDROID_APP_URL,
+      href: ANDROID_APP_URL || undefined,
       label: "Android",
       icon: "android",
-      helper: "Direct APK install for phones and tablets.",
-      badge: "APK",
+      helper: ANDROID_APP_URL
+        ? "Direct APK install for phones and tablets."
+        : "Android APK will be available at launch.",
+      badge: ANDROID_APP_URL ? "APK" : "Coming soon",
     },
     {
       key: "windows",

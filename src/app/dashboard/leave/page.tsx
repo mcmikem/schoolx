@@ -47,6 +47,11 @@ export default function LeavePage() {
   });
 
   const fetchRequests = useCallback(async () => {
+    if (isDemo) {
+      setRequests([]);
+      setLoading(false);
+      return;
+    }
     if (!school?.id) { setLoading(false); return; }
     setLoading(true);
     try {
@@ -69,7 +74,7 @@ export default function LeavePage() {
     } finally {
       setLoading(false);
     }
-  }, [school?.id, user?.id, isManager, toast]);
+  }, [school?.id, user?.id, isManager, isDemo, toast]);
 
   useEffect(() => {
     fetchRequests();
