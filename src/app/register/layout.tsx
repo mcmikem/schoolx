@@ -10,7 +10,6 @@ export const metadata: Metadata = {
       "Start your free 30-day trial. The all-in-one school management system built for Ugandan schools.",
     type: "website",
     url: "https://omuto.org/register",
-    images: ["/og-image.png"],
   },
 };
 

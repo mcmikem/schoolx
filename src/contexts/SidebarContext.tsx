@@ -28,7 +28,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     if (typeof window === "undefined") return;
 
     const handleResize = () => {
-      if (window.innerWidth >= 1024) {
+      if (window.innerWidth >= 1280) {
         setIsOpen(false);
         document.body.style.overflow = "";
       }
@@ -53,7 +53,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    if (window.innerWidth < 1024) {
+    if (window.innerWidth < 1280) {
       document.body.style.overflow = isOpen ? "hidden" : "";
     }
 

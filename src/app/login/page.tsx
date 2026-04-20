@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/components/Toast";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import AnimatedLogo from "@/components/AnimatedLogo";
-import OwlStage from "@/components/brand/OwlStage";
 import OwlMascot from "@/components/brand/OwlMascot";
 import { t, tWithParams } from "@/i18n";
 import { Button, Input } from "@/components/ui";
@@ -55,6 +53,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [phoneError, setPhoneError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
 
@@ -77,6 +76,7 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setPhoneError("");
+    setPasswordError("");
 
     if (!phone.trim()) {
       setPhoneError("Phone number is required");
@@ -89,7 +89,7 @@ export default function LoginPage() {
     }
 
     if (!password.trim()) {
-      toast.error("Password is required");
+      setPasswordError("Password is required");
       return;
     }
 
@@ -192,24 +192,58 @@ export default function LoginPage() {
         show a plain spinner so there's no flash of the form while router
         is processing the redirect from the useEffect below. */}
     {(authLoading || user) ? (
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top,#eff5ff_0%,#f7f5ee_52%,#f1ebdf_100%)] flex items-center justify-center">
-        <div className="w-8 h-8 border-[3px] border-[#3b82f6] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#f4f7fb] flex items-center justify-center">
+        <div className="w-8 h-8 border-[3px] border-[#001F3F] border-t-transparent rounded-full animate-spin" />
       </div>
     ) : (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#eff5ff_0%,#f7f5ee_52%,#f1ebdf_100%)] flex relative overflow-hidden">
+    <div className="min-h-screen bg-[linear-gradient(145deg,#f0f5fc_0%,#e8f0fb_40%,#f4f8ff_100%)] flex relative overflow-hidden">
       <div className="flex-1 flex flex-col justify-center relative z-10 w-full lg:max-w-[45%] xl:max-w-[40%] px-6 lg:px-16 xl:px-24">
         <div className="absolute top-[-10%] left-[-10%] h-[60%] w-[60%] rounded-full bg-[#bdd6ff] blur-[150px] opacity-30" />
         <div className="absolute bottom-0 left-[10%] h-[30%] w-[40%] rounded-full bg-[#dfeeda] blur-[120px] opacity-40" />
 
         <div className="w-full max-w-[420px] mx-auto">
+          {/* Back to home */}
+          <div className="mb-6">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--t3)] hover:text-[var(--primary)] transition-colors"
+            >
+              <MaterialIcon icon="arrow_back" className="text-[16px]" />
+              Back to home
+            </Link>
+          </div>
+
+          {/* Header — matches landing page style */}
           <div className="mb-7">
-            <OwlStage
-              compact
-              eyebrow="SkoolMate sign in"
-              title="Welcome back"
-              description="Your school workspace, reports, fees, and messages are waiting. Sign in and continue where the team left off."
-              chips={["Trusted by daily admin teams", "Built for real school operations"]}
-            />
+            <div className="mb-4">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--navy)]/10 bg-[var(--navy-soft)] px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--navy)]">
+                <MaterialIcon icon="school" className="text-sm" />
+                SkoolMate sign in
+              </div>
+            </div>
+            <h1 className="font-['Sora'] text-[30px] font-semibold tracking-[-0.03em] text-[#102341] mb-3">
+              Welcome back
+            </h1>
+            <p className="text-[15px] leading-6 text-[#53657f] mb-5">
+              Your school workspace, reports, fees, and messages are waiting.
+            </p>
+            {/* Trust icon badges */}
+            <div className="flex flex-wrap gap-2">
+              {[
+                { icon: "verified", label: "NCDC Compliant" },
+                { icon: "fact_check", label: "UNEB Ready" },
+                { icon: "wifi_off", label: "Works Offline" },
+                { icon: "security", label: "Data Protected" },
+              ].map((badge) => (
+                <div
+                  key={badge.label}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white/80 px-3 py-1.5 text-[11px] font-semibold text-[var(--t2)] shadow-sm"
+                >
+                  <MaterialIcon icon={badge.icon} className="text-[14px] text-[var(--green)]" />
+                  {badge.label}
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="rounded-[32px] border border-white/60 bg-white/82 p-8 shadow-[0_32px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl md:p-10">
@@ -237,7 +271,11 @@ export default function LoginPage() {
                 type={showPassword ? "text" : "password"}
                 placeholder={t("auth.passwordPlaceholder")}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (passwordError) setPasswordError("");
+                }}
+                error={passwordError}
                 required
                 autoComplete="current-password"
                 endAdornment={
@@ -271,6 +309,15 @@ export default function LoginPage() {
               >
                 {loading ? t("auth.signingIn") : t("auth.signIn")}
               </Button>
+
+              <div className="text-center">
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-[var(--t3)] hover:text-[var(--primary)] transition-colors"
+                >
+                  Forgot your password?
+                </Link>
+              </div>
 
               {DEMO_MODE_ENABLED && (
                 <>
@@ -315,6 +362,24 @@ export default function LoginPage() {
               </Link>
             </p>
           </div>
+
+          {/* Mobile trust signals — visible only on mobile where the right panel is hidden */}
+          <div className="mt-6 lg:hidden flex flex-wrap justify-center gap-x-4 gap-y-2">
+            {[
+              { icon: "verified", label: "NCDC 2025 Compliant" },
+              { icon: "fact_check", label: "UNEB Ready" },
+              { icon: "wifi_off", label: "Works Offline" },
+              { icon: "security", label: "Data Protected" },
+            ].map((badge) => (
+              <div
+                key={badge.label}
+                className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--t3)]"
+              >
+                <MaterialIcon icon={badge.icon} className="text-[14px] text-[var(--green)]" />
+                {badge.label}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -331,10 +396,7 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10">
-          <div className="mb-8 flex items-center gap-4">
-            <div className="inline-flex items-center justify-center rounded-[24px] border border-white/12 bg-white/8 p-2 shadow-[0_16px_40px_rgba(0,0,0,0.16)] backdrop-blur-md">
-              <AnimatedLogo type="logo_white" className="h-10 w-28" />
-            </div>
+          <div className="mb-8">
             <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-blue-100">
               <MaterialIcon icon="verified" className="text-teal-300" style={{ fontSize: 18 }} />
               Built for Uganda schools
@@ -347,7 +409,7 @@ export default function LoginPage() {
             The Operating System
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-blue-200">
-              For African Education.
+              For Ugandan Schools.
             </span>
           </h1>
           <p className="text-lg xl:text-xl text-blue-100/80 font-medium max-w-lg leading-relaxed">

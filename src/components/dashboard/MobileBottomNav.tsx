@@ -65,12 +65,12 @@ export default function MobileBottomNav() {
         <span>Home</span>
       </Link>
       <Link
-        href="/dashboard/students"
-        className={`mobile-nav-item ${isActive("/dashboard/students") ? "active" : ""}`}
-        aria-current={isActive("/dashboard/students") ? "page" : undefined}
+        href="/dashboard/attendance"
+        className={`mobile-nav-item ${isActive("/dashboard/attendance") ? "active" : ""}`}
+        aria-current={isActive("/dashboard/attendance") ? "page" : undefined}
       >
-        <MaterialIcon icon="group" size={20} />
-        <span>Students</span>
+        <MaterialIcon icon="how_to_reg" size={20} />
+        <span>Attend</span>
       </Link>
       <Link
         href={quickStep.href}

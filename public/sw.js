@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'schoolx-v4';
+const CACHE_VERSION = 'schoolx-v5';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -7,8 +7,21 @@ const OFFLINE_FALLBACK = '/offline.html';
 const PAGES_TO_CACHE = [
   '/',
   '/login',
+  '/register',
+  '/forgot-password',
   '/manifest.json',
   '/offline.html',
+  '/dashboard',
+  '/dashboard/attendance',
+  '/dashboard/students',
+  '/dashboard/fees',
+  '/dashboard/grades',
+  '/dashboard/messages',
+  '/dashboard/notices',
+  '/dashboard/timetable',
+  '/dashboard/settings',
+  '/dashboard/classes',
+  '/dashboard/reports',
   '/dashboard/store/pos',
 ];
 
@@ -18,7 +31,8 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     Promise.all([
       caches.open(STATIC_CACHE).then((cache) => {
-        return cache.addAll(PAGES_TO_CACHE);
+        // Use individual adds so one failing URL doesn't abort the whole install
+        return Promise.allSettled(PAGES_TO_CACHE.map((url) => cache.add(url)));
       }),
       self.skipWaiting(),
     ])

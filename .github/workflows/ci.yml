@@ -26,6 +26,15 @@ jobs:
       
       - name: Run type check
         run: npx tsc --noEmit
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test -- --forceExit --passWithNoTests
+        env:
+          ALLOW_SUPABASE_MOCK: "true"
+          NODE_ENV: test
       
       - name: Build application
         run: npm run build

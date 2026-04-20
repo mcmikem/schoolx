@@ -55,6 +55,8 @@ function sanitizeDemoRole(raw: unknown): User["role"] {
 }
 
 const DEMO_KEY = "skoolmate_demo_v1";
+const OFFLINE_USER_KEY = "skoolmate_offline_user_v1";
+const OFFLINE_SCHOOL_KEY = "skoolmate_offline_school_v1";
 const DEMO_MODE_ENABLED =
   process.env.NODE_ENV === "development" &&
   process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
@@ -269,6 +271,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...userData,
           role: userData.role as User["role"],
         });
+        // Persist for offline use
+        try { localStorage.setItem(OFFLINE_USER_KEY, JSON.stringify({ ...userData, role: userData.role as User["role"] })); } catch {}
 
         // Super admins don't have a school - they manage all schools
         if (userData.role === "super_admin") {
@@ -292,12 +296,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           if (schoolData) {
-            setSchool({
+            const schoolObj = {
               ...schoolData,
               feature_stage:
                 (schoolData.feature_stage as FeatureStage) ||
                 DEFAULT_FEATURE_STAGE,
-            });
+            };
+            setSchool(schoolObj);
+            // Persist for offline use
+            try { localStorage.setItem(OFFLINE_SCHOOL_KEY, JSON.stringify(schoolObj)); } catch {}
             if (
               schoolData.subscription_status === "trial" &&
               schoolData.trial_ends_at
@@ -396,6 +403,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setLoading(false);
             return;
           }
+
+          // Offline path: if no connectivity, restore from localStorage cache
+          if (!navigator.onLine) {
+            try {
+              const cachedUser = localStorage.getItem(OFFLINE_USER_KEY);
+              const cachedSchool = localStorage.getItem(OFFLINE_SCHOOL_KEY);
+              if (cachedUser) {
+                setUser(JSON.parse(cachedUser) as User);
+                setSchool(cachedSchool ? JSON.parse(cachedSchool) : null);
+                setIsDemo(false);
+                setLoading(false);
+                return;
+              }
+            } catch {}
+          }
+
           // Session tokens exist locally — validate with the server.
           const {
             data: { user: authUser },
@@ -479,6 +502,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setIsDemo(false);
             setIsTrialExpired(false);
             setLoading(false);
+            try { localStorage.removeItem(OFFLINE_USER_KEY); localStorage.removeItem(OFFLINE_SCHOOL_KEY); } catch {}
           }
         } catch (error) {
           if (!isSupabaseLockAbortError(error)) {
@@ -556,6 +580,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             },
           };
         }
+
+        // Background preload of critical tables for offline use — fire and forget
+        import("@/lib/offline").then(({ offlineDB }) => {
+          offlineDB.refreshAll([
+            "students",
+            "classes",
+            "subjects",
+            "attendance",
+            "grades",
+            "fee_payments",
+            "fee_structure",
+            "fee_adjustments",
+            "messages",
+            "events",
+            "timetable",
+          ]).catch(() => {});
+        }).catch(() => {});
 
         return { error: null, role: userData.role };
       }
