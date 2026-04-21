@@ -1083,6 +1083,35 @@ export default function StudentHubPage() {
                     </select>
                   )}
                 </div>
+                {/* Student Number — optional manual entry */}
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", color: "var(--t3)", marginBottom: 6, display: "block" }}>
+                    Admission / Student Number <span style={{ fontWeight: 400, fontSize: 10, color: "var(--t4)" }}>(optional — auto-generated if blank)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newStudent.student_number}
+                    onChange={(e) => handleNewStudentChange({ student_number: e.target.value })}
+                    className="input"
+                    placeholder="e.g., 2026-001 or leave blank for auto"
+                  />
+                </div>
+                {/* PLE Index Number — show for all, required for P.7 */}
+                {newStudent.class_id && classes.find(c => c.id === newStudent.class_id)?.name?.startsWith("P.7") && (
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", color: "var(--t3)", marginBottom: 6, display: "block" }}>
+                      PLE Index Number
+                      <span style={{ fontWeight: 400, fontSize: 10, color: "var(--t4)", marginLeft: 4 }}>(Uganda UNEB format e.g. U0001/2026)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newStudent.ple_index_number}
+                      onChange={(e) => handleNewStudentChange({ ple_index_number: e.target.value })}
+                      className="input"
+                      placeholder="U0001/2026"
+                    />
+                  </div>
+                )}
                 <div style={{ marginBottom: 16 }}>
                   <label
                     style={{

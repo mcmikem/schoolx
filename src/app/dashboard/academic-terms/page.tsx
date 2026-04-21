@@ -60,6 +60,24 @@ export default function AcademicTermsPage() {
     setLoading(false);
   }, [school?.id, toast]);
 
+  const loadUgandaDefaultTerms = useCallback(async () => {
+    if (!school?.id || !canManageTerms) return;
+    const year = new Date().getFullYear().toString();
+    const defaults = [
+      { term_number: 1, name: "Term 1", code: `T1-${year}`, start_date: `${year}-02-01`, end_date: `${year}-04-30`, is_active: true },
+      { term_number: 2, name: "Term 2", code: `T2-${year}`, start_date: `${year}-05-26`, end_date: `${year}-08-15`, is_active: false },
+      { term_number: 3, name: "Term 3", code: `T3-${year}`, start_date: `${year}-09-08`, end_date: `${year}-12-05`, is_active: false },
+    ];
+    const rows = defaults.map((t) => ({ ...t, school_id: school.id, academic_year: year, is_current: t.term_number === 1 }));
+    const { error } = await supabase.from("academic_terms").upsert(rows, { onConflict: "school_id,code" });
+    if (error) {
+      toast.error("Failed to load default terms");
+    } else {
+      toast.success("Uganda default terms loaded");
+      fetchTerms();
+    }
+  }, [school?.id, canManageTerms, toast, fetchTerms]);
+
   useEffect(() => {
     if (school?.id) fetchTerms();
   }, [school?.id, fetchTerms]);
@@ -214,9 +232,17 @@ export default function AcademicTermsPage() {
           <h3 className="text-lg font-medium text-gray-700">
             No terms configured
           </h3>
-          <p className="text-gray-500 mt-1">
+          <p className="text-gray-500 mt-1 mb-4">
             Add your first academic term to get started
           </p>
+          {canManageTerms && (
+            <Button
+              onClick={loadUgandaDefaultTerms}
+              icon={<MaterialIcon icon="auto_fix_high" />}
+            >
+              Load Uganda Default Terms
+            </Button>
+          )}
         </div>
       ) : (
         <div className="space-y-6">
