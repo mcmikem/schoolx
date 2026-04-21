@@ -14,6 +14,9 @@ ALTER TABLE schools
   ADD COLUMN IF NOT EXISTS feature_stage TEXT DEFAULT 'full';
 
 -- Update the subscription_plan CHECK to allow the values used in app
+-- First migrate any legacy 'free' values to 'free_trial'
+UPDATE schools SET subscription_plan = 'free_trial' WHERE subscription_plan = 'free';
+
 ALTER TABLE schools
   DROP CONSTRAINT IF EXISTS schools_subscription_plan_check;
 
