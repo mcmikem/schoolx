@@ -139,7 +139,8 @@ export default function CoursesPage() {
     } finally {
       setLoading(false);
     }
-  }, [school?.id, filterCategory, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [school?.id, filterCategory]);
 
   useEffect(() => {
     if (school?.id) fetchCourses();

@@ -65,7 +65,8 @@ export default function ConductManagementPage() {
     } finally {
       setLoading(false);
     }
-  }, [school?.id, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [school?.id]);
 
   useEffect(() => {
     fetchLogs();

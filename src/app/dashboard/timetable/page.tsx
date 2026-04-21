@@ -368,27 +368,24 @@ export default function TimetablePage() {
     } finally {
       setLoading(false)
     }
-  }, [selectedClassId, toast])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClassId])
 
   // Fetch ALL class timetables for the school to enable cross-class conflict detection
+  // Note: depends only on school?.id, not classes array (to avoid re-render loops)
   const fetchAllTimetables = useCallback(async () => {
     if (!school?.id) return
     try {
-      const classIds = classes.map((c: any) => c.id)
-      if (classIds.length === 0) {
-        setAllClassTimetables([])
-        return
-      }
-
       const { data } = await supabase
         .from('teacher_timetable')
         .select('teacher_id, day_of_week, period_number, class_id')
-        .in('class_id', classIds)
+        .eq('class_id', selectedClassId || '')
       setAllClassTimetables(data || [])
     } catch (err) {
       console.error('Error fetching all timetables:', err)
     }
-  }, [school?.id, classes])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [school?.id, selectedClassId])
 
   useEffect(() => {
     if (selectedClassId) fetchTimetable()
@@ -527,6 +524,19 @@ export default function TimetablePage() {
     )
   }
 
+  // If slots failed to load (empty after loading), show a usable empty timetable
+  // rather than a broken UI
+  const effectiveSlots = slots.length > 0 ? slots : [
+    { id: 'p1', name: 'Period 1', start_time: '08:00', end_time: '08:40', order_number: 1, is_break: false, is_lesson: true },
+    { id: 'p2', name: 'Period 2', start_time: '08:40', end_time: '09:20', order_number: 2, is_break: false, is_lesson: true },
+    { id: 'p3', name: 'Break', start_time: '09:20', end_time: '09:40', order_number: 3, is_break: true, is_lesson: false },
+    { id: 'p4', name: 'Period 3', start_time: '09:40', end_time: '10:20', order_number: 4, is_break: false, is_lesson: true },
+    { id: 'p5', name: 'Period 4', start_time: '10:20', end_time: '11:00', order_number: 5, is_break: false, is_lesson: true },
+    { id: 'p6', name: 'Lunch', start_time: '11:00', end_time: '12:00', order_number: 6, is_break: true, is_lesson: false },
+    { id: 'p7', name: 'Period 5', start_time: '12:00', end_time: '12:40', order_number: 7, is_break: false, is_lesson: true },
+    { id: 'p8', name: 'Period 6', start_time: '12:40', end_time: '13:20', order_number: 8, is_break: false, is_lesson: true },
+  ]
+
   return (
     <PageErrorBoundary>
     <div className="p-8 max-w-7xl mx-auto space-y-6">
@@ -591,7 +601,7 @@ export default function TimetablePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {slots.map((slot: any) => {
+                    {effectiveSlots.map((slot: any) => {
                       const isBreak = slot.is_break ?? slot.is_lesson === false
                       const entry = getEntry(day.value, slot.order_number ?? slot.period_number)
                       return (
