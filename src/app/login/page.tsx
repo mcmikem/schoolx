@@ -164,7 +164,7 @@ export default function LoginPage() {
           setLockoutUntil(Date.now() + lockDuration);
           toast.error(`Too many failed attempts. Locked for ${Math.ceil(lockDuration / 1000)}s`);
         } else {
-          toast.error(authError?.message || "Invalid phone number or password");
+          toast.error("Invalid phone number or password");
         }
         setLoading(false);
         return;
