@@ -157,17 +157,14 @@ export default function AnalyticsPage() {
           <Card className="!bg-surface-container-low/40">
             <CardBody className="space-y-2">
               <p className="text-[10px] text-[var(--on-surface-variant)] font-bold uppercase tracking-widest">
-                Fee Collection
+                Avg. Grade
               </p>
               <p className="text-3xl font-bold text-[var(--on-surface)]">
-                {Math.round(displayData.stats.feeCollectionRate)}%
+                {displayData.stats.avgGrade}%
               </p>
-              <div className="h-1.5 w-full bg-[var(--surface-container-highest)] rounded-full overflow-hidden mt-2">
-                <div
-                  className="h-full bg-[var(--primary)]"
-                  style={{ width: `${displayData.stats.feeCollectionRate}%` }}
-                />
-              </div>
+              <p className="text-xs text-[var(--on-surface-variant)] italic">
+                School average
+              </p>
             </CardBody>
           </Card>
           <Card className="!bg-surface-container-low/40">
@@ -355,35 +352,12 @@ export default function AnalyticsPage() {
                 <div className="w-1.5 h-6 bg-amber rounded-full" />
                 Academic Alerts
               </h2>
-              <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <MaterialIcon
-                      icon="warning"
-                      className="text-amber text-lg"
-                    />
-                    <p className="text-sm font-bold text-[var(--on-surface)]">
-                      S.4 Mathematics
-                    </p>
-                  </div>
-                  <p className="text-xs text-[var(--on-surface-variant)] leading-relaxed">
-                    Average performance dropped by 12% in the latest assessment.
-                  </p>
-                </div>
-                <div className="p-4 rounded-xl bg-[var(--primary)]/10 border border-[var(--primary)]/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <MaterialIcon
-                      icon="info"
-                      className="text-[var(--primary)] text-lg"
-                    />
-                    <p className="text-sm font-bold text-[var(--on-surface)]">
-                      Mid-Term Prep
-                    </p>
-                  </div>
-                  <p className="text-xs text-[var(--on-surface-variant)] leading-relaxed">
-                    85% of exam papers have been uploaded. Deadline in 2 days.
-                  </p>
-                </div>
+              <div className="flex flex-col items-center justify-center py-10 text-center gap-3">
+                <MaterialIcon icon="notifications_none" className="text-4xl text-[var(--t4)]" />
+                <p className="text-sm font-semibold text-[var(--t2)]">No alerts right now</p>
+                <p className="text-xs text-[var(--t4)] max-w-[200px] leading-relaxed">
+                  Alerts will appear here when grades, attendance or fees need your attention.
+                </p>
               </div>
             </CardBody>
           </Card>
@@ -393,10 +367,52 @@ export default function AnalyticsPage() {
       <TabPanel activeTab={activeTab} tabId="students">
         <Card>
           <CardBody>
-            <h2 className="text-lg font-bold text-[var(--on-surface)] mb-6">
+            <h2 className="text-lg font-bold text-[var(--on-surface)] mb-4">
               Student Analytics
             </h2>
-            <TableSkeleton rows={5} />
+            {displayData.stats.totalStudents === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
+                <MaterialIcon icon="group" className="text-5xl text-[var(--t4)]" />
+                <p className="text-sm font-semibold text-[var(--t2)]">No student data yet</p>
+                <p className="text-xs text-[var(--t4)] max-w-[240px] leading-relaxed">
+                  Add students and record attendance to see analytics here.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="p-4 rounded-xl bg-[var(--surface-container-low)] text-center">
+                    <p className="text-2xl font-bold text-[var(--on-surface)]">{displayData.stats.totalStudents}</p>
+                    <p className="text-xs text-[var(--t4)] mt-1">Total Students</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-[var(--surface-container-low)] text-center">
+                    <p className="text-2xl font-bold text-[var(--on-surface)]">{displayData.stats.avgAttendance}%</p>
+                    <p className="text-xs text-[var(--t4)] mt-1">Avg Attendance</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-[var(--surface-container-low)] text-center">
+                    <p className="text-2xl font-bold text-[var(--on-surface)]">{displayData.stats.avgGrade}%</p>
+                    <p className="text-xs text-[var(--t4)] mt-1">Avg Grade</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-[var(--surface-container-low)] text-center">
+                    <p className="text-2xl font-bold text-[var(--on-surface)]">{displayData.stats.healthScore}%</p>
+                    <p className="text-xs text-[var(--t4)] mt-1">Health Score</p>
+                  </div>
+                </div>
+                {displayData.genderDistribution?.length > 0 && (
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={displayData.genderDistribution}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                        <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'var(--t3)' }} />
+                        <YAxis tick={{ fontSize: 12, fill: 'var(--t3)' }} />
+                        <Tooltip />
+                        <Bar dataKey="value" fill="var(--primary)" radius={[4,4,0,0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
+            )}
           </CardBody>
         </Card>
       </TabPanel>
@@ -404,10 +420,32 @@ export default function AnalyticsPage() {
       <TabPanel activeTab={activeTab} tabId="finance">
         <Card>
           <CardBody>
-            <h2 className="text-lg font-bold text-[var(--on-surface)] mb-6">
+            <h2 className="text-lg font-bold text-[var(--on-surface)] mb-4">
               Financial Analytics
             </h2>
-            <TableSkeleton rows={5} />
+            {displayData.stats.projectedRevenue === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
+                <MaterialIcon icon="payments" className="text-5xl text-[var(--t4)]" />
+                <p className="text-sm font-semibold text-[var(--t2)]">No fee data yet</p>
+                <p className="text-xs text-[var(--t4)] max-w-[240px] leading-relaxed">
+                  Set up fee terms and record payments to see financial analytics here.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="p-4 rounded-xl bg-[var(--surface-container-low)]">
+                  <p className="text-xs text-[var(--t4)] mb-1">Collection Rate</p>
+                  <p className="text-2xl font-bold text-[var(--on-surface)]">{Math.round(displayData.stats.feeCollectionRate)}%</p>
+                  <div className="h-1.5 w-full bg-[var(--border)] rounded-full mt-2">
+                    <div className="h-full bg-[var(--primary)] rounded-full" style={{ width: `${displayData.stats.feeCollectionRate}%` }} />
+                  </div>
+                </div>
+                <div className="p-4 rounded-xl bg-[var(--surface-container-low)]">
+                  <p className="text-xs text-[var(--t4)] mb-1">Projected Revenue</p>
+                  <p className="text-lg font-bold text-[var(--on-surface)]">UGX {displayData.stats.projectedRevenue.toLocaleString()}</p>
+                </div>
+              </div>
+            )}
           </CardBody>
         </Card>
       </TabPanel>

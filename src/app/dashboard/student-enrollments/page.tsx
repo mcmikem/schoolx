@@ -92,7 +92,8 @@ export default function StudentEnrollmentsPage() {
       setEnrollments(data || []);
     }
     setLoading(false);
-  }, [school?.id, filterYear, filterClass, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [school?.id, filterYear, filterClass]);
 
   const fetchOptions = useCallback(async () => {
     if (!school?.id) return;
