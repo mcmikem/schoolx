@@ -68,6 +68,20 @@ export default function LoginPage() {
     }
   }, [user, authLoading, router]);
 
+  // Show a helpful toast when arriving from registration
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("registered") === "1") {
+      const prefilledPhone = params.get("phone");
+      if (prefilledPhone) setPhone(prefilledPhone);
+      toast.success("Account created! Sign in to continue to your dashboard.");
+      // Clean the URL so refresh doesn't re-toast
+      window.history.replaceState({}, "", "/login");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const validatePhone = (phone: string): boolean => {
     const clean = normalizeAuthPhone(phone);
     return clean.length >= 10 && clean.length <= 12;

@@ -9,6 +9,7 @@ import { logger } from "@/lib/logger";
 import { Button, Input, Select } from "@/components/ui";
 import {
   getDistrictOptions,
+  getSubcountyOptions,
   getParishOptions,
 } from "@/lib/uganda-admin";
 import { normalizeAuthPhone } from "@/lib/validation";
@@ -237,7 +238,12 @@ export default function RegisterPage() {
         );
 
         if (retryError) {
-          setError("Account created! Please go to login page and sign in.");
+          // Registration succeeded but auto sign-in failed — send to login
+          // with a clear message. Supabase sometimes needs a moment to
+          // propagate the new auth user across replicas.
+          router.push(
+            "/login?registered=1&phone=" + encodeURIComponent(form.adminPhone),
+          );
           setLoading(false);
           return;
         }
@@ -379,36 +385,44 @@ export default function RegisterPage() {
 
             {step === 2 && (
               <div className="space-y-5">
-                <Select
+                {/* District: free-text input first so user can type anything */}
+                <Input
                   label="District"
-                  options={DISTRICT_OPTIONS}
-                  value={
-                    DISTRICT_OPTIONS.some(
-                      (option) => option.value === form.district && option.value !== "",
-                    )
-                      ? form.district
-                      : form.district ? "_other" : ""
-                  }
+                  type="text"
+                  placeholder="e.g. Kampala, Wakiso, Mukono..."
+                  value={form.district}
                   onChange={(e) => {
-                    if (e.target.value === "_other") {
-                      updateForm("district", "");
-                    } else {
-                      updateForm("district", e.target.value);
-                    }
+                    updateForm("district", e.target.value);
+                    updateForm("subcounty", "");
+                    updateForm("parish", "");
                   }}
                   required
+                  autoComplete="address-level1"
                 />
-                {(!DISTRICT_OPTIONS.some((o) => o.value === form.district && o.value !== "") ) && (
-                  <Input
-                    label="District name (type if not in list above)"
-                    type="text"
-                    placeholder="e.g. Omoro, Kween, Butebo..."
-                    value={form.district}
-                    onChange={(e) => updateForm("district", e.target.value)}
-                    autoComplete="address-level1"
+                {/* Quick-pick dropdown only shown when there are matching options */}
+                {getDistrictOptions().length > 0 && (
+                  <Select
+                    label="Or pick from common districts"
+                    options={[
+                      { value: "", label: "Browse common districts..." },
+                      ...getDistrictOptions(),
+                    ]}
+                    value={
+                      DISTRICT_OPTIONS.some((o) => o.value === form.district && o.value !== "")
+                        ? form.district
+                        : ""
+                    }
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        updateForm("district", e.target.value);
+                        updateForm("subcounty", "");
+                        updateForm("parish", "");
+                      }
+                    }}
                   />
                 )}
 
+                {/* Sub-county: free-text input */}
                 <Input
                   label="Sub-county / Division"
                   type="text"
@@ -418,6 +432,26 @@ export default function RegisterPage() {
                   required
                   autoComplete="address-level2"
                 />
+                {/* Subcounty quick-pick — only shown when district is selected */}
+                {form.district && getSubcountyOptions(form.district).length > 0 && (
+                  <Select
+                    label="Or pick common sub-county"
+                    options={[
+                      { value: "", label: "Browse sub-counties..." },
+                      ...getSubcountyOptions(form.district),
+                    ]}
+                    value={
+                      getSubcountyOptions(form.district).some(
+                        (o) => o.value === form.subcounty,
+                      )
+                        ? form.subcounty
+                        : ""
+                    }
+                    onChange={(e) => {
+                      if (e.target.value) updateForm("subcounty", e.target.value);
+                    }}
+                  />
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input
@@ -437,11 +471,11 @@ export default function RegisterPage() {
                   />
                 </div>
 
-                {form.district && form.subcounty && (
+                {form.district && form.subcounty && getParishOptions(form.district, form.subcounty).length > 0 && (
                   <Select
-                    label="Quick pick common Parishes"
+                    label="Or pick common Parish"
                     options={[
-                      { value: "", label: "Choose a common parish (optional)" },
+                      { value: "", label: "Browse common parishes (optional)..." },
                       ...getParishOptions(form.district, form.subcounty),
                     ]}
                     value={
