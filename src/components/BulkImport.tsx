@@ -41,6 +41,8 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [result, setResult] = useState<ImportResult | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [sheetsUrl, setSheetsUrl] = useState("");
+  const [sheetsLoading, setSheetsLoading] = useState(false);
 
   const parseCSV = (text: string): ValidatedRow[] => {
     const lines = text.trim().split("\n");
@@ -277,6 +279,37 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
     URL.revokeObjectURL(url);
   };
 
+  const handleGoogleSheetsImport = async () => {
+    if (!sheetsUrl.trim()) {
+      setError("Please enter a Google Sheets URL");
+      return;
+    }
+    // Extract sheet ID and gid from URL
+    const sheetIdMatch = sheetsUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    if (!sheetIdMatch) {
+      setError("Invalid Google Sheets URL. Copy the URL from your browser's address bar.");
+      return;
+    }
+    const sheetId = sheetIdMatch[1];
+    const gidMatch = sheetsUrl.match(/gid=(\d+)/);
+    const gid = gidMatch ? gidMatch[1] : "0";
+    const csvExportUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+    setSheetsLoading(true);
+    setError("");
+    try {
+      const res = await fetch(csvExportUrl);
+      if (!res.ok) throw new Error("Could not fetch the sheet. Make sure it is set to 'Anyone with the link can view'.");
+      const text = await res.text();
+      const parsed = parseCSV(text);
+      setValidatedRows(parsed);
+      setStep("preview");
+    } catch (err: any) {
+      setError(err.message || "Failed to import from Google Sheets");
+    } finally {
+      setSheetsLoading(false);
+    }
+  };
+
   return (
     <div style={{ padding: 24 }}>
       <h2
@@ -413,6 +446,43 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
             >
               Download CSV template
             </button>
+          </div>
+
+          {/* Google Sheets Import */}
+          <div style={{ marginTop: 24, borderTop: "1px solid var(--border)", paddingTop: 20 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--t2)", marginBottom: 10, textAlign: "center" }}>
+              — or import directly from Google Sheets —
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                type="url"
+                placeholder="Paste Google Sheets URL here…"
+                value={sheetsUrl}
+                onChange={e => setSheetsUrl(e.target.value)}
+                style={{ flex: 1, padding: "10px 12px", border: "1px solid var(--border)", borderRadius: 8, fontSize: 13, outline: "none" }}
+              />
+              <button
+                onClick={handleGoogleSheetsImport}
+                disabled={sheetsLoading || !sheetsUrl.trim()}
+                style={{
+                  padding: "10px 18px",
+                  background: "var(--primary)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  opacity: sheetsLoading || !sheetsUrl.trim() ? 0.6 : 1,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {sheetsLoading ? "Importing…" : "Import Sheet"}
+              </button>
+            </div>
+            <p style={{ fontSize: 11, color: "var(--t4)", marginTop: 6 }}>
+              The sheet must be shared as "Anyone with the link can view". Columns must match the CSV template.
+            </p>
           </div>
         </div>
       )}

@@ -8,6 +8,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
+import { useClasses } from "@/lib/hooks";
 
 interface PromotionRecord {
   id: string;
@@ -21,7 +22,7 @@ interface PromotionRecord {
 export default function PromotionPage() {
   const { school } = useAuth();
   const toast = useToast();
-  const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
+  const { classes } = useClasses(school?.id);
   const [students, setStudents] = useState<any[]>([]);
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
@@ -30,12 +31,6 @@ export default function PromotionPage() {
   const [promoting, setPromoting] = useState(false);
   const [history, setHistory] = useState<PromotionRecord[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
-
-  const fetchClasses = useCallback(async () => {
-    if (!school?.id) return;
-    const { data } = await supabase.from("classes").select("id, name").eq("school_id", school.id).order("name");
-    setClasses(data || []);
-  }, [school?.id]);
 
   const fetchHistory = useCallback(async () => {
     if (!school?.id) return;
@@ -49,9 +44,8 @@ export default function PromotionPage() {
   }, [school?.id]);
 
   useEffect(() => {
-    fetchClasses();
     fetchHistory();
-  }, [fetchClasses, fetchHistory]);
+  }, [fetchHistory]);
 
   useEffect(() => {
     if (!selectedClass || !school?.id) { setStudents([]); return; }
