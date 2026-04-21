@@ -19,6 +19,9 @@ export default function AdmissionPackagePage() {
 
   const [loading, setLoading] = useState(false);
   const [student, setStudent] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = useReactToPrint({
@@ -48,6 +51,29 @@ export default function AdmissionPackagePage() {
       loadStudent(studentId);
     }
   }, [studentId, loadStudent]);
+
+  const handleSearch = useCallback(async (term: string) => {
+    setSearchTerm(term);
+    if (!term.trim()) { setSearchResults([]); return; }
+    if (isDemo) {
+      const filtered = DEMO_STUDENTS.filter(s =>
+        `${s.first_name} ${s.last_name}`.toLowerCase().includes(term.toLowerCase()) ||
+        (s.student_number || "").toLowerCase().includes(term.toLowerCase())
+      );
+      setSearchResults(filtered.slice(0, 5));
+      return;
+    }
+    if (!school?.id) return;
+    setSearchLoading(true);
+    const { data } = await supabase
+      .from("students")
+      .select("id, first_name, last_name, student_number, classes(name, stream)")
+      .eq("school_id", school.id)
+      .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,student_number.ilike.%${term}%`)
+      .limit(5);
+    setSearchResults(data || []);
+    setSearchLoading(false);
+  }, [isDemo, school?.id]);
 
   return (
     <PageErrorBoundary>
@@ -93,12 +119,31 @@ export default function AdmissionPackagePage() {
             <input
               type="text"
               placeholder="Student Name or Number..."
+              value={searchTerm}
+              onChange={e => handleSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-100"
             />
             <MaterialIcon
               icon="person_search"
               className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
             />
+            {searchResults.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-10 overflow-hidden">
+                {searchResults.map((s: any) => (
+                  <button
+                    key={s.id}
+                    onClick={() => { loadStudent(s.id); setSearchResults([]); setSearchTerm(""); }}
+                    className="w-full text-left px-4 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors"
+                  >
+                    <p className="font-semibold text-slate-800 text-sm">{s.first_name} {s.last_name}</p>
+                    <p className="text-xs text-slate-500">{s.student_number} {s.classes ? `• ${s.classes.name}${s.classes.stream ? ` ${s.classes.stream}` : ""}` : ""}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+            {searchLoading && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-10 p-4 text-sm text-slate-500 text-center">Searching…</div>
+            )}
           </div>
         </div>
       )}

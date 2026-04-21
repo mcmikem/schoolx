@@ -1750,8 +1750,8 @@ export default function GradesPage() {
           disabled={isSubmitted || saving || !selectedClass || !selectedSubject}
           className="flex items-center gap-2 px-4 py-2 hover:bg-[var(--surface-container)] rounded-full transition-colors font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <MaterialIcon>drafts</MaterialIcon>
-          Save Draft
+          <MaterialIcon>save</MaterialIcon>
+          Save Grades
         </button>
         <button
           onClick={handleSubmitToDean}

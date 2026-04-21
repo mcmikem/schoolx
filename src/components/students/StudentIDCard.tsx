@@ -35,7 +35,17 @@ export default function StudentIDCard({ student, school }: StudentIDCardProps) {
 
       {/* Header */}
       <div className="px-4 py-2 bg-primary-800 text-white flex items-center gap-2 relative z-10">
-        <SkoolMateLogo size="sm" variant="white" showText={false} className="shrink-0" />
+        {school.logo_url ? (
+          <Image
+            src={school.logo_url}
+            alt={school.name}
+            width={24}
+            height={24}
+            className="w-6 h-6 rounded object-contain bg-white/20 shrink-0"
+          />
+        ) : (
+          <SkoolMateLogo size="sm" variant="white" showText={false} className="shrink-0" />
+        )}
         <div className="flex-1 min-w-0">
           <h3 className="text-[10px] font-black leading-tight uppercase truncate">
             {school.name}
@@ -119,6 +129,17 @@ export default function StudentIDCard({ student, school }: StudentIDCardProps) {
               </p>
             </div>
           </div>
+
+          {student.house && (
+            <div>
+              <p className="text-[7px] text-slate-400 font-bold uppercase tracking-widest leading-none mb-0.5">
+                House
+              </p>
+              <p className="text-[9px] font-black text-slate-700 leading-none">
+                {student.house.name}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* QR Code */}
