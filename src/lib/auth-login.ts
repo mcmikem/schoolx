@@ -51,6 +51,12 @@ export function buildAuthLoginAttempts(input: string): AuthLoginAttempt[] {
   addAttempt(attempts, seen, "email", `${localPhone}@omuto.org`);
   addAttempt(attempts, seen, "email", `${digitOnly}@omuto.org`);
 
+  // Legacy accounts (created before the @omuto.org scheme) use @omuto.sms domain.
+  // Try those as fallbacks so old real accounts can still sign in.
+  addAttempt(attempts, seen, "email", `${normalized}@omuto.sms`);
+  addAttempt(attempts, seen, "email", `${localPhone}@omuto.sms`);
+  addAttempt(attempts, seen, "email", `${digitOnly}@omuto.sms`);
+
   // Phone fallbacks (for legacy accounts stored with phone format)
   addAttempt(attempts, seen, "phone", trimmed);
   addAttempt(attempts, seen, "phone", localPhone);
