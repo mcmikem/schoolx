@@ -575,8 +575,11 @@ export default function GradesPage() {
               ? "Grades are now ready for Parents"
               : "Draft saved (Still Writing)";
       toast.success(successMessage);
-    } catch {
-      toast.error("Failed to save grades");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message
+        : (err as any)?.message || (err as any)?.details || (err as any)?.hint
+        || "Unknown error — check your connection";
+      toast.error(`Failed to save grades: ${msg}`);
     } finally {
       setSaving(false);
     }
@@ -1758,7 +1761,7 @@ export default function GradesPage() {
           disabled={isSubmitted || saving || !selectedClass || !selectedSubject}
           className="bg-primary text-white px-8 py-2.5 rounded-full font-bold text-sm hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {isSubmitted ? "Submitted" : "Submit to Dean"}
+          {isSubmitted ? "Submitted ✓" : staff.some((s: any) => s.role === "dean_of_studies" || s.role === "dos") ? "Submit to Dean" : "Submit to HM"}
         </button>
       </div>
     </div>

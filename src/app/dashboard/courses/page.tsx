@@ -1,7 +1,7 @@
 "use client";
 
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
@@ -101,11 +101,16 @@ export default function CoursesPage() {
     icon: "menu_book",
   });
 
+  const courseTableExists = useRef<boolean | null>(null);
+
   const fetchCourses = useCallback(async () => {
     if (!school?.id) return;
     setLoading(true);
 
     try {
+      // If we already know courses table doesn't exist, skip directly to subjects
+      if (courseTableExists.current === false) throw new Error("courses_table_missing");
+
       let query = supabase
         .from("courses")
         .select("*")
@@ -117,9 +122,13 @@ export default function CoursesPage() {
       }
 
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        if (error.code === "42P01") courseTableExists.current = false;
+        throw error;
+      }
+      courseTableExists.current = true;
       setCourses(data || []);
-    } catch (err: any) {
+    } catch {
       const { data: subjectsData, error: subjectsError } = await supabase
         .from("subjects")
         .select("*")
@@ -127,7 +136,7 @@ export default function CoursesPage() {
         .order("name");
 
       if (subjectsError) {
-        toast.error("Failed to load subjects");
+        if (!courseTableExists.current) toast.error("Failed to load subjects");
       } else {
         const mapped = (subjectsData || []).map(mapSubjectToCourse);
         setCourses(
@@ -155,15 +164,24 @@ export default function CoursesPage() {
     };
 
     try {
+      // If we know subjects is the backing store, go straight there
+      if (courseTableExists.current === false) throw new Error("use_subjects");
+
       if (editingCourse) {
         const { error } = await supabase
           .from("courses")
           .update(payload)
           .eq("id", editingCourse.id);
-        if (error) throw error;
+        if (error) {
+          if (error.code === "42P01") courseTableExists.current = false;
+          throw error;
+        }
       } else {
         const { error } = await supabase.from("courses").insert(payload);
-        if (error) throw error;
+        if (error) {
+          if (error.code === "42P01") courseTableExists.current = false;
+          throw error;
+        }
       }
 
       toast.success(editingCourse ? "Course updated" : "Course created");
@@ -176,6 +194,7 @@ export default function CoursesPage() {
         code: formData.code,
         level: "both",
         is_compulsory: !formData.is_elective,
+        description: formData.description || null,
       };
 
       const fallbackQuery = editingCourse
