@@ -23,6 +23,7 @@ export default function AdmissionPackagePage() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
+  const [letterConfig, setLetterConfig] = useState({ admissionFee: "150,000", termStart: "Term 1, May 2026", requirements: "2 reams of paper, mathematical sets, and the prescribed school uniform" });
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -192,6 +193,25 @@ export default function AdmissionPackagePage() {
               </div>
             </div>
 
+            {/* Letter Template Customization */}
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+              <h3 className="font-bold text-slate-800 mb-3 uppercase tracking-widest text-[11px]">Customise Letter</h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-500 mb-1 block">Admission Fee (UGX)</label>
+                  <input type="text" value={letterConfig.admissionFee} onChange={e => setLetterConfig(p => ({...p, admissionFee: e.target.value}))} className="input text-sm" placeholder="150,000" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-500 mb-1 block">Term Start</label>
+                  <input type="text" value={letterConfig.termStart} onChange={e => setLetterConfig(p => ({...p, termStart: e.target.value}))} className="input text-sm" placeholder="Term 1, May 2026" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-500 mb-1 block">Requirements</label>
+                  <textarea value={letterConfig.requirements} onChange={e => setLetterConfig(p => ({...p, requirements: e.target.value}))} className="input text-sm" rows={3} placeholder="Items to bring..." />
+                </div>
+              </div>
+            </div>
+
             <div className="p-6 bg-amber-50 rounded-[28px] border border-amber-100">
               <div className="flex items-start gap-3 mt-1">
                 <MaterialIcon icon="lightbulb" className="text-amber-500" />
@@ -216,6 +236,9 @@ export default function AdmissionPackagePage() {
                   student={student}
                   school={school || { name: "SkoolMate Official Academy" }}
                   academicYear={academicYear}
+                  admissionFee={letterConfig.admissionFee}
+                  termStart={letterConfig.termStart}
+                  requirements={letterConfig.requirements}
                 />
               </div>
             </div>

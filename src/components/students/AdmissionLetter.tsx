@@ -7,9 +7,12 @@ interface AdmissionLetterProps {
   student: any;
   school: any;
   academicYear: string;
+  admissionFee?: string;
+  termStart?: string;
+  requirements?: string;
 }
 
-export default function AdmissionLetter({ student, school, academicYear }: AdmissionLetterProps) {
+export default function AdmissionLetter({ student, school, academicYear, admissionFee = "150,000", termStart = "Term 1, May 2026", requirements = "2 reams of paper, mathematical sets, and the prescribed school uniform" }: AdmissionLetterProps) {
   const currentDate = new Date().toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'long',
@@ -59,7 +62,7 @@ export default function AdmissionLetter({ student, school, academicYear }: Admis
           <h3 className="font-black text-primary-800 uppercase text-xs tracking-wider mb-2">1. Registration Details</h3>
           <ul className="list-disc pl-5 space-y-1">
             <li><span className="font-bold">Student Number:</span> {student.student_number || "Pending"}</li>
-            <li><span className="font-bold">Term / Commencement:</span> Term 1, May 2026</li>
+            <li><span className="font-bold">Term / Commencement:</span> {termStart}</li>
             <li><span className="font-bold">Boarding Status:</span> {student.boarding_status || "Day"} Scholar</li>
           </ul>
         </div>
@@ -67,7 +70,7 @@ export default function AdmissionLetter({ student, school, academicYear }: Admis
         <div>
           <h3 className="font-black text-primary-800 uppercase text-xs tracking-wider mb-2">2. Fee Payment</h3>
           <p>
-            An admission fee of <span className="font-bold">UGX 150,000</span> is payable immediately to secure the vacancy. 
+            An admission fee of <span className="font-bold">UGX {admissionFee}</span> is payable immediately to secure the vacancy. 
             All other school fees must be paid in full by the start of the term as per the attached fee structure.
           </p>
         </div>
@@ -75,8 +78,7 @@ export default function AdmissionLetter({ student, school, academicYear }: Admis
         <div>
           <h3 className="font-black text-primary-800 uppercase text-xs tracking-wider mb-2">3. Requirements</h3>
           <p>
-            Please ensure that the student is provided with all necessary school requirements, including 2 reams of paper, 
-            mathematical sets, and the prescribed school uniform. A detailed requirement list is attached.
+            Please ensure that the student is provided with all necessary school requirements, including {requirements}. A detailed requirement list is attached.
           </p>
         </div>
       </div>
