@@ -153,7 +153,13 @@ export default function SyllabusPage() {
       fetchSyllabus();
     } catch (err) {
       console.error("Failed to populate syllabus:", err);
-      toast.error("Failed to populate syllabus");
+      const msg =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err !== null && "message" in err
+            ? String((err as { message: unknown }).message)
+            : "Unknown error";
+      toast.error(`Failed to populate syllabus: ${msg}`);
     } finally {
       setPopulating(false);
     }

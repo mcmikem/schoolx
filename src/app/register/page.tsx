@@ -220,33 +220,33 @@ export default function RegisterPage() {
       const normalizedPhone = normalizeAuthPhone(form.adminPhone);
       const email = `${normalizedPhone}@omuto.org`;
 
-      const { error: signInError } = await withSupabaseLockRetry(async () =>
-        await supabase.auth.signInWithPassword({
-          email,
-          password: form.password,
-        }),
-      );
-
-      if (signInError) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-
-        const { error: retryError } = await withSupabaseLockRetry(async () =>
+      // Try auto sign-in up to 4 times with progressive back-off.
+      // Supabase sometimes needs a few seconds to propagate the new auth user.
+      let signedIn = false;
+      for (let attempt = 0; attempt < 4; attempt++) {
+        if (attempt > 0) {
+          await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
+        }
+        const { error: attemptError } = await withSupabaseLockRetry(async () =>
           await supabase.auth.signInWithPassword({
             email,
             password: form.password,
           }),
         );
-
-        if (retryError) {
-          // Registration succeeded but auto sign-in failed — send to login
-          // with a clear message. Supabase sometimes needs a moment to
-          // propagate the new auth user across replicas.
-          router.push(
-            "/login?registered=1&phone=" + encodeURIComponent(form.adminPhone),
-          );
-          setLoading(false);
-          return;
+        if (!attemptError) {
+          signedIn = true;
+          break;
         }
+      }
+
+      if (!signedIn) {
+        // Registration succeeded but auto sign-in failed after retries.
+        // Send to login with a pre-filled phone so the user just enters password.
+        router.push(
+          "/login?registered=1&phone=" + encodeURIComponent(form.adminPhone),
+        );
+        setLoading(false);
+        return;
       }
 
       setLoading(false);
