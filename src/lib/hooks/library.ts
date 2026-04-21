@@ -30,10 +30,16 @@ export function useLibrary(schoolId?: string) {
           supabase.from('library_books').select('*').eq('school_id', querySchoolId).order('title'),
           supabase.from('library_issues').select('*, students(id, first_name, last_name)').eq('school_id', querySchoolId).order('issued_date', { ascending: false }),
         ])
+        if (booksRes.error && booksRes.error.code !== '42P01' && booksRes.error.code !== '42501' && booksRes.error.code !== 'PGRST116') {
+          console.error('Error fetching library books:', booksRes.error.message)
+        }
+        if (issuesRes.error && issuesRes.error.code !== '42P01' && issuesRes.error.code !== '42501' && issuesRes.error.code !== 'PGRST116') {
+          console.error('Error fetching library issues:', issuesRes.error.message)
+        }
         setBooks(booksRes.data || [])
         setIssues(issuesRes.data || [])
       } catch (err) {
-        console.error('Error fetching library data:', err)
+        console.error('Error fetching library data:', err instanceof Error ? err.message : 'unknown')
       } finally {
         setLoading(false)
       }
