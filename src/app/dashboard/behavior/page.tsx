@@ -1,6 +1,6 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useStudents } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
@@ -71,6 +71,8 @@ export default function BehaviorPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [filterSeverity, setFilterSeverity] = useState("all");
 
+  const errorShownRef = useRef(false);
+
   const fetchLogs = useCallback(async () => {
     if (!school?.id) return;
     try {
@@ -81,21 +83,26 @@ export default function BehaviorPage() {
         .order("created_at", { ascending: false });
 
       if (error) {
-        if (error.code === "42P01" || error.code === "PGRST116") {
+        if (error.code === "42P01" || error.code === "PGRST116" || error.code === "42501") {
           setLogs([]);
           return;
         }
         throw error;
       }
+      errorShownRef.current = false;
       setLogs(data || []);
     } catch (err) {
       console.error("Error fetching behavior logs:", err);
-      toast.error("Failed to load behaviour records");
+      if (!errorShownRef.current) {
+        errorShownRef.current = true;
+        toast.error("Failed to load behaviour records");
+      }
       setLogs([]);
     } finally {
       setLoading(false);
     }
-  }, [school?.id, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [school?.id]);
 
   useEffect(() => {
     fetchLogs();

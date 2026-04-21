@@ -1114,14 +1114,22 @@ function LeaveTab({
     try {
       const { data, error } = await supabase
         .from("leave_requests")
-        .select("*, users!staff_id(full_name)")
+        .select("*")
         .eq("school_id", school.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        // Table doesn't exist or RLS blocks — show empty gracefully
+        if (error.code === "42P01" || error.code === "42501" || error.code === "PGRST116") {
+          setRequests([]);
+          return;
+        }
+        throw error;
+      }
       setRequests(data || []);
-    } catch {
-      console.error("Error fetching leave requests");
+    } catch (err) {
+      console.error("Error fetching leave requests:", err instanceof Error ? err.message : "unknown");
+      setRequests([]);
     } finally {
       setLoading(false);
     }

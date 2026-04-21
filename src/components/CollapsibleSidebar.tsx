@@ -21,7 +21,11 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
   useEffect(() => {
     const initial: Record<string, boolean> = {}
     groups.forEach((group) => {
-      const hasActive = group.items.some(item => item.href === path || path.startsWith(item.href + '/'))
+      const hasActive = group.items.some(item =>
+        item.href === '/dashboard'
+          ? path === '/dashboard'
+          : path === item.href || path.startsWith(item.href + '/')
+      )
       initial[group.label] = hasActive || group.defaultOpen || false
     })
     setOpenGroups(initial)
@@ -56,9 +60,15 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
 
   // Find the single most-specific active href across ALL groups so that
   // e.g. /dashboard/analytics/dna doesn't also light up /dashboard and /dashboard/analytics
+  // Special case: /dashboard must match exactly (never via startsWith) to avoid
+  // lighting up on every dashboard sub-page.
   const activeHref = groups
     .flatMap(g => g.items)
-    .filter(item => path === item.href || path.startsWith(item.href + '/'))
+    .filter(item =>
+      item.href === '/dashboard'
+        ? path === '/dashboard'
+        : path === item.href || path.startsWith(item.href + '/')
+    )
     .sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null
 
   const trackRecentPage = (href: string, label: string, icon: string) => {

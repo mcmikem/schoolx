@@ -24,8 +24,7 @@ type DownloadTarget = {
 };
 
 const ANDROID_APP_URL =
-  process.env.NEXT_PUBLIC_ANDROID_APP_URL ||
-  "/downloads/skoolmate-os-android-debug.apk";
+  process.env.NEXT_PUBLIC_ANDROID_APP_URL || "";
 const WINDOWS_APP_URL = process.env.NEXT_PUBLIC_WINDOWS_APP_URL || "";
 const MAC_APP_URL = process.env.NEXT_PUBLIC_MAC_APP_URL || "";
 
@@ -1288,16 +1287,19 @@ export default function HomePage() {
     } satisfies DownloadTarget;
 
     const nextTarget = (): DownloadTarget => {
-      if (isAndroid && ANDROID_APP_URL) {
-        return {
-          key: "android",
-          href: ANDROID_APP_URL,
-          label: "Get Android app",
-          icon: "android",
-          helper:
-            "Download the Android APK directly to your phone or tablet.",
-          badge: "Android APK",
-        };
+      if (isAndroid) {
+        if (ANDROID_APP_URL) {
+          return {
+            key: "android",
+            href: ANDROID_APP_URL,
+            label: "Get Android app",
+            icon: "android",
+            helper: "Download the Android APK directly to your phone or tablet.",
+            badge: "Android APK",
+          };
+        }
+        // No APK URL — use PWA install prompt
+        return installFromBrowser;
       }
 
       if (isWindows && WINDOWS_APP_URL) {
@@ -1358,14 +1360,25 @@ export default function HomePage() {
   }, []);
 
   const handleInstallApp = async () => {
-    if (deviceTarget.useInstallPrompt && installPrompt) {
+    // PWA install prompt (works on Android Chrome and desktop browsers)
+    if (installPrompt) {
       await installPrompt.prompt();
       await installPrompt.userChoice;
       setInstallPrompt(null);
       return;
     }
-    // Always fall back — never leave the button doing nothing
-    window.location.href = deviceTarget.href || ANDROID_APP_URL || "/login";
+    // Native app download link
+    if (deviceTarget.href && deviceTarget.href !== "/login") {
+      window.location.href = deviceTarget.href;
+      return;
+    }
+    // iOS: can't auto-install, guide user
+    if (/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())) {
+      alert("On iPhone or iPad: Open this page in Safari, tap the Share button (\u2191) then tap \"Add to Home Screen\".");
+      return;
+    }
+    // Fallback: open the app in browser
+    window.location.href = "/login";
   };
 
   const installOptions: DownloadTarget[] = [
@@ -1376,8 +1389,8 @@ export default function HomePage() {
       icon: "android",
       helper: ANDROID_APP_URL
         ? "Direct APK install for phones and tablets."
-        : "Android APK will be available at launch.",
-      badge: ANDROID_APP_URL ? "APK" : "Coming soon",
+        : "Install SkoolMate on Android using your browser — tap the menu and select 'Add to Home Screen'.",
+      badge: ANDROID_APP_URL ? "APK" : "Browser install",
     },
     {
       key: "windows",

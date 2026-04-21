@@ -245,10 +245,17 @@ export function useStaffReviews(schoolId?: string, staffId?: string) {
         const { data, error } = await query.order("review_date", {
           ascending: false,
         });
-        if (error) throw error;
+        if (error) {
+          if (error.code === "42P01" || error.code === "42501" || error.code === "PGRST116") {
+            setReviews([]);
+            return;
+          }
+          throw error;
+        }
         setReviews((data as unknown as StaffReview[]) || []);
       } catch (err) {
-        console.error("Error fetching reviews:", err);
+        console.error("Error fetching reviews:", err instanceof Error ? err.message : "unknown");
+        setReviews([]);
       } finally {
         setLoading(false);
       }
