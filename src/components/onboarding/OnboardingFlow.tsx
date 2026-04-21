@@ -49,6 +49,9 @@ export default function OnboardingFlow({
     subcounty: (school as any)?.subcounty || "",
     parish: (school as any)?.parish || "",
   });
+  const [schoolType, setSchoolType] = useState<SchoolSetupType>(
+    ((school as any)?.school_type as SchoolSetupType) || "primary",
+  );
   const [featureStage, setFeatureStage] = useState<
     "core" | "academic" | "finance" | "full"
   >(
@@ -70,11 +73,10 @@ export default function OnboardingFlow({
     setLoading(true);
     try {
       const currentYear = new Date().getFullYear().toString();
-      const schoolType =
-        ((school as any)?.school_type || "primary") as SchoolSetupType;
 
       // Build complete update with all onboarding settings
       const updateData: any = {
+        school_type: schoolType,
         name: schoolDetails.name || school.name,
         district: schoolDetails.district,
         subcounty: schoolDetails.subcounty,
@@ -382,6 +384,36 @@ export default function OnboardingFlow({
 
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-3">
+                      School Type
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(
+                        [
+                          { key: "primary", label: "Primary", icon: "child_care", desc: "P.1 – P.7" },
+                          { key: "secondary", label: "Secondary", icon: "school", desc: "S.1 – S.6" },
+                          { key: "combined", label: "Combined", icon: "account_balance", desc: "P.1 – S.6" },
+                        ] as const
+                      ).map((opt) => (
+                        <button
+                          key={opt.key}
+                          type="button"
+                          onClick={() => setSchoolType(opt.key)}
+                          className={`flex flex-col items-center gap-1 rounded-xl border-2 p-3 text-xs font-semibold transition-all ${
+                            schoolType === opt.key
+                              ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
+                              : "border-slate-200 text-slate-500 hover:border-slate-300"
+                          }`}
+                        >
+                          <MaterialIcon icon={opt.icon} className="text-[22px]" />
+                          <span>{opt.label}</span>
+                          <span className="font-normal text-[10px] opacity-70">{opt.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-3">
                       Primary Theme Color
                     </label>
                     <div className="flex gap-4">
@@ -447,31 +479,53 @@ export default function OnboardingFlow({
                 <OwlStage
                   compact
                   eyebrow="Curriculum ready"
-                  title="Curriculum preloaded"
-                  description={`Standard Ugandan curriculum classes and subjects are already prepared for ${school.name}. The owl is confirming the academic structure so your team starts from a usable baseline.`}
-                  chips={["Classes ready", "Subjects prepared"]}
+                  title="Classes preloaded"
+                  description={`Default classes for ${schoolType === "primary" ? "a primary school" : schoolType === "secondary" ? "a secondary school" : "a combined school"} are ready for ${school.name}. You can add streams and subjects right after setup.`}
+                  chips={[schoolType === "primary" ? "P.1 – P.7" : schoolType === "secondary" ? "S.1 – S.6" : "P.1 – S.6", "Subjects prepared"]}
                   className="mb-6"
                 />
 
                 <div className="mb-8 rounded-[24px] border border-slate-100 bg-[linear-gradient(180deg,#fbfcfe_0%,#f6f8fb_100%)] p-5 shadow-sm">
-                  <div className="flex items-center gap-3 mb-4">
-                    <MaterialIcon
-                      icon="check_circle"
-                      className="text-teal-500"
-                    />
-                    <span className="font-semibold text-slate-700">
-                      P.1 to P.7 Classes Ready
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <MaterialIcon
-                      icon="check_circle"
-                      className="text-teal-500"
-                    />
-                    <span className="font-semibold text-slate-700">
-                      Core Subjects (English, SST, Math, Sci)
-                    </span>
-                  </div>
+                  {schoolType === "primary" && (
+                    <>
+                      <div className="flex items-center gap-3 mb-4">
+                        <MaterialIcon icon="check_circle" className="text-teal-500" />
+                        <span className="font-semibold text-slate-700">P.1 to P.7 Classes</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <MaterialIcon icon="check_circle" className="text-teal-500" />
+                        <span className="font-semibold text-slate-700">English, SST, Math, Science, CRE, MTC</span>
+                      </div>
+                    </>
+                  )}
+                  {schoolType === "secondary" && (
+                    <>
+                      <div className="flex items-center gap-3 mb-4">
+                        <MaterialIcon icon="check_circle" className="text-teal-500" />
+                        <span className="font-semibold text-slate-700">S.1 to S.6 Classes</span>
+                      </div>
+                      <div className="flex items-center gap-3 mb-4">
+                        <MaterialIcon icon="check_circle" className="text-teal-500" />
+                        <span className="font-semibold text-slate-700">O-Level core subjects (Eng, Math, Bio, Chem, Hist…)</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <MaterialIcon icon="check_circle" className="text-teal-500" />
+                        <span className="font-semibold text-slate-700">A-Level subjects (Arts, Sciences, Commerce)</span>
+                      </div>
+                    </>
+                  )}
+                  {schoolType === "combined" && (
+                    <>
+                      <div className="flex items-center gap-3 mb-4">
+                        <MaterialIcon icon="check_circle" className="text-teal-500" />
+                        <span className="font-semibold text-slate-700">P.1 – P.7 and S.1 – S.6 Classes</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <MaterialIcon icon="check_circle" className="text-teal-500" />
+                        <span className="font-semibold text-slate-700">Primary + secondary subjects prepared</span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="flex gap-4 mt-auto">
