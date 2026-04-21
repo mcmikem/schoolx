@@ -83,37 +83,42 @@ CREATE POLICY "topic_coverage_delete" ON topic_coverage
   );
 
 -- ── courses (also missing RLS) ─────────────────────────────────────────────
-ALTER TABLE courses ENABLE ROW LEVEL SECURITY;
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'courses') THEN
+    ALTER TABLE courses ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "courses_select" ON courses;
-DROP POLICY IF EXISTS "courses_insert" ON courses;
-DROP POLICY IF EXISTS "courses_update" ON courses;
-DROP POLICY IF EXISTS "courses_delete" ON courses;
+    DROP POLICY IF EXISTS "courses_select" ON courses;
+    DROP POLICY IF EXISTS "courses_insert" ON courses;
+    DROP POLICY IF EXISTS "courses_update" ON courses;
+    DROP POLICY IF EXISTS "courses_delete" ON courses;
 
-CREATE POLICY "courses_select" ON courses
-  FOR SELECT USING (
-    school_id IN (
-      SELECT school_id FROM users WHERE id = auth.uid()
-    )
-  );
+    CREATE POLICY "courses_select" ON courses
+      FOR SELECT USING (
+        school_id IN (
+          SELECT school_id FROM users WHERE id = auth.uid()
+        )
+      );
 
-CREATE POLICY "courses_insert" ON courses
-  FOR INSERT WITH CHECK (
-    school_id IN (
-      SELECT school_id FROM users WHERE id = auth.uid()
-    )
-  );
+    CREATE POLICY "courses_insert" ON courses
+      FOR INSERT WITH CHECK (
+        school_id IN (
+          SELECT school_id FROM users WHERE id = auth.uid()
+        )
+      );
 
-CREATE POLICY "courses_update" ON courses
-  FOR UPDATE USING (
-    school_id IN (
-      SELECT school_id FROM users WHERE id = auth.uid()
-    )
-  );
+    CREATE POLICY "courses_update" ON courses
+      FOR UPDATE USING (
+        school_id IN (
+          SELECT school_id FROM users WHERE id = auth.uid()
+        )
+      );
 
-CREATE POLICY "courses_delete" ON courses
-  FOR DELETE USING (
-    school_id IN (
-      SELECT school_id FROM users WHERE id = auth.uid()
-    )
-  );
+    CREATE POLICY "courses_delete" ON courses
+      FOR DELETE USING (
+        school_id IN (
+          SELECT school_id FROM users WHERE id = auth.uid()
+        )
+      );
+  END IF;
+END $$;

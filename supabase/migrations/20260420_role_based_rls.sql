@@ -177,27 +177,50 @@ BEGIN
     DROP POLICY IF EXISTS "School users fee_payments select" ON fee_payments;
     CREATE POLICY "School users fee_payments select"
     ON fee_payments FOR SELECT TO authenticated
-    USING (school_id = my_school_id());
+    USING (EXISTS (
+      SELECT 1 FROM student_fee_terms sft
+      JOIN students s ON s.id = sft.student_id
+      WHERE sft.id = fee_payments.student_fee_term_id
+        AND s.school_id = my_school_id()
+    ));
 
     DROP POLICY IF EXISTS "School users fee_payments insert" ON fee_payments;
     CREATE POLICY "School users fee_payments insert"
     ON fee_payments FOR INSERT TO authenticated
-    WITH CHECK (
-      school_id = my_school_id()
-      AND is_school_staff(school_id)
-    );
+    WITH CHECK (EXISTS (
+      SELECT 1 FROM student_fee_terms sft
+      JOIN students s ON s.id = sft.student_id
+      WHERE sft.id = student_fee_term_id
+        AND s.school_id = my_school_id()
+        AND is_school_staff(s.school_id)
+    ));
 
     -- Only admins/bursars can update or delete payment records
     DROP POLICY IF EXISTS "School users fee_payments update" ON fee_payments;
     CREATE POLICY "School users fee_payments update"
     ON fee_payments FOR UPDATE TO authenticated
-    USING (is_school_admin(school_id))
-    WITH CHECK (is_school_admin(school_id));
+    USING (EXISTS (
+      SELECT 1 FROM student_fee_terms sft
+      JOIN students s ON s.id = sft.student_id
+      WHERE sft.id = fee_payments.student_fee_term_id
+        AND is_school_admin(s.school_id)
+    ))
+    WITH CHECK (EXISTS (
+      SELECT 1 FROM student_fee_terms sft
+      JOIN students s ON s.id = sft.student_id
+      WHERE sft.id = student_fee_term_id
+        AND is_school_admin(s.school_id)
+    ));
 
     DROP POLICY IF EXISTS "School users fee_payments delete" ON fee_payments;
     CREATE POLICY "School users fee_payments delete"
     ON fee_payments FOR DELETE TO authenticated
-    USING (is_school_admin(school_id));
+    USING (EXISTS (
+      SELECT 1 FROM student_fee_terms sft
+      JOIN students s ON s.id = sft.student_id
+      WHERE sft.id = fee_payments.student_fee_term_id
+        AND is_school_admin(s.school_id)
+    ));
 
   END IF;
 END $$;

@@ -83,8 +83,8 @@ ALTER TABLE IF EXISTS public.staff_attendance ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "staff_attendance_all" ON public.staff_attendance;
 CREATE POLICY "staff_attendance_all" ON public.staff_attendance
   FOR ALL
-  USING (school_id = my_school_id())
-  WITH CHECK (school_id = my_school_id());
+  USING (staff_id IN (SELECT id FROM users WHERE school_id = my_school_id()))
+  WITH CHECK (staff_id IN (SELECT id FROM users WHERE school_id = my_school_id()));
 
 -- exams
 ALTER TABLE IF EXISTS public.exams ENABLE ROW LEVEL SECURITY;
@@ -99,8 +99,8 @@ ALTER TABLE IF EXISTS public.exam_scores ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "exam_scores_all" ON public.exam_scores;
 CREATE POLICY "exam_scores_all" ON public.exam_scores
   FOR ALL
-  USING (school_id = my_school_id())
-  WITH CHECK (school_id = my_school_id());
+  USING (class_id IN (SELECT id FROM classes WHERE school_id = my_school_id()))
+  WITH CHECK (class_id IN (SELECT id FROM classes WHERE school_id = my_school_id()));
 
 -- budgets
 ALTER TABLE IF EXISTS public.budgets ENABLE ROW LEVEL SECURITY;
@@ -119,12 +119,16 @@ CREATE POLICY "expenses_all" ON public.expenses
   WITH CHECK (school_id = my_school_id());
 
 -- fee_adjustments
-ALTER TABLE IF EXISTS public.fee_adjustments ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "fee_adjustments_all" ON public.fee_adjustments;
-CREATE POLICY "fee_adjustments_all" ON public.fee_adjustments
-  FOR ALL
-  USING (school_id = my_school_id())
-  WITH CHECK (school_id = my_school_id());
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'fee_adjustments') THEN
+    EXECUTE 'ALTER TABLE public.fee_adjustments ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'DROP POLICY IF EXISTS "fee_adjustments_all" ON public.fee_adjustments';
+    EXECUTE $p$CREATE POLICY "fee_adjustments_all" ON public.fee_adjustments
+      FOR ALL
+      USING (school_id = my_school_id())
+      WITH CHECK (school_id = my_school_id())$p$;
+  END IF;
+END $$;
 
 -- payment_plans
 ALTER TABLE IF EXISTS public.payment_plans ENABLE ROW LEVEL SECURITY;
