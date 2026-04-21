@@ -27,7 +27,7 @@ export default function EcosystemPulse({ payments, smsStats, loading }: Ecosyste
   };
 
   return (
-    <div className="glass-premium rounded-[var(--r2)] p-6 overflow-hidden flex flex-col h-full">
+    <div className="glass-premium rounded-[var(--r2)] p-6 overflow-hidden flex flex-col" style={{ minHeight: 220 }}>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-[var(--green)] animate-pulse" />
@@ -50,10 +50,18 @@ export default function EcosystemPulse({ payments, smsStats, loading }: Ecosyste
             ))}
           </div>
         ) : activities.length === 0 ? (
-          <div className="rounded-[18px] border border-[var(--border)] bg-[var(--surface-container-low)] p-4 text-center">
-            <div className="text-sm font-semibold text-[var(--t1)]">No recent real activity yet</div>
-            <div className="text-[12px] text-[var(--t3)] mt-1">
-              Payments, messages, and other live actions will appear here automatically.
+          <div className="flex flex-col items-center justify-center flex-1 py-8 text-center gap-3">
+            <div
+              className="w-12 h-12 rounded-2xl flex items-center justify-center"
+              style={{ background: "var(--surface-container-low)", color: "var(--t4)" }}
+            >
+              <MaterialIcon icon="timeline" style={{ fontSize: 24 }} />
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-[var(--t2)]">No activity yet</div>
+              <div className="text-[12px] text-[var(--t3)] mt-1 leading-relaxed max-w-[190px]">
+                Payments, messages, and school actions will appear here automatically.
+              </div>
             </div>
           </div>
         ) : activities.map((act) => (

@@ -7,7 +7,6 @@ import MaterialIcon from "@/components/MaterialIcon";
 
 type QuickStep = {
   label: string;
-  shortLabel: string;
   href: string;
   icon: string;
 };
@@ -15,88 +14,90 @@ type QuickStep = {
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const { open: openSidebar } = useSidebar();
+
   const isActive = (path: string) =>
     pathname === path || pathname?.startsWith(path + "/");
+
   const quickStep = useMemo<QuickStep>(() => {
     if (!pathname)
-      return {
-        label: "Add Student",
-        shortLabel: "Add",
-        href: "/dashboard/students",
-        icon: "person_add",
-      };
+      return { label: "Add Student", href: "/dashboard/students", icon: "person_add" };
     if (pathname.startsWith("/dashboard/students"))
-      return {
-        label: "Take Attendance",
-        shortLabel: "Attend",
-        href: "/dashboard/attendance",
-        icon: "how_to_reg",
-      };
+      return { label: "Take Attendance", href: "/dashboard/attendance", icon: "how_to_reg" };
     if (pathname.startsWith("/dashboard/attendance"))
-      return {
-        label: "Record Fees",
-        shortLabel: "Fees",
-        href: "/dashboard/fees",
-        icon: "payments",
-      };
+      return { label: "Record Fees", href: "/dashboard/fees", icon: "payments" };
     if (pathname.startsWith("/dashboard/fees"))
-      return {
-        label: "Send Reminder",
-        shortLabel: "SMS",
-        href: "/dashboard/messages",
-        icon: "sms",
-      };
-    return {
-      label: "Add Student",
-      shortLabel: "Add",
-      href: "/dashboard/students",
-      icon: "person_add",
-    };
+      return { label: "Send Reminder", href: "/dashboard/messages", icon: "sms" };
+    return { label: "Add Student", href: "/dashboard/students", icon: "person_add" };
   }, [pathname]);
 
   return (
     <div className="mobile-bottom-nav">
-      <Link
+      {/* Home */}
+      <NavItem
         href="/dashboard"
-        className={`mobile-nav-item ${pathname === "/dashboard" ? "active" : ""}`}
-        aria-current={pathname === "/dashboard" ? "page" : undefined}
-      >
-        <MaterialIcon icon="dashboard" size={20} />
-        <span>Home</span>
-      </Link>
-      <Link
+        icon="home"
+        label="Home"
+        active={pathname === "/dashboard"}
+      />
+      {/* Attend */}
+      <NavItem
         href="/dashboard/attendance"
-        className={`mobile-nav-item ${isActive("/dashboard/attendance") ? "active" : ""}`}
-        aria-current={isActive("/dashboard/attendance") ? "page" : undefined}
-      >
-        <MaterialIcon icon="how_to_reg" size={20} />
-        <span>Attend</span>
-      </Link>
+        icon="how_to_reg"
+        label="Attend"
+        active={isActive("/dashboard/attendance")}
+      />
+
+      {/* Centre FAB — floats above the bar */}
       <Link
         href={quickStep.href}
-        className="mobile-nav-item mobile-nav-item-primary"
+        className="mobile-nav-fab"
         aria-label={quickStep.label}
       >
-        <MaterialIcon icon={quickStep.icon} size={20} />
-        <span>{quickStep.shortLabel}</span>
+        <MaterialIcon icon={quickStep.icon} style={{ fontSize: 24 }} />
       </Link>
-      <Link
+
+      {/* Fees */}
+      <NavItem
         href="/dashboard/fees"
-        className={`mobile-nav-item ${isActive("/dashboard/fees") ? "active" : ""}`}
-        aria-current={isActive("/dashboard/fees") ? "page" : undefined}
-      >
-        <MaterialIcon icon="payments" size={20} />
-        <span>Fees</span>
-      </Link>
+        icon="payments"
+        label="Fees"
+        active={isActive("/dashboard/fees")}
+      />
+      {/* More */}
       <button
         type="button"
-        className="mobile-nav-item"
+        className={`mobile-nav-item`}
         onClick={() => openSidebar()}
         aria-label="Open more pages"
       >
-        <MaterialIcon icon="apps" size={20} />
+        <MaterialIcon icon="apps" style={{ fontSize: 22 }} />
         <span>More</span>
       </button>
     </div>
   );
 }
+
+function NavItem({
+  href,
+  icon,
+  label,
+  active,
+}: {
+  href: string;
+  icon: string;
+  label: string;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`mobile-nav-item${active ? " active" : ""}`}
+      aria-current={active ? "page" : undefined}
+    >
+      <MaterialIcon icon={icon} style={{ fontSize: 22 }} />
+      <span>{label}</span>
+      {active && <span className="mobile-nav-dot" aria-hidden />}
+    </Link>
+  );
+}
+
