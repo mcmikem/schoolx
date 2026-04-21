@@ -308,32 +308,61 @@ function HeadmasterDashboardContent() {
 
   return (
     <div className="content">
-      {/* Greeting — compact, no hero banner */}
-      <div className="mb-6 flex items-center gap-4">
+      {/* ── Hero greeting card ─────────────────────────────────────────── */}
+      <div className="mb-6 relative overflow-hidden rounded-2xl border border-[var(--border)] p-5 sm:p-6 flex items-center gap-5"
+        style={{
+          background: "linear-gradient(135deg, var(--navy-soft) 0%, var(--surface) 60%, var(--green-soft) 100%)",
+          boxShadow: "0 2px 12px rgba(0,31,63,0.07)",
+        }}
+      >
+        {/* Background decoration */}
+        <div className="absolute top-0 right-0 w-56 h-56 pointer-events-none opacity-[0.045]"
+          style={{ background: "radial-gradient(circle at top right, var(--navy) 0%, transparent 65%)" }} />
+
+        {/* School logo — prominently large */}
         {school?.logo_url ? (
           <Image
             src={school.logo_url}
             alt={school.name || "School Badge"}
-            width={56}
-            height={56}
-            className="w-14 h-14 rounded-2xl object-cover shadow-md border border-[var(--border)] flex-shrink-0"
+            width={96}
+            height={96}
+            className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl object-cover flex-shrink-0 border border-white/40"
+            style={{ boxShadow: "0 8px 28px rgba(0,31,63,0.18), 0 2px 8px rgba(0,31,63,0.12)" }}
           />
         ) : (
           <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md border border-[var(--border)]"
-            style={{ background: "var(--navy)", color: "white" }}
+            className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl flex items-center justify-center flex-shrink-0 border border-white/20"
+            style={{
+              background: "var(--navy)",
+              boxShadow: "0 8px 28px rgba(0,31,63,0.22), 0 2px 8px rgba(0,31,63,0.12)",
+            }}
           >
-            <MaterialIcon icon="school" style={{ fontSize: 28 }} />
+            <MaterialIcon icon="school" style={{ fontSize: 42, color: "white" }} />
           </div>
         )}
-        <div>
-          <h1 className="font-['Sora'] text-xl sm:text-2xl font-bold text-[var(--t1)] tracking-tight">
-            {greeting}, {user?.full_name?.split(" ")[0]}
+
+        {/* School info + greeting */}
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--t4)] mb-0.5">
+            {greeting}
+          </p>
+          <h1 className="font-['Sora'] text-xl sm:text-2xl font-bold text-[var(--t1)] tracking-tight leading-tight truncate">
+            {user?.full_name?.split(" ")[0]}
           </h1>
-          <p className="text-[13px] text-[var(--t3)] mt-1">
-            {school?.name} · {academicYear} Term {currentTerm} · {todayDayName}, {todayFormatted}
+          <p className="text-[13px] font-semibold text-[var(--t2)] mt-1 truncate">
+            {school?.name}
+          </p>
+          <p className="text-[11px] text-[var(--t4)] mt-0.5">
+            {academicYear} · Term {currentTerm} · {todayDayName}, {todayFormatted}
           </p>
         </div>
+
+        {/* Alert count badge */}
+        {!loadingExtra && alertCount > 0 && (
+          <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[var(--red)] text-white text-sm font-bold flex items-center justify-center shadow-md">
+            {alertCount}
+          </div>
+        )}
       </div>
 
       {/* 4 Key Numbers — the only stat display, no duplicates */}
