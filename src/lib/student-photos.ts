@@ -130,21 +130,21 @@ export async function uploadStudentPhoto(options: {
   const filePath = `${options.schoolId}/students/${recordId}.jpg`;
 
   let uploadResult = await supabase.storage
-    .from("school-logos")
+    .from("student-photos")
     .upload(filePath, compressedFile, {
       upsert: true,
       contentType: "image/jpeg",
     });
 
   if (uploadResult.error && uploadResult.error.message.includes("bucket")) {
-    await supabase.storage.createBucket("school-logos", {
+    await supabase.storage.createBucket("student-photos", {
       public: true,
       fileSizeLimit: MAX_FILE_SIZE_BYTES,
       allowedMimeTypes: Array.from(ALLOWED_IMAGE_TYPES),
     });
 
     uploadResult = await supabase.storage
-      .from("school-logos")
+      .from("student-photos")
       .upload(filePath, compressedFile, {
         upsert: true,
         contentType: "image/jpeg",
@@ -157,7 +157,7 @@ export async function uploadStudentPhoto(options: {
 
   const {
     data: { publicUrl },
-  } = supabase.storage.from("school-logos").getPublicUrl(filePath);
+  } = supabase.storage.from("student-photos").getPublicUrl(filePath);
 
   return { publicUrl, filePath };
 }
