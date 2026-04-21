@@ -24,7 +24,8 @@ type DownloadTarget = {
 };
 
 const ANDROID_APP_URL =
-  process.env.NEXT_PUBLIC_ANDROID_APP_URL || "";
+  process.env.NEXT_PUBLIC_ANDROID_APP_URL ||
+  "/downloads/skoolmate-os-android-debug.apk";
 const WINDOWS_APP_URL = process.env.NEXT_PUBLIC_WINDOWS_APP_URL || "";
 const MAC_APP_URL = process.env.NEXT_PUBLIC_MAC_APP_URL || "";
 
@@ -1363,10 +1364,8 @@ export default function HomePage() {
       setInstallPrompt(null);
       return;
     }
-
-    if (deviceTarget.href) {
-      window.location.href = deviceTarget.href;
-    }
+    // Always fall back — never leave the button doing nothing
+    window.location.href = deviceTarget.href || ANDROID_APP_URL || "/login";
   };
 
   const installOptions: DownloadTarget[] = [
