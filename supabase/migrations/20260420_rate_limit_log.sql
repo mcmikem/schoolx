@@ -16,7 +16,7 @@ BEGIN
     PERFORM cron.schedule(
       'purge-rate-limit-log',
       '*/30 * * * *',
-      $$DELETE FROM rate_limit_log WHERE created_at < now() - interval '1 hour'$$
+      $cron$DELETE FROM rate_limit_log WHERE created_at < now() - interval '1 hour'$cron$
     );
   END IF;
 END $$;

@@ -112,6 +112,11 @@ export default function GradesPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [marks, setMarks] = useState<StudentMarks>({});
+  const [gradeConfirm, setGradeConfirm] = useState<{
+    open: boolean;
+    message: string;
+    onConfirm: () => void;
+  }>({ open: false, message: "", onConfirm: () => {} });
   const [caLocked, setCaLocked] = useState(false);
   const [lockedByName, setLockedByName] = useState("");
   const [marksBy, setMarksBy] = useState<
@@ -633,10 +638,12 @@ export default function GradesPage() {
       return;
     }
     if (completionStats.notGraded > 0) {
-      const proceed = window.confirm(
-        `${completionStats.notGraded} student${completionStats.notGraded > 1 ? "s" : ""} not graded: ${completionStats.notGradedNames.slice(0, 3).join(", ")}${completionStats.notGradedNames.length > 3 ? "..." : ""}. Submit anyway?`,
-      );
-      if (!proceed) return;
+      setGradeConfirm({
+        open: true,
+        message: `${completionStats.notGraded} student${completionStats.notGraded > 1 ? "s" : ""} not graded: ${completionStats.notGradedNames.slice(0, 3).join(", ")}${completionStats.notGradedNames.length > 3 ? "..." : ""}. Submit anyway?`,
+        onConfirm: () => handleSaveGrades("submitted"),
+      });
+      return;
     }
     handleSaveGrades("submitted");
   };
@@ -659,61 +666,64 @@ export default function GradesPage() {
           ? "make ready for parents"
           : "send to boss";
 
-    if (!window.confirm(`Are you sure you want to ${actorLabel} these grades?`))
-      return;
+    setGradeConfirm({
+      open: true,
+      message: `Are you sure you want to ${actorLabel} these grades?`,
+      onConfirm: async () => {
+        try {
+          setSaving(true);
+          const updatePayload: Record<string, string | null> = {
+            status: nextStatus,
+          };
+          if (nextStatus === "submitted") {
+            updatePayload.submitted_at = new Date().toISOString();
+            updatePayload.submitted_by = user.id;
+          }
+          if (nextStatus === "approved") {
+            updatePayload.approved_at = new Date().toISOString();
+            updatePayload.approved_by = user.id;
+          }
+          if (nextStatus === "published") {
+            updatePayload.published_at = new Date().toISOString();
+            updatePayload.published_by = user.id;
+          }
 
-    try {
-      setSaving(true);
-      const updatePayload: Record<string, string | null> = {
-        status: nextStatus,
-      };
-      if (nextStatus === "submitted") {
-        updatePayload.submitted_at = new Date().toISOString();
-        updatePayload.submitted_by = user.id;
-      }
-      if (nextStatus === "approved") {
-        updatePayload.approved_at = new Date().toISOString();
-        updatePayload.approved_by = user.id;
-      }
-      if (nextStatus === "published") {
-        updatePayload.published_at = new Date().toISOString();
-        updatePayload.published_by = user.id;
-      }
+          const { error } = await supabase
+            .from("grades")
+            .update(updatePayload)
+            .eq("class_id", selectedClass)
+            .eq("subject_id", selectedSubject)
+            .eq("term", currentTerm)
+            .eq("academic_year", academicYear)
+            .is("deleted_at", null);
 
-      const { error } = await supabase
-        .from("grades")
-        .update(updatePayload)
-        .eq("class_id", selectedClass)
-        .eq("subject_id", selectedSubject)
-        .eq("term", currentTerm)
-        .eq("academic_year", academicYear)
-        .is("deleted_at", null);
+          if (error) throw error;
 
-      if (error) throw error;
+          if (school?.id) {
+            await logAuditEventWithOfflineSupport(
+              isOnline,
+              school.id,
+              user.id,
+              user.full_name,
+              "update",
+              "grades",
+              `Changed grade workflow to ${nextStatus} for class ${selectedClass} subject ${selectedSubject}`,
+              `${selectedClass}:${selectedSubject}:${currentTerm}:${academicYear}`,
+              { status: submissionStatus },
+              updatePayload,
+            );
+          }
 
-      if (school?.id) {
-        await logAuditEventWithOfflineSupport(
-          isOnline,
-          school.id,
-          user.id,
-          user.full_name,
-          "update",
-          "grades",
-          `Changed grade workflow to ${nextStatus} for class ${selectedClass} subject ${selectedSubject}`,
-          `${selectedClass}:${selectedSubject}:${currentTerm}:${academicYear}`,
-          { status: submissionStatus },
-          updatePayload,
-        );
-      }
-
-      setSubmissionStatus(nextStatus);
-      toast.success(`Grades ${nextStatus}`);
-    } catch (err) {
-      console.error("Error updating grade workflow:", err);
-      toast.error("Failed to update workflow status");
-    } finally {
-      setSaving(false);
-    }
+          setSubmissionStatus(nextStatus);
+          toast.success(`Grades ${nextStatus}`);
+        } catch (err) {
+          console.error("Error updating grade workflow:", err);
+          toast.error("Failed to update workflow status");
+        } finally {
+          setSaving(false);
+        }
+      },
+    });
   };
 
   const handleSaveDraft = () => {
@@ -870,6 +880,29 @@ export default function GradesPage() {
   return (
     <PageErrorBoundary>
     <div className="space-y-6">
+      {/* Grade workflow confirm modal */}
+      <Modal
+        isOpen={gradeConfirm.open}
+        onClose={() => setGradeConfirm((s) => ({ ...s, open: false }))}
+        title="Confirm Action"
+      >
+        <p className="text-sm text-gray-700 mb-4">{gradeConfirm.message}</p>
+        <ModalFooter>
+          <Button variant="ghost" onClick={() => setGradeConfirm((s) => ({ ...s, open: false }))}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => {
+              setGradeConfirm((s) => ({ ...s, open: false }));
+              gradeConfirm.onConfirm();
+            }}
+          >
+            Confirm
+          </Button>
+        </ModalFooter>
+      </Modal>
+
       <PageHeader
         title="Grades & Marks"
         subtitle={
