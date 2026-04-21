@@ -369,10 +369,24 @@ export function useSMSTriggers(schoolId?: string) {
             "id, school_id, name, event_type, threshold_days, template_id, is_active, last_run_at, created_at",
           )
           .eq("school_id", schoolId);
-        if (error) throw error;
+        if (error) {
+          // Table doesn't exist yet or RLS denied — show empty state
+          if (
+            error.code === "42P01" ||
+            error.code === "42501" ||
+            error.code === "PGRST116"
+          ) {
+            setTriggers([]);
+            return;
+          }
+          throw error;
+        }
         setTriggers(data || []);
       } catch (err) {
-        console.error("Error fetching SMS triggers:", err);
+        console.error(
+          "Error fetching SMS triggers:",
+          err instanceof Error ? err.message : "unknown",
+        );
       } finally {
         setLoading(false);
       }
