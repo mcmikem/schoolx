@@ -120,10 +120,11 @@ export default function AssetsPage() {
       <PageHeader
         title="Assets & Inventory"
         subtitle="Track school property and equipment"
+        variant="premium"
         actions={
           <button
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-[var(--primary)] text-[var(--on-primary)] rounded-2xl font-bold shadow-lg hover:scale-105 transition-all"
+            className="inline-flex items-center gap-2 rounded-full border border-transparent bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--on-primary)] shadow-[0_10px_22px_rgba(0,92,230,0.24)] transition hover:brightness-110"
           >
             <MaterialIcon icon="add" /> Register Asset
           </button>
@@ -160,7 +161,7 @@ export default function AssetsPage() {
         ].map((s) => (
           <div
             key={s.label}
-            className="p-5 bg-white rounded-3xl border border-slate-100 flex items-center gap-4"
+            className="flex items-center gap-4 rounded-[24px] border border-[var(--border)] bg-white p-5 shadow-[var(--sh1)]"
           >
             <div
               className={`w-12 h-12 rounded-2xl ${s.color} text-white flex items-center justify-center shrink-0`}
@@ -168,8 +169,8 @@ export default function AssetsPage() {
               <MaterialIcon icon={s.icon} />
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-800">{s.value}</p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <p className="text-2xl font-semibold tracking-[-0.03em] text-[var(--on-surface)]">{s.value}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
                 {s.label}
               </p>
             </div>
@@ -182,14 +183,14 @@ export default function AssetsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search assets..."
-          className="px-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm font-bold outline-none w-56"
+          className="input w-56"
         />
         <div className="flex gap-2 flex-wrap">
           {CATEGORIES.map((c) => (
             <button
               key={c}
               onClick={() => setFilterCategory(c)}
-              className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${filterCategory === c ? "bg-[var(--primary)] text-[var(--on-primary)]" : "bg-white border border-slate-200 text-slate-500 hover:border-slate-300"}`}
+              className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition-all ${filterCategory === c ? "border-transparent bg-[var(--primary)] text-[var(--on-primary)] shadow-[0_10px_20px_rgba(0,92,230,0.18)]" : "border-[var(--border)] bg-white text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-low)]"}`}
             >
               {c}
             </button>
@@ -198,23 +199,23 @@ export default function AssetsPage() {
       </div>
 
       <div className={cardClassName + " overflow-hidden"}>
-        <div className="p-5 border-b border-slate-50 bg-slate-50/50">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+        <div className="border-b border-[var(--border)] bg-[var(--surface-container-low)] p-5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
             {filtered.length} items
           </p>
         </div>
         {loading ? (
-          <div className="p-8 text-center text-slate-400 font-medium">
+          <div className="p-8 text-center font-medium text-[var(--on-surface-variant)]">
             Loading assets…
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center">
             <MaterialIcon
               icon="inventory_2"
-              className="text-5xl text-slate-200 mb-3"
+              className="mb-3 text-5xl text-[var(--outline)]"
             />
-            <p className="font-bold text-slate-400">No assets found</p>
-            <p className="text-sm text-slate-300 mt-1">
+            <p className="font-semibold text-[var(--on-surface-variant)]">No assets found</p>
+            <p className="mt-1 text-sm text-[var(--outline)]">
               Register your first asset to get started
             </p>
           </div>
@@ -222,7 +223,7 @@ export default function AssetsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-slate-50">
+                <tr className="border-b border-[var(--border)] bg-[var(--surface-container-low)]">
                   {[
                     "Asset Name",
                     "Category",
@@ -232,29 +233,29 @@ export default function AssetsPage() {
                   ].map((h) => (
                     <th
                       key={h}
-                      className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400"
+                      className="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]"
                     >
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-[var(--border)]/60">
                 {filtered.map((a) => (
                   <tr
                     key={a.id}
-                    className="hover:bg-slate-50/50 transition-colors"
+                    className="transition-colors hover:bg-[var(--surface-container-low)]/70"
                   >
-                    <td className="px-6 py-4 font-bold text-slate-800 text-sm">
+                    <td className="px-6 py-4 text-sm font-semibold text-[var(--on-surface)]">
                       {a.name}
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-500">
+                    <td className="px-6 py-4 text-sm text-[var(--on-surface-variant)]">
                       {a.category}
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-500">
+                    <td className="px-6 py-4 text-sm text-[var(--on-surface-variant)]">
                       {a.location}
                     </td>
-                    <td className="px-6 py-4 font-black text-slate-800">
+                    <td className="px-6 py-4 font-semibold text-[var(--on-surface)]">
                       {a.quantity.toLocaleString()}
                     </td>
                     <td className="px-6 py-4">
@@ -274,33 +275,33 @@ export default function AssetsPage() {
 
       {showAdd && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl overflow-hidden">
+          <div className="w-full max-w-lg overflow-hidden rounded-[34px] border border-white/70 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.2)]">
             <div className="p-8 space-y-5">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-black text-slate-800">
+                <h2 className="text-2xl font-semibold tracking-[-0.03em] text-[var(--on-surface)]">
                   Register Asset
                 </h2>
                 <button
                   onClick={() => setShowAdd(false)}
-                  className="p-2 hover:bg-slate-100 rounded-xl"
+                  className="rounded-xl p-2 hover:bg-[var(--surface-container-low)]"
                 >
-                  <MaterialIcon icon="close" className="text-slate-400" />
+                  <MaterialIcon icon="close" className="text-[var(--on-surface-variant)]" />
                 </button>
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
                   Asset Name
                 </label>
                 <input
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g. Dell Optiplex Computers"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                  className="input"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
                     Category
                   </label>
                   <select
@@ -308,7 +309,7 @@ export default function AssetsPage() {
                     onChange={(e) =>
                       setForm({ ...form, category: e.target.value })
                     }
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                    className="select w-full"
                   >
                     {CATEGORIES.slice(1).map((c) => (
                       <option key={c}>{c}</option>
@@ -316,7 +317,7 @@ export default function AssetsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
                     Quantity
                   </label>
                   <input
@@ -326,13 +327,13 @@ export default function AssetsPage() {
                     onChange={(e) =>
                       setForm({ ...form, quantity: e.target.value })
                     }
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                    className="input"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
                     Location
                   </label>
                   <input
@@ -341,11 +342,11 @@ export default function AssetsPage() {
                       setForm({ ...form, location: e.target.value })
                     }
                     placeholder="e.g. Computer Lab 1"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                    className="input"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
                     Condition
                   </label>
                   <select
@@ -353,7 +354,7 @@ export default function AssetsPage() {
                     onChange={(e) =>
                       setForm({ ...form, condition: e.target.value as any })
                     }
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                    className="select w-full"
                   >
                     <option>Good</option>
                     <option>Fair</option>
@@ -363,7 +364,7 @@ export default function AssetsPage() {
                 </div>
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
                   Notes (optional)
                 </label>
                 <textarea
@@ -371,13 +372,13 @@ export default function AssetsPage() {
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
                   rows={2}
                   placeholder="Any additional notes..."
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none resize-none"
+                  className="input resize-none"
                 />
               </div>
               <button
                 onClick={saveAsset}
                 disabled={!form.name || saving}
-                className="w-full py-4 bg-[var(--primary)] text-[var(--on-primary)] rounded-[28px] font-black uppercase tracking-widest hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex w-full items-center justify-center gap-2 rounded-[20px] bg-[var(--primary)] py-3.5 text-sm font-semibold text-[var(--on-primary)] transition hover:brightness-110 disabled:opacity-50"
               >
                 {saving ? (
                   <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

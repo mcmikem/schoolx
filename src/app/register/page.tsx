@@ -385,82 +385,65 @@ export default function RegisterPage() {
 
             {step === 2 && (
               <div className="space-y-5">
-                {/* District: free-text input first so user can type anything */}
-                <Input
+                {/* District: dropdown only */}
+                <Select
                   label="District"
-                  type="text"
-                  placeholder="e.g. Kampala, Wakiso, Mukono..."
-                  value={form.district}
+                  options={[
+                    { value: "", label: "Browse common districts..." },
+                    ...getDistrictOptions(),
+                  ]}
+                  value={DISTRICT_OPTIONS.some((o) => o.value === form.district && o.value !== "") ? form.district : ""}
                   onChange={(e) => {
-                    updateForm("district", e.target.value);
-                    updateForm("subcounty", "");
-                    updateForm("parish", "");
+                    if (e.target.value) {
+                      updateForm("district", e.target.value);
+                      updateForm("subcounty", "");
+                      updateForm("parish", "");
+                    }
                   }}
                   required
                   autoComplete="address-level1"
                 />
-                {/* Quick-pick dropdown only shown when there are matching options */}
-                {getDistrictOptions().length > 0 && (
-                  <Select
-                    label="Or pick from common districts"
-                    options={[
-                      { value: "", label: "Browse common districts..." },
-                      ...getDistrictOptions(),
-                    ]}
-                    value={
-                      DISTRICT_OPTIONS.some((o) => o.value === form.district && o.value !== "")
-                        ? form.district
-                        : ""
-                    }
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        updateForm("district", e.target.value);
-                        updateForm("subcounty", "");
-                        updateForm("parish", "");
-                      }
-                    }}
-                  />
-                )}
+                <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                  <span className="material-symbols-outlined text-xs align-middle">help</span>
+                  We preload Uganda district, division, and parish options to reduce typing. If your area is missing, contact support.
+                </div>
 
-                {/* Sub-county: free-text input */}
-                <Input
+                {/* Sub-county: dropdown only */}
+                <Select
                   label="Sub-county / Division"
-                  type="text"
-                  placeholder="e.g. Central Division"
-                  value={form.subcounty}
-                  onChange={(e) => updateForm("subcounty", e.target.value)}
+                  options={[
+                    { value: "", label: "Browse sub-counties..." },
+                    ...(form.district ? getSubcountyOptions(form.district) : []),
+                  ]}
+                  value={
+                    form.district && getSubcountyOptions(form.district).some((o) => o.value === form.subcounty)
+                      ? form.subcounty
+                      : ""
+                  }
+                  onChange={(e) => {
+                    if (e.target.value) updateForm("subcounty", e.target.value);
+                  }}
                   required
                   autoComplete="address-level2"
+                  disabled={!form.district}
                 />
-                {/* Subcounty quick-pick — only shown when district is selected */}
-                {form.district && getSubcountyOptions(form.district).length > 0 && (
-                  <Select
-                    label="Or pick common sub-county"
-                    options={[
-                      { value: "", label: "Browse sub-counties..." },
-                      ...getSubcountyOptions(form.district),
-                    ]}
-                    value={
-                      getSubcountyOptions(form.district).some(
-                        (o) => o.value === form.subcounty,
-                      )
-                        ? form.subcounty
-                        : ""
-                    }
-                    onChange={(e) => {
-                      if (e.target.value) updateForm("subcounty", e.target.value);
-                    }}
-                  />
-                )}
+
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Input
+                  <Select
                     label="Parish / Ward (Optional)"
-                    type="text"
-                    placeholder="e.g. Nakasero"
-                    value={form.parish}
+                    options={[
+                      { value: "", label: "Browse common parishes (optional)..." },
+                      ...(form.district && form.subcounty ? getParishOptions(form.district, form.subcounty) : []),
+                    ]}
+                    value={
+                      form.district && form.subcounty && getParishOptions(form.district, form.subcounty).some((option) => option.value === form.parish)
+                        ? form.parish
+                        : ""
+                    }
                     onChange={(e) => updateForm("parish", e.target.value)}
                     autoComplete="address-level3"
+                    disabled={!form.district || !form.subcounty}
                   />
                   <Input
                     label="Village / Zone (Optional)"
@@ -469,28 +452,6 @@ export default function RegisterPage() {
                     value={form.village}
                     onChange={(e) => updateForm("village", e.target.value)}
                   />
-                </div>
-
-                {form.district && form.subcounty && getParishOptions(form.district, form.subcounty).length > 0 && (
-                  <Select
-                    label="Or pick common Parish"
-                    options={[
-                      { value: "", label: "Browse common parishes (optional)..." },
-                      ...getParishOptions(form.district, form.subcounty),
-                    ]}
-                    value={
-                      getParishOptions(form.district, form.subcounty).some(
-                        (option) => option.value === form.parish,
-                      )
-                        ? form.parish
-                        : ""
-                    }
-                    onChange={(e) => updateForm("parish", e.target.value)}
-                  />
-                )}
-
-                <div className="rounded-2xl bg-[var(--surface)]/70 border border-[var(--border)] p-4 text-sm text-[var(--t2)]">
-                  We preload Uganda district, division, and parish options to reduce typing. If your area is missing, type it and continue.
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
