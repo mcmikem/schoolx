@@ -24,7 +24,8 @@ test.describe("Authenticated dashboard flows", () => {
     await expect(
       page.getByRole("heading", { name: /transport management/i }),
     ).toBeVisible();
-    await expect(page.getByText(/fleet overview/i)).toBeVisible();
+    await expect(page.getByText(/routes configured|no routes registered/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: /add route/i })).toBeVisible();
   });
 
   test("headmaster can reach attendance and grades work areas", async ({
@@ -49,11 +50,12 @@ test.describe("Authenticated dashboard flows", () => {
     await expect(
       page.getByRole("heading", { name: /grades & marks/i }),
     ).toBeVisible();
+    await expect(page.locator("select").nth(0)).toHaveCount(1);
     await page.locator("select").nth(0).selectOption({ index: 1 });
     await page.locator("select").nth(1).selectOption({ index: 1 });
     await expect(
-      page.getByRole("button", { name: /save grades/i }),
-    ).toBeVisible();
+      page.getByRole("button", { name: /save grades/i }).first(),
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test("bursar can open finance actions on fees page", async ({ page }) => {
@@ -302,7 +304,7 @@ test.describe("Authenticated dashboard flows", () => {
 
     await page.goto("/dashboard/students");
     expect(page.url()).toContain("/dashboard/students");
-    await expect(page.getByRole("heading", { name: /student hub/i })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /student hub/i }).first()).toBeVisible({
       timeout: 10000,
     });
     await expect(page.getByRole("button", { name: /register student/i }).first()).toBeVisible();

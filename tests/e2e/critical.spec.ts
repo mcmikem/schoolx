@@ -4,7 +4,7 @@ test.describe("Critical app flows", () => {
   test("landing page loads with headline", async ({ page }) => {
     await page.goto("/");
     await expect(
-      page.getByRole("heading", { name: /save 5\+ hours/i }),
+      page.getByRole("heading", { name: /all-in-one.*school management/i }),
     ).toBeVisible({ timeout: 10000 });
   });
 
@@ -22,7 +22,7 @@ test.describe("Critical app flows", () => {
 
   test("parent portal loads", async ({ page }) => {
     await page.goto("/parent");
-    await expect(page.getByText(/parent portal/i)).toBeVisible({
+    await expect(page.getByRole("heading", { name: /welcome back/i })).toBeVisible({
       timeout: 10000,
     });
   });

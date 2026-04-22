@@ -96,13 +96,13 @@ export default function ParentAttendancePage() {
   return (
     <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <PageHeader title="Attendance" subtitle="Track your child's daily attendance record" />
+      <PageHeader title="Attendance" subtitle="Track your child's daily attendance record" variant="premium" />
 
       {children.length > 1 && (
         <div className="flex gap-3 overflow-x-auto pb-1">
           {children.map((c) => (
             <button key={c.id} onClick={() => setSelectedChild(c)}
-              className={`px-4 py-2 rounded-2xl text-sm font-bold whitespace-nowrap transition-all ${selectedChild?.id === c.id ? "bg-[var(--primary)] text-[var(--on-primary)]" : "bg-[var(--surface-container)] text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-high)]"}`}>
+              className={`rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap transition-all border ${selectedChild?.id === c.id ? "bg-[var(--primary)] text-[var(--on-primary)] border-transparent shadow-[0_12px_24px_rgba(0,92,230,0.18)]" : "bg-white text-[var(--on-surface-variant)] border-[var(--border)] hover:bg-[var(--surface-container-low)]"}`}>
               {c.first_name} {c.last_name}
             </button>
           ))}
@@ -117,8 +117,10 @@ export default function ParentAttendancePage() {
           { label: "Late", value: stats.late, icon: "schedule", color: "text-amber-600" },
         ].map((s) => (
           <Card key={s.label}>
-            <CardBody className="text-center space-y-1">
-              <MaterialIcon icon={s.icon} className={`text-2xl ${s.color}`} />
+            <CardBody className="text-center space-y-2 bg-[linear-gradient(180deg,#ffffff_0%,#f9fbff_100%)]">
+              <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-[15px] border border-[var(--border)] bg-[var(--surface-container-low)]">
+                <MaterialIcon icon={s.icon} className={`text-xl ${s.color}`} />
+              </div>
               <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
               <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">{s.label}</p>
             </CardBody>
@@ -136,7 +138,7 @@ export default function ParentAttendancePage() {
           ) : (
             <div className="space-y-2 max-h-[500px] overflow-y-auto">
               {records.map((r) => (
-                <div key={r.id} className="flex items-center justify-between p-3 bg-[var(--surface-container-low)] rounded-2xl">
+                <div key={r.id} className="flex items-center justify-between p-3 bg-[var(--surface-container-low)] rounded-[18px] border border-[var(--border)]">
                   <div className="flex items-center gap-3">
                     <MaterialIcon icon={r.status === "present" ? "check_circle" : r.status === "absent" ? "cancel" : "schedule"}
                       className={r.status === "present" ? "text-emerald-500" : r.status === "absent" ? "text-red-500" : "text-amber-500"} />

@@ -68,7 +68,7 @@ function NotificationsPanel({
   if (!open) return null;
 
   return (
-    <div className="absolute top-full right-0 mt-2 bg-[var(--surface)] border border-[var(--border)] rounded-[14px] shadow-[var(--sh3)] min-w-[300px] max-w-[360px] z-100 overflow-hidden">
+    <div className="absolute top-full right-0 mt-2 bg-white border border-[var(--border)] rounded-[20px] shadow-[var(--sh3)] min-w-[300px] max-w-[360px] z-100 overflow-hidden">
       <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between">
         <span className="text-[13px] font-semibold text-[var(--t1)]">
           Notifications
@@ -98,7 +98,7 @@ function NotificationsPanel({
           return (
             <div
               key={n.id}
-              className={`flex gap-3 px-4 py-3.5 border-b border-[var(--border)] hover:bg-[var(--bg)] transition-colors ${!n.read ? 'bg-blue-50/50' : ''}`}
+              className={`flex gap-3 px-4 py-3.5 border-b border-[var(--border)] hover:bg-[var(--surface-container-low)] transition-colors ${!n.read ? 'bg-[var(--primary-50)]' : ''}`}
               onClick={() => {
                 if (!n.read) onDismiss(n.id);
                 if (n.link) window.location.href = n.link;
@@ -170,7 +170,7 @@ function UserMenu({
   if (!open) return null;
 
   return (
-    <div className="absolute top-full right-0 mt-2 bg-[var(--surface)] border border-[var(--border)] rounded-[14px] shadow-[var(--sh3)] min-w-[180px] z-100 overflow-hidden">
+    <div className="absolute top-full right-0 mt-2 bg-white border border-[var(--border)] rounded-[18px] shadow-[var(--sh3)] min-w-[180px] z-100 overflow-hidden">
       <Link
         href="/dashboard/settings"
         onClick={onClose}
@@ -318,7 +318,7 @@ export default function TopBar({
       </div>
 
       {/* Search — desktop inline, mobile icon */}
-      <div className="search-bar hidden sm:flex items-center gap-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl px-3 py-2 text-[13px] text-[var(--t3)] min-w-[200px] lg:min-w-[260px] cursor-text">
+      <div className="search-bar hidden sm:flex items-center gap-2 bg-white border border-[var(--border)] rounded-[16px] px-3 py-2 text-[13px] text-[var(--t3)] min-w-[220px] lg:min-w-[280px] cursor-text shadow-[var(--sh1)]">
         <GlobalSearch />
       </div>
       <button
@@ -342,7 +342,7 @@ export default function TopBar({
               setNotifOpen((current) => !current);
               setUserMenuOpen(false);
             }}
-            className="w-9 h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center cursor-pointer relative hover:bg-[var(--bg)] transition-colors"
+            className="w-10 h-10 rounded-[14px] border border-[var(--border)] bg-white flex items-center justify-center cursor-pointer relative hover:bg-[var(--surface-container-low)] transition-colors"
             aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
             aria-expanded={notifOpen}
             aria-haspopup="dialog"
@@ -365,7 +365,7 @@ export default function TopBar({
 
         <button
           onClick={toggleTheme}
-          className="hidden sm:flex w-9 h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] items-center justify-center cursor-pointer hover:bg-[var(--bg)] transition-colors"
+          className="hidden sm:flex w-10 h-10 rounded-[14px] border border-[var(--border)] bg-white items-center justify-center cursor-pointer hover:bg-[var(--surface-container-low)] transition-colors"
           aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
         >
           <MaterialIcon
@@ -376,7 +376,7 @@ export default function TopBar({
 
         <div ref={userMenuRef} className="relative">
           <button
-            className="user-menu flex items-center gap-2 py-1 pr-2.5 pl-1 bg-[var(--surface)] border border-[var(--border)] rounded-full cursor-pointer transition-colors hover:bg-[var(--bg)]"
+            className="user-menu flex items-center gap-2 py-1 pr-2.5 pl-1 bg-white border border-[var(--border)] rounded-full cursor-pointer transition-colors hover:bg-[var(--surface-container-low)] shadow-[var(--sh1)]"
             onClick={() => {
               setUserMenuOpen((current) => !current);
               setNotifOpen(false);
@@ -385,7 +385,7 @@ export default function TopBar({
             aria-expanded={userMenuOpen}
             aria-haspopup="menu"
           >
-            <div className="w-7 h-7 rounded-full bg-[var(--primary)] flex items-center justify-center text-[11px] font-bold text-[var(--on-primary)] font-['Sora']">
+            <div className="w-8 h-8 rounded-full bg-[var(--primary)] flex items-center justify-center text-[11px] font-bold text-[var(--on-primary)] font-['Sora'] shadow-[0_6px_14px_rgba(0,92,230,0.2)]">
               {user?.full_name?.charAt(0) || "U"}
             </div>
             <span className="hidden sm:block text-[13px] font-medium text-[var(--t1)] max-w-[100px] truncate">

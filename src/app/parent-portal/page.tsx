@@ -259,7 +259,7 @@ function ParentDashboardContent() {
   }
 
   return (
-    <div className="bg-motif flex min-h-screen bg-[var(--bg)]">
+    <div className="bg-motif flex min-h-screen bg-[radial-gradient(circle_at_top,#edf4ff_0%,#f6f4ec_58%,#f1ece2_100%)]">
       <SidebarShell onNavigate={() => closeSidebar()} />
       <SidebarOverlay />
 
@@ -271,6 +271,36 @@ function ParentDashboardContent() {
 
         <div className="p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto">
           <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <section className="relative overflow-hidden rounded-[34px] border border-white/70 bg-[linear-gradient(130deg,#f9fcff_0%,#edf4ff_44%,#f8f9ff_100%)] p-5 shadow-[0_24px_62px_rgba(15,23,42,0.08)] sm:p-6">
+              <div className="pointer-events-none absolute inset-0">
+                <div className="absolute -left-10 top-0 h-48 w-48 rounded-full bg-[#bfe9e1]/25 blur-3xl" />
+                <div className="absolute right-0 top-0 h-56 w-56 rounded-full bg-[#d9e6ff]/70 blur-3xl" />
+              </div>
+              <div className="relative z-10 flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">
+                    Parent command desk
+                  </p>
+                  <h1 className="mt-2 font-['Sora'] text-3xl font-semibold tracking-[-0.05em] text-[#17325f]">
+                    Monitor progress in one glance
+                  </h1>
+                  <p className="mt-2 max-w-2xl text-sm text-[#60748f]">
+                    Keep track of attendance, fee status, reports, and school updates with a calmer, cleaner parent experience.
+                  </p>
+                </div>
+                <div className="rounded-[22px] border border-white/70 bg-white/80 px-4 py-3 text-right shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7a8ca6]">Today</p>
+                  <p className="mt-1 text-sm font-semibold text-[#17325f]">
+                    {new Date().toLocaleDateString("en-UG", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </p>
+                </div>
+              </div>
+            </section>
+
             {/* ... children logic ... */}
             {children.length > 1 && (
               <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
@@ -278,13 +308,13 @@ function ParentDashboardContent() {
                   <button
                     key={child.id}
                     onClick={() => setSelectedChild(child)}
-                    className={`px-4 py-2 rounded-full border transition-all flex items-center gap-2 whitespace-nowrap ${
+                    className={`rounded-full border px-4 py-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                       selectedChild?.id === child.id
-                        ? "bg-[var(--primary)] text-white border-[var(--primary)] shadow-md"
-                        : "bg-white text-[var(--t2)] border-[var(--border)] hover:border-[var(--primary)]"
+                        ? "bg-[linear-gradient(180deg,#17325f_0%,#24507f_100%)] text-white border-transparent shadow-[0_14px_28px_rgba(23,50,95,0.25)]"
+                        : "bg-white/90 text-[var(--t2)] border-[var(--border)] hover:border-[var(--primary)]"
                     }`}
                   >
-                    <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px]">
+                    <div className="w-6 h-6 rounded-full bg-slate-200/90 flex items-center justify-center text-[10px]">
                       {child.first_name[0]}
                       {child.last_name[0]}
                     </div>
@@ -300,22 +330,22 @@ function ParentDashboardContent() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Child Profile Card */}
                 <div className="lg:col-span-1">
-                  <div className="card-premium h-full p-6 text-center">
-                    <div className="w-24 h-24 rounded-[32px] bg-[var(--navy-soft)] mx-auto mb-4 flex items-center justify-center ring-4 ring-[var(--surface-bright)] shadow-lg">
+                  <div className="h-full rounded-[30px] border border-white/70 bg-white/82 p-6 text-center shadow-[0_20px_44px_rgba(15,23,42,0.08)]">
+                    <div className="w-24 h-24 rounded-[32px] bg-[linear-gradient(145deg,#17325f_0%,#2b679f_100%)] mx-auto mb-4 flex items-center justify-center ring-4 ring-white/80 shadow-[0_18px_36px_rgba(23,50,95,0.24)]">
                       <MaterialIcon
                         icon="child_care"
-                        className="text-4xl text-[var(--primary)]"
+                        className="text-4xl text-white"
                       />
                     </div>
-                    <h3 className="text-xl font-bold text-[var(--t1)]">
+                    <h3 className="font-['Sora'] text-xl font-semibold tracking-[-0.03em] text-[#17325f]">
                       {selectedChild.first_name} {selectedChild.last_name}
                     </h3>
-                    <p className="text-[var(--primary)] font-semibold text-sm mb-6">
+                    <p className="text-[#3a6996] font-semibold text-sm mb-6">
                       {selectedChild.class_name}
                     </p>
 
                     <div className="space-y-3 text-left">
-                      <div className="p-3 rounded-2xl bg-[var(--surface-bright)] flex items-center gap-3">
+                      <div className="p-3 rounded-2xl bg-[#f4f8fc] flex items-center gap-3 border border-[#e8eff7]">
                         <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center">
                           <MaterialIcon
                             icon="event_available"
@@ -331,7 +361,7 @@ function ParentDashboardContent() {
                           </p>
                         </div>
                       </div>
-                      <div className="p-3 rounded-2xl bg-[var(--surface-bright)] flex items-center gap-3">
+                      <div className="p-3 rounded-2xl bg-[#f4f8fc] flex items-center gap-3 border border-[#e8eff7]">
                         <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center">
                           <MaterialIcon
                             icon="payments"
@@ -347,7 +377,7 @@ function ParentDashboardContent() {
                           </p>
                         </div>
                       </div>
-                      <div className="p-3 rounded-2xl bg-[var(--surface-bright)] flex items-center gap-3">
+                      <div className="p-3 rounded-2xl bg-[#f4f8fc] flex items-center gap-3 border border-[#e8eff7]">
                         <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center">
                           <MaterialIcon
                             icon="history_edu"
@@ -371,7 +401,7 @@ function ParentDashboardContent() {
                 <div className="lg:col-span-2 space-y-6">
                   <div className="grid grid-cols-2 gap-4">
                     {/* Wallet Card */}
-                  <div className="col-span-2 p-5 rounded-[28px] bg-gradient-to-br from-slate-800 to-slate-900 text-white relative overflow-hidden">
+                  <div className="col-span-2 p-5 rounded-[30px] bg-[linear-gradient(145deg,#17325f_0%,#224c7a_100%)] text-white relative overflow-hidden shadow-[0_24px_48px_rgba(23,50,95,0.28)]">
                     <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -mr-16 -mt-16" />
                     <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full -ml-12 -mb-12" />
                     <div className="relative z-10">
@@ -400,7 +430,7 @@ function ParentDashboardContent() {
                     <button
                       onClick={handlePayFees}
                       disabled={topupLoading || feeStats.balance <= 0}
-                      className="p-5 rounded-[28px] bg-[var(--navy-soft)] text-[var(--primary)] flex flex-col lg:flex-row items-center justify-center gap-3 hover:shadow-lg transition-all border border-[var(--navy)]/5 active:scale-95 group disabled:opacity-50"
+                      className="p-5 rounded-[28px] bg-white/85 text-[var(--primary)] flex flex-col lg:flex-row items-center justify-center gap-3 hover:shadow-lg transition-all border border-[#dce6f3] active:scale-95 group disabled:opacity-50"
                     >
                       <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
                         <MaterialIcon
@@ -414,7 +444,7 @@ function ParentDashboardContent() {
                     </button>
                     <Link
                       href="/parent-portal/academics"
-                      className="p-5 rounded-[28px] bg-[var(--green-soft)] text-[var(--green)] flex flex-col lg:flex-row items-center justify-center gap-3 hover:shadow-lg transition-all border border-[var(--green)]/5 active:scale-95 group"
+                      className="p-5 rounded-[28px] bg-white/85 text-[var(--green)] flex flex-col lg:flex-row items-center justify-center gap-3 hover:shadow-lg transition-all border border-[#dce6f3] active:scale-95 group"
                     >
                       <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
                         <MaterialIcon icon="description" className="text-2xl" />
@@ -425,7 +455,7 @@ function ParentDashboardContent() {
                     </Link>
                   </div>
 
-                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
+                  <div className="rounded-[30px] border border-white/70 bg-white/84 p-6 shadow-[0_18px_38px_rgba(15,23,42,0.07)]">
                     <div className="flex items-center justify-between mb-6">
                       <h4 className="font-bold text-[var(--t1)]">
                         Recent Notices
@@ -445,7 +475,7 @@ function ParentDashboardContent() {
                         notices.map((notice, i) => (
                         <div
                           key={i}
-                          className="flex gap-4 p-4 rounded-[22px] hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 group"
+                          className="flex gap-4 p-4 rounded-[22px] bg-[#f7faff] hover:bg-slate-50 transition-colors border border-[#eaf1f8] group"
                         >
                           <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex-shrink-0 flex items-center justify-center border border-slate-50 group-hover:shadow-md transition-all">
                             <MaterialIcon

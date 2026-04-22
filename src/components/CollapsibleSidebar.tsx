@@ -80,7 +80,7 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
   return (
     <nav className="sidebar-nav overflow-y-auto flex-1 px-2 py-3" role="navigation" aria-label="Main navigation">
       <div className="px-2 pb-2">
-        <div className="flex items-center gap-2 bg-[var(--bg)] border border-[var(--border)] focus-within:border-[var(--navy)]/40 focus-within:ring-2 focus-within:ring-[var(--navy)]/10 rounded-xl px-3 py-2 transition-all">
+        <div className="flex items-center gap-2 bg-white border border-[var(--border)] focus-within:border-[var(--primary)]/40 focus-within:ring-2 focus-within:ring-[var(--primary)]/10 rounded-[16px] px-3 py-2.5 transition-all shadow-[var(--sh1)]">
           <span className="material-symbols-outlined text-[16px] text-[var(--t4)]">search</span>
           <input
             value={query}
@@ -122,7 +122,7 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
                 onClick={() => toggleGroup(group.label)}
                 className={cn(
                   "flex items-center w-full px-3 py-2.5 text-[10px] font-extrabold uppercase tracking-widest transition-colors duration-150 outline-none rounded-lg",
-                  hasActive || isOpen ? "text-[#0f766e]" : "text-[var(--t4)] hover:text-[var(--t2)] hover:bg-[var(--surface-container-low)]"
+                  hasActive || isOpen ? "text-[var(--primary)]" : "text-[var(--t4)] hover:text-[var(--t2)] hover:bg-[var(--surface-container-low)]"
                 )}
                 aria-expanded={isOpen}
               >
@@ -139,7 +139,7 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
               </button>
               
               {isOpen && (
-                <div className="mt-1 ml-2 space-y-0.5 border-l border-[var(--border)] pl-2">
+                <div className="mt-1 ml-2 space-y-1 border-l border-[var(--border)] pl-2.5">
                   {group.items.map((item) => {
                     const isActive = item.href === activeHref
                     return (
@@ -153,7 +153,7 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
                         className={cn(
                           "flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] transition-all min-h-[36px] group relative tap-effect",
                           isActive 
-                            ? "bg-[var(--primary)] text-white font-semibold shadow-[var(--sh1)]" 
+                            ? "bg-[var(--primary)] text-white font-semibold shadow-[0_10px_20px_rgba(0,92,230,0.18)]" 
                             : "text-[var(--t2)] hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)]"
                         )}
                         aria-current={isActive ? 'page' : undefined}

@@ -134,6 +134,7 @@ export default function ParentAcademicsPage() {
         <PageHeader
           title="Academics"
           subtitle="View grades, teacher feedback, and term-by-term report snapshots"
+          variant="premium"
         />
 
         {children.length > 1 && (
@@ -142,10 +143,10 @@ export default function ParentAcademicsPage() {
               <button
                 key={child.id}
                 onClick={() => setSelectedChild(child)}
-                className={`px-4 py-2 rounded-2xl text-sm font-bold whitespace-nowrap transition-all ${
+                className={`rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap transition-all border ${
                   selectedChild?.id === child.id
-                    ? "bg-[var(--primary)] text-[var(--on-primary)]"
-                    : "bg-[var(--surface-container)] text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-high)]"
+                    ? "bg-[var(--primary)] text-[var(--on-primary)] border-transparent shadow-[0_12px_24px_rgba(0,92,230,0.18)]"
+                    : "bg-white text-[var(--on-surface-variant)] border-[var(--border)] hover:bg-[var(--surface-container-low)]"
                 }`}
               >
                 {child.first_name} {child.last_name}
@@ -156,7 +157,7 @@ export default function ParentAcademicsPage() {
 
         <div className="grid grid-cols-2 gap-4">
           <Card>
-            <CardBody className="text-center">
+            <CardBody className="text-center bg-[linear-gradient(180deg,#ffffff_0%,#f9fbff_100%)]">
               <p className={`text-4xl font-black ${gradeColor(avgScore)}`}>
                 {avgScore}%
               </p>
@@ -166,7 +167,7 @@ export default function ParentAcademicsPage() {
             </CardBody>
           </Card>
           <Card>
-            <CardBody className="text-center">
+            <CardBody className="text-center bg-[linear-gradient(180deg,#ffffff_0%,#f9fbff_100%)]">
               <p className="text-4xl font-black text-[var(--on-surface)]">
                 {filtered.length}
               </p>
@@ -187,10 +188,10 @@ export default function ParentAcademicsPage() {
                 <button
                   key={term}
                   onClick={() => setSelectedTerm(term)}
-                  className={`px-4 py-1.5 rounded-xl text-xs font-bold capitalize transition-all ${
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold capitalize transition-all border ${
                     selectedTerm === term
-                      ? "bg-[var(--primary)] text-[var(--on-primary)]"
-                      : "bg-[var(--surface-container)] text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-high)]"
+                      ? "bg-[var(--primary)] text-[var(--on-primary)] border-transparent"
+                      : "bg-white text-[var(--on-surface-variant)] border-[var(--border)] hover:bg-[var(--surface-container-low)]"
                   }`}
                 >
                   {term === "all" ? "All Terms" : term}
@@ -224,7 +225,7 @@ export default function ParentAcademicsPage() {
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="rounded-2xl bg-[var(--surface-container-low)] p-3">
+                  <div className="rounded-[18px] bg-[var(--surface-container-low)] p-3 border border-[var(--border)]">
                     <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
                       Average
                     </p>
@@ -232,7 +233,7 @@ export default function ParentAcademicsPage() {
                       {reportCard.averagePercent}%
                     </p>
                   </div>
-                  <div className="rounded-2xl bg-[var(--surface-container-low)] p-3">
+                  <div className="rounded-[18px] bg-[var(--surface-container-low)] p-3 border border-[var(--border)]">
                     <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
                       Exam
                     </p>
@@ -240,7 +241,7 @@ export default function ParentAcademicsPage() {
                       {reportCard.latestExamType || "Recorded"}
                     </p>
                   </div>
-                  <div className="rounded-2xl bg-[var(--surface-container-low)] p-3">
+                  <div className="rounded-[18px] bg-[var(--surface-container-low)] p-3 border border-[var(--border)]">
                     <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
                       Top Subject
                     </p>
@@ -250,7 +251,7 @@ export default function ParentAcademicsPage() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-[var(--border)] p-4 bg-[var(--surface-container-low)]">
+                <div className="rounded-[20px] border border-[var(--border)] p-4 bg-[var(--surface-container-low)]">
                   <div className="flex items-center gap-2 mb-2">
                     <MaterialIcon icon="description" className="text-[var(--primary)]" />
                     <p className="text-sm font-bold text-[var(--on-surface)]">
@@ -294,7 +295,7 @@ export default function ParentAcademicsPage() {
                   return (
                     <div
                       key={grade.id}
-                      className="p-4 bg-[var(--surface-container-low)] rounded-2xl"
+                      className="p-4 bg-[var(--surface-container-low)] rounded-[20px] border border-[var(--border)]"
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div>

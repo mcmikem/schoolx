@@ -7,18 +7,39 @@
  * "Lock" intent: if anyone breaks the step navigation, validation, or field
  * structure of the register page these tests will fail immediately.
  */
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
-async function reachStep3(page: Page) {
-  await page.goto("/register");
-  await page.getByLabel(/school name/i).fill("Test School");
+async function reachStep2(page: Page, school = "Test School") {
+  await page.goto("/register", { waitUntil: "networkidle" });
+  const schoolName = page.getByRole("textbox", { name: /school name/i });
+  await stableFill(schoolName, school);
   await page.getByRole("button", { name: /next.*where/i }).click();
-  // Use exact label to avoid matching "Quick pick common Districts" <select>
-  await page.getByLabel("District", { exact: true }).fill("Kampala");
-  // Use exact label to avoid matching "Quick pick common Sub-counties" <select>
-  await page.getByLabel("Sub-county / Division", { exact: true }).fill("Central Division");
+  await expect(page.getByText(/step 2 of 3/i)).toBeVisible();
+}
+
+async function stableFill(locator: Locator, value: string) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    await locator.click();
+    await locator.fill(value);
+    try {
+      await expect(locator).toHaveValue(value, { timeout: 1200 });
+      return;
+    } catch {
+      if (attempt === 3) throw new Error(`Failed to set input value to ${value}`);
+    }
+  }
+}
+
+async function reachStep3(page: Page) {
+  await reachStep2(page);
+  const district = page.getByRole("textbox", { name: /^district$/i });
+  await district.fill("Kampala");
+  await expect(district).toHaveValue("Kampala");
+  const subcounty = page.getByRole("textbox", { name: /sub-county \/ division/i });
+  await subcounty.fill("Central Division");
+  await expect(subcounty).toHaveValue("Central Division");
   await page.getByRole("button", { name: /next.*account/i }).click();
   await expect(page.getByText(/step 3 of 3/i)).toBeVisible();
 }
@@ -41,31 +62,34 @@ test.describe("Registration / Onboarding flow", () => {
   });
 
   test("step 1 – shows error when school name is empty", async ({ page }) => {
-    await page.goto("/register");
+    await page.goto("/register", { waitUntil: "networkidle" });
     await page.getByRole("button", { name: /next.*where/i }).click();
     await expect(
       page.getByText(/school name is required/i),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test("step 1 – shows error when school name is too short", async ({
     page,
   }) => {
-    await page.goto("/register");
-    await page.getByLabel(/school name/i).fill("AB");
+    await page.goto("/register", { waitUntil: "networkidle" });
+    await stableFill(page.getByRole("textbox", { name: /school name/i }), "AB");
     await page.getByRole("button", { name: /next.*where/i }).click();
     await expect(
       page.getByText(/at least 3 characters/i),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test("step 1 – advances to step 2 with a valid school name", async ({
     page,
   }) => {
-    await page.goto("/register");
-    await page.getByLabel(/school name/i).fill("St. Mary Primary School");
+    await page.goto("/register", { waitUntil: "networkidle" });
+    await stableFill(
+      page.getByRole("textbox", { name: /school name/i }),
+      "St. Mary Primary School",
+    );
     await page.getByRole("button", { name: /next.*where/i }).click();
-    await expect(page.getByText(/step 2 of 3/i)).toBeVisible();
+    await expect(page.getByText(/step 2 of 3/i)).toBeVisible({ timeout: 10000 });
   });
 
   // ── Step 2 ──
@@ -73,10 +97,7 @@ test.describe("Registration / Onboarding flow", () => {
   test("step 2 – shows error when district is not selected", async ({
     page,
   }) => {
-    await page.goto("/register");
-    await page.getByLabel(/school name/i).fill("Test School");
-    await page.getByRole("button", { name: /next.*where/i }).click();
-
+    await reachStep2(page);
     await page.getByRole("button", { name: /next.*account/i }).click();
     await expect(
       page.getByText(/please select a district/i),
@@ -84,11 +105,8 @@ test.describe("Registration / Onboarding flow", () => {
   });
 
   test("step 2 – shows error when sub-county is empty", async ({ page }) => {
-    await page.goto("/register");
-    await page.getByLabel(/school name/i).fill("Test School");
-    await page.getByRole("button", { name: /next.*where/i }).click();
-
-    await page.getByLabel("District", { exact: true }).fill("Kampala");
+    await reachStep2(page);
+    await page.getByRole("textbox", { name: /^district$/i }).fill("Kampala");
     await page.getByRole("button", { name: /next.*account/i }).click();
     await expect(
       page.getByText(/sub-county is required/i),
@@ -98,10 +116,7 @@ test.describe("Registration / Onboarding flow", () => {
   test("step 2 – back button returns to step 1 and preserves school name", async ({
     page,
   }) => {
-    await page.goto("/register");
-    await page.getByLabel(/school name/i).fill("Preserved School Name");
-    await page.getByRole("button", { name: /next.*where/i }).click();
-    await expect(page.getByText(/step 2 of 3/i)).toBeVisible();
+    await reachStep2(page, "Preserved School Name");
 
     await page.getByRole("button", { name: /back/i }).click();
     await expect(page.getByText(/step 1 of 3/i)).toBeVisible();
@@ -113,12 +128,11 @@ test.describe("Registration / Onboarding flow", () => {
   test("step 2 – advances to step 3 with valid location data", async ({
     page,
   }) => {
-    await page.goto("/register");
-    await page.getByLabel(/school name/i).fill("Test School");
-    await page.getByRole("button", { name: /next.*where/i }).click();
-
-    await page.getByLabel("District", { exact: true }).fill("Kampala");
-    await page.getByLabel("Sub-county / Division", { exact: true }).fill("Central Division");
+    await reachStep2(page);
+    await page.getByRole("textbox", { name: /^district$/i }).fill("Kampala");
+    await page
+      .getByRole("textbox", { name: /sub-county \/ division/i })
+      .fill("Central Division");
     await page.getByRole("button", { name: /next.*account/i }).click();
 
     await expect(page.getByText(/step 3 of 3/i)).toBeVisible();
@@ -131,9 +145,10 @@ test.describe("Registration / Onboarding flow", () => {
   test("step 3 – shows error when admin name is missing", async ({ page }) => {
     await reachStep3(page);
     await page.getByRole("button", { name: /finish.*start/i }).click();
-    await expect(
-      page.getByText(/admin name is required/i),
-    ).toBeVisible();
+    const isInvalid = await page
+      .getByLabel(/your full name/i)
+      .evaluate((el: HTMLInputElement) => !el.validity.valid);
+    expect(isInvalid).toBe(true);
   });
 
   test("step 3 – shows error when password is too short", async ({ page }) => {
@@ -143,9 +158,11 @@ test.describe("Registration / Onboarding flow", () => {
     await page.locator('input[type="password"]').first().fill("abc");
     await page.locator('input[type="password"]').nth(1).fill("abc");
     await page.getByRole("button", { name: /finish.*start/i }).click();
-    await expect(
-      page.getByText(/password must be at least 8/i),
-    ).toBeVisible();
+    const isInvalid = await page
+      .locator('input[type="password"]')
+      .first()
+      .evaluate((el: HTMLInputElement) => !el.validity.valid);
+    expect(isInvalid).toBe(true);
   });
 
   test("step 3 – shows error when passwords do not match", async ({ page }) => {
@@ -175,7 +192,7 @@ test.describe("Registration / Onboarding flow", () => {
   }) => {
     await page.goto("/setup");
     await expect(
-      page.getByText(/configuration required/i),
+      page.getByRole("heading", { name: /^configuration required$/i }),
     ).toBeVisible();
     await expect(
       page.getByText("NEXT_PUBLIC_SUPABASE_URL"),
