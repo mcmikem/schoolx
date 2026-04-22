@@ -216,30 +216,15 @@ export default function MaterialIcon({
   children,
   size = 18
 }: MaterialIconProps) {
-  const iconName = (icon || children?.toString() || '').toLowerCase().trim()
-  
-  const lucideName = ICON_MAP[iconName]
-  const IconComponent = lucideName ? (LucideIcons[lucideName] as React.ElementType) : null
-
-  if (IconComponent) {
-    return (
-      <IconComponent 
-        size={size}
-        className={className}
-        style={style}
-        strokeWidth={1.8}
-      />
-    )
-  }
-
-  // Fallback to a default icon if mapping fails
-  const HelpIcon = LucideIcons.HelpCircle
+  const iconName = (icon || children?.toString() || '').toLowerCase().trim();
+  const lucideName = ICON_MAP[iconName];
+  const IconComponent = (lucideName && LucideIcons[lucideName]) ? (LucideIcons[lucideName] as React.ElementType) : LucideIcons['HelpCircle'];
   return (
-    <HelpIcon 
+    <IconComponent 
       size={size}
-      className={className} 
+      className={className}
       style={style}
       strokeWidth={1.8}
     />
-  )
+  );
 }

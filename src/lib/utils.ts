@@ -6,4 +6,4 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const cardClassName =
-  "rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm";
+  "rounded-[24px] border border-[var(--border)] bg-white text-[var(--on-surface)] shadow-[var(--sh1)]";
