@@ -12,17 +12,19 @@ import {
   useStaff,
 } from "@/lib/hooks";
 import { useDashboardExtraData } from "@/lib/hooks/useDashboardExtraData";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
-import {
-  DashboardSkeleton,
-} from "@/components/Skeletons";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import DashboardInsights from "@/components/dashboard/DashboardInsights";
-import ActionCenter from "@/components/dashboard/ActionCenter";
 import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
-import StatCard from "@/components/dashboard/StatCard";
-import { QuickActions } from "@/components/dashboard/QuickActions";
+
+type HeadmasterTask = {
+  id: string;
+  title: string;
+  dueDate: string;
+  priority: "low" | "medium" | "high";
+  done: boolean;
+};
 
 function HeadmasterDashboardContent() {
   const { school, user, isDemo } = useAuth();
@@ -306,142 +308,658 @@ function HeadmasterDashboardContent() {
     [],
   );
 
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskDueDate, setTaskDueDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+  const [taskPriority, setTaskPriority] = useState<"low" | "medium" | "high">(
+    "medium",
+  );
+  const [tasks, setTasks] = useState<HeadmasterTask[]>([]);
+
+  const taskStorageKey = `hm_tasks_${school?.id || "default"}_${user?.id || "anon"}`;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const saved = localStorage.getItem(taskStorageKey);
+      if (!saved) return;
+      const parsed = JSON.parse(saved) as HeadmasterTask[];
+      if (Array.isArray(parsed)) {
+        setTasks(parsed.slice(0, 12));
+      }
+    } catch {
+      setTasks([]);
+    }
+  }, [taskStorageKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(taskStorageKey, JSON.stringify(tasks));
+  }, [taskStorageKey, tasks]);
+
+  const addTask = () => {
+    const cleaned = taskTitle.trim();
+    if (!cleaned) return;
+    const nextTask: HeadmasterTask = {
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      title: cleaned,
+      dueDate: taskDueDate,
+      priority: taskPriority,
+      done: false,
+    };
+    setTasks((prev) => [nextTask, ...prev].slice(0, 12));
+    setTaskTitle("");
+  };
+
+  const toggleTask = (taskId: string) => {
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === taskId ? { ...task, done: !task.done } : task,
+      ),
+    );
+  };
+
+  const removeTask = (taskId: string) => {
+    setTasks((prev) => prev.filter((task) => task.id !== taskId));
+  };
+
+  const todayIso = new Date().toISOString().split("T")[0];
+  const pendingTaskCount = tasks.filter((task) => !task.done).length;
+
+  const calendarAnchor = useMemo(
+    () => new Date(currentDate.getFullYear(), currentDate.getMonth(), 1),
+    [currentDate],
+  );
+
+  const academicEvents = useMemo(() => {
+    const toIso = (date: Date) => date.toISOString().split("T")[0];
+    const mkDate = (offset: number) => {
+      const d = new Date();
+      d.setDate(d.getDate() + offset);
+      return d;
+    };
+
+    return [
+      {
+        id: "event-attendance",
+        title: "Attendance quality review",
+        date: toIso(mkDate(1)),
+        kind: "ops",
+      },
+      {
+        id: "event-fees",
+        title: "Fee follow-up sprint",
+        date: toIso(mkDate(3)),
+        kind: "finance",
+      },
+      {
+        id: "event-academic",
+        title: `Term ${currentTerm} academic checkpoint`,
+        date: toIso(mkDate(6)),
+        kind: "academic",
+      },
+      {
+        id: "event-board",
+        title: "School leadership stand-up",
+        date: toIso(mkDate(9)),
+        kind: "ops",
+      },
+    ];
+  }, [currentTerm]);
+
+  const monthStartDay = calendarAnchor.getDay();
+  const daysInMonth = new Date(
+    calendarAnchor.getFullYear(),
+    calendarAnchor.getMonth() + 1,
+    0,
+  ).getDate();
+
+  const calendarCells = useMemo(() => {
+    const cells: Array<{ day: number; iso: string; hasEvent: boolean; isToday: boolean } | null> = [];
+    for (let i = 0; i < monthStartDay; i++) {
+      cells.push(null);
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+      const iso = new Date(
+        calendarAnchor.getFullYear(),
+        calendarAnchor.getMonth(),
+        day,
+      )
+        .toISOString()
+        .split("T")[0];
+      cells.push({
+        day,
+        iso,
+        hasEvent: academicEvents.some((event) => event.date === iso),
+        isToday: iso === todayIso,
+      });
+    }
+    return cells;
+  }, [academicEvents, calendarAnchor, daysInMonth, monthStartDay, todayIso]);
+
   return (
     <div className="content">
-      {/* ── Hero greeting card ─────────────────────────────────────────── */}
-      <div className="mb-6 relative overflow-hidden rounded-2xl border border-[var(--border)] p-5 sm:p-6 flex items-center gap-5"
-        style={{
-          background: "linear-gradient(135deg, var(--navy-soft) 0%, var(--surface) 60%, var(--green-soft) 100%)",
-          boxShadow: "0 2px 12px rgba(0,31,63,0.07)",
-        }}
-      >
-        {/* Background decoration */}
-        <div className="absolute top-0 right-0 w-56 h-56 pointer-events-none opacity-[0.045]"
-          style={{ background: "radial-gradient(circle at top right, var(--navy) 0%, transparent 65%)" }} />
+      <section className="relative mb-6 overflow-hidden rounded-[36px] border border-white/65 bg-[linear-gradient(135deg,#f6fbff_0%,#eef4ff_44%,#f7f9fc_100%)] p-4 shadow-[0_28px_70px_rgba(15,23,42,0.08)] sm:p-6">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -left-16 bottom-0 h-48 w-48 rounded-full bg-[#b8e6ef]/30 blur-3xl" />
+          <div className="absolute right-0 top-0 h-56 w-56 rounded-full bg-[#d6e4ff]/70 blur-3xl" />
+          <div className="absolute right-10 top-10 h-24 w-24 rounded-full border border-white/70 bg-white/35" />
+        </div>
 
-        {/* School logo — prominently large */}
-        {school?.logo_url ? (
-          <Image
-            src={school.logo_url}
-            alt={school.name || "School Badge"}
-            width={96}
-            height={96}
-            className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl object-cover flex-shrink-0 border border-white/40"
-            style={{ boxShadow: "0 8px 28px rgba(0,31,63,0.18), 0 2px 8px rgba(0,31,63,0.12)" }}
-          />
-        ) : (
-          <div
-            className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl flex items-center justify-center flex-shrink-0 border border-white/20"
-            style={{
-              background: "var(--navy)",
-              boxShadow: "0 8px 28px rgba(0,31,63,0.22), 0 2px 8px rgba(0,31,63,0.12)",
-            }}
-          >
-            <MaterialIcon icon="school" style={{ fontSize: 42, color: "white" }} />
+        <div className="relative z-10 mb-5 flex flex-wrap items-center gap-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#cad7ea] bg-white/80 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#27456f] shadow-sm">
+            <MaterialIcon icon="dashboard" className="text-[15px]" />
+            Command Deck
           </div>
-        )}
-
-        {/* School info + greeting */}
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--t4)] mb-0.5">
-            {greeting}
-          </p>
-          <h1 className="font-['Sora'] text-xl sm:text-2xl font-bold text-[var(--t1)] tracking-tight leading-tight truncate">
-            {user?.full_name?.split(" ")[0]}
-          </h1>
-          <p className="text-[13px] font-semibold text-[var(--t2)] mt-1 truncate">
-            {school?.name}
-          </p>
-          <p className="text-[11px] text-[var(--t4)] mt-0.5">
-            {academicYear} · Term {currentTerm} · {todayDayName}, {todayFormatted}
-          </p>
-        </div>
-
-        {/* Alert count badge */}
-        {!loadingExtra && alertCount > 0 && (
-          <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[var(--red)] text-white text-sm font-bold flex items-center justify-center shadow-md">
-            {alertCount}
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#cad7ea] bg-white/70 px-4 py-2 text-xs font-semibold text-[#49627f]">
+            <MaterialIcon icon="calendar_today" className="text-[14px]" />
+            {todayDayName}, {todayFormatted}
           </div>
-        )}
-      </div>
-
-      {/* 4 Key Numbers — the only stat display, no duplicates */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard
-          label="Students"
-          value={stats.totalStudents || students.length || 0}
-          subValue={`${boysCount}B · ${girlsCount}G`}
-          icon="groups"
-          accentColor="navy"
-          loading={loadingExtra}
-        />
-        <StatCard
-          label="Attendance"
-          value={`${attendanceRate}%`}
-          subValue={`${stats.presentToday || 0} present today`}
-          icon="how_to_reg"
-          accentColor="green"
-          loading={loadingExtra}
-        />
-        <StatCard
-          label="Fees Collected"
-          value={`${collectionRate}%`}
-          subValue={`UGX ${formatCurrency(totalFeesCollected)}`}
-          icon="payments"
-          accentColor="amber"
-          loading={loadingExtra}
-        />
-        <StatCard
-          label="Staff"
-          value={staff.length}
-          subValue={`${staff.filter((s: any) => s.role === "teacher").length} teachers`}
-          icon="school"
-          accentColor="purple"
-          loading={loadingExtra}
-        />
-      </div>
-
-      {/* Needs Attention — what requires action right now */}
-      <div className="mb-6">
-        <ActionCenter
-          items={
-            focusItems.map((item) => ({
-              ...item,
-              priority: item.status === "alert" ? "high" : "medium",
-            })) as any
-          }
-          loading={loadingExtra}
-        />
-      </div>
-
-      {/* Quick Actions — 4 common tasks */}
-      <QuickActions actions={quickActions} title="Quick actions" />
-
-      {/* Today's Snapshot — compact summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--t4)] mb-1">Fees today</div>
-          <div className="text-lg font-bold text-[var(--t1)]">UGX {formatCurrency(feesToday)}</div>
-          <div className="text-[12px] text-[var(--t3)]">UGX {formatCurrency(feesThisWeek)} this week</div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#cad7ea] bg-white/70 px-4 py-2 text-xs font-semibold text-[#49627f]">
+            <MaterialIcon icon="event_note" className="text-[14px]" />
+            {academicYear} · Term {currentTerm}
+          </div>
+          {alertCount > 0 && (
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#f3c4c4] bg-[#fff4f3] px-4 py-2 text-xs font-semibold text-[#b04343]">
+              <MaterialIcon icon="notification_important" className="text-[15px]" />
+              {alertCount} items need attention
+            </div>
+          )}
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--t4)] mb-1">Classes today</div>
-          <div className="text-lg font-bold text-[var(--t1)]">{classesToday.length}</div>
-          <div className="text-[12px] text-[var(--t3)]">{classesNotMarked > 0 ? `${classesNotMarked} not yet marked` : "All marked"}</div>
-        </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--t4)] mb-1">Pending</div>
-          <div className="text-lg font-bold text-[var(--t1)]">{totalPendingApprovals}</div>
-          <div className="text-[12px] text-[var(--t3)]">
-            {pendingExpenses > 0 ? `${pendingExpenses} expenses` : ""}
-            {pendingExpenses > 0 && pendingLeave > 0 ? " · " : ""}
-            {pendingLeave > 0 ? `${pendingLeave} leave` : ""}
-            {totalPendingApprovals === 0 ? "All caught up" : ""}
+
+        <div className="relative z-10 grid gap-4 xl:grid-cols-[1.35fr_0.95fr]">
+          <div className="grid gap-4">
+            <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="rounded-[30px] border border-white/80 bg-white/78 p-5 shadow-[0_18px_48px_rgba(15,23,42,0.08)] backdrop-blur">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    {school?.logo_url ? (
+                      <Image
+                        src={school.logo_url}
+                        alt={school.name || "School Badge"}
+                        width={88}
+                        height={88}
+                        className="h-20 w-20 rounded-[28px] border border-white/80 object-cover shadow-[0_14px_30px_rgba(23,50,95,0.16)]"
+                      />
+                    ) : (
+                      <div className="flex h-20 w-20 items-center justify-center rounded-[28px] bg-[linear-gradient(145deg,#17325f_0%,#2d69a4_100%)] text-white shadow-[0_18px_34px_rgba(23,50,95,0.22)]">
+                        <MaterialIcon icon="school" className="text-[40px]" />
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#7a8aa4]">
+                        {greeting}
+                      </p>
+                      <h1 className="mt-2 font-['Sora'] text-3xl font-semibold tracking-[-0.05em] text-[#17325f] sm:text-4xl">
+                        Welcome back, {user?.full_name?.split(" ")[0]}
+                      </h1>
+                      <p className="mt-3 max-w-xl text-sm leading-6 text-[#5d708d] sm:text-[15px]">
+                        Your school workspace is live. Monitor attendance, fee collection, staffing, and approvals from one calm control surface.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="hidden rounded-[24px] bg-[linear-gradient(180deg,#17325f_0%,#224878_100%)] px-4 py-3 text-white shadow-[0_14px_34px_rgba(23,50,95,0.24)] sm:block">
+                    <p className="text-[10px] uppercase tracking-[0.24em] text-white/65">
+                      Active school
+                    </p>
+                    <p className="mt-1 text-lg font-semibold leading-none">
+                      {school?.name}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  {[
+                    {
+                      label: "Students",
+                      value: stats.totalStudents || students.length || 0,
+                      detail: `${boysCount} boys · ${girlsCount} girls`,
+                      icon: "groups",
+                      tone: "#17325f",
+                      bg: "#edf4ff",
+                    },
+                    {
+                      label: "On duty",
+                      value: staffOnDuty || staff.length,
+                      detail: `${staff.filter((s: any) => s.role === "teacher").length} teaching staff`,
+                      icon: "badge",
+                      tone: "#1f8a70",
+                      bg: "#eafaf5",
+                    },
+                    {
+                      label: "Alerts",
+                      value: loadingExtra ? "--" : alertCount,
+                      detail: alertCount > 0 ? "Needs a decision" : "Quiet day so far",
+                      icon: "notifications_active",
+                      tone: alertCount > 0 ? "#b45309" : "#3f5d7d",
+                      bg: alertCount > 0 ? "#fff5e8" : "#eef4fb",
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-[24px] border border-[#e4ebf4] p-4"
+                      style={{ background: item.bg }}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#71839d]">
+                          {item.label}
+                        </p>
+                        <div
+                          className="flex h-10 w-10 items-center justify-center rounded-2xl"
+                          style={{ background: "rgba(255,255,255,0.9)", color: item.tone }}
+                        >
+                          <MaterialIcon icon={item.icon} className="text-[20px]" />
+                        </div>
+                      </div>
+                      <p className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-[#17325f]">
+                        {item.value}
+                      </p>
+                      <p className="mt-1 text-xs font-medium text-[#6b7f99]">
+                        {item.detail}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-[30px] border border-[#d8e3f3] bg-[linear-gradient(180deg,#16345f_0%,#214f80_100%)] p-5 text-white shadow-[0_24px_48px_rgba(23,50,95,0.22)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/60">
+                      Daily pulse
+                    </p>
+                    <h2 className="mt-2 font-['Sora'] text-2xl font-semibold tracking-[-0.04em]">
+                      School rhythm
+                    </h2>
+                  </div>
+                  <div className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
+                    Live
+                  </div>
+                </div>
+
+                <div className="mt-5 space-y-4">
+                  {[
+                    {
+                      label: "Attendance",
+                      value: `${attendanceRate}%`,
+                      width: `${Math.min(attendanceRate, 100)}%`,
+                      note: `${stats.presentToday || 0} present · ${Math.max(absentCount, 0)} absent`,
+                    },
+                    {
+                      label: "Fee collection",
+                      value: `${collectionRate}%`,
+                      width: `${Math.min(collectionRate, 100)}%`,
+                      note: `UGX ${formatCurrency(totalFeesCollected)} collected`,
+                    },
+                    {
+                      label: "Class coverage",
+                      value: `${classesToday.length}/${classes.length || 0}`,
+                      width: `${classes.length ? Math.min((classesToday.length / classes.length) * 100, 100) : 0}%`,
+                      note: classesNotMarked > 0 ? `${classesNotMarked} still pending` : "All planned classes covered",
+                    },
+                  ].map((meter) => (
+                    <div key={meter.label} className="rounded-[24px] border border-white/10 bg-white/8 p-4 backdrop-blur-sm">
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-white/88">{meter.label}</p>
+                        <p className="text-sm font-semibold text-[#7de2d1]">{meter.value}</p>
+                      </div>
+                      <div className="h-2 rounded-full bg-white/10">
+                        <div
+                          className="h-2 rounded-full bg-[linear-gradient(90deg,#60d7d2_0%,#8fd7ff_100%)]"
+                          style={{ width: meter.width }}
+                        />
+                      </div>
+                      <p className="mt-2 text-xs text-white/62">{meter.note}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {quickActions.map((action) => (
+                <Link
+                  key={action.label}
+                  href={action.href}
+                  className="group rounded-[28px] border border-white/75 bg-white/80 p-4 shadow-[0_16px_36px_rgba(15,23,42,0.06)] transition-transform duration-200 hover:-translate-y-0.5"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div
+                      className="flex h-12 w-12 items-center justify-center rounded-[18px]"
+                      style={{
+                        background:
+                          action.color === "green"
+                            ? "#eafaf5"
+                            : action.color === "amber"
+                              ? "#fff5e8"
+                              : action.color === "purple"
+                                ? "#eef1ff"
+                                : "#edf4ff",
+                        color:
+                          action.color === "green"
+                            ? "#1f8a70"
+                            : action.color === "amber"
+                              ? "#b45309"
+                              : action.color === "purple"
+                                ? "#5564d8"
+                                : "#17325f",
+                      }}
+                    >
+                      <MaterialIcon icon={action.icon} className="text-[22px]" />
+                    </div>
+                    <MaterialIcon icon="arrow_outward" className="text-[18px] text-[#8ca0ba] transition group-hover:text-[#17325f]" />
+                  </div>
+                  <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.18em] text-[#7a8aa3]">
+                    Quick action
+                  </p>
+                  <p className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[#17325f]">
+                    {action.label}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-4">
+            <div className="rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">
+                    Collection track
+                  </p>
+                  <h2 className="mt-2 font-['Sora'] text-2xl font-semibold tracking-[-0.04em] text-[#17325f]">
+                    Financial output
+                  </h2>
+                </div>
+                <div className="rounded-full bg-[#eef5ff] px-3 py-1 text-[11px] font-semibold text-[#42638d]">
+                  This term
+                </div>
+              </div>
+
+              <div className="mt-6 flex items-center gap-5">
+                <div
+                  className="grid h-32 w-32 place-items-center rounded-full"
+                  style={{
+                    background: `conic-gradient(#2d69a4 0 ${Math.min(collectionRate, 100)}%, #e7eef8 ${Math.min(collectionRate, 100)}% 100%)`,
+                  }}
+                >
+                  <div className="grid h-24 w-24 place-items-center rounded-full bg-white text-center shadow-inner">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7d8ea7]">
+                      Collected
+                    </p>
+                    <p className="font-['Sora'] text-3xl font-semibold tracking-[-0.05em] text-[#17325f]">
+                      {collectionRate}%
+                    </p>
+                  </div>
+                </div>
+                <div className="min-w-0 flex-1 space-y-3">
+                  {[
+                    ["Today", `UGX ${formatCurrency(feesToday)}`],
+                    ["This week", `UGX ${formatCurrency(feesThisWeek)}`],
+                    ["This term", `UGX ${formatCurrency(feesThisTerm || totalFeesCollected)}`],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex items-center justify-between rounded-[20px] bg-[#f4f8fc] px-4 py-3">
+                      <span className="text-sm font-medium text-[#5f7390]">{label}</span>
+                      <span className="text-sm font-semibold text-[#17325f]">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[30px] border border-[#d7e3f2] bg-[linear-gradient(180deg,#ffffff_0%,#f7faff_100%)] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">
+                    Action queue
+                  </p>
+                  <h2 className="mt-2 font-['Sora'] text-2xl font-semibold tracking-[-0.04em] text-[#17325f]">
+                    Priorities today
+                  </h2>
+                </div>
+                <div className="rounded-full bg-[#17325f] px-3 py-1 text-[11px] font-semibold text-white">
+                  {focusItems.filter((item) => item.status === "alert").length} urgent
+                </div>
+              </div>
+
+              <div className="mt-5 space-y-3">
+                {focusItems.map((item, index) => (
+                  <Link
+                    key={item.id}
+                    href={item.link}
+                    className="flex items-center gap-3 rounded-[22px] border border-[#e5ecf4] bg-white px-4 py-3 transition hover:border-[#cbd8ea] hover:bg-[#fbfdff]"
+                  >
+                    <div className={`grid h-9 w-9 place-items-center rounded-2xl text-sm font-semibold ${item.status === "alert" ? "bg-[#fff1ef] text-[#d05858]" : "bg-[#edf4ff] text-[#17325f]"}`}>
+                      {index + 1}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-[#17325f]">{item.label}</p>
+                      <p className="truncate text-xs text-[#6b7f99]">{item.description}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-semibold tracking-[-0.03em] text-[#17325f]">
+                        {item.value ?? "--"}
+                      </p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8da0ba]">
+                        {item.status}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">
+                    Recent activity
+                  </p>
+                  <h2 className="mt-2 font-['Sora'] text-2xl font-semibold tracking-[-0.04em] text-[#17325f]">
+                    Operations log
+                  </h2>
+                </div>
+                <div className="rounded-full bg-[#eef5ff] px-3 py-1 text-[11px] font-semibold text-[#42638d]">
+                  {recentAuditEvents.length || 0} events
+                </div>
+              </div>
+
+              <div className="mt-5 space-y-3">
+                {(recentAuditEvents.length > 0
+                  ? recentAuditEvents
+                  : upcomingDeadlines.map((deadline) => ({
+                      action: deadline.label,
+                      detail: deadline.date,
+                      time: deadline.type,
+                      icon: deadline.type === "fee" ? "payments" : deadline.type === "attendance" ? "how_to_reg" : "approval",
+                      color: deadline.type === "fee" ? "var(--amber)" : deadline.type === "attendance" ? "var(--green)" : "var(--navy)",
+                    }))
+                ).slice(0, 4).map((event) => (
+                  <div
+                    key={`${event.action}-${event.time}`}
+                    className="flex items-start gap-3 rounded-[22px] bg-[#f5f8fc] px-4 py-3"
+                  >
+                    <div
+                      className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-white"
+                      style={{ color: event.color }}
+                    >
+                      <MaterialIcon icon={event.icon} className="text-[19px]" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-[#17325f]">{event.action}</p>
+                      <p className="text-xs leading-5 text-[#6b7f99]">{event.detail}</p>
+                    </div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8fa0b7]">
+                      {event.time}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">
+                    School calendar
+                  </p>
+                  <h2 className="mt-2 font-['Sora'] text-2xl font-semibold tracking-[-0.04em] text-[#17325f]">
+                    This month
+                  </h2>
+                </div>
+                <div className="rounded-full bg-[#eef5ff] px-3 py-1 text-[11px] font-semibold text-[#42638d]">
+                  {calendarAnchor.toLocaleDateString("en-UG", {
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-7 gap-2 text-center text-[10px] font-bold uppercase tracking-[0.15em] text-[#8ba0bc]">
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+                  <div key={d}>{d}</div>
+                ))}
+              </div>
+
+              <div className="mt-2 grid grid-cols-7 gap-2">
+                {calendarCells.map((cell, idx) =>
+                  cell ? (
+                    <div
+                      key={cell.iso}
+                      className={`relative rounded-xl border px-1.5 py-2 text-center text-xs font-semibold ${cell.isToday ? "border-[#17325f] bg-[#edf4ff] text-[#17325f]" : "border-[#e7edf5] bg-[#f8fbff] text-[#5e7390]"}`}
+                    >
+                      {cell.day}
+                      {cell.hasEvent && (
+                        <span className="absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#2d69a4]" />
+                      )}
+                    </div>
+                  ) : (
+                    <div key={`empty_${idx}`} />
+                  ),
+                )}
+              </div>
+
+              <div className="mt-4 space-y-2">
+                {academicEvents.slice(0, 3).map((event) => (
+                  <div
+                    key={event.id}
+                    className="flex items-center justify-between rounded-[16px] bg-[#f4f8fc] px-3 py-2"
+                  >
+                    <div className="min-w-0 pr-2">
+                      <p className="truncate text-xs font-semibold text-[#17325f]">{event.title}</p>
+                      <p className="text-[10px] text-[#7d8fa8]">{event.kind}</p>
+                    </div>
+                    <div className="text-[11px] font-semibold text-[#5f7390]">
+                      {new Date(event.date).toLocaleDateString("en-UG", {
+                        day: "numeric",
+                        month: "short",
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-[30px] border border-[#d7e3f2] bg-[linear-gradient(180deg,#ffffff_0%,#f8fafd_100%)] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">
+                    Personal task board
+                  </p>
+                  <h2 className="mt-2 font-['Sora'] text-2xl font-semibold tracking-[-0.04em] text-[#17325f]">
+                    Headmaster reminders
+                  </h2>
+                </div>
+                <div className="rounded-full bg-[#17325f] px-3 py-1 text-[11px] font-semibold text-white">
+                  {pendingTaskCount} open
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                <input
+                  value={taskTitle}
+                  onChange={(e) => setTaskTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addTask();
+                    }
+                  }}
+                  placeholder="Add task or reminder"
+                  className="w-full rounded-xl border border-[#dde6f2] bg-[#f6f9fc] px-3 py-2.5 text-sm text-[#17325f] outline-none focus:border-[#aac1df]"
+                />
+                <div className="grid grid-cols-[1fr_auto_auto] gap-2">
+                  <input
+                    type="date"
+                    value={taskDueDate}
+                    onChange={(e) => setTaskDueDate(e.target.value)}
+                    className="rounded-xl border border-[#dde6f2] bg-[#f6f9fc] px-3 py-2 text-xs text-[#17325f] outline-none focus:border-[#aac1df]"
+                  />
+                  <select
+                    value={taskPriority}
+                    onChange={(e) => setTaskPriority(e.target.value as "low" | "medium" | "high")}
+                    className="rounded-xl border border-[#dde6f2] bg-[#f6f9fc] px-3 py-2 text-xs font-semibold text-[#17325f] outline-none focus:border-[#aac1df]"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={addTask}
+                    className="rounded-xl bg-[#17325f] px-3 py-2 text-xs font-semibold text-white hover:opacity-90"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                {tasks.length === 0 ? (
+                  <div className="rounded-[16px] border border-dashed border-[#d6e2f1] bg-[#f8fbff] px-3 py-4 text-center text-xs font-medium text-[#7890ad]">
+                    No tasks yet. Add your first reminder.
+                  </div>
+                ) : (
+                  tasks.slice(0, 6).map((task) => (
+                    <div
+                      key={task.id}
+                      className="flex items-center gap-2 rounded-[16px] bg-[#f4f8fc] px-3 py-2.5"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleTask(task.id)}
+                        className={`h-5 w-5 rounded-full border text-[10px] ${task.done ? "border-[#1f8a70] bg-[#1f8a70] text-white" : "border-[#98acc6] text-transparent"}`}
+                      >
+                        ✓
+                      </button>
+                      <div className="min-w-0 flex-1">
+                        <p className={`truncate text-xs font-semibold ${task.done ? "text-[#89a0bb] line-through" : "text-[#17325f]"}`}>
+                          {task.title}
+                        </p>
+                        <p className="text-[10px] text-[#7d8fa8]">
+                          {new Date(task.dueDate).toLocaleDateString("en-UG", {
+                            day: "numeric",
+                            month: "short",
+                          })} · {task.priority}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeTask(task.id)}
+                        className="rounded-md p-1 text-[#90a4bc] hover:bg-white hover:text-[#17325f]"
+                      >
+                        <MaterialIcon icon="close" className="text-[15px]" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Charts & Activity — below the fold */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 mb-6">
         <div className="xl:col-span-3">
           <DashboardInsights

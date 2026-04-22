@@ -281,6 +281,7 @@ export default function ParentFeesPage() {
         <PageHeader
           title="Fees & Receipts"
           subtitle="Track fee obligations, receipts, and student wallet activity"
+          variant="premium"
         />
 
         {children.length > 1 && (
@@ -289,10 +290,10 @@ export default function ParentFeesPage() {
               <button
                 key={child.id}
                 onClick={() => setSelectedChild(child)}
-                className={`px-4 py-2 rounded-2xl text-sm font-bold whitespace-nowrap transition-all ${
+                className={`rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap transition-all border ${
                   selectedChild?.id === child.id
-                    ? "bg-[var(--primary)] text-[var(--on-primary)]"
-                    : "bg-[var(--surface-container)] text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-high)]"
+                    ? "bg-[var(--primary)] text-[var(--on-primary)] border-transparent shadow-[0_12px_24px_rgba(0,92,230,0.18)]"
+                    : "bg-white text-[var(--on-surface-variant)] border-[var(--border)] hover:bg-[var(--surface-container-low)]"
                 }`}
               >
                 {child.first_name} {child.last_name}
@@ -329,10 +330,12 @@ export default function ParentFeesPage() {
             },
           ].map((item) => (
             <Card key={item.label}>
-              <CardBody className="flex items-center gap-4">
-                <MaterialIcon icon={item.icon} className={`text-3xl ${item.color}`} />
+              <CardBody className="flex items-center gap-4 bg-[linear-gradient(180deg,#ffffff_0%,#f9fbff_100%)]">
+                <div className="flex h-12 w-12 items-center justify-center rounded-[16px] bg-[var(--surface-container-low)] border border-[var(--border)]">
+                  <MaterialIcon icon={item.icon} className={`text-2xl ${item.color}`} />
+                </div>
                 <div>
-                  <p className={`text-xl font-black ${item.color}`}>{item.value}</p>
+                  <p className={`text-xl font-semibold tracking-[-0.03em] ${item.color}`}>{item.value}</p>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
                     {item.label}
                   </p>
@@ -343,10 +346,10 @@ export default function ParentFeesPage() {
         </div>
 
         <Card>
-          <CardBody className="space-y-4">
+          <CardBody className="space-y-4 bg-[linear-gradient(180deg,#ffffff_0%,#f7faff_100%)]">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-bold text-[var(--on-surface)]">
+                <p className="text-sm font-semibold text-[var(--on-surface)]">
                   Payment Progress
                 </p>
                 <p className="text-xs text-[var(--on-surface-variant)]">
@@ -391,7 +394,7 @@ export default function ParentFeesPage() {
         <div className="grid xl:grid-cols-3 gap-6">
           <Card>
             <CardBody>
-              <h2 className="font-bold text-[var(--on-surface)] mb-4">
+              <h2 className="font-semibold text-[var(--on-surface)] mb-4">
                 Fee Structure
               </h2>
               {loading ? (
@@ -412,7 +415,7 @@ export default function ParentFeesPage() {
                   {feeStructure.map((fee) => (
                     <div
                       key={fee.id}
-                      className="flex justify-between items-center p-3 bg-[var(--surface-container-low)] rounded-2xl"
+                      className="flex justify-between items-center p-3 bg-[var(--surface-container-low)] rounded-[18px] border border-[var(--border)]"
                     >
                       <div>
                         <p className="font-bold text-sm text-[var(--on-surface)]">
@@ -436,7 +439,7 @@ export default function ParentFeesPage() {
 
           <Card>
             <CardBody>
-              <h2 className="font-bold text-[var(--on-surface)] mb-4">
+              <h2 className="font-semibold text-[var(--on-surface)] mb-4">
                 Payment History
               </h2>
               {loading ? (
@@ -457,7 +460,7 @@ export default function ParentFeesPage() {
                   {payments.map((payment) => (
                     <div
                       key={payment.id}
-                      className="p-3 bg-[var(--surface-container-low)] rounded-2xl"
+                      className="p-3 bg-[var(--surface-container-low)] rounded-[18px] border border-[var(--border)]"
                     >
                       <div className="flex justify-between items-start">
                         <div>
@@ -496,7 +499,7 @@ export default function ParentFeesPage() {
 
           <Card>
             <CardBody>
-              <h2 className="font-bold text-[var(--on-surface)] mb-4">
+              <h2 className="font-semibold text-[var(--on-surface)] mb-4">
                 Wallet Activity
               </h2>
               {loading ? (
@@ -517,7 +520,7 @@ export default function ParentFeesPage() {
                   {walletTransactions.map((transaction) => (
                     <div
                       key={transaction.id}
-                      className="p-3 bg-[var(--surface-container-low)] rounded-2xl"
+                      className="p-3 bg-[var(--surface-container-low)] rounded-[18px] border border-[var(--border)]"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div>

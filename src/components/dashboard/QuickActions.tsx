@@ -30,10 +30,10 @@ export function QuickActions({ actions, title }: { actions: Action[], title: str
           <Link
             key={i}
             href={action.href}
-            className="qa-item !items-start !justify-start !p-4 !rounded-[18px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--sh1)] hover:shadow-[var(--sh2)]"
+            className="qa-item !items-start !justify-start !p-4 !rounded-[22px] border border-[var(--border)] bg-white shadow-[var(--sh1)] hover:shadow-[var(--sh2)]"
           >
             <div
-              className="qa-icon !mb-0 !mr-3"
+              className="qa-icon !mb-0 !mr-3 !h-11 !w-11 !rounded-[14px]"
               style={{
                 background: (ACTION_STYLES[action.color] || ACTION_STYLES.navy).soft,
                 color: (ACTION_STYLES[action.color] || ACTION_STYLES.navy).solid,
@@ -42,7 +42,7 @@ export function QuickActions({ actions, title }: { actions: Action[], title: str
               <MaterialIcon icon={action.icon} />
             </div>
             <div className="min-w-0">
-              <div className="text-[13px] font-bold text-[var(--t1)] truncate">{action.label}</div>
+              <div className="text-[13px] font-semibold text-[var(--t1)] truncate">{action.label}</div>
               <div className="mt-1 text-[11px] text-[var(--t3)]">
                 Open {action.label.toLowerCase()}
               </div>

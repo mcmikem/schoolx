@@ -5,14 +5,14 @@ test("landing page renders primary CTAs", async ({ page }) => {
 
   await expect(
     page.getByRole("heading", {
-      name: /save 5\+ hours every week/i,
+      name: /all-in-one.*school management/i,
     }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: /start free trial/i }).first(),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: /watch.*demo/i }).first(),
+    page.getByRole("link", { name: /sign in/i }).first(),
   ).toBeVisible();
 });
 
@@ -36,9 +36,13 @@ test("pricing section shows correct plans", async ({ page }) => {
 test("parent portal login page renders", async ({ page }) => {
   await page.goto("/parent");
 
-  await expect(page.getByText(/parent portal/i).first()).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /welcome back/i }),
+  ).toBeVisible();
   await expect(page.getByLabel(/phone number/i)).toBeVisible();
-  await expect(page.getByLabel(/password/i)).toBeVisible();
+  await expect(page.getByRole("textbox", { name: /^password$/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible();
+  await expect(page).toHaveURL(/\/login\/\?redirect=%2Fparent%2F/);
 });
 
 test("login page renders demo shortcuts", async ({ page }) => {

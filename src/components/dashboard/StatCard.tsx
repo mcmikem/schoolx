@@ -94,29 +94,22 @@ export default function StatCard({
   // ── Standard (redesigned — on-brand, not generic SaaS) ────────────────────
   return (
     <div
-      className="relative bg-[var(--surface)] border border-[var(--border)] rounded-2xl flex flex-col transition-all duration-200 cursor-default group hover:-translate-y-0.5 overflow-hidden"
+      className="relative bg-white border border-[var(--border)] rounded-[24px] flex flex-col transition-all duration-200 cursor-default group hover:-translate-y-0.5 overflow-hidden"
       style={{
-        boxShadow: `0 1px 4px rgba(15,23,42,0.06), 0 6px 18px rgba(${shadowRgb},0.07)`,
+        boxShadow: `0 2px 10px rgba(0,0,0,0.03), 0 10px 24px rgba(${shadowRgb},0.07)`,
       }}
     >
-      {/* Decorative radial glow behind icon — subtle brand wash */}
-      <div
-        className="absolute -top-10 -right-10 w-36 h-36 rounded-full pointer-events-none opacity-[0.07] group-hover:opacity-[0.13] transition-opacity duration-300"
-        style={{ background: accent.solid }}
-      />
-
       <div className="p-5 flex-1 flex flex-col relative z-[1]">
-        {/* Icon badge (top-left, solid brand color) */}
         <div className="flex items-start justify-between mb-4">
           <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105"
+            className="w-11 h-11 rounded-[15px] flex items-center justify-center flex-shrink-0 border transition-transform duration-200 group-hover:scale-105"
             style={{
-              background: accent.solid,
-              color: "white",
-              boxShadow: `0 4px 14px rgba(${shadowRgb},0.30)`,
+              background: accent.soft,
+              color: accent.solid,
+              borderColor: `${accent.solid}22`,
             }}
           >
-            <MaterialIcon icon={icon} style={{ fontSize: 22 }} />
+            <MaterialIcon icon={icon} style={{ fontSize: 20 }} />
           </div>
 
           {/* Trend badge (top-right) */}
@@ -138,7 +131,7 @@ export default function StatCard({
 
         {/* Hero number */}
         <div
-          className="text-[30px] sm:text-[32px] font-extrabold tracking-tight leading-none text-[var(--t1)]"
+          className="text-[30px] sm:text-[32px] font-semibold tracking-[-0.04em] leading-none text-[var(--t1)]"
           style={{ fontFamily: "'Sora', sans-serif" }}
         >
           {loading ? (
@@ -148,10 +141,9 @@ export default function StatCard({
           )}
         </div>
 
-        {/* Label — below number in accent color (not generic gray) */}
         <div
           className="text-[10px] font-bold uppercase tracking-[0.18em] mt-2"
-          style={{ color: accent.solid, opacity: 0.75 }}
+          style={{ color: accent.solid, opacity: 0.9 }}
         >
           {label}
         </div>
@@ -167,11 +159,10 @@ export default function StatCard({
         )}
       </div>
 
-      {/* Bottom accent gradient line */}
       <div
         className="h-[3px] flex-shrink-0"
         style={{
-          background: `linear-gradient(to right, ${accent.solid}cc 0%, ${accent.solid}33 60%, transparent 100%)`,
+          background: `linear-gradient(to right, ${accent.solid} 0%, ${accent.solid}55 55%, transparent 100%)`,
         }}
       />
     </div>

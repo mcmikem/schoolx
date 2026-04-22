@@ -116,6 +116,8 @@ function clearDemoStorage() {
   if (typeof window === "undefined") return;
   sessionStorage.removeItem(DEMO_KEY);
   localStorage.removeItem(DEMO_KEY);
+  document.cookie = `${DEMO_KEY}=; Max-Age=0; path=/`;
+  document.cookie = `${DEMO_KEY}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
 }
 
 // Local extensions for Auth context if needed, otherwise use imported types.

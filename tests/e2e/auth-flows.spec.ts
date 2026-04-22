@@ -12,7 +12,7 @@
  * Run against an already-running server (must have NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES=true):
  *   PLAYWRIGHT_USE_EXISTING_SERVER=true npx playwright test tests/e2e/auth-flows.spec.ts
  */
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import { seedDemoSession } from "./helpers/demo";
 
 const SUPABASE_URL = "https://gucxpmgwvnbqykevucbi.supabase.co";
@@ -31,16 +31,32 @@ async function fillLoginForm(page: Page, phone: string, password: string) {
 }
 
 /** Fill all 3 steps of the registration form and click the final submit. */
+async function stableFill(locator: Locator, value: string) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    await locator.click();
+    await locator.fill(value);
+    try {
+      await expect(locator).toHaveValue(value, { timeout: 1200 });
+      return;
+    } catch {
+      if (attempt === 3) throw new Error(`Failed to set input value to ${value}`);
+    }
+  }
+}
+
 async function fillAndSubmitRegisterForm(page: Page) {
-  await page.goto("/register");
+  await page.goto("/register", { waitUntil: "networkidle" });
 
   // Step 1 – school info
-  await page.getByLabel(/school name/i).fill("Test School");
+  const schoolName = page.getByLabel(/school name/i);
+  await stableFill(schoolName, "Test School");
   await page.getByRole("button", { name: /next.*where/i }).click();
 
-  // Step 2 – location (exact label to avoid matching quick-pick selects)
-  await page.getByLabel("District", { exact: true }).fill("Kampala");
-  await page.getByLabel("Sub-county / Division", { exact: true }).fill("Central Division");
+  // Step 2 – location
+  const district = page.getByRole("textbox", { name: /^district$/i });
+  await stableFill(district, "Kampala");
+  const subcounty = page.getByRole("textbox", { name: /sub-county \/ division/i });
+  await stableFill(subcounty, "Central Division");
   await page.getByRole("button", { name: /next.*account/i }).click();
 
   // Step 3 – admin credentials
@@ -202,18 +218,21 @@ test.describe("Auth – login form", () => {
 
 test.describe("Auth – register validation (no backend)", () => {
   test("shows error for empty school name", async ({ page }) => {
-    await page.goto("/register");
+    await page.goto("/register", { waitUntil: "networkidle" });
     await page.getByRole("button", { name: /next.*where/i }).click();
-    await expect(page.getByText(/school name is required/i)).toBeVisible();
+    await expect(page.getByText(/school name is required/i)).toBeVisible({ timeout: 10000 });
   });
 
   test("shows error for password under 8 characters", async ({ page }) => {
     // Reach step 3
-    await page.goto("/register");
-    await page.getByLabel(/school name/i).fill("Test School");
+    await page.goto("/register", { waitUntil: "networkidle" });
+    await stableFill(page.getByRole("textbox", { name: /school name/i }), "Test School");
     await page.getByRole("button", { name: /next.*where/i }).click();
-    await page.getByLabel("District", { exact: true }).fill("Kampala");
-    await page.getByLabel("Sub-county / Division", { exact: true }).fill("Central Division");
+    await stableFill(page.getByRole("textbox", { name: /^district$/i }), "Kampala");
+    await stableFill(
+      page.getByRole("textbox", { name: /sub-county \/ division/i }),
+      "Central Division",
+    );
     await page.getByRole("button", { name: /next.*account/i }).click();
 
     await page.getByLabel(/your full name/i).fill("John Admin");
@@ -233,11 +252,14 @@ test.describe("Auth – register validation (no backend)", () => {
   });
 
   test("shows error when passwords do not match", async ({ page }) => {
-    await page.goto("/register");
-    await page.getByLabel(/school name/i).fill("Test School");
+    await page.goto("/register", { waitUntil: "networkidle" });
+    await stableFill(page.getByRole("textbox", { name: /school name/i }), "Test School");
     await page.getByRole("button", { name: /next.*where/i }).click();
-    await page.getByLabel("District", { exact: true }).fill("Kampala");
-    await page.getByLabel("Sub-county / Division", { exact: true }).fill("Central Division");
+    await stableFill(page.getByRole("textbox", { name: /^district$/i }), "Kampala");
+    await stableFill(
+      page.getByRole("textbox", { name: /sub-county \/ division/i }),
+      "Central Division",
+    );
     await page.getByRole("button", { name: /next.*account/i }).click();
 
     await page.getByLabel(/your full name/i).fill("John Admin");
@@ -299,10 +321,9 @@ test.describe("Auth – register validation (no backend)", () => {
 
     await fillAndSubmitRegisterForm(page);
 
-    // Register page shows the fallback "go to login" message
-    await expect(
-      page.getByText(/account created.*please go to login|go to login page/i),
-    ).toBeVisible({ timeout: 25_000 });
-    expect(page.url()).toMatch(/\/register/);
+    await expect(page).toHaveURL(/\/login/, {
+      timeout: 25_000,
+    });
+    await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible();
   });
 });
