@@ -367,9 +367,11 @@ function HeadmasterDashboardContent() {
   const todayIso = new Date().toISOString().split("T")[0];
   const pendingTaskCount = tasks.filter((task) => !task.done).length;
 
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth();
   const calendarAnchor = useMemo(
-    () => new Date(currentDate.getFullYear(), currentDate.getMonth(), 1),
-    [currentDate],
+    () => new Date(currentYear, currentMonth, 1),
+    [currentYear, currentMonth],
   );
 
   const academicEvents = useMemo(() => {

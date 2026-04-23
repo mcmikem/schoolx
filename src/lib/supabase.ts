@@ -165,7 +165,14 @@ const createUnavailableClient = (): SupabaseClient => {
 // Export a flag so application boundaries can show a setup screen instead of crashing
 export const isSupabaseConfigured = hasUsableSupabaseConfig;
 
-if (!hasUsableSupabaseConfig && process.env.NODE_ENV === "production") {
+const isNextProductionBuild =
+  process.env.NEXT_PHASE === "phase-production-build";
+
+if (
+  !hasUsableSupabaseConfig &&
+  process.env.NODE_ENV === "production" &&
+  !isNextProductionBuild
+) {
   // Log a clear error but do NOT throw at module evaluation time.
   // Throwing here causes the entire Next.js app to crash with a 500 error
   // rather than rendering a user-friendly configuration page.

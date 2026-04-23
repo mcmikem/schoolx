@@ -30,8 +30,11 @@ jobs:
       - name: Run linter
         run: npm run lint
 
+      - name: Run security scan
+        run: npm run check:security
+
       - name: Run tests
-        run: npm test -- --forceExit --passWithNoTests
+        run: npm test -- --passWithNoTests
         env:
           ALLOW_SUPABASE_MOCK: "true"
           NODE_ENV: test
@@ -65,6 +68,7 @@ jobs:
           FLUTTERWAVE_WEBHOOK_SECRET: ${{ secrets.FLUTTERWAVE_WEBHOOK_SECRET }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           DEMO_ADMIN_PASSWORD: ${{ secrets.DEMO_ADMIN_PASSWORD }}
+
 
   deploy-preview:
     runs-on: ubuntu-latest
