@@ -2,6 +2,7 @@
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useToast } from "@/components/Toast";
@@ -425,7 +426,17 @@ function SchoolDetailSheet({ school, onClose, onUpdated, onDeleted }: {
           {/* Header */}
           <div className="flex items-center gap-3 px-5 py-4 border-b border-[var(--border)] sticky top-0 bg-[var(--surface)] z-10">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-[13px] font-bold flex-shrink-0 overflow-hidden" style={{ background: color }}>
-              {school.logo_url ? <img src={school.logo_url} alt={school.name} className="w-full h-full object-cover" /> : name.slice(0, 2).toUpperCase()}
+              {school.logo_url ? (
+                <Image
+                  src={school.logo_url}
+                  alt={school.name}
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                name.slice(0, 2).toUpperCase()
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] truncate">{name || school.name}</div>
@@ -650,7 +661,17 @@ function SchoolDetailSheet({ school, onClose, onUpdated, onDeleted }: {
                   </div>
                   <div className="p-4 text-center" style={{ borderTop: `3px solid ${color}` }}>
                     <div className="w-10 h-10 rounded-full mx-auto mb-2 flex items-center justify-center text-white text-xs font-bold overflow-hidden" style={{ background: color }}>
-                      {school.logo_url ? <img src={school.logo_url} alt="" className="w-full h-full object-cover" /> : name.slice(0, 2).toUpperCase()}
+                      {school.logo_url ? (
+                        <Image
+                          src={school.logo_url}
+                          alt={`${name || school.name} logo`}
+                          width={40}
+                          height={40}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        name.slice(0, 2).toUpperCase()
+                      )}
                     </div>
                     <div className="text-[13px] font-bold text-[var(--t1)] whitespace-pre-line">{reportHeader || name}</div>
                     {motto && <div className="text-[10px] text-[var(--t3)] italic mt-1">"{motto}"</div>}
@@ -1235,7 +1256,17 @@ export default function SuperAdminPage() {
                           <button key={s.id} type="button" onClick={() => setSelectedSchool(s)}
                             className="w-full flex items-center gap-3 px-5 py-3 hover:bg-[var(--bg)] transition-colors text-left group">
                             <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-white text-[11px] font-bold overflow-hidden" style={{ background: s.primary_color || "var(--navy)" }}>
-                              {s.logo_url ? <img src={s.logo_url} alt={s.name} className="w-full h-full object-cover" /> : s.name.slice(0, 2).toUpperCase()}
+                              {s.logo_url ? (
+                                <Image
+                                  src={s.logo_url}
+                                  alt={s.name}
+                                  width={32}
+                                  height={32}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                s.name.slice(0, 2).toUpperCase()
+                              )}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="text-[12px] font-semibold text-[var(--t1)] truncate group-hover:text-[var(--navy)]">{s.name}</div>
@@ -1367,7 +1398,17 @@ export default function SuperAdminPage() {
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2.5">
                                 <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 overflow-hidden" style={{ background: s.primary_color || "var(--navy)" }}>
-                                  {s.logo_url ? <img src={s.logo_url} alt={s.name} className="w-full h-full object-cover" /> : s.name.slice(0, 2).toUpperCase()}
+                                  {s.logo_url ? (
+                                    <Image
+                                      src={s.logo_url}
+                                      alt={s.name}
+                                      width={28}
+                                      height={28}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    s.name.slice(0, 2).toUpperCase()
+                                  )}
                                 </div>
                                 <div className="min-w-0">
                                   <div className="text-[12px] font-semibold text-[var(--t1)] truncate max-w-[160px]">{s.name}</div>

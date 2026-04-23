@@ -384,7 +384,6 @@ export default function TimetablePage() {
     } catch (err) {
       console.error('Error fetching all timetables:', err)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [school?.id, selectedClassId])
 
   useEffect(() => {

@@ -22,6 +22,36 @@ const REPORT_ALLOWED_ROLES = [
   "secretary",
 ];
 
+const REPORT_ADMIN_ROLES = [
+  "super_admin",
+  "school_admin",
+  "admin",
+  "headmaster",
+  "dean_of_studies",
+  "secretary",
+];
+
+export function canUserAccessStudentReport(params: {
+  userRole: string;
+  userId: string;
+  studentClassId?: string | null;
+  classTeacherId?: string | null;
+  taughtClassIds?: string[];
+}): boolean {
+  const { userRole, userId, studentClassId, classTeacherId, taughtClassIds = [] } =
+    params;
+
+  if (REPORT_ADMIN_ROLES.includes(userRole)) return true;
+
+  if (userRole === "teacher") {
+    if (!studentClassId) return false;
+    if (classTeacherId && classTeacherId === userId) return true;
+    return taughtClassIds.includes(studentClassId);
+  }
+
+  return false;
+}
+
 function getUNEBGrade(score: number): string {
   if (score >= 80) return "D1";
   if (score >= 70) return "D2";
@@ -74,7 +104,7 @@ export async function POST(request: NextRequest) {
     // Fetch student with class info
     const { data: student, error: studentError } = await supabase
       .from("students")
-      .select("*, classes (id, name, level)")
+      .select("*, classes (id, name, level, class_teacher_id)")
       .eq("id", studentId)
       .single();
 
@@ -84,6 +114,37 @@ export async function POST(request: NextRequest) {
 
     if (student.school_id !== schoolId) {
       return apiError("Student does not belong to the requested school", 403);
+    }
+
+    if (auth.context.user.role === "teacher") {
+      const { data: taughtEntries } = await supabase
+        .from("teacher_timetable")
+        .select("class_id")
+        .eq("teacher_id", auth.context.user.id)
+        .limit(500);
+
+      const taughtClassIds: string[] = Array.from(
+        new Set<string>(
+          (taughtEntries || [])
+            .map((entry: any) => entry.class_id)
+            .filter(
+              (classId: unknown): classId is string =>
+                typeof classId === "string",
+            ),
+        ),
+      );
+
+      const teacherCanAccess = canUserAccessStudentReport({
+        userRole: auth.context.user.role,
+        userId: auth.context.user.id,
+        studentClassId: student.class_id,
+        classTeacherId: (student as any)?.classes?.class_teacher_id,
+        taughtClassIds,
+      });
+
+      if (!teacherCanAccess) {
+        return apiError("You can only access reports for your assigned classes", 403);
+      }
     }
 
     // Fetch school info
