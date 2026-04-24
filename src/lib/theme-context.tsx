@@ -13,20 +13,20 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('light')
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-    const saved = localStorage.getItem('omuto-theme') as Theme | null
-    if (saved) {
-      setThemeState(saved)
-      applyTheme(saved)
-    }
-  }, [])
 
   const applyTheme = (t: Theme) => {
     document.documentElement.setAttribute('data-theme', t)
   }
+
+  useEffect(() => {
+    const saved = localStorage.getItem('omuto-theme') as Theme | null
+    if (saved) {
+      setThemeState(saved)
+      applyTheme(saved)
+    } else {
+      applyTheme('light')
+    }
+  }, [])
 
   const setTheme = (t: Theme) => {
     setThemeState(t)
@@ -37,10 +37,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light'
     setTheme(newTheme)
-  }
-
-  if (!mounted) {
-    return <>{children}</>
   }
 
   return (

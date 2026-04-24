@@ -578,8 +578,21 @@ CREATE TABLE IF NOT EXISTS lesson_plans (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Add image column to notices
-ALTER TABLE notices ADD COLUMN IF NOT EXISTS image_url TEXT;
+-- ============================================
+-- NOTICES TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS notices (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    category TEXT DEFAULT 'General',
+    priority TEXT CHECK (priority IN ('normal', 'medium', 'high')) DEFAULT 'normal',
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    expires_at TIMESTAMPTZ,
+    image_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
 -- ============================================
 -- EXAMS TABLE (For Secondary Schools)
@@ -620,33 +633,6 @@ CREATE TABLE IF NOT EXISTS exam_scores (
 );
 
 -- ============================================
--- DORMS TABLE
--- ============================================
-CREATE TABLE IF NOT EXISTS dorms (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    type TEXT CHECK (type IN ('boys', 'girls')) NOT NULL,
-    capacity INTEGER DEFAULT 30,
-    location TEXT,
-    warden_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- ============================================
--- DORM STUDENTS TABLE
--- ============================================
-CREATE TABLE IF NOT EXISTS dorm_students (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    dorm_id UUID NOT NULL REFERENCES dorms(id) ON DELETE CASCADE,
-    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-    bed_number TEXT,
-    assigned_date DATE DEFAULT CURRENT_DATE,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(dorm_id, student_id)
-);
-
--- ============================================
 -- LIBRARY BOOKS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS library_books (
@@ -675,6 +661,82 @@ CREATE TABLE IF NOT EXISTS library_checkouts (
     due_date DATE,
     return_date DATE,
     status TEXT CHECK (status IN ('checked_out', 'returned', 'overdue')) DEFAULT 'checked_out',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
+-- APP-COMPAT TABLES (legacy module names)
+-- ============================================
+CREATE TABLE IF NOT EXISTS books (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    isbn TEXT,
+    title TEXT NOT NULL,
+    author TEXT,
+    category TEXT,
+    copies INTEGER DEFAULT 1,
+    available INTEGER DEFAULT 1,
+    location TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS book_checkouts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    book_id UUID NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    checkout_date DATE DEFAULT CURRENT_DATE,
+    due_date DATE,
+    return_date DATE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS visitors (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    purpose TEXT NOT NULL,
+    person_visited TEXT NOT NULL,
+    phone TEXT,
+    time_in TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    time_out TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS discipline (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    incident_type TEXT NOT NULL,
+    description TEXT NOT NULL,
+    action_taken TEXT,
+    follow_up_date DATE,
+    resolved BOOLEAN DEFAULT false,
+    reported_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS period_attendance (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    period TEXT NOT NULL,
+    status TEXT CHECK (status IN ('present', 'absent', 'late')) NOT NULL,
+    recorded_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(student_id, date, period)
+);
+
+CREATE TABLE IF NOT EXISTS timetable (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
+    teacher_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 1 AND 7),
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -865,31 +927,6 @@ CREATE TABLE IF NOT EXISTS behavior_logs (
     action_taken TEXT,
     points INTEGER DEFAULT 0, -- Positive/Negative points
     recorded_by UUID REFERENCES users(id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- ============================================
--- LESSON PLANS TABLE
--- ============================================
-CREATE TABLE IF NOT EXISTS lesson_plans (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
-    teacher_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
-    class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
-    topic TEXT NOT NULL,
-    subtopics TEXT, -- JSON array
-    objectives TEXT,
-    teaching_method TEXT,
-    materials_needed TEXT,
-    procedure TEXT,
-    assessment TEXT,
-    homework TEXT,
-    duration INTEGER, -- minutes
-    lesson_date DATE,
-    term INTEGER,
-    academic_year TEXT,
-    status TEXT CHECK (status IN ('draft', 'completed', 'cancelled')) DEFAULT 'draft',
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "npm run check:db-contract && npx tsc --noEmit",
+    "check:db-contract": "node scripts/check-db-contract.mjs",
+    "quality:ci": "npm run check:db-contract && npx tsc --noEmit && npm run build"
   },
   "dependencies": {
     "@google/genai": "^1.46.0",

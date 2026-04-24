@@ -621,7 +621,6 @@ code.mono { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--t3)
   /* Smaller spacing */
   .card { padding: 12px !important; }
   .stat-inner { padding: 12px !important; }
-}
   .topbar { gap: 8px; }
   .topbar > div:first-child { display: none; }
   .topbar > div:nth-child(2) { min-width: 0; flex: 1; }

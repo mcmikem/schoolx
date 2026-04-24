@@ -1084,7 +1084,7 @@ export function useTimetable(classId?: string) {
           .select(`
             *,
             subjects (name, code),
-            teachers:profiles (full_name)
+            teachers:users!teacher_id (full_name)
           `)
           .eq('class_id', classId)
           .order('day_of_week')
