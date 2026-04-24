@@ -58,7 +58,7 @@ export default function RootLayout({
     <html lang="en" className="light">
       <head>
         {/* Google Fonts — single request to reduce latency */}
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        { }
         <link
           rel="preconnect"
           href="https://fonts.googleapis.com"
