@@ -129,7 +129,10 @@ interface AuthContextType {
   loading: boolean;
   isDemo: boolean;
   isTrialExpired: boolean;
-  signIn: (phone: string, password: string) => Promise<{ error: any; role?: string }>;
+  signIn: (
+    phone: string,
+    password: string,
+  ) => Promise<{ error: any; role?: string }>;
   signUp: (
     phone: string,
     password: string,
@@ -274,7 +277,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: userData.role as User["role"],
         });
         // Persist for offline use
-        try { localStorage.setItem(OFFLINE_USER_KEY, JSON.stringify({ ...userData, role: userData.role as User["role"] })); } catch {}
+        try {
+          localStorage.setItem(
+            OFFLINE_USER_KEY,
+            JSON.stringify({
+              ...userData,
+              role: userData.role as User["role"],
+            }),
+          );
+        } catch {}
 
         // Super admins don't have a school - they manage all schools
         if (userData.role === "super_admin") {
@@ -285,12 +296,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (userData.school_id) {
           const { data: schoolData, error: schoolError } =
-            await withSupabaseLockRetry(async () =>
-              await supabase
-                .from("schools")
-                .select("*")
-                .eq("id", userData.school_id)
-                .single(),
+            await withSupabaseLockRetry(
+              async () =>
+                await supabase
+                  .from("schools")
+                  .select("*")
+                  .eq("id", userData.school_id)
+                  .single(),
             );
 
           if (schoolError) {
@@ -306,7 +318,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             };
             setSchool(schoolObj);
             // Persist for offline use
-            try { localStorage.setItem(OFFLINE_SCHOOL_KEY, JSON.stringify(schoolObj)); } catch {}
+            try {
+              localStorage.setItem(
+                OFFLINE_SCHOOL_KEY,
+                JSON.stringify(schoolObj),
+              );
+            } catch {}
             if (
               schoolData.subscription_status === "trial" &&
               schoolData.trial_ends_at
@@ -397,7 +414,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Fast path: getSession() reads from localStorage — no network call.
           // If null, there are no tokens stored and the user is definitely not
           // logged in. Skip the getUser() server round-trip entirely.
-          const { data: { session } } = await supabase!.auth.getSession();
+          const {
+            data: { session },
+          } = await supabase!.auth.getSession();
           if (!session) {
             setUser(null);
             setSchool(null);
@@ -475,17 +494,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (isCurrentlyDemo && event !== "SIGNED_OUT") return;
 
           if (
-            (event === "SIGNED_IN" ||
-              event === "INITIAL_SESSION" ||
-              event === "TOKEN_REFRESHED")
+            event === "SIGNED_IN" ||
+            event === "INITIAL_SESSION" ||
+            event === "TOKEN_REFRESHED"
           ) {
             // Mark loading before async work so any route guard (e.g. DashboardRouter)
             // that renders concurrently sees loading=true instead of loading=false+user=null.
             if (session) setLoading(true);
             const {
               data: { user: verifiedUser },
-            } = await withSupabaseLockRetry(async () =>
-              await supabase!.auth.getUser(),
+            } = await withSupabaseLockRetry(
+              async () => await supabase!.auth.getUser(),
             );
 
             if (verifiedUser) {
@@ -504,7 +523,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setIsDemo(false);
             setIsTrialExpired(false);
             setLoading(false);
-            try { localStorage.removeItem(OFFLINE_USER_KEY); localStorage.removeItem(OFFLINE_SCHOOL_KEY); } catch {}
+            try {
+              localStorage.removeItem(OFFLINE_USER_KEY);
+              localStorage.removeItem(OFFLINE_SCHOOL_KEY);
+            } catch {}
           }
         } catch (error) {
           if (!isSupabaseLockAbortError(error)) {
@@ -526,7 +548,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const handleVisibilityChange = async () => {
       if (document.visibilityState === "visible") {
         try {
-          const { data: { user: freshUser } } = await supabase!.auth.getUser();
+          const {
+            data: { user: freshUser },
+          } = await supabase!.auth.getUser();
           if (!freshUser && user) {
             // Session expired while tab was backgrounded
             setUser(null);
@@ -540,8 +564,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [user, router]);
+
+  const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+  const CHECK_INTERVAL_MS = 60 * 1000; // Check every minute
+
+  // Session timeout - log out after 30 minutes of inactivity
+  useEffect(() => {
+    if (!user || !supabase) return;
+
+    let lastActivity = Date.now();
+    let timeoutId: NodeJS.Timeout;
+
+    const updateActivity = () => {
+      lastActivity = Date.now();
+    };
+
+    const checkTimeout = async () => {
+      const inactiveMs = Date.now() - lastActivity;
+      if (inactiveMs > SESSION_TIMEOUT_MS) {
+        await signOut();
+      }
+    };
+
+    const events = [
+      "mousedown",
+      "keydown",
+      "scroll",
+      "touchstart",
+      "mousemove",
+    ];
+    events.forEach((event) =>
+      window.addEventListener(event, updateActivity, { passive: true }),
+    );
+
+    timeoutId = setInterval(checkTimeout, CHECK_INTERVAL_MS);
+
+    return () => {
+      clearInterval(timeoutId);
+      events.forEach((event) =>
+        window.removeEventListener(event, updateActivity),
+      );
+    };
+  }, [user, supabase, signOut]);
 
   async function signIn(phone: string, password: string) {
     try {
@@ -584,21 +651,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // Background preload of critical tables for offline use — fire and forget
-        import("@/lib/offline").then(({ offlineDB }) => {
-          offlineDB.refreshAll([
-            "students",
-            "classes",
-            "subjects",
-            "attendance",
-            "grades",
-            "fee_payments",
-            "fee_structure",
-            "fee_adjustments",
-            "messages",
-            "events",
-            "timetable",
-          ]).catch(() => {});
-        }).catch(() => {});
+        import("@/lib/offline")
+          .then(({ offlineDB }) => {
+            offlineDB
+              .refreshAll([
+                "students",
+                "classes",
+                "subjects",
+                "attendance",
+                "grades",
+                "fee_payments",
+                "fee_structure",
+                "fee_adjustments",
+                "messages",
+                "events",
+                "timetable",
+              ])
+              .catch(() => {});
+          })
+          .catch(() => {});
 
         return { error: null, role: userData.role };
       }
@@ -615,17 +686,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const normalizedPhone = normalizeAuthPhone(phone);
       const email = buildAuthEmailFromPhone(normalizedPhone);
-      const { data, error } = await withSupabaseLockRetry(async () =>
-        await supabase!.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: name,
-              phone: normalizedPhone,
+      const { data, error } = await withSupabaseLockRetry(
+        async () =>
+          await supabase!.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                full_name: name,
+                phone: normalizedPhone,
+              },
             },
-          },
-        }),
+          }),
       );
 
       if (error) return { error };
