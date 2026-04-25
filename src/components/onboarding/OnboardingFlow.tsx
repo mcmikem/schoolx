@@ -36,6 +36,7 @@ export default function OnboardingFlow({
   const toast = useToast();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
   const [branding, setBranding] = useState({
     primary_color: school?.primary_color || "#0d9488",
@@ -66,6 +67,13 @@ export default function OnboardingFlow({
       document.body.style.overflow = "auto";
     };
   }, []);
+
+  // Handle scroll on mobile
+  const handleScroll = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  };
 
   if (!school) return null;
 
@@ -192,10 +200,14 @@ export default function OnboardingFlow({
       await refreshSchool();
       setLoading(false);
       onComplete();
-      toast.success("Setup complete. Your school can start working immediately.");
+      toast.success(
+        "Setup complete. Your school can start working immediately.",
+      );
     } catch (error: unknown) {
       console.error("Final error:", error);
-      toast.error(getErrorMessage(error, "Failed to save your setup. Please try again."));
+      toast.error(
+        getErrorMessage(error, "Failed to save your setup. Please try again."),
+      );
       setLoading(false);
     }
   };
@@ -211,10 +223,15 @@ export default function OnboardingFlow({
   const selectedPlan = PLANS[normalizePlanType(school.subscription_plan)];
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[var(--bg)]/90 backdrop-blur-xl p-4 md:p-8">
-      <div className="relative flex w-full max-w-5xl flex-col overflow-hidden rounded-[36px] bg-white shadow-[0_38px_90px_rgba(15,23,42,0.16)] ring-1 ring-black/5 md:flex-row">
-        {/* Left Side: Progress & Info */}
-        <div className="relative hidden w-1/3 flex-col overflow-hidden bg-[linear-gradient(160deg,#0b1c39_0%,#17325f_54%,#1a4b79_100%)] p-10 text-white md:flex">
+    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-[var(--bg)]/90 backdrop-blur-xl overflow-y-auto">
+      <div
+        ref={scrollContainerRef}
+        className="relative flex w-full min-h-screen md:min-h-auto md:h-full md:max-h-[80vh] flex-col overflow-y-auto overflow-x-hidden py-6 md:py-0 md:rounded-[36px] bg-white shadow-[0_38px_90px_rgba(15,23,42,0.16)] ring-1 ring-black/5 md:flex-row"
+        onScroll={handleScroll}
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
+        {/* Left Side: Progress & Info - Desktop only */}
+        <div className="relative hidden md:flex md:w-1/3 md:min-h-[600px] flex-col overflow-hidden bg-[linear-gradient(160deg,#0b1c39_0%,#17325f_54%,#1a4b79_100%)] p-10 text-white">
           <div className="absolute top-0 right-0 w-full h-full opacity-30 pointer-events-none">
             <div className="absolute top-[10%] right-[-20%] w-[150%] h-[50%] bg-teal-400 blur-[80px] rounded-full mix-blend-overlay"></div>
           </div>
@@ -267,7 +284,7 @@ export default function OnboardingFlow({
         </div>
 
         {/* Right Side: Step Content */}
-        <div className="flex-1 flex flex-col p-8 md:p-12 relative min-h-[500px]">
+        <div className="flex-1 flex flex-col p-4 md:p-8 lg:p-12 pb-24 md:pb-12 relative min-h-[400px] md:min-h-[600px] w-full md:max-w-lg overflow-y-auto">
           <AnimatePresence mode="wait">
             {step === 1 && (
               <motion.div
@@ -281,7 +298,11 @@ export default function OnboardingFlow({
                   eyebrow="Launch setup"
                   title="Welcome to SkoolMate OS"
                   description="The owl will walk you through school essentials, curriculum defaults, feature activation, and launch settings in one clear flow."
-                  chips={["School identity", "Curriculum defaults", "Launch-ready modules"]}
+                  chips={[
+                    "School identity",
+                    "Curriculum defaults",
+                    "Launch-ready modules",
+                  ]}
                   className="mb-8"
                 />
                 <Button
@@ -308,7 +329,11 @@ export default function OnboardingFlow({
                   eyebrow="School identity"
                   title="School branding"
                   description="Set the details staff and parents recognize immediately. These choices carry through receipts, report cards, and daily communication."
-                  chips={["Official school name", "Local area details", "Primary theme color"]}
+                  chips={[
+                    "Official school name",
+                    "Local area details",
+                    "Primary theme color",
+                  ]}
                   className="mb-8"
                 />
 
@@ -389,9 +414,24 @@ export default function OnboardingFlow({
                     <div className="grid grid-cols-3 gap-2">
                       {(
                         [
-                          { key: "primary", label: "Primary", icon: "child_care", desc: "P.1 – P.7" },
-                          { key: "secondary", label: "Secondary", icon: "school", desc: "S.1 – S.6" },
-                          { key: "combined", label: "Combined", icon: "account_balance", desc: "P.1 – S.6" },
+                          {
+                            key: "primary",
+                            label: "Primary",
+                            icon: "child_care",
+                            desc: "P.1 – P.7",
+                          },
+                          {
+                            key: "secondary",
+                            label: "Secondary",
+                            icon: "school",
+                            desc: "S.1 – S.6",
+                          },
+                          {
+                            key: "combined",
+                            label: "Combined",
+                            icon: "account_balance",
+                            desc: "P.1 – S.6",
+                          },
                         ] as const
                       ).map((opt) => (
                         <button
@@ -404,9 +444,14 @@ export default function OnboardingFlow({
                               : "border-slate-200 text-slate-500 hover:border-slate-300"
                           }`}
                         >
-                          <MaterialIcon icon={opt.icon} className="text-[22px]" />
+                          <MaterialIcon
+                            icon={opt.icon}
+                            className="text-[22px]"
+                          />
                           <span>{opt.label}</span>
-                          <span className="font-normal text-[10px] opacity-70">{opt.desc}</span>
+                          <span className="font-normal text-[10px] opacity-70">
+                            {opt.desc}
+                          </span>
                         </button>
                       ))}
                     </div>
@@ -454,10 +499,18 @@ export default function OnboardingFlow({
                 </div>
 
                 <div className="rounded-[24px] border border-[#e2e8f0] bg-[linear-gradient(180deg,#fbfcfe_0%,#f5f7fb_100%)] p-4 text-sm text-slate-600 shadow-sm">
-                  We preload common Uganda district, division, and parish options so school leaders can finish setup quickly even on slow connections.
+                  We preload common Uganda district, division, and parish
+                  options so school leaders can finish setup quickly even on
+                  slow connections.
                 </div>
 
-                <div className="flex gap-4 mt-auto">
+                <div
+                  className="flex gap-3 mt-auto pt-4 pb-8 md:pb-0 md:pt-0"
+                  style={{
+                    paddingBottom:
+                      "max(2rem, env(safe-area-inset-bottom, 2rem))",
+                  }}
+                >
                   <Button variant="secondary" onClick={() => setStep(1)}>
                     Back
                   </Button>
@@ -481,7 +534,14 @@ export default function OnboardingFlow({
                   eyebrow="Curriculum ready"
                   title="Classes preloaded"
                   description={`Default classes for ${schoolType === "primary" ? "a primary school" : schoolType === "secondary" ? "a secondary school" : "a combined school"} are ready for ${school.name}. You can add streams and subjects right after setup.`}
-                  chips={[schoolType === "primary" ? "P.1 – P.7" : schoolType === "secondary" ? "S.1 – S.6" : "P.1 – S.6", "Subjects prepared"]}
+                  chips={[
+                    schoolType === "primary"
+                      ? "P.1 – P.7"
+                      : schoolType === "secondary"
+                        ? "S.1 – S.6"
+                        : "P.1 – S.6",
+                    "Subjects prepared",
+                  ]}
                   className="mb-6"
                 />
 
@@ -489,46 +549,87 @@ export default function OnboardingFlow({
                   {schoolType === "primary" && (
                     <>
                       <div className="flex items-center gap-3 mb-4">
-                        <MaterialIcon icon="check_circle" className="text-teal-500" />
-                        <span className="font-semibold text-slate-700">P.1 to P.7 Classes</span>
+                        <MaterialIcon
+                          icon="check_circle"
+                          className="text-teal-500"
+                        />
+                        <span className="font-semibold text-slate-700">
+                          P.1 to P.7 Classes
+                        </span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <MaterialIcon icon="check_circle" className="text-teal-500" />
-                        <span className="font-semibold text-slate-700">English, SST, Math, Science, CRE, MTC</span>
+                        <MaterialIcon
+                          icon="check_circle"
+                          className="text-teal-500"
+                        />
+                        <span className="font-semibold text-slate-700">
+                          English, SST, Math, Science, CRE, MTC
+                        </span>
                       </div>
                     </>
                   )}
                   {schoolType === "secondary" && (
                     <>
                       <div className="flex items-center gap-3 mb-4">
-                        <MaterialIcon icon="check_circle" className="text-teal-500" />
-                        <span className="font-semibold text-slate-700">S.1 to S.6 Classes</span>
+                        <MaterialIcon
+                          icon="check_circle"
+                          className="text-teal-500"
+                        />
+                        <span className="font-semibold text-slate-700">
+                          S.1 to S.6 Classes
+                        </span>
                       </div>
                       <div className="flex items-center gap-3 mb-4">
-                        <MaterialIcon icon="check_circle" className="text-teal-500" />
-                        <span className="font-semibold text-slate-700">O-Level core subjects (Eng, Math, Bio, Chem, Hist…)</span>
+                        <MaterialIcon
+                          icon="check_circle"
+                          className="text-teal-500"
+                        />
+                        <span className="font-semibold text-slate-700">
+                          O-Level core subjects (Eng, Math, Bio, Chem, Hist…)
+                        </span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <MaterialIcon icon="check_circle" className="text-teal-500" />
-                        <span className="font-semibold text-slate-700">A-Level subjects (Arts, Sciences, Commerce)</span>
+                        <MaterialIcon
+                          icon="check_circle"
+                          className="text-teal-500"
+                        />
+                        <span className="font-semibold text-slate-700">
+                          A-Level subjects (Arts, Sciences, Commerce)
+                        </span>
                       </div>
                     </>
                   )}
                   {schoolType === "combined" && (
                     <>
                       <div className="flex items-center gap-3 mb-4">
-                        <MaterialIcon icon="check_circle" className="text-teal-500" />
-                        <span className="font-semibold text-slate-700">P.1 – P.7 and S.1 – S.6 Classes</span>
+                        <MaterialIcon
+                          icon="check_circle"
+                          className="text-teal-500"
+                        />
+                        <span className="font-semibold text-slate-700">
+                          P.1 – P.7 and S.1 – S.6 Classes
+                        </span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <MaterialIcon icon="check_circle" className="text-teal-500" />
-                        <span className="font-semibold text-slate-700">Primary + secondary subjects prepared</span>
+                        <MaterialIcon
+                          icon="check_circle"
+                          className="text-teal-500"
+                        />
+                        <span className="font-semibold text-slate-700">
+                          Primary + secondary subjects prepared
+                        </span>
                       </div>
                     </>
                   )}
                 </div>
 
-                <div className="flex gap-4 mt-auto">
+                <div
+                  className="flex gap-3 mt-auto pt-4 pb-8 md:pb-0 md:pt-0"
+                  style={{
+                    paddingBottom:
+                      "max(2rem, env(safe-area-inset-bottom, 2rem))",
+                  }}
+                >
                   <Button variant="secondary" onClick={() => setStep(2)}>
                     Back
                   </Button>
@@ -611,7 +712,13 @@ export default function OnboardingFlow({
                   ))}
                 </div>
 
-                <div className="flex gap-4 mt-auto">
+                <div
+                  className="flex gap-3 mt-auto pt-4 pb-8 md:pb-0 md:pt-0"
+                  style={{
+                    paddingBottom:
+                      "max(2rem, env(safe-area-inset-bottom, 2rem))",
+                  }}
+                >
                   <Button variant="secondary" onClick={() => setStep(3)}>
                     Back
                   </Button>
@@ -634,49 +741,74 @@ export default function OnboardingFlow({
                   Launch Ready
                 </h3>
                 <p className="text-slate-500 mb-6">
-                  Your school package, default calendar, and starter setup are already in place so the team can begin working immediately.
+                  Your school package, default calendar, and starter setup are
+                  already in place so the team can begin working immediately.
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div className="rounded-2xl border border-teal-200 bg-teal-50/70 p-5">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-bold text-slate-800">Chosen Package</h4>
-                      <MaterialIcon icon="workspace_premium" className="text-teal-600" />
+                      <h4 className="font-bold text-slate-800">
+                        Chosen Package
+                      </h4>
+                      <MaterialIcon
+                        icon="workspace_premium"
+                        className="text-teal-600"
+                      />
                     </div>
                     <p className="text-sm font-semibold text-slate-800">
                       {selectedPlan.name}
                     </p>
                     <p className="text-sm text-slate-500 mt-2">
-                      The school selected this package during registration. Billing can be refined later in Subscription Settings.
+                      The school selected this package during registration.
+                      Billing can be refined later in Subscription Settings.
                     </p>
                   </div>
 
                   <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-5">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-bold text-slate-800">Calendar Ready</h4>
-                      <MaterialIcon icon="calendar_month" className="text-blue-600" />
+                      <h4 className="font-bold text-slate-800">
+                        Calendar Ready
+                      </h4>
+                      <MaterialIcon
+                        icon="calendar_month"
+                        className="text-blue-600"
+                      />
                     </div>
                     <p className="text-sm text-slate-500">
-                      Uganda term dates and holiday windows are preloaded from the latest published school calendar pattern. Headteachers can tweak them later if a circular changes.
+                      Uganda term dates and holiday windows are preloaded from
+                      the latest published school calendar pattern. Headteachers
+                      can tweak them later if a circular changes.
                     </p>
                   </div>
                 </div>
 
                 <div className="rounded-2xl bg-slate-50 border border-slate-100 p-5 mb-8">
                   <div className="flex items-start gap-3">
-                    <MaterialIcon icon="bolt" className="text-amber-500 mt-0.5" />
+                    <MaterialIcon
+                      icon="bolt"
+                      className="text-amber-500 mt-0.5"
+                    />
                     <div>
                       <p className="font-semibold text-slate-800 mb-1">
                         Rural-first setup
                       </p>
                       <p className="text-sm text-slate-500">
-                        We keep the first-run flow short, preload local school details, and avoid forcing payment or heavy setup before staff can start using the system.
+                        We keep the first-run flow short, preload local school
+                        details, and avoid forcing payment or heavy setup before
+                        staff can start using the system.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex gap-4 mt-auto">
+                <div
+                  className="flex gap-3 mt-auto pt-4 pb-8 md:pb-0 md:pt-0"
+                  style={{
+                    paddingBottom:
+                      "max(2rem, env(safe-area-inset-bottom, 2rem))",
+                  }}
+                >
                   <Button variant="secondary" onClick={() => setStep(4)}>
                     Back
                   </Button>

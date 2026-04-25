@@ -23,8 +23,7 @@ type DownloadTarget = {
   useInstallPrompt?: boolean;
 };
 
-const ANDROID_APP_URL =
-  process.env.NEXT_PUBLIC_ANDROID_APP_URL || "";
+const ANDROID_APP_URL = process.env.NEXT_PUBLIC_ANDROID_APP_URL || "";
 const WINDOWS_APP_URL = process.env.NEXT_PUBLIC_WINDOWS_APP_URL || "";
 const MAC_APP_URL = process.env.NEXT_PUBLIC_MAC_APP_URL || "";
 
@@ -418,9 +417,15 @@ const ROLES = [
     bg: "#eef4ff",
     quote: "I see every class, every fee, every decision from one screen.",
     tasks: [
-      { icon: "how_to_reg", label: "Check who is absent before assembly starts" },
+      {
+        icon: "how_to_reg",
+        label: "Check who is absent before assembly starts",
+      },
       { icon: "payments", label: "See daily fee collections at a glance" },
-      { icon: "fact_check", label: "Review exam grades and print report cards" },
+      {
+        icon: "fact_check",
+        label: "Review exam grades and print report cards",
+      },
       { icon: "sms", label: "Send a message to all parents in one tap" },
       { icon: "bar_chart", label: "Track school performance trends weekly" },
     ],
@@ -433,7 +438,10 @@ const ROLES = [
     quote: "No more guessing who paid. Every shilling is tracked.",
     tasks: [
       { icon: "add_card", label: "Record a fee payment (walk-in or MoMo)" },
-      { icon: "receipt_long", label: "Generate invoices and receipts instantly" },
+      {
+        icon: "receipt_long",
+        label: "Generate invoices and receipts instantly",
+      },
       { icon: "warning", label: "See which students still owe fees this term" },
       { icon: "savings", label: "Track cashbook, petty cash, and budgets" },
       { icon: "sms", label: "Send fee reminder SMS to parents with balances" },
@@ -450,7 +458,10 @@ const ROLES = [
       { icon: "grading", label: "Enter CA and exam marks for the class" },
       { icon: "group", label: "Look up a student's record and fee status" },
       { icon: "comment", label: "Add comments to report cards automatically" },
-      { icon: "assignment_turned_in", label: "See marks completion across all subjects" },
+      {
+        icon: "assignment_turned_in",
+        label: "See marks completion across all subjects",
+      },
     ],
   },
   {
@@ -460,9 +471,18 @@ const ROLES = [
     bg: "#fffbeb",
     quote: "I always know how my child is doing. No calls needed.",
     tasks: [
-      { icon: "sms", label: "Receive fee balance and attendance updates via SMS" },
-      { icon: "payments", label: "Pay school fees via MTN MoMo or Airtel Money" },
-      { icon: "description", label: "Access your child's report card when ready" },
+      {
+        icon: "sms",
+        label: "Receive fee balance and attendance updates via SMS",
+      },
+      {
+        icon: "payments",
+        label: "Pay school fees via MTN MoMo or Airtel Money",
+      },
+      {
+        icon: "description",
+        label: "Access your child's report card when ready",
+      },
       { icon: "event", label: "Get notified about school events and closings" },
       { icon: "support_agent", label: "Contact the school office directly" },
     ],
@@ -476,7 +496,8 @@ const DAY_STEPS = [
     icon: "how_to_reg",
     title: "Teachers mark attendance",
     what: "Every class teacher opens the app on their phone and marks who is present, absent, or late — before assembly.",
-    result: "The head teacher sees a live attendance map on the dashboard. No registers lost in transit.",
+    result:
+      "The head teacher sees a live attendance map on the dashboard. No registers lost in transit.",
     color: "#001F3F",
   },
   {
@@ -484,7 +505,8 @@ const DAY_STEPS = [
     icon: "dashboard",
     title: "Admin reviews the morning",
     what: "The head teacher checks the dashboard: which classes are fully present, who flagged absence, what needs action today.",
-    result: "Any class with high absence gets flagged automatically. Follow-up happens before lessons start.",
+    result:
+      "Any class with high absence gets flagged automatically. Follow-up happens before lessons start.",
     color: "#0d9488",
   },
   {
@@ -492,7 +514,8 @@ const DAY_STEPS = [
     icon: "grading",
     title: "Exam marks are entered",
     what: "Subject teachers enter CA and mid-term marks. The system calculates grades and checks for missing entries.",
-    result: "Grades appear instantly. No end-of-term scramble. The dean of studies sees completion in real time.",
+    result:
+      "Grades appear instantly. No end-of-term scramble. The dean of studies sees completion in real time.",
     color: "#7c3aed",
   },
   {
@@ -500,7 +523,8 @@ const DAY_STEPS = [
     icon: "payments",
     title: "Fee payment recorded",
     what: "A parent walks in and pays. The bursar records it in seconds. MoMo payments sync automatically.",
-    result: "The parent gets an SMS receipt. The fee balance updates instantly. No manual ledger.",
+    result:
+      "The parent gets an SMS receipt. The fee balance updates instantly. No manual ledger.",
     color: "#d97706",
   },
   {
@@ -508,7 +532,8 @@ const DAY_STEPS = [
     icon: "summarize",
     title: "Day closes itself",
     what: "End-of-day summary is generated automatically: attendance, fees collected, pending actions, SMS delivery.",
-    result: "The head teacher reviews 1 screen instead of 4 notebooks. Everything is already saved.",
+    result:
+      "The head teacher reviews 1 screen instead of 4 notebooks. Everything is already saved.",
     color: "#10b981",
   },
 ];
@@ -521,10 +546,38 @@ function StatStrip() {
   const minutesC = useCounter(2, 1200);
 
   const stats = [
-    { ref: studentsC.ref, icon: "group", value: studentsC.display, suffix: "+", label: "Students managed daily per school", color: "#10b981" },
-    { ref: hoursC.ref, icon: "timer", value: hoursC.display, suffix: " hrs", label: "Admin time saved every week", color: "#f59e0b" },
-    { ref: deliveryC.ref, icon: "sms", value: deliveryC.display, suffix: "%", label: "Parent SMS delivery rate", color: "#38bdf8" },
-    { ref: minutesC.ref, icon: "rocket_launch", value: minutesC.display, suffix: " min", label: "Setup to first class recorded", color: "#a78bfa" },
+    {
+      ref: studentsC.ref,
+      icon: "group",
+      value: studentsC.display,
+      suffix: "+",
+      label: "Students managed daily per school",
+      color: "#10b981",
+    },
+    {
+      ref: hoursC.ref,
+      icon: "timer",
+      value: hoursC.display,
+      suffix: " hrs",
+      label: "Admin time saved every week",
+      color: "#f59e0b",
+    },
+    {
+      ref: deliveryC.ref,
+      icon: "sms",
+      value: deliveryC.display,
+      suffix: "%",
+      label: "Parent SMS delivery rate",
+      color: "#38bdf8",
+    },
+    {
+      ref: minutesC.ref,
+      icon: "rocket_launch",
+      value: minutesC.display,
+      suffix: " min",
+      label: "Setup to first class recorded",
+      color: "#a78bfa",
+    },
   ];
 
   return (
@@ -541,10 +594,13 @@ function StatStrip() {
                 className="flex h-12 w-12 items-center justify-center rounded-2xl mb-4"
                 style={{ background: `${s.color}22`, color: s.color }}
               >
-                <span className="material-symbols-outlined text-[24px]">{s.icon}</span>
+                <span className="material-symbols-outlined text-[24px]">
+                  {s.icon}
+                </span>
               </div>
               <p className="font-['Sora'] text-4xl font-bold text-white tracking-tight">
-                {s.value}{s.suffix}
+                {s.value}
+                {s.suffix}
               </p>
               <p className="mt-2 text-sm text-white/60">{s.label}</p>
             </div>
@@ -561,7 +617,10 @@ function RoleSwitcher() {
   const role = ROLES[activeRole];
 
   return (
-    <section id="features" className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
+    <section
+      id="features"
+      className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24"
+    >
       <FadeIn>
         <div className="text-center mb-10">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
@@ -584,7 +643,9 @@ function RoleSwitcher() {
                   : "bg-white text-slate-600 border-slate-200 hover:border-[#001F3F]/30 hover:text-slate-900"
               }`}
             >
-              <span className="material-symbols-outlined text-[18px]">{r.icon}</span>
+              <span className="material-symbols-outlined text-[18px]">
+                {r.icon}
+              </span>
               {r.key}
             </button>
           ))}
@@ -605,9 +666,13 @@ function RoleSwitcher() {
                 className="flex h-14 w-14 items-center justify-center rounded-2xl mb-6"
                 style={{ background: "rgba(255,255,255,0.12)" }}
               >
-                <span className="material-symbols-outlined text-[28px] text-white">{role.icon}</span>
+                <span className="material-symbols-outlined text-[28px] text-white">
+                  {role.icon}
+                </span>
               </div>
-              <p className="text-white/60 text-xs font-semibold uppercase tracking-[0.22em] mb-3">{role.key}</p>
+              <p className="text-white/60 text-xs font-semibold uppercase tracking-[0.22em] mb-3">
+                {role.key}
+              </p>
               <p className="font-['Sora'] text-2xl font-semibold text-white leading-snug">
                 &ldquo;{role.quote}&rdquo;
               </p>
@@ -618,7 +683,9 @@ function RoleSwitcher() {
                 className="inline-flex items-center gap-2 rounded-full bg-white/15 hover:bg-white/25 transition-colors px-5 py-2.5 text-sm font-semibold text-white"
               >
                 Try it free
-                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                <span className="material-symbols-outlined text-[16px]">
+                  arrow_forward
+                </span>
               </Link>
             </div>
           </div>
@@ -635,10 +702,16 @@ function RoleSwitcher() {
                   className="flex h-10 w-10 items-center justify-center rounded-2xl flex-shrink-0"
                   style={{ background: role.bg, color: role.color }}
                 >
-                  <span className="material-symbols-outlined text-[20px]">{task.icon}</span>
+                  <span className="material-symbols-outlined text-[20px]">
+                    {task.icon}
+                  </span>
                 </div>
-                <p className="text-sm font-medium text-slate-800">{task.label}</p>
-                <span className="material-symbols-outlined text-[16px] text-slate-300 ml-auto flex-shrink-0">chevron_right</span>
+                <p className="text-sm font-medium text-slate-800">
+                  {task.label}
+                </p>
+                <span className="material-symbols-outlined text-[16px] text-slate-300 ml-auto flex-shrink-0">
+                  chevron_right
+                </span>
               </div>
             ))}
           </div>
@@ -682,18 +755,18 @@ function DayTimeline() {
                       activeStep === i
                         ? "border-transparent text-white shadow-lg scale-110"
                         : activeStep > i
-                        ? "border-transparent text-white"
-                        : "border-slate-200 bg-white text-slate-400"
+                          ? "border-transparent text-white"
+                          : "border-slate-200 bg-white text-slate-400"
                     }`}
-                    style={
-                      activeStep >= i
-                        ? { background: s.color }
-                        : {}
-                    }
+                    style={activeStep >= i ? { background: s.color } : {}}
                   >
-                    <span className="material-symbols-outlined text-[18px]">{s.icon}</span>
+                    <span className="material-symbols-outlined text-[18px]">
+                      {s.icon}
+                    </span>
                   </div>
-                  <span className={`text-xs font-semibold whitespace-nowrap ${activeStep === i ? "text-slate-900" : "text-slate-400"}`}>
+                  <span
+                    className={`text-xs font-semibold whitespace-nowrap ${activeStep === i ? "text-slate-900" : "text-slate-400"}`}
+                  >
                     {s.time}
                   </span>
                 </button>
@@ -712,11 +785,17 @@ function DayTimeline() {
             >
               <div className="flex items-center gap-3 mb-5">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15">
-                  <span className="material-symbols-outlined text-[22px] text-white">{step.icon}</span>
+                  <span className="material-symbols-outlined text-[22px] text-white">
+                    {step.icon}
+                  </span>
                 </div>
                 <div>
-                  <p className="text-white/60 text-xs font-semibold uppercase tracking-[0.2em]">{step.time}</p>
-                  <p className="text-white font-semibold text-base">{step.title}</p>
+                  <p className="text-white/60 text-xs font-semibold uppercase tracking-[0.2em]">
+                    {step.time}
+                  </p>
+                  <p className="text-white font-semibold text-base">
+                    {step.title}
+                  </p>
                 </div>
               </div>
               <p className="text-white/85 text-base leading-7">{step.what}</p>
@@ -725,10 +804,19 @@ function DayTimeline() {
             <div className="flex flex-col gap-5">
               <div className="rounded-[28px] border border-slate-200 bg-[#f8fbff] p-6 flex-1">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="material-symbols-outlined text-[20px]" style={{ color: step.color }}>check_circle</span>
-                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Result</p>
+                  <span
+                    className="material-symbols-outlined text-[20px]"
+                    style={{ color: step.color }}
+                  >
+                    check_circle
+                  </span>
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Result
+                  </p>
                 </div>
-                <p className="text-slate-800 text-base leading-7 font-medium">{step.result}</p>
+                <p className="text-slate-800 text-base leading-7 font-medium">
+                  {step.result}
+                </p>
               </div>
 
               {/* step navigation */}
@@ -738,7 +826,9 @@ function DayTimeline() {
                   disabled={activeStep === 0}
                   className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                  <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                  <span className="material-symbols-outlined text-[16px]">
+                    arrow_back
+                  </span>
                   Previous
                 </button>
                 <div className="flex gap-1.5">
@@ -755,12 +845,16 @@ function DayTimeline() {
                   ))}
                 </div>
                 <button
-                  onClick={() => setActiveStep((p) => Math.min(DAY_STEPS.length - 1, p + 1))}
+                  onClick={() =>
+                    setActiveStep((p) => Math.min(DAY_STEPS.length - 1, p + 1))
+                  }
                   disabled={activeStep === DAY_STEPS.length - 1}
                   className="flex items-center gap-2 rounded-full bg-[#001F3F] px-4 py-2 text-sm font-medium text-white hover:bg-[#17325F] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   Next
-                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                  <span className="material-symbols-outlined text-[16px]">
+                    arrow_forward
+                  </span>
                 </button>
               </div>
             </div>
@@ -1036,49 +1130,122 @@ function PhoneMockup() {
     /* ── Phone wrapper — 258 px wide, height driven by frame ── */
     <div
       className={`mx-auto transition-all duration-700 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
-      style={{ width: 258, position: "relative", filter: "drop-shadow(0 40px 80px rgba(0,0,0,0.52))" }}
+      style={{
+        width: 258,
+        position: "relative",
+        filter: "drop-shadow(0 40px 80px rgba(0,0,0,0.52))",
+      }}
     >
       {/* Side buttons — left: mute + vol ×2 */}
-      <div style={{ position:"absolute", left:-3, top:"14%", width:3, height:22, borderRadius:"4px 0 0 4px", background:"linear-gradient(180deg,#56565a,#323234)" }} />
-      <div style={{ position:"absolute", left:-3, top:"24%", width:3, height:36, borderRadius:"4px 0 0 4px", background:"linear-gradient(180deg,#56565a,#323234)" }} />
-      <div style={{ position:"absolute", left:-3, top:"34%", width:3, height:36, borderRadius:"4px 0 0 4px", background:"linear-gradient(180deg,#56565a,#323234)" }} />
+      <div
+        style={{
+          position: "absolute",
+          left: -3,
+          top: "14%",
+          width: 3,
+          height: 22,
+          borderRadius: "4px 0 0 4px",
+          background: "linear-gradient(180deg,#56565a,#323234)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          left: -3,
+          top: "24%",
+          width: 3,
+          height: 36,
+          borderRadius: "4px 0 0 4px",
+          background: "linear-gradient(180deg,#56565a,#323234)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          left: -3,
+          top: "34%",
+          width: 3,
+          height: 36,
+          borderRadius: "4px 0 0 4px",
+          background: "linear-gradient(180deg,#56565a,#323234)",
+        }}
+      />
       {/* Right: power */}
-      <div style={{ position:"absolute", right:-3, top:"26%", width:3, height:48, borderRadius:"0 4px 4px 0", background:"linear-gradient(180deg,#56565a,#323234)" }} />
+      <div
+        style={{
+          position: "absolute",
+          right: -3,
+          top: "26%",
+          width: 3,
+          height: 48,
+          borderRadius: "0 4px 4px 0",
+          background: "linear-gradient(180deg,#56565a,#323234)",
+        }}
+      />
 
       {/* Phone frame */}
-      <div style={{
-        background: "linear-gradient(160deg, #424244 0%, #1d1d1f 50%, #111113 100%)",
-        borderRadius: 52,
-        padding: 4,
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.14), 0 0 0 1px rgba(0,0,0,0.6)",
-      }}>
+      <div
+        style={{
+          background:
+            "linear-gradient(160deg, #424244 0%, #1d1d1f 50%, #111113 100%)",
+          borderRadius: 52,
+          padding: 4,
+          boxShadow:
+            "inset 0 1px 0 rgba(255,255,255,0.14), 0 0 0 1px rgba(0,0,0,0.6)",
+        }}
+      >
         {/* Screen — fixed height for correct 19.5:9 phone proportions */}
-        <div style={{
-          background: "#000",
-          borderRadius: 48,
-          overflow: "hidden",
-          height: 530,
-          display: "flex",
-          flexDirection: "column",
-        }}>
-
+        <div
+          style={{
+            background: "#000",
+            borderRadius: 48,
+            overflow: "hidden",
+            height: 530,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
           {/* ── Status bar zone (includes Dynamic Island) ── */}
-          <div style={{ flexShrink: 0, height: 50, position: "relative", background: "#17325F" }}>
+          <div
+            style={{
+              flexShrink: 0,
+              height: 50,
+              position: "relative",
+              background: "#17325F",
+            }}
+          >
             {/* Dynamic Island pill */}
-            <div style={{
-              position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)",
-              width: 88, height: 24, background: "#000", borderRadius: 20,
-              zIndex: 10,
-            }} />
+            <div
+              style={{
+                position: "absolute",
+                top: 10,
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: 88,
+                height: 24,
+                background: "#000",
+                borderRadius: 20,
+                zIndex: 10,
+              }}
+            />
             {/* Status text — time left, icons right */}
-            <div style={{
-              position: "absolute", bottom: 6, left: 0, right: 0,
-              display: "flex", justifyContent: "space-between", padding: "0 16px",
-              fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.9)",
-            }}>
+            <div
+              style={{
+                position: "absolute",
+                bottom: 6,
+                left: 0,
+                right: 0,
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "0 16px",
+                fontSize: 10,
+                fontWeight: 600,
+                color: "rgba(255,255,255,0.9)",
+              }}
+            >
               <span>9:41</span>
-              <span style={{ display:"flex", gap:5, alignItems:"center" }}>
-                <span style={{ letterSpacing:1 }}>▲▲▲</span>
+              <span style={{ display: "flex", gap: 5, alignItems: "center" }}>
+                <span style={{ letterSpacing: 1 }}>▲▲▲</span>
                 <span>WiFi</span>
                 <span>▮</span>
               </span>
@@ -1086,78 +1253,200 @@ function PhoneMockup() {
           </div>
 
           {/* ── App header ── */}
-          <div style={{
-            flexShrink: 0, background: "#17325F",
-            padding: "8px 16px 12px",
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            borderBottom: "1px solid rgba(255,255,255,0.08)",
-          }}>
+          <div
+            style={{
+              flexShrink: 0,
+              background: "#17325F",
+              padding: "8px 16px 12px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              borderBottom: "1px solid rgba(255,255,255,0.08)",
+            }}
+          >
             <div>
-              <p style={{ fontSize: 9, textTransform:"uppercase", letterSpacing:"0.2em", color:"rgba(255,255,255,0.6)", marginBottom: 2 }}>
+              <p
+                style={{
+                  fontSize: 9,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.2em",
+                  color: "rgba(255,255,255,0.6)",
+                  marginBottom: 2,
+                }}
+              >
                 SkoolMate OS parent portal
               </p>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>Fee &amp; attendance update</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>
+                Fee &amp; attendance update
+              </p>
             </div>
-            <div style={{ background:"rgba(255,255,255,0.15)", borderRadius:20, padding:"4px 10px", fontSize:10, color:"#fff" }}>
+            <div
+              style={{
+                background: "rgba(255,255,255,0.15)",
+                borderRadius: 20,
+                padding: "4px 10px",
+                fontSize: 10,
+                color: "#fff",
+              }}
+            >
               SMS
             </div>
           </div>
 
           {/* ── Scrollable content ── */}
-          <div style={{ flex: 1, overflow: "hidden", background: "#f6f9fc", padding: 14, display:"flex", flexDirection:"column", gap:10 }}>
+          <div
+            style={{
+              flex: 1,
+              overflow: "hidden",
+              background: "#f6f9fc",
+              padding: 14,
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
             {/* Message card */}
-            <div style={{ background:"#fff", borderRadius:18, padding:"12px 14px", boxShadow:"0 1px 4px rgba(0,0,0,0.07)", border:"1px solid #e8eef4" }}>
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
-                <span style={{ fontSize:12, fontWeight:600, color:"#0f172a" }}>{smsMessages[activeMsg].from}</span>
-                <span style={{ fontSize:9, color:"#94a3b8" }}>{activeMsg === 0 ? "Incoming" : "Outgoing"}</span>
+            <div
+              style={{
+                background: "#fff",
+                borderRadius: 18,
+                padding: "12px 14px",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
+                border: "1px solid #e8eef4",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 8,
+                }}
+              >
+                <span
+                  style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}
+                >
+                  {smsMessages[activeMsg].from}
+                </span>
+                <span style={{ fontSize: 9, color: "#94a3b8" }}>
+                  {activeMsg === 0 ? "Incoming" : "Outgoing"}
+                </span>
               </div>
-              <div style={{ height: 68, overflow:"hidden" }}>
-                <p style={{ fontSize:12, lineHeight:"1.55", color:"#475569" }}>
+              <div style={{ height: 68, overflow: "hidden" }}>
+                <p
+                  style={{ fontSize: 12, lineHeight: "1.55", color: "#475569" }}
+                >
                   {typedText}
-                  <span style={{ display:"inline-block", width:2, height:14, background:"#17325F", marginLeft:2, verticalAlign:"middle", animation:"pulse 1s infinite" }} />
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: 2,
+                      height: 14,
+                      background: "#17325F",
+                      marginLeft: 2,
+                      verticalAlign: "middle",
+                      animation: "pulse 1s infinite",
+                    }}
+                  />
                 </p>
               </div>
             </div>
 
             {/* Stat row */}
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-              {[["Recipients","426"],["Characters","147/160"]].map(([label, val]) => (
-                <div key={label} style={{ background:"#fff", borderRadius:14, padding:"10px 12px", border:"1px solid #e8eef4", boxShadow:"0 1px 3px rgba(0,0,0,0.05)" }}>
-                  <p style={{ fontSize:9, textTransform:"uppercase", letterSpacing:"0.15em", color:"#94a3b8", marginBottom:6 }}>{label}</p>
-                  <p style={{ fontSize:16, fontWeight:700, color:"#0f172a" }}>{val}</p>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 8,
+              }}
+            >
+              {[
+                ["Recipients", "426"],
+                ["Characters", "147/160"],
+              ].map(([label, val]) => (
+                <div
+                  key={label}
+                  style={{
+                    background: "#fff",
+                    borderRadius: 14,
+                    padding: "10px 12px",
+                    border: "1px solid #e8eef4",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: 9,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.15em",
+                      color: "#94a3b8",
+                      marginBottom: 6,
+                    }}
+                  >
+                    {label}
+                  </p>
+                  <p
+                    style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}
+                  >
+                    {val}
+                  </p>
                 </div>
               ))}
             </div>
 
             {/* Dot indicators */}
-            <div style={{ display:"flex", justifyContent:"center", gap:6, marginTop:2 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                gap: 6,
+                marginTop: 2,
+              }}
+            >
               {smsMessages.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setActiveMsg(i)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setActiveMsg(i);
-                  }
-                }}
-                tabIndex={0}
-                aria-label={`View message ${i + 1}`}
-                className={`h-2 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#17325F] ${
-                  i === activeMsg ? "w-6 bg-[#17325F]" : "w-2 bg-slate-300"
-                }`}
-              />
-            ))}
+                <button
+                  key={i}
+                  onClick={() => setActiveMsg(i)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setActiveMsg(i);
+                    }
+                  }}
+                  tabIndex={0}
+                  aria-label={`View message ${i + 1}`}
+                  className={`h-2 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#17325F] ${
+                    i === activeMsg ? "w-6 bg-[#17325F]" : "w-2 bg-slate-300"
+                  }`}
+                />
+              ))}
             </div>
           </div>
 
           {/* ── Home indicator bar ── */}
-          <div style={{ flexShrink:0, height:24, background:"#000", display:"flex", alignItems:"center", justifyContent:"center" }}>
-            <div style={{ width:96, height:4, background:"rgba(255,255,255,0.28)", borderRadius:4 }} />
+          <div
+            style={{
+              flexShrink: 0,
+              height: 24,
+              background: "#000",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <div
+              style={{
+                width: 96,
+                height: 4,
+                background: "rgba(255,255,255,0.28)",
+                borderRadius: 4,
+              }}
+            />
           </div>
-
-        </div>{/* end screen */}
-      </div>{/* end phone frame */}
+        </div>
+        {/* end screen */}
+      </div>
+      {/* end phone frame */}
     </div>
   );
 }
@@ -1233,7 +1522,8 @@ const DEFAULT_DEVICE_TARGET: DownloadTarget = {
   href: "/login",
   label: "Open web app",
   icon: "language",
-  helper: "Use the web app on any device. Install it from your browser when supported.",
+  helper:
+    "Use the web app on any device. Install it from your browser when supported.",
   badge: "Browser",
 };
 
@@ -1244,7 +1534,9 @@ export default function HomePage() {
   const [headlineIndex, setHeadlineIndex] = useState(0);
   const [installPrompt, setInstallPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
-  const [deviceTarget, setDeviceTarget] = useState<DownloadTarget>(DEFAULT_DEVICE_TARGET);
+  const [deviceTarget, setDeviceTarget] = useState<DownloadTarget>(
+    DEFAULT_DEVICE_TARGET,
+  );
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -1294,7 +1586,8 @@ export default function HomePage() {
             href: ANDROID_APP_URL,
             label: "Get Android app",
             icon: "android",
-            helper: "Download the Android APK directly to your phone or tablet.",
+            helper:
+              "Download the Android APK directly to your phone or tablet.",
             badge: "Android APK",
           };
         }
@@ -1374,7 +1667,9 @@ export default function HomePage() {
     }
     // iOS: can't auto-install, guide user
     if (/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())) {
-      alert("On iPhone or iPad: Open this page in Safari, tap the Share button (\u2191) then tap \"Add to Home Screen\".");
+      alert(
+        'On iPhone or iPad: Open this page in Safari, tap the Share button (\u2191) then tap "Add to Home Screen".',
+      );
       return;
     }
     // Fallback: open the app in browser
@@ -1425,911 +1720,940 @@ export default function HomePage() {
 
   return (
     <PageErrorBoundary>
-    <main
-      className="min-h-screen bg-[var(--bg)] text-[var(--t1)]"
-      id="main-content"
-    >
-      {/* ===== HERO ===== */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-x-0 top-0 h-[620px] bg-[radial-gradient(circle_at_top_left,_rgba(23,50,95,0.13),_transparent_42%),radial-gradient(circle_at_top_right,_rgba(46,148,72,0.10),_transparent_38%),linear-gradient(180deg,_#ffffff_0%,_var(--bg)_72%)]" />
-        <div className="absolute left-[8%] top-24 h-40 w-40 rounded-full bg-[#d6e4ff] blur-3xl opacity-50" />
-        <div className="absolute right-[10%] top-40 h-48 w-48 rounded-full bg-[#dff3e5] blur-3xl opacity-50" />
+      <main
+        className="min-h-screen bg-[var(--bg)] text-[var(--t1)]"
+        id="main-content"
+      >
+        {/* ===== HERO ===== */}
+        <section className="relative overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-[620px] bg-[radial-gradient(circle_at_top_left,_rgba(23,50,95,0.13),_transparent_42%),radial-gradient(circle_at_top_right,_rgba(46,148,72,0.10),_transparent_38%),linear-gradient(180deg,_#ffffff_0%,_var(--bg)_72%)]" />
+          <div className="absolute left-[8%] top-24 h-40 w-40 rounded-full bg-[#d6e4ff] blur-3xl opacity-50" />
+          <div className="absolute right-[10%] top-40 h-48 w-48 rounded-full bg-[#dff3e5] blur-3xl opacity-50" />
 
-        <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-5 sm:px-6 lg:px-8 lg:pb-24">
-          {/* Nav */}
-          <nav className="flex items-center justify-between rounded-full border border-white/70 bg-white/80 px-4 py-3 shadow-[0_8px_30px_rgba(15,23,42,0.06)] backdrop-blur sm:px-6">
-            <SkoolMateLogo size="md" variant="default" />
-            <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
-              <button
-                onClick={() => smoothScroll("#features")}
-                className="transition hover:text-slate-950 cursor-pointer"
-              >
-                Features
-              </button>
-              <button
-                onClick={() => smoothScroll("#story")}
-                className="transition hover:text-slate-950 cursor-pointer"
-              >
-                Story
-              </button>
-              <button
-                onClick={() => smoothScroll("#security")}
-                className="transition hover:text-slate-950 cursor-pointer"
-              >
-                Security
-              </button>
-              <button
-                onClick={() => smoothScroll("#pricing")}
-                className="transition hover:text-slate-950 cursor-pointer"
-              >
-                Pricing
-              </button>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Link href="/login" className="btn btn-secondary btn-sm">
-                Sign in
-              </Link>
-              <Link href="/register" className="btn btn-primary btn-sm hidden sm:inline-flex">
-                Start free trial
-              </Link>
-              {/* Mobile hamburger */}
-              <button
-                className="flex md:hidden items-center justify-center w-9 h-9 rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition"
-                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-                aria-expanded={mobileMenuOpen}
-                onClick={() => setMobileMenuOpen(prev => !prev)}
-              >
-                <span className="material-symbols-outlined text-[20px]">{mobileMenuOpen ? "close" : "menu"}</span>
-              </button>
-            </div>
-          </nav>
-
-          {/* Mobile nav dropdown */}
-          {mobileMenuOpen && (
-          <div
-            className="md:hidden fixed left-4 right-4 top-[72px] z-50 rounded-[24px] border border-white/70 bg-white/96 shadow-[0_16px_48px_rgba(15,23,42,0.12)] backdrop-blur p-4"
-          >
-            <div className="flex flex-col gap-1">
-              {[
-                { label: "Features", id: "#features" },
-                { label: "How it works", id: "#how-it-works" },
-                { label: "Story", id: "#story" },
-                { label: "Security", id: "#security" },
-                { label: "Pricing", id: "#pricing" },
-                { label: "FAQ", id: "#faq" },
-              ].map((item) => (
+          <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-5 sm:px-6 lg:px-8 lg:pb-24">
+            {/* Nav */}
+            <nav className="flex items-center justify-between rounded-full border border-white/70 bg-white/80 px-4 py-3 shadow-[0_8px_30px_rgba(15,23,42,0.06)] backdrop-blur sm:px-6">
+              <SkoolMateLogo size="md" variant="default" />
+              <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
                 <button
-                  key={item.label}
-                  onClick={() => {
-                    smoothScroll(item.id);
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                  onClick={() => smoothScroll("#features")}
+                  className="transition hover:text-slate-950 cursor-pointer"
                 >
-                  {item.label}
+                  Features
                 </button>
-              ))}
-              <div className="mt-2 pt-3 border-t border-slate-100">
+                <button
+                  onClick={() => smoothScroll("#story")}
+                  className="transition hover:text-slate-950 cursor-pointer"
+                >
+                  Story
+                </button>
+                <button
+                  onClick={() => smoothScroll("#security")}
+                  className="transition hover:text-slate-950 cursor-pointer"
+                >
+                  Security
+                </button>
+                <button
+                  onClick={() => smoothScroll("#pricing")}
+                  className="transition hover:text-slate-950 cursor-pointer"
+                >
+                  Pricing
+                </button>
+              </div>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Link href="/login" className="btn btn-secondary btn-sm">
+                  Sign in
+                </Link>
                 <Link
                   href="/register"
-                  className="btn btn-primary w-full justify-center py-3 text-sm"
-                  onClick={() => setMobileMenuOpen(false)}
+                  className="btn btn-primary btn-sm hidden sm:inline-flex"
                 >
                   Start free trial
                 </Link>
+                {/* Mobile hamburger */}
+                <button
+                  className="flex md:hidden items-center justify-center w-9 h-9 rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition"
+                  aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+                  aria-expanded={mobileMenuOpen}
+                  onClick={() => setMobileMenuOpen((prev) => !prev)}
+                >
+                  <span className="material-symbols-outlined text-[20px]">
+                    {mobileMenuOpen ? "close" : "menu"}
+                  </span>
+                </button>
               </div>
-            </div>
-          </div>
-          )}
+            </nav>
 
-          {/* Hero grid */}
-          <div className="grid gap-14 pt-12 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:pt-20">
-            <div className="max-w-2xl">
-              <div className="mb-6 flex animate-fade-in">
-                <div className="px-4 py-1.5 rounded-full bg-[var(--navy-soft)] border border-[var(--navy)]/10 text-[var(--navy)] text-[10px] uppercase font-bold tracking-widest flex items-center gap-2">
-                  <MaterialIcon icon="school" className="text-sm" />
-                  Built for real school operations
+            {/* Mobile nav dropdown */}
+            {mobileMenuOpen && (
+              <div className="md:hidden fixed left-4 right-4 top-[72px] z-50 rounded-[24px] border border-white/70 bg-white/96 shadow-[0_16px_48px_rgba(15,23,42,0.12)] backdrop-blur p-4">
+                <div className="flex flex-col gap-1">
+                  {[
+                    { label: "Features", id: "#features" },
+                    { label: "How it works", id: "#how-it-works" },
+                    { label: "Story", id: "#story" },
+                    { label: "Security", id: "#security" },
+                    { label: "Pricing", id: "#pricing" },
+                    { label: "FAQ", id: "#faq" },
+                  ].map((item) => (
+                    <button
+                      key={item.label}
+                      onClick={() => {
+                        smoothScroll(item.id);
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                  <div className="mt-2 pt-3 border-t border-slate-100">
+                    <Link
+                      href="/register"
+                      className="btn btn-primary w-full justify-center py-3 text-sm"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Start free trial
+                    </Link>
+                  </div>
                 </div>
               </div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--primary)] shadow-sm">
-                <MaterialIcon icon="fact_check" className="text-[18px]" />
-                Admissions, attendance, fees, reports, and parent follow-up
-              </div>
-              <h1 className="mt-6 font-['Sora'] text-5xl font-semibold tracking-[-0.05em] text-[var(--t1)] sm:text-6xl lg:text-7xl">
-                {/* Fixed-height wrapper prevents layout shift when text rotates */}
-                <span className="block leading-none overflow-hidden" style={{ minHeight: "1.1em" }}>
-                  <span key={headlineIndex} className="animate-fade-in block leading-none">
-                    {HEADLINES[headlineIndex]}
-                  </span>
-                </span>
-                <span className="block leading-tight mt-2">
-                  with <span className="text-[var(--green)]">all-in-one</span>{" "}
-                  school management.
-                </span>
-              </h1>
-              <p className="mt-6 max-w-xl text-lg leading-8 text-[var(--t2)] sm:text-xl">
-                Handle attendance, fees, marks, and parent messages — all in one place. Built for Ugandan schools. Works even without internet.
-              </p>
+            )}
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href="/register"
-                  className="btn btn-primary px-7 py-4 text-base"
-                >
-                  Start 30-day free trial
-                </Link>
-                {mounted && (deviceTarget.href && !deviceTarget.useInstallPrompt ? (
-                  <Link
-                    href={deviceTarget.href}
-                    className="btn btn-secondary px-7 py-4 text-base flex items-center gap-3"
-                  >
-                    <MaterialIcon icon={deviceTarget.icon} className="text-[22px]" />
-                    {deviceTarget.label}
-                  </Link>
-                ) : (
-                  <button
-                    className="btn btn-secondary px-7 py-4 text-base flex items-center gap-3"
-                    onClick={handleInstallApp}
-                  >
-                    <MaterialIcon icon={deviceTarget.icon} className="text-[22px]" />
-                    {deviceTarget.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Trust badges — ABOVE THE FOLD */}
-              <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2">
-                {trustBadges.map((badge) => (
-                  <div
-                    key={badge.label}
-                    className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--t3)]"
-                  >
-                    <MaterialIcon
-                      icon={badge.icon}
-                      className="text-[14px] text-[var(--green)]"
-                    />
-                    {badge.label}
+            {/* Hero grid */}
+            <div className="grid gap-14 pt-12 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:pt-20">
+              <div className="max-w-2xl">
+                <div className="mb-6 flex animate-fade-in">
+                  <div className="px-4 py-1.5 rounded-full bg-[var(--navy-soft)] border border-[var(--navy)]/10 text-[var(--navy)] text-[10px] uppercase font-bold tracking-widest flex items-center gap-2">
+                    <MaterialIcon icon="school" className="text-sm" />
+                    Built for real school operations
                   </div>
-                ))}
-              </div>
-
-            </div>
-
-            {/* Mockups */}
-            <div className="relative hero-stage">
-              {/* Floating note — visible on all sizes now */}
-              <div className="floating-note absolute right-0 top-0 z-20 w-52 rounded-[28px] border border-white/70 bg-white/88 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.14)] backdrop-blur xl:block hidden">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
-                  Today at a glance
-                </p>
-                <div className="mt-4 space-y-3">
-                  {[
-                    ["Attendance filed", "12 classes by 8:05 AM"],
-                    ["Fee follow-up", "426 parents queued"],
-                    ["Candidate review", "S.4 report cards ready"],
-                  ].map(([label, note]) => (
-                    <div
-                      key={label}
-                      className="rounded-[20px] bg-slate-50 p-3 ring-1 ring-slate-200"
+                </div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--primary)] shadow-sm">
+                  <MaterialIcon icon="fact_check" className="text-[18px]" />
+                  Admissions, attendance, fees, reports, and parent follow-up
+                </div>
+                <h1 className="mt-6 font-['Sora'] text-5xl font-semibold tracking-[-0.05em] text-[var(--t1)] sm:text-6xl lg:text-7xl">
+                  {/* Fixed-height wrapper prevents layout shift when text rotates */}
+                  <span
+                    className="block leading-none overflow-hidden"
+                    style={{ minHeight: "1.1em" }}
+                  >
+                    <span
+                      key={headlineIndex}
+                      className="animate-fade-in block leading-none"
                     >
-                      <p className="text-sm font-semibold text-slate-900">
-                        {label}
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-slate-500">
-                        {note}
-                      </p>
+                      {HEADLINES[headlineIndex]}
+                    </span>
+                  </span>
+                  <span className="block leading-tight mt-2">
+                    with <span className="text-[var(--green)]">all-in-one</span>{" "}
+                    school management.
+                  </span>
+                </h1>
+                <p className="mt-6 max-w-xl text-lg leading-8 text-[var(--t2)] sm:text-xl">
+                  Handle attendance, fees, marks, and parent messages — all in
+                  one place. Built for Ugandan schools. Works even without
+                  internet.
+                </p>
+
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                  <Link
+                    href="/register"
+                    className="btn btn-primary px-7 py-4 text-base"
+                  >
+                    Start 30-day free trial
+                  </Link>
+                  {mounted &&
+                    (deviceTarget.href && !deviceTarget.useInstallPrompt ? (
+                      <Link
+                        href={deviceTarget.href}
+                        className="btn btn-secondary px-7 py-4 text-base flex items-center gap-3"
+                      >
+                        <MaterialIcon
+                          icon={deviceTarget.icon}
+                          className="text-[22px]"
+                        />
+                        {deviceTarget.label}
+                      </Link>
+                    ) : (
+                      <button
+                        className="btn btn-secondary px-7 py-4 text-base flex items-center gap-3"
+                        onClick={handleInstallApp}
+                      >
+                        <MaterialIcon
+                          icon={deviceTarget.icon}
+                          className="text-[22px]"
+                        />
+                        {deviceTarget.label}
+                      </button>
+                    ))}
+                </div>
+
+                {/* Trust badges — ABOVE THE FOLD */}
+                <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2">
+                  {trustBadges.map((badge) => (
+                    <div
+                      key={badge.label}
+                      className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--t3)]"
+                    >
+                      <MaterialIcon
+                        icon={badge.icon}
+                        className="text-[14px] text-[var(--green)]"
+                      />
+                      {badge.label}
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="phone-stage relative z-10 mx-auto mb-6 max-w-[320px] lg:absolute lg:-left-8 lg:top-10 lg:mb-0 xl:block">
-                <PhoneMockup />
-              </div>
-              <div className="desktop-stage relative z-0 hidden lg:block lg:ml-16">
-                <LaptopMockup />
-              </div>
-              {/* Floating callout — visible on all sizes now */}
-              <div className="floating-callout absolute bottom-5 left-3 z-20 rounded-[24px] border border-[#d7e4fb] bg-white/92 px-4 py-3 shadow-[0_22px_55px_rgba(15,23,42,0.12)] backdrop-blur md:block hidden">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--primary)]">
-                  From registers to reports
-                </p>
-                <p className="mt-1 text-sm font-semibold text-[var(--t1)]">
-                  One flow, one view, one calmer morning.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* ===== STATS STRIP ===== */}
-      <StatStrip />
-
-      {/* ===== HOW TO GET STARTED ===== */}
-      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-        <FadeIn>
-          <div className="text-center mb-10">
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
-              Get started in 3 steps
-            </p>
-            <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
-              From signup to running your school
-            </h2>
-          </div>
-          <div className="grid gap-6 sm:grid-cols-3">
-            {[
-              {
-                step: "1",
-                icon: "how_to_reg",
-                title: "Register your school",
-                desc: "Create your account in under 2 minutes. No credit card needed.",
-              },
-              {
-                step: "2",
-                icon: "group_add",
-                title: "Add your students",
-                desc: "Upload a CSV or add students manually. Create classes and subjects.",
-              },
-              {
-                step: "3",
-                icon: "rocket_launch",
-                title: "Start using it",
-                desc: "Mark attendance, record fees, send SMS — your school runs from one place.",
-              },
-            ].map((item, i) => (
-              <FadeIn key={item.step} delay={i * 150}>
-                <div className="relative rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow text-center">
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-[#17325F] text-white text-xs font-bold flex items-center justify-center">
-                    {item.step}
-                  </div>
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448] mx-auto mt-2">
-                    <MaterialIcon icon={item.icon} className="text-[26px]" />
-                  </div>
-                  <h3 className="mt-4 text-base font-semibold text-slate-900">
-                    {item.title}
-                  </h3>
-                  <p className="mt-2 text-sm text-slate-600">{item.desc}</p>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </FadeIn>
-      </section>
-
-      {/* ===== ROLE SWITCHER ===== */}
-      <RoleSwitcher />
-
-      {/* ===== HOW IT WORKS ===== */}
-      <DayTimeline />
-
-      {/* ===== STORY ===== */}
-      <section
-        id="story"
-        className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24"
-      >
-        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-          <FadeIn>
-            <div className="rounded-[34px] bg-[#0f1f3d] p-7 text-white shadow-[0_24px_60px_rgba(15,23,42,0.16)] lg:p-8">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/60">
-                The story behind SkoolMate OS
-              </p>
-              <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl">
-                It did not start as an idea. It started with what schools kept
-                carrying every day.
-              </h2>
-              <p className="mt-5 text-base leading-7 text-white/76">
-                At SkoolMate Foundation, the work has been close enough to
-                schools to see the real picture, not an abstract one. The issue
-                was never that people were not trying. The issue was that the
-                system around them kept slowing the work down.
-              </p>
-              <div className="mt-8 grid gap-3">
-                {storyMoments.map((item) => (
-                  <div
-                    key={item}
-                    className="story-card rounded-[22px] border border-white/10 bg-white/6 px-4 py-4"
-                  >
-                    <p className="text-sm leading-6 text-white/82">{item}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </FadeIn>
-
-          <div className="grid gap-5">
-            <FadeIn>
-              <div className="rounded-[34px] border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
-                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
-                  What became obvious
-                </p>
-                <h3 className="mt-4 font-['Sora'] text-2xl font-semibold leading-tight tracking-[-0.03em] text-slate-950">
-                  Schools do not need more pressure. They need better tools.
-                </h3>
-                <p className="mt-4 text-base leading-7 text-slate-600">
-                  SkoolMate OS was built to match the real flow of school life:
-                  attendance, marks, fees, communication, and decision-making in
-                  one place. Not another generic system. A calmer operating
-                  layer for schools that are already working hard.
-                </p>
-              </div>
-            </FadeIn>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              {storyPrinciples.map((item, i) => (
-                <FadeIn key={item.label} delay={i * 100}>
-                  <div className="story-card rounded-[28px] border border-slate-200 bg-[#f8fbff] p-5 shadow-sm h-full">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#17325F]/8 text-[#17325F]">
-                      <MaterialIcon icon={item.icon} className="text-[20px]" />
-                    </div>
-                    <p className="mt-4 text-base font-semibold leading-7 text-slate-900">
-                      {item.label}
-                    </p>
-                  </div>
-                </FadeIn>
-              ))}
-            </div>
-
-            <FadeIn delay={200}>
-              <div className="rounded-[34px] border border-[#d7e4fb] bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_100%)] p-6 shadow-sm lg:p-8">
-                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
-                  What changes when the system runs well
-                </p>
-                <p className="mt-4 text-base leading-7 text-slate-600">
-                  Teachers get more time to focus on students. Leaders can see
-                  what is working and what is not. Parents stay informed.
-                  Students are noticed early instead of slipping through the
-                  cracks. The X in SkoolMate OS stands for Xperience, because
-                  this system comes from what has been seen, learned, and asked
-                  for in the field.
-                </p>
-              </div>
-            </FadeIn>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== MODULES ===== */}
-      <section className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
-        <FadeIn>
-          <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
-                Inside the platform
-              </p>
-              <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
-                Every major school unit connected in one system.
-              </h2>
-              <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
-                From academics to administration, SkoolMate OS is designed to
-                reduce duplicate work. Enter data once, then reuse it across
-                report cards, parent communication, financial follow-up, UNEB
-                prep, and board reporting.
-              </p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              {modules.map((module, i) => (
-                <FadeIn key={module.label} delay={i * 80}>
-                  <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-sm hover:shadow-md hover:border-[#2E9448]/30 transition-all cursor-default">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448]">
-                        <MaterialIcon
-                          icon={module.icon}
-                          className="text-[20px]"
-                        />
-                      </div>
-                      <p className="text-sm font-semibold text-slate-800">
-                        {module.label}
-                      </p>
-                    </div>
-                  </div>
-                </FadeIn>
-              ))}
-            </div>
-          </div>
-        </FadeIn>
-      </section>
-
-      {/* ===== OSX ===== */}
-      <section id="osx" className="bg-white py-18 lg:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <FadeIn>
-            <div className="grid gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-start">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
-                  SkoolMate OS and OSX
-                </p>
-                <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
-                  SkoolMate OS is the system layer inside the wider SkoolMate
-                  School Xperience.
-                </h2>
-                <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
-                  OSX is the broader transformation model. SkoolMate OS is the
-                  layer that helps that transformation hold, because progress is
-                  hard to sustain when the underlying school systems stay
-                  scattered and manual.
-                </p>
-              </div>
-
-              <div className="grid gap-4">
-                <div className="rounded-[32px] border border-slate-200 bg-[#f7f9fc] p-6 shadow-sm lg:p-8">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="rounded-[24px] bg-white p-5 ring-1 ring-slate-200 hover:shadow-md transition-shadow">
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-                        OSX
-                      </p>
-                      <p className="mt-3 text-xl font-semibold tracking-tight text-slate-950">
-                        Drives transformation
-                      </p>
-                      <p className="mt-3 text-sm leading-6 text-slate-600">
-                        Leadership, student engagement, accountability, and a
-                        culture where schools do not just operate, but perform.
-                      </p>
-                    </div>
-                    <div className="rounded-[24px] bg-[#17325F] p-5 text-white hover:shadow-lg transition-shadow">
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/60">
-                        SkoolMate OS
-                      </p>
-                      <p className="mt-3 text-xl font-semibold tracking-tight">
-                        Sustains it daily
-                      </p>
-                      <p className="mt-3 text-sm leading-6 text-white/76">
-                        Attendance, academics, fees, communication, and
-                        operational visibility working in one reliable school
-                        workflow.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {osxLinks.map((item, i) => (
-                  <FadeIn key={item} delay={i * 100}>
-                    <div className="story-card flex items-start gap-3 rounded-[26px] border border-slate-200 bg-white px-5 py-4 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448] flex-shrink-0">
-                        <MaterialIcon
-                          icon="north_east"
-                          className="text-[18px]"
-                        />
-                      </div>
-                      <p className="text-sm leading-6 text-slate-700">{item}</p>
-                    </div>
-                  </FadeIn>
-                ))}
-
-                <div className="rounded-[30px] border border-[#d7e4fb] bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] p-6">
-                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
-                    The result
+              {/* Mockups */}
+              <div className="relative hero-stage">
+                {/* Floating note — visible on all sizes now */}
+                <div className="floating-note absolute right-0 top-0 z-20 w-52 rounded-[28px] border border-white/70 bg-white/88 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.14)] backdrop-blur xl:block hidden">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+                    Today at a glance
                   </p>
-                  <p className="mt-4 text-base leading-7 text-slate-700">
-                    Together, OSX drives the transformation and SkoolMate OS
-                    makes it visible, usable, and measurable. That is the
-                    complete school experience: organised systems, informed
-                    decisions, earlier support, and progress that leaders can
-                    actually track.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* ===== SECURITY & DATA PROTECTION ===== */}
-      <section
-        id="security"
-        className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24"
-      >
-        <FadeIn>
-          <div className="text-center mb-14">
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
-              Security &amp; Data Protection
-            </p>
-            <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
-              Your school data is safe with us.
-            </h2>
-            <p className="mt-5 max-w-2xl mx-auto text-lg leading-8 text-slate-600">
-              Student records, grades, and financial data are sensitive. Here is
-              exactly how we protect your school — in plain language.
-            </p>
-          </div>
-        </FadeIn>
-
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {securityDetails.map((feature, i) => (
-            <FadeIn key={feature.title} delay={i * 100}>
-              <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md hover:border-[#2E9448]/30 transition-all h-full">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448]">
-                  <MaterialIcon icon={feature.icon} className="text-[24px]" />
-                </div>
-                <h3 className="mt-4 text-lg font-semibold text-slate-900">
-                  {feature.title}
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {feature.desc}
-                </p>
-              </div>
-            </FadeIn>
-          ))}
-        </div>
-      </section>
-
-      {/* ===== PRICING ===== */}
-      <section id="pricing" className="relative bg-[#0d1930] py-18 text-white lg:py-24">
-        <div className="absolute top-8 left-8 opacity-30">
-          <AnimatedLogo type="logo_white" className="w-16 h-16" />
-        </div>
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <FadeIn>
-            <div className="max-w-2xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/60">
-                Pricing
-              </p>
-              <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl">
-                Clear pricing. No hidden fees.
-              </h2>
-              <p className="mt-5 text-lg leading-8 text-white/72">
-                Per-student pricing that scales with your school. Start free,
-                upgrade when ready.
-              </p>
-              <div className="mt-6">
-                <button
-                  onClick={() => smoothScroll("#comparison")}
-                  className="text-sm font-semibold text-white/80 hover:text-white underline underline-offset-4"
-                >
-                  See full feature comparison →
-                </button>
-              </div>
-            </div>
-          </FadeIn>
-
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {plans.map((plan, i) => (
-              <FadeIn key={plan.name} delay={i * 150}>
-                <div
-                  className={`rounded-[32px] border p-6 h-full flex flex-col ${
-                    plan.featured
-                      ? "border-white/20 bg-white text-slate-950 shadow-[0_24px_60px_rgba(0,0,0,0.28)]"
-                      : "border-white/12 bg-white/6 backdrop-blur"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <p
-                      className={`text-lg font-semibold ${plan.featured ? "text-slate-950" : "text-white"}`}
-                    >
-                      {plan.name}
-                    </p>
-                    {plan.featured && (
-                      <span className="rounded-full bg-[#17325F] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white">
-                        Most chosen
-                      </span>
-                    )}
-                  </div>
-                  <p
-                    className={`mt-4 font-['Sora'] text-4xl font-semibold tracking-[-0.05em] ${plan.featured ? "text-slate-950" : "text-white"}`}
-                  >
-                    {plan.price}
-                  </p>
-                  <p
-                    className={`mt-1 text-sm ${plan.featured ? "text-slate-500" : "text-white/60"}`}
-                  >
-                    {plan.cadence}
-                  </p>
-                  <p
-                    className={`mt-2 text-xs font-semibold uppercase tracking-wider ${plan.featured ? "text-[#2E9448]" : "text-white/80"}`}
-                  >
-                    {plan.bestFor}
-                  </p>
-                  <div className="mt-6 space-y-3 flex-1">
-                    {plan.features.map((feature) => (
-                      <div key={feature} className="flex items-start gap-3">
-                        <MaterialIcon
-                          icon="check"
-                          className={`mt-0.5 text-[18px] ${plan.featured ? "text-[#2E9448]" : "text-white"}`}
-                        />
-                        <p
-                          className={`text-sm ${plan.featured ? "text-slate-700" : "text-white/80"}`}
-                        >
-                          {feature}
+                  <div className="mt-4 space-y-3">
+                    {[
+                      ["Attendance filed", "12 classes by 8:05 AM"],
+                      ["Fee follow-up", "426 parents queued"],
+                      ["Candidate review", "S.4 report cards ready"],
+                    ].map(([label, note]) => (
+                      <div
+                        key={label}
+                        className="rounded-[20px] bg-slate-50 p-3 ring-1 ring-slate-200"
+                      >
+                        <p className="text-sm font-semibold text-slate-900">
+                          {label}
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-slate-500">
+                          {note}
                         </p>
                       </div>
                     ))}
                   </div>
-                  <Link
-                    href="/register"
-                    className={`mt-8 inline-flex w-full items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold transition ${
-                      plan.featured
-                        ? "bg-[var(--primary)] text-[var(--on-primary)] hover:opacity-90"
-                        : "bg-white text-[var(--t1)] hover:bg-[var(--surface-container)]"
-                    }`}
-                  >
-                    Start with {plan.name}
-                  </Link>
+                </div>
+                <div className="phone-stage relative z-10 mx-auto mb-6 max-w-[320px] lg:absolute lg:-left-8 lg:top-10 lg:mb-0 xl:block">
+                  <PhoneMockup />
+                </div>
+                <div className="desktop-stage relative z-0 hidden lg:block lg:ml-16">
+                  <LaptopMockup />
+                </div>
+                {/* Floating callout — visible on all sizes now */}
+                <div className="floating-callout absolute bottom-5 left-3 z-20 rounded-[24px] border border-[#d7e4fb] bg-white/92 px-4 py-3 shadow-[0_22px_55px_rgba(15,23,42,0.12)] backdrop-blur md:block hidden">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--primary)]">
+                    From registers to reports
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--t1)]">
+                    One flow, one view, one calmer morning.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ===== STATS STRIP ===== */}
+        <StatStrip />
+
+        {/* ===== HOW TO GET STARTED ===== */}
+        <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+          <FadeIn>
+            <div className="text-center mb-10">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
+                Get started in 3 steps
+              </p>
+              <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
+                From signup to running your school
+              </h2>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-3">
+              {[
+                {
+                  step: "1",
+                  icon: "how_to_reg",
+                  title: "Register your school",
+                  desc: "Create your account in under 2 minutes. No credit card needed.",
+                },
+                {
+                  step: "2",
+                  icon: "group_add",
+                  title: "Add your students",
+                  desc: "Upload a CSV or add students manually. Create classes and subjects.",
+                },
+                {
+                  step: "3",
+                  icon: "rocket_launch",
+                  title: "Start using it",
+                  desc: "Mark attendance, record fees, send SMS — your school runs from one place.",
+                },
+              ].map((item, i) => (
+                <FadeIn key={item.step} delay={i * 150}>
+                  <div className="relative rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow text-center">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-[#17325F] text-white text-xs font-bold flex items-center justify-center">
+                      {item.step}
+                    </div>
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448] mx-auto mt-2">
+                      <MaterialIcon icon={item.icon} className="text-[26px]" />
+                    </div>
+                    <h3 className="mt-4 text-base font-semibold text-slate-900">
+                      {item.title}
+                    </h3>
+                    <p className="mt-2 text-sm text-slate-600">{item.desc}</p>
+                  </div>
+                </FadeIn>
+              ))}
+            </div>
+          </FadeIn>
+        </section>
+
+        {/* ===== ROLE SWITCHER ===== */}
+        <RoleSwitcher />
+
+        {/* ===== HOW IT WORKS ===== */}
+        <DayTimeline />
+
+        {/* ===== STORY ===== */}
+        <section
+          id="story"
+          className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24"
+        >
+          <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+            <FadeIn>
+              <div className="rounded-[34px] bg-[#0f1f3d] p-7 text-white shadow-[0_24px_60px_rgba(15,23,42,0.16)] lg:p-8">
+                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/60">
+                  The story behind SkoolMate OS
+                </p>
+                <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl">
+                  It did not start as an idea. It started with what schools kept
+                  carrying every day.
+                </h2>
+                <p className="mt-5 text-base leading-7 text-white/76">
+                  At Omuto Foundation, the work has been close enough to schools
+                  to see the real picture, not an abstract one. The issue was
+                  never that people were not trying. The issue was that the
+                  system around them kept slowing the work down.
+                </p>
+                <div className="mt-8 grid gap-3">
+                  {storyMoments.map((item) => (
+                    <div
+                      key={item}
+                      className="story-card rounded-[22px] border border-white/10 bg-white/6 px-4 py-4"
+                    >
+                      <p className="text-sm leading-6 text-white/82">{item}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </FadeIn>
+
+            <div className="grid gap-5">
+              <FadeIn>
+                <div className="rounded-[34px] border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
+                    What became obvious
+                  </p>
+                  <h3 className="mt-4 font-['Sora'] text-2xl font-semibold leading-tight tracking-[-0.03em] text-slate-950">
+                    Schools do not need more pressure. They need better tools.
+                  </h3>
+                  <p className="mt-4 text-base leading-7 text-slate-600">
+                    SkoolMate OS was built to match the real flow of school
+                    life: attendance, marks, fees, communication, and
+                    decision-making in one place. Not another generic system. A
+                    calmer operating layer for schools that are already working
+                    hard.
+                  </p>
+                </div>
+              </FadeIn>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {storyPrinciples.map((item, i) => (
+                  <FadeIn key={item.label} delay={i * 100}>
+                    <div className="story-card rounded-[28px] border border-slate-200 bg-[#f8fbff] p-5 shadow-sm h-full">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#17325F]/8 text-[#17325F]">
+                        <MaterialIcon
+                          icon={item.icon}
+                          className="text-[20px]"
+                        />
+                      </div>
+                      <p className="mt-4 text-base font-semibold leading-7 text-slate-900">
+                        {item.label}
+                      </p>
+                    </div>
+                  </FadeIn>
+                ))}
+              </div>
+
+              <FadeIn delay={200}>
+                <div className="rounded-[34px] border border-[#d7e4fb] bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_100%)] p-6 shadow-sm lg:p-8">
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
+                    What changes when the system runs well
+                  </p>
+                  <p className="mt-4 text-base leading-7 text-slate-600">
+                    Teachers get more time to focus on students. Leaders can see
+                    what is working and what is not. Parents stay informed.
+                    Students are noticed early instead of slipping through the
+                    cracks. The X in SkoolMate OS stands for Xperience, because
+                    this system comes from what has been seen, learned, and
+                    asked for in the field.
+                  </p>
+                </div>
+              </FadeIn>
+            </div>
+          </div>
+        </section>
+
+        {/* ===== MODULES ===== */}
+        <section className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
+          <FadeIn>
+            <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
+                  Inside the platform
+                </p>
+                <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
+                  Every major school unit connected in one system.
+                </h2>
+                <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
+                  From academics to administration, SkoolMate OS is designed to
+                  reduce duplicate work. Enter data once, then reuse it across
+                  report cards, parent communication, financial follow-up, UNEB
+                  prep, and board reporting.
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                {modules.map((module, i) => (
+                  <FadeIn key={module.label} delay={i * 80}>
+                    <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-sm hover:shadow-md hover:border-[#2E9448]/30 transition-all cursor-default">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448]">
+                          <MaterialIcon
+                            icon={module.icon}
+                            className="text-[20px]"
+                          />
+                        </div>
+                        <p className="text-sm font-semibold text-slate-800">
+                          {module.label}
+                        </p>
+                      </div>
+                    </div>
+                  </FadeIn>
+                ))}
+              </div>
+            </div>
+          </FadeIn>
+        </section>
+
+        {/* ===== OSX ===== */}
+        <section id="osx" className="bg-white py-18 lg:py-24">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <FadeIn>
+              <div className="grid gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-start">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
+                    SkoolMate OS and OSX
+                  </p>
+                  <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
+                    SkoolMate OS is the system layer inside the wider SkoolMate
+                    School Xperience.
+                  </h2>
+                  <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
+                    OSX is the broader transformation model. SkoolMate OS is the
+                    layer that helps that transformation hold, because progress
+                    is hard to sustain when the underlying school systems stay
+                    scattered and manual.
+                  </p>
+                </div>
+
+                <div className="grid gap-4">
+                  <div className="rounded-[32px] border border-slate-200 bg-[#f7f9fc] p-6 shadow-sm lg:p-8">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="rounded-[24px] bg-white p-5 ring-1 ring-slate-200 hover:shadow-md transition-shadow">
+                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                          OSX
+                        </p>
+                        <p className="mt-3 text-xl font-semibold tracking-tight text-slate-950">
+                          Drives transformation
+                        </p>
+                        <p className="mt-3 text-sm leading-6 text-slate-600">
+                          Leadership, student engagement, accountability, and a
+                          culture where schools do not just operate, but
+                          perform.
+                        </p>
+                      </div>
+                      <div className="rounded-[24px] bg-[#17325F] p-5 text-white hover:shadow-lg transition-shadow">
+                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/60">
+                          SkoolMate OS
+                        </p>
+                        <p className="mt-3 text-xl font-semibold tracking-tight">
+                          Sustains it daily
+                        </p>
+                        <p className="mt-3 text-sm leading-6 text-white/76">
+                          Attendance, academics, fees, communication, and
+                          operational visibility working in one reliable school
+                          workflow.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {osxLinks.map((item, i) => (
+                    <FadeIn key={item} delay={i * 100}>
+                      <div className="story-card flex items-start gap-3 rounded-[26px] border border-slate-200 bg-white px-5 py-4 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448] flex-shrink-0">
+                          <MaterialIcon
+                            icon="north_east"
+                            className="text-[18px]"
+                          />
+                        </div>
+                        <p className="text-sm leading-6 text-slate-700">
+                          {item}
+                        </p>
+                      </div>
+                    </FadeIn>
+                  ))}
+
+                  <div className="rounded-[30px] border border-[#d7e4fb] bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] p-6">
+                    <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
+                      The result
+                    </p>
+                    <p className="mt-4 text-base leading-7 text-slate-700">
+                      Together, OSX drives the transformation and SkoolMate OS
+                      makes it visible, usable, and measurable. That is the
+                      complete school experience: organised systems, informed
+                      decisions, earlier support, and progress that leaders can
+                      actually track.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </FadeIn>
+          </div>
+        </section>
+
+        {/* ===== SECURITY & DATA PROTECTION ===== */}
+        <section
+          id="security"
+          className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24"
+        >
+          <FadeIn>
+            <div className="text-center mb-14">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
+                Security &amp; Data Protection
+              </p>
+              <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
+                Your school data is safe with us.
+              </h2>
+              <p className="mt-5 max-w-2xl mx-auto text-lg leading-8 text-slate-600">
+                Student records, grades, and financial data are sensitive. Here
+                is exactly how we protect your school — in plain language.
+              </p>
+            </div>
+          </FadeIn>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {securityDetails.map((feature, i) => (
+              <FadeIn key={feature.title} delay={i * 100}>
+                <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md hover:border-[#2E9448]/30 transition-all h-full">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448]">
+                    <MaterialIcon icon={feature.icon} className="text-[24px]" />
+                  </div>
+                  <h3 className="mt-4 text-lg font-semibold text-slate-900">
+                    {feature.title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    {feature.desc}
+                  </p>
                 </div>
               </FadeIn>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ===== COMPARISON TABLE ===== */}
-      <section
-        id="comparison"
-        className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:py-24"
-      >
-        <FadeIn>
-          <div className="text-center mb-10">
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
-              Feature Comparison
-            </p>
-            <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
-              How SkoolMate OS compares
-            </h2>
+        {/* ===== PRICING ===== */}
+        <section
+          id="pricing"
+          className="relative bg-[#0d1930] py-18 text-white lg:py-24"
+        >
+          <div className="absolute top-8 left-8 opacity-30">
+            <AnimatedLogo type="logo_white" className="w-16 h-16" />
           </div>
-          <p className="text-center text-sm text-slate-500 mb-2">
-            ✓ = Included &nbsp;&nbsp; ✗ = Not available &nbsp;&nbsp; ~ = Partial
-          </p>
-          <p className="text-center text-xs text-slate-400 mb-8">
-            Based on publicly available information, April 2026. Competitor columns are illustrative.
-          </p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  <th className="text-left py-3 px-4 font-semibold text-slate-900">
-                    Feature
-                  </th>
-                  <th className="py-3 px-4 font-bold text-[#2E9448] bg-green-50">
-                    SkoolMate
-                  </th>
-                  <th className="py-3 px-4 text-slate-500">Alt A</th>
-                  <th className="py-3 px-4 text-slate-500">Alt B</th>
-                  <th className="py-3 px-4 text-slate-500">Alt C</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  ["NCDC syllabus & scheme of work", "✓", "✗", "✗", "✗"],
-                  ["MTN MoMo + Airtel integration", "✓", "~", "✗", "✗"],
-                  ["Student ID card generation", "✓", "✗", "✗", "✗"],
-                  ["Transport route tracking", "✓", "✗", "✗", "✗"],
-                  ["DNA + trend analysis", "✓", "✗", "✗", "✗"],
-                  ["White-label option", "✓", "✗", "✗", "✗"],
-                  ["Parent portal", "✓", "✓", "✓", "✗"],
-                  ["Offline mode", "~", "✓", "✗", "✓"],
-                  ["UNEB registration", "✓", "~", "✗", "✗"],
-                  ["Full payroll", "✓", "✓", "✓", "~"],
-                ].map((row, i) => (
-                  <tr
-                    key={i}
-                    className="border-b border-slate-100 hover:bg-slate-50"
-                  >
-                    <td className="py-3 px-4 text-slate-700">{row[0]}</td>
-                    <td className="py-3 px-4 text-center font-bold bg-green-50/50">
-                      {row[1]}
-                    </td>
-                    <td className="py-3 px-4 text-center text-slate-500">
-                      {row[2]}
-                    </td>
-                    <td className="py-3 px-4 text-center text-slate-500">
-                      {row[3]}
-                    </td>
-                    <td className="py-3 px-4 text-center text-slate-500">
-                      {row[4]}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </FadeIn>
-      </section>
-
-      {/* ===== FAQ ===== */}
-      <section id="faq" className="mx-auto max-w-3xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
-        <FadeIn>
-          <div className="text-center mb-10">
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
-              Frequently asked questions
-            </p>
-            <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
-              Questions schools ask before signing up
-            </h2>
-          </div>
-          <div className="space-y-3">
-            {faqItems.map((item, i) => (
-              <FadeIn key={item.q} delay={i * 80}>
-                <FAQItem q={item.q} a={item.a} />
-              </FadeIn>
-            ))}
-          </div>
-        </FadeIn>
-      </section>
-
-      {/* ===== FINAL CTA ===== */}
-      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-        <FadeIn>
-          <div className="rounded-[36px] border border-[var(--border)] bg-[var(--surface)] px-6 py-8 shadow-[var(--sh1)] sm:px-8 lg:flex lg:items-center lg:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--primary)]">
-                Ready to launch
-              </p>
-              <h2 className="mt-3 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-[var(--t1)]">
-                Give your school one place to run the term.
-              </h2>
-              <p className="mt-4 text-base leading-7 text-[var(--t2)]">
-                Register your school, set up classes and subjects, and start
-                using attendance, grading, fees, and parent communication in a
-                single workspace.
-              </p>
-            </div>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row lg:mt-0">
-              <Link
-                href="/register"
-                className="btn btn-primary px-7 py-4 text-base"
-              >
-                Start free trial
-              </Link>
-              <Link
-                href="/login"
-                className="btn btn-secondary px-7 py-4 text-base"
-              >
-                Sign in
-              </Link>
-            </div>
-          </div>
-        </FadeIn>
-      </section>
-
-      {/* ===== FOOTER ===== */}
-      <footer className="border-t border-slate-200 bg-white pb-24 sm:pb-0">
-        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <SkoolMateLogo size="md" variant="default" />
-              <p className="mt-4 text-sm leading-6 text-slate-500">
-                The school operating system built from real experience in
-                Ugandan schools.
-              </p>
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">
-                Product
-              </h4>
-              <ul className="mt-4 space-y-3">
-                <li>
-                  <button
-                    onClick={() => smoothScroll("#features")}
-                    className="text-sm text-slate-600 hover:text-slate-900 transition cursor-pointer"
-                  >
-                    Features
-                  </button>
-                </li>
-                <li>
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <FadeIn>
+              <div className="max-w-2xl">
+                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/60">
+                  Pricing
+                </p>
+                <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl">
+                  Clear pricing. No hidden fees.
+                </h2>
+                <p className="mt-5 text-lg leading-8 text-white/72">
+                  Per-student pricing that scales with your school. Start free,
+                  upgrade when ready.
+                </p>
+                <div className="mt-6">
                   <button
                     onClick={() => smoothScroll("#comparison")}
-                    className="text-sm text-slate-600 hover:text-slate-900 transition cursor-pointer"
+                    className="text-sm font-semibold text-white/80 hover:text-white underline underline-offset-4"
                   >
-                    Compare
+                    See full feature comparison →
                   </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => smoothScroll("#security")}
-                    className="text-sm text-slate-600 hover:text-slate-900 transition cursor-pointer"
-                  >
-                    Security
-                  </button>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">
-                Resources
-              </h4>
-              <ul className="mt-4 space-y-3">
-                <li>
-                  <a
-                    href="/login"
-                    className="text-sm text-slate-600 hover:text-slate-900 transition"
-                  >
-                    Sign In
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="/register"
-                    className="text-sm text-slate-600 hover:text-slate-900 transition"
-                  >
-                    Register School
-                  </a>
-                </li>
-                <li>
-                  <Link
-                    href="/parent"
-                    className="text-sm text-slate-600 hover:text-slate-900 transition"
-                  >
-                    Parent Portal
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">
-                Contact
-              </h4>
-              <ul className="mt-4 space-y-3">
-                <li className="flex items-center gap-2 text-sm text-slate-600">
-                  <MaterialIcon
-                    icon="mail"
-                    className="text-[16px] text-[#17325F]"
-                  />
-                  <a
-                    href="mailto:os@omuto.org"
-                    className="hover:text-slate-900 transition"
-                  >
-                    os@omuto.org
-                  </a>
-                </li>
-                <li className="flex items-center gap-2 text-sm text-slate-600">
-                  <MaterialIcon
-                    icon="phone"
-                    className="text-[16px] text-[#17325F]"
-                  />
-                  <a
-                    href="tel:0750028703"
-                    className="hover:text-slate-900 transition"
-                  >
-                    0750 028 703
-                  </a>
-                </li>
-                <li className="flex items-center gap-2 text-sm text-slate-600">
-                  <MaterialIcon
-                    icon="chat"
-                    className="text-[16px] text-[#25D366]"
-                  />
-                  <a
-                    href="https://wa.me/256750028703"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-slate-900 transition"
-                  >
-                    WhatsApp
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div className="mt-10 border-t border-slate-200 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-slate-400" suppressHydrationWarning>
-              &copy; {new Date().getFullYear()} SkoolMate Foundation. All rights
-              reserved.
-            </p>
-            <div className="flex items-center gap-2 text-sm text-slate-400">
-              <MaterialIcon icon="lock" className="text-[14px]" />
-              <span>Your data is encrypted and never shared.</span>
-            </div>
-          </div>
-        </div>
-      </footer>
+                </div>
+              </div>
+            </FadeIn>
 
-      {/* ===== STICKY MOBILE CTA ===== */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-t border-slate-200 px-4 py-3 shadow-[0_-4px_24px_rgba(15,23,42,0.10)]">
-        <div className="flex gap-3 max-w-sm mx-auto">
-          <Link
-            href="/register"
-            className="btn btn-primary flex-1 justify-center py-3 text-sm"
-          >
-            Start free trial
-          </Link>
-          <Link
-            href="/login"
-            className="btn btn-secondary py-3 px-5 text-sm"
-          >
-            Sign in
-          </Link>
+            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {plans.map((plan, i) => (
+                <FadeIn key={plan.name} delay={i * 150}>
+                  <div
+                    className={`rounded-[32px] border p-6 h-full flex flex-col ${
+                      plan.featured
+                        ? "border-white/20 bg-white text-slate-950 shadow-[0_24px_60px_rgba(0,0,0,0.28)]"
+                        : "border-white/12 bg-white/6 backdrop-blur"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <p
+                        className={`text-lg font-semibold ${plan.featured ? "text-slate-950" : "text-white"}`}
+                      >
+                        {plan.name}
+                      </p>
+                      {plan.featured && (
+                        <span className="rounded-full bg-[#17325F] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white">
+                          Most chosen
+                        </span>
+                      )}
+                    </div>
+                    <p
+                      className={`mt-4 font-['Sora'] text-4xl font-semibold tracking-[-0.05em] ${plan.featured ? "text-slate-950" : "text-white"}`}
+                    >
+                      {plan.price}
+                    </p>
+                    <p
+                      className={`mt-1 text-sm ${plan.featured ? "text-slate-500" : "text-white/60"}`}
+                    >
+                      {plan.cadence}
+                    </p>
+                    <p
+                      className={`mt-2 text-xs font-semibold uppercase tracking-wider ${plan.featured ? "text-[#2E9448]" : "text-white/80"}`}
+                    >
+                      {plan.bestFor}
+                    </p>
+                    <div className="mt-6 space-y-3 flex-1">
+                      {plan.features.map((feature) => (
+                        <div key={feature} className="flex items-start gap-3">
+                          <MaterialIcon
+                            icon="check"
+                            className={`mt-0.5 text-[18px] ${plan.featured ? "text-[#2E9448]" : "text-white"}`}
+                          />
+                          <p
+                            className={`text-sm ${plan.featured ? "text-slate-700" : "text-white/80"}`}
+                          >
+                            {feature}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                    <Link
+                      href="/register"
+                      className={`mt-8 inline-flex w-full items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold transition ${
+                        plan.featured
+                          ? "bg-[var(--primary)] text-[var(--on-primary)] hover:opacity-90"
+                          : "bg-white text-[var(--t1)] hover:bg-[var(--surface-container)]"
+                      }`}
+                    >
+                      Start with {plan.name}
+                    </Link>
+                  </div>
+                </FadeIn>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ===== COMPARISON TABLE ===== */}
+        <section
+          id="comparison"
+          className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:py-24"
+        >
+          <FadeIn>
+            <div className="text-center mb-10">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
+                Feature Comparison
+              </p>
+              <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
+                How SkoolMate OS compares
+              </h2>
+            </div>
+            <p className="text-center text-sm text-slate-500 mb-2">
+              ✓ = Included &nbsp;&nbsp; ✗ = Not available &nbsp;&nbsp; ~ =
+              Partial
+            </p>
+            <p className="text-center text-xs text-slate-400 mb-8">
+              Based on publicly available information, April 2026. Competitor
+              columns are illustrative.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left py-3 px-4 font-semibold text-slate-900">
+                      Feature
+                    </th>
+                    <th className="py-3 px-4 font-bold text-[#2E9448] bg-green-50">
+                      SkoolMate
+                    </th>
+                    <th className="py-3 px-4 text-slate-500">Alt A</th>
+                    <th className="py-3 px-4 text-slate-500">Alt B</th>
+                    <th className="py-3 px-4 text-slate-500">Alt C</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    ["NCDC syllabus & scheme of work", "✓", "✗", "✗", "✗"],
+                    ["MTN MoMo + Airtel integration", "✓", "~", "✗", "✗"],
+                    ["Student ID card generation", "✓", "✗", "✗", "✗"],
+                    ["Transport route tracking", "✓", "✗", "✗", "✗"],
+                    ["DNA + trend analysis", "✓", "✗", "✗", "✗"],
+                    ["White-label option", "✓", "✗", "✗", "✗"],
+                    ["Parent portal", "✓", "✓", "✓", "✗"],
+                    ["Offline mode", "~", "✓", "✗", "✓"],
+                    ["UNEB registration", "✓", "~", "✗", "✗"],
+                    ["Full payroll", "✓", "✓", "✓", "~"],
+                  ].map((row, i) => (
+                    <tr
+                      key={i}
+                      className="border-b border-slate-100 hover:bg-slate-50"
+                    >
+                      <td className="py-3 px-4 text-slate-700">{row[0]}</td>
+                      <td className="py-3 px-4 text-center font-bold bg-green-50/50">
+                        {row[1]}
+                      </td>
+                      <td className="py-3 px-4 text-center text-slate-500">
+                        {row[2]}
+                      </td>
+                      <td className="py-3 px-4 text-center text-slate-500">
+                        {row[3]}
+                      </td>
+                      <td className="py-3 px-4 text-center text-slate-500">
+                        {row[4]}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </FadeIn>
+        </section>
+
+        {/* ===== FAQ ===== */}
+        <section
+          id="faq"
+          className="mx-auto max-w-3xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24"
+        >
+          <FadeIn>
+            <div className="text-center mb-10">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
+                Frequently asked questions
+              </p>
+              <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
+                Questions schools ask before signing up
+              </h2>
+            </div>
+            <div className="space-y-3">
+              {faqItems.map((item, i) => (
+                <FadeIn key={item.q} delay={i * 80}>
+                  <FAQItem q={item.q} a={item.a} />
+                </FadeIn>
+              ))}
+            </div>
+          </FadeIn>
+        </section>
+
+        {/* ===== FINAL CTA ===== */}
+        <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+          <FadeIn>
+            <div className="rounded-[36px] border border-[var(--border)] bg-[var(--surface)] px-6 py-8 shadow-[var(--sh1)] sm:px-8 lg:flex lg:items-center lg:justify-between">
+              <div className="max-w-2xl">
+                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--primary)]">
+                  Ready to launch
+                </p>
+                <h2 className="mt-3 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-[var(--t1)]">
+                  Give your school one place to run the term.
+                </h2>
+                <p className="mt-4 text-base leading-7 text-[var(--t2)]">
+                  Register your school, set up classes and subjects, and start
+                  using attendance, grading, fees, and parent communication in a
+                  single workspace.
+                </p>
+              </div>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row lg:mt-0">
+                <Link
+                  href="/register"
+                  className="btn btn-primary px-7 py-4 text-base"
+                >
+                  Start free trial
+                </Link>
+                <Link
+                  href="/login"
+                  className="btn btn-secondary px-7 py-4 text-base"
+                >
+                  Sign in
+                </Link>
+              </div>
+            </div>
+          </FadeIn>
+        </section>
+
+        {/* ===== FOOTER ===== */}
+        <footer className="border-t border-slate-200 bg-white pb-24 sm:pb-0">
+          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <SkoolMateLogo size="md" variant="default" />
+                <p className="mt-4 text-sm leading-6 text-slate-500">
+                  The school operating system built from real experience in
+                  Ugandan schools.
+                </p>
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">
+                  Product
+                </h4>
+                <ul className="mt-4 space-y-3">
+                  <li>
+                    <button
+                      onClick={() => smoothScroll("#features")}
+                      className="text-sm text-slate-600 hover:text-slate-900 transition cursor-pointer"
+                    >
+                      Features
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => smoothScroll("#comparison")}
+                      className="text-sm text-slate-600 hover:text-slate-900 transition cursor-pointer"
+                    >
+                      Compare
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => smoothScroll("#security")}
+                      className="text-sm text-slate-600 hover:text-slate-900 transition cursor-pointer"
+                    >
+                      Security
+                    </button>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">
+                  Resources
+                </h4>
+                <ul className="mt-4 space-y-3">
+                  <li>
+                    <a
+                      href="/login"
+                      className="text-sm text-slate-600 hover:text-slate-900 transition"
+                    >
+                      Sign In
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="/register"
+                      className="text-sm text-slate-600 hover:text-slate-900 transition"
+                    >
+                      Register School
+                    </a>
+                  </li>
+                  <li>
+                    <Link
+                      href="/parent"
+                      className="text-sm text-slate-600 hover:text-slate-900 transition"
+                    >
+                      Parent Portal
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">
+                  Contact
+                </h4>
+                <ul className="mt-4 space-y-3">
+                  <li className="flex items-center gap-2 text-sm text-slate-600">
+                    <MaterialIcon
+                      icon="mail"
+                      className="text-[16px] text-[#17325F]"
+                    />
+                    <a
+                      href="mailto:os@omuto.org"
+                      className="hover:text-slate-900 transition"
+                    >
+                      os@omuto.org
+                    </a>
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-slate-600">
+                    <MaterialIcon
+                      icon="phone"
+                      className="text-[16px] text-[#17325F]"
+                    />
+                    <a
+                      href="tel:0750028703"
+                      className="hover:text-slate-900 transition"
+                    >
+                      0750 028 703
+                    </a>
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-slate-600">
+                    <MaterialIcon
+                      icon="chat"
+                      className="text-[16px] text-[#25D366]"
+                    />
+                    <a
+                      href="https://wa.me/256750028703"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-slate-900 transition"
+                    >
+                      WhatsApp
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div className="mt-10 border-t border-slate-200 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-slate-400" suppressHydrationWarning>
+                &copy; {new Date().getFullYear()} Omuto Foundation. All rights
+                reserved.
+              </p>
+              <div className="flex items-center gap-2 text-sm text-slate-400">
+                <MaterialIcon icon="lock" className="text-[14px]" />
+                <span>Your data is encrypted and never shared.</span>
+              </div>
+            </div>
+          </div>
+        </footer>
+
+        {/* ===== STICKY MOBILE CTA ===== */}
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-t border-slate-200 px-4 py-3 shadow-[0_-4px_24px_rgba(15,23,42,0.10)]">
+          <div className="flex gap-3 max-w-sm mx-auto">
+            <Link
+              href="/register"
+              className="btn btn-primary flex-1 justify-center py-3 text-sm"
+            >
+              Start free trial
+            </Link>
+            <Link href="/login" className="btn btn-secondary py-3 px-5 text-sm">
+              Sign in
+            </Link>
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
     </PageErrorBoundary>
   );
 }

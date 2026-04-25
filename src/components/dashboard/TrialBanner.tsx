@@ -58,7 +58,7 @@ export default function TrialBanner() {
                 rel="noopener noreferrer"
                 className="underline hover:text-amber-800"
               >
-                SkoolMate Foundation
+                Omuto Foundation
               </a>{" "}
               —
               <a

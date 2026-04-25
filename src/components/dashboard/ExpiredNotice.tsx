@@ -81,7 +81,7 @@ export default function ExpiredNotice() {
           </button>
         </div>
 
-        {/* SkoolMate Foundation Ads */}
+        {/* Omuto Foundation Ads */}
         <div className="mt-8 pt-6 border-t border-[#e5e9f0]">
           <p className="text-xs text-[#5c6670] mb-3">
             Brought to you by{" "}
@@ -91,7 +91,7 @@ export default function ExpiredNotice() {
               rel="noopener noreferrer"
               className="text-amber-700 hover:text-amber-900 font-semibold"
             >
-              SkoolMate Foundation
+              Omuto Foundation
             </a>
           </p>
           <div className="grid grid-cols-2 gap-2">
@@ -107,7 +107,7 @@ export default function ExpiredNotice() {
                 style={{ fontSize: 20 }}
               />
               <span className="text-xs font-medium text-amber-800">
-                SkoolMate Foundation
+                Omuto Foundation
               </span>
               <span className="text-[10px] text-amber-600">omuto.org</span>
             </a>
