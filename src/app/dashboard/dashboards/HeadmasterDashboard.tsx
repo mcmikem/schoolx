@@ -2,6 +2,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
 import { useAcademic } from "@/lib/academic-context";
 import {
   useDashboardStats,
@@ -58,6 +59,27 @@ function HeadmasterDashboardContent() {
     currentTerm,
     academicYear,
   );
+
+  // Fetch calendar events from database
+  const [calendarEvents, setCalendarEvents] = useState<
+    Array<{ id: string; title: string; start_date: string; event_type: string }>
+  >([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!school?.id) return;
+    const fetchEvents = async () => {
+      setEventsLoading(true);
+      const { data, error } = await supabase
+        .from("events")
+        .select("id, title, start_date, event_type")
+        .eq("school_id", school.id)
+        .order("start_date");
+      if (!error && data) setCalendarEvents(data as any);
+      setEventsLoading(false);
+    };
+    fetchEvents();
+  }, [school?.id]);
 
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
@@ -373,6 +395,16 @@ function HeadmasterDashboardContent() {
   );
 
   const academicEvents = useMemo(() => {
+    // Use real events from database, or fall back to placeholder if none
+    if (calendarEvents.length > 0) {
+      return calendarEvents.map((e) => ({
+        id: e.id,
+        title: e.title,
+        date: e.start_date,
+        kind: e.event_type || "event",
+      }));
+    }
+    // Fallback placeholder events for demo
     const toIso = (date: Date) => date.toISOString().split("T")[0];
     const mkDate = (offset: number) => {
       const d = new Date();
@@ -383,30 +415,18 @@ function HeadmasterDashboardContent() {
     return [
       {
         id: "event-attendance",
-        title: "Attendance quality review",
+        title: "Attendance review",
         date: toIso(mkDate(1)),
         kind: "ops",
       },
       {
         id: "event-fees",
-        title: "Fee follow-up sprint",
+        title: "Fee follow-up",
         date: toIso(mkDate(3)),
         kind: "finance",
       },
-      {
-        id: "event-academic",
-        title: `Term ${currentTerm} academic checkpoint`,
-        date: toIso(mkDate(6)),
-        kind: "academic",
-      },
-      {
-        id: "event-board",
-        title: "School leadership stand-up",
-        date: toIso(mkDate(9)),
-        kind: "ops",
-      },
     ];
-  }, [currentTerm]);
+  }, [calendarEvents, currentTerm]);
 
   const monthStartDay = calendarAnchor.getDay();
   const daysInMonth = new Date(
@@ -416,7 +436,12 @@ function HeadmasterDashboardContent() {
   ).getDate();
 
   const calendarCells = useMemo(() => {
-    const cells: Array<{ day: number; iso: string; hasEvent: boolean; isToday: boolean } | null> = [];
+    const cells: Array<{
+      day: number;
+      iso: string;
+      hasEvent: boolean;
+      isToday: boolean;
+    } | null> = [];
     for (let i = 0; i < monthStartDay; i++) {
       cells.push(null);
     }
@@ -462,7 +487,10 @@ function HeadmasterDashboardContent() {
           </div>
           {alertCount > 0 && (
             <div className="inline-flex items-center gap-2 rounded-full border border-[#f3c4c4] bg-[#fff4f3] px-4 py-2 text-xs font-semibold text-[#b04343]">
-              <MaterialIcon icon="notification_important" className="text-[15px]" />
+              <MaterialIcon
+                icon="notification_important"
+                className="text-[15px]"
+              />
               {alertCount} items need attention
             </div>
           )}
@@ -495,7 +523,9 @@ function HeadmasterDashboardContent() {
                         Welcome back, {user?.full_name?.split(" ")[0]}
                       </h1>
                       <p className="mt-3 max-w-xl text-sm leading-6 text-[#5d708d] sm:text-[15px]">
-                        Your school workspace is live. Monitor attendance, fee collection, staffing, and approvals from one calm control surface.
+                        Your school workspace is live. Monitor attendance, fee
+                        collection, staffing, and approvals from one calm
+                        control surface.
                       </p>
                     </div>
                   </div>
@@ -530,7 +560,10 @@ function HeadmasterDashboardContent() {
                     {
                       label: "Alerts",
                       value: loadingExtra ? "--" : alertCount,
-                      detail: alertCount > 0 ? "Needs a decision" : "Quiet day so far",
+                      detail:
+                        alertCount > 0
+                          ? "Needs a decision"
+                          : "Quiet day so far",
                       icon: "notifications_active",
                       tone: alertCount > 0 ? "#b45309" : "#3f5d7d",
                       bg: alertCount > 0 ? "#fff5e8" : "#eef4fb",
@@ -547,9 +580,15 @@ function HeadmasterDashboardContent() {
                         </p>
                         <div
                           className="flex h-10 w-10 items-center justify-center rounded-2xl"
-                          style={{ background: "rgba(255,255,255,0.9)", color: item.tone }}
+                          style={{
+                            background: "rgba(255,255,255,0.9)",
+                            color: item.tone,
+                          }}
                         >
-                          <MaterialIcon icon={item.icon} className="text-[20px]" />
+                          <MaterialIcon
+                            icon={item.icon}
+                            className="text-[20px]"
+                          />
                         </div>
                       </div>
                       <p className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-[#17325f]">
@@ -596,13 +635,23 @@ function HeadmasterDashboardContent() {
                       label: "Class coverage",
                       value: `${classesToday.length}/${classes.length || 0}`,
                       width: `${classes.length ? Math.min((classesToday.length / classes.length) * 100, 100) : 0}%`,
-                      note: classesNotMarked > 0 ? `${classesNotMarked} still pending` : "All planned classes covered",
+                      note:
+                        classesNotMarked > 0
+                          ? `${classesNotMarked} still pending`
+                          : "All planned classes covered",
                     },
                   ].map((meter) => (
-                    <div key={meter.label} className="rounded-[24px] border border-white/10 bg-white/8 p-4 backdrop-blur-sm">
+                    <div
+                      key={meter.label}
+                      className="rounded-[24px] border border-white/10 bg-white/8 p-4 backdrop-blur-sm"
+                    >
                       <div className="mb-2 flex items-center justify-between gap-3">
-                        <p className="text-sm font-semibold text-white/88">{meter.label}</p>
-                        <p className="text-sm font-semibold text-[#7de2d1]">{meter.value}</p>
+                        <p className="text-sm font-semibold text-white/88">
+                          {meter.label}
+                        </p>
+                        <p className="text-sm font-semibold text-[#7de2d1]">
+                          {meter.value}
+                        </p>
                       </div>
                       <div className="h-2 rounded-full bg-white/10">
                         <div
@@ -646,9 +695,15 @@ function HeadmasterDashboardContent() {
                                 : "#17325f",
                       }}
                     >
-                      <MaterialIcon icon={action.icon} className="text-[22px]" />
+                      <MaterialIcon
+                        icon={action.icon}
+                        className="text-[22px]"
+                      />
                     </div>
-                    <MaterialIcon icon="arrow_outward" className="text-[18px] text-[#8ca0ba] transition group-hover:text-[#17325f]" />
+                    <MaterialIcon
+                      icon="arrow_outward"
+                      className="text-[18px] text-[#8ca0ba] transition group-hover:text-[#17325f]"
+                    />
                   </div>
                   <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.18em] text-[#7a8aa3]">
                     Quick action
@@ -697,11 +752,21 @@ function HeadmasterDashboardContent() {
                   {[
                     ["Today", `UGX ${formatCurrency(feesToday)}`],
                     ["This week", `UGX ${formatCurrency(feesThisWeek)}`],
-                    ["This term", `UGX ${formatCurrency(feesThisTerm || totalFeesCollected)}`],
+                    [
+                      "This term",
+                      `UGX ${formatCurrency(feesThisTerm || totalFeesCollected)}`,
+                    ],
                   ].map(([label, value]) => (
-                    <div key={label} className="flex items-center justify-between rounded-[20px] bg-[#f4f8fc] px-4 py-3">
-                      <span className="text-sm font-medium text-[#5f7390]">{label}</span>
-                      <span className="text-sm font-semibold text-[#17325f]">{value}</span>
+                    <div
+                      key={label}
+                      className="flex items-center justify-between rounded-[20px] bg-[#f4f8fc] px-4 py-3"
+                    >
+                      <span className="text-sm font-medium text-[#5f7390]">
+                        {label}
+                      </span>
+                      <span className="text-sm font-semibold text-[#17325f]">
+                        {value}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -719,7 +784,8 @@ function HeadmasterDashboardContent() {
                   </h2>
                 </div>
                 <div className="rounded-full bg-[#17325f] px-3 py-1 text-[11px] font-semibold text-white">
-                  {focusItems.filter((item) => item.status === "alert").length} urgent
+                  {focusItems.filter((item) => item.status === "alert").length}{" "}
+                  urgent
                 </div>
               </div>
 
@@ -730,12 +796,18 @@ function HeadmasterDashboardContent() {
                     href={item.link}
                     className="flex items-center gap-3 rounded-[22px] border border-[#e5ecf4] bg-white px-4 py-3 transition hover:border-[#cbd8ea] hover:bg-[#fbfdff]"
                   >
-                    <div className={`grid h-9 w-9 place-items-center rounded-2xl text-sm font-semibold ${item.status === "alert" ? "bg-[#fff1ef] text-[#d05858]" : "bg-[#edf4ff] text-[#17325f]"}`}>
+                    <div
+                      className={`grid h-9 w-9 place-items-center rounded-2xl text-sm font-semibold ${item.status === "alert" ? "bg-[#fff1ef] text-[#d05858]" : "bg-[#edf4ff] text-[#17325f]"}`}
+                    >
                       {index + 1}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-[#17325f]">{item.label}</p>
-                      <p className="truncate text-xs text-[#6b7f99]">{item.description}</p>
+                      <p className="truncate text-sm font-semibold text-[#17325f]">
+                        {item.label}
+                      </p>
+                      <p className="truncate text-xs text-[#6b7f99]">
+                        {item.description}
+                      </p>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-semibold tracking-[-0.03em] text-[#17325f]">
@@ -772,29 +844,48 @@ function HeadmasterDashboardContent() {
                       action: deadline.label,
                       detail: deadline.date,
                       time: deadline.type,
-                      icon: deadline.type === "fee" ? "payments" : deadline.type === "attendance" ? "how_to_reg" : "approval",
-                      color: deadline.type === "fee" ? "var(--amber)" : deadline.type === "attendance" ? "var(--green)" : "var(--navy)",
+                      icon:
+                        deadline.type === "fee"
+                          ? "payments"
+                          : deadline.type === "attendance"
+                            ? "how_to_reg"
+                            : "approval",
+                      color:
+                        deadline.type === "fee"
+                          ? "var(--amber)"
+                          : deadline.type === "attendance"
+                            ? "var(--green)"
+                            : "var(--navy)",
                     }))
-                ).slice(0, 4).map((event) => (
-                  <div
-                    key={`${event.action}-${event.time}`}
-                    className="flex items-start gap-3 rounded-[22px] bg-[#f5f8fc] px-4 py-3"
-                  >
+                )
+                  .slice(0, 4)
+                  .map((event) => (
                     <div
-                      className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-white"
-                      style={{ color: event.color }}
+                      key={`${event.action}-${event.time}`}
+                      className="flex items-start gap-3 rounded-[22px] bg-[#f5f8fc] px-4 py-3"
                     >
-                      <MaterialIcon icon={event.icon} className="text-[19px]" />
+                      <div
+                        className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-white"
+                        style={{ color: event.color }}
+                      >
+                        <MaterialIcon
+                          icon={event.icon}
+                          className="text-[19px]"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-[#17325f]">
+                          {event.action}
+                        </p>
+                        <p className="text-xs leading-5 text-[#6b7f99]">
+                          {event.detail}
+                        </p>
+                      </div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8fa0b7]">
+                        {event.time}
+                      </p>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-[#17325f]">{event.action}</p>
-                      <p className="text-xs leading-5 text-[#6b7f99]">{event.detail}</p>
-                    </div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8fa0b7]">
-                      {event.time}
-                    </p>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
 
@@ -847,7 +938,9 @@ function HeadmasterDashboardContent() {
                     className="flex items-center justify-between rounded-[16px] bg-[#f4f8fc] px-3 py-2"
                   >
                     <div className="min-w-0 pr-2">
-                      <p className="truncate text-xs font-semibold text-[#17325f]">{event.title}</p>
+                      <p className="truncate text-xs font-semibold text-[#17325f]">
+                        {event.title}
+                      </p>
                       <p className="text-[10px] text-[#7d8fa8]">{event.kind}</p>
                     </div>
                     <div className="text-[11px] font-semibold text-[#5f7390]">
@@ -898,7 +991,11 @@ function HeadmasterDashboardContent() {
                   />
                   <select
                     value={taskPriority}
-                    onChange={(e) => setTaskPriority(e.target.value as "low" | "medium" | "high")}
+                    onChange={(e) =>
+                      setTaskPriority(
+                        e.target.value as "low" | "medium" | "high",
+                      )
+                    }
                     className="rounded-xl border border-[#dde6f2] bg-[#f6f9fc] px-3 py-2 text-xs font-semibold text-[#17325f] outline-none focus:border-[#aac1df]"
                   >
                     <option value="low">Low</option>
@@ -934,14 +1031,17 @@ function HeadmasterDashboardContent() {
                         ✓
                       </button>
                       <div className="min-w-0 flex-1">
-                        <p className={`truncate text-xs font-semibold ${task.done ? "text-[#89a0bb] line-through" : "text-[#17325f]"}`}>
+                        <p
+                          className={`truncate text-xs font-semibold ${task.done ? "text-[#89a0bb] line-through" : "text-[#17325f]"}`}
+                        >
                           {task.title}
                         </p>
                         <p className="text-[10px] text-[#7d8fa8]">
                           {new Date(task.dueDate).toLocaleDateString("en-UG", {
                             day: "numeric",
                             month: "short",
-                          })} · {task.priority}
+                          })}{" "}
+                          · {task.priority}
                         </p>
                       </div>
                       <button

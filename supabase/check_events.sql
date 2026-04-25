@@ -1,0 +1,1 @@
+SELECT COUNT(*) as total, event_type, COUNT(*) FILTER (WHERE event_type = 'holiday') as holidays, COUNT(*) FILTER (WHERE event_type = 'academic') as academic, COUNT(*) FILTER (WHERE event_type = 'exam') as exams FROM public.events GROUP BY event_type;
