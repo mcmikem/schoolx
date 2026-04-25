@@ -696,3 +696,48 @@ h3.text-responsive {
     display: none;
   }
 }
+
+/* -- GRID BLEED FIXES -- */
+/* Fix grids that don't have responsive prefixes - force 1 column on mobile */
+.grid {
+  grid-template-columns: 1fr !important;
+}
+
+/* Allow specific grid cols but default mobile safety */
+@media (max-width: 640px) {
+  .grid.grid-cols-2,
+  .grid.grid-cols-3,
+  .grid.grid-cols-4,
+  .grid.grid-cols-5,
+  .grid.grid-cols-6,
+  .grid.grid-cols-7,
+  .grid.grid-cols-8,
+  .grid.grid-cols-9,
+  .grid.grid-cols-10,
+  .grid.grid-cols-12 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Cards and content containers */
+  .card,
+  .stat-card,
+  .dashboard-card,
+  .dash-card {
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+    border-radius: 0;
+    width: calc(100% + 1rem);
+    max-width: calc(100% + 1rem);
+  }
+
+  /* Stat cards specifically */
+  .stat-card {
+    padding: 0.75rem;
+  }
+
+  /* Main content areas */
+  main {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+}
