@@ -144,12 +144,25 @@ export default function OnboardingFlow({
             .eq("academic_year", currentYear);
 
           if (!count) {
+            // Use insert instead of upsert to avoid constraint issues on fresh setup
+            const classData = buildDefaultClasses(
+              school.id,
+              schoolType,
+              currentYear,
+            );
             const { error: classError } = await supabase
               .from("classes")
-              .upsert(buildDefaultClasses(school.id, schoolType, currentYear), {
-                onConflict: "school_id,name,academic_year",
-              });
-            if (classError) throw classError;
+              .insert(classData);
+            if (classError) {
+              // If insert fails (existing data), try upsert as fallback
+              const { error: upsertError } = await supabase
+                .from("classes")
+                .upsert(classData, {
+                  onConflict: "school_id,name,academic_year",
+                });
+              if (upsertError)
+                console.error("Classes upsert error:", upsertError);
+            }
           }
         })(),
         (async () => {
@@ -160,12 +173,19 @@ export default function OnboardingFlow({
             .eq("academic_year", currentYear);
 
           if (!count) {
+            const termData = buildUgandaAcademicTerms(school.id, currentYear);
             const { error: termError } = await supabase
               .from("academic_terms")
-              .upsert(buildUgandaAcademicTerms(school.id, currentYear), {
-                onConflict: "school_id,academic_year,term_number",
-              });
-            if (termError) throw termError;
+              .insert(termData);
+            if (termError) {
+              const { error: upsertError } = await supabase
+                .from("academic_terms")
+                .upsert(termData, {
+                  onConflict: "school_id,academic_year,term_number",
+                });
+              if (upsertError)
+                console.error("Terms upsert error:", upsertError);
+            }
           }
         })(),
         (async () => {
