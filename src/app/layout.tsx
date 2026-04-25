@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./globals-ux.css";
 import "./mobile-responsive.css";
-import "./mobile-responsive.css";
 import Providers from "./providers";
 import MobileInit from "./mobile-init";
 import DebugPing from "@/components/DebugPing";
