@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./globals-ux.css";
+import "./mobile-responsive.css";
+import "./mobile-responsive.css";
 import Providers from "./providers";
 import MobileInit from "./mobile-init";
 import DebugPing from "@/components/DebugPing";
@@ -58,11 +60,8 @@ export default function RootLayout({
     <html lang="en" className="light">
       <head>
         {/* Google Fonts — single request to reduce latency */}
-        { }
-        <link
-          rel="preconnect"
-          href="https://fonts.googleapis.com"
-        />
+        {}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
           href="https://fonts.gstatic.com"
@@ -79,10 +78,7 @@ export default function RootLayout({
           content="black-translucent"
         />
         <meta name="apple-mobile-web-app-title" content="SkoolMate OS" />
-        <link
-          rel="apple-touch-icon"
-          href="/assemble-icon.png"
-        />
+        <link rel="apple-touch-icon" href="/assemble-icon.png" />
         <link
           rel="icon"
           href="/SkoolMate logos/SchoolMate icon.svg"

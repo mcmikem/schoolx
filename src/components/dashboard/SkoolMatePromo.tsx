@@ -25,7 +25,7 @@ const SKOOLMATE_SERVICES = [
     cta: "View Products",
   },
   {
-    title: "SkoolMate Foundation",
+    title: "Omuto Foundation",
     description:
       "Empower your students with youth programs, leadership training, and community engagement.",
     url: "https://omuto.org/foundation",

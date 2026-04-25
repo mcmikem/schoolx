@@ -1,6 +1,11 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { apiSuccess, apiError, handleApiError, rateLimit } from "@/lib/api-utils";
+import {
+  apiSuccess,
+  apiError,
+  handleApiError,
+  rateLimit,
+} from "@/lib/api-utils";
 import {
   PRIMARY_TEMPLATE,
   SECONDARY_TEMPLATE,
@@ -11,10 +16,7 @@ import {
   buildUgandaCalendarEvents,
 } from "@/lib/uganda-school-calendar";
 import { normalizeAuthPhone } from "@/lib/validation";
-import {
-  buildDefaultClasses,
-  type SchoolSetupType,
-} from "@/lib/school-setup";
+import { buildDefaultClasses, type SchoolSetupType } from "@/lib/school-setup";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -34,16 +36,15 @@ function getDefaultSubjects(schoolType: string) {
   return combined;
 }
 
-
 interface RegisterRequest {
   schoolName: string;
   district: string;
   subcounty: string;
-   parish?: string;
-   village?: string;
+  parish?: string;
+  village?: string;
   schoolType: "primary" | "secondary" | "combined";
   ownership: "private" | "government" | "government_aided";
-   selectedPackage?: string;
+  selectedPackage?: string;
   phone?: string;
   email?: string;
   adminName: string;
@@ -84,7 +85,10 @@ export async function POST(request: NextRequest) {
     // Rate limit: 5 registrations per IP per 10 minutes
     const { success } = rateLimit(request, 5, 600_000);
     if (!success) {
-      return apiError("Too many registration attempts. Please try again later.", 429);
+      return apiError(
+        "Too many registration attempts. Please try again later.",
+        429,
+      );
     }
 
     if (!supabaseServiceKey) {
@@ -123,7 +127,7 @@ export async function POST(request: NextRequest) {
       return apiError("All required fields must be filled", 400);
     }
 
-    const subscriptionPlan = normalizePlanType(selectedPackage || "starter");
+    const subscriptionPlan = normalizePlanType(selectedPackage || "basic");
 
     if (schoolName.trim().length < 3) {
       return apiError("School name must be at least 3 characters", 400);
@@ -134,10 +138,16 @@ export async function POST(request: NextRequest) {
     }
 
     if (password.length < 8) {
-      return apiError("Password must be at least 8 characters with one uppercase letter and one number", 400);
+      return apiError(
+        "Password must be at least 8 characters with one uppercase letter and one number",
+        400,
+      );
     }
     if (!/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
-      return apiError("Password must contain at least one uppercase letter and one number", 400);
+      return apiError(
+        "Password must contain at least one uppercase letter and one number",
+        400,
+      );
     }
 
     // Validate email if provided
@@ -342,13 +352,13 @@ export async function POST(request: NextRequest) {
         await supabaseAdmin
           .from("academic_terms")
           .upsert(defaultAcademicTerms, {
-          onConflict: "school_id,academic_year,term_number",
-        });
+            onConflict: "school_id,academic_year,term_number",
+          });
       }
 
-      await supabaseAdmin.from("events").insert(
-        buildUgandaCalendarEvents(schoolData.id, currentYear),
-      );
+      await supabaseAdmin
+        .from("events")
+        .insert(buildUgandaCalendarEvents(schoolData.id, currentYear));
 
       // Setup complete
       if (process.env.NODE_ENV !== "production") {
@@ -372,14 +382,31 @@ export async function POST(request: NextRequest) {
     // Provide more specific error messages for common database issues
     if (error instanceof Error) {
       const msg = error.message.toLowerCase();
-      if (msg.includes("duplicate") || msg.includes("unique") || msg.includes("already exists")) {
-        return apiError("Registration could not be completed. If you already have an account, please sign in.", 400);
+      if (
+        msg.includes("duplicate") ||
+        msg.includes("unique") ||
+        msg.includes("already exists")
+      ) {
+        return apiError(
+          "Registration could not be completed. If you already have an account, please sign in.",
+          400,
+        );
       }
       if (msg.includes("relation") || msg.includes("does not exist")) {
-        return apiError("Database setup incomplete. Please contact support.", 500);
+        return apiError(
+          "Database setup incomplete. Please contact support.",
+          500,
+        );
       }
-      if (msg.includes("permission") || msg.includes("rls") || msg.includes("policy")) {
-        return apiError("Server configuration error. Please contact support.", 500);
+      if (
+        msg.includes("permission") ||
+        msg.includes("rls") ||
+        msg.includes("policy")
+      ) {
+        return apiError(
+          "Server configuration error. Please contact support.",
+          500,
+        );
       }
     }
     return handleApiError(error);
