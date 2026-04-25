@@ -36,25 +36,58 @@ function SecretaryDashboard() {
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
-        <Link
-          href="/dashboard/visitors"
-          className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]"
-        >
-          <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center"
-            style={{ background: "var(--navy-soft)", color: "var(--navy)" }}
-          >
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 18 }}
-            >
-              badge
-            </span>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Link href="/dashboard/visitors" className="stat-card">
+          <div className="stat-accent" style={{ background: "var(--navy)" }} />
+          <div className="stat-inner">
+            <div className="stat-meta">
+              <div className="stat-label">Visitors Log</div>
+              <div
+                className="stat-icon-box"
+                style={{ background: "var(--navy-soft)", color: "var(--navy)" }}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 18 }}
+                >
+                  badge
+                </span>
+              </div>
+            </div>
+            <div className="stat-val" style={{ color: "var(--navy)" }}>
+              Track Visitors
+            </div>
+            <div className="text-[11px] text-[var(--t3)] font-medium mt-1">
+              Log and manage school visitors
+            </div>
           </div>
-          <div>
-            <div className="text-xs font-bold text-[var(--t1)]">Visitors</div>
-            <div className="text-[10px] text-[var(--t3)]">Track visitors</div>
+        </Link>
+        <Link href="/dashboard/messages" className="stat-card">
+          <div className="stat-accent" style={{ background: "var(--green)" }} />
+          <div className="stat-inner">
+            <div className="stat-meta">
+              <div className="stat-label">Messages</div>
+              <div
+                className="stat-icon-box"
+                style={{
+                  background: "var(--green-soft)",
+                  color: "var(--green)",
+                }}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 18 }}
+                >
+                  chat
+                </span>
+              </div>
+            </div>
+            <div className="stat-val" style={{ color: "var(--green)" }}>
+              Communication
+            </div>
+            <div className="text-[11px] text-[var(--t3)] font-medium mt-1">
+              Manage messages and notices
+            </div>
           </div>
         </Link>
         <Link
