@@ -770,42 +770,14 @@ h3.text-responsive {
     max-width: 100vw !important;
   }
 
-  /* StatCard specific fixes */
+/* StatCard specific fixes - mobile only */
+@media (max-width: 640px) {
   .stat-card,
   [class*="stat-card"] {
     width: 100% !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
     padding: 0.75rem !important;
-    border-radius: 0.75rem !important;
-  }
-
-  /* Calendar fixes - simplify on mobile */
-  .rounded-\[36px\],
-  [class*="rounded-[36px]"] {
-    border-radius: 0.75rem !important;
-    padding: 0.75rem !important;
-  }
-
-  /* Hide calendar decorative elements on mobile */
-  .pointer-events-none,
-  .blur-3xl,
-  .blur-xl {
-    display: none !important;
-  }
-
-  /* Calendar grid - simplify */
-  .grid-cols-7 {
-    grid-template-columns: repeat(7, 1fr) !important;
-    gap: 2px !important;
-  }
-
-  /* Use simple cards on mobile, full cards on desktop */
-  .stat-card {
-    padding: 0.75rem;
-    margin: 0;
-    border-radius: 0;
-    width: 100%;
   }
 }
 
