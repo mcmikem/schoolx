@@ -800,26 +800,12 @@ h3.text-responsive {
     gap: 2px !important;
   }
 
-/* Use simple cards on mobile, full cards on desktop */
+  /* Use simple cards on mobile, full cards on desktop */
   .stat-card {
     padding: 0.75rem;
     margin: 0;
     border-radius: 0;
     width: 100%;
-  }
-}
-    .stat-card .stat-accent,
-    .stat-card .stat-inner {
-      display: none !important;
-    }
-    .stat-card::before {
-      content: "" !important;
-      display: block !important;
-      width: 2.5rem !important;
-      height: 2.5rem !important;
-      border-radius: 0.5rem !important;
-      flex-shrink: 0 !important;
-    }
   }
 }
 
