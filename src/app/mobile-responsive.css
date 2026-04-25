@@ -779,6 +779,26 @@ h3.text-responsive {
     padding: 0.75rem !important;
     border-radius: 0.75rem !important;
   }
+
+  /* Calendar fixes - simplify on mobile */
+  .rounded-\[36px\],
+  [class*="rounded-[36px]"] {
+    border-radius: 0.75rem !important;
+    padding: 0.75rem !important;
+  }
+
+  /* Hide calendar decorative elements on mobile */
+  .pointer-events-none,
+  .blur-3xl,
+  .blur-xl {
+    display: none !important;
+  }
+
+  /* Calendar grid - simplify */
+  .grid-cols-7 {
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: 2px !important;
+  }
 }
 
 /* Allow specific grid cols but default mobile safety */

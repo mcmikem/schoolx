@@ -1,0 +1,1 @@
+SELECT s.name, s.code, s.level, COUNT(*) as cnt FROM public.subjects s WHERE s.school_id = (SELECT id FROM public.schools ORDER BY created_at DESC LIMIT 1) GROUP BY s.name, s.code, s.level ORDER BY s.level, s.name;
