@@ -34,41 +34,33 @@ export default function TrialBanner() {
     return null;
 
   return (
-    <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200 px-4 py-3">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center shrink-0">
+    <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700 px-3 py-2">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center shrink-0">
             <MaterialIcon
-              icon="campaign"
-              className="text-amber-600"
-              style={{ fontSize: 18 }}
+              icon="school"
+              className="text-white"
+              style={{ fontSize: 16 }}
             />
           </div>
           <div className="min-w-0">
-            <div className="text-sm font-medium text-amber-800">
+            <div className="text-sm font-semibold text-white">
               {daysLeft > 0
-                ? `${daysLeft} day${daysLeft > 1 ? "s" : ""} left in your free trial`
-                : "Trial expired"}
+                ? `${daysLeft} day${daysLeft > 1 ? "s" : ""} left in free trial`
+                : "Trial expired - Upgrade now!"}
             </div>
-            <div className="text-xs text-amber-600 mt-0.5">
+            <div className="text-xs text-slate-400 mt-0.5 hidden sm:block">
               Powered by{" "}
               <a
-                href="https://omuto.org"
+                href="https://omuto.org/osx.php"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline hover:text-amber-800"
+                className="underline hover:text-amber-400"
               >
                 Omuto Foundation
-              </a>{" "}
-              —
-              <a
-                href="/dashboard/payment-plans"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-amber-800 ml-1"
-              >
-                Upgrade to SkoolMate OS Premium
               </a>
+              : Empowering Schools through OSX
             </div>
           </div>
         </div>
@@ -77,25 +69,23 @@ export default function TrialBanner() {
             href="https://essentials.omuto.org"
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-900 px-3 py-1.5 rounded-lg bg-amber-100/50 hover:bg-amber-100 transition-colors"
+            className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-slate-300 hover:text-white px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors"
           >
-            <MaterialIcon icon="star" style={{ fontSize: 14 }} />
-            SkoolMate Essentials
+            <MaterialIcon icon="shopping_bag" style={{ fontSize: 14 }} />
+            Shop Omuto Essentials
           </a>
           <a
             href="/dashboard/payment-plans"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs font-semibold text-white px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 transition-colors"
+            className="inline-flex items-center gap-1 text-xs font-bold text-slate-900 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 transition-all shadow-lg shadow-amber-500/20"
           >
             <MaterialIcon icon="rocket_launch" style={{ fontSize: 14 }} />
             Upgrade Now
           </a>
           <button
             onClick={handleDismiss}
-            className="p-1 text-amber-400 hover:text-amber-600 transition-colors"
+            className="p-1 text-slate-500 hover:text-slate-300 transition-colors"
           >
-            <MaterialIcon icon="close" style={{ fontSize: 18 }} />
+            <MaterialIcon icon="close" style={{ fontSize: 16 }} />
           </button>
         </div>
       </div>
