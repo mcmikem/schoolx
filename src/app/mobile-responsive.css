@@ -718,6 +718,84 @@ h3.text-responsive {
     grid-template-columns: 1fr !important;
   }
 
+  /* All content areas - prevent overflow */
+  .p-2,
+  .p-3,
+  .p-4,
+  .p-5,
+  .p-6 {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+
+  /* Cards and content containers */
+  .card,
+  .stat-card,
+  .dashboard-card,
+  .dash-card,
+  .rounded-xl,
+  .rounded-2xl,
+  .rounded-[--r2] {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    border-radius: 0 !important;
+  }
+
+  /* Main content areas */
+  main {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  /* All dashboard content */
+  .dashboard-content,
+  .dash-content,
+  section,
+  article {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Fix calendar and date pickers */
+  .react-calendar,
+  .calendar,
+  [class*="calendar"] {
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+
+  /* StatCard specific fixes */
+  .stat-card,
+  [class*="stat-card"] {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding: 0.75rem !important;
+    border-radius: 0.75rem !important;
+  }
+}
+
+/* Allow specific grid cols but default mobile safety */
+@media (max-width: 640px) {
+  .grid.grid-cols-2,
+  .grid.grid-cols-3,
+  .grid.grid-cols-4,
+  .grid.grid-cols-5,
+  .grid.grid-cols-6,
+  .grid.grid-cols-7,
+  .grid.grid-cols-8,
+  .grid.grid-cols-9,
+  .grid.grid-cols-10,
+  .grid.grid-cols-12 {
+    grid-template-columns: 1fr !important;
+  }
+
   /* Cards and content containers */
   .card,
   .stat-card,
