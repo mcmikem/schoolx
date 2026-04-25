@@ -3,31 +3,32 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import MaterialIcon from "@/components/MaterialIcon";
 
-const SKOOLMATE_SERVICES = [
+const OMUTO_SERVICES = [
   {
-    title: "SkoolMate School Xperience",
+    title: "Omuto School Xperience (OSX)",
     description:
-      "Full school transformation with advanced features, custom branding, and dedicated support.",
-    url: "/dashboard/payment-plans",
+      "Full school transformation with advanced features, custom branding & dedicated support. Transform how you manage!",
+    url: "https://omuto.org/osx.php",
     icon: "rocket_launch",
     color: "#17325F",
     bgColor: "rgba(23,50,95,0.08)",
-    cta: "Explore OSX",
+    cta: "Get Started",
+    highlight: true,
   },
   {
-    title: "SkoolMate Essentials",
+    title: "Omuto Essentials",
     description:
-      "Affordable school management tools for small schools. Start with the basics you need.",
+      "Affordable tools for small schools. Start with what you need - attendance, grades, fees & SMS.",
     url: "https://essentials.omuto.org",
-    icon: "star",
+    icon: "shopping_bag",
     color: "#2E9448",
     bgColor: "rgba(46,148,72,0.08)",
-    cta: "View Products",
+    cta: "Shop Now",
   },
   {
     title: "Omuto Foundation",
     description:
-      "Empower your students with youth programs, leadership training, and community engagement.",
+      "Youth programs, leadership training & community engagement. Empowering students beyond the classroom.",
     url: "https://omuto.org/foundation",
     icon: "groups",
     color: "#0d9488",
@@ -60,40 +61,47 @@ export default function SkoolMatePromo() {
 
   return (
     <div className="mx-2 sm:mx-4 mt-4">
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden shadow-lg">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] bg-gradient-to-r from-slate-50 to-white">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[var(--navy)] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
               <MaterialIcon
                 icon="workspace_premium"
                 className="text-white text-sm"
+                style={{ fontSize: 18 }}
               />
             </div>
             <div>
-              <div className="text-[12px] uppercase tracking-wider font-bold text-[var(--t4)]">
-                Upgrade your school
+              <div className="text-[11px] uppercase tracking-wider font-bold text-amber-600">
+                Limited Time Offer
               </div>
-              <div className="text-[14px] font-semibold text-[var(--t1)]">
-                Explore SkoolMate services
+              <div className="text-[15px] font-bold text-slate-800">
+                Upgrade Your School Today
               </div>
             </div>
           </div>
           <button
             onClick={handleDismiss}
-            className="p-1.5 text-[var(--t4)] hover:text-[var(--t2)] transition-colors rounded-lg hover:bg-[var(--surface-container)]"
+            className="p-1.5 text-slate-400 hover:text-slate-600 transition-colors"
           >
-            <MaterialIcon icon="close" className="text-lg" />
+            <MaterialIcon icon="close" style={{ fontSize: 18 }} />
           </button>
         </div>
 
         {/* Service Cards */}
         <div className="p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {SKOOLMATE_SERVICES.map((service) => (
+          {OMUTO_SERVICES.map((service) => (
             <a
               key={service.title}
               href={service.url}
-              className="group rounded-xl border border-[var(--border)] p-4 hover:border-[var(--navy)]/30 hover:shadow-md transition-all"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`group rounded-xl border p-4 hover:shadow-lg transition-all ${
+                service.highlight
+                  ? "border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 hover:border-amber-400"
+                  : "border-[var(--border)] hover:border-slate-400"
+              }`}
             >
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
@@ -105,21 +113,41 @@ export default function SkoolMatePromo() {
                   style={{ color: service.color }}
                 />
               </div>
-              <div className="font-semibold text-sm text-[var(--t1)] mb-1 group-hover:text-[var(--navy)] transition-colors">
+              <div className="font-bold text-sm text-slate-800 mb-1 group-hover:text-slate-900 transition-colors">
                 {service.title}
               </div>
-              <div className="text-xs text-[var(--t3)] leading-relaxed mb-3">
+              <div className="text-xs text-slate-500 leading-relaxed mb-3">
                 {service.description}
               </div>
               <div
-                className="inline-flex items-center gap-1 text-xs font-semibold"
-                style={{ color: service.color }}
+                className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg ${
+                  service.highlight
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/30"
+                    : "bg-slate-100 text-slate-700 group-hover:bg-slate-200"
+                }`}
+                style={service.highlight ? {} : { color: service.color }}
               >
+                <MaterialIcon icon="arrow_forward" style={{ fontSize: 14 }} />
                 {service.cta}
-                <MaterialIcon icon="arrow_forward" className="text-sm" />
               </div>
             </a>
           ))}
+        </div>
+
+        {/* Bottom CTA */}
+        <div className="px-4 pb-4 text-center">
+          <p className="text-xs text-slate-500">
+            Powered by{" "}
+            <a
+              href="https://omuto.org/osx.php"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-amber-600 hover:underline"
+            >
+              Omuto Foundation
+            </a>
+            : Empowering Ugandan Schools through Technology
+          </p>
         </div>
       </div>
     </div>
