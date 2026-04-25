@@ -52,6 +52,7 @@ export default function SyllabusPage() {
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedTerm, setSelectedTerm] = useState("1");
+  const [searchQuery, setSearchQuery] = useState("");
   const [topics, setTopics] = useState<SyllabusTopic[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -98,7 +99,9 @@ export default function SyllabusPage() {
           ? secondaryMap[level] || []
           : [];
 
-    return source.filter((topic) => subjectNamesMatch(topic.subject, subjectName));
+    return source.filter((topic) =>
+      subjectNamesMatch(topic.subject, subjectName),
+    );
   };
 
   const handleAutoPopulate = async () => {
@@ -107,7 +110,9 @@ export default function SyllabusPage() {
     try {
       const targetYear = buildAcademicYear(academicYear);
       const termNumber = Number(selectedTerm);
-      const ncdcTopics = getNDCCTopics().filter((topic) => topic.term === termNumber);
+      const ncdcTopics = getNDCCTopics().filter(
+        (topic) => topic.term === termNumber,
+      );
 
       if (ncdcTopics.length === 0) {
         toast.error("No NCDC topics found for this class, subject, and term");
@@ -125,9 +130,13 @@ export default function SyllabusPage() {
 
       if (existingError) throw existingError;
 
-      const existingTopics = new Set((existingRows || []).map((row) => row.topic.trim().toLowerCase()));
+      const existingTopics = new Set(
+        (existingRows || []).map((row) => row.topic.trim().toLowerCase()),
+      );
       const toInsert = ncdcTopics
-        .filter((topic) => !existingTopics.has(topic.topic.trim().toLowerCase()))
+        .filter(
+          (topic) => !existingTopics.has(topic.topic.trim().toLowerCase()),
+        )
         .map((topic) => ({
           school_id: school.id,
           class_id: selectedClass,
@@ -198,7 +207,14 @@ export default function SyllabusPage() {
     } finally {
       setLoading(false);
     }
-  }, [school?.id, selectedClass, selectedSubject, selectedTerm, academicYear, toast]);
+  }, [
+    school?.id,
+    selectedClass,
+    selectedSubject,
+    selectedTerm,
+    academicYear,
+    toast,
+  ]);
 
   useEffect(() => {
     if (selectedClass && selectedSubject) {
@@ -324,319 +340,337 @@ export default function SyllabusPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#002045]">
-            Syllabus & Topics
-          </h1>
-          <p className="text-[#5c6670] mt-1">
-            Track curriculum coverage per subject
-          </p>
-        </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          disabled={!selectedClass || !selectedSubject}
-          className="btn btn-primary"
-        >
-          <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
-          Add Topic
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-6">
-        <select
-          value={selectedClass}
-          onChange={(e) => {
-            setSelectedClass(e.target.value);
-            setTopics([]);
-          }}
-          className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium"
-        >
-          <option value="">Select Class</option>
-          {classes.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={selectedSubject}
-          onChange={(e) => {
-            setSelectedSubject(e.target.value);
-            setTopics([]);
-          }}
-          className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium"
-        >
-          <option value="">Select Subject</option>
-          {subjects.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={selectedTerm}
-          onChange={(e) => {
-            setSelectedTerm(e.target.value);
-            setTopics([]);
-          }}
-          className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium"
-        >
-          <option value="1">Term 1</option>
-          <option value="2">Term 2</option>
-          <option value="3">Term 3</option>
-        </select>
-        {selectedClass && selectedSubject && (
-          <button
-            onClick={handleAutoPopulate}
-            disabled={populating}
-            className="px-4 py-2 bg-[#10b981] text-white rounded-xl text-sm font-medium hover:bg-[#059669] disabled:opacity-50 flex items-center gap-1"
-          >
-            <MaterialIcon icon="auto_awesome" style={{ fontSize: "16px" }} />
-            {populating ? "Populating..." : "NCDC Topics"}
-          </button>
-        )}
-      </div>
-
-      {/* Progress Stats */}
-      {selectedClass && selectedSubject && topics.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-[#f8fbff] rounded-xl p-4 border border-[#e5e9f0]">
-            <div className="text-2xl font-bold text-[#17325F]">
-              {stats.total}
-            </div>
-            <div className="text-xs text-[#5c6670]">Total Topics</div>
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-[#002045]">
+              Syllabus & Topics
+            </h1>
+            <p className="text-[#5c6670] mt-1">
+              Track curriculum coverage per subject
+            </p>
           </div>
-          <div className="bg-[#f0fdf4] rounded-xl p-4 border border-[#dcfce7]">
-            <div className="text-2xl font-bold text-[#166534]">
-              {stats.completed}
-            </div>
-            <div className="text-xs text-[#5c6670]">Completed</div>
-          </div>
-          <div className="bg-[#fffbeb] rounded-xl p-4 border border-[#fef3c7]">
-            <div className="text-2xl font-bold text-[#92400e]">
-              {stats.inProgress}
-            </div>
-            <div className="text-xs text-[#5c6670]">In Progress</div>
-          </div>
-          <div className="bg-[#f0f9ff] rounded-xl p-4 border border-[#cffafe]">
-            <div className="text-2xl font-bold text-[#0e7490]">
-              {stats.percentage}%
-            </div>
-            <div className="text-xs text-[#5c6670]">Coverage</div>
-          </div>
-        </div>
-      )}
-
-      {/* Topics List */}
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin w-8 h-8 border-2 border-[#17325F] border-t-transparent rounded-full mx-auto"></div>
-        </div>
-      ) : !selectedClass || !selectedSubject ? (
-        <div className="text-center py-12 text-[#5c6670]">
-          <MaterialIcon style={{ fontSize: 48, opacity: 0.5 }}>
-            menu_book
-          </MaterialIcon>
-          <p className="mt-2">Select a class and subject to view syllabus</p>
-        </div>
-      ) : topics.length === 0 ? (
-        <div className="text-center py-12 text-[#5c6670]">
-          <MaterialIcon style={{ fontSize: 48, opacity: 0.5 }}>
-            menu_book
-          </MaterialIcon>
-          <p className="mt-2">No topics added yet</p>
           <button
             onClick={() => setShowAddModal(true)}
-            className="btn btn-primary mt-4"
+            disabled={!selectedClass || !selectedSubject}
+            className="btn btn-primary"
           >
-            Add First Topic
+            <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
+            Add Topic
           </button>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {topics.map((topic) => (
-            <div
-              key={topic.id}
-              className="bg-white rounded-xl border border-gray-200 p-4"
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-3 mb-6">
+          <select
+            value={selectedClass}
+            onChange={(e) => {
+              setSelectedClass(e.target.value);
+              setTopics([]);
+            }}
+            className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium"
+          >
+            <option value="">Select Class</option>
+            {classes.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={selectedSubject}
+            onChange={(e) => {
+              setSelectedSubject(e.target.value);
+              setTopics([]);
+            }}
+            className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium"
+          >
+            <option value="">Select Subject</option>
+            {subjects.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={selectedTerm}
+            onChange={(e) => {
+              setSelectedTerm(e.target.value);
+              setTopics([]);
+            }}
+            className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium"
+          >
+            <option value="1">Term 1</option>
+            <option value="2">Term 2</option>
+            <option value="3">Term 3</option>
+          </select>
+          {selectedClass && selectedSubject && (
+            <button
+              onClick={handleAutoPopulate}
+              disabled={populating}
+              className="px-4 py-2 bg-[#10b981] text-white rounded-xl text-sm font-medium hover:bg-[#059669] disabled:opacity-50 flex items-center gap-1"
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span
-                      className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                        topic.status === "completed"
-                          ? "bg-green-100 text-green-700"
+              <MaterialIcon icon="auto_awesome" style={{ fontSize: "16px" }} />
+              {populating ? "Populating..." : "NCDC Topics"}
+            </button>
+          )}
+        </div>
+
+        {/* Progress Stats */}
+        {selectedClass && selectedSubject && topics.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-[#f8fbff] rounded-xl p-4 border border-[#e5e9f0]">
+              <div className="text-2xl font-bold text-[#17325F]">
+                {stats.total}
+              </div>
+              <div className="text-xs text-[#5c6670]">Total Topics</div>
+            </div>
+            <div className="bg-[#f0fdf4] rounded-xl p-4 border border-[#dcfce7]">
+              <div className="text-2xl font-bold text-[#166534]">
+                {stats.completed}
+              </div>
+              <div className="text-xs text-[#5c6670]">Completed</div>
+            </div>
+            <div className="bg-[#fffbeb] rounded-xl p-4 border border-[#fef3c7]">
+              <div className="text-2xl font-bold text-[#92400e]">
+                {stats.inProgress}
+              </div>
+              <div className="text-xs text-[#5c6670]">In Progress</div>
+            </div>
+            <div className="bg-[#f0f9ff] rounded-xl p-4 border border-[#cffafe]">
+              <div className="text-2xl font-bold text-[#0e7490]">
+                {stats.percentage}%
+              </div>
+              <div className="text-xs text-[#5c6670]">Coverage</div>
+            </div>
+          </div>
+        )}
+
+        {/* Topics List */}
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin w-8 h-8 border-2 border-[#17325F] border-t-transparent rounded-full mx-auto"></div>
+          </div>
+        ) : !selectedClass || !selectedSubject ? (
+          <div className="text-center py-12 text-[#5c6670]">
+            <MaterialIcon style={{ fontSize: 48, opacity: 0.5 }}>
+              menu_book
+            </MaterialIcon>
+            <p className="mt-2">Select a class and subject to view syllabus</p>
+          </div>
+        ) : topics.length === 0 ? (
+          <div className="text-center py-12 text-[#5c6670]">
+            <MaterialIcon style={{ fontSize: 48, opacity: 0.5 }}>
+              menu_book
+            </MaterialIcon>
+            <p className="mt-2">No topics added yet</p>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="btn btn-primary mt-4"
+            >
+              Add First Topic
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Search */}
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Search topics, subtopics, objectives..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white focus:ring-2 focus:ring-[#17325F]/20 focus:border-[#17325F]"
+              />
+            </div>
+            <div className="space-y-3">
+              {topics
+                .filter(t => 
+                  !searchQuery || 
+                  t.topic?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  t.subtopics?.some(s => s.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                  t.objectives?.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+                .map((topic) => (
+              <div
+                key={topic.id}
+                className="bg-white rounded-xl border border-gray-200 p-4"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span
+                        className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                          topic.status === "completed"
+                            ? "bg-green-100 text-green-700"
+                            : topic.status === "in_progress"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-gray-100 text-gray-600"
+                        }`}
+                      >
+                        {topic.status === "completed"
+                          ? "✓ Completed"
                           : topic.status === "in_progress"
-                            ? "bg-amber-100 text-amber-700"
-                            : "bg-gray-100 text-gray-600"
-                      }`}
-                    >
-                      {topic.status === "completed"
-                        ? "✓ Completed"
-                        : topic.status === "in_progress"
-                          ? "◐ In Progress"
-                          : "○ Not Started"}
-                    </span>
-                    {topic.weeks_covered && (
-                      <span className="text-xs text-[#5c6670]">
-                        {topic.weeks_covered}
+                            ? "◐ In Progress"
+                            : "○ Not Started"}
                       </span>
+                      {topic.weeks_covered && (
+                        <span className="text-xs text-[#5c6670]">
+                          {topic.weeks_covered}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="font-semibold text-[#17325F]">
+                      {topic.topic}
+                    </h3>
+                    {topic.objectives && (
+                      <p className="text-sm text-[#5c6670] mt-1">
+                        Objectives: {topic.objectives}
+                      </p>
+                    )}
+                    {topic.subtopics && topic.subtopics.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {topic.subtopics.map((sub: string, i: number) => (
+                          <span
+                            key={i}
+                            className="px-2 py-0.5 bg-gray-50 rounded text-xs text-[#5c6670]"
+                          >
+                            {sub}
+                          </span>
+                        ))}
+                      </div>
                     )}
                   </div>
-                  <h3 className="font-semibold text-[#17325F]">
-                    {topic.topic}
-                  </h3>
-                  {topic.objectives && (
-                    <p className="text-sm text-[#5c6670] mt-1">
-                      Objectives: {topic.objectives}
-                    </p>
-                  )}
-                  {topic.subtopics && topic.subtopics.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {topic.subtopics.map((sub: string, i: number) => (
-                        <span
-                          key={i}
-                          className="px-2 py-0.5 bg-gray-50 rounded text-xs text-[#5c6670]"
-                        >
-                          {sub}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <select
-                  value={topic.status}
-                  onChange={(e) =>
-                    updateStatus(
-                      topic.id,
-                      e.target.value as
-                        | "not_started"
-                        | "in_progress"
-                        | "completed",
-                    )
-                  }
-                  className="text-sm border rounded-lg px-2 py-1"
-                >
-                  <option value="not_started">Not Started</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Add Topic Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-[#17325F]">
-                Add Syllabus Topic
-              </h2>
-            </div>
-            <form onSubmit={handleAddTopic} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[#17325F] mb-1">
-                  Topic Name *
-                </label>
-                <input
-                  type="text"
-                  value={newTopic.topic}
-                  onChange={(e) =>
-                    setNewTopic({ ...newTopic, topic: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200"
-                  placeholder="e.g., Introduction to Fractions"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-[#17325F] mb-1">
-                    Weeks
-                  </label>
-                  <input
-                    type="text"
-                    value={newTopic.weeks_covered}
+                  <select
+                    value={topic.status}
                     onChange={(e) =>
-                      setNewTopic({
-                        ...newTopic,
-                        weeks_covered: e.target.value,
-                      })
+                      updateStatus(
+                        topic.id,
+                        e.target.value as
+                          | "not_started"
+                          | "in_progress"
+                          | "completed",
+                      )
                     }
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200"
-                    placeholder="e.g., Week 1-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#17325F] mb-1">
-                    Resources
-                  </label>
-                  <input
-                    type="text"
-                    value={newTopic.resources}
-                    onChange={(e) =>
-                      setNewTopic({ ...newTopic, resources: e.target.value })
-                    }
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200"
-                    placeholder="e.g., Charts, Workbook"
-                  />
+                    className="text-sm border rounded-lg px-2 py-1"
+                  >
+                    <option value="not_started">Not Started</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                  </select>
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-[#17325F] mb-1">
-                  Learning Objectives
-                </label>
-                <textarea
-                  value={newTopic.objectives}
-                  onChange={(e) =>
-                    setNewTopic({ ...newTopic, objectives: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200"
-                  placeholder="What students will learn..."
-                  rows={2}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#17325F] mb-1">
-                  Subtopics (one per line)
-                </label>
-                <textarea
-                  value={newTopic.subtopics}
-                  onChange={(e) =>
-                    setNewTopic({ ...newTopic, subtopics: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200"
-                  placeholder="Parts of a fraction&#10;Equivalent fractions&#10;Adding fractions"
-                  rows={4}
-                />
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="flex-1 py-3 border border-gray-200 rounded-xl font-semibold text-gray-600"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 py-3 bg-[#17325F] text-white rounded-xl font-semibold"
-                >
-                  {saving ? "Saving..." : "Add Topic"}
-                </button>
-              </div>
-            </form>
+            ))}
           </div>
-        </div>
-      )}
-    </div>
+        )}
+
+        {/* Add Topic Modal */}
+        {showAddModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-bold text-[#17325F]">
+                  Add Syllabus Topic
+                </h2>
+              </div>
+              <form onSubmit={handleAddTopic} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#17325F] mb-1">
+                    Topic Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newTopic.topic}
+                    onChange={(e) =>
+                      setNewTopic({ ...newTopic, topic: e.target.value })
+                    }
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200"
+                    placeholder="e.g., Introduction to Fractions"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#17325F] mb-1">
+                      Weeks
+                    </label>
+                    <input
+                      type="text"
+                      value={newTopic.weeks_covered}
+                      onChange={(e) =>
+                        setNewTopic({
+                          ...newTopic,
+                          weeks_covered: e.target.value,
+                        })
+                      }
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200"
+                      placeholder="e.g., Week 1-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#17325F] mb-1">
+                      Resources
+                    </label>
+                    <input
+                      type="text"
+                      value={newTopic.resources}
+                      onChange={(e) =>
+                        setNewTopic({ ...newTopic, resources: e.target.value })
+                      }
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200"
+                      placeholder="e.g., Charts, Workbook"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#17325F] mb-1">
+                    Learning Objectives
+                  </label>
+                  <textarea
+                    value={newTopic.objectives}
+                    onChange={(e) =>
+                      setNewTopic({ ...newTopic, objectives: e.target.value })
+                    }
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200"
+                    placeholder="What students will learn..."
+                    rows={2}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#17325F] mb-1">
+                    Subtopics (one per line)
+                  </label>
+                  <textarea
+                    value={newTopic.subtopics}
+                    onChange={(e) =>
+                      setNewTopic({ ...newTopic, subtopics: e.target.value })
+                    }
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200"
+                    placeholder="Parts of a fraction&#10;Equivalent fractions&#10;Adding fractions"
+                    rows={4}
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="flex-1 py-3 border border-gray-200 rounded-xl font-semibold text-gray-600"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex-1 py-3 bg-[#17325F] text-white rounded-xl font-semibold"
+                  >
+                    {saving ? "Saving..." : "Add Topic"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
     </PageErrorBoundary>
   );
 }
