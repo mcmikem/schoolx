@@ -62,7 +62,7 @@ export default function TrialBanner() {
               </a>{" "}
               —
               <a
-                href="https://omuto.org/osx"
+                href="/dashboard/payment-plans"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline hover:text-amber-800 ml-1"
@@ -83,7 +83,7 @@ export default function TrialBanner() {
             SkoolMate Essentials
           </a>
           <a
-            href="https://omuto.org/osx"
+            href="/dashboard/payment-plans"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-xs font-semibold text-white px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 transition-colors"

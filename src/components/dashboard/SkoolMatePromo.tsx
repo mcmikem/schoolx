@@ -8,7 +8,7 @@ const SKOOLMATE_SERVICES = [
     title: "SkoolMate School Xperience",
     description:
       "Full school transformation with advanced features, custom branding, and dedicated support.",
-    url: "https://omuto.org/osx",
+    url: "/dashboard/payment-plans",
     icon: "rocket_launch",
     color: "#17325F",
     bgColor: "rgba(23,50,95,0.08)",
@@ -93,8 +93,6 @@ export default function SkoolMatePromo() {
             <a
               key={service.title}
               href={service.url}
-              target="_blank"
-              rel="noopener noreferrer"
               className="group rounded-xl border border-[var(--border)] p-4 hover:border-[var(--navy)]/30 hover:shadow-md transition-all"
             >
               <div
