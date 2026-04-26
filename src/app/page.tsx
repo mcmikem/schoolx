@@ -1733,7 +1733,7 @@ export default function HomePage() {
   return (
     <PageErrorBoundary>
       <main
-        className="min-h-screen bg-[var(--bg)] text-[var(--t1)]"
+        className="min-h-[100dvh] bg-[var(--bg)] text-[var(--t1)]"
         id="main-content"
       >
         {/* ===== HERO ===== */}
