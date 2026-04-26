@@ -4,11 +4,9 @@
 
 /* Note: Removed global scroll-behavior: smooth as it conflicts with Next.js router transitions */
 
-/* Fix for mobile scroll rubber-band/bounce effect causing resistance */
 html {
   @apply font-sans;
   -webkit-text-size-adjust: 100%;
-  overscroll-behavior: none;
 }
 
 /* -- TOKENS ----------------------------------------------- */

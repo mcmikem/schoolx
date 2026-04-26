@@ -6,8 +6,8 @@ import OwlMascot from "@/components/brand/OwlMascot";
 
 export default function SetupPage() {
   return (
-    <div className="min-h-[100dvh] bg-[radial-gradient(circle_at_top,#edf4ff_0%,#f7f4ec_56%,#f2ede2_100%)] flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-3xl rounded-[36px] border border-white/60 bg-white/84 shadow-[0_32px_80px_rgba(15,23,42,0.1)] backdrop-blur-xl">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#edf4ff_0%,#f7f4ec_56%,#f2ede2_100%)] flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-3xl overflow-hidden rounded-[36px] border border-white/60 bg-white/84 shadow-[0_32px_80px_rgba(15,23,42,0.1)] backdrop-blur-xl">
         <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="border-b border-[#e5ebf3] p-6 lg:border-b-0 lg:border-r lg:p-8">
             <OwlStage
