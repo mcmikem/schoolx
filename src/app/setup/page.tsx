@@ -6,15 +6,19 @@ import OwlMascot from "@/components/brand/OwlMascot";
 
 export default function SetupPage() {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#edf4ff_0%,#f7f4ec_56%,#f2ede2_100%)] flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-3xl overflow-hidden rounded-[36px] border border-white/60 bg-white/84 shadow-[0_32px_80px_rgba(15,23,42,0.1)] backdrop-blur-xl">
+    <div className="min-h-[100dvh] bg-[radial-gradient(circle_at_top,#edf4ff_0%,#f7f4ec_56%,#f2ede2_100%)] flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-3xl rounded-[36px] border border-white/60 bg-white/84 shadow-[0_32px_80px_rgba(15,23,42,0.1)] backdrop-blur-xl">
         <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="border-b border-[#e5ebf3] p-6 lg:border-b-0 lg:border-r lg:p-8">
             <OwlStage
               eyebrow="Setup guidance"
               title="Configuration required before launch"
               description="The owl has checked the essentials and found missing Supabase environment values. Add them once, redeploy, and the app will open normally."
-              chips={["Supabase connection", "Vercel environment", "One-time setup"]}
+              chips={[
+                "Supabase connection",
+                "Vercel environment",
+                "One-time setup",
+              ]}
             />
           </div>
           <div className="p-8 lg:p-10">
@@ -52,8 +56,16 @@ export default function SetupPage() {
               <div className="rounded-[26px] border border-[#d7e5ff] bg-[linear-gradient(180deg,#eef5ff_0%,#e8f1ff_100%)] p-5 text-sm leading-relaxed text-blue-800">
                 <p className="mb-2 font-semibold">How to fix this</p>
                 <ol className="list-decimal list-inside space-y-2 text-blue-700">
-                  <li>Go to your <span className="font-semibold">Vercel project → Settings → Environment Variables</span></li>
-                  <li>Add the two variables above from your Supabase project dashboard</li>
+                  <li>
+                    Go to your{" "}
+                    <span className="font-semibold">
+                      Vercel project → Settings → Environment Variables
+                    </span>
+                  </li>
+                  <li>
+                    Add the two variables above from your Supabase project
+                    dashboard
+                  </li>
                   <li>Redeploy the project</li>
                 </ol>
               </div>
