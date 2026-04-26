@@ -82,10 +82,28 @@ Manually inserted user record with plain text password instead of bcrypt hash. S
 
 ---
 
-### Issue 4: Registration API Hanging
+### Issue 4: Registration API Hanging (REQUIRES TRAILING SLASH)
 
 **Date**: April 2026
 **Severity**: Critical
+
+**Symptoms**:
+
+- Registration API requests hang when calling `/api/register`
+- Works with trailing slash `/api/register/`
+
+**Root Cause**:
+Next.js redirects `/api/register` to `/api/register/` (308 redirect). The curl client follows but something in the routing chain doesn't handle this properly.
+
+**Fix Applied**:
+
+- Always use trailing slash: `/api/register/` not `/api/register`
+- Updated documentation below
+
+**Prevention**:
+
+- Document that API routes require trailing slash
+- Or fix Next.js config to not redirect
 
 **Symptoms**:
 
@@ -133,13 +151,13 @@ Unknown - possibly:
 
 ## Required API Routes Checklist
 
-All these routes MUST exist and work:
+All these routes MUST exist and work (ALWAYS use trailing slash):
 
 ```
-/api/register        - School registration
+/api/register/        - School registration (NOTE: requires / trailing slash!)
 /api/login          - User login (uses auth-context, no route needed)
 /api/forgot-password - Password reset request
-/api/reset-password - Password reset confirm
+/api/reset-password/ - Password reset confirm (NOTE: requires / trailing slash!)
 /api/schools        - School data
 /api/users          - User management
 /api/students       - Student CRUD
@@ -148,6 +166,8 @@ All these routes MUST exist and work:
 /api/fees           - Fee management
 /api/sms            - SMS sending
 ```
+
+**IMPORTANT**: Always add trailing slash to API routes in Next.js!
 
 ---
 
@@ -298,8 +318,8 @@ console.log("[Register] Complete");
 ### 5. Test Registration After Any Code Change
 
 ```bash
-# Quick test
-curl -X POST http://localhost:3000/api/register \
+# Quick test - NOTE: MUST use trailing slash!
+curl -X POST http://localhost:3000/api/register/ \
   -H "Content-Type: application/json" \
   -d '{"schoolName":"Test","district":"K","subcounty":"C","schoolType":"primary","ownership":"private","adminName":"T","adminPhone":"0777000000","password":"Test123"}'
 ```
