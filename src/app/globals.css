@@ -3,7 +3,13 @@
 @tailwind utilities;
 
 /* Note: Removed global scroll-behavior: smooth as it conflicts with Next.js router transitions */
-/* Smooth scrolling is handled via JS in the smoothScroll() function where needed */
+
+/* Fix for mobile scroll rubber-band/bounce effect causing resistance */
+html {
+  @apply font-sans;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
 
 /* -- TOKENS ----------------------------------------------- */
 :root {
@@ -290,7 +296,7 @@ table tr {
   body {
     background: var(--bg);
     color: var(--t1);
-    @apply antialiased min-h-screen overflow-x-hidden w-full;
+    @apply antialiased min-h-screen w-full;
     font-family:
       "Inter",
       system-ui,

@@ -9,6 +9,19 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: none;
+  touch-action: pan-y;
+}
+
+body {
+  overflow-x: visible;
+  width: 100%;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
 
