@@ -2,9 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
-  scroll-behavior: smooth;
-}
+/* Note: Removed global scroll-behavior: smooth as it conflicts with Next.js router transitions */
+/* Smooth scrolling is handled via JS in the smoothScroll() function where needed */
 
 /* -- TOKENS ----------------------------------------------- */
 :root {
