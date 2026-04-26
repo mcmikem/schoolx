@@ -1734,10 +1734,11 @@ export default function HomePage() {
     <PageErrorBoundary>
       <main
         className="min-h-[100dvh] bg-[var(--bg)] text-[var(--t1)]"
+        style={{ touchAction: "pan-y pinch-zoom" }}
         id="main-content"
       >
         {/* ===== HERO ===== */}
-        <section className="relative overflow-hidden">
+        <section className="relative">
           <div className="absolute inset-x-0 top-0 h-[620px] bg-[radial-gradient(circle_at_top_left,_rgba(23,50,95,0.13),_transparent_42%),radial-gradient(circle_at_top_right,_rgba(46,148,72,0.10),_transparent_38%),linear-gradient(180deg,_#ffffff_0%,_var(--bg)_72%)]" />
           <div className="absolute left-[8%] top-24 h-40 w-40 rounded-full bg-[#d6e4ff] blur-3xl opacity-50" />
           <div className="absolute right-[10%] top-40 h-48 w-48 rounded-full bg-[#dff3e5] blur-3xl opacity-50" />
