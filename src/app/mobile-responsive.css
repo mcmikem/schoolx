@@ -10,14 +10,12 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  overflow-x: hidden;
 }
 
 body {
-  overflow-x: hidden;
+  overflow-x: visible;
   width: 100%;
   max-width: 100%;
-  overflow-x: clip;
 }
 
 /* -- RESPONSIVE FONT SIZES -- */
