@@ -485,83 +485,91 @@ export default function SyllabusPage() {
             </div>
             <div className="space-y-3">
               {topics
-                .filter(t => 
-                  !searchQuery || 
-                  t.topic?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  t.subtopics?.some(s => s.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                  t.objectives?.toLowerCase().includes(searchQuery.toLowerCase())
+                .filter(
+                  (t) =>
+                    !searchQuery ||
+                    t.topic
+                      ?.toLowerCase()
+                      .includes(searchQuery.toLowerCase()) ||
+                    t.subtopics?.some((s) =>
+                      s.toLowerCase().includes(searchQuery.toLowerCase()),
+                    ) ||
+                    t.objectives
+                      ?.toLowerCase()
+                      .includes(searchQuery.toLowerCase()),
                 )
                 .map((topic) => (
-              <div
-                key={topic.id}
-                className="bg-white rounded-xl border border-gray-200 p-4"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span
-                        className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                          topic.status === "completed"
-                            ? "bg-green-100 text-green-700"
-                            : topic.status === "in_progress"
-                              ? "bg-amber-100 text-amber-700"
-                              : "bg-gray-100 text-gray-600"
-                        }`}
-                      >
-                        {topic.status === "completed"
-                          ? "✓ Completed"
-                          : topic.status === "in_progress"
-                            ? "◐ In Progress"
-                            : "○ Not Started"}
-                      </span>
-                      {topic.weeks_covered && (
-                        <span className="text-xs text-[#5c6670]">
-                          {topic.weeks_covered}
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="font-semibold text-[#17325F]">
-                      {topic.topic}
-                    </h3>
-                    {topic.objectives && (
-                      <p className="text-sm text-[#5c6670] mt-1">
-                        Objectives: {topic.objectives}
-                      </p>
-                    )}
-                    {topic.subtopics && topic.subtopics.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {topic.subtopics.map((sub: string, i: number) => (
-                          <span
-                            key={i}
-                            className="px-2 py-0.5 bg-gray-50 rounded text-xs text-[#5c6670]"
-                          >
-                            {sub}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <select
-                    value={topic.status}
-                    onChange={(e) =>
-                      updateStatus(
-                        topic.id,
-                        e.target.value as
-                          | "not_started"
-                          | "in_progress"
-                          | "completed",
-                      )
-                    }
-                    className="text-sm border rounded-lg px-2 py-1"
+                  <div
+                    key={topic.id}
+                    className="bg-white rounded-xl border border-gray-200 p-4"
                   >
-                    <option value="not_started">Not Started</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </div>
-              </div>
-            ))}
-          </div>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span
+                            className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                              topic.status === "completed"
+                                ? "bg-green-100 text-green-700"
+                                : topic.status === "in_progress"
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {topic.status === "completed"
+                              ? "✓ Completed"
+                              : topic.status === "in_progress"
+                                ? "◐ In Progress"
+                                : "○ Not Started"}
+                          </span>
+                          {topic.weeks_covered && (
+                            <span className="text-xs text-[#5c6670]">
+                              {topic.weeks_covered}
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="font-semibold text-[#17325F]">
+                          {topic.topic}
+                        </h3>
+                        {topic.objectives && (
+                          <p className="text-sm text-[#5c6670] mt-1">
+                            Objectives: {topic.objectives}
+                          </p>
+                        )}
+                        {topic.subtopics && topic.subtopics.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {topic.subtopics.map((sub: string, i: number) => (
+                              <span
+                                key={i}
+                                className="px-2 py-0.5 bg-gray-50 rounded text-xs text-[#5c6670]"
+                              >
+                                {sub}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <select
+                        value={topic.status}
+                        onChange={(e) =>
+                          updateStatus(
+                            topic.id,
+                            e.target.value as
+                              | "not_started"
+                              | "in_progress"
+                              | "completed",
+                          )
+                        }
+                        className="text-sm border rounded-lg px-2 py-1"
+                      >
+                        <option value="not_started">Not Started</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                      </select>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </>
         )}
 
         {/* Add Topic Modal */}
