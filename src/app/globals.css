@@ -373,10 +373,11 @@ table tr {
 
   .card {
     @apply bg-[var(--surface)] border border-[var(--border)] rounded-[22px] shadow-[var(--sh1)] overflow-hidden;
+    @apply px-4 py-4 sm:px-5 sm:py-5;
   }
 
   .card-header {
-    @apply flex items-center justify-between px-5 py-4 border-b border-[var(--border)] bg-[var(--surface-bright)];
+    @apply flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 border-b border-[var(--border)] bg-[var(--surface-bright)];
   }
 
   .card-title {
@@ -385,7 +386,7 @@ table tr {
   }
 
   .card-body {
-    @apply px-5 py-4;
+    @apply px-4 py-4 sm:px-5 sm:py-4;
   }
 
   .card-sub {
@@ -398,9 +399,18 @@ table tr {
 
   .stat-card {
     @apply relative bg-[var(--surface)] border border-[var(--border)] rounded-2xl overflow-hidden flex flex-col transition-all duration-200 ease-out cursor-default;
+    @apply px-4 py-3 sm:px-5 sm:py-4;
     box-shadow:
       0 1px 3px rgba(15, 23, 42, 0.06),
       0 4px 12px rgba(15, 23, 42, 0.04);
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 4px 16px rgba(15, 23, 42, 0.1),
+      0 12px 32px rgba(15, 23, 42, 0.07);
+    @apply border-[var(--border2)];
   }
   .stat-card:hover {
     transform: translateY(-2px);
@@ -1093,6 +1103,7 @@ h6,
 
 .card-premium {
   @apply bg-white/[0.88] backdrop-blur-md border border-[var(--border)] rounded-[var(--r2)] shadow-[var(--sh2)] overflow-hidden transition-all duration-300;
+  @apply px-4 py-4 sm:px-8 sm:py-8 md:px-10 md:py-10;
 }
 
 .card-premium:hover {
