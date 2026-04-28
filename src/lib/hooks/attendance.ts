@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { getQuerySchoolId } from "./utils";
@@ -22,6 +22,18 @@ export function useAttendance(classId?: string, date?: string) {
   const [error, setError] = useState<string | null>(null);
   const { isDemo, user, school } = useAuth();
   const isOnline = useOnlineStatus();
+  const hasInitialized = useRef(false);
+  const prevIsDemo = useRef(isDemo);
+
+  useEffect(() => {
+    if (prevIsDemo.current && !isDemo) {
+      setAttendance([]);
+      setLoading(true);
+      setError(null);
+      hasInitialized.current = false;
+    }
+    prevIsDemo.current = isDemo;
+  }, [isDemo]);
 
   const markAttendance = async (
     studentId: string,
