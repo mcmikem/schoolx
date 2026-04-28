@@ -406,6 +406,127 @@ function DirectoryTab({
     }
   };
 
+  const printStaffIDCard = (member: StaffMember) => {
+    const cardWindow = window.open("", "_blank");
+    if (!cardWindow) return;
+    const schoolName = school?.name || "School";
+    const schoolColor = "#1e40af";
+    cardWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Staff ID Card - ${member.full_name}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: Arial, sans-serif; }
+          .id-card {
+            width: 350px;
+            height: 220px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: row;
+          }
+          .left-section {
+            width: 100px;
+            background: linear-gradient(180deg, ${schoolColor} 0%, ${schoolColor}dd 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+          }
+          .avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: ${schoolColor};
+            border: 3px solid white;
+          }
+          .school-name-small {
+            color: white;
+            font-size: 8px;
+            text-align: center;
+            margin-top: 10px;
+            font-weight: 500;
+          }
+          .right-section {
+            flex: 1;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+          }
+          .school-name {
+            font-size: 11px;
+            font-weight: 700;
+            color: ${schoolColor};
+            text-transform: uppercase;
+          }
+          .card-type {
+            font-size: 8px;
+            color: #666;
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+          }
+          .staff-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: #111;
+            margin-bottom: 2px;
+          }
+          .staff-info {
+            font-size: 9px;
+            color: #666;
+            margin-bottom: 1px;
+          }
+          @media print {
+            body { margin: 0; }
+            .id-card { box-shadow: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="id-card">
+          <div class="left-section">
+            <div class="avatar">${member.full_name?.[0] || "S"}</div>
+            <div class="school-name-small">${schoolName}</div>
+          </div>
+          <div class="right-section">
+            <div class="header">
+              <span class="school-name">${schoolName}</span>
+              <span class="card-type">STAFF</span>
+            </div>
+            <div class="staff-name">${member.full_name}</div>
+            <div class="staff-info">Role: ${member.role}</div>
+            <div class="staff-info">Phone: ${member.phone}</div>
+            <div class="staff-info">Status: ${member.is_active ? "Active" : "Inactive"}</div>
+            ${member.email ? `<div class="staff-info">Email: ${member.email}</div>` : ""}
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+    cardWindow.document.close();
+    setTimeout(() => {
+      cardWindow.print();
+    }, 250);
+  };
+
   const getRoleBadge = (role: string) => {
     const roles: Record<string, { bg: string; text: string }> = {
       teacher: { bg: "bg-green-100", text: "text-green-700" },
@@ -503,6 +624,14 @@ function DirectoryTab({
                 >
                   <MaterialIcon icon="edit" className="text-sm" />
                   Edit
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => printStaffIDCard(member)}
+                >
+                  <MaterialIcon icon="badge" className="text-sm" />
+                  ID Card
                 </Button>
                 <Button
                   variant={member.is_active ? "secondary" : "primary"}

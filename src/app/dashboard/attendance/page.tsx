@@ -432,6 +432,41 @@ export default function AttendancePage() {
 
   const selectedClassName = filteredClasses.find((c) => c.id === selectedClass);
 
+  const exportAttendance = () => {
+    if (!selectedClass || students.length === 0) return;
+
+    const headers = ["Student Number", "First Name", "Last Name", "Status"];
+    const rows = students.map((student) => {
+      const status = attendance[student.id] || "not marked";
+      const statusLabel =
+        STATUS_CONFIG[status as AttendanceStatus]?.label || status;
+      return [
+        student.student_number,
+        student.first_name,
+        student.last_name,
+        statusLabel,
+      ];
+    });
+
+    const csvContent = [
+      `Attendance Export - ${selectedClassName?.name || "Unknown Class"} - ${date}`,
+      "",
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `attendance-${selectedClassName?.name || selectedClass}-${date}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Attendance exported to CSV");
+  };
+
   return (
     <PageErrorBoundary>
       <>
@@ -493,6 +528,15 @@ export default function AttendancePage() {
                 className="shadow-md shadow-navy/20"
               >
                 Save Changes
+              </Button>
+              <Button
+                onClick={exportAttendance}
+                disabled={!selectedClass || students.length === 0}
+                variant="secondary"
+                size="sm"
+                icon={<MaterialIcon icon="download" />}
+              >
+                Export
               </Button>
             </div>
           }
