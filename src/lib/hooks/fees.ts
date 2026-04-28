@@ -34,6 +34,16 @@ export function useFeePayments(
   const { isDemo, user, school } = useAuth();
   const isOnline = useOnlineStatus();
   const hasInitialized = useRef(false);
+  const prevIsDemo = useRef(isDemo);
+
+  useEffect(() => {
+    if (prevIsDemo.current && !isDemo) {
+      setPayments([]);
+      setTotalCount(0);
+      hasInitialized.current = false;
+    }
+    prevIsDemo.current = isDemo;
+  }, [isDemo]);
 
   const cacheKey = `fee_payments:${schoolId}:${page}:${limit}`;
 
@@ -154,6 +164,27 @@ export function useFeePayments(
       return newPaymentData as unknown as FeePayment;
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
+
+    if (!payment.fee_id && !isOnline) {
+      throw new Error("Fee ID is required for online payments");
+    }
+
+    if (payment.fee_id) {
+      const { data: feeStructure, error: feeError } = await supabase
+        .from("fee_structure")
+        .select("id, name, amount")
+        .eq("id", payment.fee_id)
+        .eq("school_id", querySchoolId)
+        .is("deleted_at", null)
+        .single();
+
+      if (feeError || !feeStructure) {
+        throw new Error(
+          "Invalid or missing fee structure. Please create the fee first.",
+        );
+      }
+    }
+
     const payload = {
       ...normalizedPayment,
       school_id: querySchoolId,
@@ -280,6 +311,15 @@ export function useFeeStructure(schoolId?: string) {
   const { isDemo } = useAuth();
   const isOnline = useOnlineStatus();
   const hasInitialized = useRef(false);
+  const prevIsDemo = useRef(isDemo);
+
+  useEffect(() => {
+    if (prevIsDemo.current && !isDemo) {
+      setFeeStructure([]);
+      hasInitialized.current = false;
+    }
+    prevIsDemo.current = isDemo;
+  }, [isDemo]);
 
   const cacheKey = `fee_structure:${schoolId}`;
 
@@ -458,6 +498,15 @@ export function useFeeAdjustments(schoolId?: string) {
   const { isDemo, user, school } = useAuth();
   const isOnline = useOnlineStatus();
   const hasInitialized = useRef(false);
+  const prevIsDemo = useRef(isDemo);
+
+  useEffect(() => {
+    if (prevIsDemo.current && !isDemo) {
+      setAdjustments([]);
+      hasInitialized.current = false;
+    }
+    prevIsDemo.current = isDemo;
+  }, [isDemo]);
 
   const cacheKey = `fee_adjustments:${schoolId}`;
 
@@ -664,6 +713,15 @@ export function useBudget(schoolId?: string) {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { isDemo } = useAuth();
+  const prevIsDemo = useRef(isDemo);
+
+  useEffect(() => {
+    if (prevIsDemo.current && !isDemo) {
+      setBudgets([]);
+      setExpenses([]);
+    }
+    prevIsDemo.current = isDemo;
+  }, [isDemo]);
 
   const createBudget = async (budget: any) => {
     if (isDemo || isDemoSchool(schoolId)) {
