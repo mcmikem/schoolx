@@ -101,53 +101,58 @@ export default function StaffHubPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="content">
-      <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="ph-title truncate !text-3xl">Staff Hub</div>
-            <div className="ph-sub truncate !text-sm">
-              {school?.name} • Personnel Management & Academic Supervision
+      <div className="content">
+        <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="ph-title truncate !text-3xl">Staff Hub</div>
+              <div className="ph-sub truncate !text-sm">
+                {school?.name} • Personnel Management & Academic Supervision
+              </div>
+            </div>
+            <div className="ph-actions">
+              <button
+                onClick={() => setActiveMainTab("directory")}
+                className="btn btn-ghost shadow-sm"
+              >
+                <MaterialIcon icon="groups" style={{ fontSize: "16px" }} />
+                <span>Staff Directory</span>
+              </button>
+              <button
+                onClick={() => setActiveMainTab("leave")}
+                className="btn btn-primary shadow-md"
+              >
+                <MaterialIcon icon="event_busy" style={{ fontSize: "16px" }} />
+                <span>Leave Requests</span>
+              </button>
             </div>
           </div>
-          <div className="ph-actions">
-            <button
-               onClick={() => setActiveMainTab("directory")}
-               className="btn btn-ghost shadow-sm"
-            >
-              <MaterialIcon icon="groups" style={{ fontSize: "16px" }} />
-              <span>Staff Directory</span>
-            </button>
-            <button
-              onClick={() => setActiveMainTab("leave")}
-              className="btn btn-primary shadow-md"
-            >
-              <MaterialIcon icon="event_busy" style={{ fontSize: "16px" }} />
-              <span>Leave Requests</span>
-            </button>
-          </div>
         </div>
+
+        <SmartAdvisor
+          stats={stats || {}}
+          collectionRate={0}
+          attendanceRate={attendanceRate}
+          role="dean"
+        />
+
+        <Tabs
+          tabs={mainTabs}
+          activeTab={activeMainTab}
+          onChange={setActiveMainTab}
+          className="mb-6"
+        />
+
+        <TabPanel activeTab={activeMainTab} tabId="directory">
+          <DirectoryTab school={school} isDemo={isDemo} toast={toast} />
+        </TabPanel>
+        <TabPanel activeTab={activeMainTab} tabId="reviews">
+          <ReviewsTab school={school} user={user} toast={toast} />
+        </TabPanel>
+        <TabPanel activeTab={activeMainTab} tabId="leave">
+          <LeaveTab school={school} user={user} toast={toast} />
+        </TabPanel>
       </div>
-
-      <SmartAdvisor stats={stats || {}} collectionRate={0} attendanceRate={attendanceRate} role="dean" />
-
-      <Tabs
-        tabs={mainTabs}
-        activeTab={activeMainTab}
-        onChange={setActiveMainTab}
-        className="mb-6"
-      />
-
-      <TabPanel activeTab={activeMainTab} tabId="directory">
-        <DirectoryTab school={school} isDemo={isDemo} toast={toast} />
-      </TabPanel>
-      <TabPanel activeTab={activeMainTab} tabId="reviews">
-        <ReviewsTab school={school} user={user} toast={toast} />
-      </TabPanel>
-      <TabPanel activeTab={activeMainTab} tabId="leave">
-        <LeaveTab school={school} user={user} toast={toast} />
-      </TabPanel>
-    </div>
     </PageErrorBoundary>
   );
 }
@@ -183,21 +188,34 @@ function DirectoryTab({
     subject: "",
   });
   const [activeTab, setActiveTab] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+  const [totalCount, setTotalCount] = useState(0);
+  const offset = (currentPage - 1) * itemsPerPage;
 
   const fetchStaff = useCallback(async () => {
     if (isDemo) {
       setStaff(DEMO_STAFF as unknown as StaffMember[]);
+      setTotalCount(DEMO_STAFF.length);
       setLoading(false);
       return;
     }
     if (!school?.id) return;
     try {
       setLoading(true);
+      const countResult = await supabase
+        .from("users")
+        .select("id", { count: "exact", head: true })
+        .eq("school_id", school.id);
+      if (countResult.count !== null) {
+        setTotalCount(countResult.count);
+      }
       const { data, error } = await supabase
         .from("users")
         .select("*")
         .eq("school_id", school.id)
-        .order("full_name");
+        .order("full_name")
+        .range(offset, offset + itemsPerPage - 1);
       if (error) throw error;
       setStaff(data || []);
     } catch (err) {
@@ -205,7 +223,11 @@ function DirectoryTab({
     } finally {
       setLoading(false);
     }
-  }, [school?.id, isDemo]);
+  }, [school?.id, isDemo, offset, itemsPerPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab]);
 
   useEffect(() => {
     fetchStaff();
@@ -233,6 +255,7 @@ function DirectoryTab({
         is_active: true,
       };
       setStaff((prev) => [newMember as unknown as StaffMember, ...prev]);
+      setTotalCount((prev) => prev + 1);
       toast.success("Staff member added (Demo Mode)");
       setShowAddModal(false);
       setNewStaff({
@@ -286,6 +309,7 @@ function DirectoryTab({
 
       toast.success("Staff member added");
       setShowAddModal(false);
+      fetchStaff();
       setNewStaff({
         full_name: "",
         phone: "",
@@ -373,6 +397,7 @@ function DirectoryTab({
       const { error } = await supabase.from("users").delete().eq("id", id);
       if (error) throw error;
       setStaff(staff.filter((s) => s.id !== id));
+      setTotalCount((prev) => Math.max(0, prev - 1));
       toast.success("Staff member deleted");
     } catch (err: unknown) {
       const errorMessage =
@@ -508,9 +533,33 @@ function DirectoryTab({
           <h2 className="text-xl font-semibold text-[var(--on-surface)]">
             Staff Directory
           </h2>
-          <p className="text-sm text-[var(--t3)]">
-            {staff.length} staff members
-          </p>
+          <p className="text-sm text-[var(--t3)]">{totalCount} staff members</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-[var(--t3)]">
+            Page {currentPage} of{" "}
+            {Math.max(1, Math.ceil(totalCount / itemsPerPage))}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            <MaterialIcon icon="chevron_left" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              setCurrentPage((p) =>
+                Math.min(Math.ceil(totalCount / itemsPerPage), p + 1),
+              )
+            }
+            disabled={currentPage >= Math.ceil(totalCount / itemsPerPage)}
+          >
+            <MaterialIcon icon="chevron_right" />
+          </Button>
         </div>
         <Button onClick={() => setShowAddModal(true)}>
           <MaterialIcon icon="person_add" className="text-lg" />
@@ -1120,7 +1169,11 @@ function LeaveTab({
 
       if (error) {
         // Table doesn't exist or RLS blocks — show empty gracefully
-        if (error.code === "42P01" || error.code === "42501" || error.code === "PGRST116") {
+        if (
+          error.code === "42P01" ||
+          error.code === "42501" ||
+          error.code === "PGRST116"
+        ) {
           setRequests([]);
           return;
         }
@@ -1128,7 +1181,10 @@ function LeaveTab({
       }
       setRequests(data || []);
     } catch (err) {
-      console.error("Error fetching leave requests:", err instanceof Error ? err.message : "unknown");
+      console.error(
+        "Error fetching leave requests:",
+        err instanceof Error ? err.message : "unknown",
+      );
       setRequests([]);
     } finally {
       setLoading(false);
