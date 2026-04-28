@@ -22,15 +22,20 @@ import {
   validatePaymentInput,
 } from "@/lib/validation";
 
-export function useFeePayments(schoolId?: string) {
+export function useFeePayments(
+  schoolId?: string,
+  page: number = 1,
+  limit: number = 50,
+) {
   const [payments, setPayments] = useState<FeePayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
   const { isDemo, user, school } = useAuth();
   const isOnline = useOnlineStatus();
   const hasInitialized = useRef(false);
 
-  const cacheKey = `fee_payments:${schoolId}`;
+  const cacheKey = `fee_payments:${schoolId}:${page}:${limit}`;
 
   const fetchPayments = useCallback(async () => {
     // Demo mode - check for demo school UUID
@@ -72,38 +77,44 @@ export function useFeePayments(schoolId?: string) {
             paid_by, notes, payment_date, created_at, deleted_at,
             students!inner (id, first_name, last_name, school_id, classes (name))
           `,
+            { count: "exact" },
           )
           .eq("students.school_id", querySchoolId)
           .is("deleted_at", null)
           .order("payment_date", { ascending: false })
+          .range((page - 1) * limit, page * limit - 1)
           .then((r) => {
             if (r.error) throw r.error;
-            return r.data;
+            return { data: r.data, count: r.count };
           }),
         8000,
-        [] as unknown as {
-          id: string;
-          student_id: string;
-          fee_id: string;
-          amount_paid: number;
-          payment_method: string;
-          payment_reference: string | null;
-          paid_by: string;
-          notes: string | null;
-          payment_date: string;
-          created_at: string;
-          deleted_at: string | null;
-          students: {
+        {
+          data: [] as unknown as {
             id: string;
-            first_name: string;
-            last_name: string;
-            school_id: string;
-            classes: { name: string }[];
-          }[];
-        }[],
+            student_id: string;
+            fee_id: string;
+            amount_paid: number;
+            payment_method: string;
+            payment_reference: string | null;
+            paid_by: string;
+            notes: string | null;
+            payment_date: string;
+            created_at: string;
+            deleted_at: string | null;
+            students: {
+              id: string;
+              first_name: string;
+              last_name: string;
+              school_id: string;
+              classes: { name: string }[];
+            }[];
+          }[],
+          count: 0,
+        },
       );
-      const result = (data as unknown as FeePayment[]) || [];
+      const result = (data.data as unknown as FeePayment[]) || [];
       setPayments(result);
+      setTotalCount(data.count || 0);
       setCachedData(cacheKey, result);
       await offlineDB.cacheFromServer(
         "fee_payments",
@@ -114,7 +125,7 @@ export function useFeePayments(schoolId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [schoolId, isDemo, isOnline, cacheKey]);
+  }, [schoolId, isDemo, isOnline, cacheKey, page, limit]);
 
   const createPayment = async (payment: CreatePaymentInput) => {
     const normalizedPayment = normalizePaymentInput({
@@ -256,6 +267,7 @@ export function useFeePayments(schoolId?: string) {
     payments,
     loading,
     error,
+    totalCount,
     createPayment,
     deletePayment,
     refetch: fetchPayments,

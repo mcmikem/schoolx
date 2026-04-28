@@ -251,7 +251,8 @@ export async function verifyPayPalWebhook(
     if (!verifyResponse.ok) return false;
     const verifyData = await verifyResponse.json();
     return verifyData.verification_status === 'SUCCESS';
-  } catch {
+  } catch (error) {
+    console.error("[PayPal] Webhook verification error:", error);
     return false;
   }
 }

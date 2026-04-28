@@ -59,6 +59,7 @@ export function useGrades(
 ) {
   const [grades, setGrades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { isDemo, user, school } = useAuth();
   const isOnline = useOnlineStatus();
 
@@ -257,6 +258,7 @@ export function useGrades(
       );
     } catch (err) {
       console.error("Failed to fetch grades:", err);
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
     }
@@ -265,7 +267,7 @@ export function useGrades(
   useEffect(() => {
     fetchGrades();
   }, [fetchGrades]);
-  return { grades, loading, saveGrade };
+  return { grades, loading, error, saveGrade };
 }
 
 export function useExamScores(

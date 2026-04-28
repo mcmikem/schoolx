@@ -120,7 +120,8 @@ async function rateLimitViaSupabase(
       remaining: limit - hits - 1,
       resetTime: Date.now() + windowMs,
     };
-  } catch {
+  } catch (err) {
+    console.error("[RateLimit] Supabase fallback error:", err);
     return null; // fall back to in-memory
   }
 }

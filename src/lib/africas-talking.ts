@@ -88,7 +88,8 @@ export async function sendAfricasTalkingSMS(
 
     try {
       payload = responseText ? JSON.parse(responseText) : null;
-    } catch {
+    } catch (err) {
+      console.error("[SMS] Failed to parse API response:", err);
       payload = null;
     }
 

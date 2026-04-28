@@ -63,6 +63,67 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const studentIds = (students as any[]).map((s) => s.id);
+
+    const [
+      { data: allGrades, error: gradesError },
+      { data: allAttendance, error: attendanceError },
+    ] = await Promise.all([
+      supabase
+        .from("student_grades")
+        .select(
+          `
+          id,
+          student_id,
+          subject_id,
+          ca1,
+          ca2,
+          ca3,
+          ca4,
+          project,
+          exam_score,
+          subjects (name)
+        `,
+        )
+        .in("student_id", studentIds)
+        .eq("academic_year", currentYear)
+        .eq("term", currentTerm),
+      supabase
+        .from("attendance")
+        .select("student_id, status, date")
+        .in("student_id", studentIds)
+        .gte("date", `${currentYear}-01-01`)
+        .lte("date", `${currentYear}-12-31`),
+    ]);
+
+    if (gradesError) {
+      return NextResponse.json(
+        {
+          error: "Failed to fetch grades",
+          details: gradesError.message,
+        },
+        { status: 500 },
+      );
+    }
+
+    const gradesByStudent = (allGrades || []).reduce(
+      (acc: Record<string, any[]>, grade: any) => {
+        if (!acc[grade.student_id]) acc[grade.student_id] = [];
+        acc[grade.student_id].push(grade);
+        return acc;
+      },
+      {},
+    );
+
+    const attendanceByStudent = (allAttendance || []).reduce(
+      (acc: Record<string, any[]>, record: any) => {
+        if (!acc[record.student_id]) acc[record.student_id] = [];
+        acc[record.student_id].push(record);
+        return acc;
+      },
+      {},
+    );
+
     const results: {
       generated: any[];
       emailed: any[];
@@ -90,34 +151,7 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Fetch grades for this student for the term
-        const { data: grades, error: gradesError } = await supabase
-          .from("student_grades")
-          .select(
-            `
-            id,
-            subject_id,
-            ca1,
-            ca2,
-            ca3,
-            ca4,
-            project,
-            exam_score,
-            subjects (name)
-          `,
-          )
-          .eq("student_id", student.id)
-          .eq("academic_year", currentYear)
-          .eq("term", currentTerm);
-
-        if (gradesError) {
-          results.errors.push({
-            studentId: student.id,
-            name: `${student.first_name} ${student.last_name}`,
-            reason: `Failed to fetch grades: ${gradesError.message}`,
-          });
-          continue;
-        }
+        const grades = gradesByStudent[student.id] || [];
 
         if (!grades || grades.length === 0) {
           results.skipped.push({
@@ -198,16 +232,11 @@ export async function POST(request: NextRequest) {
         }
 
         // Compute attendance for the term
-        const { data: attendanceRecords } = await supabase
-          .from("attendance")
-          .select("status")
-          .eq("student_id", student.id)
-          .gte("date", `${currentYear}-01-01`)
-          .lte("date", `${currentYear}-12-31`);
+        const studentAttendance = attendanceByStudent[student.id] || [];
 
-        const totalDays = attendanceRecords?.length || 0;
+        const totalDays = studentAttendance.length || 0;
         const presentDays =
-          attendanceRecords?.filter(
+          studentAttendance.filter(
             (r: any) => r.status === "present" || r.status === "late",
           ).length || 0;
         const attendanceRate =
