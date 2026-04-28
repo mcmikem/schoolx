@@ -7,6 +7,7 @@ import OnboardingTips from "@/components/OnboardingTips";
 import MaterialIcon from "@/components/MaterialIcon";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import PersonInitials from "@/components/ui/PersonInitials";
+import { EmptyState } from "@/components/EmptyState";
 
 interface StudentClassInfo {
   id: string;
@@ -141,23 +142,41 @@ export default function StudentRegistryPanel({
         </div>
         <div className="flex flex-wrap gap-3 text-sm text-[var(--t3)]">
           <p className="flex-1 min-w-[220px]">
-            Download the structured templates, drop your data, and we&apos;ll auto-map columns to fields. Preview before confirming.
+            Download the structured templates, drop your data, and we&apos;ll
+            auto-map columns to fields. Preview before confirming.
           </p>
           <div className="flex flex-wrap gap-2">
-            <a href="/templates/classes-template.csv" download target="_blank" className="btn btn-ghost btn-sm">
+            <a
+              href="/templates/classes-template.csv"
+              download
+              target="_blank"
+              className="btn btn-ghost btn-sm"
+            >
               Class template
             </a>
-            <a href="/templates/staff-template.csv" download target="_blank" className="btn btn-ghost btn-sm">
+            <a
+              href="/templates/staff-template.csv"
+              download
+              target="_blank"
+              className="btn btn-ghost btn-sm"
+            >
               Staff template
             </a>
-            <a href="/templates/students-template.csv" download target="_blank" className="btn btn-ghost btn-sm">
+            <a
+              href="/templates/students-template.csv"
+              download
+              target="_blank"
+              className="btn btn-ghost btn-sm"
+            >
               Student template
             </a>
           </div>
         </div>
         <div className="grid gap-4 md:grid-cols-2 mt-6">
           <div className="space-y-3 rounded-[20px] border border-[var(--border)] bg-[var(--surface)]/60 p-4">
-            <div className="text-sm font-semibold text-[var(--t1)]">Upload student list</div>
+            <div className="text-sm font-semibold text-[var(--t1)]">
+              Upload student list
+            </div>
             <input
               type="file"
               accept=".csv,.xlsx,.xls"
@@ -166,12 +185,21 @@ export default function StudentRegistryPanel({
               disabled={templateStatus === "parsing"}
             />
             <p className="text-xs text-[var(--t3)]">
-              We auto-map Excel columns using simple heuristics; add headers exactly as shown.
+              We auto-map Excel columns using simple heuristics; add headers
+              exactly as shown.
             </p>
-            {templateStatus === "parsing" && <p className="text-xs text-[var(--green)]">Parsing file...</p>}
-            {templateErrors && <p className="text-xs text-[var(--amber)]">{templateErrors}</p>}
+            {templateStatus === "parsing" && (
+              <p className="text-xs text-[var(--green)]">Parsing file...</p>
+            )}
+            {templateErrors && (
+              <p className="text-xs text-[var(--amber)]">{templateErrors}</p>
+            )}
             {templateStatus === "ready" && (
-              <button onClick={onSeedTemplate} className="btn btn-primary btn-sm" disabled={importingTemplate}>
+              <button
+                onClick={onSeedTemplate}
+                className="btn btn-primary btn-sm"
+                disabled={importingTemplate}
+              >
                 {importingTemplate ? (
                   <span className="flex items-center gap-2">
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -192,21 +220,147 @@ export default function StudentRegistryPanel({
                 />
               </div>
             )}
-            {importSummary && (
-              <p className="text-xs text-[var(--navy)]">
-                Imported {importSummary.success}/{importSummary.total} students ({importSummary.failed} failed).
-              </p>
+            {filteredTotal === 0 ? (
+              <div className="p-8 text-center">
+                <EmptyState
+                  icon="people"
+                  title="No students found"
+                  description={
+                    searchTerm
+                      ? `No students matching "${searchTerm}"`
+                      : "Start by adding students to your school."
+                  }
+                  action={{ label: "Add Student", onClick: onAddStudent }}
+                />
+              </div>
+            ) : (
+              <div className="tbl-wrap table-responsive">
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-label="Student">Student</th>
+                      <th data-label="Number">Number</th>
+                      <th data-label="Class">Class</th>
+                      <th data-label="Parent">Parent</th>
+                      <th data-label="Phone">Phone</th>
+                      <th data-label="Actions"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedStudents.map((student) => (
+                      <tr key={student.id}>
+                        <td data-label="Student">
+                          <Link
+                            href={`/dashboard/students/${student.id}`}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
+                              textDecoration: "none",
+                            }}
+                          >
+                            <div>
+                              {student.photo_url ? (
+                                <Image
+                                  src={student.photo_url}
+                                  alt={`${student.first_name} ${student.last_name}`}
+                                  width={36}
+                                  height={36}
+                                  unoptimized
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                  }}
+                                />
+                              ) : (
+                                <PersonInitials
+                                  name={`${student.first_name} ${student.last_name}`}
+                                  size={36}
+                                />
+                              )}
+                            </div>
+                            <div>
+                              <div
+                                style={{ fontWeight: 600, color: "var(--t1)" }}
+                              >
+                                {student.first_name} {student.last_name}
+                              </div>
+                              <div style={{ fontSize: 11, color: "var(--t3)" }}>
+                                {student.gender === "M" ? "Male" : "Female"}
+                              </div>
+                            </div>
+                          </Link>
+                        </td>
+                        <td data-label="Number">
+                          {student.student_number || "-"}
+                        </td>
+                        <td data-label="Class">
+                          {student.classes?.name || "-"}
+                        </td>
+                        <td data-label="Parent">
+                          {student.parent_name || "-"}
+                        </td>
+                        <td data-label="Phone">
+                          {student.parent_phone || "-"}
+                        </td>
+                        <td data-label="Actions">
+                          <Link
+                            href={`/dashboard/students/${student.id}`}
+                            className="btn btn-ghost btn-sm"
+                          >
+                            View
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {filteredTotal > pageSize && (
+                  <div className="flex items-center justify-between p-4 border-t border-[var(--border)]">
+                    <span style={{ fontSize: 12, color: "var(--t3)" }}>
+                      Page {currentPage} of{" "}
+                      {Math.ceil(filteredTotal / pageSize)}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() =>
+                          setCurrentPage((p) => Math.max(1, p - 1))
+                        }
+                        disabled={currentPage === 1}
+                        className="btn btn-ghost btn-sm"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        onClick={() => setCurrentPage((p) => p + 1)}
+                        disabled={
+                          currentPage >= Math.ceil(filteredTotal / pageSize)
+                        }
+                        className="btn btn-ghost btn-sm"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
           <div className="rounded-[20px] border border-[var(--border)] bg-[var(--navy-soft)] p-4 space-y-3">
-            <div className="text-sm font-semibold text-[var(--t1)]">Preview & AI hints</div>
+            <div className="text-sm font-semibold text-[var(--t1)]">
+              Preview & AI hints
+            </div>
             {templatePreviewRows.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
                     <tr>
                       {Object.keys(templatePreviewRows[0]).map((col) => (
-                        <th key={col} className="px-2 py-1 text-left text-[11px] uppercase tracking-[0.2em] text-[var(--t3)]">
+                        <th
+                          key={col}
+                          className="px-2 py-1 text-left text-[11px] uppercase tracking-[0.2em] text-[var(--t3)]"
+                        >
                           {col}
                         </th>
                       ))}
@@ -214,9 +368,15 @@ export default function StudentRegistryPanel({
                   </thead>
                   <tbody>
                     {templatePreviewRows.map((row, index) => (
-                      <tr key={index} className="border-t border-[var(--border)]">
+                      <tr
+                        key={index}
+                        className="border-t border-[var(--border)]"
+                      >
                         {Object.values(row).map((value, idx) => (
-                          <td key={`${index}-${idx}`} className="px-2 py-1 truncate max-w-[120px]">
+                          <td
+                            key={`${index}-${idx}`}
+                            className="px-2 py-1 truncate max-w-[120px]"
+                          >
                             {value || "\u2014"}
                           </td>
                         ))}
@@ -226,7 +386,9 @@ export default function StudentRegistryPanel({
                 </table>
               </div>
             ) : (
-              <p className="text-xs text-[var(--t3)]">Upload a file to preview the parsed rows.</p>
+              <p className="text-xs text-[var(--t3)]">
+                Upload a file to preview the parsed rows.
+              </p>
             )}
           </div>
         </div>
@@ -236,38 +398,90 @@ export default function StudentRegistryPanel({
         <div className="card p-4 shadow-[0_4px_16px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.04)]">
           <div className="flex items-center gap-3 mb-2.5">
             <div className="w-9 h-9 rounded-lg bg-[var(--navy-soft)] flex items-center justify-center">
-              <MaterialIcon style={{ fontSize: 18, color: "var(--navy)" }}>group</MaterialIcon>
+              <MaterialIcon style={{ fontSize: 18, color: "var(--navy)" }}>
+                group
+              </MaterialIcon>
             </div>
-            <span className="text-[10px] font-bold tracking-[0.07em] uppercase text-[var(--t3)]">Total</span>
+            <span className="text-[10px] font-bold tracking-[0.07em] uppercase text-[var(--t3)]">
+              Total
+            </span>
           </div>
-          <div style={{ fontFamily: "Sora", fontSize: 28, fontWeight: 800, color: "var(--navy)" }}>{totalStudents}</div>
+          <div
+            style={{
+              fontFamily: "Sora",
+              fontSize: 28,
+              fontWeight: 800,
+              color: "var(--navy)",
+            }}
+          >
+            {totalStudents}
+          </div>
         </div>
         <div className="card p-4 shadow-[0_4px_16px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.04)]">
           <div className="flex items-center gap-3 mb-2.5">
             <div className="w-9 h-9 rounded-lg bg-[rgba(23,50,95,.1)] flex items-center justify-center">
-              <MaterialIcon style={{ fontSize: 18, color: "var(--navy)" }}>male</MaterialIcon>
+              <MaterialIcon style={{ fontSize: 18, color: "var(--navy)" }}>
+                male
+              </MaterialIcon>
             </div>
-            <span className="text-[10px] font-bold tracking-[0.07em] uppercase text-[var(--t3)]">Boys</span>
+            <span className="text-[10px] font-bold tracking-[0.07em] uppercase text-[var(--t3)]">
+              Boys
+            </span>
           </div>
-          <div style={{ fontFamily: "Sora", fontSize: 28, fontWeight: 800, color: "var(--navy)" }}>{boysCount}</div>
+          <div
+            style={{
+              fontFamily: "Sora",
+              fontSize: 28,
+              fontWeight: 800,
+              color: "var(--navy)",
+            }}
+          >
+            {boysCount}
+          </div>
         </div>
         <div className="card p-4">
           <div className="flex items-center gap-3 mb-2.5">
             <div className="w-9 h-9 rounded-lg bg-[rgba(192,57,43,.1)] flex items-center justify-center">
-              <MaterialIcon style={{ fontSize: 18, color: "var(--red)" }}>female</MaterialIcon>
+              <MaterialIcon style={{ fontSize: 18, color: "var(--red)" }}>
+                female
+              </MaterialIcon>
             </div>
-            <span className="text-[10px] font-bold tracking-[0.07em] uppercase text-[var(--t3)]">Girls</span>
+            <span className="text-[10px] font-bold tracking-[0.07em] uppercase text-[var(--t3)]">
+              Girls
+            </span>
           </div>
-          <div style={{ fontFamily: "Sora", fontSize: 28, fontWeight: 800, color: "var(--navy)" }}>{girlsCount}</div>
+          <div
+            style={{
+              fontFamily: "Sora",
+              fontSize: 28,
+              fontWeight: 800,
+              color: "var(--navy)",
+            }}
+          >
+            {girlsCount}
+          </div>
         </div>
         <div className="card p-4 shadow-[0_4px_16px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.04)]">
           <div className="flex items-center gap-3 mb-2.5">
             <div className="w-9 h-9 rounded-lg bg-[var(--green-soft)] flex items-center justify-center">
-              <MaterialIcon style={{ fontSize: 18, color: "var(--green)" }}>school</MaterialIcon>
+              <MaterialIcon style={{ fontSize: 18, color: "var(--green)" }}>
+                school
+              </MaterialIcon>
             </div>
-            <span className="text-[10px] font-bold tracking-[0.07em] uppercase text-[var(--t3)]">Classes</span>
+            <span className="text-[10px] font-bold tracking-[0.07em] uppercase text-[var(--t3)]">
+              Classes
+            </span>
           </div>
-          <div style={{ fontFamily: "Sora", fontSize: 28, fontWeight: 800, color: "var(--navy)" }}>{classesCount}</div>
+          <div
+            style={{
+              fontFamily: "Sora",
+              fontSize: 28,
+              fontWeight: 800,
+              color: "var(--navy)",
+            }}
+          >
+            {classesCount}
+          </div>
         </div>
       </div>
 
@@ -337,7 +551,9 @@ export default function StudentRegistryPanel({
           </select>
           <select
             value={filterGender}
-            onChange={(e) => onFilterGenderChange(e.target.value as "all" | "M" | "F")}
+            onChange={(e) =>
+              onFilterGenderChange(e.target.value as "all" | "M" | "F")
+            }
             style={{
               padding: "10px 14px",
               border: "1px solid var(--border)",
@@ -382,12 +598,18 @@ export default function StudentRegistryPanel({
               color: "var(--t1)",
             }}
           >
-            <input type="checkbox" checked={filterDefaulters} onChange={(e) => onFilterDefaultersChange(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={filterDefaulters}
+              onChange={(e) => onFilterDefaultersChange(e.target.checked)}
+            />
             Defaulters
           </label>
           <select
             value={sortBy}
-            onChange={(e) => onSortByChange(e.target.value as "name" | "number" | "class")}
+            onChange={(e) =>
+              onSortByChange(e.target.value as "name" | "number" | "class")
+            }
             style={{
               padding: "10px 14px",
               border: "1px solid var(--border)",
@@ -440,16 +662,31 @@ export default function StudentRegistryPanel({
                 margin: "0 auto 12px",
               }}
             >
-              <MaterialIcon style={{ fontSize: 24, color: "var(--t3)" }}>group</MaterialIcon>
+              <MaterialIcon style={{ fontSize: 24, color: "var(--t3)" }}>
+                group
+              </MaterialIcon>
             </div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--t1)", marginBottom: 4 }}>
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 600,
+                color: "var(--t1)",
+                marginBottom: 4,
+              }}
+            >
               No students found
             </div>
             <div style={{ fontSize: 12, color: "var(--t3)" }}>
-              {searchTerm ? "Try a different search term" : "Add your first student to get started"}
+              {searchTerm
+                ? "Try a different search term"
+                : "Add your first student to get started"}
             </div>
             {!searchTerm && (
-              <button onClick={onAddStudent} className="btn btn-primary" style={{ marginTop: 16 }}>
+              <button
+                onClick={onAddStudent}
+                className="btn btn-primary"
+                style={{ marginTop: 16 }}
+              >
                 <MaterialIcon icon="person_add" style={{ fontSize: "16px" }} />
                 Add Student
               </button>
@@ -474,7 +711,12 @@ export default function StudentRegistryPanel({
                     <td data-label="Student">
                       <Link
                         href={`/dashboard/students/${student.id}`}
-                        style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          textDecoration: "none",
+                        }}
                       >
                         <div
                           style={{
@@ -488,7 +730,10 @@ export default function StudentRegistryPanel({
                             fontWeight: 700,
                             color: "#fff",
                             overflow: "hidden",
-                            background: student.gender === "M" ? "var(--navy)" : "var(--red)",
+                            background:
+                              student.gender === "M"
+                                ? "var(--navy)"
+                                : "var(--red)",
                           }}
                         >
                           {student.photo_url ? (
@@ -498,10 +743,17 @@ export default function StudentRegistryPanel({
                               width={36}
                               height={36}
                               unoptimized
-                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                              }}
                             />
                           ) : (
-                            <PersonInitials name={`${student.first_name} ${student.last_name}`} size={36} />
+                            <PersonInitials
+                              name={`${student.first_name} ${student.last_name}`}
+                              size={36}
+                            />
                           )}
                         </div>
                         <div>
@@ -514,7 +766,10 @@ export default function StudentRegistryPanel({
                         </div>
                       </Link>
                     </td>
-                    <td data-label="Number" style={{ fontFamily: "DM Mono", fontSize: 12 }}>
+                    <td
+                      data-label="Number"
+                      style={{ fontFamily: "DM Mono", fontSize: 12 }}
+                    >
                       {student.student_number || "-"}
                     </td>
                     <td data-label="Class">
@@ -528,28 +783,34 @@ export default function StudentRegistryPanel({
                         }}
                       >
                         {student.classes?.name}
-                        {student.classes?.stream ? ` ${student.classes.stream}` : ""}
-                        {student.boarding_status && student.boarding_status !== "day" && (
-                          <span
-                            style={{
-                              marginLeft: 4,
-                              fontSize: 9,
-                              padding: "1px 5px",
-                              background: "rgba(155,89,182,0.15)",
-                              color: "#0d9488",
-                              borderRadius: 8,
-                              fontWeight: 600,
-                            }}
-                          >
-                            {student.boarding_status}
-                          </span>
-                        )}
+                        {student.classes?.stream
+                          ? ` ${student.classes.stream}`
+                          : ""}
+                        {student.boarding_status &&
+                          student.boarding_status !== "day" && (
+                            <span
+                              style={{
+                                marginLeft: 4,
+                                fontSize: 9,
+                                padding: "1px 5px",
+                                background: "rgba(155,89,182,0.15)",
+                                color: "#0d9488",
+                                borderRadius: 8,
+                                fontWeight: 600,
+                              }}
+                            >
+                              {student.boarding_status}
+                            </span>
+                          )}
                       </span>
                     </td>
                     <td data-label="Parent" style={{ fontSize: 13 }}>
                       {student.parent_name || "-"}
                     </td>
-                    <td data-label="Phone" style={{ fontSize: 13, fontFamily: "DM Mono" }}>
+                    <td
+                      data-label="Phone"
+                      style={{ fontSize: 13, fontFamily: "DM Mono" }}
+                    >
                       {student.parent_phone || "-"}
                     </td>
                     <td data-label="Actions">
@@ -557,21 +818,51 @@ export default function StudentRegistryPanel({
                         <button
                           onClick={() => onSmsParent(student)}
                           title="SMS Parent"
-                          style={{ background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 6 }}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: 6,
+                            borderRadius: 6,
+                          }}
                         >
-                          <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>sms</MaterialIcon>
+                          <MaterialIcon
+                            style={{ fontSize: 16, color: "var(--t3)" }}
+                          >
+                            sms
+                          </MaterialIcon>
                         </button>
                         <button
                           onClick={() => onEditStudent(student)}
-                          style={{ background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 6 }}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: 6,
+                            borderRadius: 6,
+                          }}
                         >
-                          <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>edit</MaterialIcon>
+                          <MaterialIcon
+                            style={{ fontSize: 16, color: "var(--t3)" }}
+                          >
+                            edit
+                          </MaterialIcon>
                         </button>
                         <button
                           onClick={() => onDeleteStudent(student.id)}
-                          style={{ background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 6 }}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: 6,
+                            borderRadius: 6,
+                          }}
                         >
-                          <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>delete</MaterialIcon>
+                          <MaterialIcon
+                            style={{ fontSize: 16, color: "var(--t3)" }}
+                          >
+                            delete
+                          </MaterialIcon>
                         </button>
                       </div>
                     </td>
@@ -583,10 +874,15 @@ export default function StudentRegistryPanel({
         )}
 
         {!loading && filteredCount > pageSize && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border)]" style={{ fontSize: 13 }}>
+          <div
+            className="flex items-center justify-between px-4 py-3 border-t border-[var(--border)]"
+            style={{ fontSize: 13 }}
+          >
             <span className="text-[var(--t3)]">
-              Showing {Math.min((currentPage - 1) * pageSize + 1, filteredTotal)}-
-              {Math.min(currentPage * pageSize, filteredTotal)} of {filteredTotal} students
+              Showing{" "}
+              {Math.min((currentPage - 1) * pageSize + 1, filteredTotal)}-
+              {Math.min(currentPage * pageSize, filteredTotal)} of{" "}
+              {filteredTotal} students
             </span>
             <div className="flex items-center gap-2">
               <button
@@ -596,7 +892,9 @@ export default function StudentRegistryPanel({
               >
                 Previous
               </button>
-              <span className="text-[var(--t2)] text-xs font-medium">Page {currentPage} / {totalPages}</span>
+              <span className="text-[var(--t2)] text-xs font-medium">
+                Page {currentPage} / {totalPages}
+              </span>
               <button
                 onClick={onNextPage}
                 disabled={currentPage === totalPages}
