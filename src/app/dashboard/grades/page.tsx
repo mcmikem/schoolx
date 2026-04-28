@@ -162,10 +162,36 @@ export default function GradesPage() {
   const touchStartX = useRef(0);
   const mobileCardRef = useRef<HTMLDivElement>(null);
 
+  const [gradePage, setGradePage] = useState(1);
+  const gradesPerPage = 20;
+  const gradeOffset = (gradePage - 1) * gradesPerPage;
+  const gradeTotalPages = Math.max(
+    1,
+    Math.ceil(filteredStudents.length / gradesPerPage),
+  );
+
   const filteredStudents = useMemo(() => {
     if (!selectedClass) return [];
     return classStudents.filter((s) => s.class_id === selectedClass);
   }, [classStudents, selectedClass]);
+
+  useEffect(() => {
+    setGradePage(1);
+  }, [selectedClass, selectedSubject]);
+
+  useEffect(() => {
+    if (
+      filteredStudents.length > 0 &&
+      gradePage > Math.ceil(filteredStudents.length / gradesPerPage)
+    ) {
+      setGradePage(1);
+    }
+  }, [filteredStudents.length, gradePage, gradesPerPage]);
+
+  const paginatedStudents = filteredStudents.slice(
+    gradeOffset,
+    gradeOffset + gradesPerPage,
+  );
 
   // Initialize marks from existing grades
   useEffect(() => {
@@ -576,9 +602,13 @@ export default function GradesPage() {
               : "Draft saved (Still Writing)";
       toast.success(successMessage);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message
-        : (err as any)?.message || (err as any)?.details || (err as any)?.hint
-        || "Unknown error — check your connection";
+      const msg =
+        err instanceof Error
+          ? err.message
+          : (err as any)?.message ||
+            (err as any)?.details ||
+            (err as any)?.hint ||
+            "Unknown error — check your connection";
       toast.error(`Failed to save grades: ${msg}`);
     } finally {
       setSaving(false);
@@ -742,7 +772,9 @@ export default function GradesPage() {
       setLoading(true);
       const { data, error } = await supabase
         .from("topic_coverage")
-        .select("id, syllabus_id, class_id, teacher_id, status, syllabus!inner(topic, subject_id, term, academic_year)")
+        .select(
+          "id, syllabus_id, class_id, teacher_id, status, syllabus!inner(topic, subject_id, term, academic_year)",
+        )
         .eq("class_id", selectedClass)
         .eq("syllabus.subject_id", selectedSubject)
         .eq("syllabus.term", currentTerm)
@@ -785,7 +817,9 @@ export default function GradesPage() {
             status,
             teacher_id: user?.id,
             completed_date:
-              status === "completed" ? new Date().toISOString().split("T")[0] : null,
+              status === "completed"
+                ? new Date().toISOString().split("T")[0]
+                : null,
           })
           .eq("id", existing.id);
       } else {
@@ -811,7 +845,9 @@ export default function GradesPage() {
           teacher_id: user?.id,
           status,
           completed_date:
-            status === "completed" ? new Date().toISOString().split("T")[0] : null,
+            status === "completed"
+              ? new Date().toISOString().split("T")[0]
+              : null,
         });
       }
       fetchCoverage();
@@ -882,429 +918,271 @@ export default function GradesPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="space-y-6">
-      {/* Grade workflow confirm modal */}
-      <Modal
-        isOpen={gradeConfirm.open}
-        onClose={() => setGradeConfirm((s) => ({ ...s, open: false }))}
-        title="Confirm Action"
-      >
-        <p className="text-sm text-gray-700 mb-4">{gradeConfirm.message}</p>
-        <ModalFooter>
-          <Button variant="ghost" onClick={() => setGradeConfirm((s) => ({ ...s, open: false }))}>
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => {
-              setGradeConfirm((s) => ({ ...s, open: false }));
-              gradeConfirm.onConfirm();
-            }}
-          >
-            Confirm
-          </Button>
-        </ModalFooter>
-      </Modal>
-
-      <PageHeader
-        title="Grades & Marks"
-        subtitle={
-          selectedClassName && selectedSubjectName
-            ? `${selectedClassName} \u2022 ${selectedSubjectName}`
-            : "Select a class and subject to begin"
-        }
-        actions={
-          <div className="flex gap-3">
-            {selectedClass &&
-              selectedSubject &&
-              (caLocked ? (
-                <Button
-                  variant="secondary"
-                  onClick={handleUnlockCA}
-                  disabled={saving}
-                  icon={<MaterialIcon icon="lock_open" className="text-lg" />}
-                >
-                  Open for Edits ({lockedByName})
-                </Button>
-              ) : (
-                <Button
-                  variant="danger"
-                  onClick={handleLockCA}
-                  disabled={saving || !selectedClass || !selectedSubject}
-                  icon={<MaterialIcon icon="lock" className="text-lg" />}
-                >
-                  Close for Edits (Lock)
-                </Button>
-              ))}
+      <div className="space-y-6">
+        {/* Grade workflow confirm modal */}
+        <Modal
+          isOpen={gradeConfirm.open}
+          onClose={() => setGradeConfirm((s) => ({ ...s, open: false }))}
+          title="Confirm Action"
+        >
+          <p className="text-sm text-gray-700 mb-4">{gradeConfirm.message}</p>
+          <ModalFooter>
             <Button
-              variant="secondary"
-              onClick={handleExportGrades}
-              icon={<MaterialIcon icon="cloud_download" className="text-lg" />}
+              variant="ghost"
+              onClick={() => setGradeConfirm((s) => ({ ...s, open: false }))}
             >
-              Export
+              Cancel
             </Button>
             <Button
-              onClick={() => handleSaveGrades()}
-              disabled={
-                saving || !selectedClass || !selectedSubject || isPublished
-              }
-              loading={saving}
-              icon={
-                <MaterialIcon
-                  icon="save"
-                  className="text-lg"
-                  style={{ fontVariationSettings: "FILL 1" }}
-                />
-              }
+              variant="primary"
+              onClick={() => {
+                setGradeConfirm((s) => ({ ...s, open: false }));
+                gradeConfirm.onConfirm();
+              }}
             >
-              Save Grades
+              Confirm
             </Button>
-          </div>
-        }
-      />
+          </ModalFooter>
+        </Modal>
 
-      {/* Marks Entry Info */}
-      {selectedClass && selectedSubject && Object.keys(marksBy).length > 0 && (
-        <div className="flex gap-4 flex-wrap">
-          <div
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${statusTone}`}
-          >
-            <MaterialIcon icon="task_alt" className="text-sm" />
-            <span>Work Status: {statusLabels[submissionStatus]}</span>
-          </div>
-          {Object.values(marksBy).some((m) =>
-            ["ca1", "ca2", "ca3"].includes(m.type),
-          ) && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full text-xs font-medium">
-              <MaterialIcon icon="person" className="text-sm" />
-              <span>
-                CA entered by:{" "}
-                {marksBy[
-                  Object.keys(marksBy).find((k) =>
-                    marksBy[k].type.startsWith("ca"),
-                  ) || ""
-                ]?.name || "Unknown"}
-              </span>
-            </div>
-          )}
-          {Object.values(marksBy).some((m) => m.type === "exam") && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full text-xs font-medium">
-              <MaterialIcon icon="supervisor_account" className="text-sm" />
-              <span>
-                Exam entered by (Supervisor):{" "}
-                {marksBy[
-                  Object.keys(marksBy).find(
-                    (k) => marksBy[k].type === "exam",
-                  ) || ""
-                ]?.name || "Unknown"}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {caLocked && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-[var(--red-soft)] border border-[var(--red)]/20 rounded-xl text-sm font-medium text-[var(--red)]">
-          <MaterialIcon icon="lock" className="text-lg" />
-          CA marks are locked for this subject/class. Contact DOS to unlock.
-        </div>
-      )}
-
-      {selectedClass && selectedSubject && nextWorkflowActions.length > 0 && (
-        <div className="flex flex-wrap gap-3">
-          {nextWorkflowActions.map((status) => (
-            <Button
-              key={status}
-              variant={status === "published" ? "primary" : "secondary"}
-              onClick={() => handleAdvanceWorkflow(status)}
-              disabled={saving}
-            >
-              {status === "submitted"
-                ? "Submit to Dean"
-                : status === "approved"
-                  ? "Approve Grades"
-                  : "Publish Grades"}
-            </Button>
-          ))}
-        </div>
-      )}
-
-      {/* Configuration Bento */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="col-span-1 md:col-span-2 bg-surface-container-low p-6 rounded-3xl space-y-4">
-          <p className="text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-            Class & Subject Configuration
-          </p>
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-semibold mb-2 text-primary">
-                Target Class
-              </label>
-              {classesLoading ? (
-                <div className="bg-[var(--navy-soft)] border border-[rgba(0,31,63,0.12)] rounded-xl p-4">
-                  <p className="text-[var(--t1)] text-sm font-medium">
-                    Loading classes...
-                  </p>
-                  <p className="text-[var(--t3)] text-xs mt-1">
-                    The class list is still being fetched for this school.
-                  </p>
-                </div>
-              ) : classes.length === 0 ? (
-                <div className="bg-[var(--amber-soft)] border border-[var(--amber)]/20 rounded-xl p-4">
-                  <p className="text-[var(--t1)] text-sm font-medium">
-                    No classes found
-                  </p>
-                  <p className="text-[var(--amber)] text-xs mt-1">
-                    Contact support if this persists.
-                  </p>
-                </div>
-              ) : (
-                <select
-                  value={selectedClass}
-                  onChange={(e) => setSelectedClass(e.target.value)}
-                  className="w-full bg-surface-container-lowest border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary text-sm font-medium"
-                >
-                  <option value="">Select Class</option>
-                  {classes.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                      {c.stream ? ` ${c.stream}` : ""}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-semibold mb-2 text-primary">
-                Subject Area
-              </label>
-              {subjects.length === 0 ? (
-                <div className="bg-[var(--amber-soft)] border border-[var(--amber)]/20 rounded-xl p-4">
-                  <p className="text-[var(--t1)] text-sm font-medium">
-                    No subjects found
-                  </p>
-                  <p className="text-[var(--amber)] text-xs mt-1">
-                    Contact support if this persists.
-                  </p>
-                </div>
-              ) : (
-                <select
-                  value={selectedSubject}
-                  onChange={(e) => setSelectedSubject(e.target.value)}
-                  className="w-full bg-surface-container-lowest border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary text-sm font-medium"
-                >
-                  <option value="">Select Subject</option>
-                  {subjects.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="bg-primary text-on-primary p-6 rounded-3xl relative overflow-hidden flex flex-col justify-between">
-          <div className="absolute top-0 right-0 p-4 opacity-10">
-            <MaterialIcon icon="functions" className="text-6xl" />
-          </div>
-          <p className="text-xs uppercase tracking-widest font-bold opacity-70">
-            Weightage
-          </p>
-          <div>
-            <div className="flex justify-between items-baseline">
-              <span className="text-2xl font-bold font-headline">
-                10+10+10+70
-              </span>
-              <span className="text-xs font-medium">CA1+CA2+CA3 : Exam</span>
-            </div>
-            <div className="w-full bg-white/20 h-1.5 rounded-full mt-3">
-              <div className="bg-secondary-fixed w-[30%] h-full rounded-full"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Completion Tracker */}
-      {tab === "marks" &&
-        selectedClass &&
-        selectedSubject &&
-        filteredStudents.length > 0 && (
-          <div
-            className={`p-5 rounded-2xl border ${
-              completionStats.percentage === 100
-                ? "bg-[var(--green-soft)] border-[var(--green)]/20"
-                : completionStats.percentage >= 50
-                  ? "bg-[var(--amber-soft)] border-[var(--amber)]/20"
-                  : "bg-[var(--red-soft)] border-[var(--red)]/20"
-            }`}
-          >
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm ${
-                    completionStats.percentage === 100
-                      ? "bg-[var(--green)] text-white"
-                      : completionStats.percentage >= 50
-                        ? "bg-[var(--amber)] text-white"
-                        : "bg-[var(--red)] text-white"
-                  }`}
-                >
-                  {completionStats.percentage}%
-                </div>
-                <div>
-                  <p className="font-bold text-sm">
-                    {completionStats.graded}/{completionStats.total} students
-                    graded
-                  </p>
-                  {isSubmitted && (
-                    <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold">
-                      <MaterialIcon icon="lock" className="text-xs" />
-                      Submitted
-                    </span>
-                  )}
-                </div>
-              </div>
-              {completionStats.notGraded > 0 && (
-                <p className="text-xs font-medium text-[var(--red)]">
+        <PageHeader
+          title="Grades & Marks"
+          subtitle={
+            selectedClassName && selectedSubjectName
+              ? `${selectedClassName} \u2022 ${selectedSubjectName}`
+              : "Select a class and subject to begin"
+          }
+          actions={
+            <div className="flex gap-3">
+              {selectedClass &&
+                selectedSubject &&
+                (caLocked ? (
+                  <Button
+                    variant="secondary"
+                    onClick={handleUnlockCA}
+                    disabled={saving}
+                    icon={<MaterialIcon icon="lock_open" className="text-lg" />}
+                  >
+                    Open for Edits ({lockedByName})
+                  </Button>
+                ) : (
+                  <Button
+                    variant="danger"
+                    onClick={handleLockCA}
+                    disabled={saving || !selectedClass || !selectedSubject}
+                    icon={<MaterialIcon icon="lock" className="text-lg" />}
+                  >
+                    Close for Edits (Lock)
+                  </Button>
+                ))}
+              <Button
+                variant="secondary"
+                onClick={handleExportGrades}
+                icon={
+                  <MaterialIcon icon="cloud_download" className="text-lg" />
+                }
+              >
+                Export
+              </Button>
+              <Button
+                onClick={() => handleSaveGrades()}
+                disabled={
+                  saving || !selectedClass || !selectedSubject || isPublished
+                }
+                loading={saving}
+                icon={
                   <MaterialIcon
-                    icon="warning"
-                    className="text-xs align-text-bottom mr-1"
+                    icon="save"
+                    className="text-lg"
+                    style={{ fontVariationSettings: "FILL 1" }}
                   />
-                  {completionStats.notGraded} student
-                  {completionStats.notGraded > 1 ? "s" : ""} not graded:{" "}
-                  {completionStats.notGradedNames.join(", ")}
-                </p>
+                }
+              >
+                Save Grades
+              </Button>
+            </div>
+          }
+        />
+
+        {/* Marks Entry Info */}
+        {selectedClass &&
+          selectedSubject &&
+          Object.keys(marksBy).length > 0 && (
+            <div className="flex gap-4 flex-wrap">
+              <div
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${statusTone}`}
+              >
+                <MaterialIcon icon="task_alt" className="text-sm" />
+                <span>Work Status: {statusLabels[submissionStatus]}</span>
+              </div>
+              {Object.values(marksBy).some((m) =>
+                ["ca1", "ca2", "ca3"].includes(m.type),
+              ) && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full text-xs font-medium">
+                  <MaterialIcon icon="person" className="text-sm" />
+                  <span>
+                    CA entered by:{" "}
+                    {marksBy[
+                      Object.keys(marksBy).find((k) =>
+                        marksBy[k].type.startsWith("ca"),
+                      ) || ""
+                    ]?.name || "Unknown"}
+                  </span>
+                </div>
+              )}
+              {Object.values(marksBy).some((m) => m.type === "exam") && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full text-xs font-medium">
+                  <MaterialIcon icon="supervisor_account" className="text-sm" />
+                  <span>
+                    Exam entered by (Supervisor):{" "}
+                    {marksBy[
+                      Object.keys(marksBy).find(
+                        (k) => marksBy[k].type === "exam",
+                      ) || ""
+                    ]?.name || "Unknown"}
+                  </span>
+                </div>
               )}
             </div>
-            <div className="w-full bg-[var(--surface)]/60 h-2 rounded-full mt-3">
-              <div
-                className={`h-full rounded-full transition-all ${
-                  completionStats.percentage === 100
-                    ? "bg-[var(--green)]"
-                    : completionStats.percentage >= 50
-                      ? "bg-[var(--amber)]"
-                      : "bg-[var(--red)]"
-                }`}
-                style={{ width: `${completionStats.percentage}%` }}
-              ></div>
-            </div>
+          )}
+
+        {caLocked && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-[var(--red-soft)] border border-[var(--red)]/20 rounded-xl text-sm font-medium text-[var(--red)]">
+            <MaterialIcon icon="lock" className="text-lg" />
+            CA marks are locked for this subject/class. Contact DOS to unlock.
           </div>
         )}
 
-      <Tabs
-        tabs={[
-          { id: "marks", label: "Marks Entry" },
-          { id: "coverage", label: "Topic Coverage" },
-        ]}
-        activeTab={tab}
-        onChange={(id) => setTab(id as "marks" | "coverage")}
-      />
+        {selectedClass && selectedSubject && nextWorkflowActions.length > 0 && (
+          <div className="flex flex-wrap gap-3">
+            {nextWorkflowActions.map((status) => (
+              <Button
+                key={status}
+                variant={status === "published" ? "primary" : "secondary"}
+                onClick={() => handleAdvanceWorkflow(status)}
+                disabled={saving}
+              >
+                {status === "submitted"
+                  ? "Submit to Dean"
+                  : status === "approved"
+                    ? "Approve Grades"
+                    : "Publish Grades"}
+              </Button>
+            ))}
+          </div>
+        )}
 
-      {/* Inline Entry Controls */}
-      {tab === "marks" &&
-        selectedClass &&
-        selectedSubject &&
-        filteredStudents.length > 0 && (
-          <div className="space-y-4">
-            {/* View Mode Toggle & Quick Actions */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setInlineEntryMode(true)}
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-                    inlineEntryMode
-                      ? "bg-primary text-on-primary shadow-sm"
-                      : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <MaterialIcon icon="grid_view" className="text-lg" />
-                    Table View
-                  </span>
-                </button>
-                <button
-                  onClick={() => setInlineEntryMode(false)}
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all md:hidden ${
-                    !inlineEntryMode
-                      ? "bg-primary text-on-primary shadow-sm"
-                      : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <MaterialIcon icon="smartphone" className="text-lg" />
-                    Mobile View
-                  </span>
-                </button>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative group">
-                  <button
-                    className="px-3 py-2 rounded-xl text-sm font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all flex items-center gap-1.5"
-                    onClick={() =>
-                      setQuickFillModal({ open: true, type: "ca1", value: "" })
-                    }
-                  >
-                    <MaterialIcon icon="playlist_add" className="text-base" />
-                    Quick Fill
-                  </button>
-                  <div className="absolute right-0 top-full mt-1 w-64 bg-surface-container-lowest rounded-2xl shadow-xl border border-outline-variant/10 p-4 hidden group-hover:block z-30">
-                    <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
-                      Set All Students
+        {/* Configuration Bento */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="col-span-1 md:col-span-2 bg-surface-container-low p-6 rounded-3xl space-y-4">
+            <p className="text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+              Class & Subject Configuration
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <div className="flex-1 min-w-[200px]">
+                <label className="block text-sm font-semibold mb-2 text-primary">
+                  Target Class
+                </label>
+                {classesLoading ? (
+                  <div className="bg-[var(--navy-soft)] border border-[rgba(0,31,63,0.12)] rounded-xl p-4">
+                    <p className="text-[var(--t1)] text-sm font-medium">
+                      Loading classes...
                     </p>
-                    {(["ca1", "ca2", "ca3", "exam"] as const).map((type) => (
-                      <div key={type} className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-semibold text-on-surface-variant w-10">
-                          {type.toUpperCase()}
-                        </span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={ASSESSMENT_MAX[type]}
-                          placeholder={`Max ${ASSESSMENT_MAX[type]}`}
-                          className="flex-1 bg-surface-container border-none rounded-lg text-sm py-1.5 px-2 focus:ring-2 focus:ring-primary"
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              const val = parseInt(
-                                (e.target as HTMLInputElement).value,
-                              );
-                              if (!isNaN(val)) handleQuickFill(type, val);
-                            }
-                          }}
-                          onBlur={(e) => {
-                            const val = parseInt(e.target.value);
-                            if (!isNaN(val)) handleQuickFill(type, val);
-                          }}
-                        />
-                      </div>
-                    ))}
-                    <div className="border-t border-outline-variant/10 mt-3 pt-3 flex gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleCopyFromPreviousTerm}
-                        loading={loading}
-                        className="flex-1 text-xs"
-                      >
-                        Copy Prev Term
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={handleClearAll}
-                        className="flex-1 text-xs"
-                      >
-                        Clear All
-                      </Button>
-                    </div>
+                    <p className="text-[var(--t3)] text-xs mt-1">
+                      The class list is still being fetched for this school.
+                    </p>
                   </div>
-                </div>
+                ) : classes.length === 0 ? (
+                  <div className="bg-[var(--amber-soft)] border border-[var(--amber)]/20 rounded-xl p-4">
+                    <p className="text-[var(--t1)] text-sm font-medium">
+                      No classes found
+                    </p>
+                    <p className="text-[var(--amber)] text-xs mt-1">
+                      Contact support if this persists.
+                    </p>
+                  </div>
+                ) : (
+                  <select
+                    value={selectedClass}
+                    onChange={(e) => setSelectedClass(e.target.value)}
+                    className="w-full bg-surface-container-lowest border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary text-sm font-medium"
+                  >
+                    <option value="">Select Class</option>
+                    {classes.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                        {c.stream ? ` ${c.stream}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <div className="flex-1 min-w-[200px]">
+                <label className="block text-sm font-semibold mb-2 text-primary">
+                  Subject Area
+                </label>
+                {subjects.length === 0 ? (
+                  <div className="bg-[var(--amber-soft)] border border-[var(--amber)]/20 rounded-xl p-4">
+                    <p className="text-[var(--t1)] text-sm font-medium">
+                      No subjects found
+                    </p>
+                    <p className="text-[var(--amber)] text-xs mt-1">
+                      Contact support if this persists.
+                    </p>
+                  </div>
+                ) : (
+                  <select
+                    value={selectedSubject}
+                    onChange={(e) => setSelectedSubject(e.target.value)}
+                    className="w-full bg-surface-container-lowest border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary text-sm font-medium"
+                  >
+                    <option value="">Select Subject</option>
+                    {subjects.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             </div>
+          </div>
+          <div className="bg-primary text-on-primary p-6 rounded-3xl relative overflow-hidden flex flex-col justify-between">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <MaterialIcon icon="functions" className="text-6xl" />
+            </div>
+            <p className="text-xs uppercase tracking-widest font-bold opacity-70">
+              Weightage
+            </p>
+            <div>
+              <div className="flex justify-between items-baseline">
+                <span className="text-2xl font-bold font-headline">
+                  10+10+10+70
+                </span>
+                <span className="text-xs font-medium">CA1+CA2+CA3 : Exam</span>
+              </div>
+              <div className="w-full bg-white/20 h-1.5 rounded-full mt-3">
+                <div className="bg-secondary-fixed w-[30%] h-full rounded-full"></div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-            {/* Progress Bar */}
-            <div className="bg-surface-container-low rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-2">
+        {/* Completion Tracker */}
+        {tab === "marks" &&
+          selectedClass &&
+          selectedSubject &&
+          filteredStudents.length > 0 && (
+            <div
+              className={`p-5 rounded-2xl border ${
+                completionStats.percentage === 100
+                  ? "bg-[var(--green-soft)] border-[var(--green)]/20"
+                  : completionStats.percentage >= 50
+                    ? "bg-[var(--amber-soft)] border-[var(--amber)]/20"
+                    : "bg-[var(--red-soft)] border-[var(--red)]/20"
+              }`}
+            >
+              <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-3">
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm ${
@@ -1322,23 +1200,29 @@ export default function GradesPage() {
                       {completionStats.graded}/{completionStats.total} students
                       graded
                     </p>
-                    <p className="text-xs text-on-surface-variant">
-                      {completionStats.notGraded > 0
-                        ? `${completionStats.notGraded} student${completionStats.notGraded > 1 ? "s" : ""} remaining`
-                        : "All students graded!"}
-                    </p>
+                    {isSubmitted && (
+                      <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold">
+                        <MaterialIcon icon="lock" className="text-xs" />
+                        Submitted
+                      </span>
+                    )}
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-xs font-medium text-on-surface-variant">
-                    {Object.keys(marks).filter((k) => marks[k] !== null).length}{" "}
-                    scores entered
-                  </span>
-                </div>
+                {completionStats.notGraded > 0 && (
+                  <p className="text-xs font-medium text-[var(--red)]">
+                    <MaterialIcon
+                      icon="warning"
+                      className="text-xs align-text-bottom mr-1"
+                    />
+                    {completionStats.notGraded} student
+                    {completionStats.notGraded > 1 ? "s" : ""} not graded:{" "}
+                    {completionStats.notGradedNames.join(", ")}
+                  </p>
+                )}
               </div>
-              <div className="w-full bg-[var(--surface)]/60 h-2.5 rounded-full overflow-hidden">
+              <div className="w-full bg-[var(--surface)]/60 h-2 rounded-full mt-3">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${
+                  className={`h-full rounded-full transition-all ${
                     completionStats.percentage === 100
                       ? "bg-[var(--green)]"
                       : completionStats.percentage >= 50
@@ -1346,425 +1230,663 @@ export default function GradesPage() {
                         : "bg-[var(--red)]"
                   }`}
                   style={{ width: `${completionStats.percentage}%` }}
-                />
+                ></div>
               </div>
             </div>
+          )}
 
-            {/* Desktop: Inline Table View */}
-            {inlineEntryMode && (
-              <div className="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm">
-                <div className="overflow-x-auto table-responsive">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="bg-surface-container-low/50 text-left">
-                        <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                          Student Identity
-                        </th>
-                        <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                          CA1 (10)
-                        </th>
-                        <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                          CA2 (10)
-                        </th>
-                        <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                          CA3 (10)
-                        </th>
-                        <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                          Exam (70)
-                        </th>
-                        <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                          Total (100)
-                        </th>
-                        <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-right">
-                          Grade
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-surface-container">
-                      {studentsLoading ? (
-                        <tr>
-                          <td colSpan={7} className="px-8 py-12">
-                            <TableSkeleton rows={5} />
-                          </td>
-                        </tr>
-                      ) : filteredStudents.length === 0 ? (
-                        <tr>
-                          <td colSpan={7} className="px-8 py-12">
-                            <NoData title="No students in this class" />
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredStudents.map((student) => {
-                          const ca1 = getMark(student.id, "ca1");
-                          const ca2 = getMark(student.id, "ca2");
-                          const ca3 = getMark(student.id, "ca3");
-                          const exam = getMark(student.id, "exam");
-                          const total = getStudentTotal(student.id);
-                          const gradeInfo =
-                            total !== null ? getGrade(total) : null;
-                          const graded = isStudentGraded(student.id);
-                          return (
-                            <tr
-                              key={student.id}
-                              className={`hover:bg-surface-bright transition-colors ${
-                                !graded &&
-                                completionStats.graded < completionStats.total
-                                  ? "bg-orange-50/20 dark:bg-orange-900/5"
-                                  : ""
-                              }`}
-                            >
-                              <td className="px-8 py-5">
-                                <div className="flex items-center gap-4">
-                                  <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />
-                                  <div>
-                                    <p className="font-bold text-primary">
-                                      {student.first_name} {student.last_name}
-                                    </p>
-                                    <p className="text-xs text-on-surface-variant">
-                                      {student.student_number || "-"}
-                                    </p>
-                                  </div>
-                                  {graded && (
-                                    <MaterialIcon
-                                      icon="check_circle"
-                                      className="text-green-500 text-lg"
-                                    />
-                                  )}
-                                </div>
-                              </td>
-                              {["ca1", "ca2", "ca3", "exam"].map((type) => (
-                                <td key={type} className="px-4 py-5">
-                                  <div className="relative">
-                                    <input
-                                      className={`w-16 mx-auto block text-center font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${getInputBorderClass(student.id, type)}`}
-                                      type="number"
-                                      min={0}
-                                      max={ASSESSMENT_MAX[type]}
-                                      placeholder="—"
-                                      value={
-                                        marks[`${student.id}_${type}`] !==
-                                          null &&
-                                        marks[`${student.id}_${type}`] !==
-                                          undefined
-                                          ? String(
-                                              marks[`${student.id}_${type}`],
-                                            )
-                                          : ""
-                                      }
-                                      onChange={(e) =>
-                                        handleMarkChange(
-                                          student.id,
-                                          type,
-                                          e.target.value,
-                                        )
-                                      }
-                                      onBlur={() =>
-                                        handleInlineBlur(student.id, type)
-                                      }
-                                      disabled={
-                                        isSubmitted ||
-                                        (caLocked && type.startsWith("ca"))
-                                      }
-                                      onKeyDown={(e) => {
-                                        if (e.key === "Enter") {
-                                          e.currentTarget.blur();
-                                        }
-                                      }}
-                                    />
-                                    {getSaveStatusForInput(student.id, type) ===
-                                      "saved" && (
-                                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
-                                    )}
-                                  </div>
-                                </td>
-                              ))}
-                              <td className="px-4 py-5 text-center">
-                                <span
-                                  className={`font-black text-xl ${total !== null ? "text-primary" : "text-on-surface-variant"}`}
-                                >
-                                  {total !== null ? total : "—"}
-                                </span>
-                              </td>
-                              <td className="px-8 py-5 text-right">
-                                <span
-                                  className={`px-4 py-1.5 rounded-full text-xs font-black ${gradeInfo ? "bg-surface-container" : "bg-surface-bright text-on-surface-variant"} ${gradeInfo?.color || ""}`}
-                                >
-                                  {gradeInfo ? gradeInfo.grade : "-"}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+        <Tabs
+          tabs={[
+            { id: "marks", label: "Marks Entry" },
+            { id: "coverage", label: "Topic Coverage" },
+          ]}
+          activeTab={tab}
+          onChange={(id) => setTab(id as "marks" | "coverage")}
+        />
 
-            {/* Mobile: Card View with Swipe */}
-            {!inlineEntryMode && filteredStudents.length > 0 && (
-              <div className="md:hidden">
-                <div
-                  ref={mobileCardRef}
-                  onTouchStart={handleMobileTouchStart}
-                  onTouchEnd={handleMobileTouchEnd}
-                  className="bg-surface-container-lowest rounded-2xl shadow-sm p-6 space-y-6"
-                >
-                  {/* Student Header */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <PersonInitials
-                        name={`${filteredStudents[mobileStudentIndex]?.first_name || ''} ${filteredStudents[mobileStudentIndex]?.last_name || ''}`}
-                        size={48}
-                      />
-                      <div>
-                        <p className="font-bold text-primary text-lg">
-                          {filteredStudents[mobileStudentIndex]?.first_name}{" "}
-                          {filteredStudents[mobileStudentIndex]?.last_name}
-                        </p>
-                        <p className="text-xs text-on-surface-variant">
-                          {filteredStudents[mobileStudentIndex]
-                            ?.student_number || "-"}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-sm font-medium text-on-surface-variant">
-                      {mobileStudentIndex + 1} / {filteredStudents.length}
+        {/* Inline Entry Controls */}
+        {tab === "marks" &&
+          selectedClass &&
+          selectedSubject &&
+          filteredStudents.length > 0 && (
+            <div className="space-y-4">
+              {/* View Mode Toggle & Quick Actions */}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setInlineEntryMode(true)}
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                      inlineEntryMode
+                        ? "bg-primary text-on-primary shadow-sm"
+                        : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <MaterialIcon icon="grid_view" className="text-lg" />
+                      Table View
                     </span>
-                  </div>
-
-                  {/* Score Inputs */}
-                  <div className="grid grid-cols-2 gap-4">
-                    {(["ca1", "ca2", "ca3", "exam"] as const).map((type) => {
-                      const studentId =
-                        filteredStudents[mobileStudentIndex]?.id;
-                      if (!studentId) return null;
-                      const val = getMark(studentId, type);
-                      const total = getStudentTotal(studentId);
-                      const gradeInfo = total !== null ? getGrade(total) : null;
-                      return (
-                        <div key={type} className="space-y-2">
-                          <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-                            {type.toUpperCase()} ({ASSESSMENT_MAX[type]})
-                          </label>
+                  </button>
+                  <button
+                    onClick={() => setInlineEntryMode(false)}
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all md:hidden ${
+                      !inlineEntryMode
+                        ? "bg-primary text-on-primary shadow-sm"
+                        : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <MaterialIcon icon="smartphone" className="text-lg" />
+                      Mobile View
+                    </span>
+                  </button>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative group">
+                    <button
+                      className="px-3 py-2 rounded-xl text-sm font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all flex items-center gap-1.5"
+                      onClick={() =>
+                        setQuickFillModal({
+                          open: true,
+                          type: "ca1",
+                          value: "",
+                        })
+                      }
+                    >
+                      <MaterialIcon icon="playlist_add" className="text-base" />
+                      Quick Fill
+                    </button>
+                    <div className="absolute right-0 top-full mt-1 w-64 bg-surface-container-lowest rounded-2xl shadow-xl border border-outline-variant/10 p-4 hidden group-hover:block z-30">
+                      <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
+                        Set All Students
+                      </p>
+                      {(["ca1", "ca2", "ca3", "exam"] as const).map((type) => (
+                        <div
+                          key={type}
+                          className="flex items-center gap-2 mb-2"
+                        >
+                          <span className="text-xs font-semibold text-on-surface-variant w-10">
+                            {type.toUpperCase()}
+                          </span>
                           <input
-                            className={`w-full text-center text-2xl font-bold py-4 rounded-xl border-none focus:outline-none transition-all ${getInputBorderClass(studentId, type)}`}
                             type="number"
                             min={0}
                             max={ASSESSMENT_MAX[type]}
-                            placeholder="—"
-                            value={val !== null ? String(val) : ""}
-                            onChange={(e) =>
-                              handleMarkChange(studentId, type, e.target.value)
-                            }
-                            onBlur={() => handleInlineBlur(studentId, type)}
-                            disabled={
-                              isSubmitted || (caLocked && type.startsWith("ca"))
-                            }
-                            inputMode="numeric"
+                            placeholder={`Max ${ASSESSMENT_MAX[type]}`}
+                            className="flex-1 bg-surface-container border-none rounded-lg text-sm py-1.5 px-2 focus:ring-2 focus:ring-primary"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                const val = parseInt(
+                                  (e.target as HTMLInputElement).value,
+                                );
+                                if (!isNaN(val)) handleQuickFill(type, val);
+                              }
+                            }}
+                            onBlur={(e) => {
+                              const val = parseInt(e.target.value);
+                              if (!isNaN(val)) handleQuickFill(type, val);
+                            }}
                           />
                         </div>
-                      );
-                    })}
+                      ))}
+                      <div className="border-t border-outline-variant/10 mt-3 pt-3 flex gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={handleCopyFromPreviousTerm}
+                          loading={loading}
+                          className="flex-1 text-xs"
+                        >
+                          Copy Prev Term
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={handleClearAll}
+                          className="flex-1 text-xs"
+                        >
+                          Clear All
+                        </Button>
+                      </div>
+                    </div>
                   </div>
+                </div>
+              </div>
 
-                  {/* Total & Grade */}
-                  {(() => {
-                    const studentId = filteredStudents[mobileStudentIndex]?.id;
-                    if (!studentId) return null;
-                    const total = getStudentTotal(studentId);
-                    const gradeInfo = total !== null ? getGrade(total) : null;
-                    return (
-                      <div className="flex items-center justify-center gap-6 py-4 bg-surface-container rounded-2xl">
-                        <div className="text-center">
-                          <p className="text-xs text-on-surface-variant uppercase tracking-wider">
-                            Total
-                          </p>
-                          <p className="text-3xl font-black text-primary">
-                            {total !== null ? total : "—"}
-                          </p>
-                        </div>
-                        <div className="w-px h-12 bg-outline-variant/20" />
-                        <div className="text-center">
-                          <p className="text-xs text-on-surface-variant uppercase tracking-wider">
+              {/* Progress Bar */}
+              <div className="bg-surface-container-low rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm ${
+                        completionStats.percentage === 100
+                          ? "bg-[var(--green)] text-white"
+                          : completionStats.percentage >= 50
+                            ? "bg-[var(--amber)] text-white"
+                            : "bg-[var(--red)] text-white"
+                      }`}
+                    >
+                      {completionStats.percentage}%
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm">
+                        {completionStats.graded}/{completionStats.total}{" "}
+                        students graded
+                      </p>
+                      <p className="text-xs text-on-surface-variant">
+                        {completionStats.notGraded > 0
+                          ? `${completionStats.notGraded} student${completionStats.notGraded > 1 ? "s" : ""} remaining`
+                          : "All students graded!"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-medium text-on-surface-variant">
+                      {
+                        Object.keys(marks).filter((k) => marks[k] !== null)
+                          .length
+                      }{" "}
+                      scores entered
+                    </span>
+                  </div>
+                </div>
+                <div className="w-full bg-[var(--surface)]/60 h-2.5 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      completionStats.percentage === 100
+                        ? "bg-[var(--green)]"
+                        : completionStats.percentage >= 50
+                          ? "bg-[var(--amber)]"
+                          : "bg-[var(--red)]"
+                    }`}
+                    style={{ width: `${completionStats.percentage}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Desktop: Inline Table View */}
+              {inlineEntryMode && (
+                <div className="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm">
+                  <div className="overflow-x-auto table-responsive">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-surface-container-low/50 text-left">
+                          <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                            Student Identity
+                          </th>
+                          <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                            CA1 (10)
+                          </th>
+                          <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                            CA2 (10)
+                          </th>
+                          <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                            CA3 (10)
+                          </th>
+                          <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                            Exam (70)
+                          </th>
+                          <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                            Total (100)
+                          </th>
+                          <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-right">
                             Grade
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-surface-container">
+                        {studentsLoading ? (
+                          <tr>
+                            <td colSpan={7} className="px-8 py-12">
+                              <TableSkeleton rows={5} />
+                            </td>
+                          </tr>
+                        ) : filteredStudents.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} className="px-8 py-12">
+                              <NoData title="No students in this class" />
+                            </td>
+                          </tr>
+                        ) : (
+                          paginatedStudents.map((student) => {
+                            const ca1 = getMark(student.id, "ca1");
+                            const ca2 = getMark(student.id, "ca2");
+                            const ca3 = getMark(student.id, "ca3");
+                            const exam = getMark(student.id, "exam");
+                            const total = getStudentTotal(student.id);
+                            const gradeInfo =
+                              total !== null ? getGrade(total) : null;
+                            const graded = isStudentGraded(student.id);
+                            return (
+                              <tr
+                                key={student.id}
+                                className={`hover:bg-surface-bright transition-colors ${
+                                  !graded &&
+                                  completionStats.graded < completionStats.total
+                                    ? "bg-orange-50/20 dark:bg-orange-900/5"
+                                    : ""
+                                }`}
+                              >
+                                <td className="px-8 py-5">
+                                  <div className="flex items-center gap-4">
+                                    <PersonInitials
+                                      name={`${student.first_name} ${student.last_name}`}
+                                      size={40}
+                                    />
+                                    <div>
+                                      <p className="font-bold text-primary">
+                                        {student.first_name} {student.last_name}
+                                      </p>
+                                      <p className="text-xs text-on-surface-variant">
+                                        {student.student_number || "-"}
+                                      </p>
+                                    </div>
+                                    {graded && (
+                                      <MaterialIcon
+                                        icon="check_circle"
+                                        className="text-green-500 text-lg"
+                                      />
+                                    )}
+                                  </div>
+                                </td>
+                                {["ca1", "ca2", "ca3", "exam"].map((type) => (
+                                  <td key={type} className="px-4 py-5">
+                                    <div className="relative">
+                                      <input
+                                        className={`w-16 mx-auto block text-center font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${getInputBorderClass(student.id, type)}`}
+                                        type="number"
+                                        min={0}
+                                        max={ASSESSMENT_MAX[type]}
+                                        placeholder="—"
+                                        value={
+                                          marks[`${student.id}_${type}`] !==
+                                            null &&
+                                          marks[`${student.id}_${type}`] !==
+                                            undefined
+                                            ? String(
+                                                marks[`${student.id}_${type}`],
+                                              )
+                                            : ""
+                                        }
+                                        onChange={(e) =>
+                                          handleMarkChange(
+                                            student.id,
+                                            type,
+                                            e.target.value,
+                                          )
+                                        }
+                                        onBlur={() =>
+                                          handleInlineBlur(student.id, type)
+                                        }
+                                        disabled={
+                                          isSubmitted ||
+                                          (caLocked && type.startsWith("ca"))
+                                        }
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") {
+                                            e.currentTarget.blur();
+                                          }
+                                        }}
+                                      />
+                                      {getSaveStatusForInput(
+                                        student.id,
+                                        type,
+                                      ) === "saved" && (
+                                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
+                                      )}
+                                    </div>
+                                  </td>
+                                ))}
+                                <td className="px-4 py-5 text-center">
+                                  <span
+                                    className={`font-black text-xl ${total !== null ? "text-primary" : "text-on-surface-variant"}`}
+                                  >
+                                    {total !== null ? total : "—"}
+                                  </span>
+                                </td>
+                                <td className="px-8 py-5 text-right">
+                                  <span
+                                    className={`px-4 py-1.5 rounded-full text-xs font-black ${gradeInfo ? "bg-surface-container" : "bg-surface-bright text-on-surface-variant"} ${gradeInfo?.color || ""}`}
+                                  >
+                                    {gradeInfo ? gradeInfo.grade : "-"}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  {filteredStudents.length > gradesPerPage && (
+                    <div className="flex items-center justify-between px-6 py-3 border-t border-outline-variant/10">
+                      <span className="text-sm text-on-surface-variant">
+                        Page {gradePage} of {gradeTotalPages}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            setGradePage((p) => Math.max(1, p - 1))
+                          }
+                          disabled={gradePage === 1}
+                        >
+                          <MaterialIcon icon="chevron_left" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            setGradePage((p) =>
+                              Math.min(gradeTotalPages, p + 1),
+                            )
+                          }
+                          disabled={gradePage >= gradeTotalPages}
+                        >
+                          <MaterialIcon icon="chevron_right" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Mobile: Card View with Swipe */}
+              {!inlineEntryMode && filteredStudents.length > 0 && (
+                <div className="md:hidden">
+                  <div
+                    ref={mobileCardRef}
+                    onTouchStart={handleMobileTouchStart}
+                    onTouchEnd={handleMobileTouchEnd}
+                    className="bg-surface-container-lowest rounded-2xl shadow-sm p-6 space-y-6"
+                  >
+                    {/* Student Header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <PersonInitials
+                          name={`${filteredStudents[mobileStudentIndex]?.first_name || ""} ${filteredStudents[mobileStudentIndex]?.last_name || ""}`}
+                          size={48}
+                        />
+                        <div>
+                          <p className="font-bold text-primary text-lg">
+                            {filteredStudents[mobileStudentIndex]?.first_name}{" "}
+                            {filteredStudents[mobileStudentIndex]?.last_name}
                           </p>
-                          <p
-                            className={`text-3xl font-black ${gradeInfo?.color || "text-on-surface-variant"}`}
-                          >
-                            {gradeInfo ? gradeInfo.grade : "—"}
+                          <p className="text-xs text-on-surface-variant">
+                            {filteredStudents[mobileStudentIndex]
+                              ?.student_number || "-"}
                           </p>
                         </div>
                       </div>
-                    );
-                  })()}
+                      <span className="text-sm font-medium text-on-surface-variant">
+                        {mobileStudentIndex + 1} / {filteredStudents.length}
+                      </span>
+                    </div>
 
-                  {/* Navigation */}
-                  <div className="flex items-center justify-between gap-4">
-                    <Button
-                      variant="secondary"
-                      onClick={() => navigateMobileStudent("prev")}
-                      disabled={mobileStudentIndex === 0}
-                      className="flex-1"
-                      icon={
-                        <MaterialIcon icon="chevron_left" className="text-xl" />
-                      }
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      variant="primary"
-                      onClick={() => navigateMobileStudent("next")}
-                      disabled={
-                        mobileStudentIndex === filteredStudents.length - 1
-                      }
-                      className="flex-1"
-                    >
-                      Next
-                      <MaterialIcon icon="chevron_right" className="text-xl" />
-                    </Button>
+                    {/* Score Inputs */}
+                    <div className="grid grid-cols-2 gap-4">
+                      {(["ca1", "ca2", "ca3", "exam"] as const).map((type) => {
+                        const studentId =
+                          filteredStudents[mobileStudentIndex]?.id;
+                        if (!studentId) return null;
+                        const val = getMark(studentId, type);
+                        const total = getStudentTotal(studentId);
+                        const gradeInfo =
+                          total !== null ? getGrade(total) : null;
+                        return (
+                          <div key={type} className="space-y-2">
+                            <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+                              {type.toUpperCase()} ({ASSESSMENT_MAX[type]})
+                            </label>
+                            <input
+                              className={`w-full text-center text-2xl font-bold py-4 rounded-xl border-none focus:outline-none transition-all ${getInputBorderClass(studentId, type)}`}
+                              type="number"
+                              min={0}
+                              max={ASSESSMENT_MAX[type]}
+                              placeholder="—"
+                              value={val !== null ? String(val) : ""}
+                              onChange={(e) =>
+                                handleMarkChange(
+                                  studentId,
+                                  type,
+                                  e.target.value,
+                                )
+                              }
+                              onBlur={() => handleInlineBlur(studentId, type)}
+                              disabled={
+                                isSubmitted ||
+                                (caLocked && type.startsWith("ca"))
+                              }
+                              inputMode="numeric"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Total & Grade */}
+                    {(() => {
+                      const studentId =
+                        filteredStudents[mobileStudentIndex]?.id;
+                      if (!studentId) return null;
+                      const total = getStudentTotal(studentId);
+                      const gradeInfo = total !== null ? getGrade(total) : null;
+                      return (
+                        <div className="flex items-center justify-center gap-6 py-4 bg-surface-container rounded-2xl">
+                          <div className="text-center">
+                            <p className="text-xs text-on-surface-variant uppercase tracking-wider">
+                              Total
+                            </p>
+                            <p className="text-3xl font-black text-primary">
+                              {total !== null ? total : "—"}
+                            </p>
+                          </div>
+                          <div className="w-px h-12 bg-outline-variant/20" />
+                          <div className="text-center">
+                            <p className="text-xs text-on-surface-variant uppercase tracking-wider">
+                              Grade
+                            </p>
+                            <p
+                              className={`text-3xl font-black ${gradeInfo?.color || "text-on-surface-variant"}`}
+                            >
+                              {gradeInfo ? gradeInfo.grade : "—"}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Navigation */}
+                    <div className="flex items-center justify-between gap-4">
+                      <Button
+                        variant="secondary"
+                        onClick={() => navigateMobileStudent("prev")}
+                        disabled={mobileStudentIndex === 0}
+                        className="flex-1"
+                        icon={
+                          <MaterialIcon
+                            icon="chevron_left"
+                            className="text-xl"
+                          />
+                        }
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="primary"
+                        onClick={() => navigateMobileStudent("next")}
+                        disabled={
+                          mobileStudentIndex === filteredStudents.length - 1
+                        }
+                        className="flex-1"
+                      >
+                        Next
+                        <MaterialIcon
+                          icon="chevron_right"
+                          className="text-xl"
+                        />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Student List Quick Nav */}
+                  <div className="mt-4 bg-surface-container-lowest rounded-2xl p-4">
+                    <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
+                      All Students
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {filteredStudents.map((student, idx) => {
+                        const graded = isStudentGraded(student.id);
+                        return (
+                          <button
+                            key={student.id}
+                            onClick={() => setMobileStudentIndex(idx)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                              idx === mobileStudentIndex
+                                ? "bg-primary text-on-primary"
+                                : graded
+                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                  : "bg-surface-container text-on-surface-variant"
+                            }`}
+                          >
+                            <PersonInitials
+                              name={`${student.first_name} ${student.last_name}`}
+                              size={28}
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
+              )}
+            </div>
+          )}
 
-                {/* Student List Quick Nav */}
-                <div className="mt-4 bg-surface-container-lowest rounded-2xl p-4">
-                  <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
-                    All Students
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {filteredStudents.map((student, idx) => {
-                      const graded = isStudentGraded(student.id);
-                      return (
-                        <button
-                          key={student.id}
-                          onClick={() => setMobileStudentIndex(idx)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                            idx === mobileStudentIndex
-                              ? "bg-primary text-on-primary"
-                              : graded
-                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                : "bg-surface-container text-on-surface-variant"
-                          }`}
-                        >
-                          <PersonInitials name={`${student.first_name} ${student.last_name}`} size={28} />
-                        </button>
-                      );
-                    })}
-                  </div>
+        {/* Topic Coverage */}
+        {tab === "coverage" && selectedSubject && (
+          <div className="space-y-6">
+            {/* Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-surface-container-low p-6 rounded-xl text-center">
+                <div className="text-2xl font-bold text-secondary">
+                  {coverageStats.completed}
+                </div>
+                <div className="text-sm text-on-surface-variant">Completed</div>
+              </div>
+              <div className="bg-surface-container-low p-6 rounded-xl text-center">
+                <div className="text-2xl font-bold text-tertiary">
+                  {coverageStats.inProgress}
+                </div>
+                <div className="text-sm text-on-surface-variant">
+                  In Progress
                 </div>
               </div>
-            )}
+              <div className="bg-surface-container-low p-6 rounded-xl text-center">
+                <div className="text-2xl font-bold text-primary">
+                  {coverageStats.percentage}%
+                </div>
+                <div className="text-sm text-on-surface-variant">Coverage</div>
+              </div>
+            </div>
+
+            {/* Topics */}
+            <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
+              <div className="p-6 border-b border-outline-variant/10">
+                <h3 className="font-headline font-bold text-lg text-primary">
+                  Topic Coverage
+                </h3>
+              </div>
+              <div className="divide-y divide-outline-variant/5">
+                {topics.map((topic) => {
+                  const status = getTopicStatus(topic);
+                  return (
+                    <div
+                      key={topic}
+                      className="flex items-center justify-between p-4 hover:bg-surface-bright"
+                    >
+                      <span className="font-medium text-primary">{topic}</span>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() =>
+                            updateTopicStatus(topic, "not_started")
+                          }
+                          className={`px-3 py-1 rounded-full text-xs font-bold ${status === "not_started" ? "bg-surface-container text-on-surface-variant" : "bg-surface-bright text-on-surface-variant hover:bg-surface-container"}`}
+                        >
+                          Not Started
+                        </button>
+                        <button
+                          onClick={() =>
+                            updateTopicStatus(topic, "in_progress")
+                          }
+                          className={`px-3 py-1 rounded-full text-xs font-bold ${status === "in_progress" ? "bg-tertiary-fixed text-on-tertiary-fixed" : "bg-surface-bright text-on-surface-variant hover:bg-surface-container"}`}
+                        >
+                          In Progress
+                        </button>
+                        <button
+                          onClick={() => updateTopicStatus(topic, "completed")}
+                          className={`px-3 py-1 rounded-full text-xs font-bold ${status === "completed" ? "bg-secondary-container text-on-secondary-container" : "bg-surface-bright text-on-surface-variant hover:bg-surface-container"}`}
+                        >
+                          Completed
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
 
-      {/* Topic Coverage */}
-      {tab === "coverage" && selectedSubject && (
-        <div className="space-y-6">
-          {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-surface-container-low p-6 rounded-xl text-center">
-              <div className="text-2xl font-bold text-secondary">
-                {coverageStats.completed}
-              </div>
-              <div className="text-sm text-on-surface-variant">Completed</div>
-            </div>
-            <div className="bg-surface-container-low p-6 rounded-xl text-center">
-              <div className="text-2xl font-bold text-tertiary">
-                {coverageStats.inProgress}
-              </div>
-              <div className="text-sm text-on-surface-variant">In Progress</div>
-            </div>
-            <div className="bg-surface-container-low p-6 rounded-xl text-center">
-              <div className="text-2xl font-bold text-primary">
-                {coverageStats.percentage}%
-              </div>
-              <div className="text-sm text-on-surface-variant">Coverage</div>
-            </div>
+        {!selectedClass && (
+          <EmptyState
+            icon="menu_book"
+            title="Select a class"
+            description="Choose a class to view curriculum data"
+          />
+        )}
+
+        {/* Sticky Action Bar */}
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[var(--surface)]/80 dark:bg-[var(--surface-container-lowest)]/80 backdrop-blur-2xl px-6 py-4 rounded-full shadow-2xl z-40 border border-[var(--border)]/50 hidden md:flex">
+          <div className="flex items-center gap-2 text-secondary px-4 border-r border-[var(--border)]">
+            <MaterialIcon
+              className="text-xl"
+              style={{ fontVariationSettings: "FILL 1" }}
+            >
+              cloud_done
+            </MaterialIcon>
+            <span className="text-xs font-bold uppercase tracking-wider">
+              Sync Active
+            </span>
           </div>
-
-          {/* Topics */}
-          <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
-            <div className="p-6 border-b border-outline-variant/10">
-              <h3 className="font-headline font-bold text-lg text-primary">
-                Topic Coverage
-              </h3>
-            </div>
-            <div className="divide-y divide-outline-variant/5">
-              {topics.map((topic) => {
-                const status = getTopicStatus(topic);
-                return (
-                  <div
-                    key={topic}
-                    className="flex items-center justify-between p-4 hover:bg-surface-bright"
-                  >
-                    <span className="font-medium text-primary">{topic}</span>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => updateTopicStatus(topic, "not_started")}
-                        className={`px-3 py-1 rounded-full text-xs font-bold ${status === "not_started" ? "bg-surface-container text-on-surface-variant" : "bg-surface-bright text-on-surface-variant hover:bg-surface-container"}`}
-                      >
-                        Not Started
-                      </button>
-                      <button
-                        onClick={() => updateTopicStatus(topic, "in_progress")}
-                        className={`px-3 py-1 rounded-full text-xs font-bold ${status === "in_progress" ? "bg-tertiary-fixed text-on-tertiary-fixed" : "bg-surface-bright text-on-surface-variant hover:bg-surface-container"}`}
-                      >
-                        In Progress
-                      </button>
-                      <button
-                        onClick={() => updateTopicStatus(topic, "completed")}
-                        className={`px-3 py-1 rounded-full text-xs font-bold ${status === "completed" ? "bg-secondary-container text-on-secondary-container" : "bg-surface-bright text-on-surface-variant hover:bg-surface-container"}`}
-                      >
-                        Completed
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {!selectedClass && (
-        <EmptyState
-          icon="menu_book"
-          title="Select a class"
-          description="Choose a class to view curriculum data"
-        />
-      )}
-
-      {/* Sticky Action Bar */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[var(--surface)]/80 dark:bg-[var(--surface-container-lowest)]/80 backdrop-blur-2xl px-6 py-4 rounded-full shadow-2xl z-40 border border-[var(--border)]/50 hidden md:flex">
-        <div className="flex items-center gap-2 text-secondary px-4 border-r border-[var(--border)]">
-          <MaterialIcon
-            className="text-xl"
-            style={{ fontVariationSettings: "FILL 1" }}
+          <button
+            onClick={handleSaveDraft}
+            disabled={
+              isSubmitted || saving || !selectedClass || !selectedSubject
+            }
+            className="flex items-center gap-2 px-4 py-2 hover:bg-[var(--surface-container)] rounded-full transition-colors font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            cloud_done
-          </MaterialIcon>
-          <span className="text-xs font-bold uppercase tracking-wider">
-            Sync Active
-          </span>
+            <MaterialIcon>save</MaterialIcon>
+            Save Grades
+          </button>
+          <button
+            onClick={handleSubmitToDean}
+            disabled={
+              isSubmitted || saving || !selectedClass || !selectedSubject
+            }
+            className="bg-primary text-white px-8 py-2.5 rounded-full font-bold text-sm hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {isSubmitted
+              ? "Submitted ✓"
+              : staff.some(
+                    (s: any) =>
+                      s.role === "dean_of_studies" || s.role === "dos",
+                  )
+                ? "Submit to Dean"
+                : "Submit to HM"}
+          </button>
         </div>
-        <button
-          onClick={handleSaveDraft}
-          disabled={isSubmitted || saving || !selectedClass || !selectedSubject}
-          className="flex items-center gap-2 px-4 py-2 hover:bg-[var(--surface-container)] rounded-full transition-colors font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <MaterialIcon>save</MaterialIcon>
-          Save Grades
-        </button>
-        <button
-          onClick={handleSubmitToDean}
-          disabled={isSubmitted || saving || !selectedClass || !selectedSubject}
-          className="bg-primary text-white px-8 py-2.5 rounded-full font-bold text-sm hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          {isSubmitted ? "Submitted ✓" : staff.some((s: any) => s.role === "dean_of_studies" || s.role === "dos") ? "Submit to Dean" : "Submit to HM"}
-        </button>
       </div>
-    </div>
     </PageErrorBoundary>
   );
 }
