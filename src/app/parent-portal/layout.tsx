@@ -9,12 +9,12 @@ export const metadata: Metadata = {
     description:
       "Stay connected with your child's school life. View attendance, grades, fees, and receive SMS updates.",
     type: "website",
-    url: "https://omuto.org/parent",
+    url: "https://omuto.org/parent-portal",
     images: ["/og-image.png"],
   },
 };
 
-export default function ParentLayout({
+export default function ParentPortalLayout({
   children,
 }: {
   children: React.ReactNode;

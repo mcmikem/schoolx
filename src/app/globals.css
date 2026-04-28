@@ -1240,3 +1240,15 @@ h6,
 [data-theme="dark"] .sidebar-brand-header {
   background: linear-gradient(145deg, #000a14 0%, #001428 55%, #001f3d 100%);
 }
+
+/* Ensure minimum 44px touch targets for mobile accessibility */
+@media (max-width: 768px) {
+  button,
+  a,
+  input[type="button"],
+  input[type="submit"],
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

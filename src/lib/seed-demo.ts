@@ -3,6 +3,13 @@ import { supabase } from "./supabase";
 const DEMO_SCHOOL_ID = "00000000-0000-0000-0000-000000000001";
 
 export async function seedDemoData() {
+  // Only allow demo seeding in non-production or with explicit ALLOW_DEMO_SEED flag
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.ALLOW_DEMO_SEED !== "true"
+  ) {
+    return { error: "Demo seeding is restricted to development environments" };
+  }
   if (!supabase) return { error: "Supabase client not initialized" };
 
   try {
