@@ -110,9 +110,12 @@ const STUDENT_SELECT_FIELDS_MINIMAL_LEGACY = `
 function isMissingStudentColumnError(error: unknown, columnName: string) {
   if (!error || typeof error !== "object") return false;
 
-  const code = "code" in error ? String((error as { code?: unknown }).code || "") : "";
+  const code =
+    "code" in error ? String((error as { code?: unknown }).code || "") : "";
   const message =
-    "message" in error ? String((error as { message?: unknown }).message || "") : "";
+    "message" in error
+      ? String((error as { message?: unknown }).message || "")
+      : "";
 
   return code === "42703" && message.includes(`students.${columnName}`);
 }
@@ -125,15 +128,27 @@ function buildStudentSelectAttempts(fetchLabel: "select" | "fetch") {
   if (studentPhotoColumnSupported !== false) {
     attempts.push(
       { fields: STUDENT_SELECT_FIELDS, label: `extended student ${suffix}` },
-      { fields: STUDENT_SELECT_FIELDS_FALLBACK, label: `fallback student ${suffix}` },
+      {
+        fields: STUDENT_SELECT_FIELDS_FALLBACK,
+        label: `fallback student ${suffix}`,
+      },
       { fields: STUDENT_SELECT_FIELDS_CORE, label: `core student ${suffix}` },
-      { fields: STUDENT_SELECT_FIELDS_MINIMAL, label: `minimal student ${suffix}` },
+      {
+        fields: STUDENT_SELECT_FIELDS_MINIMAL,
+        label: `minimal student ${suffix}`,
+      },
     );
   }
 
   attempts.push(
-    { fields: STUDENT_SELECT_FIELDS_FALLBACK_LEGACY, label: `fallback student ${suffix} (legacy)` },
-    { fields: STUDENT_SELECT_FIELDS_MINIMAL_LEGACY, label: `minimal student ${suffix} (legacy)` },
+    {
+      fields: STUDENT_SELECT_FIELDS_FALLBACK_LEGACY,
+      label: `fallback student ${suffix} (legacy)`,
+    },
+    {
+      fields: STUDENT_SELECT_FIELDS_MINIMAL_LEGACY,
+      label: `minimal student ${suffix} (legacy)`,
+    },
   );
 
   return attempts;
@@ -191,7 +206,10 @@ async function fetchStudentsWithFallback(options: {
     }
 
     lastError = result.error;
-    console.warn(`${attempt.label} failed, trying a smaller shape:`, result.error);
+    console.warn(
+      `${attempt.label} failed, trying a smaller shape:`,
+      result.error,
+    );
   }
 
   throw lastError;
@@ -227,7 +245,10 @@ async function fetchStudentByIdWithFallback(
     }
 
     lastError = result.error;
-    console.warn(`${attempt.label} failed, trying a smaller shape:`, result.error);
+    console.warn(
+      `${attempt.label} failed, trying a smaller shape:`,
+      result.error,
+    );
   }
 
   throw lastError;
@@ -246,6 +267,16 @@ export function useStudents(
   const { isDemo, school } = useAuth();
   const hasInitialized = useRef(false);
   const lastResolvedStudentsRef = useRef<StudentWithClass[]>([]);
+  const prevIsDemo = useRef(isDemo);
+
+  useEffect(() => {
+    if (prevIsDemo.current && !isDemo) {
+      setStudents([]);
+      setTotalCount(0);
+      hasInitialized.current = false;
+    }
+    prevIsDemo.current = isDemo;
+  }, [isDemo]);
 
   const cacheKey = `students:${schoolId}:${limit}:${offset}`;
 
@@ -403,7 +434,9 @@ export function useStudents(
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     if (!querySchoolId) {
-      throw new Error("School context is missing. Please reload and try again.");
+      throw new Error(
+        "School context is missing. Please reload and try again.",
+      );
     }
 
     try {
@@ -426,11 +459,18 @@ export function useStudents(
         .single();
 
       if (firstInsert.error) {
-        console.warn("Student insert failed with extended payload, retrying core fields:", firstInsert.error);
+        console.warn(
+          "Student insert failed with extended payload, retrying core fields:",
+          firstInsert.error,
+        );
 
         const retryInsert = await supabase
           .from("students")
-          .insert(buildPortableStudentPayload(studentPayload as Record<string, unknown>))
+          .insert(
+            buildPortableStudentPayload(
+              studentPayload as Record<string, unknown>,
+            ),
+          )
           .select("id")
           .single();
 
@@ -439,7 +479,11 @@ export function useStudents(
 
           const legacyRetryInsert = await supabase
             .from("students")
-            .insert(buildPortableStudentPayload(studentPayload as Record<string, unknown>))
+            .insert(
+              buildPortableStudentPayload(
+                studentPayload as Record<string, unknown>,
+              ),
+            )
             .select("id")
             .single();
 
@@ -519,11 +563,18 @@ export function useStudents(
       let updatedStudent: StudentWithClass | null = null;
 
       if (firstUpdate.error) {
-        console.warn("Student update failed with extended payload, retrying core fields:", firstUpdate.error);
+        console.warn(
+          "Student update failed with extended payload, retrying core fields:",
+          firstUpdate.error,
+        );
 
         const retryUpdate = await supabase
           .from("students")
-          .update(buildPortableStudentPayload(normalizedUpdates as Record<string, unknown>))
+          .update(
+            buildPortableStudentPayload(
+              normalizedUpdates as Record<string, unknown>,
+            ),
+          )
           .eq("id", id)
           .select(
             studentPhotoColumnSupported === false
@@ -537,13 +588,18 @@ export function useStudents(
 
           const legacyRetryUpdate = await supabase
             .from("students")
-            .update(buildPortableStudentPayload(normalizedUpdates as Record<string, unknown>))
+            .update(
+              buildPortableStudentPayload(
+                normalizedUpdates as Record<string, unknown>,
+              ),
+            )
             .eq("id", id)
             .select(STUDENT_SELECT_FIELDS_MINIMAL_LEGACY)
             .single();
 
           if (legacyRetryUpdate.error) throw legacyRetryUpdate.error;
-          updatedStudent = legacyRetryUpdate.data as unknown as StudentWithClass;
+          updatedStudent =
+            legacyRetryUpdate.data as unknown as StudentWithClass;
         } else {
           if (retryUpdate.error) throw retryUpdate.error;
           updatedStudent = retryUpdate.data as unknown as StudentWithClass;
@@ -553,7 +609,9 @@ export function useStudents(
       }
 
       setStudents((prev) =>
-        prev.map((s) => (s.id === id ? (updatedStudent as StudentWithClass) : s)),
+        prev.map((s) =>
+          s.id === id ? (updatedStudent as StudentWithClass) : s,
+        ),
       );
       invalidateCache(`students:${schoolId}`);
       return updatedStudent as StudentWithClass;
@@ -650,11 +708,20 @@ export function useClasses(schoolId?: string) {
   const [loading, setLoading] = useState(true);
   const { isDemo, school } = useAuth();
   const autoProvisionAttempted = useRef(false);
+  const prevIsDemo = useRef(isDemo);
+
+  useEffect(() => {
+    if (prevIsDemo.current && !isDemo) {
+      setClasses([]);
+      autoProvisionAttempted.current = false;
+    }
+    prevIsDemo.current = isDemo;
+  }, [isDemo]);
 
   const autoProvisionDefaultClasses = useCallback(
     async (resolvedSchoolId: string) => {
-      const schoolType =
-        ((school as School | null)?.school_type ?? "primary") as SchoolSetupType;
+      const schoolType = ((school as School | null)?.school_type ??
+        "primary") as SchoolSetupType;
       const currentYear = new Date().getFullYear().toString();
       const defaultClasses = buildDefaultClasses(
         resolvedSchoolId,
@@ -662,11 +729,9 @@ export function useClasses(schoolId?: string) {
         currentYear,
       );
 
-      const { error } = await supabase
-        .from("classes")
-        .upsert(defaultClasses, {
-          onConflict: "school_id,name,academic_year",
-        });
+      const { error } = await supabase.from("classes").upsert(defaultClasses, {
+        onConflict: "school_id,name,academic_year",
+      });
 
       if (error) throw error;
 
@@ -713,9 +778,8 @@ export function useClasses(schoolId?: string) {
 
       if ((data?.length || 0) === 0 && !autoProvisionAttempted.current) {
         autoProvisionAttempted.current = true;
-        const provisionedClasses = await autoProvisionDefaultClasses(
-          querySchoolId,
-        );
+        const provisionedClasses =
+          await autoProvisionDefaultClasses(querySchoolId);
         setClasses(provisionedClasses);
         return;
       }
@@ -743,6 +807,28 @@ export function useClasses(schoolId?: string) {
       };
       setClasses((prev) => [...prev, demoClass]);
       return demoClass;
+    }
+
+    if (!newClass.name || !newClass.academic_year) {
+      throw new Error("Class name and academic year are required");
+    }
+
+    const { data: existingClass, error: checkError } = await supabase
+      .from("classes")
+      .select("id")
+      .eq("school_id", schoolId)
+      .eq("name", newClass.name.trim())
+      .eq("academic_year", newClass.academic_year)
+      .limit(1);
+
+    if (checkError) {
+      throw new Error(`Failed to check existing class: ${checkError.message}`);
+    }
+
+    if (existingClass && existingClass.length > 0) {
+      throw new Error(
+        "A class with this name already exists for the specified academic year",
+      );
     }
 
     try {

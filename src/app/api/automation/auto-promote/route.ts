@@ -64,8 +64,19 @@ export async function POST(request: NextRequest) {
     const promoted: any[] = [];
     const retained: any[] = [];
     const errors: any[] = [];
+    const completedPromotions: any[] = [];
 
     for (const student of students as any[]) {
+      const studentOps: {
+        studentUpdateSuccess: boolean;
+        promotionInsertSuccess: boolean;
+        promotionRecord: any;
+      } = {
+        studentUpdateSuccess: false,
+        promotionInsertSuccess: false,
+        promotionRecord: null,
+      };
+
       try {
         const studentClass = Array.isArray(student.classes)
           ? student.classes[0]
@@ -139,11 +150,18 @@ export async function POST(request: NextRequest) {
 
           if (nextClasses && nextClasses.length > 0) {
             const nextClassId = nextClasses[0].id;
-            await (supabase as any)
+
+            const { error: updateError } = await supabase
               .from("students")
               .update({ class_id: nextClassId, repeating: false })
               .eq("id", student.id);
-            await (supabase as any).from("student_promotions").insert({
+
+            if (updateError) {
+              throw new Error(`Student update failed: ${updateError.message}`);
+            }
+            studentOps.studentUpdateSuccess = true;
+
+            const promotionRecord = {
               school_id: school.schoolId,
               student_id: student.id,
               from_class_id: studentClass.id,
@@ -153,7 +171,26 @@ export async function POST(request: NextRequest) {
               promoted_by: "system",
               promoted_at: new Date().toISOString(),
               notes: `Auto-promoted: Avg ${averageScore.toFixed(1)}, Att ${attendancePercent.toFixed(1)}%`,
-            });
+            };
+
+            const { error: insertError } = await supabase
+              .from("student_promotions")
+              .insert(promotionRecord);
+
+            if (insertError) {
+              await supabase
+                .from("students")
+                .update({ class_id: studentClass.id, repeating: null })
+                .eq("id", student.id);
+              studentOps.studentUpdateSuccess = false;
+              throw new Error(
+                `Promotion record insert failed: ${insertError.message}`,
+              );
+            }
+            studentOps.promotionInsertSuccess = true;
+            studentOps.promotionRecord = promotionRecord;
+            completedPromotions.push(studentOps);
+
             promoted.push({
               studentId: student.id,
               name: `${student.first_name} ${student.last_name}`,
@@ -188,11 +225,33 @@ export async function POST(request: NextRequest) {
           });
         }
       } catch (err) {
+        if (
+          studentOps.studentUpdateSuccess &&
+          !studentOps.promotionInsertSuccess
+        ) {
+          try {
+            await supabase
+              .from("students")
+              .update({ class_id: null, repeating: null })
+              .eq("id", student.id);
+          } catch (rollbackErr) {
+            console.error(
+              `Rollback failed for student ${student.id}:`,
+              rollbackErr,
+            );
+          }
+        }
         errors.push({
           studentId: student.id,
           reason: err instanceof Error ? err.message : "Unknown error",
         });
       }
+    }
+
+    if (completedPromotions.length > 0 && errors.length > 0) {
+      console.warn(
+        `Transaction partial failure: ${completedPromotions.length} promotions completed, ${errors.length} failed`,
+      );
     }
 
     return NextResponse.json({

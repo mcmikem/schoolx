@@ -132,6 +132,40 @@ INSERT INTO subjects (school_id, name, code, level, is_compulsory) VALUES
 (NULL, 'Technology & Design', 'TD', 'secondary', true),
 (NULL, 'Religious Education', 'RE', 'secondary', true);
 
+-- RLS for subjects
+DROP POLICY IF EXISTS "School users subjects select" ON "subjects";
+CREATE POLICY "School users subjects select"
+ON "subjects"
+FOR SELECT
+TO authenticated
+USING (
+  "school_id" IN (
+    SELECT "school_id"
+    FROM "users"
+    WHERE "auth_id" = auth.uid()
+  )
+);
+
+DROP POLICY IF EXISTS "School users subjects write" ON "subjects";
+CREATE POLICY "School users subjects write"
+ON "subjects"
+FOR ALL
+TO authenticated
+USING (
+  "school_id" IN (
+    SELECT "school_id"
+    FROM "users"
+    WHERE "auth_id" = auth.uid()
+  )
+)
+WITH CHECK (
+  "school_id" IN (
+    SELECT "school_id"
+    FROM "users"
+    WHERE "auth_id" = auth.uid()
+  )
+);
+
 -- ============================================
 -- 7. STUDENTS
 -- ============================================
@@ -252,6 +286,40 @@ CREATE TABLE IF NOT EXISTS events (
     end_date DATE,
     created_by UUID REFERENCES users(id),
     created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS for events
+DROP POLICY IF EXISTS "School users events select" ON "events";
+CREATE POLICY "School users events select"
+ON "events"
+FOR SELECT
+TO authenticated
+USING (
+  "school_id" IN (
+    SELECT "school_id"
+    FROM "users"
+    WHERE "auth_id" = auth.uid()
+  )
+);
+
+DROP POLICY IF EXISTS "School users events write" ON "events";
+CREATE POLICY "School users events write"
+ON "events"
+FOR ALL
+TO authenticated
+USING (
+  "school_id" IN (
+    SELECT "school_id"
+    FROM "users"
+    WHERE "auth_id" = auth.uid()
+  )
+)
+WITH CHECK (
+  "school_id" IN (
+    SELECT "school_id"
+    FROM "users"
+    WHERE "auth_id" = auth.uid()
+  )
 );
 
 -- ============================================
