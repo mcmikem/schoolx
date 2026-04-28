@@ -285,7 +285,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               role: userData.role as User["role"],
             }),
           );
-        } catch {}
+        } catch (error) {
+          console.error("Failed to persist offline user data:", error);
+        }
 
         // Super admins don't have a school - they manage all schools
         if (userData.role === "super_admin") {
@@ -323,7 +325,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 OFFLINE_SCHOOL_KEY,
                 JSON.stringify(schoolObj),
               );
-            } catch {}
+            } catch (error) {
+              console.error("Failed to persist offline school data:", error);
+            }
             if (
               schoolData.subscription_status === "trial" &&
               schoolData.trial_ends_at
@@ -437,7 +441,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setLoading(false);
                 return;
               }
-            } catch {}
+            } catch (error) {
+              console.error("Failed to load cached user data:", error);
+            }
           }
 
           // Session tokens exist locally — validate with the server.
@@ -526,7 +532,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try {
               localStorage.removeItem(OFFLINE_USER_KEY);
               localStorage.removeItem(OFFLINE_SCHOOL_KEY);
-            } catch {}
+            } catch (error) {
+              console.error("Failed to clear offline data on sign out:", error);
+            }
           }
         } catch (error) {
           if (!isSupabaseLockAbortError(error)) {
