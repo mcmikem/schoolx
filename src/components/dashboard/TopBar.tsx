@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -86,19 +87,34 @@ function NotificationsPanel({
         {notifications.map((n) => {
           let icon = "notifications";
           let color = "var(--primary)";
-          
-          switch(n.type) {
-            case "warning": icon = "warning"; color = "var(--amber)"; break;
-            case "error": icon = "error"; color = "var(--red)"; break;
-            case "success": icon = "check_circle"; color = "var(--green)"; break;
-            case "payment": icon = "payments"; color = "var(--green)"; break;
-            case "attendance": icon = "how_to_reg"; color = "var(--amber)"; break;
+
+          switch (n.type) {
+            case "warning":
+              icon = "warning";
+              color = "var(--amber)";
+              break;
+            case "error":
+              icon = "error";
+              color = "var(--red)";
+              break;
+            case "success":
+              icon = "check_circle";
+              color = "var(--green)";
+              break;
+            case "payment":
+              icon = "payments";
+              color = "var(--green)";
+              break;
+            case "attendance":
+              icon = "how_to_reg";
+              color = "var(--amber)";
+              break;
           }
 
           return (
             <div
               key={n.id}
-              className={`flex gap-3 px-4 py-3.5 border-b border-[var(--border)] hover:bg-[var(--surface-container-low)] transition-colors ${!n.read ? 'bg-[var(--primary-50)]' : ''}`}
+              className={`flex gap-3 px-4 py-3.5 border-b border-[var(--border)] hover:bg-[var(--surface-container-low)] transition-colors ${!n.read ? "bg-[var(--primary-50)]" : ""}`}
               onClick={() => {
                 if (!n.read) onDismiss(n.id);
                 if (n.link) window.location.href = n.link;
@@ -114,37 +130,42 @@ function NotificationsPanel({
                 />
               </div>
               <div className="flex-1 min-w-0 cursor-pointer">
-                <div className={`text-[12px] text-[var(--t1)] ${!n.read ? 'font-bold' : 'font-semibold'}`}>
+                <div
+                  className={`text-[12px] text-[var(--t1)] ${!n.read ? "font-bold" : "font-semibold"}`}
+                >
                   {n.title}
                 </div>
                 <div className="text-[11px] text-[var(--t3)] mt-0.5 truncate">
                   {n.message}
                 </div>
                 <div className="text-[10px] text-[var(--t4)] mt-1">
-                  {new Date(n.created_at).toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'})}
+                  {new Date(n.created_at).toLocaleTimeString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </div>
               </div>
               {!n.read && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDismiss(n.id);
-                }}
-                className="text-[var(--t4)] hover:text-[var(--t2)] transition-colors self-start mt-1"
-                aria-label="Mark as read"
-              >
-                <MaterialIcon icon="check" style={{ fontSize: 14 }} />
-              </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDismiss(n.id);
+                  }}
+                  className="text-[var(--t4)] hover:text-[var(--t2)] transition-colors self-start mt-1"
+                  aria-label="Mark as read"
+                >
+                  <MaterialIcon icon="check" style={{ fontSize: 14 }} />
+                </button>
               )}
             </div>
-          )
+          );
         })}
       </div>
       {notifications.length > 0 && (
         <button
           onClick={() => {
-             notifications.forEach(n => !n.read && onDismiss(n.id));
-             onClose();
+            notifications.forEach((n) => !n.read && onDismiss(n.id));
+            onClose();
           }}
           className="w-full block px-4 py-[10px] text-center text-[12px] text-[var(--primary)] font-medium border-t border-[var(--border)] no-underline hover:bg-[var(--bg)] transition-colors"
         >
@@ -205,6 +226,9 @@ export default function TopBar({
   const path = pathname ?? "";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator !== "undefined" ? navigator.onLine : true,
+  );
   const { isOpen, open: openSidebar, close: closeSidebar } = useSidebar();
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const notifPanelRef = useRef<HTMLDivElement | null>(null);
@@ -212,16 +236,6 @@ export default function TopBar({
   const { notifications, unreadCount, markAsRead } = useNotifications();
 
   useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
-      const target = event.target as Node;
-      if (userMenuOpen && userMenuRef.current && !userMenuRef.current.contains(target)) {
-        setUserMenuOpen(false);
-      }
-      if (notifOpen && notifPanelRef.current && !notifPanelRef.current.contains(target)) {
-        setNotifOpen(false);
-      }
-    }
-
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setUserMenuOpen(false);
@@ -229,11 +243,19 @@ export default function TopBar({
       }
     }
 
+    function handleOnlineStatus() {
+      setIsOnline(navigator.onLine);
+    }
+
     document.addEventListener("mousedown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("online", handleOnlineStatus);
+    window.addEventListener("offline", handleOnlineStatus);
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("online", handleOnlineStatus);
+      window.removeEventListener("offline", handleOnlineStatus);
     };
   }, [userMenuOpen, notifOpen]);
 
@@ -336,6 +358,16 @@ export default function TopBar({
 
       {/* Right actions */}
       <div className="flex items-center gap-1.5">
+        {/* Sync status indicator */}
+        <div
+          className="w-10 h-10 rounded-[14px] border border-[var(--border)] bg-white flex items-center justify-center"
+          title={isOnline ? "Connected" : "Offline"}
+        >
+          <div
+            className={`w-3 h-3 rounded-full ${isOnline ? "bg-green-500" : "bg-red-500"}`}
+          />
+        </div>
+
         <div ref={notifPanelRef} className="notif-panel relative">
           <button
             onClick={() => {

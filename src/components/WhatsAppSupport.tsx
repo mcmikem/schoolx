@@ -19,7 +19,7 @@ export default function WhatsAppSupport() {
   if (
     pathname === "/login" ||
     pathname === "/register" ||
-    pathname === "/parent"
+    pathname?.startsWith("/parent")
   ) {
     return null;
   }

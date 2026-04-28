@@ -2584,7 +2584,7 @@ export default function HomePage() {
                   </li>
                   <li>
                     <Link
-                      href="/parent"
+                      href="/parent-portal"
                       className="text-sm text-slate-600 hover:text-slate-900 transition"
                     >
                       Parent Portal

@@ -3,14 +3,19 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { canUseModule, DEFAULT_FEATURE_STAGE, FeatureStage } from "@/lib/featureStages";
+import {
+  canUseModule,
+  DEFAULT_FEATURE_STAGE,
+  FeatureStage,
+} from "@/lib/featureStages";
 
 export function useParentPortalGuard() {
   const { user, school, loading, isDemo } = useAuth();
   const router = useRouter();
   const featureStage =
     (school?.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE;
-  const parentPortalEnabled = isDemo || canUseModule(featureStage, "parentPortal");
+  const parentPortalEnabled =
+    isDemo || canUseModule(featureStage, "parentPortal");
 
   useEffect(() => {
     if (loading) return;
@@ -26,7 +31,7 @@ export function useParentPortalGuard() {
     }
 
     if (user && !isDemo && !parentPortalEnabled) {
-      router.replace("/parent");
+      router.replace("/parent-portal");
     }
   }, [user, loading, isDemo, parentPortalEnabled, router]);
 
