@@ -19,6 +19,7 @@ import {
 export function useAttendance(classId?: string, date?: string) {
   const [attendance, setAttendance] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { isDemo, user, school } = useAuth();
   const isOnline = useOnlineStatus();
 
@@ -190,6 +191,7 @@ export function useAttendance(classId?: string, date?: string) {
         );
       } catch (err) {
         console.error("Error fetching attendance:", err);
+        setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
         setLoading(false);
       }
@@ -197,10 +199,10 @@ export function useAttendance(classId?: string, date?: string) {
     fetchAttendance();
   }, [classId, date, isDemo, isOnline]);
 
-  return { attendance, loading, markAttendance };
+  return { attendance, loading, error, markAttendance };
 }
 
-export function useAttendanceHistory(schoolId?: string) {
+export function useAttendanceHistory(schoolId?: string, academicYear?: string) {
   const [loading, setLoading] = useState(false);
 
   const getConsecutiveAbsentStudents = useCallback(async () => {
@@ -209,6 +211,12 @@ export function useAttendanceHistory(schoolId?: string) {
     try {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const startDate = academicYear
+        ? `${academicYear}-01-01`
+        : thirtyDaysAgo.toISOString().split("T")[0];
+      const endDate = academicYear
+        ? `${academicYear}-12-31`
+        : new Date().toISOString().split("T")[0];
 
       const { data: attendanceData, error } = await supabase
         .from("attendance")
@@ -219,7 +227,8 @@ export function useAttendanceHistory(schoolId?: string) {
         `,
         )
         .eq("students.school_id", schoolId)
-        .gte("date", thirtyDaysAgo.toISOString().split("T")[0])
+        .gte("date", startDate)
+        .lte("date", endDate)
         .order("date", { ascending: false });
 
       if (error) throw error;
@@ -274,11 +283,11 @@ export function useAttendanceHistory(schoolId?: string) {
       );
     } catch (err) {
       console.error("Error fetching attendance history:", err);
-      return [];
+      throw err;
     } finally {
       setLoading(false);
     }
-  }, [schoolId]);
+  }, [schoolId, academicYear]);
 
   return { getConsecutiveAbsentStudents, loading };
 }

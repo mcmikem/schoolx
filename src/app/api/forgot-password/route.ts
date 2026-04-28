@@ -52,7 +52,8 @@ export async function POST(request: NextRequest) {
 
     // Always return success regardless — prevents user enumeration
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (err) {
+    console.error("[ForgotPassword] Error:", err);
     // Always return 200 — prevents timing/error enumeration
     return NextResponse.json({ ok: true });
   }

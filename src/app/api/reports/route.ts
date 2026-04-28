@@ -42,6 +42,74 @@ function getUNEBDivision(avg: number): string {
   return "Ungraded";
 }
 
+export async function GET(request: NextRequest) {
+  try {
+    const auth = await requireUserWithSchool(request);
+    if (!auth.ok) return auth.response;
+
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: REPORT_ALLOWED_ROLES,
+    });
+    if (!roleCheck.ok) return roleCheck.response;
+
+    const { searchParams } = request.nextUrl;
+    const schoolId = searchParams.get("schoolId") || auth.context.schoolId;
+    const studentId = searchParams.get("studentId");
+    const term = searchParams.get("term") || "1";
+    const academicYear =
+      searchParams.get("academicYear") || new Date().getFullYear().toString();
+    const limit = parseInt(searchParams.get("limit") || "20");
+
+    const scope = assertSchoolScopeOrDeny({
+      userSchoolId: auth.context.schoolId,
+      requestedSchoolId: schoolId,
+    });
+    if (!scope.ok) return scope.response;
+
+    const supabase = createServiceRoleClientOrThrow();
+
+    if (studentId) {
+      const { data: student, error: studentError } = await supabase
+        .from("students")
+        .select("*, classes (id, name, level)")
+        .eq("id", studentId)
+        .single();
+
+      if (studentError || !student) {
+        return apiError("Student not found", 404);
+      }
+
+      if (student.school_id !== schoolId) {
+        return apiError("Student does not belong to the requested school", 403);
+      }
+
+      const { data: grades } = await supabase
+        .from("grades")
+        .select("*, subjects (name, code)")
+        .eq("student_id", studentId)
+        .eq("term", parseInt(term))
+        .eq("academic_year", academicYear);
+
+      return apiSuccess({ student, grades: grades || [] });
+    }
+
+    const { data: students, error: studentsError } = await supabase
+      .from("students")
+      .select("id, full_name, classes (id, name, level)")
+      .eq("school_id", schoolId)
+      .limit(limit);
+
+    if (studentsError) {
+      return apiError("Failed to fetch students", 500);
+    }
+
+    return apiSuccess({ students: students || [] });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireUserWithSchool(request);
@@ -110,14 +178,17 @@ export async function POST(request: NextRequest) {
     const attendanceSummary = {
       total: attendanceRecords?.length || 0,
       present:
-        attendanceRecords?.filter((a: { status: string }) => a.status === "present")
-          .length || 0,
+        attendanceRecords?.filter(
+          (a: { status: string }) => a.status === "present",
+        ).length || 0,
       absent:
-        attendanceRecords?.filter((a: { status: string }) => a.status === "absent")
-          .length || 0,
+        attendanceRecords?.filter(
+          (a: { status: string }) => a.status === "absent",
+        ).length || 0,
       late:
-        attendanceRecords?.filter((a: { status: string }) => a.status === "late")
-          .length || 0,
+        attendanceRecords?.filter(
+          (a: { status: string }) => a.status === "late",
+        ).length || 0,
     };
 
     // Organize grades by subject
