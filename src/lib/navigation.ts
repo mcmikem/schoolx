@@ -90,12 +90,15 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
       defaultOpen: true,
       items: [
         { href: "/dashboard", label: "Dashboard Home", icon: "dashboard" },
-        {
-          href: "/dashboard/analytics/dna",
-          label: "Performance DNA",
-          icon: "biotech",
-          badge: "New",
-        },
+        // Hide unfinished or demo features in production
+        ...(process.env.NODE_ENV !== "production"
+          ? [{
+              href: "/dashboard/analytics/dna",
+              label: "Performance DNA",
+              icon: "biotech",
+              badge: "New",
+            }]
+          : []),
         {
           href: "/dashboard/analytics",
           label: "Insights",
@@ -106,11 +109,13 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           label: "Messages",
           icon: "chat",
         },
-        {
-          href: "/dashboard/suggestions",
-          label: "Suggestions",
-          icon: "lightbulb",
-        },
+        ...(process.env.NODE_ENV !== "production"
+          ? [{
+              href: "/dashboard/suggestions",
+              label: "Suggestions",
+              icon: "lightbulb",
+            }]
+          : []),
       ],
     },
     {
@@ -125,11 +130,13 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           label: "Identity Center",
           icon: "id_card",
         },
-        {
-          href: "/dashboard/students/conduct",
-          label: "Conduct & Merits",
-          icon: "military_tech",
-        },
+        ...(process.env.NODE_ENV !== "production"
+          ? [{
+              href: "/dashboard/students/conduct",
+              label: "Conduct & Merits",
+              icon: "military_tech",
+            }]
+          : []),
         {
           href: "/dashboard/student-enrollments",
           label: "Enrollments",
@@ -227,11 +234,13 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
 
       defaultOpen: false,
       items: [
-        {
-          href: "/dashboard/store/pos",
-          label: "Canteen POS",
-          icon: "shopping_cart",
-        },
+        ...(process.env.NODE_ENV !== "production"
+          ? [{
+              href: "/dashboard/store/pos",
+              label: "Canteen POS",
+              icon: "shopping_cart",
+            }]
+          : []),
         {
           href: "/dashboard/store/inventory",
           label: "Inventory",

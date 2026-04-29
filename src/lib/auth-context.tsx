@@ -6,6 +6,7 @@ import {
   useState,
   ReactNode,
   useCallback,
+  useRef,
 } from "react";
 import { supabase } from "./supabase";
 import { useRouter } from "next/navigation";
@@ -576,47 +577,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [user, router]);
 
-  const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
-  const CHECK_INTERVAL_MS = 60 * 1000; // Check every minute
 
-  // Session timeout - log out after 30 minutes of inactivity
-  useEffect(() => {
-    if (!user || !supabase) return;
 
-    let lastActivity = Date.now();
-    let timeoutId: NodeJS.Timeout;
+  // Use refs to ensure stable references for useEffect deps
+  const SESSION_TIMEOUT_MS_REF = useRef(30 * 60 * 1000); // 30 minutes
+  const CHECK_INTERVAL_MS_REF = useRef(60 * 1000); // Check every minute
 
-    const updateActivity = () => {
-      lastActivity = Date.now();
-    };
 
-    const checkTimeout = async () => {
-      const inactiveMs = Date.now() - lastActivity;
-      if (inactiveMs > SESSION_TIMEOUT_MS) {
-        await signOut();
-      }
-    };
 
-    const events = [
-      "mousedown",
-      "keydown",
-      "scroll",
-      "touchstart",
-      "mousemove",
-    ];
-    events.forEach((event) =>
-      window.addEventListener(event, updateActivity, { passive: true }),
-    );
 
-    timeoutId = setInterval(checkTimeout, CHECK_INTERVAL_MS);
 
-    return () => {
-      clearInterval(timeoutId);
-      events.forEach((event) =>
-        window.removeEventListener(event, updateActivity),
-      );
-    };
-  }, [user, supabase, signOut]);
 
   async function signIn(phone: string, password: string) {
     try {
@@ -745,7 +715,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function signOut() {
+  const signOut = useCallback(async () => {
     // Clear all local state first (before async call) to prevent stale access
     setUser(null);
     setSchool(null);
@@ -761,7 +731,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logger.warn("signOut API call failed, local state already cleared");
     }
     router.push("/login");
-  }
+  }, [router]);
 
   return (
     <AuthContext.Provider
@@ -773,7 +743,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isTrialExpired,
         signIn,
         signUp,
-        signOut,
+        signOut: signOut,
         refreshSchool,
         isSubscriptionActive,
         getSubscriptionPlan,

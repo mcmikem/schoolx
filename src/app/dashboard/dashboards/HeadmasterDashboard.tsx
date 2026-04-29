@@ -87,7 +87,7 @@ function HeadmasterDashboardContent() {
     return `${amount}`;
   };
 
-  const currentDate = new Date();
+  const currentDate = useMemo(() => new Date(), []);
   const greeting =
     currentDate.getHours() < 12
       ? "Good Morning"
@@ -426,7 +426,7 @@ function HeadmasterDashboardContent() {
         kind: "finance",
       },
     ];
-  }, [calendarEvents, currentTerm]);
+  }, [calendarEvents]);
 
   const monthStartDay = calendarAnchor.getDay();
   const daysInMonth = new Date(

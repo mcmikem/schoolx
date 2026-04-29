@@ -555,7 +555,7 @@ function SchoolDetailSheet({
               style={{ background: color }}
             >
               {school.logo_url ? (
-                <img
+                <Image 
                   src={school.logo_url}
                   alt={school.name}
                   className="w-full h-full object-cover"
@@ -1023,7 +1023,7 @@ function SchoolDetailSheet({
                       style={{ background: color }}
                     >
                       {school.logo_url ? (
-                        <img
+                        <Image 
                           src={school.logo_url}
                           alt=""
                           className="w-full h-full object-cover"
@@ -2026,7 +2026,7 @@ export default function SuperAdminPage() {
                               }}
                             >
                               {s.logo_url ? (
-                                <img
+                                <Image 
                                   src={s.logo_url}
                                   alt={s.name}
                                   className="w-full h-full object-cover"
@@ -2322,7 +2322,7 @@ export default function SuperAdminPage() {
                                   }}
                                 >
                                   {s.logo_url ? (
-                                    <img
+                                    <Image 
                                       src={s.logo_url}
                                       alt={s.name}
                                       className="w-full h-full object-cover"

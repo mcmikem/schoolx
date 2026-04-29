@@ -150,8 +150,29 @@ export async function POST(request: NextRequest) {
       return apiError("Student not found", 404);
     }
 
+
+    // Enforce strict role/relationship checks
     if (student.school_id !== schoolId) {
       return apiError("Student does not belong to the requested school", 403);
+    }
+    // Only allow admin, teacher, or parent of student
+    const userRole = auth.context.user.role;
+    const userId = auth.context.user.id;
+    if (
+      ![
+        "super_admin",
+        "school_admin",
+        "admin",
+        "headmaster",
+        "dean_of_studies",
+        "teacher",
+        "secretary",
+      ].includes(userRole)
+    ) {
+      // If parent, must be parent of this student
+      if (!(userRole === "parent" && student.parent_id === userId)) {
+        return apiError("Not authorized to view this student report", 403);
+      }
     }
 
     // Fetch school info
