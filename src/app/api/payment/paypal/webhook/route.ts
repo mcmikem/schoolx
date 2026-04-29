@@ -52,7 +52,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const webhookEvent = JSON.parse(payload);
+    let webhookEvent;
+    try {
+      webhookEvent = JSON.parse(payload);
+    } catch (parseError) {
+      logger.error("Failed to parse PayPal webhook payload", { error: parseError });
+      return NextResponse.json({ error: "Invalid webhook payload" }, { status: 400 });
+    }
     const supabase = await createSupabaseServerClient();
 
     switch (webhookEvent.event_type) {

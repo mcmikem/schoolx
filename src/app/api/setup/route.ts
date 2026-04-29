@@ -419,8 +419,8 @@ export async function POST(request: NextRequest) {
       await supabase.rpc("exec_sql", { sql }); // Errors are handled within the RPC or ignored visually
     }
 
-    // Only seed demo data if explicitly enabled via environment variable
-    const shouldSeedDemo = process.env.SEED_DEMO_DATA === "true";
+    // Only seed demo data if explicitly enabled via environment variable and not in production
+    const shouldSeedDemo = process.env.SEED_DEMO_DATA === "true" && process.env.NODE_ENV !== "production";
     if (shouldSeedDemo) {
       const { seedDemoData } = await import("@/lib/seed-demo");
       const seedResult = await seedDemoData();
@@ -430,7 +430,7 @@ export async function POST(request: NextRequest) {
         results["demo_seeding"] = "Seeded";
       }
     } else {
-      results["demo_seeding"] = "Skipped (not enabled)";
+      results["demo_seeding"] = "Skipped (not enabled or in production)";
     }
 
     return apiSuccess(results, "Setup complete");

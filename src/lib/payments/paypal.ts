@@ -45,6 +45,8 @@ export async function createPayPalOrder(
         // recover the correct payment record even when PayPal omits nested metadata.
         reference_id: schoolId,
         custom_id: schoolId,
+        // Standardize metadata for webhook reconciliation
+        custom: schoolId,
       },
     ],
     application_context: {
