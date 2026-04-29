@@ -247,6 +247,21 @@ export default function TopBar({
       setIsOnline(navigator.onLine);
     }
 
+    function handlePointerDown(event: MouseEvent) {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setUserMenuOpen(false);
+      }
+      if (
+        notifPanelRef.current &&
+        !notifPanelRef.current.contains(event.target as Node)
+      ) {
+        setNotifOpen(false);
+      }
+    }
+
     document.addEventListener("mousedown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     window.addEventListener("online", handleOnlineStatus);

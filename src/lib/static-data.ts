@@ -20,24 +20,24 @@ async function fetchWithCache<T>(
 }
 
 export async function getCachedSubjects(schoolId: string) {
-  return fetchWithCache(`subjects-${schoolId}`, () =>
-    supabase
+  return fetchWithCache(`subjects-${schoolId}`, async () => {
+    const { data } = await supabase
       .from("subjects")
       .select("*")
-      .eq("school_id", schoolId)
-      .then((res) => res.data || []),
-  );
+      .eq("school_id", schoolId);
+    return data || [];
+  });
 }
 
 export async function getCachedClasses(schoolId: string, academicYear: string) {
-  return fetchWithCache(`classes-${schoolId}-${academicYear}`, () =>
-    supabase
+  return fetchWithCache(`classes-${schoolId}-${academicYear}`, async () => {
+    const { data } = await supabase
       .from("classes")
       .select("*")
       .eq("school_id", schoolId)
-      .eq("academic_year", academicYear)
-      .then((res) => res.data || []),
-  );
+      .eq("academic_year", academicYear);
+    return data || [];
+  });
 }
 
 export async function getCachedFeeStructures(
@@ -47,13 +47,14 @@ export async function getCachedFeeStructures(
 ) {
   return fetchWithCache(
     `fee-structure-${schoolId}-${term}-${academicYear}`,
-    () =>
-      supabase
+    async () => {
+      const { data } = await supabase
         .from("fee_structure")
         .select("*")
         .eq("school_id", schoolId)
         .eq("term", term)
-        .eq("academic_year", academicYear)
-        .then((res) => res.data || []),
+        .eq("academic_year", academicYear);
+      return data || [];
+    },
   );
 }

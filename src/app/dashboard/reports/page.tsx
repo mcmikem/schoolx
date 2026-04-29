@@ -408,7 +408,7 @@ export default function ReportsPage() {
           studentY + 7,
         );
 
-        const tableData = reportDataForPDF.subjects.map((s) => [
+        const tableData = reportDataForPDF.subjects.map((s: any) => [
           s.name,
           Math.round(s.totalCA),
           s.exam,

@@ -324,16 +324,14 @@ export default function StudentRegistryPanel({
                     </span>
                     <div className="flex gap-2">
                       <button
-                        onClick={() =>
-                          setCurrentPage((p) => Math.max(1, p - 1))
-                        }
+                        onClick={onPreviousPage}
                         disabled={currentPage === 1}
                         className="btn btn-ghost btn-sm"
                       >
                         Previous
                       </button>
                       <button
-                        onClick={() => setCurrentPage((p) => p + 1)}
+                        onClick={onNextPage}
                         disabled={
                           currentPage >= Math.ceil(filteredTotal / pageSize)
                         }

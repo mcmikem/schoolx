@@ -164,16 +164,17 @@ export default function GradesPage() {
 
   const [gradePage, setGradePage] = useState(1);
   const gradesPerPage = 20;
-  const gradeOffset = (gradePage - 1) * gradesPerPage;
-  const gradeTotalPages = Math.max(
-    1,
-    Math.ceil(filteredStudents.length / gradesPerPage),
-  );
 
   const filteredStudents = useMemo(() => {
     if (!selectedClass) return [];
     return classStudents.filter((s) => s.class_id === selectedClass);
   }, [classStudents, selectedClass]);
+
+  const gradeOffset = (gradePage - 1) * gradesPerPage;
+  const gradeTotalPages = Math.max(
+    1,
+    Math.ceil(filteredStudents.length / gradesPerPage),
+  );
 
   useEffect(() => {
     setGradePage(1);

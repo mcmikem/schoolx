@@ -409,7 +409,7 @@ function DirectoryTab({
   const printStaffIDCard = (member: StaffMember) => {
     const cardWindow = window.open("", "_blank");
     if (!cardWindow) return;
-    const schoolName = school?.name || "School";
+    const schoolName = (school as any)?.name || "School";
     const schoolColor = "#1e40af";
     cardWindow.document.write(`
       <!DOCTYPE html>
