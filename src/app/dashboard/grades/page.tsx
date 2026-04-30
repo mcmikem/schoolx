@@ -6,10 +6,9 @@ import { useAcademic } from "@/lib/academic-context";
 import {
   useClasses,
   useSubjects,
-  useStudents,
-  useGrades,
   useStaff,
 } from "@/lib/hooks";
+import { useOfflineStudents, useOfflineGrades } from "@/lib/offline-hooks";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -23,7 +22,7 @@ import { TableSkeleton, FullPageLoader } from "@/components/ui/Skeleton";
 import { EmptyState, NoData } from "@/components/EmptyState";
 import PersonInitials from "@/components/ui/PersonInitials";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
-import { useOnlineStatus } from "@/lib/offline";
+import { useOnlineStatus, offlineDB } from "@/lib/offline";
 import {
   deriveGradeWorkflowStatus,
   getNextGradeWorkflowStatusActions,
@@ -79,6 +78,46 @@ const ASSESSMENT_MAX: Record<string, number> = {
   exam: 70,
 };
 
+async function saveGrade(grade: {
+  student_id: string;
+  subject_id: string;
+  class_id: string;
+  assessment_type: string;
+  score: number;
+  max_score?: number;
+  term: number;
+  academic_year: string;
+  recorded_by?: string;
+  status?: string;
+  isDemo?: boolean;
+  schoolId?: string;
+}) {
+  const maxScore = grade.max_score || 100;
+  if (grade.score < 0 || grade.score > maxScore) {
+    throw new Error(`Score must be between 0 and ${maxScore}`);
+  }
+  const payload = { ...grade, max_score: maxScore };
+
+  if (grade.isDemo) {
+    return { ...payload, id: `demo-grade-${Date.now()}`, created_at: new Date().toISOString() };
+  }
+
+  if (!navigator.onLine) {
+    await offlineDB.save("grades", payload as unknown as Record<string, unknown>);
+    return { ...payload, id: `offline-grade-${Date.now()}`, created_at: new Date().toISOString() };
+  }
+
+  const { data, error } = await supabase
+    .from("grades")
+    .upsert(payload, {
+      onConflict: "student_id,subject_id,assessment_type,term,academic_year",
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 function getGrade(score: number) {
   if (score >= 80) return { grade: "D1", color: "text-secondary" };
   if (score >= 70) return { grade: "D2", color: "text-secondary" };
@@ -96,7 +135,7 @@ type StudentMarks = Record<string, number | null>;
 type SaveStatus = "idle" | "dirty" | "saving" | "saved";
 
 export default function GradesPage() {
-  const { school, user } = useAuth();
+  const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
   const isOnline = useOnlineStatus();
@@ -130,15 +169,18 @@ export default function GradesPage() {
     approved: "Boss Approved",
     published: "Ready for Parents",
   };
-  const { students: classStudents, loading: studentsLoading } = useStudents(
-    school?.id,
-  );
-  const { grades: existingGrades, saveGrade } = useGrades(
-    selectedClass,
-    selectedSubject,
-    currentTerm,
-    academicYear,
-  );
+  // Offline-aware students and grades
+  const {
+    data: classStudents,
+    loading: studentsLoading,
+    error: studentsError,
+  } = useOfflineStudents(school?.id);
+
+  const {
+    data: existingGrades,
+    loading: gradesLoading,
+    error: gradesError,
+  } = useOfflineGrades(school?.id);
 
   const [inlineEntryMode, setInlineEntryMode] = useState(true);
   const [saveStatuses, setSaveStatuses] = useState<Record<string, SaveStatus>>(
@@ -194,15 +236,15 @@ export default function GradesPage() {
     gradeOffset + gradesPerPage,
   );
 
-  // Initialize marks from existing grades
+  // Initialize marks from existing grades (offline-aware)
   useEffect(() => {
-    if (existingGrades.length > 0) {
+    if ((existingGrades?.length || 0) > 0) {
       const marksMap: StudentMarks = {};
       const newMarksBy: Record<string, { name: string; type: string }> = {};
       let isCaLocked = false;
       let lockedBy = "";
 
-      existingGrades.forEach((g: any) => {
+      (existingGrades || []).forEach((g: any) => {
         marksMap[`${g.student_id}_${g.assessment_type}`] = g.score ?? null;
         if (g.recorded_by) {
           const staffMember = staff.find((s) => s.id === g.recorded_by);
@@ -396,6 +438,8 @@ export default function GradesPage() {
             academic_year: academicYear,
             recorded_by: user?.id,
             status: "draft",
+            isDemo,
+            schoolId: school?.id,
           });
           setSaveStatuses((prev) => ({ ...prev, [key]: "saved" }));
           setTimeout(() => {
@@ -413,12 +457,13 @@ export default function GradesPage() {
     },
     [
       marks,
-      saveGrade,
       selectedSubject,
       selectedClass,
       currentTerm,
       academicYear,
       user?.id,
+      isDemo,
+      school?.id,
       toast,
     ],
   );
@@ -590,6 +635,8 @@ export default function GradesPage() {
           academic_year: academicYear,
           recorded_by: user?.id,
           status,
+          isDemo,
+          schoolId: school?.id,
         });
       }
       setSubmissionStatus(status);

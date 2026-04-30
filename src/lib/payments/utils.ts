@@ -158,21 +158,34 @@ export async function getPendingMobilePayment(
   return data;
 }
 
-// Update pending mobile payment status
+// Update pending mobile payment status with atomic compare-and-swap
+// Returns null if the row was not updated (e.g., already completed by another request)
 export async function updatePendingMobilePayment(
   reference: string,
   status: "pending" | "completed" | "failed" | "expired",
+  expectedCurrentStatus?: string,
 ) {
   const supabase = await createSupabaseServerClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("pending_mobile_payments")
     .update({ status })
     .eq("reference", reference)
     .select()
     .single();
 
-  if (error) throw error;
+  if (expectedCurrentStatus) {
+    query = query.neq("status", "completed");
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      return null;
+    }
+    throw error;
+  }
   return data;
 }
 

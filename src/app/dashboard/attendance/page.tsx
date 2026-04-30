@@ -3,6 +3,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useClasses } from "@/lib/hooks";
+import { useOfflineStudents, useOfflineAttendance } from "@/lib/offline-hooks";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
@@ -66,15 +67,8 @@ export default function AttendancePage() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   });
-  const [students, setStudents] = useState<
-    Array<{
-      id: string;
-      first_name: string;
-      last_name: string;
-      student_number: string;
-    }>
-  >([]);
   const [attendance, setAttendance] = useState<Record<string, string>>({});
+  const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [offlineCount, setOfflineCount] = useState(0);
@@ -142,116 +136,44 @@ export default function AttendancePage() {
     loadOfflineCount();
   }, [loadOfflineCount]);
 
-  useEffect(() => {
-    async function fetchStudents() {
-      if (!selectedClass || !school?.id) return;
+  const {
+    data: offlineStudents,
+    loading: studentsLoading,
+    error: studentsError,
+  } = useOfflineStudents(selectedClass && school?.id ? school.id : undefined);
 
-      try {
-        setLoading(true);
-        let studentsData: any[] = [];
-        let attendanceData: any[] = [];
-
-        if (isDemo) {
-          studentsData = DEMO_STUDENTS.filter(
-            (student) =>
-              student.school_id === school.id &&
-              student.class_id === selectedClass &&
-              student.status === "active",
-          );
-          attendanceData = DEMO_ATTENDANCE.filter(
-            (record) =>
-              record.class_id === selectedClass && record.date === date,
-          );
-        } else if (isOnline) {
-          // Parallelize queries for better performance
-          const [studentsRes, attendanceRes] = await Promise.all([
-            supabase
-              .from("students")
-              .select(
-                "id, first_name, last_name, student_number, class_id, gender, status",
-              )
-              .eq("school_id", school.id)
-              .eq("class_id", selectedClass)
-              .eq("status", "active")
-              .order("first_name"),
-            supabase
-              .from("attendance")
-              .select("student_id, status")
-              .eq("class_id", selectedClass)
-              .eq("date", date),
-          ]);
-
-          if (studentsRes.error) throw studentsRes.error;
-          studentsData = studentsRes.data || [];
-          attendanceData = attendanceRes.data || [];
-
-          // Cache for offline in background
-          offlineDB
-            .cacheFromServer(
-              "students",
-              studentsData as Record<string, unknown>[],
-            )
-            .catch(() => {});
-          offlineDB
-            .cacheFromServer(
-              "attendance",
-              attendanceData as Record<string, unknown>[],
-            )
-            .catch(() => {});
-        } else {
-          studentsData = (await offlineDB.getAllFromCache("students", {
-            school_id: school.id,
-            class_id: selectedClass,
-            status: "active",
-          })) as unknown as Array<{
-            id: string;
-            first_name: string;
-            last_name: string;
-            student_number: string;
-          }>;
-          attendanceData = (await offlineDB.getAllFromCache("attendance", {
-            class_id: selectedClass,
-            date,
-          })) as unknown as Array<{ student_id: string; status: string }>;
-        }
-
-        const attendanceMap: Record<string, string> = {};
-        attendanceData?.forEach(
-          (record: { student_id: string; status: string }) => {
-            attendanceMap[record.student_id] = record.status;
-          },
-        );
-        setStudents(studentsData || []);
-        if (rollCallMode) {
-          const defaulted: Record<string, string> = {};
-          (studentsData || []).forEach((s) => {
-            defaulted[s.id] = attendanceMap[s.id] || "present";
-          });
-          setAttendance(defaulted);
-        } else {
-          setAttendance(attendanceMap);
-        }
-      } catch (err) {
-        console.error("Error fetching students:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchStudents();
-  }, [selectedClass, date, school?.id, isDemo, isOnline, rollCallMode]);
+  const {
+    data: offlineAttendance,
+    loading: attendanceLoading,
+    error: attendanceError,
+  } = useOfflineAttendance(
+    selectedClass && school?.id ? school.id : undefined,
+    date,
+  );
 
   useEffect(() => {
-    if (rollCallMode && students.length > 0) {
-      setAttendance((prev) => {
-        const defaulted: Record<string, string> = {};
-        students.forEach((s) => {
-          defaulted[s.id] = prev[s.id] || "present";
-        });
-        return defaulted;
+    if (!selectedClass || !school?.id) return;
+    setLoading(studentsLoading || attendanceLoading);
+    setStudents(
+      (offlineStudents || []).filter(
+        (student: any) =>
+          student.class_id === selectedClass && student.status === "active",
+      ),
+    );
+    const attendanceMap: Record<string, string> = {};
+    (offlineAttendance || []).forEach((record: any) => {
+      attendanceMap[record.student_id] = record.status;
+    });
+    if (rollCallMode) {
+      const defaulted: Record<string, string> = {};
+      (offlineStudents || []).forEach((s: any) => {
+        defaulted[s.id] = attendanceMap[s.id] || "present";
       });
+      setAttendance(defaulted);
+    } else {
+      setAttendance(attendanceMap);
     }
-  }, [rollCallMode, students]);
+  }, [selectedClass, school?.id, offlineStudents, offlineAttendance, studentsLoading, attendanceLoading, rollCallMode]);
 
   const markAttendance = (studentId: string, status: string) => {
     setAttendance((prev) => ({ ...prev, [studentId]: status }));
@@ -348,7 +270,7 @@ export default function AttendancePage() {
       try {
         const { error } = await supabase
           .from("attendance")
-          .upsert(records, { onConflict: "student_id,date" });
+          .upsert(records as any, { onConflict: "student_id,date" });
 
         if (error) throw error;
         await offlineDB.cacheFromServer(
@@ -383,13 +305,7 @@ export default function AttendancePage() {
   };
 
   const saveOffline = async (
-    records: Array<{
-      student_id: string;
-      class_id: string;
-      date: string;
-      status: string;
-      recorded_by: string;
-    }>,
+    records: Record<string, unknown>[],
   ) => {
     try {
       for (const record of records) {

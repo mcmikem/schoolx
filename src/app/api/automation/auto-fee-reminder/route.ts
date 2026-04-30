@@ -4,7 +4,8 @@ import {
   createServiceRoleClientOrThrow,
   requireExistingSchoolOrDeny,
 } from "@/lib/api-utils";
-import { sendAfricasTalkingSMS } from "@/lib/africas-talking";
+import { requireActiveSubscription } from "@/lib/subscription-guard";
+import { sendAfricasTalkingSMS, checkSmsDailyLimit } from "@/lib/africas-talking";
 
 // Auto Fee Reminder SMS Scheduler
 // Automatically sends SMS reminders to parents with outstanding fees
@@ -20,6 +21,13 @@ export async function POST(request: NextRequest) {
     const { schoolId, triggers } = await request.json();
     const school = await requireExistingSchoolOrDeny({ supabase, schoolId });
     if (!school.ok) return school.response;
+
+    const subCheck = await requireActiveSubscription({
+      supabase,
+      schoolId: school.schoolId,
+      requiredPlan: "starter",
+    });
+    if (!subCheck.ok) return subCheck.response;
 
     // Default triggers (days overdue)
     const reminderTriggers = triggers || [
@@ -141,7 +149,16 @@ export async function POST(request: NextRequest) {
         // Check which triggers apply
         for (const trigger of reminderTriggers) {
           if (daysOverdue >= trigger.days) {
-              // Format the message with variables
+              const withinLimit = await checkSmsDailyLimit(school.schoolId, 1);
+              if (!withinLimit) {
+                results.skipped.push({
+                  studentId: student.id,
+                  name: `${student.first_name} ${student.last_name}`,
+                  reason: "Daily SMS limit reached",
+                });
+                break;
+              }
+
               const message = trigger.message
                 .replace(
                   "{student_name}",

@@ -4,11 +4,19 @@ const config: CapacitorConfig = {
   appId: "com.skoolmate.os",
   appName: "SkoolMate OS",
   webDir: "out",
+  // TODO: Change to staging URL for non-production builds
   server: {
     url: "https://omuto-school-management.vercel.app",
     hostname: "skoolmate.os",
     androidScheme: "https",
     cleartext: true,
+  },
+  android: {
+    allowMixedContent: true,
+    captureInput: true,
+  },
+  ios: {
+    allowsLinkPreview: false,
   },
   plugins: {
     SplashScreen: {

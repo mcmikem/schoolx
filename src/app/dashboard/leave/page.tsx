@@ -3,6 +3,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { useOfflineLeaveRequests } from '@/lib/offline-hooks';
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -35,8 +36,12 @@ export default function LeavePage() {
   const { user, school, isDemo } = useAuth();
   const toast = useToast();
   const isManager = MANAGER_ROLES.includes(user?.role ?? "");
-  const [requests, setRequests] = useState<LeaveRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Offline-aware leave requests
+  const {
+    data: requests = [],
+    loading,
+    error: requestsError,
+  } = useOfflineLeaveRequests(school?.id, user?.id, isManager, { skipCache: isDemo });
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSub] = useState(false);
   const [form, setForm] = useState({
@@ -46,39 +51,7 @@ export default function LeavePage() {
     reason: "",
   });
 
-  const fetchRequests = useCallback(async () => {
-    if (isDemo) {
-      setRequests([]);
-      setLoading(false);
-      return;
-    }
-    if (!school?.id) { setLoading(false); return; }
-    setLoading(true);
-    try {
-      let query = supabase
-        .from("leave_requests")
-        .select("*, users:staff_id(full_name)")
-        .eq("school_id", school.id)
-        .order("created_at", { ascending: false });
-
-      // Non-managers only see their own requests
-      if (!isManager && user?.id) {
-        query = query.eq("staff_id", user.id);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      setRequests((data as LeaveRequest[]) || []);
-    } catch {
-      toast.error("Failed to load leave requests");
-    } finally {
-      setLoading(false);
-    }
-  }, [school?.id, user?.id, isManager, isDemo, toast]);
-
-  useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
+  // Offline hook handles fetching requests
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

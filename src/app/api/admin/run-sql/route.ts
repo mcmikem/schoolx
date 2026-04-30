@@ -12,16 +12,24 @@ export async function POST(req: NextRequest) {
     const cron = requireCronSecretOrDeny(req);
     if (!cron.ok) return cron.response;
 
-    const { sql } = await req.json();
+    const body = await req.json();
 
-    // Supabase doesn't have exec_sql by default, but we can try
-    // This is a simplified approach
+    if (!body?.sql || typeof body.sql !== "string") {
+      return NextResponse.json(
+        { success: false, error: "SQL statement is required" },
+        { status: 400 },
+      );
+    }
+
     return NextResponse.json({
+      success: true,
       message:
-        "Direct SQL execution requires Supabase CLI or manual SQL Editor",
-      sql: sql,
+        "Direct SQL execution requires Supabase CLI or manual SQL Editor. Use the Supabase Dashboard SQL Editor for ad-hoc queries.",
     });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "Invalid request body" },
+      { status: 400 },
+    );
   }
 }

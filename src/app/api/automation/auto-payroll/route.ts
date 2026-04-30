@@ -5,6 +5,7 @@ import {
   createServiceRoleClientOrThrow,
   requireExistingSchoolOrDeny,
 } from "@/lib/api-utils";
+import { requireActiveSubscription } from "@/lib/subscription-guard";
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,6 +17,13 @@ export async function POST(request: NextRequest) {
     const { schoolId, month, year } = await request.json();
     const school = await requireExistingSchoolOrDeny({ supabase, schoolId });
     if (!school.ok) return school.response;
+
+    const subCheck = await requireActiveSubscription({
+      supabase,
+      schoolId: school.schoolId,
+      requiredPlan: "enterprise",
+    });
+    if (!subCheck.ok) return subCheck.response;
 
     const payrollMonth = month || new Date().getMonth() + 1;
     const payrollYear = year || new Date().getFullYear();

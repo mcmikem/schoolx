@@ -14,9 +14,17 @@ const customJestConfig = {
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',
-    '!src/**/_app.tsx',
-    '!src/**/_document.tsx',
+    '!src/app/**/*',
+    '!**/node_modules/**',
   ],
+  coverageThreshold: {
+    global: {
+      branches: 60,
+      functions: 70,
+      lines: 70,
+      statements: 70,
+    },
+  },
 }
 
 module.exports = createJestConfig(customJestConfig)

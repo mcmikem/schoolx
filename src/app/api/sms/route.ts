@@ -7,13 +7,17 @@ import {
   requireUserWithSchool,
   assertSchoolScopeOrDeny,
   assertUserRoleOrDeny,
+  createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
+import { requireActiveSubscription } from "@/lib/subscription-guard";
 import {
   formatUgandaPhone,
   getAfricasTalkingConfig,
   sendAfricasTalkingSMS,
+  checkSmsDailyLimit,
 } from "@/lib/africas-talking";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { validateRequest, smsRequestSchema } from "@/lib/validation";
 
 const { apiKey: AFRICAS_TALKING_API_KEY } = getAfricasTalkingConfig();
 const SMS_ALLOWED_ROLES = [
@@ -25,25 +29,18 @@ const SMS_ALLOWED_ROLES = [
   "secretary",
 ];
 
-interface SMSRequest {
-  phone: string;
-  message: string;
-  schoolId: string;
-  studentId?: string;
-  type: "individual" | "class" | "all";
-}
-
 async function handlePost(request: NextRequest) {
   try {
     const auth = await requireUserWithSchool(request);
     if (!auth.ok) return auth.response;
 
-    const body: SMSRequest = await request.json();
-    const { phone, message, schoolId } = body;
-
-    if (!phone || !message) {
-      return apiError("Phone and message are required", 400);
+    const body = await request.json();
+    const validation = validateRequest(smsRequestSchema, body);
+    if (!validation.success) {
+      return apiError(validation.error, 400);
     }
+
+    const { phone, message, schoolId } = validation.data;
 
     const scope = assertSchoolScopeOrDeny({
       userSchoolId: auth.context.schoolId,
@@ -57,16 +54,24 @@ async function handlePost(request: NextRequest) {
     });
     if (!roleCheck.ok) return roleCheck.response;
 
-    if (typeof phone !== "string" || phone.length < 10 || phone.length > 15) {
-      return apiError("Invalid phone number format", 400);
+    const supabase = createServiceRoleClientOrThrow();
+    const subCheck = await requireActiveSubscription({
+      supabase,
+      schoolId,
+      requiredPlan: "starter",
+    });
+    if (!subCheck.ok) return subCheck.response;
+
+    const withinLimit = await checkSmsDailyLimit(schoolId, 1);
+    if (!withinLimit) {
+      return apiError(
+        "Daily SMS limit reached. Please try again tomorrow or contact support.",
+        429,
+      );
     }
 
-    if (
-      typeof message !== "string" ||
-      message.length === 0 ||
-      message.length > 1000
-    ) {
-      return apiError("Message must be between 1 and 1000 characters", 400);
+    if (!phone) {
+      return apiError("Phone number is required", 400);
     }
 
     const formattedPhone = formatUgandaPhone(phone);
@@ -98,11 +103,12 @@ async function handlePut(request: NextRequest) {
     if (!auth.ok) return auth.response;
 
     const body = await request.json();
-    const { phones, message, schoolId } = body;
-
-    if (!phones || !phones.length || !message) {
-      return apiError("Phone list and message are required", 400);
+    const validation = validateRequest(smsRequestSchema, body);
+    if (!validation.success) {
+      return apiError(validation.error, 400);
     }
+
+    const { phones, message, schoolId } = validation.data;
 
     const scope = assertSchoolScopeOrDeny({
       userSchoolId: auth.context.schoolId,
@@ -116,19 +122,24 @@ async function handlePut(request: NextRequest) {
     });
     if (!roleCheck.ok) return roleCheck.response;
 
-    if (!Array.isArray(phones) || phones.length > 100) {
-      return apiError(
-        "Phone list must be an array with maximum 100 recipients",
-        400,
-      );
+    if (!phones || phones.length === 0) {
+      return apiError("Phone list is required", 400);
     }
 
-    if (
-      typeof message !== "string" ||
-      message.length === 0 ||
-      message.length > 1000
-    ) {
-      return apiError("Message must be between 1 and 1000 characters", 400);
+    const supabase = createServiceRoleClientOrThrow();
+    const subCheck = await requireActiveSubscription({
+      supabase,
+      schoolId,
+      requiredPlan: "starter",
+    });
+    if (!subCheck.ok) return subCheck.response;
+
+    const withinLimit = await checkSmsDailyLimit(schoolId, phones.length);
+    if (!withinLimit) {
+      return apiError(
+        "Daily SMS limit would be exceeded. Please reduce recipients or try again tomorrow.",
+        429,
+      );
     }
 
     const validPhones = phones.filter(

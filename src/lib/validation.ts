@@ -1,459 +1,269 @@
-import type { CreateStudentInput, Student } from "@/types";
+import { z } from 'zod';
 
-// Input sanitization and validation utilities
+export const phoneSchema = z.string()
+  .min(10, 'Phone number must be at least 10 digits')
+  .max(15, 'Phone number must be at most 15 digits')
+  .regex(/^[0-9+\-\s()]+$/, 'Invalid phone number format');
+
+export const smsRequestSchema = z.object({
+  phone: phoneSchema.optional(),
+  phones: z.array(phoneSchema).max(100, 'Maximum 100 recipients').optional(),
+  message: z.string().min(1).max(1000, 'Message must be 1-1000 characters'),
+  schoolId: z.string().uuid('Invalid school ID'),
+  studentId: z.string().uuid().optional(),
+  type: z.enum(['individual', 'class', 'all']),
+}).refine(data => {
+  if (!data.phone && (!data.phones || data.phones.length === 0)) {
+    return { valid: false, error: 'Either phone or phones array is required' };
+  }
+  return { valid: true };
+}, { message: 'Either phone or phones array is required' });
+
+export const feePaymentSchema = z.object({
+  studentId: z.string().uuid(),
+  amount: z.number().positive('Amount must be positive'),
+  paymentMethod: z.enum(['cash', 'mobile_money', 'bank', 'installment']),
+  paymentReference: z.string().optional(),
+  notes: z.string().max(500).optional(),
+  schoolId: z.string().uuid(),
+});
+
+export const studentSchema = z.object({
+  firstName: z.string().min(1).max(100),
+  lastName: z.string().min(1).max(100),
+  gender: z.enum(['M', 'F']),
+  dateOfBirth: z.string(),
+  parentName: z.string().min(1).max(200),
+  parentPhone: phoneSchema,
+  parentPhone2: phoneSchema.optional().nullable(),
+  classId: z.string().uuid(),
+  address: z.string().max(500).optional().nullable(),
+  pleIndexNumber: z.string().max(50).optional().nullable(),
+  schoolId: z.string().uuid(),
+});
+
+export const userSchema = z.object({
+  fullName: z.string().min(1).max(200),
+  phone: phoneSchema,
+  email: z.string().email().optional().nullable(),
+  role: z.enum(['super_admin', 'school_admin', 'admin', 'headmaster', 'dean_of_studies', 'bursar', 'teacher', 'secretary', 'dorm_master', 'board', 'parent']),
+  schoolId: z.string().uuid().optional().nullable(),
+});
+
+export function validateRequest<T>(schema: z.ZodSchema<T>, body: unknown):
+  { success: true; data: T } | { success: false; error: string; errors: z.ZodIssue[] } {
+  const result = schema.safeParse(body);
+  if (result.success) {
+    return { success: true, data: result.data };
+  }
+  return {
+    success: false,
+    error: result.error.issues[0]?.message || 'Invalid request',
+    errors: result.error.issues,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Utility functions (used by tests and throughout the app)
+// ---------------------------------------------------------------------------
 
 export function sanitizeString(input: string): string {
-  if (!input) return ''
-  return input
-    .replace(/<[^>]*>/g, '')
-    .trim()
-    .slice(0, 500)
+  if (!input) return '';
+  let result = String(input).trim();
+  result = result.replace(/<[^>]*>/g, '');
+  if (result.length > 500) result = result.slice(0, 500);
+  return result;
 }
 
 export function sanitizePhone(input: string): string {
-  if (!input) return ''
-  return input.replace(/[^0-9+]/g, '')
-}
-
-export function normalizeAuthPhone(input: string): string {
-  const digits = sanitizePhone(input).replace(/[^0-9]/g, '')
-
-  if (digits.length === 9) return `256${digits}`
-  if (digits.startsWith('0') && digits.length === 10) {
-    return `256${digits.slice(1)}`
-  }
-
-  return digits
+  if (!input) return '';
+  return String(input).replace(/[^\d+]/g, '');
 }
 
 export function sanitizeNumber(input: string): string {
-  if (!input) return ''
-  return input.replace(/[^0-9.-]/g, '')
+  if (!input) return '';
+  return String(input).replace(/[^\d.\-]/g, '');
 }
 
 export function isValidPhone(phone: string): boolean {
-  const cleaned = phone.replace(/[^0-9]/g, '')
-  return cleaned.length >= 10 && cleaned.length <= 15
+  if (!phone) return false;
+  const cleaned = phone.replace(/[^\d+]/g, '');
+  if (cleaned.startsWith('+')) {
+    return cleaned.length >= 10 && cleaned.length <= 15;
+  }
+  if (cleaned.startsWith('256')) {
+    return cleaned.length >= 12 && cleaned.length <= 15;
+  }
+  return cleaned.length >= 9 && cleaned.length <= 13;
 }
 
 export function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(email)
+  if (!email) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-export function isValidDate(date: string): boolean {
-  const parsed = new Date(date)
-  return !isNaN(parsed.getTime())
-}
-
-export function isFutureDate(date: string, today = new Date()): boolean {
-  if (!isValidDate(date)) return false
-  const inputDate = new Date(date)
-  const comparisonDate = new Date(today)
-  inputDate.setHours(0, 0, 0, 0)
-  comparisonDate.setHours(0, 0, 0, 0)
-  return inputDate.getTime() > comparisonDate.getTime()
+export function isValidDate(dateStr: string): boolean {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  return !isNaN(d.getTime());
 }
 
 export function isValidScore(score: number, maxScore = 100): boolean {
-  return score >= 0 && score <= maxScore
+  return score >= 0 && score <= maxScore;
 }
 
-type StudentMutationInput = Partial<CreateStudentInput> &
-  Partial<
-    Pick<
-      Student,
-      | "first_name"
-      | "last_name"
-      | "parent_name"
-      | "parent_phone"
-      | "parent_phone2"
-      | "student_number"
-      | "date_of_birth"
-      | "opening_balance"
-      | "photo_url"
-      | "class_id"
-    >
-  >
-
-export function normalizeStudentInput<T extends StudentMutationInput>(
-  input: T,
-): T {
-  const normalized = { ...input } as T
-
-  if ("first_name" in normalized && typeof normalized.first_name === "string") {
-    normalized.first_name = sanitizeString(normalized.first_name) as T["first_name"]
-  }
-  if ("last_name" in normalized && typeof normalized.last_name === "string") {
-    normalized.last_name = sanitizeString(normalized.last_name) as T["last_name"]
-  }
-  if ("parent_name" in normalized && typeof normalized.parent_name === "string") {
-    normalized.parent_name = sanitizeString(normalized.parent_name) as T["parent_name"]
-  }
-  if ("parent_phone" in normalized && typeof normalized.parent_phone === "string") {
-    normalized.parent_phone = sanitizePhone(normalized.parent_phone) as T["parent_phone"]
-  }
-  if ("parent_phone2" in normalized && typeof normalized.parent_phone2 === "string") {
-    const cleanedPhone = sanitizePhone(normalized.parent_phone2)
-    normalized.parent_phone2 = (cleanedPhone || undefined) as T["parent_phone2"]
-  }
-  if ("student_number" in normalized && typeof normalized.student_number === "string") {
-    const cleanedNumber = sanitizeString(normalized.student_number)
-      .replace(/\s+/g, "")
-      .toUpperCase()
-    normalized.student_number = (cleanedNumber || undefined) as T["student_number"]
-  }
-  if ("date_of_birth" in normalized && typeof normalized.date_of_birth === "string") {
-    normalized.date_of_birth = (
-      normalized.date_of_birth.trim() || undefined
-    ) as T["date_of_birth"]
-  }
-  if ("class_id" in normalized && typeof normalized.class_id === "string") {
-    normalized.class_id = normalized.class_id.trim() as T["class_id"]
-  }
-  if ("photo_url" in normalized && typeof normalized.photo_url === "string") {
-    normalized.photo_url = sanitizeString(normalized.photo_url) as T["photo_url"]
-  }
-  if ("opening_balance" in normalized) {
-    const rawValue = normalized.opening_balance
-    if (typeof rawValue === "string") {
-      const parsed = Number(sanitizeNumber(rawValue))
-      normalized.opening_balance = (
-        Number.isFinite(parsed) ? parsed : 0
-      ) as T["opening_balance"]
-    }
-  }
-
-  return normalized
+export function isFutureDate(dateStr: string, referenceDate = new Date()): boolean {
+  const d = new Date(dateStr);
+  return d > referenceDate;
 }
 
-export function getErrorMessage(
-  error: unknown,
-  fallback = "Something went wrong",
-): string {
-  if (error instanceof Error && error.message) return error.message
-
-  if (typeof error === "object" && error !== null) {
-    const maybeMessage = (error as { message?: unknown }).message
-    if (typeof maybeMessage === "string" && maybeMessage.trim()) {
-      return maybeMessage
-    }
-
-    const maybeError = (error as { error?: unknown }).error
-    if (typeof maybeError === "string" && maybeError.trim()) {
-      return maybeError
-    }
-  }
-
-  if (typeof error === "string" && error.trim()) return error
-  return fallback
+export function normalizeAuthPhone(phone: string): string {
+  if (!phone) return '';
+  const digits = phone.replace(/[^\d]/g, '');
+  if (digits.startsWith('256') && digits.length === 12) return digits;
+  if (digits.length === 9) return '256' + digits;
+  if (digits.length === 10 && digits.startsWith('0')) return '256' + digits.slice(1);
+  return digits;
 }
 
-export function validateStudentInput(
-  input: StudentMutationInput,
-  options?: { partial?: boolean; today?: Date },
-): string[] {
-  const errors: string[] = []
-  const partial = options?.partial ?? false
-
-  const requiredStringFields: Array<[keyof StudentMutationInput, string]> = [
-    ["first_name", "First name is required"],
-    ["last_name", "Last name is required"],
-    ["parent_name", "Parent/Guardian name is required"],
-    ["parent_phone", "Parent phone is required"],
-    ["class_id", "Class is required"],
-  ]
-
-  for (const [field, message] of requiredStringFields) {
-    const value = input[field]
-    if (!partial && (!value || (typeof value === "string" && !value.trim()))) {
-      errors.push(message)
-    }
+export function getErrorMessage(error: unknown, fallback?: string): string {
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object') {
+    if ('message' in error && typeof (error as any).message === 'string') return (error as any).message;
+    if ('error' in error && typeof (error as any).error === 'string') return (error as any).error;
   }
-
-  if (
-    "parent_phone" in input &&
-    input.parent_phone &&
-    !isValidPhone(input.parent_phone)
-  ) {
-    errors.push("Parent phone must be a valid phone number")
-  }
-
-  if (
-    "parent_phone2" in input &&
-    input.parent_phone2 &&
-    !isValidPhone(input.parent_phone2)
-  ) {
-    errors.push("Alternative parent phone must be a valid phone number")
-  }
-
-  if (
-    input.parent_phone &&
-    input.parent_phone2 &&
-    sanitizePhone(input.parent_phone) === sanitizePhone(input.parent_phone2)
-  ) {
-    errors.push("Alternative parent phone must be different from the primary parent phone")
-  }
-
-  if ("date_of_birth" in input && input.date_of_birth) {
-    if (!isValidDate(input.date_of_birth)) {
-      errors.push("Date of birth must be a valid date")
-    } else if (isFutureDate(input.date_of_birth, options?.today)) {
-      errors.push("Date of birth cannot be in the future")
-    }
-  }
-
-  if ("opening_balance" in input && input.opening_balance !== undefined) {
-    if (
-      typeof input.opening_balance !== "number" ||
-      !Number.isFinite(input.opening_balance)
-    ) {
-      errors.push("Opening balance must be a valid number")
-    }
-  }
-
-  return errors
+  return fallback || 'An unexpected error occurred';
 }
 
-type PaymentMutationInput = {
-  student_id?: string
-  amount_paid?: number | string
-  payment_method?: string
-  payment_reference?: string
-  paid_by?: string
-  notes?: string
-  payment_date?: string
+export function normalizeAttendanceInput(input: Record<string, any>): Record<string, any> {
+  return {
+    student_id: String(input.student_id || '').trim(),
+    class_id: String(input.class_id || '').trim(),
+    status: String(input.status || '').trim().toLowerCase(),
+    date: String(input.date || '').trim(),
+    recorded_by: String(input.recorded_by || '').trim(),
+  };
 }
 
-const VALID_PAYMENT_METHODS = new Set([
-  "cash",
-  "mobile_money",
-  "bank",
-  "installment",
-])
-
-const VALID_ATTENDANCE_STATUSES = new Set([
-  "present",
-  "absent",
-  "late",
-  "excused",
-])
-
-export function normalizePaymentInput<T extends PaymentMutationInput>(input: T): T {
-  const normalized = { ...input } as T
-
-  if ("student_id" in normalized && typeof normalized.student_id === "string") {
-    normalized.student_id = normalized.student_id.trim() as T["student_id"]
-  }
-  if (
-    "payment_method" in normalized &&
-    typeof normalized.payment_method === "string"
-  ) {
-    normalized.payment_method = normalized.payment_method
-      .trim()
-      .toLowerCase() as T["payment_method"]
-  }
-  if (
-    "payment_reference" in normalized &&
-    typeof normalized.payment_reference === "string"
-  ) {
-    const cleaned = sanitizeString(normalized.payment_reference)
-      .replace(/\s+/g, "")
-      .toUpperCase()
-    normalized.payment_reference = (cleaned || undefined) as T["payment_reference"]
-  }
-  if ("paid_by" in normalized && typeof normalized.paid_by === "string") {
-    normalized.paid_by = (sanitizeString(normalized.paid_by) ||
-      undefined) as T["paid_by"]
-  }
-  if ("notes" in normalized && typeof normalized.notes === "string") {
-    normalized.notes = (sanitizeString(normalized.notes) ||
-      undefined) as T["notes"]
-  }
-  if ("payment_date" in normalized && typeof normalized.payment_date === "string") {
-    normalized.payment_date = (
-      normalized.payment_date.trim() || undefined
-    ) as T["payment_date"]
-  }
-  if ("amount_paid" in normalized) {
-    const rawValue = normalized.amount_paid
-    if (typeof rawValue === "string") {
-      const parsed = Number(sanitizeNumber(rawValue))
-      normalized.amount_paid = (Number.isFinite(parsed) ? parsed : NaN) as T["amount_paid"]
-    }
-  }
-
-  return normalized
+export function normalizeFeeStructureInput(input: Record<string, any>): Record<string, any> {
+  const amount = typeof input.amount === 'string'
+    ? Number(input.amount.replace(/[^\d.]/g, ''))
+    : Number(input.amount);
+  return {
+    name: String(input.name || '').trim(),
+    class_id: String(input.class_id || '').trim(),
+    amount,
+    term: Number(input.term),
+    academic_year: String(input.academic_year || '').trim(),
+    due_date: String(input.due_date || '').trim(),
+  };
 }
 
-export function validatePaymentInput(
-  input: PaymentMutationInput,
-  options?: { today?: Date },
-): string[] {
-  const errors: string[] = []
-
-  if (!input.student_id?.trim()) {
-    errors.push("Student is required")
-  }
-
-  if (input.amount_paid === undefined || input.amount_paid === null) {
-    errors.push("Amount is required")
-  } else if (
-    typeof input.amount_paid !== "number" ||
-    !Number.isFinite(input.amount_paid)
-  ) {
-    errors.push("Amount must be a valid number")
-  } else if (input.amount_paid <= 0) {
-    errors.push("Amount must be greater than 0")
-  }
-
-  if (!input.payment_method?.trim()) {
-    errors.push("Payment method is required")
-  } else if (!VALID_PAYMENT_METHODS.has(input.payment_method)) {
-    errors.push("Payment method is invalid")
-  }
-
-  if (input.payment_date) {
-    if (!isValidDate(input.payment_date)) {
-      errors.push("Payment date must be a valid date")
-    } else if (isFutureDate(input.payment_date, options?.today)) {
-      errors.push("Payment date cannot be in the future")
-    }
-  }
-
-  return errors
+export function normalizePaymentInput(input: Record<string, unknown>): Record<string, unknown> {
+  const amount = typeof input.amount_paid === 'string'
+    ? Number(input.amount_paid.replace(/[^\d.]/g, ''))
+    : Number(input.amount_paid);
+  const ref = String(input.payment_reference || '').trim();
+  return {
+    student_id: String(input.student_id || '').trim(),
+    amount_paid: amount,
+    payment_method: String(input.payment_method || '').trim().toLowerCase(),
+    payment_reference: ref.replace(/\s+/g, '').toUpperCase(),
+    paid_by: String(input.paid_by || '').trim(),
+    notes: String(input.notes || '').trim(),
+    payment_date: String(input.payment_date || '').trim(),
+  };
 }
 
-type AttendanceMutationInput = {
-  student_id?: string
-  class_id?: string
-  date?: string
-  status?: string
-  recorded_by?: string
-}
-
-export function normalizeAttendanceInput<T extends AttendanceMutationInput>(
-  input: T,
-): T {
-  const normalized = { ...input } as T
-
-  if ("student_id" in normalized && typeof normalized.student_id === "string") {
-    normalized.student_id = normalized.student_id.trim() as T["student_id"]
-  }
-  if ("class_id" in normalized && typeof normalized.class_id === "string") {
-    normalized.class_id = normalized.class_id.trim() as T["class_id"]
-  }
-  if ("recorded_by" in normalized && typeof normalized.recorded_by === "string") {
-    normalized.recorded_by = normalized.recorded_by.trim() as T["recorded_by"]
-  }
-  if ("status" in normalized && typeof normalized.status === "string") {
-    normalized.status = normalized.status.trim().toLowerCase() as T["status"]
-  }
-  if ("date" in normalized && typeof normalized.date === "string") {
-    normalized.date = normalized.date.trim() as T["date"]
-  }
-
-  return normalized
+export function normalizeStudentInput(input: Record<string, any>): Record<string, any> {
+  const balance = typeof input.opening_balance === 'string'
+    ? Number(input.opening_balance.replace(/[^\d.\-]/g, ''))
+    : Number(input.opening_balance);
+  return {
+    first_name: String(input.first_name || '').trim(),
+    last_name: String(input.last_name || '').trim(),
+    parent_name: String(input.parent_name || '').trim(),
+    parent_phone: normalizeAuthPhone(String(input.parent_phone || '')),
+    parent_phone2: normalizeAuthPhone(String(input.parent_phone2 || '')),
+    student_number: String(input.student_number || '').trim().replace(/\s+/g, '').toUpperCase(),
+    class_id: String(input.class_id || '').trim(),
+    opening_balance: isNaN(balance) ? 0 : balance,
+  };
 }
 
 export function validateAttendanceInput(
-  input: AttendanceMutationInput,
-  options?: { today?: Date },
+  input: Record<string, any>,
+  options: { today?: Date } = {},
 ): string[] {
-  const errors: string[] = []
-
-  if (!input.student_id?.trim()) {
-    errors.push("Student is required")
-  }
-  if (!input.class_id?.trim()) {
-    errors.push("Class is required")
-  }
-  if (!input.status?.trim()) {
-    errors.push("Attendance status is required")
-  } else if (!VALID_ATTENDANCE_STATUSES.has(input.status)) {
-    errors.push("Attendance status is invalid")
-  }
-  if (!input.date?.trim()) {
-    errors.push("Attendance date is required")
-  } else if (!isValidDate(input.date)) {
-    errors.push("Attendance date must be a valid date")
-  } else if (isFutureDate(input.date, options?.today)) {
-    errors.push("Attendance date cannot be in the future")
-  }
-
-  return errors
-}
-
-type FeeStructureMutationInput = {
-  name?: string
-  class_id?: string | null
-  amount?: number | string
-  term?: number
-  academic_year?: string
-  due_date?: string
-}
-
-export function normalizeFeeStructureInput<T extends FeeStructureMutationInput>(
-  input: T,
-): T {
-  const normalized = { ...input } as T
-
-  if ("name" in normalized && typeof normalized.name === "string") {
-    normalized.name = sanitizeString(normalized.name) as T["name"]
-  }
-  if ("class_id" in normalized && typeof normalized.class_id === "string") {
-    normalized.class_id = (normalized.class_id.trim() || null) as T["class_id"]
-  }
-  if (
-    "academic_year" in normalized &&
-    typeof normalized.academic_year === "string"
-  ) {
-    normalized.academic_year = sanitizeString(normalized.academic_year) as T["academic_year"]
-  }
-  if ("due_date" in normalized && typeof normalized.due_date === "string") {
-    normalized.due_date = (normalized.due_date.trim() || undefined) as T["due_date"]
-  }
-  if ("amount" in normalized) {
-    const rawValue = normalized.amount
-    if (typeof rawValue === "string") {
-      const parsed = Number(sanitizeNumber(rawValue))
-      normalized.amount = (Number.isFinite(parsed) ? parsed : NaN) as T["amount"]
-    }
-  }
-
-  return normalized
+  const errors: string[] = [];
+  const today = options.today || new Date();
+  if (!input.student_id || String(input.student_id).trim() === '') errors.push('Student is required');
+  if (!input.class_id || String(input.class_id).trim() === '') errors.push('Class is required');
+  const validStatuses = ['present', 'absent', 'late', 'excused'];
+  if (!validStatuses.includes(String(input.status).trim().toLowerCase())) errors.push('Attendance status is invalid');
+  if (input.date && isFutureDate(String(input.date), today)) errors.push('Attendance date cannot be in the future');
+  return errors;
 }
 
 export function validateFeeStructureInput(
-  input: FeeStructureMutationInput,
+  input: Record<string, any>,
 ): string[] {
-  const errors: string[] = []
+  const errors: string[] = [];
+  if (!input.name || String(input.name).trim() === '') errors.push('Fee name is required');
+  const amount = Number(input.amount);
+  if (isNaN(amount) || amount <= 0) errors.push('Amount must be greater than 0');
+  if (![1, 2, 3].includes(Number(input.term))) errors.push('Term must be 1, 2, or 3');
+  if (!input.academic_year || String(input.academic_year).trim() === '') errors.push('Academic year is required');
+  if (input.due_date && !isValidDate(String(input.due_date))) errors.push('Due date must be a valid date');
+  return errors;
+}
 
-  if (!input.name?.trim()) {
-    errors.push("Fee name is required")
+export function validatePaymentInput(
+  input: Record<string, any>,
+  options: { today?: Date } = {},
+): string[] {
+  const errors: string[] = [];
+  const today = options.today || new Date();
+  if (!input.student_id || String(input.student_id).trim() === '') errors.push('Student is required');
+  const amount = Number(input.amount_paid);
+  if (isNaN(amount) || amount <= 0) errors.push('Amount must be greater than 0');
+  const validMethods = ['cash', 'mobile_money', 'bank', 'check'];
+  if (!validMethods.includes(String(input.payment_method).trim().toLowerCase())) errors.push('Payment method is invalid');
+  if (input.payment_date && isFutureDate(String(input.payment_date), today)) errors.push('Payment date cannot be in the future');
+  return errors;
+}
+
+export function validateStudentInput(
+  input: Record<string, any>,
+  options: { partial?: boolean; today?: Date } = {},
+): string[] {
+  const errors: string[] = [];
+  const today = options.today || new Date();
+  const { partial = false } = options;
+
+  if (!partial) {
+    if (!input.first_name || String(input.first_name).trim() === '') errors.push('First name is required');
+    if (!input.last_name || String(input.last_name).trim() === '') errors.push('Last name is required');
+    if (!input.parent_name || String(input.parent_name).trim() === '') errors.push('Parent name is required');
+    if (!input.class_id || String(input.class_id).trim() === '') errors.push('Class is required');
   }
 
-  if (input.amount === undefined || input.amount === null) {
-    errors.push("Amount is required")
-  } else if (typeof input.amount !== "number" || !Number.isFinite(input.amount)) {
-    errors.push("Amount must be a valid number")
-  } else if (input.amount <= 0) {
-    errors.push("Amount must be greater than 0")
+  if (input.parent_phone) {
+    if (!isValidPhone(String(input.parent_phone))) errors.push('Parent phone must be a valid phone number');
   }
 
-  if (input.term === undefined || input.term === null) {
-    errors.push("Term is required")
-  } else if (![1, 2, 3].includes(input.term)) {
-    errors.push("Term must be 1, 2, or 3")
+  if (input.parent_phone2) {
+    const phone2 = String(input.parent_phone2).trim();
+    if (phone2 && !isValidPhone(phone2)) {
+      errors.push('Alternative parent phone must be a valid phone number');
+    } else if (phone2 && normalizeAuthPhone(phone2) === normalizeAuthPhone(String(input.parent_phone))) {
+      errors.push('Alternative parent phone must be different from the primary parent phone');
+    }
   }
 
-  if (!input.academic_year?.trim()) {
-    errors.push("Academic year is required")
+  if (input.date_of_birth && isFutureDate(String(input.date_of_birth), today)) {
+    errors.push('Date of birth cannot be in the future');
   }
 
-  if (input.due_date && !isValidDate(input.due_date)) {
-    errors.push("Due date must be a valid date")
-  }
-
-  return errors
+  return errors;
 }

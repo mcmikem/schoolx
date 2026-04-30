@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useToast } from "@/components/Toast";
+import Image from "next/image";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

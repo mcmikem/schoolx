@@ -9,6 +9,7 @@ import {
   assertUserRoleOrDeny,
   createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
+import { requireActiveSubscription } from "@/lib/subscription-guard";
 
 // Reports are available to school operations and academic leadership roles only;
 // parent/student-facing roles are intentionally excluded from aggregate report access.
@@ -68,6 +69,11 @@ export async function GET(request: NextRequest) {
     if (!scope.ok) return scope.response;
 
     const supabase = createServiceRoleClientOrThrow();
+    const subCheck = await requireActiveSubscription({
+      supabase,
+      schoolId: scope.schoolId,
+    });
+    if (!subCheck.ok) return subCheck.response;
 
     if (studentId) {
       const { data: student, error: studentError } = await supabase
@@ -138,6 +144,12 @@ export async function POST(request: NextRequest) {
       requestedSchoolId: schoolId,
     });
     if (!scope.ok) return scope.response;
+
+    const subCheck = await requireActiveSubscription({
+      supabase,
+      schoolId: scope.schoolId,
+    });
+    if (!subCheck.ok) return subCheck.response;
 
     // Fetch student with class info
     const { data: student, error: studentError } = await supabase

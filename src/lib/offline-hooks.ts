@@ -1,3 +1,23 @@
+// Academic terms hook - offline aware
+export function useOfflineAcademicTerms(schoolId?: string, options?: OfflineHookOptions) {
+  return useOfflineData<any>(
+    'academic_terms',
+    async () => {
+      if (!schoolId) return [];
+      const { data, error } = await supabase
+        .from('academic_terms')
+        .select('*')
+        .eq('school_id', schoolId)
+        .order('academic_year', { ascending: false })
+        .order('term_number');
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+    'academic_terms',
+    schoolId ? { school_id: schoolId } : undefined,
+    options
+  );
+}
 'use client'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from './supabase'
@@ -8,7 +28,6 @@ interface OfflineHookOptions {
   skipCache?: boolean
 }
 
-// Generic offline-aware hook builder
 function useOfflineData<T>(
   table: string,
   fetcher: () => Promise<T[]>,
@@ -43,11 +62,9 @@ function useOfflineData<T>(
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : 'Unknown error'
         console.error(`Error fetching ${table} from server:`, msg)
-        // Fall through to cache
       }
     }
 
-    // Offline or server fetch failed: try cache
     try {
       const cached = await offlineDB.getAllFromCache(cacheKey, stableFilters)
       setData(cached as T[])
@@ -67,7 +84,6 @@ function useOfflineData<T>(
   return { data, loading, error, isFromCache, refetch: fetchData }
 }
 
-// Students hook - offline aware
 export function useOfflineStudents(schoolId?: string, options?: OfflineHookOptions) {
   return useOfflineData<Student>(
     'students',
@@ -88,7 +104,6 @@ export function useOfflineStudents(schoolId?: string, options?: OfflineHookOptio
   )
 }
 
-// Attendance hook - offline aware
 export function useOfflineAttendance(schoolId?: string, date?: string, options?: OfflineHookOptions) {
   return useOfflineData<Attendance>(
     'attendance',
@@ -109,7 +124,6 @@ export function useOfflineAttendance(schoolId?: string, date?: string, options?:
   )
 }
 
-// Grades hook - offline aware
 export function useOfflineGrades(schoolId?: string, options?: OfflineHookOptions) {
   return useOfflineData<Grade>(
     'grades',
@@ -129,7 +143,6 @@ export function useOfflineGrades(schoolId?: string, options?: OfflineHookOptions
   )
 }
 
-// Fees hook - offline aware
 export function useOfflineFees(schoolId?: string, options?: OfflineHookOptions) {
   const [data, setData] = useState<(FeePayment & { fee_structure?: FeeStructure })[]>([])
   const [loading, setLoading] = useState(true)
@@ -183,4 +196,263 @@ export function useOfflineFees(schoolId?: string, options?: OfflineHookOptions) 
   }, [fetchData])
 
   return { data, loading, error, isFromCache, refetch: fetchData }
+}
+
+export function useOfflineHealthRecords(schoolId?: string, options?: OfflineHookOptions) {
+  return useOfflineData<any>(
+    'health_records',
+    async () => {
+      if (!schoolId) return [];
+      const { data, error } = await supabase
+        .from('health_records')
+        .select('*')
+        .eq('school_id', schoolId)
+        .order('admitted_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+    'health_records',
+    schoolId ? { school_id: schoolId } : undefined,
+    options
+  );
+}
+
+export function useOfflineCanteenItems(schoolId?: string, options?: OfflineHookOptions) {
+  return useOfflineData<any>(
+    'canteen_items',
+    async () => {
+      if (!schoolId) return [];
+      const { data, error } = await supabase
+        .from('canteen_items')
+        .select('*')
+        .eq('school_id', schoolId)
+        .order('category', { ascending: true });
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+    'canteen_items',
+    schoolId ? { school_id: schoolId } : undefined,
+    options
+  );
+}
+
+export function useOfflineCanteenOrders(schoolId?: string, options?: OfflineHookOptions) {
+  return useOfflineData<any>(
+    'canteen_orders',
+    async () => {
+      if (!schoolId) return [];
+      const { data, error } = await supabase
+        .from('canteen_orders')
+        .select('*')
+        .eq('school_id', schoolId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+    'canteen_orders',
+    schoolId ? { school_id: schoolId } : undefined,
+    options
+  );
+}
+
+export function useOfflineHomework(schoolId?: string, academicYear?: string, term?: string, classId?: string, options?: OfflineHookOptions) {
+  return useOfflineData<any>(
+    'homework',
+    async () => {
+      if (!schoolId || !academicYear || !term) return [];
+      let query = supabase
+        .from('homework')
+        .select('*, subjects(name), classes(name), users(full_name)')
+        .eq('school_id', schoolId)
+        .eq('academic_year', academicYear)
+        .eq('term', term)
+        .order('due_date', { ascending: false });
+      if (classId) query = query.eq('class_id', classId);
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+    'homework',
+    schoolId && academicYear && term ? (classId ? { school_id: schoolId, academic_year: academicYear, term, class_id: classId } : { school_id: schoolId, academic_year: academicYear, term }) : undefined,
+    options
+  );
+}
+
+export function useOfflineHomeworkSubmissions(homeworkId?: string, schoolId?: string, classId?: string, options?: OfflineHookOptions) {
+  return useOfflineData<any>(
+    'homework_submissions',
+    async () => {
+      if (!homeworkId) return [];
+      const { data, error } = await supabase
+        .from('homework_submissions')
+        .select('*, students(first_name, last_name, classes(name))')
+        .eq('homework_id', homeworkId);
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+    'homework_submissions',
+    homeworkId ? { homework_id: homeworkId } : undefined,
+    options
+  );
+}
+
+export function useOfflineClasses(schoolId?: string, options?: OfflineHookOptions) {
+  return useOfflineData<any>(
+    'classes',
+    async () => {
+      if (!schoolId) return [];
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('school_id', schoolId)
+        .order('name');
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+    'classes',
+    schoolId ? { school_id: schoolId } : undefined,
+    options
+  );
+}
+
+export function useOfflineClassStudentsFull(schoolId?: string, classId?: string, options?: OfflineHookOptions) {
+  return useOfflineData<any>(
+    'students',
+    async () => {
+      if (!schoolId || !classId) return [];
+      const { data, error } = await supabase
+        .from('students')
+        .select('id, first_name, last_name, classes(name)')
+        .eq('school_id', schoolId)
+        .eq('class_id', classId);
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+    'students',
+    schoolId && classId ? { school_id: schoolId, class_id: classId } : undefined,
+    options
+  );
+}
+
+export function useOfflineStudentsBasic(schoolId?: string, status?: string, options?: OfflineHookOptions) {
+  return useOfflineData<any>(
+    'students',
+    async () => {
+      if (!schoolId) return [];
+      let query = supabase
+        .from('students')
+        .select('id, class_id, first_name, last_name, admission_number, status')
+        .eq('school_id', schoolId);
+      if (status) query = query.eq('status', status);
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+    'students',
+    schoolId ? (status ? { school_id: schoolId, status } : { school_id: schoolId }) : undefined,
+    options
+  );
+}
+
+export function useOfflineFeeStructure(schoolId?: string, term?: number, options?: OfflineHookOptions) {
+  return useOfflineData<any>(
+    'fee_structure',
+    async () => {
+      if (!schoolId || !term) return [];
+      const { data, error } = await supabase
+        .from('fee_structure')
+        .select('*')
+        .eq('school_id', schoolId)
+        .eq('term', term);
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+    'fee_structure',
+    schoolId && term ? { school_id: schoolId, term } : undefined,
+    options
+  );
+}
+
+export function useOfflineLeaveRequests(schoolId?: string, staffId?: string, isManager?: boolean, options?: OfflineHookOptions) {
+  return useOfflineData<any>(
+    'leave_requests',
+    async () => {
+      if (!schoolId) return [];
+      let query = supabase
+        .from('leave_requests')
+        .select('*, users:staff_id(full_name)')
+        .eq('school_id', schoolId)
+        .order('created_at', { ascending: false });
+      if (!isManager && staffId) {
+        query = query.eq('staff_id', staffId);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+    'leave_requests',
+    schoolId ? (isManager ? { school_id: schoolId } : { school_id: schoolId, staff_id: staffId }) : undefined,
+    options
+  );
+}
+
+export function useOfflinePromotionHistory(schoolId?: string, options?: OfflineHookOptions) {
+  return useOfflineData<any>(
+    'promotion_history',
+    async () => {
+      if (!schoolId) return [];
+      const { data, error } = await supabase
+        .from('promotion_history')
+        .select('*')
+        .eq('school_id', schoolId)
+        .order('created_at', { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+    'promotion_history',
+    schoolId ? { school_id: schoolId } : undefined,
+    options
+  );
+}
+
+export function useOfflineClassStudents(schoolId?: string, classId?: string, options?: OfflineHookOptions) {
+  return useOfflineData<any>(
+    'students',
+    async () => {
+      if (!schoolId || !classId) return [];
+      const { data, error } = await supabase
+        .from('students')
+        .select('id, first_name, last_name, admission_number')
+        .eq('school_id', schoolId)
+        .eq('class_id', classId)
+        .order('first_name');
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+    'students',
+    schoolId && classId ? { school_id: schoolId, class_id: classId } : undefined,
+    options
+  );
+}
+
+export function useOfflineEvents(schoolId?: string, options?: OfflineHookOptions) {
+  return useOfflineData<any>(
+    'events',
+    async () => {
+      if (!schoolId) return [];
+      const { data, error } = await supabase
+        .from('events')
+        .select('id, title, description, event_type, start_date, end_date')
+        .eq('school_id', schoolId)
+        .order('start_date');
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+    'events',
+    schoolId ? { school_id: schoolId } : undefined,
+    options
+  );
 }

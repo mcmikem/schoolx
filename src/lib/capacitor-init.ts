@@ -66,8 +66,7 @@ async function setupPushNotifications() {
 
     // Listen for token
     PushNotifications.addListener('registration', (token) => {
-      console.log('Push registration success, token:', token.value);
-      // Save token to Supabase
+      console.log('Push registration success');
       savePushToken(token.value);
     });
 

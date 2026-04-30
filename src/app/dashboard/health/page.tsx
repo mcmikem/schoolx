@@ -4,6 +4,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { useOfflineHealthRecords } from "@/lib/offline-hooks";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { cardClassName } from "@/lib/utils";
@@ -37,8 +38,13 @@ const STATUS_BADGE: Record<string, string> = {
 export default function HealthPage() {
   const { school } = useAuth();
   const toast = useToast();
-  const [records, setRecords] = useState<HealthRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Offline-aware health records
+  const {
+    data: records = [],
+    loading,
+    error: recordsError,
+    refetch: refetchRecords,
+  } = useOfflineHealthRecords(school?.id);
   const [saving, setSaving] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [studentSearch, setStudentSearch] = useState("");
@@ -54,26 +60,7 @@ export default function HealthPage() {
     status: "admitted" as "admitted" | "discharged" | "referred",
   });
 
-  const fetchRecords = useCallback(async () => {
-    if (!school?.id) return;
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("health_records")
-      .select("*")
-      .eq("school_id", school.id)
-      .order("admitted_at", { ascending: false })
-      .limit(100);
-    if (error) {
-      toast.error("Failed to load health records");
-    } else {
-      setRecords(data || []);
-    }
-    setLoading(false);
-  }, [school?.id, toast]);
-
-  useEffect(() => {
-    fetchRecords();
-  }, [fetchRecords]);
+  // Offline hook handles data loading; no need for fetchRecords or useEffect
 
   const searchStudents = async (q: string) => {
     setStudentSearch(q);
@@ -126,7 +113,7 @@ export default function HealthPage() {
       setShowAdd(false);
       setForm({ student_id: "", student_name: "", condition: "", severity: "mild", treatment: "", status: "admitted" });
       setStudentSearch("");
-      fetchRecords();
+      refetchRecords();
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "Failed to admit student"));
     } finally {
@@ -147,7 +134,7 @@ export default function HealthPage() {
       toast.error(getErrorMessage(error, "Failed to update record"));
     } else {
       toast.success(referred ? "Student referred to hospital" : "Student discharged");
-      fetchRecords();
+      refetchRecords();
     }
     setDischarging(null);
   };
@@ -158,7 +145,7 @@ export default function HealthPage() {
     try {
       const { error } = await supabase.from("health_records").delete().eq("id", id);
       if (error) throw error;
-      setRecords((prev) => prev.filter((r) => r.id !== id));
+      refetchRecords();
       toast.success("Record deleted");
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "Failed to delete record"));

@@ -54,13 +54,17 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // Idempotency: skip if already completed
         if (pendingPayment.status === "completed") {
           console.log(`Payment ${txRef} already processed, skipping`);
           return NextResponse.json({ success: true, message: "Already processed" });
         }
 
-        await updatePendingMobilePayment(txRef, "completed");
+        const markResult = await updatePendingMobilePayment(txRef, "completed", pendingPayment.status);
+
+        if (!markResult) {
+          console.log(`Payment ${txRef} was already marked completed by another request, skipping`);
+          return NextResponse.json({ success: true, message: "Already processed" });
+        }
 
         await updatePaymentStatus(txRef, "completed", {
           paid_at: new Date().toISOString(),
@@ -91,7 +95,7 @@ export async function POST(request: NextRequest) {
             transactionId: txRef,
           });
         } catch (receiptError) {
-          console.error("Error sending receipt:", receiptError);
+          console.error("Error sending receipt (non-critical):", receiptError);
         }
 
         console.log(

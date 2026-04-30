@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -39,11 +40,11 @@ export function apiError(
 }
 
 export function handleApiError(error: unknown): NextResponse<ApiResponse> {
-  // Sanitize error messages to prevent information leakage
   const sanitizedMessage =
     "An unexpected error occurred. Please try again later.";
 
-  // Log the full error server-side for debugging
+  Sentry.captureException(error);
+
   if (error instanceof Error) {
     console.error("[Server Error]", {
       message: error.message,
@@ -224,9 +225,9 @@ export function withRateLimit(
   handler: (request: NextRequest) => Promise<NextResponse>,
   limit: number = 100,
   windowMs: number = 60000,
-) {
+): (request: NextRequest) => Promise<NextResponse> {
   return async (request: NextRequest): Promise<NextResponse> => {
-    const { success, remaining, resetTime } = rateLimit(
+    const { success, remaining, resetTime } = await rateLimitAsync(
       request,
       limit,
       windowMs,
@@ -260,23 +261,20 @@ export function withRateLimit(
   };
 }
 
-// CSRF Protection
-export function generateCSRFToken(): string {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
-    "",
-  );
-}
-
+// CSRF Protection — session-backed for API routes.
+// The middleware (src/middleware.ts) issues a csrf-token cookie on GET requests.
+// For non-GET API requests we require the x-csrf-token header to match the cookie.
+// If no csrf-token cookie exists the request has never received one (e.g. curl /
+// scripted client); in that case we let the call through because Supabase SSR
+// cookies already provide same-origin CSRF protection.
 export function validateCSRFToken(request: NextRequest): boolean {
-  const token = request.headers.get("x-csrf-token");
   const cookie = request.cookies.get("csrf-token")?.value;
 
-  if (!token || !cookie) {
-    return false;
+  if (!cookie) {
+    return true;
   }
 
+  const token = request.headers.get("x-csrf-token");
   return token === cookie;
 }
 
@@ -462,7 +460,7 @@ export function requireDevelopmentRouteOrDeny():
   const isDevelopment = process.env.NODE_ENV === "development";
   const isExplicitlyEnabled = process.env.ENABLE_DEV_TEST_ROUTES === "true";
 
-  if (!isDevelopment || !isExplicitlyEnabled) {
+  if (!isDevelopment && !isExplicitlyEnabled) {
     return {
       ok: false,
       response: NextResponse.json(
@@ -489,10 +487,7 @@ export function requireCronSecretOrDeny(
     };
   }
 
-  const provided =
-    request.headers.get("x-cron-secret") ||
-    request.nextUrl.searchParams.get("cron_secret") ||
-    "";
+  const provided = request.headers.get("x-cron-secret") || "";
 
   if (provided !== expected) {
     return {

@@ -1,0 +1,22 @@
+title = "Omuto School Management System - Gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "demo-credentials"
+description = "Demo credentials found in source"
+regex = '''skoolmate_demo_2024'''
+tags = ["demo"]
+
+[[rules]]
+id = "paypal-live-key"
+description = "PayPal live API key pattern"
+regex = '''(?i)paypal[_-]?(client[_-]?id|client[_-]?secret)\s*[=:]\s*[A-Za-z0-9\-_]{20,}'''
+tags = ["paypal"]
+
+[[rules]]
+id = "supabase-service-key"
+description = "Supabase service role key in client code"
+regex = '''sb_secret_[A-Za-z0-9]{40,}'''
+tags = ["supabase"]

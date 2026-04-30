@@ -4,6 +4,77 @@
 // Enterprise: UGX 5,500/student/term (unlimited, full features + UNEB)
 // Lifetime: UGX 8-15M one-time (white-label, source code)
 
+export const FEATURE_TIERS = {
+  starter: [
+    "sms",
+    "attendance",
+    "grades",
+    "fees",
+    "basic_reports",
+  ],
+  growth: [
+    "sms",
+    "attendance",
+    "grades",
+    "fees",
+    "basic_reports",
+    "parent_portal",
+    "bulk_sms",
+    "ncdc_syllabus",
+    "lesson_plans",
+    "dorm_transport",
+    "library",
+    "budget",
+    "inventory",
+  ],
+  enterprise: [
+    "sms",
+    "attendance",
+    "grades",
+    "fees",
+    "basic_reports",
+    "parent_portal",
+    "bulk_sms",
+    "ncdc_syllabus",
+    "lesson_plans",
+    "dorm_transport",
+    "library",
+    "budget",
+    "inventory",
+    "uneb_registration",
+    "moes_exports",
+    "payroll",
+    "staff_leave",
+    "ai_insights",
+    "automation",
+    "audit_logs",
+  ],
+  lifetime: [
+    "sms",
+    "attendance",
+    "grades",
+    "fees",
+    "basic_reports",
+    "parent_portal",
+    "bulk_sms",
+    "ncdc_syllabus",
+    "lesson_plans",
+    "dorm_transport",
+    "library",
+    "budget",
+    "inventory",
+    "uneb_registration",
+    "moes_exports",
+    "payroll",
+    "staff_leave",
+    "ai_insights",
+    "automation",
+    "audit_logs",
+    "white_label",
+    "on_premise",
+  ],
+};
+
 export type PlanType =
   | "starter"
   | "growth"
@@ -403,10 +474,22 @@ export function determinePlanFromAmount(
     return "lifetime";
   }
 
-  // Per-term pricing
   if (amount <= 2000) return "starter";
   if (amount <= 3500) return "growth";
   return "enterprise";
+}
+
+export function hasFeatureTier(plan: PlanType, feature: string): boolean {
+  if (plan === "free_trial") return false;
+  return FEATURE_TIERS[plan]?.includes(feature) ?? false;
+}
+
+export function getPlanForFeature(feature: string): PlanType | null {
+  if (FEATURE_TIERS.lifetime.includes(feature)) return "lifetime";
+  if (FEATURE_TIERS.enterprise.includes(feature)) return "enterprise";
+  if (FEATURE_TIERS.growth.includes(feature)) return "growth";
+  if (FEATURE_TIERS.starter.includes(feature)) return "starter";
+  return null;
 }
 
 const subscriptionApi = {

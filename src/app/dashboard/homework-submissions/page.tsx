@@ -1,9 +1,10 @@
 'use client'
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAcademic } from '@/lib/academic-context'
 import { supabase } from '@/lib/supabase'
+import { useOfflineHomework, useOfflineHomeworkSubmissions, useOfflineClasses, useOfflineClassStudentsFull } from '@/lib/offline-hooks';
 import { useToast } from '@/components/Toast'
 import MaterialIcon from '@/components/MaterialIcon'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -27,77 +28,41 @@ export default function HomeworkSubmissionsPage() {
   const { academicYear, currentTerm } = useAcademic()
   const toast = useToast()
   
-  const [homeworks, setHomeworks] = useState<any[]>([])
   const [selectedHomework, setSelectedHomework] = useState<any>(null)
-  const [submissions, setSubmissions] = useState<HomeworkSubmission[]>([])
-  const [loading, setLoading] = useState(true)
   const [classFilter, setClassFilter] = useState('')
-  const [classes, setClasses] = useState<any[]>([])
 
-  const fetchClasses = useCallback(async () => {
-    const { data } = await supabase.from('classes').select('*').eq('school_id', school?.id).order('name')
-    setClasses(data || [])
-  }, [school?.id])
+  // Offline-aware hooks
+  const {
+    data: classes = [],
+    loading: loadingClasses,
+  } = useOfflineClasses(school?.id)
 
-  const fetchHomeworks = useCallback(async () => {
-    setLoading(true)
-    let query = supabase
-      .from('homework')
-      .select('*, subjects(name), classes(name), users(full_name)')
-      .eq('school_id', school?.id)
-      .eq('academic_year', academicYear)
-      .eq('term', currentTerm)
-      .order('due_date', { ascending: false })
+  const {
+    data: homeworks = [],
+    loading: loadingHomeworks,
+  } = useOfflineHomework(school?.id, academicYear, currentTerm, classFilter)
 
-    if (classFilter) {
-      query = query.eq('class_id', classFilter)
-    }
+  const {
+    data: submissionsData = [],
+    loading: loadingSubmissions,
+  } = useOfflineHomeworkSubmissions(selectedHomework?.id, school?.id, selectedHomework?.class_id)
 
-    const { data } = await query
-    setHomeworks(data || [])
-    setLoading(false)
-  }, [school?.id, classFilter, academicYear, currentTerm])
+  const {
+    data: allStudents = [],
+    loading: loadingStudents,
+  } = useOfflineClassStudentsFull(school?.id, selectedHomework?.class_id)
 
-  const fetchSubmissions = useCallback(async () => {
-    if (!selectedHomework) return
-    
-    const { data: submissionsData } = await supabase
-      .from('homework_submissions')
-      .select('*, students(first_name, last_name, classes(name))')
-      .eq('homework_id', selectedHomework.id)
-
-    const { data: allStudents } = await supabase
-      .from('students')
-      .select('id, first_name, last_name, classes(name)')
-      .eq('school_id', school?.id)
-      .eq('class_id', selectedHomework.class_id)
-
-    const submittedIds = new Set(submissionsData?.map(s => s.student_id) || [])
-    const fullList = (allStudents || []).map(student => ({
-      id: submittedIds.has(student.id) ? submissionsData?.find(s => s.student_id === student.id)?.id : null,
-      student_id: student.id,
-      homework_id: selectedHomework.id,
-      status: submittedIds.has(student.id) ? 'submitted' : 'pending',
-      submitted_at: submissionsData?.find(s => s.student_id === student.id)?.submitted_at,
-      marks: submissionsData?.find(s => s.student_id === student.id)?.marks ?? submissionsData?.find(s => s.student_id === student.id)?.marks_obtained,
-      students: student
-    }))
-
-    setSubmissions(fullList as HomeworkSubmission[])
-  }, [selectedHomework, school?.id])
-
-  useEffect(() => {
-    if (school?.id) {
-      fetchClasses()
-      fetchHomeworks()
-    }
-  }, [school?.id, fetchClasses, fetchHomeworks])
-
-  useEffect(() => {
-    if (selectedHomework) {
-      fetchSubmissions()
-    }
-  }, [selectedHomework, fetchSubmissions])
+  // Compose full submissions list
+  const submittedIds = new Set(submissionsData?.map(s => s.student_id) || [])
+  const submissions = (allStudents || []).map(student => ({
+    id: submittedIds.has(student.id) ? submissionsData?.find(s => s.student_id === student.id)?.id : null,
+    student_id: student.id,
+    homework_id: selectedHomework?.id,
+    status: submittedIds.has(student.id) ? 'submitted' : 'pending',
+    submitted_at: submissionsData?.find(s => s.student_id === student.id)?.submitted_at,
+    marks: submissionsData?.find(s => s.student_id === student.id)?.marks ?? submissionsData?.find(s => s.student_id === student.id)?.marks_obtained,
+    students: student
+  }))
 
   const markSubmission = async (submission: any, marks: number, feedback: string) => {
     if (!submission.id) {

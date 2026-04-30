@@ -30,9 +30,9 @@ export async function POST(request: Request) {
 
   try {
     event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
-  } catch (err: any) {
-    console.error(`Webhook signature verification failed: ${err.message}`);
-    return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
+  } catch {
+    console.error("Webhook signature verification failed");
+    return new NextResponse("Webhook signature verification failed", { status: 400 });
   }
 
   // Handle the event
@@ -40,12 +40,8 @@ export async function POST(request: Request) {
     case "checkout.session.completed": {
       const session = event.data.object;
 
-      // Handle successful checkout
-      // This would be used for one-time payments or subscription payments via checkout
       console.log(`Checkout session completed: ${session.id}`);
 
-      // If this is a subscription checkout, we'll handle it via invoice.payment_succeeded
-      // but we can still get the customer and subscription info here
       if (session.mode === "subscription" && session.subscription) {
         try {
           const subscription = (await stripe.subscriptions.retrieve(
@@ -57,7 +53,6 @@ export async function POST(request: Request) {
             id: string;
           };
 
-          // Update school subscription
           await handleSubscriptionChange(session.metadata?.school_id || "", {
             status: mapStripeSubscriptionStatus(subscription.status),
             plan: determinePlanFromPrice(subscription.items.data[0]?.price),
@@ -66,6 +61,10 @@ export async function POST(request: Request) {
           });
         } catch (error) {
           console.error("Error handling checkout session completed:", error);
+          return new NextResponse(
+            JSON.stringify({ error: "Failed to process checkout session" }),
+            { status: 500 },
+          );
         }
       }
 
@@ -75,7 +74,6 @@ export async function POST(request: Request) {
     case "invoice.payment_succeeded": {
       const invoice = event.data.object as Stripe.Invoice;
 
-      // Handle successful recurring subscription payment
       console.log(`Invoice payment succeeded: ${invoice.id}`);
 
       try {
@@ -88,43 +86,59 @@ export async function POST(request: Request) {
           throw new Error("Missing subscription id on paid invoice");
         }
 
-        // Get the subscription to determine the plan
         const subscription = await stripe.subscriptions.retrieve(
           subscriptionId,
           { expand: ["customer", "items.data.price"] },
         );
 
-        // Update school subscription status to active
-        await handleSubscriptionChange(
-          // Get school ID from customer metadata
+        const schoolId =
           invoice.metadata?.school_id ||
-            (subscription.customer as Stripe.Customer)?.metadata?.school_id ||
-            "",
-          {
-            status: "active",
-            plan: determinePlanFromPrice(subscription.items.data[0]?.price),
-            provider: "stripe",
-            subscriptionId: subscription.id,
-          },
-        );
+          (subscription.customer as Stripe.Customer)?.metadata?.school_id ||
+          "";
 
-        // Send payment receipt
-        await sendPaymentReceipt(
-          invoice.metadata?.school_id ||
+        await handleSubscriptionChange(schoolId, {
+          status: "active",
+          plan: determinePlanFromPrice(subscription.items.data[0]?.price),
+          provider: "stripe",
+          subscriptionId: subscription.id,
+        });
+      } catch (error) {
+        console.error("Error handling invoice.payment_succeeded:", error);
+        return new NextResponse(
+          JSON.stringify({ error: "Failed to process invoice payment" }),
+          { status: 500 },
+        );
+      }
+
+      try {
+        const subscriptionId =
+          typeof invoice.parent?.subscription_details?.subscription === "string"
+            ? invoice.parent.subscription_details.subscription
+            : null;
+
+        if (subscriptionId) {
+          const subscription = await stripe.subscriptions.retrieve(
+            subscriptionId,
+            { expand: ["customer", "items.data.price"] },
+          );
+
+          const schoolId =
+            invoice.metadata?.school_id ||
             (subscription.customer as Stripe.Customer)?.metadata?.school_id ||
-            "",
-          {
-            amount: invoice.amount_paid / 100, // Convert from cents
+            "";
+
+          await sendPaymentReceipt(schoolId, {
+            amount: invoice.amount_paid / 100,
             currency: invoice.currency,
             date: new Date(invoice.created * 1000).toISOString(),
             plan: determinePlanFromPrice(subscription.items.data[0]?.price),
             provider: "stripe",
             transactionId: (invoice as unknown as { payment_intent: string })
               .payment_intent as string,
-          },
-        );
+          });
+        }
       } catch (error) {
-        console.error("Error handling invoice.payment_succeeded:", error);
+        console.error("Error sending payment receipt (non-critical):", error);
       }
 
       break;
@@ -133,20 +147,19 @@ export async function POST(request: Request) {
     case "invoice.payment_failed": {
       const invoice = event.data.object as Stripe.Invoice;
 
-      // Handle failed recurring subscription payment
       console.log(`Invoice payment failed: ${invoice.id}`);
 
       try {
-        // Update school subscription status to past_due
         await handleSubscriptionChange(invoice.metadata?.school_id || "", {
           status: "past_due",
           provider: "stripe",
         });
-
-        // Notify administrator (we'll implement this later)
-        console.log(`Payment failed for school ${invoice.metadata?.school_id}`);
       } catch (error) {
         console.error("Error handling invoice.payment_failed:", error);
+        return new NextResponse(
+          JSON.stringify({ error: "Failed to process failed payment" }),
+          { status: 500 },
+        );
       }
 
       break;
@@ -155,7 +168,6 @@ export async function POST(request: Request) {
     case "customer.subscription.created": {
       const subscription = event.data.object;
 
-      // Handle new subscription creation
       console.log(`Subscription created: ${subscription.id}`);
 
       try {
@@ -167,6 +179,10 @@ export async function POST(request: Request) {
         });
       } catch (error) {
         console.error("Error handling customer.subscription.created:", error);
+        return new NextResponse(
+          JSON.stringify({ error: "Failed to process subscription creation" }),
+          { status: 500 },
+        );
       }
 
       break;
@@ -175,7 +191,6 @@ export async function POST(request: Request) {
     case "customer.subscription.updated": {
       const subscription = event.data.object;
 
-      // Handle subscription updates (e.g., plan change)
       console.log(`Subscription updated: ${subscription.id}`);
 
       try {
@@ -187,6 +202,10 @@ export async function POST(request: Request) {
         });
       } catch (error) {
         console.error("Error handling customer.subscription.updated:", error);
+        return new NextResponse(
+          JSON.stringify({ error: "Failed to process subscription update" }),
+          { status: 500 },
+        );
       }
 
       break;
@@ -195,7 +214,6 @@ export async function POST(request: Request) {
     case "customer.subscription.deleted": {
       const subscription = event.data.object;
 
-      // Handle subscription cancellation or ending
       console.log(`Subscription deleted: ${subscription.id}`);
 
       try {
@@ -205,16 +223,19 @@ export async function POST(request: Request) {
         });
       } catch (error) {
         console.error("Error handling customer.subscription.deleted:", error);
+        return new NextResponse(
+          JSON.stringify({ error: "Failed to process subscription deletion" }),
+          { status: 500 },
+        );
       }
 
       break;
     }
 
     default:
-      console.log(`Unhandled event type ${event.type}`);
+      console.log(`Unhandled Stripe event type: ${event.type}`);
   }
 
-  // Return a 200 response to Stripe to acknowledge receipt of the webhook
   return new NextResponse(JSON.stringify({ received: true }), { status: 200 });
 }
 

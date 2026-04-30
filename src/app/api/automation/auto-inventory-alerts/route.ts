@@ -4,7 +4,8 @@ import {
   createServiceRoleClientOrThrow,
   requireExistingSchoolOrDeny,
 } from "@/lib/api-utils";
-import { sendAfricasTalkingSMS } from "@/lib/africas-talking";
+import { requireActiveSubscription } from "@/lib/subscription-guard";
+import { sendAfricasTalkingSMS, checkSmsDailyLimit } from "@/lib/africas-talking";
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,6 +17,13 @@ export async function POST(request: NextRequest) {
     const { schoolId } = await request.json();
     const school = await requireExistingSchoolOrDeny({ supabase, schoolId });
     if (!school.ok) return school.response;
+
+    const subCheck = await requireActiveSubscription({
+      supabase,
+      schoolId: school.schoolId,
+      requiredPlan: "growth",
+    });
+    if (!subCheck.ok) return subCheck.response;
 
     // Get all inventory items (assets) with stock below reorder threshold
     const { data: items, error: itemsError } = await supabase
@@ -108,24 +116,33 @@ export async function POST(request: NextRequest) {
 
         if (phone) {
           try {
-            const smsMessage = `ALERT: ${item.name} stock is low (${currentStock} units). Reorder level: ${reorderLevel}. Please restock.`;
-            const smsResult = await sendAfricasTalkingSMS(phone, smsMessage, {
-              formatUgandaNumber: true,
-            });
-
-            if (smsResult.success) {
-              alertsSent.push({
-                itemId: item.id,
-                name: item.name,
-                channel: "sms",
-                recipient: phone,
-              });
-            } else {
+            const withinLimit = await checkSmsDailyLimit(school.schoolId, 1);
+            if (!withinLimit) {
               errors.push({
                 itemId: item.id,
                 name: item.name,
-                reason: `SMS failed: ${smsResult.error}`,
+                reason: "Daily SMS limit reached",
               });
+            } else {
+              const smsMessage = `ALERT: ${item.name} stock is low (${currentStock} units). Reorder level: ${reorderLevel}. Please restock.`;
+              const smsResult = await sendAfricasTalkingSMS(phone, smsMessage, {
+                formatUgandaNumber: true,
+              });
+
+              if (smsResult.success) {
+                alertsSent.push({
+                  itemId: item.id,
+                  name: item.name,
+                  channel: "sms",
+                  recipient: phone,
+                });
+              } else {
+                errors.push({
+                  itemId: item.id,
+                  name: item.name,
+                  reason: `SMS failed: ${smsResult.error}`,
+                });
+              }
             }
           } catch (smsErr) {
             errors.push({

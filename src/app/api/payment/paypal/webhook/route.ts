@@ -3,6 +3,7 @@ import { verifyPayPalWebhook } from "@/lib/payments/paypal";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
 import { updatePaymentStatus } from "@/lib/payments/utils";
+import { sendPaymentReceipt } from "@/lib/subscription";
 
 export async function POST(request: Request) {
   try {
@@ -63,25 +64,73 @@ export async function POST(request: Request) {
 
     switch (webhookEvent.event_type) {
       case "PAYMENT.SALE.COMPLETED":
-        await handlePayPalPaymentSuccess(webhookEvent.resource, supabase);
+        try {
+          await handlePayPalPaymentSuccess(webhookEvent.resource, supabase);
+        } catch (error) {
+          logger.error("Failed to handle PAYMENT.SALE.COMPLETED", { error });
+          return NextResponse.json(
+            { error: "Failed to process payment success" },
+            { status: 500 },
+          );
+        }
         break;
       case "PAYMENT.SALE.DENIED":
-        await handlePayPalPaymentFailure(webhookEvent.resource, supabase);
+        try {
+          await handlePayPalPaymentFailure(webhookEvent.resource, supabase);
+        } catch (error) {
+          logger.error("Failed to handle PAYMENT.SALE.DENIED", { error });
+          return NextResponse.json(
+            { error: "Failed to process payment failure" },
+            { status: 500 },
+          );
+        }
         break;
       case "BILLING.SUBSCRIPTION.ACTIVATED":
-        await handlePayPalSubscriptionActivated(webhookEvent.resource, supabase);
+        try {
+          await handlePayPalSubscriptionActivated(webhookEvent.resource, supabase);
+        } catch (error) {
+          logger.error("Failed to handle BILLING.SUBSCRIPTION.ACTIVATED", { error });
+          return NextResponse.json(
+            { error: "Failed to process subscription activation" },
+            { status: 500 },
+          );
+        }
         break;
       case "BILLING.SUBSCRIPTION.CANCELLED":
-        await handlePayPalSubscriptionCancelled(webhookEvent.resource, supabase);
+        try {
+          await handlePayPalSubscriptionCancelled(webhookEvent.resource, supabase);
+        } catch (error) {
+          logger.error("Failed to handle BILLING.SUBSCRIPTION.CANCELLED", { error });
+          return NextResponse.json(
+            { error: "Failed to process subscription cancellation" },
+            { status: 500 },
+          );
+        }
         break;
       case "BILLING.SUBSCRIPTION.SUSPENDED":
-        await handlePayPalSubscriptionSuspended(webhookEvent.resource, supabase);
+        try {
+          await handlePayPalSubscriptionSuspended(webhookEvent.resource, supabase);
+        } catch (error) {
+          logger.error("Failed to handle BILLING.SUBSCRIPTION.SUSPENDED", { error });
+          return NextResponse.json(
+            { error: "Failed to process subscription suspension" },
+            { status: 500 },
+          );
+        }
         break;
       case "BILLING.SUBSCRIPTION.PAYMENT.FAILED":
-        await handlePayPalSubscriptionPaymentFailed(
-          webhookEvent.resource,
-          supabase,
-        );
+        try {
+          await handlePayPalSubscriptionPaymentFailed(
+            webhookEvent.resource,
+            supabase,
+          );
+        } catch (error) {
+          logger.error("Failed to handle BILLING.SUBSCRIPTION.PAYMENT.FAILED", { error });
+          return NextResponse.json(
+            { error: "Failed to process subscription payment failure" },
+            { status: 500 },
+          );
+        }
         break;
       default:
         logger.warn("Unhandled PayPal event type", {
@@ -103,39 +152,49 @@ async function handlePayPalPaymentSuccess(
   payment: any,
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
 ) {
+  const schoolId = await resolveSchoolIdFromPayPalResource(payment, supabase);
+  if (!schoolId) {
+    throw new Error("No school ID found in PayPal payment resource");
+  }
+
+  const { data: school, error } = await supabase
+    .from("schools")
+    .select("id")
+    .eq("id", schoolId)
+    .single();
+
+  if (error || !school) {
+    throw new Error(`School not found for PayPal payment: ${schoolId}`);
+  }
+
+  await supabase
+    .from("schools")
+    .update({
+      subscription_status: "active",
+      subscription_plan: determinePlanFromAmount(
+        Number(payment?.amount?.total || 0),
+      ),
+      last_payment_at: new Date().toISOString(),
+    })
+    .eq("id", school.id);
+
+  await markMatchingPayments(payment, "completed");
+  logger.log(`PayPal payment successful for school ${school.id}`);
+
   try {
-    const schoolId = await resolveSchoolIdFromPayPalResource(payment, supabase);
-    if (!schoolId) {
-      logger.error("No school ID found in PayPal payment");
-      return;
-    }
-
-    const { data: school, error } = await supabase
-      .from("schools")
-      .select("id")
-      .eq("id", schoolId)
-      .single();
-
-    if (error || !school) {
-      logger.error("Error finding school for PayPal payment", { error, schoolId });
-      return;
-    }
-
-    await supabase
-      .from("schools")
-      .update({
-        subscription_status: "active",
-        subscription_plan: determinePlanFromAmount(
-          Number(payment?.amount?.total || 0),
-        ),
-        last_payment_at: new Date().toISOString(),
-      })
-      .eq("id", school.id);
-
-    await markMatchingPayments(payment, "completed");
-    logger.log(`PayPal payment successful for school ${school.id}`);
-  } catch (error) {
-    logger.error("Error handling PayPal payment success", { error });
+    await sendPaymentReceipt(school.id, {
+      amount: Number(payment?.amount?.total || 0),
+      currency: payment?.amount?.currency || "USD",
+      date: new Date().toISOString(),
+      plan: determinePlanFromAmount(Number(payment?.amount?.total || 0)),
+      provider: "paypal",
+      transactionId: payment?.id || payment?.sale_id || "",
+    });
+  } catch (receiptError) {
+    logger.warn("Failed to send PayPal receipt (non-critical)", {
+      schoolId: school.id,
+      error: receiptError,
+    });
   }
 }
 
@@ -143,194 +202,152 @@ async function handlePayPalPaymentFailure(
   payment: any,
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
 ) {
-  try {
-    const schoolId = await resolveSchoolIdFromPayPalResource(payment, supabase);
-    if (!schoolId) {
-      logger.error("No school ID found in PayPal payment");
-      return;
-    }
-
-    const { data: school, error } = await supabase
-      .from("schools")
-      .select("id")
-      .eq("id", schoolId)
-      .single();
-
-    if (error || !school) {
-      logger.error("Error finding school for PayPal payment", { error, schoolId });
-      return;
-    }
-
-    await supabase
-      .from("schools")
-      .update({
-        subscription_status: "past_due",
-        last_payment_attempt: new Date().toISOString(),
-      })
-      .eq("id", school.id);
-
-    await markMatchingPayments(payment, "failed");
-    logger.log(`PayPal payment failed for school ${school.id}`);
-  } catch (error) {
-    logger.error("Error handling PayPal payment failure", { error });
+  const schoolId = await resolveSchoolIdFromPayPalResource(payment, supabase);
+  if (!schoolId) {
+    throw new Error("No school ID found in PayPal payment resource");
   }
+
+  const { data: school, error } = await supabase
+    .from("schools")
+    .select("id")
+    .eq("id", schoolId)
+    .single();
+
+  if (error || !school) {
+    throw new Error(`School not found for PayPal payment: ${schoolId}`);
+  }
+
+  await supabase
+    .from("schools")
+    .update({
+      subscription_status: "past_due",
+      last_payment_attempt: new Date().toISOString(),
+    })
+    .eq("id", school.id);
+
+  await markMatchingPayments(payment, "failed");
+  logger.log(`PayPal payment failed for school ${school.id}`);
 }
 
 async function handlePayPalSubscriptionActivated(
   subscription: any,
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
 ) {
-  try {
-    const schoolId = await resolveSchoolIdFromPayPalResource(subscription, supabase);
-    if (!schoolId) {
-      logger.error("No school ID found in PayPal subscription");
-      return;
-    }
-
-    const { data: school, error } = await supabase
-      .from("schools")
-      .select("id")
-      .eq("id", schoolId)
-      .single();
-
-    if (error || !school) {
-      logger.error("Error finding school for PayPal subscription", {
-        error,
-        schoolId,
-      });
-      return;
-    }
-
-    await supabase
-      .from("schools")
-      .update({
-        paypal_subscription_id: subscription.id,
-        subscription_status: "active",
-        subscription_plan: determinePlanFromPlanId(subscription.plan_id),
-      })
-      .eq("id", school.id);
-
-    logger.log(`PayPal subscription activated for school ${school.id}`);
-  } catch (error) {
-    logger.error("Error handling PayPal subscription activated", { error });
+  const schoolId = await resolveSchoolIdFromPayPalResource(subscription, supabase);
+  if (!schoolId) {
+    throw new Error("No school ID found in PayPal subscription resource");
   }
+
+  const { data: school, error } = await supabase
+    .from("schools")
+    .select("id")
+    .eq("id", schoolId)
+    .single();
+
+  if (error || !school) {
+    throw new Error(`School not found for PayPal subscription: ${schoolId}`);
+  }
+
+  await supabase
+    .from("schools")
+    .update({
+      paypal_subscription_id: subscription.id,
+      subscription_status: "active",
+      subscription_plan: determinePlanFromPlanId(subscription.plan_id),
+    })
+    .eq("id", school.id);
+
+  logger.log(`PayPal subscription activated for school ${school.id}`);
 }
 
 async function handlePayPalSubscriptionCancelled(
   subscription: any,
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
 ) {
-  try {
-    const schoolId = await resolveSchoolIdFromPayPalResource(subscription, supabase);
-    if (!schoolId) {
-      logger.error("No school ID found in PayPal subscription");
-      return;
-    }
-
-    const { data: school, error } = await supabase
-      .from("schools")
-      .select("id")
-      .eq("id", schoolId)
-      .single();
-
-    if (error || !school) {
-      logger.error("Error finding school for PayPal subscription", {
-        error,
-        schoolId,
-      });
-      return;
-    }
-
-    await supabase
-      .from("schools")
-      .update({
-        subscription_status: "expired",
-        subscription_plan: "free_trial",
-        paypal_subscription_id: null,
-      })
-      .eq("id", school.id);
-
-    logger.log(`PayPal subscription cancelled for school ${school.id}`);
-  } catch (error) {
-    logger.error("Error handling PayPal subscription cancelled", { error });
+  const schoolId = await resolveSchoolIdFromPayPalResource(subscription, supabase);
+  if (!schoolId) {
+    throw new Error("No school ID found in PayPal subscription resource");
   }
+
+  const { data: school, error } = await supabase
+    .from("schools")
+    .select("id")
+    .eq("id", schoolId)
+    .single();
+
+  if (error || !school) {
+    throw new Error(`School not found for PayPal subscription: ${schoolId}`);
+  }
+
+  await supabase
+    .from("schools")
+    .update({
+      subscription_status: "expired",
+      subscription_plan: "free_trial",
+      paypal_subscription_id: null,
+    })
+    .eq("id", school.id);
+
+  logger.log(`PayPal subscription cancelled for school ${school.id}`);
 }
 
 async function handlePayPalSubscriptionSuspended(
   subscription: any,
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
 ) {
-  try {
-    const schoolId = await resolveSchoolIdFromPayPalResource(subscription, supabase);
-    if (!schoolId) {
-      logger.error("No school ID found in PayPal subscription");
-      return;
-    }
-
-    const { data: school, error } = await supabase
-      .from("schools")
-      .select("id")
-      .eq("id", schoolId)
-      .single();
-
-    if (error || !school) {
-      logger.error("Error finding school for PayPal subscription", {
-        error,
-        schoolId,
-      });
-      return;
-    }
-
-    await supabase
-      .from("schools")
-      .update({
-        subscription_status: "past_due",
-      })
-      .eq("id", school.id);
-
-    logger.log(`PayPal subscription suspended for school ${school.id}`);
-  } catch (error) {
-    logger.error("Error handling PayPal subscription suspended", { error });
+  const schoolId = await resolveSchoolIdFromPayPalResource(subscription, supabase);
+  if (!schoolId) {
+    throw new Error("No school ID found in PayPal subscription resource");
   }
+
+  const { data: school, error } = await supabase
+    .from("schools")
+    .select("id")
+    .eq("id", schoolId)
+    .single();
+
+  if (error || !school) {
+    throw new Error(`School not found for PayPal subscription: ${schoolId}`);
+  }
+
+  await supabase
+    .from("schools")
+    .update({
+      subscription_status: "past_due",
+    })
+    .eq("id", school.id);
+
+  logger.log(`PayPal subscription suspended for school ${school.id}`);
 }
 
 async function handlePayPalSubscriptionPaymentFailed(
   subscription: any,
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
 ) {
-  try {
-    const schoolId = await resolveSchoolIdFromPayPalResource(subscription, supabase);
-    if (!schoolId) {
-      logger.error("No school ID found in PayPal subscription");
-      return;
-    }
-
-    const { data: school, error } = await supabase
-      .from("schools")
-      .select("id")
-      .eq("id", schoolId)
-      .single();
-
-    if (error || !school) {
-      logger.error("Error finding school for PayPal subscription", {
-        error,
-        schoolId,
-      });
-      return;
-    }
-
-    await supabase
-      .from("schools")
-      .update({
-        subscription_status: "past_due",
-        last_payment_attempt: new Date().toISOString(),
-      })
-      .eq("id", school.id);
-
-    logger.log(`PayPal subscription payment failed for school ${school.id}`);
-  } catch (error) {
-    logger.error("Error handling PayPal subscription payment failed", { error });
+  const schoolId = await resolveSchoolIdFromPayPalResource(subscription, supabase);
+  if (!schoolId) {
+    throw new Error("No school ID found in PayPal subscription resource");
   }
+
+  const { data: school, error } = await supabase
+    .from("schools")
+    .select("id")
+    .eq("id", schoolId)
+    .single();
+
+  if (error || !school) {
+    throw new Error(`School not found for PayPal subscription: ${schoolId}`);
+  }
+
+  await supabase
+    .from("schools")
+    .update({
+      subscription_status: "past_due",
+      last_payment_attempt: new Date().toISOString(),
+    })
+    .eq("id", school.id);
+
+  logger.log(`PayPal subscription payment failed for school ${school.id}`);
 }
 
 function getPayPalResourceCandidates(resource: any): string[] {

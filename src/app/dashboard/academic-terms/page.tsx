@@ -4,6 +4,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { useOfflineAcademicTerms } from '@/lib/offline-hooks';
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -26,8 +27,12 @@ interface AcademicTerm {
 export default function AcademicTermsPage() {
   const { school, user } = useAuth();
   const toast = useToast();
-  const [terms, setTerms] = useState<AcademicTerm[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Offline-aware academic terms
+  const {
+    data: terms = [],
+    loading,
+    error: termsError,
+  } = useOfflineAcademicTerms(school?.id);
   const [showModal, setShowModal] = useState(false);
   const [editingTerm, setEditingTerm] = useState<AcademicTerm | null>(null);
   const canManageTerms = user?.role === "headmaster";
@@ -42,45 +47,7 @@ export default function AcademicTermsPage() {
     is_active: true,
   });
 
-  const fetchTerms = useCallback(async () => {
-    if (!school?.id) return;
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("academic_terms")
-      .select("*")
-      .eq("school_id", school.id)
-      .order("academic_year", { ascending: false })
-      .order("term_number");
-
-    if (error) {
-      toast.error("Failed to load terms");
-    } else {
-      setTerms(data || []);
-    }
-    setLoading(false);
-  }, [school?.id, toast]);
-
-  const loadUgandaDefaultTerms = useCallback(async () => {
-    if (!school?.id || !canManageTerms) return;
-    const year = new Date().getFullYear().toString();
-    const defaults = [
-      { term_number: 1, name: "Term 1", code: `T1-${year}`, start_date: `${year}-02-01`, end_date: `${year}-04-30`, is_active: true },
-      { term_number: 2, name: "Term 2", code: `T2-${year}`, start_date: `${year}-05-26`, end_date: `${year}-08-15`, is_active: false },
-      { term_number: 3, name: "Term 3", code: `T3-${year}`, start_date: `${year}-09-08`, end_date: `${year}-12-05`, is_active: false },
-    ];
-    const rows = defaults.map((t) => ({ ...t, school_id: school.id, academic_year: year, is_current: t.term_number === 1 }));
-    const { error } = await supabase.from("academic_terms").upsert(rows, { onConflict: "school_id,code" });
-    if (error) {
-      toast.error("Failed to load default terms");
-    } else {
-      toast.success("Uganda default terms loaded");
-      fetchTerms();
-    }
-  }, [school?.id, canManageTerms, toast, fetchTerms]);
-
-  useEffect(() => {
-    if (school?.id) fetchTerms();
-  }, [school?.id, fetchTerms]);
+  // Offline hook handles fetching terms
 
   const handleSubmit = async () => {
     if (!school?.id || !canManageTerms) return;

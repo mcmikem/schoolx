@@ -3,6 +3,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { useOfflinePromotionHistory, useOfflineClassStudents } from '@/lib/offline-hooks';
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -23,41 +24,26 @@ export default function PromotionPage() {
   const { school } = useAuth();
   const toast = useToast();
   const { classes } = useClasses(school?.id);
-  const [students, setStudents] = useState<any[]>([]);
+  // Offline-aware students in selected class
+  const {
+    data: students = [],
+    loading: studentsLoading,
+    error: studentsError,
+  } = useOfflineClassStudents(school?.id, selectedClass);
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
   const [targetClass, setTargetClass] = useState("");
   const [promotionType, setPromotionType] = useState<"promoted" | "repeating" | "demoted">("promoted");
   const [promoting, setPromoting] = useState(false);
-  const [history, setHistory] = useState<PromotionRecord[]>([]);
+  // Offline-aware promotion history
+  const {
+    data: history = [],
+    loading: historyLoading,
+    error: historyError,
+  } = useOfflinePromotionHistory(school?.id);
   const [loadingStudents, setLoadingStudents] = useState(false);
 
-  const fetchHistory = useCallback(async () => {
-    if (!school?.id) return;
-    const { data } = await supabase
-      .from("promotion_history")
-      .select("*")
-      .eq("school_id", school.id)
-      .order("created_at", { ascending: false })
-      .limit(30);
-    setHistory(data || []);
-  }, [school?.id]);
-
-  useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
-
-  useEffect(() => {
-    if (!selectedClass || !school?.id) { setStudents([]); return; }
-    setLoadingStudents(true);
-    supabase
-      .from("students")
-      .select("id, first_name, last_name, admission_number")
-      .eq("school_id", school.id)
-      .eq("class_id", selectedClass)
-      .order("first_name")
-      .then(({ data }) => { setStudents(data || []); setLoadingStudents(false); });
-  }, [selectedClass, school?.id]);
+  // Offline hooks handle fetching students and history
 
   const toggleStudent = (id: string) => {
     setSelectedStudents((prev) => {

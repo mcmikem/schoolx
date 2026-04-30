@@ -3,6 +3,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { useOfflineCanteenItems, useOfflineCanteenOrders } from "@/lib/offline-hooks";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useToast } from "@/components/Toast";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -33,9 +34,22 @@ export default function CanteenPage() {
   const { school, isDemo } = useAuth();
   const toast = useToast();
 
-  const [items, setItems] = useState<CanteenItem[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Offline-aware canteen items and orders
+  const {
+    data: items = [],
+    loading: itemsLoading,
+    error: itemsError,
+    refetch: refetchItems,
+  } = useOfflineCanteenItems(school?.id);
+
+  const {
+    data: orders = [],
+    loading: ordersLoading,
+    error: ordersError,
+    refetch: refetchOrders,
+  } = useOfflineCanteenOrders(school?.id);
+
+  const loading = itemsLoading || ordersLoading;
   const [activeTab, setActiveTab] = useState<"orders" | "inventory">("orders");
   const [showAddItem, setShowAddItem] = useState(false);
   const [newItem, setNewItem] = useState({
@@ -46,109 +60,7 @@ export default function CanteenPage() {
     unit: "pieces",
   });
 
-  const loadData = useCallback(async () => {
-    if (!school?.id) {
-      return;
-    }
-    if (isDemo) {
-      setItems([
-        {
-          id: "1",
-          name: "Chapati",
-          category: "food",
-          price: 1000,
-          stock: 45,
-          unit: "pieces",
-          active: true,
-        },
-        {
-          id: "2",
-          name: "Mandazi",
-          category: "snack",
-          price: 500,
-          stock: 12,
-          unit: "pieces",
-          active: true,
-        },
-        {
-          id: "3",
-          name: "Soda (300ml)",
-          category: "drink",
-          price: 1500,
-          stock: 8,
-          unit: "liters",
-          active: true,
-        },
-        {
-          id: "4",
-          name: "Rice & Beans",
-          category: "food",
-          price: 3500,
-          stock: 20,
-          unit: "pieces",
-          active: true,
-        },
-      ]);
-      setOrders([
-        {
-          id: "ORD-1",
-          student_id: "s1",
-          total: 4500,
-          status: "completed",
-          created_at: new Date().toISOString(),
-          student_name: "Isaac Mugisha",
-          items: [],
-        },
-        {
-          id: "ORD-2",
-          student_id: "s2",
-          total: 1000,
-          status: "pending",
-          created_at: new Date().toISOString(),
-          student_name: "Sarah Jane",
-          items: [],
-        },
-        {
-          id: "ORD-3",
-          student_id: "s3",
-          total: 2000,
-          status: "preparing",
-          created_at: new Date().toISOString(),
-          student_name: "John Doe",
-          items: [],
-        },
-      ]);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { data: itemsData, error: itemsError } = await supabase
-        .from("canteen_items")
-        .select("*")
-        .eq("school_id", school.id)
-        .order("category", { ascending: true });
-
-      const { data: ordersData, error: ordersError } = await supabase
-        .from("canteen_orders")
-        .select("*")
-        .eq("school_id", school.id)
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      setItems(itemsData || []);
-      setOrders(ordersData || []);
-    } catch (err) {
-      console.error("Error loading canteen data:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [school, isDemo]);
-
-  useEffect(() => {
-    if (school?.id) loadData();
-  }, [school?.id, loadData]);
+  // Offline hooks handle data loading; no need for loadData or useEffect
 
   const handleAddItem = async () => {
     if (!school?.id || !newItem.name || !newItem.price) {
@@ -177,7 +89,7 @@ export default function CanteenPage() {
         stock: "",
         unit: "pieces",
       });
-      loadData();
+      refetchItems();
     } catch (err) {
       toast.error("Failed to add item");
     }
@@ -185,13 +97,12 @@ export default function CanteenPage() {
 
   const updateStock = async (itemId: string, newStock: number) => {
     try {
-      await supabase
+      const { error } = await supabase
         .from("canteen_items")
         .update({ stock: newStock })
         .eq("id", itemId);
-      setItems(
-        items.map((i) => (i.id === itemId ? { ...i, stock: newStock } : i)),
-      );
+      if (error) throw error;
+      refetchItems();
     } catch (err) {
       toast.error("Failed to update stock");
     }
@@ -199,15 +110,12 @@ export default function CanteenPage() {
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
-      await supabase
+      const { error } = await supabase
         .from("canteen_orders")
         .update({ status })
         .eq("id", orderId);
-      setOrders(
-        orders.map((o) =>
-          o.id === orderId ? { ...o, status: status as Order["status"] } : o,
-        ),
-      );
+      if (error) throw error;
+      refetchOrders();
     } catch (err) {
       toast.error("Failed to update order");
     }

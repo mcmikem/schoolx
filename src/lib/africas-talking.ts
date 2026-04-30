@@ -6,6 +6,8 @@ export interface AfricasTalkingSMSResult {
   demo?: boolean;
 }
 
+const SMS_DAILY_LIMIT = parseInt(process.env.SMS_DAILY_LIMIT || "500", 10);
+
 export function formatUgandaPhone(phone: string): string {
   let formatted = phone.replace(/\D/g, "");
 
@@ -116,5 +118,44 @@ export async function sendAfricasTalkingSMS(
       success: false,
       error: error instanceof Error ? error.message : "Unknown SMS error",
     };
+  }
+}
+
+export async function checkSmsDailyLimit(
+  schoolId: string,
+  requestedCount: number,
+): Promise<boolean> {
+  const { createClient } = await import("@supabase/supabase-js");
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return true;
+  }
+
+  try {
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const { count, error } = await supabase
+      .from("messages")
+      .select("*", { count: "exact", head: true })
+      .eq("school_id", schoolId)
+      .gte("created_at", today.toISOString());
+
+    if (error) {
+      console.error("[SMS] Failed to check daily limit:", error);
+      return true;
+    }
+
+    const sentToday = count ?? 0;
+    return sentToday + requestedCount <= SMS_DAILY_LIMIT;
+  } catch (err) {
+    console.error("[SMS] Error checking daily limit:", err);
+    return true;
   }
 }

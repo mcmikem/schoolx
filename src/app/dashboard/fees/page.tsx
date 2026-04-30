@@ -4,12 +4,11 @@ import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import {
-  useStudents,
-  useFeePayments,
-  useFeeStructure,
   useClasses,
   useFeeAdjustments,
+  useFeeStructure,
 } from "@/lib/hooks";
+import { useOfflineStudents, useOfflineFees } from "@/lib/offline-hooks";
 import { useToast } from "@/components/Toast";
 import { useFormDraft, AutoSaveIndicator } from "@/lib/useAutoSave";
 import { PAYMENT_METHODS } from "@/lib/constants";
@@ -67,16 +66,31 @@ type FinanceTab = "balances" | "payment-plans" | "invoices" | "cashbook";
 const MAX_FINANCE_AMOUNT = 100_000_000;
 
 export default function FinanceHubPage() {
-  const { school } = useAuth();
+  const { school, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
   const searchParams = useSearchParams();
 
-  const { students } = useStudents(school?.id);
+  // Offline-aware students and fees
+  const {
+    data: students,
+    loading: studentsLoading,
+    error: studentsError,
+  } = useOfflineStudents(school?.id);
+
+  const {
+    data: payments,
+    loading: paymentsLoading,
+    error: paymentsError,
+  } = useOfflineFees(school?.id);
+
   const { classes, loading: classesLoading } = useClasses(school?.id);
-  const { payments, createPayment, deletePayment } = useFeePayments(school?.id);
-  const { feeStructure, createFeeStructure, deleteFeeStructure } =
-    useFeeStructure(school?.id);
+  const {
+    feeStructure,
+    createFeeStructure,
+    deleteFeeStructure,
+    refetch: refetchFeeStructure,
+  } = useFeeStructure(school?.id);
   const { adjustments, createAdjustment, deleteAdjustment } = useFeeAdjustments(
     school?.id,
   );
@@ -133,6 +147,51 @@ export default function FinanceHubPage() {
       description: "Close modal",
     },
   ]);
+
+  const createPayment = useCallback(
+    async (payment: {
+      student_id: string;
+      amount_paid: number;
+      payment_method: string;
+      payment_reference?: string;
+      paid_by?: string;
+      notes?: string;
+    }) => {
+      const payload = {
+        ...payment,
+        school_id: school?.id,
+        payment_date: new Date().toISOString(),
+      };
+      if (isDemo) {
+        const newPaymentData = {
+          ...payload,
+          id: `demo-payment-${Date.now()}`,
+          created_at: new Date().toISOString(),
+        };
+        return newPaymentData;
+      }
+      const { data, error } = await supabase
+        .from("fee_payments")
+        .insert(payload)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    [school?.id, isDemo],
+  );
+
+  const deletePayment = useCallback(
+    async (id: string) => {
+      if (isDemo) return;
+      const { error } = await supabase
+        .from("fee_payments")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    [isDemo],
+  );
 
   const feeDraft = useFormDraft("fee_add_form");
   const [newFee, setNewFee] = useState({

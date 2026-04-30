@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase"
 import { DEMO_STUDENTS, DEMO_FEE_STRUCTURE, DEMO_FEE_PAYMENTS, DEMO_ATTENDANCE } from "@/lib/demo-data"
 import { isDemoSchool } from "@/lib/demo-utils"
 import { getCurrentTerm } from "@/lib/automation"
+import { checkSmsDailyLimit } from "@/lib/africas-talking"
 
 export interface SMSResult {
   success: boolean
@@ -99,7 +100,12 @@ async function logSMS(
   }
 
   if (!isDemo) {
-    // Actually send the SMS via Africa's Talking API
+    const withinLimit = await checkSmsDailyLimit(schoolId, 1);
+    if (!withinLimit) {
+      logEntry.status = "failed"
+      return logEntry
+    }
+
     const sent = await sendSMSViaAPI(entry.parent_phone, entry.message)
 
     await supabase.from("sms_logs").insert({

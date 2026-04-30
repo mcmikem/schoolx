@@ -1,11 +1,10 @@
 User-agent: *
 Allow: /
-
-# Block internal/authenticated routes from crawlers
 Disallow: /dashboard/
 Disallow: /super-admin/
 Disallow: /setup/
-Disallow: /setup-admin/
 Disallow: /api/
+Disallow: /login/
+Disallow: /register/
 
 Sitemap: https://omuto.org/sitemap.xml

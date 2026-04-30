@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useClasses, useSubjects, useTimetableManager, useStaff } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
+import { useOfflineEvents } from '@/lib/offline-hooks'
 import MaterialIcon from '@/components/MaterialIcon'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Tabs, TabPanel } from '@/components/ui/Tabs'
@@ -77,19 +78,18 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
     end_date: '',
   })
 
-  const fetchEvents = useCallback(async () => {
-    if (!schoolId) return
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('events')
-      .select('id, title, description, event_type, start_date, end_date')
-      .eq('school_id', schoolId)
-      .order('start_date')
-    if (!error) setEvents(data || [])
-    setLoading(false)
-  }, [schoolId])
+  // Offline-aware events
+  const {
+    data: offlineEvents = [],
+    loading: eventsLoading,
+    error: eventsError,
+    refetch: refetchEvents,
+  } = useOfflineEvents(schoolId);
 
-  useEffect(() => { fetchEvents() }, [fetchEvents])
+  useEffect(() => {
+    setEvents(offlineEvents);
+    setLoading(eventsLoading);
+  }, [offlineEvents, eventsLoading]);
 
   const openAdd = () => {
     setEditingEvent(null)

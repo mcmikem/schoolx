@@ -1,4 +1,5 @@
 const path = require("path");
+const { withSentryConfig } = require("@sentry/nextjs");
 
 /** @type {import('next').NextConfig} */
 function supabaseImageHosts() {
@@ -22,7 +23,9 @@ function supabaseImageHosts() {
 const nextConfig = {
   // output: "export", // Disabled to allow Vercel to support API/Cron routes
   trailingSlash: true,
-  experimental: {},
+  poweredByHeader: false,
+  compress: true,
+  reactStrictMode: true,
   turbopack: {
     root: __dirname,
   },
@@ -72,4 +75,16 @@ const nextConfig = {
     ];
   },
 };
-module.exports = nextConfig;
+
+module.exports = withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG || "",
+  project: process.env.SENTRY_PROJECT || "",
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: true,
+  widenClientFileUpload: true,
+  hideSourceMaps: true,
+  telemetry: false,
+  sourcemaps: {
+    disable: false,
+  },
+});

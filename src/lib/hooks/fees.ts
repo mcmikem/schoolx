@@ -413,7 +413,7 @@ export function useFeeStructure(schoolId?: string) {
     const existingDuplicate = feeStructure.find(
       (existing) =>
         existing.name.trim().toLowerCase() ===
-          normalizedFee.name!.trim().toLowerCase() &&
+          String(normalizedFee.name).trim().toLowerCase() &&
         (existing.class_id || null) === (normalizedFee.class_id || null) &&
         Number(existing.term) === normalizedFee.term &&
         existing.academic_year === normalizedFee.academic_year,

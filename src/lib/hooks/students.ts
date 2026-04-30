@@ -414,19 +414,19 @@ export function useStudents(
 
     if (isDemo || isDemoSchool(schoolId)) {
       const newId = `demo-student-${Date.now()}`;
-      const newStudentData: StudentWithClass = {
+      const newStudentData = {
         ...normalizedStudent,
         id: newId,
         school_id: schoolId || "00000000-0000-0000-0000-000000000001",
         student_number:
-          normalizedStudent.student_number || `STU-${newId.slice(0, 8)}`,
+          (normalizedStudent.student_number as string) || `STU-${newId.slice(0, 8)}`,
         status: "active" as const,
         admission_date: new Date().toISOString().split("T")[0],
         created_at: new Date().toISOString(),
         classes: (DEMO_CLASSES.find(
           (c) => c.id === normalizedStudent.class_id,
         ) || DEMO_CLASSES[0]) as unknown as Class,
-      };
+      } as unknown as StudentWithClass;
       setStudents((prev) => [newStudentData, ...prev]);
       setTotalCount((prev) => prev + 1);
       invalidateCache(`students:${schoolId}`);
@@ -444,11 +444,11 @@ export function useStudents(
         ...normalizedStudent,
         school_id: querySchoolId,
         student_number:
-          normalizedStudent.student_number ||
+          (normalizedStudent.student_number as string) ||
           (await generateUniqueStudentNumber()),
       };
 
-      await assertUniqueStudentNumber(studentPayload.student_number);
+      await assertUniqueStudentNumber(studentPayload.student_number as string);
 
       let createdRow: { id: string } | null = null;
 
@@ -513,8 +513,8 @@ export function useStudents(
           admission_date: new Date().toISOString().split("T")[0],
           created_at: new Date().toISOString(),
           opening_balance:
-            typeof studentPayload.opening_balance === "number"
-              ? studentPayload.opening_balance
+            typeof (studentPayload as any).opening_balance === "number"
+              ? (studentPayload as any).opening_balance
               : 0,
         } as StudentWithClass;
       }
@@ -552,7 +552,7 @@ export function useStudents(
       return updatedStudent;
     }
     try {
-      await assertUniqueStudentNumber(normalizedUpdates.student_number, id);
+      await assertUniqueStudentNumber(normalizedUpdates.student_number as string | undefined, id);
       const firstUpdate = await supabase
         .from("students")
         .update(normalizedUpdates)
