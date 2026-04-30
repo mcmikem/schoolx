@@ -226,9 +226,11 @@ function getResponse(input: string): string {
 
 function formatMessage(text: string) {
   // Convert **bold** and newlines
+  const escapeHtml = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const parts = text.split("\n");
   return parts.map((line, i) => {
-    const formattedLine = line.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+    const formattedLine = escapeHtml(line).replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
     return (
       <span key={i}>
         <span dangerouslySetInnerHTML={{ __html: formattedLine }} />

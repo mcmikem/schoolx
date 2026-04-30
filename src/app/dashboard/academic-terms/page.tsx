@@ -32,6 +32,7 @@ export default function AcademicTermsPage() {
     data: terms = [],
     loading,
     error: termsError,
+    refetch: refetchTerms,
   } = useOfflineAcademicTerms(school?.id);
   const [showModal, setShowModal] = useState(false);
   const [editingTerm, setEditingTerm] = useState<AcademicTerm | null>(null);
@@ -83,7 +84,7 @@ export default function AcademicTermsPage() {
       } else {
         toast.success("Term updated");
         setShowModal(false);
-        fetchTerms();
+        refetchTerms();
       }
     } else {
       const { error } = await supabase.from("academic_terms").insert(payload);
@@ -93,7 +94,7 @@ export default function AcademicTermsPage() {
       } else {
         toast.success("Term created");
         setShowModal(false);
-        fetchTerms();
+        refetchTerms();
       }
     }
   };
@@ -107,7 +108,7 @@ export default function AcademicTermsPage() {
       toast.error(getErrorMessage(error, "Failed to set current term"));
     } else {
       toast.success("Current term updated");
-      fetchTerms();
+      refetchTerms();
     }
   };
 
@@ -122,7 +123,24 @@ export default function AcademicTermsPage() {
       toast.error(getErrorMessage(error, "Failed to delete term"));
     } else {
       toast.success("Term deleted");
-      fetchTerms();
+      refetchTerms();
+    }
+  };
+
+  const loadUgandaDefaultTerms = async () => {
+    if (!school?.id || !canManageTerms) return;
+    const year = new Date().getFullYear().toString();
+    const defaultTerms = [
+      { name: "Term 1", code: `${year}-T1`, start_date: `${year}-01-13`, end_date: `${year}-04-03`, term_number: 1, academic_year: year, is_active: true, is_current: true, school_id: school.id },
+      { name: "Term 2", code: `${year}-T2`, start_date: `${year}-05-11`, end_date: `${year}-08-14`, term_number: 2, academic_year: year, is_active: true, is_current: false, school_id: school.id },
+      { name: "Term 3", code: `${year}-T3`, start_date: `${year}-09-07`, end_date: `${year}-12-05`, term_number: 3, academic_year: year, is_active: true, is_current: false, school_id: school.id },
+    ];
+    const { error } = await supabase.from("academic_terms").insert(defaultTerms);
+    if (error) {
+      toast.error(getErrorMessage(error, "Failed to load default terms"));
+    } else {
+      toast.success("Uganda default terms loaded");
+      refetchTerms();
     }
   };
 
@@ -213,7 +231,7 @@ export default function AcademicTermsPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {Object.entries(groupedTerms).map(([year, yearTerms]) => (
+          {(Object.entries(groupedTerms) as [string, AcademicTerm[]][]).map(([year, yearTerms]) => (
             <div
               key={year}
               className="bg-white rounded-2xl border border-gray-200 overflow-hidden"

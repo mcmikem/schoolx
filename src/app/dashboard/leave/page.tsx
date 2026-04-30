@@ -41,6 +41,7 @@ export default function LeavePage() {
     data: requests = [],
     loading,
     error: requestsError,
+    refetch: refetchRequests,
   } = useOfflineLeaveRequests(school?.id, user?.id, isManager, { skipCache: isDemo });
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSub] = useState(false);
@@ -79,7 +80,7 @@ export default function LeavePage() {
       toast.success("Leave request submitted");
       setShowModal(false);
       setForm({ leaveType: "sick", startDate: "", endDate: "", reason: "" });
-      fetchRequests();
+      refetchRequests();
     } catch (err: any) {
       toast.error(err?.message || "Failed to submit leave request");
     } finally {
@@ -98,7 +99,7 @@ export default function LeavePage() {
         .eq("id", id);
       if (error) throw error;
       toast.success(`Leave ${status}`);
-      fetchRequests();
+      refetchRequests();
     } catch {
       toast.error("Failed to update leave status");
     }

@@ -40,11 +40,13 @@ export default function HomeworkSubmissionsPage() {
   const {
     data: homeworks = [],
     loading: loadingHomeworks,
-  } = useOfflineHomework(school?.id, academicYear, currentTerm, classFilter)
+    refetch: refetchHomeworks,
+  } = useOfflineHomework(school?.id, academicYear, currentTerm ? String(currentTerm) : undefined, classFilter)
 
   const {
     data: submissionsData = [],
     loading: loadingSubmissions,
+    refetch: refetchSubmissions,
   } = useOfflineHomeworkSubmissions(selectedHomework?.id, school?.id, selectedHomework?.class_id)
 
   const {
@@ -79,7 +81,7 @@ export default function HomeworkSubmissionsPage() {
       await supabase.from('homework_submissions').update({ marks_obtained: marks, feedback, status: 'graded' }).eq('id', submission.id)
     }
     toast.success('Submission graded')
-    fetchSubmissions()
+    refetchSubmissions()
   }
 
   const pendingCount = submissions.filter(s => s.status === 'pending').length
@@ -111,7 +113,7 @@ export default function HomeworkSubmissionsPage() {
           </div>
           <div className="md:col-span-2">
             <label className="block text-sm font-medium mb-1">&nbsp;</label>
-            <Button onClick={fetchHomeworks}>
+            <Button onClick={refetchHomeworks}>
               Filter
             </Button>
           </div>
@@ -125,7 +127,7 @@ export default function HomeworkSubmissionsPage() {
               <h3 className="font-semibold text-[var(--t1)]">Homework List</h3>
             </div>
             <div className="max-h-[500px] overflow-y-auto">
-              {homeworks.length === 0 && !loading ? (
+              {homeworks.length === 0 && !loadingHomeworks ? (
                 <div className="p-4 text-center text-[var(--t3)]">No homework found</div>
               ) : (
                 homeworks.map(hw => (

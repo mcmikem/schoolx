@@ -1,23 +1,3 @@
-// Academic terms hook - offline aware
-export function useOfflineAcademicTerms(schoolId?: string, options?: OfflineHookOptions) {
-  return useOfflineData<any>(
-    'academic_terms',
-    async () => {
-      if (!schoolId) return [];
-      const { data, error } = await supabase
-        .from('academic_terms')
-        .select('*')
-        .eq('school_id', schoolId)
-        .order('academic_year', { ascending: false })
-        .order('term_number');
-      if (error) throw error;
-      return (data as any[]) || [];
-    },
-    'academic_terms',
-    schoolId ? { school_id: schoolId } : undefined,
-    options
-  );
-}
 'use client'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from './supabase'
@@ -28,7 +8,7 @@ interface OfflineHookOptions {
   skipCache?: boolean
 }
 
-function useOfflineData<T>(
+export function useOfflineData<T>(
   table: string,
   fetcher: () => Promise<T[]>,
   cacheKey: string,
@@ -82,6 +62,26 @@ function useOfflineData<T>(
   }, [fetchData])
 
   return { data, loading, error, isFromCache, refetch: fetchData }
+}
+
+export function useOfflineAcademicTerms(schoolId?: string, options?: OfflineHookOptions) {
+  return useOfflineData<any>(
+    'academic_terms',
+    async () => {
+      if (!schoolId) return [];
+      const { data, error } = await supabase
+        .from('academic_terms')
+        .select('*')
+        .eq('school_id', schoolId)
+        .order('academic_year', { ascending: false })
+        .order('term_number');
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+    'academic_terms',
+    schoolId ? { school_id: schoolId } : undefined,
+    options
+  );
 }
 
 export function useOfflineStudents(schoolId?: string, options?: OfflineHookOptions) {

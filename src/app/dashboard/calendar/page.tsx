@@ -3,6 +3,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
+import { useOfflineEvents } from '@/lib/offline-hooks';
 import { useToast } from '@/components/Toast'
 import MaterialIcon from '@/components/MaterialIcon'
 import { EVENT_TYPES } from '@/lib/constants'
@@ -35,10 +36,15 @@ const typeColors: Record<string, { bg: string, text: string }> = {
 export default function CalendarPage() {
   const { school } = useAuth()
   const toast = useToast()
-  const [events, setEvents] = useState<SchoolEvent[]>([])
+  // Offline-aware events
+  const {
+    data: events = [],
+    loading,
+    error: eventsError,
+    refetch: refetchEvents,
+  } = useOfflineEvents(school?.id);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
-  const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [view, setView] = useState<'grid' | 'timeline'>('grid')
   const [newEvent, setNewEvent] = useState({
@@ -49,28 +55,7 @@ export default function CalendarPage() {
     end_date: '',
   })
 
-  const fetchEvents = useCallback(async () => {
-    if (!school?.id) return
-    setLoading(true)
-    try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .eq('school_id', school.id)
-        .order('start_date')
-      if (error) throw error
-      setEvents(data || [])
-    } catch (err) {
-      console.error('Error:', err)
-      toast.error('Failed to load events')
-    } finally {
-      setLoading(false)
-    }
-  }, [school?.id, toast])
-
-  useEffect(() => {
-    if (school?.id) fetchEvents()
-  }, [school?.id, fetchEvents])
+  // Offline hook handles fetching events
 
   const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -104,7 +89,7 @@ export default function CalendarPage() {
       setShowModal(false)
       setNewEvent({ title: '', description: '', event_type: 'event', start_date: '', end_date: '' })
       toast.success('Event added')
-      fetchEvents()
+      refetchEvents()
     } catch (err) {
       console.error('Error:', err)
       toast.error(getErrorMessage(err, 'Failed to add event'))
@@ -117,7 +102,7 @@ export default function CalendarPage() {
       const { error } = await supabase.from('events').delete().eq('id', id)
       if (error) throw error
       toast.success('Event deleted')
-      fetchEvents()
+      refetchEvents()
     } catch (err) {
       toast.error(getErrorMessage(err, 'Failed to delete event'))
     }

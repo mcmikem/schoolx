@@ -24,13 +24,14 @@ export default function PromotionPage() {
   const { school } = useAuth();
   const toast = useToast();
   const { classes } = useClasses(school?.id);
+  const [selectedClass, setSelectedClass] = useState("");
   // Offline-aware students in selected class
   const {
     data: students = [],
     loading: studentsLoading,
     error: studentsError,
+    refetch: refetchStudents,
   } = useOfflineClassStudents(school?.id, selectedClass);
-  const [selectedClass, setSelectedClass] = useState("");
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
   const [targetClass, setTargetClass] = useState("");
   const [promotionType, setPromotionType] = useState<"promoted" | "repeating" | "demoted">("promoted");
@@ -40,6 +41,7 @@ export default function PromotionPage() {
     data: history = [],
     loading: historyLoading,
     error: historyError,
+    refetch: refetchHistory,
   } = useOfflinePromotionHistory(school?.id);
   const [loadingStudents, setLoadingStudents] = useState(false);
 
@@ -95,10 +97,8 @@ export default function PromotionPage() {
     toast.success(`${selectedStudents.size} student(s) ${promotionType} successfully`);
     setSelectedStudents(new Set());
     setTargetClass("");
-    fetchHistory();
-    // Refresh students list
-    const { data } = await supabase.from("students").select("id, first_name, last_name, admission_number").eq("school_id", school.id).eq("class_id", selectedClass).order("first_name");
-    setStudents(data || []);
+    refetchHistory();
+    refetchStudents();
     setPromoting(false);
   };
 

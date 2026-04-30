@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
     url: "https://omuto-school-management.vercel.app",
     hostname: "skoolmate.os",
     androidScheme: "https",
-    cleartext: true,
+    cleartext: false,
   },
   android: {
     allowMixedContent: true,

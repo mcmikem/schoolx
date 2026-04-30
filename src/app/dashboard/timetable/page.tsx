@@ -133,7 +133,7 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
         toast.success('Event added')
       }
       setShowModal(false)
-      fetchEvents()
+      refetchEvents()
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, 'Failed to save event'))
     } finally {

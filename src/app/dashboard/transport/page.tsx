@@ -4,6 +4,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { useOfflineData } from '@/lib/offline-hooks';
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -25,8 +26,27 @@ type TransportRoute = {
 export default function TransportPage() {
   const { school } = useAuth();
   const toast = useToast();
-  const [routes, setRoutes] = useState<TransportRoute[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Offline-aware transport routes
+  const {
+    data: routes = [],
+    loading,
+    error: routesError,
+    refetch: refetchRoutes,
+  } = useOfflineData(
+    'transport_routes',
+    async () => {
+      if (!school?.id) return [];
+      const { data, error } = await supabase
+        .from('transport_routes')
+        .select('*, transport_students(id)')
+        .eq('school_id', school.id)
+        .order('route_name');
+      if (error) throw error;
+      return (data || []).map((r: any) => ({ ...r, _student_count: r.transport_students?.length || 0 }));
+    },
+    'transport_routes',
+    school?.id ? { school_id: school.id } : undefined
+  );
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -38,29 +58,7 @@ export default function TransportPage() {
     monthly_fee: "",
   });
 
-  const fetchRoutes = useCallback(async () => {
-    if (!school?.id) return;
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("transport_routes")
-      .select("*, transport_students(id)")
-      .eq("school_id", school.id)
-      .order("route_name");
-    if (error) toast.error("Failed to load routes");
-    else {
-      setRoutes(
-        (data || []).map((r: any) => ({
-          ...r,
-          _student_count: r.transport_students?.length || 0,
-        })),
-      );
-    }
-    setLoading(false);
-  }, [school?.id, toast]);
-
-  useEffect(() => {
-    fetchRoutes();
-  }, [fetchRoutes]);
+  // Offline hook handles fetching routes
 
   const saveRoute = async () => {
     if (!form.route_name.trim() || !school?.id) {
@@ -88,7 +86,7 @@ export default function TransportPage() {
       toast.success("Route added successfully");
       setShowAdd(false);
       setForm({ route_name: "", vehicle_number: "", driver_name: "", driver_phone: "", monthly_fee: "" });
-      fetchRoutes();
+      refetchRoutes();
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "Failed to save route"));
     } finally {
@@ -106,7 +104,7 @@ export default function TransportPage() {
     try {
       const { error } = await supabase.from("transport_routes").delete().eq("id", id);
       if (error) throw error;
-      setRoutes((prev) => prev.filter((r) => r.id !== id));
+      refetchRoutes();
       toast.success("Route deleted");
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "Failed to delete route"));
