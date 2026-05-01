@@ -10,141 +10,33 @@ import {
 } from "react";
 import { supabase } from "./supabase";
 import { useRouter } from "next/navigation";
-import { normalizePlanType, PlanType } from "./payments/subscription-client";
-import { FeatureStage, DEFAULT_FEATURE_STAGE } from "./featureStages";
 import type { User, School } from "@/types";
 import { logger } from "./logger";
-import { getErrorMessage, normalizeAuthPhone } from "./validation";
+import { getErrorMessage } from "./validation";
 import { buildAuthEmailFromPhone, buildAuthLoginAttempts } from "./auth-login";
 import {
   isSupabaseLockAbortError,
   withSupabaseLockRetry,
 } from "./supabase-lock";
-
-// Roles that demo sessions are allowed to assume.
-// super_admin / school_admin are intentionally excluded to prevent privilege injection.
-export type UserRoleValue =
-  | "headmaster"
-  | "dean_of_studies"
-  | "bursar"
-  | "teacher"
-  | "student"
-  | "parent"
-  | "secretary"
-  | "dorm_master"
-  | "admin"
-  | "school_admin"
-  | "board"
-  | "super_admin";
-
-// Demo sessions must never be able to assume elevated roles.
-const DEMO_ALLOWED_ROLES: string[] = [
-  "headmaster",
-  "dean_of_studies",
-  "bursar",
-  "teacher",
-  "secretary",
-  "dorm_master",
-];
-
-function sanitizeDemoRole(raw: unknown): User["role"] {
-  if (typeof raw === "string" && DEMO_ALLOWED_ROLES.includes(raw)) {
-    return raw as User["role"];
-  }
-  // Default to lowest-privilege role for unknown/invalid input
-  return "teacher";
-}
-
-const DEMO_KEY = "skoolmate_demo_v1";
-const OFFLINE_USER_KEY = "skoolmate_offline_user_v1";
-const OFFLINE_SCHOOL_KEY = "skoolmate_offline_school_v1";
-const DEMO_MODE_ENABLED =
-  process.env.NODE_ENV === "development" &&
-  process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
-
-function buildPhoneLookupCandidates(rawPhone: unknown): string[] {
-  if (typeof rawPhone !== "string" || !rawPhone.trim()) return [];
-
-  const normalized = normalizeAuthPhone(rawPhone);
-  const digits = normalized.replace(/\D/g, "");
-  const candidates = new Set<string>();
-
-  if (normalized) candidates.add(normalized);
-  if (digits.length === 9) {
-    candidates.add(`0${digits}`);
-    candidates.add(`256${digits}`);
-  }
-  if (digits.startsWith("0") && digits.length === 10) {
-    candidates.add(`256${digits.slice(1)}`);
-  }
-  if (digits.startsWith("256") && digits.length === 12) {
-    candidates.add(`0${digits.slice(3)}`);
-  }
-
-  return Array.from(candidates);
-}
-
-function decryptDemoData(encrypted: string): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    return atob(encrypted);
-  } catch {
-    return null;
-  }
-}
-
-function readDemoStorage(): string | null {
-  if (typeof window === "undefined") return null;
-  if (!DEMO_MODE_ENABLED) {
-    clearDemoStorage();
-    return null;
-  }
-
-  const sessionValue = sessionStorage.getItem(DEMO_KEY);
-  if (sessionValue) return sessionValue;
-
-  const legacyValue = localStorage.getItem(DEMO_KEY);
-  if (legacyValue) {
-    sessionStorage.setItem(DEMO_KEY, legacyValue);
-    localStorage.removeItem(DEMO_KEY);
-    return legacyValue;
-  }
-
-  return null;
-}
-
-function clearDemoStorage() {
-  if (typeof window === "undefined") return;
-  sessionStorage.removeItem(DEMO_KEY);
-  localStorage.removeItem(DEMO_KEY);
-  document.cookie = `${DEMO_KEY}=; Max-Age=0; path=/`;
-  document.cookie = `${DEMO_KEY}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-}
-
-// Local extensions for Auth context if needed, otherwise use imported types.
-// We keep the AuthContextType interfaces using the imported User/School.
-
-interface AuthContextType {
-  user: User | null;
-  school: School | null;
-  loading: boolean;
-  isDemo: boolean;
-  isTrialExpired: boolean;
-  signIn: (
-    phone: string,
-    password: string,
-  ) => Promise<{ error: any; role?: string }>;
-  signUp: (
-    phone: string,
-    password: string,
-    name: string,
-  ) => Promise<{ error: any }>;
-  signOut: () => Promise<void>;
-  refreshSchool: () => Promise<void>;
-  // Subscription status checking methods
-  isSubscriptionActive: () => boolean;
-  getSubscriptionPlan: () => PlanType | null;
-}
+import {
+  AuthContextType,
+  sanitizeDemoRole,
+  OFFLINE_USER_KEY,
+  OFFLINE_SCHOOL_KEY,
+  computeTrialExpired,
+  isSubscriptionActiveCheck,
+  getSubscriptionPlan as getPlan,
+} from "./auth-context-types";
+import {
+  decryptDemoData,
+  readDemoStorage,
+  clearDemoStorage,
+} from "./auth-demo";
+import {
+  buildPhoneLookupCandidates,
+} from "./auth-phone";
+import { FeatureStage, DEFAULT_FEATURE_STAGE } from "./featureStages";
+import type { PlanType } from "./payments/subscription-client";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -156,19 +48,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isTrialExpired, setIsTrialExpired] = useState(false);
   const router = useRouter();
 
-  // Subscription status checking methods
-  const isSubscriptionActive = () => {
-    if (school?.subscription_status === "trial" && school?.trial_ends_at) {
-      return new Date(school.trial_ends_at) > new Date();
-    }
-    return school?.subscription_status === "active";
-  };
+  const isSubscriptionActive = useCallback(() => {
+    return isSubscriptionActiveCheck(school);
+  }, [school]);
 
-  const getSubscriptionPlan = () => {
-    return school?.subscription_plan
-      ? (normalizePlanType(school.subscription_plan) as PlanType)
-      : null;
-  };
+  const getSubscriptionPlan = useCallback((): PlanType | null => {
+    return getPlan(school);
+  }, [school]);
 
   const fetchUserData = useCallback(
     async (
@@ -277,7 +163,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...userData,
           role: userData.role as User["role"],
         });
-        // Persist for offline use
         try {
           localStorage.setItem(
             OFFLINE_USER_KEY,
@@ -290,7 +175,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.error("Failed to persist offline user data:", error);
         }
 
-        // Super admins don't have a school - they manage all schools
         if (userData.role === "super_admin") {
           setSchool(null);
           setLoading(false);
@@ -320,7 +204,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 DEFAULT_FEATURE_STAGE,
             };
             setSchool(schoolObj);
-            // Persist for offline use
             try {
               localStorage.setItem(
                 OFFLINE_SCHOOL_KEY,
@@ -329,18 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } catch (error) {
               console.error("Failed to persist offline school data:", error);
             }
-            if (
-              schoolData.subscription_status === "trial" &&
-              schoolData.trial_ends_at
-            ) {
-              setIsTrialExpired(
-                new Date(schoolData.trial_ends_at) < new Date(),
-              );
-            } else if (schoolData.subscription_status === "expired") {
-              setIsTrialExpired(true);
-            } else {
-              setIsTrialExpired(false);
-            }
+            setIsTrialExpired(computeTrialExpired(schoolObj));
           }
         }
 
@@ -363,7 +235,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const checkUser = useCallback(async () => {
-    // Safety timeout: never stay in loading state for more than 2.5 seconds
     const safetyTimer = setTimeout(() => {
       setLoading(false);
     }, 2500);
@@ -413,12 +284,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Check for real auth session
       if (supabase?.auth) {
         try {
-          // Fast path: getSession() reads from localStorage — no network call.
-          // If null, there are no tokens stored and the user is definitely not
-          // logged in. Skip the getUser() server round-trip entirely.
           const {
             data: { session },
           } = await supabase!.auth.getSession();
@@ -430,7 +297,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           }
 
-          // Offline path: if no connectivity, restore from localStorage cache
           if (!navigator.onLine) {
             try {
               const cachedUser = localStorage.getItem(OFFLINE_USER_KEY);
@@ -447,7 +313,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
 
-          // Session tokens exist locally — validate with the server.
           const {
             data: { user: authUser },
           } = await withSupabaseLockRetry(
@@ -458,14 +323,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setIsDemo(false);
             setLoading(false);
           } else {
-            // Token was invalid / revoked
             setUser(null);
             setSchool(null);
             setIsDemo(false);
             setLoading(false);
           }
-        } catch (sessionError) {
-          // On session error, still clear user to prevent stuck state
+        } catch {
           setUser(null);
           setSchool(null);
           setIsDemo(false);
@@ -476,7 +339,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsDemo(false);
         setLoading(false);
       }
-    } catch (error) {
+    } catch {
       setIsDemo(false);
       setLoading(false);
     } finally {
@@ -485,7 +348,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchUserData]);
 
   useEffect(() => {
-    // Only run on mount
     checkUser();
 
     if (supabase) {
@@ -493,9 +355,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: { subscription },
       } = supabase!.auth.onAuthStateChange(async (event, session) => {
         try {
-          // If we are in demo mode, auth state changes should be ignored
-          // unless it's a sign out that clears the demo.
-          // Note: we don't depend on isDemo here to avoid re-running the effect
           const isCurrentlyDemo = readDemoStorage() !== null;
 
           if (isCurrentlyDemo && event !== "SIGNED_OUT") return;
@@ -505,8 +364,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             event === "INITIAL_SESSION" ||
             event === "TOKEN_REFRESHED"
           ) {
-            // Mark loading before async work so any route guard (e.g. DashboardRouter)
-            // that renders concurrently sees loading=true instead of loading=false+user=null.
             if (session) setLoading(true);
             const {
               data: { user: verifiedUser },
@@ -551,7 +408,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [checkUser, fetchUserData]);
 
-  // Refresh session when tab regains focus (catches expired tokens after backgrounding)
   useEffect(() => {
     if (!supabase) return;
     const handleVisibilityChange = async () => {
@@ -561,14 +417,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             data: { user: freshUser },
           } = await supabase!.auth.getUser();
           if (!freshUser && user) {
-            // Session expired while tab was backgrounded
             setUser(null);
             setSchool(null);
             setLoading(false);
             router.push("/login");
           }
         } catch {
-          // Silently ignore — network offline etc.
         }
       }
     };
@@ -577,16 +431,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [user, router]);
 
-
-
-  // Use refs to ensure stable references for useEffect deps
-  const SESSION_TIMEOUT_MS_REF = useRef(30 * 60 * 1000); // 30 minutes
-  const CHECK_INTERVAL_MS_REF = useRef(60 * 1000); // Check every minute
-
-
-
-
-
+  const SESSION_TIMEOUT_MS_REF = useRef(30 * 60 * 1000);
+  const CHECK_INTERVAL_MS_REF = useRef(60 * 1000);
 
   async function signIn(phone: string, password: string) {
     try {
@@ -628,7 +474,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           };
         }
 
-        // Background preload of critical tables for offline use — fire and forget
         import("@/lib/offline")
           .then(({ offlineDB }) => {
             offlineDB
@@ -662,7 +507,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signUp(phone: string, password: string, name: string) {
     try {
-      const normalizedPhone = normalizeAuthPhone(phone);
+      const normalizedPhone = phone;
       const email = buildAuthEmailFromPhone(normalizedPhone);
       const { data, error } = await withSupabaseLockRetry(
         async () =>
@@ -699,16 +544,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           feature_stage:
             (schoolData.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
         });
-        if (
-          schoolData.subscription_status === "trial" &&
-          schoolData.trial_ends_at
-        ) {
-          setIsTrialExpired(new Date(schoolData.trial_ends_at) < new Date());
-        } else if (schoolData.subscription_status === "expired") {
-          setIsTrialExpired(true);
-        } else {
-          setIsTrialExpired(false);
-        }
+        setIsTrialExpired(computeTrialExpired(schoolData));
       }
     } catch (error) {
       logger.error("Error refreshing school:", error);
@@ -716,7 +552,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = useCallback(async () => {
-    // Clear all local state first (before async call) to prevent stale access
     setUser(null);
     setSchool(null);
     setIsDemo(false);
@@ -724,10 +559,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearDemoStorage();
 
     try {
-      // Sign out from all sessions (scope: global) to invalidate tokens
       await supabase!.auth.signOut({ scope: "global" });
     } catch (e) {
-      // State already cleared above, so user is effectively logged out locally
       logger.warn("signOut API call failed, local state already cleared");
     }
     router.push("/login");
@@ -743,7 +576,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isTrialExpired,
         signIn,
         signUp,
-        signOut: signOut,
+        signOut,
         refreshSchool,
         isSubscriptionActive,
         getSubscriptionPlan,

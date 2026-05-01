@@ -733,29 +733,6 @@ TO authenticated
 USING (bucket_id = 'school-logos');
 
 -- ============================================
--- DORMITORY TABLES
--- ============================================
-
-CREATE TABLE IF NOT EXISTS dorms (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    type TEXT CHECK (type IN ('boys', 'girls')) NOT NULL,
-    capacity INTEGER DEFAULT 30,
-    location TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS dorm_students (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    dorm_id UUID NOT NULL REFERENCES dorms(id) ON DELETE CASCADE,
-    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-    bed_number TEXT,
-    assigned_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(dorm_id, student_id)
-);
-
--- ============================================
 -- HOMEWORK TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS homework (
@@ -771,17 +748,6 @@ CREATE TABLE IF NOT EXISTS homework (
     term INTEGER,
     created_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Homework submissions
-CREATE TABLE IF NOT EXISTS homework_submissions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    homework_id UUID NOT NULL REFERENCES homework(id) ON DELETE CASCADE,
-    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-    submitted_at TIMESTAMPTZ DEFAULT NOW(),
-    marks_obtained INTEGER,
-    feedback TEXT,
-    UNIQUE(homework_id, student_id)
 );
 
 -- ============================================
@@ -812,25 +778,6 @@ CREATE TABLE IF NOT EXISTS topic_coverage (
     status TEXT CHECK (status IN ('not_started', 'in_progress', 'completed')) DEFAULT 'not_started',
     completed_date DATE,
     notes TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Lesson Plans
-CREATE TABLE IF NOT EXISTS lesson_plans (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
-    subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
-    class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
-    topic TEXT NOT NULL,
-    lesson_title TEXT NOT NULL,
-    objectives TEXT,
-    materials TEXT,
-    procedure TEXT, -- Lesson procedure/steps
-    duration INTEGER, -- minutes
-    date DATE,
-    term INTEGER,
-    academic_year TEXT,
-    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -929,38 +876,6 @@ CREATE TABLE IF NOT EXISTS dorm_students (
     assigned_date DATE DEFAULT CURRENT_DATE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(dorm_id, student_id)
-);
-
--- ============================================
--- LIBRARY BOOKS TABLE
--- ============================================
-CREATE TABLE IF NOT EXISTS library_books (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
-    isbn TEXT,
-    title TEXT NOT NULL,
-    author TEXT,
-    publisher TEXT,
-    year_published INTEGER,
-    category TEXT,
-    copies INTEGER DEFAULT 1,
-    available_copies INTEGER,
-    shelf_location TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- ============================================
--- LIBRARY CHECKOUTS TABLE
--- ============================================
-CREATE TABLE IF NOT EXISTS library_checkouts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    book_id UUID NOT NULL REFERENCES library_books(id) ON DELETE CASCADE,
-    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-    checkout_date DATE DEFAULT CURRENT_DATE,
-    due_date DATE,
-    return_date DATE,
-    status TEXT CHECK (status IN ('checked_out', 'returned', 'overdue')) DEFAULT 'checked_out',
-    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ============================================
@@ -1482,14 +1397,15 @@ CREATE TABLE IF NOT EXISTS payroll_history (
     UNIQUE(staff_id, month)
 );
 
--- 3. LIBRARY BOOKS (Real persistence for Library)
--- Note: Re-stating or fixing based on previous verification
+-- 3. LIBRARY BOOKS
 CREATE TABLE IF NOT EXISTS library_books (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
     isbn TEXT,
     title TEXT NOT NULL,
     author TEXT,
+    publisher TEXT,
+    year_published INTEGER,
     category TEXT,
     total_copies INTEGER DEFAULT 1,
     available_copies INTEGER DEFAULT 1,
@@ -1500,13 +1416,13 @@ CREATE TABLE IF NOT EXISTS library_books (
 -- 4. LIBRARY CHECKOUTS
 CREATE TABLE IF NOT EXISTS library_checkouts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-    book_id UUID REFERENCES library_books(id) ON DELETE CASCADE,
-    student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    book_id UUID NOT NULL REFERENCES library_books(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     checkout_date DATE DEFAULT CURRENT_DATE,
     due_date DATE,
     return_date DATE,
-    status TEXT CHECK (status IN ('borrowed', 'returned', 'overdue')) DEFAULT 'borrowed',
+    status TEXT CHECK (status IN ('checked_out', 'returned', 'overdue')) DEFAULT 'checked_out',
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

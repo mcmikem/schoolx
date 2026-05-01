@@ -66,6 +66,13 @@ const createMockQueryBuilder = () => {
 };
 
 const createMockClient = (): SupabaseClient => {
+  if (process.env.NODE_ENV !== "test") {
+    console.warn(
+      "[Supabase] WARNING: Using mock Supabase client. " +
+      "Data operations will silently return empty results. " +
+      "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY for real data.",
+    );
+  }
   const mock = {
     from: () => createMockQueryBuilder(),
     auth: {
