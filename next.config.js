@@ -21,7 +21,7 @@ function supabaseImageHosts() {
 }
 
 const nextConfig = {
-  // output: "export", // Disabled to allow Vercel to support API/Cron routes
+  output: process.env.MOBILE_BUILD === "1" ? "export" : undefined,
   trailingSlash: true,
   poweredByHeader: false,
   compress: true,

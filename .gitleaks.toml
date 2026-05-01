@@ -20,3 +20,57 @@ id = "supabase-service-key"
 description = "Supabase service role key in client code"
 regex = '''sb_secret_[A-Za-z0-9]{40,}'''
 tags = ["supabase"]
+
+[[rules]]
+id = "stripe-secret-key"
+description = "Stripe secret key (sk_live_)"
+regex = '''sk_live_[A-Za-z0-9]{24,}'''
+tags = ["stripe"]
+
+[[rules]]
+id = "stripe-publishable-key"
+description = "Stripe publishable key (pk_live_)"
+regex = '''pk_live_[A-Za-z0-9]{24,}'''
+tags = ["stripe"]
+
+[[rules]]
+id = "stripe-webhook-secret"
+description = "Stripe webhook secret (whsec_)"
+regex = '''whsec_[A-Za-z0-9]{24,}'''
+tags = ["stripe"]
+
+[[rules]]
+id = "flutterwave-public-key"
+description = "Flutterwave public key (FLWPUBK-)"
+regex = '''FLWPUBK-[A-Za-z0-9\-_]{10,}'''
+tags = ["flutterwave"]
+
+[[rules]]
+id = "flutterwave-secret-key"
+description = "Flutterwave secret key (FLWSECK-)"
+regex = '''FLWSECK-[A-Za-z0-9\-_]{10,}'''
+tags = ["flutterwave"]
+
+[[rules]]
+id = "resend-api-key"
+description = "Resend API key (re_)"
+regex = '''re_[A-Za-z0-9]{20,}'''
+tags = ["resend"]
+
+[[rules]]
+id = "sentry-dsn"
+description = "Sentry DSN"
+regex = '''https://[a-f0-9]{32,64}@[a-z0-9\-.]+\.sentry\.io/\d+'''
+tags = ["sentry"]
+
+[[rules]]
+id = "sentry-auth-token"
+description = "Sentry auth token (sntrys_)"
+regex = '''sntrys_[A-Za-z0-9\-_=]{20,}'''
+tags = ["sentry"]
+
+[[rules]]
+id = "africas-talking-api-key"
+description = "Africa's Talking API key"
+regex = '''[Aa]fricas[_-]?[Tt]alking.*[Aa][Pp][Ii][_-]?[Kk]ey\s*[=:]\s*[A-Za-z0-9]{10,}'''
+tags = ["sms"]

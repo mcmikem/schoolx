@@ -460,7 +460,7 @@ export function requireDevelopmentRouteOrDeny():
   const isDevelopment = process.env.NODE_ENV === "development";
   const isExplicitlyEnabled = process.env.ENABLE_DEV_TEST_ROUTES === "true";
 
-  if (!isDevelopment && !isExplicitlyEnabled) {
+  if (!isDevelopment || !isExplicitlyEnabled) {
     return {
       ok: false,
       response: NextResponse.json(

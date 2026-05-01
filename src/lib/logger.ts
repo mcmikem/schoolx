@@ -11,6 +11,7 @@ function fmt(args: unknown[]): string[] {
   });
 }
 export const logger = {
+  log(...a: unknown[]) { if (isDev) console.log('[LOG]', ...fmt(a)); },
   debug(...a: unknown[]) { if (isDev) console.debug('[DEBUG]', ...fmt(a)); },
   info(...a: unknown[]) { if (isDev) console.info('[INFO]', ...fmt(a)); },
   warn(...a: unknown[]) { console.warn('[WARN]', ...fmt(a)); },
