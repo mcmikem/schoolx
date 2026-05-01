@@ -130,6 +130,58 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
+  // ── API route auth guard (returns JSON, not redirects) ──
+  const isApiRoute = pathname.startsWith("/api/");
+  const isHealthRoute = pathname.startsWith("/api/health");
+  const isPublicApiRoute = [
+    "/api/register",
+    "/api/forgot-password",
+    "/api/reset-password",
+    "/api/demo-login",
+    "/api/health",
+    "/api/health/env",
+    "/api/payment/webhook",
+    "/api/payment/paypal/webhook",
+    "/api/sms",
+    "/api/schoolpay",
+  ].some((p) => pathname.startsWith(p));
+
+  if (isApiRoute && !isPublicApiRoute && !isHealthRoute) {
+    try {
+      const sb = createServerClient(supabaseUrl, supabaseAnonKey, {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll() {},
+        },
+      });
+      const { data } = await sb.auth.getUser();
+      if (!data?.user) {
+        return NextResponse.json(
+          { success: false, error: "Authentication required" },
+          { status: 401 },
+        );
+      }
+    } catch {
+      return NextResponse.json(
+        { success: false, error: "Server error" },
+        { status: 500 },
+      );
+    }
+  }
+
+  // Block dev/test API routes in production
+  if (isApiRoute && process.env.NODE_ENV === "production" && process.env.ENABLE_DEV_TEST_ROUTES !== "true") {
+    const devRoutes = ["/api/debug/log", "/api/demo-login"];
+    if (devRoutes.some((p) => pathname.startsWith(p))) {
+      return NextResponse.json(
+        { success: false, error: "Not found" },
+        { status: 404 },
+      );
+    }
+  }
+
   const isPublicPath =
     pathname === "/" ||
     alwaysPublicPaths.some((path) => pathname.startsWith(path));
