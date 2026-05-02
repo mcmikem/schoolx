@@ -17,7 +17,6 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: "/SkoolMate logos/SchoolMate icon.svg",
-    // TODO: replace with a proper 180×180 PNG once generated
     apple: "/assemble-icon.png",
   },
   appleWebApp: {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { logger } from "@/lib/logger";
 
 // Rate-limit: max 3 reset requests per IP per 15 minutes (in-memory, resets on cold start)
 const resetAttempts = new Map<string, { count: number; resetAt: number }>();
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
     // Always return success regardless — prevents user enumeration
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("[ForgotPassword] Error:", err);
+    logger.error("[ForgotPassword] Error:", err);
     // Always return 200 — prevents timing/error enumeration
     return NextResponse.json({ ok: true });
   }

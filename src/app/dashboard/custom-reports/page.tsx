@@ -5,6 +5,8 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
+import { logger } from "@/lib/logger";
+import { getErrorMessage } from "@/lib/validation";
 
 interface DataColumn {
   id: string;
@@ -114,8 +116,12 @@ export default function CustomReportsBuilder() {
         return row;
       });
       setPreviewData(rows);
-    } catch { setPreviewData([]); }
-    finally { setPreviewLoading(false); }
+    } catch (err) {
+      logger.error("Failed to load custom report preview:", getErrorMessage(err));
+      setPreviewData([]);
+    } finally {
+      setPreviewLoading(false);
+    }
   }, [school?.id, selectedColumns]);
 
   useEffect(() => { loadPreview(); }, [loadPreview]);

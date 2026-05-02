@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import {
   requireCronSecretOrDeny,
   createServiceRoleClientOrThrow,
@@ -235,7 +236,7 @@ export async function POST(request: NextRequest) {
               .update({ class_id: null, repeating: null })
               .eq("id", student.id);
           } catch (rollbackErr) {
-            console.error(
+            logger.error(
               `Rollback failed for student ${student.id}:`,
               rollbackErr,
             );
@@ -249,7 +250,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (completedPromotions.length > 0 && errors.length > 0) {
-      console.warn(
+      logger.warn(
         `Transaction partial failure: ${completedPromotions.length} promotions completed, ${errors.length} failed`,
       );
     }

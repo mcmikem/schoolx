@@ -6,6 +6,7 @@ import {
 } from "@/lib/api-utils";
 import { requireActiveSubscription } from "@/lib/subscription-guard";
 import { sendAfricasTalkingSMS, checkSmsDailyLimit } from "@/lib/africas-talking";
+import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -182,7 +183,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Auto inventory alerts error:", error);
+    logger.error("Auto inventory alerts error:", error);
     return NextResponse.json(
       {
         error: "Auto inventory alerts failed",

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { apiError, requireUserWithSchool } from '@/lib/api-utils'
+import { logger } from "@/lib/logger";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
         })
 
         if (bucketError && !bucketError.message.includes('already exists')) {
-          console.error('Create bucket error:', bucketError)
+          logger.error('Create bucket error:', bucketError)
           return apiError('Failed to create storage bucket', 500)
         }
 
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
           })
 
         if (retryUpload.error) {
-          console.error('Retry upload error:', retryUpload.error)
+          logger.error('Retry upload error:', retryUpload.error)
           return apiError('Failed to upload file', 500)
         }
 
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      console.error('Upload error:', error)
+      logger.error('Upload error:', error)
       return apiError('Failed to upload file', 500)
     }
 
@@ -124,7 +125,7 @@ export async function POST(request: NextRequest) {
       url: urlData.publicUrl,
     })
   } catch (error) {
-    console.error('Server error:', error)
+    logger.error('Server error:', error)
     return apiError('Failed to upload file', 500)
   }
 }
@@ -149,7 +150,7 @@ export async function GET(request: NextRequest) {
       buckets: buckets?.map(b => ({ id: b.id, name: b.name, public: b.public }))
     })
   } catch (error) {
-    console.error('Server error:', error)
+    logger.error('Server error:', error)
     return apiError('Failed to list buckets', 500)
   }
 }

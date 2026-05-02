@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenAI } from '@google/genai'
 import { apiError, apiSuccess, handleApiError, withSecurity, requireAuthenticatedUser } from '@/lib/api-utils'
+import { logger } from "@/lib/logger";
 
 const promptTemplate = `
 You are a robust data extraction parser for a School Management System. 
@@ -70,12 +71,12 @@ async function handlePost(request: NextRequest) {
         students: studentsArray
       }, 'Parsed successfully')
     } catch (parseErr) {
-      console.error('Failed to parse AI response as JSON:', cleanedText)
+      logger.error('Failed to parse AI response as JSON:', cleanedText)
       return apiError('Failed to parse the extracted data', 500)
     }
     
   } catch (error) {
-    console.error('AI Parsing Error:', error)
+    logger.error('AI Parsing Error:', error)
     return handleApiError(error)
   }
 }

@@ -7,6 +7,7 @@ import {
   updatePendingMobilePayment,
 } from "@/lib/payments/utils";
 import { sendPaymentReceipt } from "@/lib/subscription";
+import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
     // Enforce signature verification — no bypass in production
     const allowInsecure = process.env.NODE_ENV === "development" && process.env.ALLOW_INSECURE_WEBHOOKS === "true";
     if (!isValidSignature && !allowInsecure) {
-      console.error("Invalid webhook signature");
+      logger.error("Invalid webhook signature");
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
@@ -31,11 +32,11 @@ export async function POST(request: NextRequest) {
     const event = flutterwave.parseWebhookEvent(payload);
 
     if (!event) {
-      console.error("Invalid webhook event");
+      logger.error("Invalid webhook event");
       return NextResponse.json({ error: "Invalid event" }, { status: 400 });
     }
 
-    console.log(`Mobile money webhook received: ${event.event}`);
+    logger.debug(`Mobile money webhook received: ${event.event}`);
 
     if (
       event.event === "charge.completed" ||
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
         const pendingPayment = await getPendingMobilePayment(txRef);
 
         if (!pendingPayment) {
-          console.error(`Pending payment not found for txRef: ${txRef}`);
+          logger.error(`Pending payment not found for txRef: ${txRef}`);
           return NextResponse.json(
             { error: "Payment not found" },
             { status: 404 },
@@ -55,14 +56,14 @@ export async function POST(request: NextRequest) {
         }
 
         if (pendingPayment.status === "completed") {
-          console.log(`Payment ${txRef} already processed, skipping`);
+          logger.debug(`Payment ${txRef} already processed, skipping`);
           return NextResponse.json({ success: true, message: "Already processed" });
         }
 
         const markResult = await updatePendingMobilePayment(txRef, "completed", pendingPayment.status);
 
         if (!markResult) {
-          console.log(`Payment ${txRef} was already marked completed by another request, skipping`);
+          logger.debug(`Payment ${txRef} was already marked completed by another request, skipping`);
           return NextResponse.json({ success: true, message: "Already processed" });
         }
 
@@ -95,10 +96,10 @@ export async function POST(request: NextRequest) {
             transactionId: txRef,
           });
         } catch (receiptError) {
-          console.error("Error sending receipt (non-critical):", receiptError);
+          logger.error("Error sending receipt (non-critical):", receiptError);
         }
 
-        console.log(
+        logger.debug(
           `Payment completed for school: ${pendingPayment.school_id}, amount: ${amount}`,
         );
       }
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
       await updatePendingMobilePayment(txRef, "failed");
       await updatePaymentStatus(txRef, "failed");
 
-      console.log(`Payment failed for txRef: ${txRef}`);
+      logger.debug(`Payment failed for txRef: ${txRef}`);
     }
 
     if (event.event === "charge.expired" || event.event === "payment.expired") {
@@ -119,12 +120,12 @@ export async function POST(request: NextRequest) {
       await updatePendingMobilePayment(txRef, "expired");
       await updatePaymentStatus(txRef, "failed");
 
-      console.log(`Payment expired for txRef: ${txRef}`);
+      logger.debug(`Payment expired for txRef: ${txRef}`);
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error("Mobile money webhook error:", error);
+    logger.error("Mobile money webhook error:", error);
     return NextResponse.json(
       { error: "Webhook processing failed" },
       { status: 500 },

@@ -6,6 +6,7 @@ import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
 import { getErrorMessage } from '@/lib/validation'
+import { logger } from '@/lib/logger'
 
 interface SchoolData {
   id: string
@@ -401,7 +402,9 @@ export default function SchoolsPage() {
       if (school.student_count && school.student_count > 0) steps.students_imported = true
       if (school.logo_url) steps.logo_uploaded = true
       if (school.name) steps.school_info = true
-    } catch { /* ignore */ }
+    } catch (err) {
+      logger.error("Failed to check onboarding status:", getErrorMessage(err));
+    }
 
     setShowOnboardingModal(true)
   }

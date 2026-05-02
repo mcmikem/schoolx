@@ -8,6 +8,7 @@ import {
 } from "@/lib/payments/utils";
 import { requireUserWithSchool, assertUserRoleOrDeny, rateLimit } from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
 
 const BILLING_ROLES = [
   "super_admin",
@@ -122,7 +123,7 @@ export async function POST(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    console.error("Mobile money payment error:", error);
+    logger.error("Mobile money payment error:", error);
     const message = error instanceof Error ? error.message : "Failed to initialize mobile money payment";
     const isConfigError = message.includes("not yet configured") || message.includes("environment variables");
     return NextResponse.json(

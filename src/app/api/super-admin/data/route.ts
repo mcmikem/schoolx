@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/server/user-provisioning";
 import { requireUserWithSchool } from "@/lib/api-utils";
+import { logger } from "@/lib/logger";
 
 export async function GET(request: NextRequest) {
   // Verify the caller is super_admin
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     if (schoolsRes.error) {
-      console.error("[super-admin/data] schools query error:", schoolsRes.error);
+      logger.error("[super-admin/data] schools query error:", schoolsRes.error);
       const fallbackRes = await admin
         .from("schools")
         .select(
@@ -73,7 +74,7 @@ export async function GET(request: NextRequest) {
       users: usersRes.data ?? [],
     });
   } catch (err: any) {
-    console.error("[super-admin/data] error:", err);
+    logger.error("[super-admin/data] error:", err);
     return NextResponse.json(
       { success: false, error: err?.message ?? "Internal server error" },
       { status: 500 },

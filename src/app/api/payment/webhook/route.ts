@@ -5,6 +5,7 @@ import {
   handleSubscriptionChange,
 } from "@/lib/subscription";
 import { PlanType } from "@/lib/payments/subscription-client";
+import { logger } from "@/lib/logger";
 
 export async function POST(request: Request) {
   const body = await request.text();
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
   try {
     event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
   } catch {
-    console.error("Webhook signature verification failed");
+    logger.error("Webhook signature verification failed");
     return new NextResponse("Webhook signature verification failed", { status: 400 });
   }
 
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
     case "checkout.session.completed": {
       const session = event.data.object;
 
-      console.log(`Checkout session completed: ${session.id}`);
+      logger.debug(`Checkout session completed: ${session.id}`);
 
       if (session.mode === "subscription" && session.subscription) {
         try {
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
             subscriptionId: subscription.id,
           });
         } catch (error) {
-          console.error("Error handling checkout session completed:", error);
+          logger.error("Error handling checkout session completed:", error);
           return new NextResponse(
             JSON.stringify({ error: "Failed to process checkout session" }),
             { status: 500 },
@@ -74,7 +75,7 @@ export async function POST(request: Request) {
     case "invoice.payment_succeeded": {
       const invoice = event.data.object as Stripe.Invoice;
 
-      console.log(`Invoice payment succeeded: ${invoice.id}`);
+      logger.debug(`Invoice payment succeeded: ${invoice.id}`);
 
       try {
         const subscriptionId =
@@ -103,7 +104,7 @@ export async function POST(request: Request) {
           subscriptionId: subscription.id,
         });
       } catch (error) {
-        console.error("Error handling invoice.payment_succeeded:", error);
+        logger.error("Error handling invoice.payment_succeeded:", error);
         return new NextResponse(
           JSON.stringify({ error: "Failed to process invoice payment" }),
           { status: 500 },
@@ -138,7 +139,7 @@ export async function POST(request: Request) {
           });
         }
       } catch (error) {
-        console.error("Error sending payment receipt (non-critical):", error);
+        logger.error("Error sending payment receipt (non-critical):", error);
       }
 
       break;
@@ -147,7 +148,7 @@ export async function POST(request: Request) {
     case "invoice.payment_failed": {
       const invoice = event.data.object as Stripe.Invoice;
 
-      console.log(`Invoice payment failed: ${invoice.id}`);
+      logger.debug(`Invoice payment failed: ${invoice.id}`);
 
       try {
         await handleSubscriptionChange(invoice.metadata?.school_id || "", {
@@ -155,7 +156,7 @@ export async function POST(request: Request) {
           provider: "stripe",
         });
       } catch (error) {
-        console.error("Error handling invoice.payment_failed:", error);
+        logger.error("Error handling invoice.payment_failed:", error);
         return new NextResponse(
           JSON.stringify({ error: "Failed to process failed payment" }),
           { status: 500 },
@@ -168,7 +169,7 @@ export async function POST(request: Request) {
     case "customer.subscription.created": {
       const subscription = event.data.object;
 
-      console.log(`Subscription created: ${subscription.id}`);
+      logger.debug(`Subscription created: ${subscription.id}`);
 
       try {
         await handleSubscriptionChange(subscription.metadata?.school_id || "", {
@@ -178,7 +179,7 @@ export async function POST(request: Request) {
           subscriptionId: subscription.id,
         });
       } catch (error) {
-        console.error("Error handling customer.subscription.created:", error);
+        logger.error("Error handling customer.subscription.created:", error);
         return new NextResponse(
           JSON.stringify({ error: "Failed to process subscription creation" }),
           { status: 500 },
@@ -191,7 +192,7 @@ export async function POST(request: Request) {
     case "customer.subscription.updated": {
       const subscription = event.data.object;
 
-      console.log(`Subscription updated: ${subscription.id}`);
+      logger.debug(`Subscription updated: ${subscription.id}`);
 
       try {
         await handleSubscriptionChange(subscription.metadata?.school_id || "", {
@@ -201,7 +202,7 @@ export async function POST(request: Request) {
           subscriptionId: subscription.id,
         });
       } catch (error) {
-        console.error("Error handling customer.subscription.updated:", error);
+        logger.error("Error handling customer.subscription.updated:", error);
         return new NextResponse(
           JSON.stringify({ error: "Failed to process subscription update" }),
           { status: 500 },
@@ -214,7 +215,7 @@ export async function POST(request: Request) {
     case "customer.subscription.deleted": {
       const subscription = event.data.object;
 
-      console.log(`Subscription deleted: ${subscription.id}`);
+      logger.debug(`Subscription deleted: ${subscription.id}`);
 
       try {
         await handleSubscriptionChange(subscription.metadata?.school_id || "", {
@@ -222,7 +223,7 @@ export async function POST(request: Request) {
           provider: "stripe",
         });
       } catch (error) {
-        console.error("Error handling customer.subscription.deleted:", error);
+        logger.error("Error handling customer.subscription.deleted:", error);
         return new NextResponse(
           JSON.stringify({ error: "Failed to process subscription deletion" }),
           { status: 500 },
@@ -233,7 +234,7 @@ export async function POST(request: Request) {
     }
 
     default:
-      console.log(`Unhandled Stripe event type: ${event.type}`);
+      logger.debug(`Unhandled Stripe event type: ${event.type}`);
   }
 
   return new NextResponse(JSON.stringify({ received: true }), { status: 200 });

@@ -6,6 +6,7 @@ import {
   requireExistingSchoolOrDeny,
 } from "@/lib/api-utils";
 import { requireActiveSubscription } from "@/lib/subscription-guard";
+import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -215,7 +216,7 @@ export async function POST(request: NextRequest) {
       results: { processed, errors },
     });
   } catch (error) {
-    console.error("Auto payroll processing error:", error);
+    logger.error("Auto payroll processing error:", error);
     return NextResponse.json(
       {
         error: "Auto payroll processing failed",

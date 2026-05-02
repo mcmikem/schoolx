@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSchoolPaymentHistory } from "@/lib/payments/utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/server/user-provisioning";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    console.error("Get invoices error:", error);
+    logger.error("Get invoices error:", error);
     return NextResponse.json(
       { error: "Failed to get invoices" },
       { status: 500 },
@@ -130,7 +131,7 @@ export async function POST(request: NextRequest) {
       { status: 201 },
     );
   } catch (error) {
-    console.error("Create invoice error:", error);
+    logger.error("Create invoice error:", error);
     return NextResponse.json(
       { error: "Failed to create invoice" },
       { status: 500 },
@@ -196,7 +197,7 @@ export async function PUT(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    console.error("Update invoice error:", error);
+    logger.error("Update invoice error:", error);
     return NextResponse.json(
       { error: "Failed to update invoice" },
       { status: 500 },
@@ -234,7 +235,7 @@ export async function DELETE(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    console.error("Delete invoice error:", error);
+    logger.error("Delete invoice error:", error);
     return NextResponse.json(
       { error: "Failed to delete invoice" },
       { status: 500 },

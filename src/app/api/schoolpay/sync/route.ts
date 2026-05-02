@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SchoolPayService } from "@/lib/payments/schoolpay";
+import { logger } from "@/lib/logger";
 import {
   createServiceRoleClientOrThrow,
   requireCronSecretOrDeny,
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
       supplementaryPayments: insertedSupplementary,
     });
   } catch (error) {
-    console.error(
+    logger.error(
       "SchoolPay sync error:",
       error instanceof Error ? error.message : "unknown error",
     );

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/server/user-provisioning";
 import { requireUserWithSchool } from "@/lib/api-utils";
+import { logger } from "@/lib/logger";
 
 // ─── Guard ────────────────────────────────────────────────────────────────────
 
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     const { error } = await admin.from("schools").update(safe).eq("id", id);
     if (error) {
-      console.error("[actions] update_school error:", error);
+      logger.error("[actions] update_school error:", error);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
     return NextResponse.json({ success: true });
@@ -129,7 +130,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error("[actions] create_school error:", error);
+      logger.error("[actions] create_school error:", error);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
     return NextResponse.json({ success: true, id: data?.id });
@@ -158,7 +159,7 @@ export async function POST(request: NextRequest) {
 
     const { error } = await admin.from("users").update(safe).eq("id", id);
     if (error) {
-      console.error("[actions] update_user error:", error);
+      logger.error("[actions] update_user error:", error);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
     return NextResponse.json({ success: true });
@@ -194,7 +195,7 @@ export async function POST(request: NextRequest) {
     if (userRow.auth_id) {
       const { error: authErr } = await admin.auth.admin.deleteUser(userRow.auth_id);
       if (authErr) {
-        console.error("[actions] delete auth user error:", authErr);
+        logger.error("[actions] delete auth user error:", authErr);
         return NextResponse.json({ success: false, error: authErr.message }, { status: 500 });
       }
     } else {
@@ -261,7 +262,7 @@ export async function POST(request: NextRequest) {
     // Delete school — cascades to all related data
     const { error } = await admin.from("schools").delete().eq("id", id);
     if (error) {
-      console.error("[actions] delete_school error:", error);
+      logger.error("[actions] delete_school error:", error);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
     return NextResponse.json({ success: true });

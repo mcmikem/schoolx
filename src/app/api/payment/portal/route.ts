@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
 import {
   requireUserWithSchool,
   assertUserRoleOrDeny,
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    console.error("Portal session error:", error);
+    logger.error("Portal session error:", error);
     return NextResponse.json(
       { error: "Failed to create portal session" },
       { status: 500 },

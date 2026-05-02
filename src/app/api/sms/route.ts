@@ -18,6 +18,7 @@ import {
 } from "@/lib/africas-talking";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { validateRequest, smsRequestSchema } from "@/lib/validation";
+import { logger } from "@/lib/logger";
 
 const { apiKey: AFRICAS_TALKING_API_KEY } = getAfricasTalkingConfig();
 const SMS_ALLOWED_ROLES = [
@@ -231,7 +232,7 @@ export async function PATCH(request: NextRequest) {
     const { id, status, phoneNumber, failureReason } = body;
 
     // Log delivery status
-    console.log(
+    logger.debug(
       `[SMS Delivery] ID: ${id}, Status: ${status}, Phone: ${phoneNumber}`,
     );
 

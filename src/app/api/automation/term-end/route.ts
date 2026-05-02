@@ -17,6 +17,7 @@ import {
   requireExistingSchoolOrDeny,
 } from "@/lib/api-utils";
 import { sendAfricasTalkingSMS } from "@/lib/africas-talking";
+import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -525,7 +526,7 @@ export async function POST(request: NextRequest) {
       steps,
     });
   } catch (error) {
-    console.error("Term end processing error:", error);
+    logger.error("Term end processing error:", error);
     return NextResponse.json(
       {
         error: "Term end processing failed",

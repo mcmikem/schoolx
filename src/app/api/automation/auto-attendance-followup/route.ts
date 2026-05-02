@@ -10,6 +10,7 @@ import {
   requireExistingSchoolOrDeny,
 } from "@/lib/api-utils";
 import { sendAfricasTalkingSMS } from "@/lib/africas-talking";
+import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -204,7 +205,7 @@ export async function POST(request: NextRequest) {
       results: { flagged, smsResults, skipped, errors },
     });
   } catch (error) {
-    console.error("Auto attendance follow-up error:", error);
+    logger.error("Auto attendance follow-up error:", error);
     return NextResponse.json(
       {
         error: "Auto attendance follow-up failed",

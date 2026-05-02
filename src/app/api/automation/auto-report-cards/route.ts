@@ -7,6 +7,7 @@ import {
   getGradeLabel,
   generateAutoComment,
 } from "@/lib/automation";
+import { logger } from "@/lib/logger";
 import {
   requireCronSecretOrDeny,
   createServiceRoleClientOrThrow,
@@ -369,7 +370,7 @@ export async function POST(request: NextRequest) {
       results,
     });
   } catch (error) {
-    console.error("Auto report card generation error:", error);
+    logger.error("Auto report card generation error:", error);
     return NextResponse.json(
       {
         error: "Auto report card generation failed",

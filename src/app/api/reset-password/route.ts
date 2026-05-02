@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { randomBytes } from "crypto";
 import { apiSuccess, apiError } from "@/lib/api-utils";
+import { logger } from "@/lib/logger";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!;
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     return apiSuccess({ success: true }, "Password reset successful");
   } catch (error) {
-    console.error("[Reset Password Error]", error);
+    logger.error("[Reset Password Error]", error);
     return apiError("Failed to reset password", 500);
   }
 }

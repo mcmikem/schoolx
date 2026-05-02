@@ -6,6 +6,7 @@ import {
 } from "@/lib/api-utils";
 import { requireActiveSubscription } from "@/lib/subscription-guard";
 import { sendAfricasTalkingSMS, checkSmsDailyLimit } from "@/lib/africas-talking";
+import { logger } from "@/lib/logger";
 
 // Auto Fee Reminder SMS Scheduler
 // Automatically sends SMS reminders to parents with outstanding fees
@@ -228,7 +229,7 @@ export async function POST(request: NextRequest) {
       results,
     });
   } catch (error) {
-    console.error("Auto fee reminder error:", error);
+    logger.error("Auto fee reminder error:", error);
     return NextResponse.json(
       {
         error: "Auto fee reminder failed",
