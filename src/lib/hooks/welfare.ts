@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context'
 import { getQuerySchoolId } from './utils'
 import { isDemoSchool } from '@/lib/demo-utils'
 import { DEMO_DORMS, DEMO_TRANSPORT_ROUTES, DEMO_TRANSPORT_LOGS } from '@/lib/demo-data'
+import { logger } from "@/lib/logger";
 
 export function useDormManager(schoolId?: string, dormId?: string) {
   const [dorms, setDorms] = useState<any[]>([])
@@ -48,7 +49,7 @@ export function useDormManager(schoolId?: string, dormId?: string) {
         setRooms(roomsRes.data || [])
         setIncidents(incidentsRes.data || [])
       } catch (err) {
-        console.error('Error fetching dorm welfare data:', err)
+        logger.error('Error fetching dorm welfare data:', err)
       } finally {
         setLoading(false)
       }
@@ -90,7 +91,7 @@ export function useTransportManager(schoolId?: string) {
         setRoutes(routesRes.data || [])
         setLogs(logsRes.data || [])
       } catch (err) {
-        console.error('Error fetching transport welfare data:', err)
+        logger.error('Error fetching transport welfare data:', err)
       } finally {
         setLoading(false)
       }

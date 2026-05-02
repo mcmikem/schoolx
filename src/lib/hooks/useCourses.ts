@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
+import { logger } from "@/lib/logger";
 
 interface Course {
   id: string;
@@ -77,7 +78,7 @@ export function useCourses(options: UseCoursesOptions = {}) {
       if (error) throw error;
       setCourses(data || []);
     } catch (err) {
-      console.error("Error fetching courses:", err);
+      logger.error("Error fetching courses:", err);
       toast.error("Failed to load courses");
     } finally {
       setLoading(false);
@@ -103,7 +104,7 @@ export function useCourses(options: UseCoursesOptions = {}) {
         fetchCourses();
         return data;
       } catch (err) {
-        console.error("Error creating course:", err);
+        logger.error("Error creating course:", err);
         toast.error("Failed to create course");
         return null;
       }
@@ -126,7 +127,7 @@ export function useCourses(options: UseCoursesOptions = {}) {
         fetchCourses();
         return data;
       } catch (err) {
-        console.error("Error updating course:", err);
+        logger.error("Error updating course:", err);
         toast.error("Failed to update course");
         return null;
       }
@@ -143,7 +144,7 @@ export function useCourses(options: UseCoursesOptions = {}) {
         toast.success("Course deleted");
         fetchCourses();
       } catch (err) {
-        console.error("Error deleting course:", err);
+        logger.error("Error deleting course:", err);
         toast.error("Failed to delete course");
       }
     },
@@ -191,7 +192,7 @@ export function useCourseClasses() {
         if (error) throw error;
         setCourseClasses(data || []);
       } catch (err) {
-        console.error("Error fetching course classes:", err);
+        logger.error("Error fetching course classes:", err);
         toast.error("Failed to load course assignments");
       } finally {
         setLoading(false);
@@ -213,7 +214,7 @@ export function useCourseClasses() {
         toast.success("Course assigned to class");
         return data;
       } catch (err) {
-        console.error("Error assigning course:", err);
+        logger.error("Error assigning course:", err);
         toast.error("Failed to assign course");
         return null;
       }
@@ -232,7 +233,7 @@ export function useCourseClasses() {
         if (error) throw error;
         toast.success("Assignment updated");
       } catch (err) {
-        console.error("Error updating course class:", err);
+        logger.error("Error updating course class:", err);
         toast.error("Failed to update assignment");
       }
     },

@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
+import { logger } from "@/lib/logger";
 
 interface Enrollment {
   id: string;
@@ -71,7 +72,7 @@ export function useStudentEnrollments(
       if (error) throw error;
       setEnrollments(data || []);
     } catch (err) {
-      console.error("Error fetching enrollments:", err);
+      logger.error("Error fetching enrollments:", err);
       toast.error("Failed to load enrollments");
     } finally {
       setLoading(false);
@@ -97,7 +98,7 @@ export function useStudentEnrollments(
         toast.success("Enrollment created");
         return data;
       } catch (err) {
-        console.error("Error creating enrollment:", err);
+        logger.error("Error creating enrollment:", err);
         toast.error("Failed to create enrollment");
         return null;
       }
@@ -120,7 +121,7 @@ export function useStudentEnrollments(
         toast.success("Enrollment updated");
         return data;
       } catch (err) {
-        console.error("Error updating enrollment:", err);
+        logger.error("Error updating enrollment:", err);
         toast.error("Failed to update enrollment");
         return null;
       }
@@ -167,7 +168,7 @@ export function useStudentEnrollments(
 
         return newEnrollment;
       } catch (err) {
-        console.error("Error transferring student:", err);
+        logger.error("Error transferring student:", err);
         toast.error("Failed to transfer student");
         return null;
       }

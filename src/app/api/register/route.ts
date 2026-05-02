@@ -317,7 +317,12 @@ export async function POST(request: NextRequest) {
           level: s.level,
           is_compulsory: s.is_compulsory,
         }));
-        await supabaseAdmin.from("subjects").insert(subjectRecords);
+        const { error: subjectsError } = await supabaseAdmin
+          .from("subjects")
+          .insert(subjectRecords);
+        if (subjectsError) {
+          logger.warn("[Setup] Subjects seed failed:", subjectsError);
+        }
       }
 
       // Create classes
@@ -327,11 +332,16 @@ export async function POST(request: NextRequest) {
         currentYear,
       );
       if (defaultClasses.length > 0) {
-        await supabaseAdmin.from("classes").insert(defaultClasses);
+        const { error: classesError } = await supabaseAdmin
+          .from("classes")
+          .insert(defaultClasses);
+        if (classesError) {
+          logger.warn("[Setup] Classes seed failed:", classesError);
+        }
       }
 
       // Create academic year
-      const { data: academicYear } = await supabaseAdmin
+      const { data: academicYear, error: ayError } = await supabaseAdmin
         .from("academic_years")
         .insert({
           school_id: schoolData.id,
@@ -340,6 +350,10 @@ export async function POST(request: NextRequest) {
         })
         .select()
         .single();
+
+      if (ayError) {
+        logger.warn("[Setup] Academic year seed failed:", ayError);
+      }
 
       // Create terms
       if (academicYear) {
@@ -356,25 +370,36 @@ export async function POST(request: NextRequest) {
           is_current: term.is_current,
         }));
 
-        await supabaseAdmin.from("terms").insert(defaultTermRows);
+        const { error: termsError } = await supabaseAdmin
+          .from("terms")
+          .insert(defaultTermRows);
+        if (termsError) {
+          logger.warn("[Setup] Terms seed failed:", termsError);
+        }
 
-        await supabaseAdmin
+        const { error: atError } = await supabaseAdmin
           .from("academic_terms")
           .upsert(defaultAcademicTerms, {
             onConflict: "school_id,academic_year,term_number",
           });
+        if (atError) {
+          logger.warn("[Setup] Academic terms upsert failed:", atError);
+        }
       }
 
-      await supabaseAdmin
+      const { error: eventsError } = await supabaseAdmin
         .from("events")
         .insert(buildUgandaCalendarEvents(schoolData.id, currentYear));
+      if (eventsError) {
+        logger.warn("[Setup] Events seed failed:", eventsError);
+      }
 
       // Setup complete
       if (process.env.NODE_ENV !== "production") {
         logger.debug("[Setup] Auto-setup completed for new school");
       }
     } catch (setupError) {
-      console.error("[Setup] Auto-setup failed:", setupError);
+      logger.error("[Setup] Auto-setup failed:", setupError);
     }
 
     // Return success

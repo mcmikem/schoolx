@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
+import { logger } from "@/lib/logger";
 
 interface ActivityComment {
   id: string;
@@ -46,7 +47,7 @@ export function useActivityComments(options: UseActivityCommentsOptions = {}) {
       if (error) throw error;
       setComments(data || []);
     } catch (err) {
-      console.error("Error fetching comments:", err);
+      logger.error("Error fetching comments:", err);
       toast.error("Failed to load comments");
     } finally {
       setLoading(false);
@@ -81,7 +82,7 @@ export function useActivityComments(options: UseActivityCommentsOptions = {}) {
         fetchComments();
         return data;
       } catch (err) {
-        console.error("Error adding comment:", err);
+        logger.error("Error adding comment:", err);
         toast.error("Failed to add comment");
         return null;
       }
@@ -101,7 +102,7 @@ export function useActivityComments(options: UseActivityCommentsOptions = {}) {
         toast.success("Comment updated");
         fetchComments();
       } catch (err) {
-        console.error("Error updating comment:", err);
+        logger.error("Error updating comment:", err);
         toast.error("Failed to update comment");
       }
     },
@@ -120,7 +121,7 @@ export function useActivityComments(options: UseActivityCommentsOptions = {}) {
         toast.success("Comment deleted");
         fetchComments();
       } catch (err) {
-        console.error("Error deleting comment:", err);
+        logger.error("Error deleting comment:", err);
         toast.error("Failed to delete comment");
       }
     },
@@ -139,7 +140,7 @@ export function useActivityComments(options: UseActivityCommentsOptions = {}) {
         toast.success("Action resolved");
         fetchComments();
       } catch (err) {
-        console.error("Error resolving action:", err);
+        logger.error("Error resolving action:", err);
         toast.error("Failed to resolve action");
       }
     },

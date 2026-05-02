@@ -167,6 +167,17 @@ WITH CHECK (
 );
 
 -- ============================================
+-- 6.5 HOUSES (Sports/competition houses)
+-- ============================================
+CREATE TABLE IF NOT EXISTS houses (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    color TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
 -- 7. STUDENTS
 -- ============================================
 CREATE TABLE IF NOT EXISTS students (
@@ -191,6 +202,33 @@ CREATE TABLE IF NOT EXISTS students (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(school_id, student_number)
 );
+
+-- Extended student fields (keep schema.sql in sync with application selects)
+ALTER TABLE students ADD COLUMN IF NOT EXISTS blood_type TEXT;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS religion TEXT;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS nationality TEXT DEFAULT 'Ugandan';
+ALTER TABLE students ADD COLUMN IF NOT EXISTS photo_url TEXT;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS passport_photo_url TEXT;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS transfer_from TEXT;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS transfer_to TEXT;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS transfer_reason TEXT;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS dropout_reason TEXT;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS dropout_date DATE;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS repeating BOOLEAN DEFAULT false;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS last_attendance_date DATE;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS consecutive_absent_days INTEGER DEFAULT 0;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS house_id UUID;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS previous_school TEXT;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS district_origin TEXT;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS sub_county TEXT;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS parish TEXT;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS village TEXT;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS boarding_status TEXT DEFAULT 'day';
+ALTER TABLE students ADD COLUMN IF NOT EXISTS games_house TEXT;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS is_class_monitor BOOLEAN DEFAULT false;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS prefect_role TEXT;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS student_council_role TEXT;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS opening_balance NUMERIC(12,2) DEFAULT 0;
 
 -- ============================================
 -- 8. TEACHER SUBJECTS (Teacher-Subject assignments)
@@ -395,6 +433,7 @@ ALTER TABLE "academic_years" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "terms" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "classes" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "subjects" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "houses" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "students" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "teacher_subjects" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "attendance" ENABLE ROW LEVEL SECURITY;
@@ -507,6 +546,43 @@ USING (
 DROP POLICY IF EXISTS "School users classes write" ON "classes";
 CREATE POLICY "School users classes write"
 ON "classes"
+FOR ALL
+TO authenticated
+USING (
+  "school_id" IN (
+    SELECT "school_id"
+    FROM "users"
+    WHERE "auth_id" = auth.uid()
+  )
+)
+WITH CHECK (
+  "school_id" IN (
+    SELECT "school_id"
+    FROM "users"
+    WHERE "auth_id" = auth.uid()
+  )
+);
+
+-- =========================
+-- HOUSES
+-- =========================
+
+DROP POLICY IF EXISTS "School users houses select" ON "houses";
+CREATE POLICY "School users houses select"
+ON "houses"
+FOR SELECT
+TO authenticated
+USING (
+  "school_id" IN (
+    SELECT "school_id"
+    FROM "users"
+    WHERE "auth_id" = auth.uid()
+  )
+);
+
+DROP POLICY IF EXISTS "School users houses write" ON "houses";
+CREATE POLICY "School users houses write"
+ON "houses"
 FOR ALL
 TO authenticated
 USING (

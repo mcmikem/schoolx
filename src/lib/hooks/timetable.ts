@@ -7,6 +7,7 @@ import { getQuerySchoolId } from './utils'
 import { isDemoSchool } from '@/lib/demo-utils'
 import { DEMO_TIMETABLE, DEMO_SUBJECTS, DEMO_STAFF } from '@/lib/demo-data'
 import { buildDefaultTimetableSlots } from '@/lib/school-setup'
+import { logger } from "@/lib/logger";
 
 export function useTimetable(classId?: string) {
   const [timetable, setTimetable] = useState<any[]>([])
@@ -66,7 +67,7 @@ export function useTimetable(classId?: string) {
         }
         setTimetable(data || [])
       } catch (err) {
-        console.error('Error fetching timetable:', err)
+        logger.error('Error fetching timetable:', err)
       } finally {
         setLoading(false)
       }
@@ -186,7 +187,7 @@ export function useTimetableManager(schoolId?: string) {
             .insert(defaults)
             .select('id, school_id, name, start_time, end_time, order_number, is_lesson, created_at')
           if (insertError) {
-            console.warn('Failed to seed timetable slots:', insertError)
+            logger.warn('Failed to seed timetable slots:', insertError)
           }
           slotRows = (inserted || defaults) as Array<Record<string, any>>
         }
@@ -198,7 +199,7 @@ export function useTimetableManager(schoolId?: string) {
         }))
 
         if (constraintsRes.error) {
-          console.warn('Timetable constraints fetch error:', constraintsRes.error)
+          logger.warn('Timetable constraints fetch error:', constraintsRes.error)
           setConstraints([])
         } else {
           setConstraints((constraintsRes.data || []) as unknown as TimetableConstraint[])
@@ -206,7 +207,7 @@ export function useTimetableManager(schoolId?: string) {
 
         setSlots(normalizedSlots as unknown as TimetableSlot[])
       } catch (err) {
-        console.error('Error fetching timetable data:', err)
+        logger.error('Error fetching timetable data:', err)
       } finally {
         setLoading(false)
       }

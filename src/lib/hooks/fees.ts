@@ -15,6 +15,7 @@ import {
 import { isDemoSchool } from "@/lib/demo-utils";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
+import { logger } from "@/lib/logger";
 import {
   normalizeFeeStructureInput,
   normalizePaymentInput,
@@ -390,7 +391,7 @@ export function useFeeStructure(schoolId?: string) {
         (data as unknown as Record<string, unknown>[]) || [],
       );
     } catch (err) {
-      console.error("Error fetching fee structure:", err);
+      logger.error("Error fetching fee structure:", err);
     } finally {
       setLoading(false);
     }
@@ -561,7 +562,7 @@ export function useFeeAdjustments(schoolId?: string) {
         (data || []) as Record<string, unknown>[],
       );
     } catch (err) {
-      console.error("Error fetching adjustments:", err);
+      logger.error("Error fetching adjustments:", err);
     } finally {
       setLoading(false);
     }
@@ -832,7 +833,7 @@ export function useBudget(schoolId?: string) {
         setBudgets(budgetsRes.data || []);
         setExpenses(expensesRes.data || []);
       } catch (err) {
-        console.error("Error fetching budget:", err);
+        logger.error("Error fetching budget:", err);
       } finally {
         setLoading(false);
       }

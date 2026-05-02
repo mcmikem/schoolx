@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { isDemoSchool } from "@/lib/demo-utils";
+import { logger } from "@/lib/logger";
 
 interface ClassAttendance {
   present: number;
@@ -243,7 +244,7 @@ export function useDashboardExtraData(
             ).length;
             setDropoutRiskCount(dropoutCount);
           } catch (err) {
-            console.error("Dropout risk calculation error:", err);
+            logger.error("Dropout risk calculation error:", err);
             if (!cancelled) setDropoutRiskCount(0);
           }
         }
@@ -312,7 +313,7 @@ export function useDashboardExtraData(
           setOverdueFeeCount(0);
         }
       } catch (err) {
-        console.error("Error fetching dashboard extra data:", err);
+        logger.error("Error fetching dashboard extra data:", err);
       } finally {
         if (!cancelled) setLoading(false);
       }

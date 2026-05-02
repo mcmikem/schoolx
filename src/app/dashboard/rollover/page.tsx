@@ -82,7 +82,7 @@ export default function RolloverPage() {
       setPromoting(true)
 
       if (isDemo) {
-        await new Promise(r => setTimeout(r, 2000))
+        await new Promise(r => setTimeout(r, 600))
         // Simulate promotion
         students.forEach(s => {
           const className = s.classes?.name || ''

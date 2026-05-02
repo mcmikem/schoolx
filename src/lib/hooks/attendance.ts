@@ -11,6 +11,7 @@ import {
   logAuditEventWithOfflineSupport,
   logRecordChangeWithOfflineSupport,
 } from "@/lib/audit";
+import { logger } from "@/lib/logger";
 import {
   normalizeAttendanceInput,
   validateAttendanceInput,
@@ -202,7 +203,7 @@ export function useAttendance(classId?: string, date?: string) {
           (data || []) as unknown as Record<string, unknown>[],
         );
       } catch (err) {
-        console.error("Error fetching attendance:", err);
+        logger.error("Error fetching attendance:", err);
         setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
         setLoading(false);
@@ -294,7 +295,7 @@ export function useAttendanceHistory(schoolId?: string, academicYear?: string) {
         (a, b) => b.consecutiveAbsent - a.consecutiveAbsent,
       );
     } catch (err) {
-      console.error("Error fetching attendance history:", err);
+      logger.error("Error fetching attendance history:", err);
       throw err;
     } finally {
       setLoading(false);
@@ -370,7 +371,7 @@ export function useStaffAttendance(schoolId?: string, date?: string) {
         if (error) throw error;
         setAttendance(data || []);
       } catch (err) {
-        console.error("Error fetching staff attendance:", err);
+        logger.error("Error fetching staff attendance:", err);
       } finally {
         setLoading(false);
       }

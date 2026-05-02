@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
+import { logger } from "@/lib/logger";
 
 interface FeeTerm {
   id: string;
@@ -93,7 +94,7 @@ export function useFeeTerms() {
         if (error) throw error;
         setFeeTerms(data || []);
       } catch (err) {
-        console.error("Error fetching fee terms:", err);
+        logger.error("Error fetching fee terms:", err);
         toast.error("Failed to load fee terms");
       } finally {
         setLoading(false);
@@ -148,7 +149,7 @@ export function useFeeTerms() {
         toast.success("Fee term created");
         return newTerm;
       } catch (err) {
-        console.error("Error creating fee term:", err);
+        logger.error("Error creating fee term:", err);
         toast.error("Failed to create fee term");
         return null;
       }
@@ -191,7 +192,7 @@ export function useStudentFeeTerms(studentId?: string) {
       if (error) throw error;
       setStudentFeeTerms(data || []);
     } catch (err) {
-      console.error("Error fetching student fee terms:", err);
+      logger.error("Error fetching student fee terms:", err);
       toast.error("Failed to load student fee terms");
     } finally {
       setLoading(false);
@@ -241,7 +242,7 @@ export function useStudentFeeTerms(studentId?: string) {
         toast.success("Fee term assigned to student");
         return data;
       } catch (err) {
-        console.error("Error assigning fee term:", err);
+        logger.error("Error assigning fee term:", err);
         toast.error("Failed to assign fee term");
         return null;
       }
@@ -295,7 +296,7 @@ export function useStudentFeeTerms(studentId?: string) {
         toast.success("Payment recorded");
         return paymentData;
       } catch (err) {
-        console.error("Error recording payment:", err);
+        logger.error("Error recording payment:", err);
         toast.error("Failed to record payment");
         return null;
       }

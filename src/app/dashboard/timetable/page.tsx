@@ -368,8 +368,7 @@ export default function TimetablePage() {
     } finally {
       setLoading(false)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClassId])
+  }, [selectedClassId, setLoading, setTimetable, toast])
 
   // Fetch ALL class timetables for the school to enable cross-class conflict detection
   // Note: depends only on school?.id, not classes array (to avoid re-render loops)

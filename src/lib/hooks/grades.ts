@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { DEMO_GRADES, DemoGrade } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
+import { logger } from "@/lib/logger";
 import {
   logAuditEventWithOfflineSupport,
   logRecordChangeWithOfflineSupport,
@@ -257,7 +258,7 @@ export function useGrades(
         (data || []) as unknown as Record<string, unknown>[],
       );
     } catch (err) {
-      console.error("Failed to fetch grades:", err);
+      logger.error("Failed to fetch grades:", err);
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
@@ -406,7 +407,7 @@ export function useExamScores(
         }
         setExamScores(data || []);
       } catch (err) {
-        console.error("Error fetching exam scores:", err);
+        logger.error("Error fetching exam scores:", err);
       } finally {
         setLoading(false);
       }
@@ -509,7 +510,7 @@ export function useExams(schoolId?: string) {
         }
         setExams(data || []);
       } catch (err) {
-        console.error("Error fetching exams:", err);
+        logger.error("Error fetching exams:", err);
       } finally {
         setLoading(false);
       }

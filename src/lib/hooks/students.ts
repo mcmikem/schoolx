@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
+import { logger } from "@/lib/logger";
 import type { Student, CreateStudentInput, Class, School } from "@/types";
 import { getQuerySchoolId, withTimeout } from "./utils";
 import { getCachedData, setCachedData, invalidateCache } from "./queryCache";
@@ -206,7 +207,7 @@ async function fetchStudentsWithFallback(options: {
     }
 
     lastError = result.error;
-    console.warn(
+    logger.warn(
       `${attempt.label} failed, trying a smaller shape:`,
       result.error,
     );
@@ -245,7 +246,7 @@ async function fetchStudentByIdWithFallback(
     }
 
     lastError = result.error;
-    console.warn(
+    logger.warn(
       `${attempt.label} failed, trying a smaller shape:`,
       result.error,
     );
@@ -459,7 +460,7 @@ export function useStudents(
         .single();
 
       if (firstInsert.error) {
-        console.warn(
+        logger.warn(
           "Student insert failed with extended payload, retrying core fields:",
           firstInsert.error,
         );
@@ -502,7 +503,7 @@ export function useStudents(
       try {
         createdStudent = await fetchStudentByIdWithFallback(createdRow.id);
       } catch (fetchError: unknown) {
-        console.warn(
+        logger.warn(
           "Student was inserted but could not be re-fetched with current schema shape:",
           fetchError,
         );
@@ -563,7 +564,7 @@ export function useStudents(
       let updatedStudent: StudentWithClass | null = null;
 
       if (firstUpdate.error) {
-        console.warn(
+        logger.warn(
           "Student update failed with extended payload, retrying core fields:",
           firstUpdate.error,
         );
@@ -786,7 +787,7 @@ export function useClasses(schoolId?: string) {
 
       setClasses((data as unknown as Class[]) || []);
     } catch (err) {
-      console.warn("Classes fetch error:", err);
+      logger.warn("Classes fetch error:", err);
       setClasses([]);
     } finally {
       setLoading(false);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
+import { logger } from "@/lib/logger";
 
 interface UseAutoSaveOptions<T> {
   data: T;
@@ -54,7 +55,7 @@ export function useAutoSave<T>({
         }
       }
     } catch (e) {
-      console.error("Failed to load draft:", e);
+      logger.error("Failed to load draft:", e);
     }
     return null;
   }, [storageKey]);

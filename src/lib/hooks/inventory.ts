@@ -6,6 +6,7 @@ import type { InventoryTransaction } from '@/types'
 import { getQuerySchoolId, withTimeout } from './utils'
 import { isDemoSchool } from '@/lib/demo-utils'
 import { DEMO_ASSETS, DEMO_BOOKS, DEMO_BOOK_ISSUES, DEMO_BUDGETS } from '@/lib/demo-data'
+import { logger } from "@/lib/logger";
 
 export function useAssets(schoolId?: string) {
   const [assets, setAssets] = useState<any[]>([])
@@ -25,7 +26,7 @@ export function useAssets(schoolId?: string) {
       const { data, error } = await supabase.from('assets').select('*').eq('school_id', querySchoolId).order('name')
       if (error) throw error
       setAssets(data || [])
-    } catch (err) { console.warn('Assets fetch error:', err) }
+    } catch (err) { logger.warn('Assets fetch error:', err) }
     finally { setLoading(false) }
   }, [schoolId, isDemo])
 
@@ -141,7 +142,7 @@ export function useInventory(schoolId?: string) {
         if (error) throw error
         setTransactions(data || [])
       } catch (err) {
-        console.error('Error fetching inventory transactions:', err)
+        logger.error('Error fetching inventory transactions:', err)
       } finally {
         setLoading(false)
       }

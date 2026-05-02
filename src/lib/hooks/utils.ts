@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+
 // Shared utilities used by all domain hooks
 export const DEMO_SCHOOL_ID = '00000000-0000-0000-0000-000000000001'
 
@@ -16,7 +18,7 @@ export async function withTimeout<T>(promise: PromiseLike<T>, ms: number, fallba
     )
   ]).catch((e) => {
     if (e instanceof Error && e.message.startsWith('Query timed out')) {
-      console.warn('[hooks] Timeout — returning fallback')
+      logger.warn('[hooks] Timeout — returning fallback')
       return fallback
     }
     throw e

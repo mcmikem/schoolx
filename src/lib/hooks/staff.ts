@@ -6,6 +6,7 @@ import type { StaffSalary, SalaryPayment, StaffReview } from "@/types";
 import { getQuerySchoolId, withTimeout } from "./utils";
 import { DEMO_STAFF, DemoStaff } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
+import { logger } from "@/lib/logger";
 
 type StaffUser = {
   id: string;
@@ -58,7 +59,7 @@ export function useStaff(schoolId?: string) {
         );
         if (!cancelled) setStaff(data || []);
       } catch (err) {
-        console.error("Error fetching staff:", err);
+        logger.error("Error fetching staff:", err);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -117,7 +118,7 @@ export function useSalaries(schoolId?: string) {
         if (error) throw error;
         setSalaries((data as unknown as StaffSalary[]) || []);
       } catch (err) {
-        console.error("Error fetching salaries:", err);
+        logger.error("Error fetching salaries:", err);
       } finally {
         setLoading(false);
       }
@@ -181,7 +182,7 @@ export function useSalaryPayments(schoolId?: string) {
         if (error) throw error;
         setPayments((data as unknown as SalaryPayment[]) || []);
       } catch (err) {
-        console.error("Error fetching salary payments:", err);
+        logger.error("Error fetching salary payments:", err);
       } finally {
         setLoading(false);
       }
@@ -254,7 +255,7 @@ export function useStaffReviews(schoolId?: string, staffId?: string) {
         }
         setReviews((data as unknown as StaffReview[]) || []);
       } catch (err) {
-        console.error("Error fetching reviews:", err instanceof Error ? err.message : "unknown");
+        logger.error("Error fetching reviews:", err instanceof Error ? err.message : "unknown");
         setReviews([]);
       } finally {
         setLoading(false);
@@ -353,7 +354,7 @@ export function useLeaveRequests(schoolId?: string) {
         if (error) throw error;
         setRequests(data || []);
       } catch (err) {
-        console.error("Error fetching leave requests:", err);
+        logger.error("Error fetching leave requests:", err);
       } finally {
         setLoading(false);
       }

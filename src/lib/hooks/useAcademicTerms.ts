@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
+import { logger } from "@/lib/logger";
 
 interface AcademicTerm {
   id: string;
@@ -56,7 +57,7 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
       const current = data?.find((t) => t.is_current);
       setCurrentTerm(current || null);
     } catch (err) {
-      console.error("Error fetching academic terms:", err);
+      logger.error("Error fetching academic terms:", err);
       toast.error("Failed to load academic terms");
     } finally {
       setLoading(false);
@@ -82,7 +83,7 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
         toast.success("Academic term created");
         return data;
       } catch (err) {
-        console.error("Error creating academic term:", err);
+        logger.error("Error creating academic term:", err);
         toast.error("Failed to create academic term");
         return null;
       }
@@ -110,7 +111,7 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
         toast.success("Academic term updated");
         return data;
       } catch (err) {
-        console.error("Error updating academic term:", err);
+        logger.error("Error updating academic term:", err);
         toast.error("Failed to update academic term");
         return null;
       }
@@ -141,7 +142,7 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
 
         toast.success("Current term updated");
       } catch (err) {
-        console.error("Error setting current term:", err);
+        logger.error("Error setting current term:", err);
         toast.error("Failed to set current term");
       }
     },

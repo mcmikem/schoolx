@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context'
 import type { DashboardStats } from '@/types'
 import { getQuerySchoolId, withTimeout } from './utils'
 import { isDemoSchool } from '@/lib/demo-utils'
+import { logger } from "@/lib/logger";
 
 export function useDashboardStats(schoolId?: string) {
   const [stats, setStats] = useState({ totalStudents: 0, presentToday: 0, feesCollected: 0, feesBalance: 0, totalClasses: 0, totalTeachers: 0 })
@@ -37,7 +38,7 @@ export function useDashboardStats(schoolId?: string) {
         const totalCollected = (payments || []).reduce((sum: number, p: any) => sum + Number(p.amount_paid || 0), 0)
         const totalExpected = (feeStructure || []).reduce((sum: number, f: any) => sum + Number(f.amount || 0), 0)
         setStats({ totalStudents: studentCount || 0, presentToday: presentCount || 0, feesCollected: totalCollected, feesBalance: Math.max(0, totalExpected - totalCollected), totalClasses: classCount || 0, totalTeachers: teacherCount || 0 })
-      } catch (err) { console.error('Error fetching stats:', err) }
+      } catch (err) { logger.error('Error fetching stats:', err) }
       finally { if (!cancelled) setLoading(false) }
     }
     fetchStats()
@@ -149,7 +150,7 @@ export function useAnalytics(schoolId?: string) {
         const healthScore = Math.round((realAvgAttendance * 0.5) + (feeRate * 0.3) + (realAvgGrade * 0.2))
 
         setData({ genderDistribution, revenueProjections, atRiskStudents: atRiskStudents || [], attendanceTrends: [], classPerformance: [], subjectPerformance: [], feeCollection: [], stats: { totalStudents: students?.length || 0, avgAttendance: realAvgAttendance, avgGrade: realAvgGrade, feeCollectionRate: feeRate, projectedRevenue: totalExpected, healthScore } })
-      } catch (err) { console.error('Analytics Error:', err) }
+      } catch (err) { logger.error('Analytics Error:', err) }
       finally { setLoading(false) }
     }
     fetchAnalytics()

@@ -8,6 +8,7 @@ import { isDemoSchool } from "@/lib/demo-utils";
 import { getErrorMessage } from "@/lib/validation";
 
 import { Message, CalendarEvent } from "@/types";
+import { logger } from "@/lib/logger";
 
 const VALID_SMS_TRIGGER_EVENTS = new Set(["student_absent", "fee_overdue"]);
 
@@ -41,7 +42,7 @@ export function useMessages(schoolId?: string) {
         if (error) throw error;
         setMessages(data || []);
       } catch (err) {
-        console.error("Error fetching messages:", err);
+        logger.error("Error fetching messages:", err);
       } finally {
         setLoading(false);
       }
@@ -81,7 +82,7 @@ export function useEvents(schoolId?: string) {
         if (error) throw error;
         setEvents(data || []);
       } catch (err) {
-        console.error("Error fetching events:", err);
+        logger.error("Error fetching events:", err);
       } finally {
         setLoading(false);
       }
@@ -126,7 +127,7 @@ export function useAnnouncements(schoolId?: string, limit = 5) {
           .limit(limit);
         if (!error) setAnnouncements(data || []);
       } catch (err) {
-        console.error(err);
+        logger.error(err);
       } finally {
         setLoading(false);
       }
@@ -160,7 +161,7 @@ export function useAcademicEvents(schoolId?: string, limit = 5) {
           .limit(limit);
         if (!error) setEvents(data || []);
       } catch (err) {
-        console.error(err);
+        logger.error(err);
       } finally {
         setLoading(false);
       }
@@ -383,7 +384,7 @@ export function useSMSTriggers(schoolId?: string) {
         }
         setTriggers(data || []);
       } catch (err) {
-        console.error(
+        logger.error(
           "Error fetching SMS triggers:",
           err instanceof Error ? err.message : "unknown",
         );

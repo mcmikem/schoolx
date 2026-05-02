@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context'
 import type { Subject, School } from '@/types'
 import { getQuerySchoolId } from './utils'
 import { isDemoSchool } from '@/lib/demo-utils'
+import { logger } from "@/lib/logger";
 
 export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
   const [subjects, setSubjects] = useState<Subject[]>([])
@@ -38,7 +39,7 @@ export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
         if (!insertError && inserted) currentSubjects = inserted.sort((a: any, b: any) => a.name.localeCompare(b.name))
       }
       setSubjects(currentSubjects as Subject[])
-    } catch (err) { console.error('Error fetching subjects:', err) }
+    } catch (err) { logger.error('Error fetching subjects:', err) }
     finally { setLoading(false) }
   }, [schoolId, autoSeed, isDemo, getSchoolType])
 
@@ -94,7 +95,7 @@ export function useSubjectAllocations(schoolId?: string, academicYear?: string) 
         const { data, error } = await query
         if (error) throw error
         setAllocations(data || [])
-      } catch (err) { console.error('Error fetching allocations:', err) }
+      } catch (err) { logger.error('Error fetching allocations:', err) }
       finally { setLoading(false) }
     }
     fetchAllocations()
