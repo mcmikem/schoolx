@@ -9,6 +9,7 @@ import { t, tWithParams } from "@/i18n";
 import { Button, Input } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { normalizeAuthPhone } from "@/lib/validation";
+import { OwlLoader } from "@/components/loaders";
 
 const DEMO_KEY = "skoolmate_demo_v1";
 const DEMO_MODE_ENABLED =
@@ -207,7 +208,7 @@ export default function LoginPage() {
         is processing the redirect from the useEffect below. */}
     {(authLoading || user) ? (
       <div className="min-h-screen bg-[#f4f7fb] flex items-center justify-center">
-        <div className="w-8 h-8 border-[3px] border-[#001F3F] border-t-transparent rounded-full animate-spin" />
+        <OwlLoader size={100} text="SkoolMate OS" subtext="Getting things ready..." />
       </div>
     ) : (
     <div className="min-h-screen bg-[linear-gradient(145deg,#f0f5fc_0%,#e8f0fb_40%,#f4f8ff_100%)] flex relative overflow-hidden">

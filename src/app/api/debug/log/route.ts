@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
+import { requireDevelopmentRouteOrDeny } from "@/lib/api-utils";
 
 export async function POST() {
-  if (process.env.NODE_ENV === "production") {
-    return NextResponse.json({ ok: false }, { status: 404 });
-  }
+  const devOnly = requireDevelopmentRouteOrDeny();
+  if (!devOnly.ok) return devOnly.response;
   return NextResponse.json({ ok: true }, { status: 204 });
 }

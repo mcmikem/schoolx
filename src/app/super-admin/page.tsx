@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useToast } from "@/components/Toast";
 import Image from "next/image";
+import { OwlLoader } from "@/components/loaders";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1757,7 +1758,7 @@ export default function SuperAdminPage() {
   if (authLoading || (!user && !authLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--bg)]">
-        <div className="w-8 h-8 border-[3px] border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+        <OwlLoader size={100} text="SkoolMate OS" subtext="Loading admin panel..." />
       </div>
     );
   }

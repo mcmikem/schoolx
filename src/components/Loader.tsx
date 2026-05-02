@@ -1,8 +1,27 @@
 "use client";
+
 import Image from "next/image";
 import { t } from "@/i18n";
+import { OwlLoader } from "./loaders";
+
+/* ────────────────────────────────────────────────────────────────
+   SkoolMate OS — App Loader (full-screen)
+   Replaced old pulse/spinner with animated OwlLoader.
+   ──────────────────────────────────────────────────────────────── */
 
 export default function AppLoader() {
+  return (
+    <OwlLoader
+      fullScreen
+      size={140}
+      text="SkoolMate OS"
+      subtext="Preparing your school dashboard..."
+    />
+  );
+}
+
+/* ─── Fallback minimal loader (for SSR / no-js) ─── */
+export function MinimalLoader() {
   return (
     <div
       style={{
@@ -17,91 +36,47 @@ export default function AppLoader() {
         zIndex: 9999,
       }}
     >
-      <div
-        style={{
-          position: "relative",
-          width: 80,
-          height: 80,
-        }}
-      >
-        <Image
-          src="/SkoolMate logos/SchoolMate logo official.svg"
-          alt="SkoolMate OS"
-          width={80}
-          height={80}
-          style={{
-            animation: "pulse 1.5s ease-in-out infinite",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            inset: -10,
-            borderRadius: "50%",
-            border: "2px solid var(--navy)",
-            opacity: 0,
-            animation: "ripple 1.5s ease-out infinite",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            inset: -20,
-            borderRadius: "50%",
-            border: "2px solid var(--green)",
-            opacity: 0,
-            animation: "ripple 1.5s ease-out infinite 0.5s",
-          }}
-        />
-      </div>
+      <Image
+        src="/SkoolMate logos/SchoolMate logo official.svg"
+        alt="SkoolMate OS"
+        width={64}
+        height={64}
+        priority
+      />
       <div
         style={{
           fontFamily: "Sora",
-          fontSize: 20,
-          fontWeight: 700,
+          fontSize: 16,
+          fontWeight: 600,
           color: "var(--navy)",
-          letterSpacing: "-0.5px",
         }}
       >
-        School<span style={{ color: "var(--green)" }}>X</span>
-      </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          fontSize: 13,
-          color: "var(--t3)",
-        }}
-      >
-        <div
-          style={{
-            width: 16,
-            height: 16,
-            border: "2px solid var(--border)",
-            borderTopColor: "var(--navy)",
-            borderRadius: "50%",
-            animation: "spin 0.8s linear infinite",
-          }}
-        />
         {t("common.loading")}
       </div>
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(0.95); }
-        }
-        @keyframes ripple {
-          0% { transform: scale(0.8); opacity: 0.8; }
-          100% { transform: scale(1.5); opacity: 0; }
-        }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }
+
+/* ─── Re-exports for convenience ─── */
+export { OwlLoader } from "./loaders";
+export {
+  Skeleton,
+  CardSkeleton,
+  TableSkeleton,
+  StatsSkeleton,
+  FormSkeleton,
+  PageSkeleton,
+  SidebarSkeleton,
+} from "./loaders";
+export {
+  RingSpinner,
+  DotPulse,
+  OrbitalSpinner,
+  CircularProgress,
+  TopProgressBar,
+} from "./loaders";
+
+/* ─── Existing utility components (unchanged) ─── */
 
 export function PageError({
   title = "Something went wrong",

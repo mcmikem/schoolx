@@ -36,8 +36,6 @@ export default function OnboardingFlow({
   const toast = useToast();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
-
   const [branding, setBranding] = useState({
     primary_color: school?.primary_color || "#0d9488",
     logo_url: school?.logo_url || "",
@@ -60,20 +58,19 @@ export default function OnboardingFlow({
       "core",
   );
 
-  // Prevent background scrolling while onboarding is active
+  // Prevent background scrolling while onboarding is active (desktop only)
   useEffect(() => {
-    document.body.style.overflow = "hidden";
+    const mq = window.matchMedia("(min-width: 768px)");
+    const apply = () => {
+      document.body.style.overflow = mq.matches ? "hidden" : "";
+    };
+    apply();
+    mq.addEventListener("change", apply);
     return () => {
-      document.body.style.overflow = "auto";
+      document.body.style.overflow = "";
+      mq.removeEventListener("change", apply);
     };
   }, []);
-
-  // Handle scroll on mobile
-  const handleScroll = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = 0;
-    }
-  };
 
   if (!school) return null;
 
@@ -243,11 +240,9 @@ export default function OnboardingFlow({
   const selectedPlan = PLANS[normalizePlanType(school.subscription_plan)];
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-[var(--bg)]/90 backdrop-blur-xl overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-[var(--bg)]/90 backdrop-blur-xl overflow-y-auto md:overflow-hidden">
       <div
-        ref={scrollContainerRef}
-        className="relative flex w-full min-h-screen md:min-h-auto md:h-full md:max-h-[80vh] flex-col overflow-y-auto overflow-x-hidden py-6 md:py-0 md:rounded-[36px] bg-white shadow-[0_38px_90px_rgba(15,23,42,0.16)] ring-1 ring-black/5 md:flex-row"
-        onScroll={handleScroll}
+        className="relative flex w-full h-auto min-h-[100dvh] md:min-h-auto md:h-full md:max-h-[80vh] flex-col md:overflow-y-auto md:overflow-x-hidden py-6 md:py-0 md:rounded-[36px] bg-white shadow-[0_38px_90px_rgba(15,23,42,0.16)] ring-1 ring-black/5 md:flex-row"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         {/* Left Side: Progress & Info - Desktop only */}
@@ -304,7 +299,7 @@ export default function OnboardingFlow({
         </div>
 
         {/* Right Side: Step Content */}
-        <div className="flex-1 flex flex-col p-4 md:p-8 lg:p-12 pb-24 md:pb-12 relative min-h-[400px] md:min-h-[600px] w-full md:max-w-lg overflow-y-auto">
+        <div className="flex-1 flex flex-col p-4 md:p-8 lg:p-12 pb-24 md:pb-12 relative min-h-[400px] md:min-h-[600px] w-full md:max-w-lg">
           <AnimatePresence mode="wait">
             {step === 1 && (
               <motion.div
@@ -312,7 +307,7 @@ export default function OnboardingFlow({
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="flex-1 flex flex-col justify-center max-w-md"
+                className="flex-1 flex flex-col justify-start md:justify-center max-w-md"
               >
                 <OwlStage
                   eyebrow="Launch setup"
@@ -342,7 +337,7 @@ export default function OnboardingFlow({
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="flex-1 flex flex-col justify-center max-w-md"
+                className="flex-1 flex flex-col justify-start md:justify-center max-w-md"
               >
                 <OwlStage
                   compact
@@ -547,7 +542,7 @@ export default function OnboardingFlow({
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="flex-1 flex flex-col justify-center max-w-md"
+                className="flex-1 flex flex-col justify-start md:justify-center max-w-md"
               >
                 <OwlStage
                   compact
@@ -667,7 +662,7 @@ export default function OnboardingFlow({
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="flex-1 flex flex-col justify-center max-w-md"
+                className="flex-1 flex flex-col justify-start md:justify-center max-w-md"
               >
                 <OwlStage
                   compact
@@ -755,7 +750,7 @@ export default function OnboardingFlow({
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="flex-1 flex flex-col justify-center w-full"
+                className="flex-1 flex flex-col justify-start md:justify-center w-full"
               >
                 <h3 className="text-2xl font-bold text-slate-800 mb-2">
                   Launch Ready

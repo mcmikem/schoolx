@@ -89,23 +89,41 @@ function applySecurityHeaders(response: NextResponse) {
     ? "script-src 'self' 'unsafe-inline' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ blob:"
     : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ blob:";
 
+  // Build connect-src dynamically to include local Supabase in development
+  const connectSrcParts = [
+    "'self'",
+    "https://*.supabase.co",
+    "https://api.resend.com",
+    "https://api.africastalking.com",
+    "https://*.google.com",
+    "https://*.gstatic.com",
+  ];
+  if (!isProduction) {
+    connectSrcParts.push("http://127.0.0.1:*", "http://localhost:*", "ws://127.0.0.1:*", "ws://localhost:*");
+  }
+  const connectSrc = `connect-src ${connectSrcParts.join(" ")}`;
+
+  const cspDirectives = [
+    "default-src 'self'",
+    scriptSrc,
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    imgSrc,
+    connectSrc,
+    "frame-src https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/",
+    "worker-src 'self' blob:",
+    "media-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ];
+  if (isProduction) {
+    cspDirectives.push("upgrade-insecure-requests");
+  }
+
   response.headers.set(
     "Content-Security-Policy",
-    [
-      "default-src 'self'",
-      scriptSrc,
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "font-src 'self' https://fonts.gstatic.com",
-      imgSrc,
-      "connect-src 'self' https://*.supabase.co https://api.resend.com https://api.africastalking.com https://*.google.com https://*.gstatic.com",
-      "frame-src https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/",
-      "worker-src 'self' blob:",
-      "media-src 'self'",
-      "object-src 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "upgrade-insecure-requests",
-    ].join("; "),
+    cspDirectives.join("; "),
   );
 }
 
@@ -128,58 +146,6 @@ export async function proxy(request: NextRequest) {
 
   if (PUBLIC_FILE_PATTERN.test(pathname)) {
     return NextResponse.next({ request });
-  }
-
-  // ── API route auth guard (returns JSON, not redirects) ──
-  const isApiRoute = pathname.startsWith("/api/");
-  const isHealthRoute = pathname.startsWith("/api/health");
-  const isPublicApiRoute = [
-    "/api/register",
-    "/api/forgot-password",
-    "/api/reset-password",
-    "/api/demo-login",
-    "/api/health",
-    "/api/health/env",
-    "/api/payment/webhook",
-    "/api/payment/paypal/webhook",
-    "/api/sms",
-    "/api/schoolpay",
-  ].some((p) => pathname.startsWith(p));
-
-  if (isApiRoute && !isPublicApiRoute && !isHealthRoute) {
-    try {
-      const sb = createServerClient(supabaseUrl, supabaseAnonKey, {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll() {},
-        },
-      });
-      const { data } = await sb.auth.getUser();
-      if (!data?.user) {
-        return NextResponse.json(
-          { success: false, error: "Authentication required" },
-          { status: 401 },
-        );
-      }
-    } catch {
-      return NextResponse.json(
-        { success: false, error: "Server error" },
-        { status: 500 },
-      );
-    }
-  }
-
-  // Block dev/test API routes in production
-  if (isApiRoute && process.env.NODE_ENV === "production" && process.env.ENABLE_DEV_TEST_ROUTES !== "true") {
-    const devRoutes = ["/api/debug/log", "/api/demo-login"];
-    if (devRoutes.some((p) => pathname.startsWith(p))) {
-      return NextResponse.json(
-        { success: false, error: "Not found" },
-        { status: 404 },
-      );
-    }
   }
 
   const isPublicPath =

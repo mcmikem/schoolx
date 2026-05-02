@@ -1,6 +1,7 @@
 "use client";
 
 import { useId } from "react";
+import { RingSpinner } from "@/components/loaders";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost" | "danger";
@@ -45,7 +46,7 @@ export function Button({
       {...props}
     >
       {loading ? (
-        <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+        <RingSpinner size={16} />
       ) : icon ? (
         icon
       ) : null}

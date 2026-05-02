@@ -17,6 +17,7 @@ import {
 } from "@/lib/uganda-school-calendar";
 import { normalizeAuthPhone } from "@/lib/validation";
 import { buildDefaultClasses, type SchoolSetupType } from "@/lib/school-setup";
+import { logger } from "@/lib/logger";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -81,13 +82,13 @@ function generateSchoolCode(schoolName: string, district: string): string {
 }
 
 export async function POST(request: NextRequest) {
-  console.log("[Register] START - Processing registration request");
+  logger.debug("[Register] START - Processing registration request");
   try {
     // Rate limit: 5 registrations per IP per 10 minutes
-    console.log("[Register] Step 1: Checking rate limit");
+    logger.debug("[Register] Step 1: Checking rate limit");
     const { success } = rateLimit(request, 5, 600_000);
     if (!success) {
-      console.log("[Register] Rate limited");
+      logger.debug("[Register] Rate limited");
       return apiError(
         "Too many registration attempts. Please try again later.",
         429,
@@ -95,13 +96,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (!supabaseServiceKey) {
-      console.log("[Register] ERROR: SUPABASE_SERVICE_ROLE_KEY not set");
+      logger.debug("[Register] ERROR: SUPABASE_SERVICE_ROLE_KEY not set");
       return apiError(
         "Server configuration error: SUPABASE_SERVICE_ROLE_KEY not set",
         500,
       );
     }
-    console.log("[Register] Step 2: Parsing request body");
+    logger.debug("[Register] Step 2: Parsing request body");
 
     const body: RegisterRequest = await request.json();
     const {
@@ -161,7 +162,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Normalize phone number (remove spaces, dashes, keep only digits)
-    console.log("[Register] Step 3: Normalizing phone");
+    logger.debug("[Register] Step 3: Normalizing phone");
     const normalizedPhone = normalizeAuthPhone(adminPhone);
 
     if (normalizedPhone.length < 10 || normalizedPhone.length > 12) {
@@ -172,7 +173,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create admin client (bypasses RLS)
-    console.log("[Register] Step 4: Creating Supabase admin client");
+    logger.debug("[Register] Step 4: Creating Supabase admin client");
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
@@ -181,7 +182,7 @@ export async function POST(request: NextRequest) {
     });
 
     // 1. Check if phone number already exists
-    console.log("[Register] Step 5: Checking existing user in DB");
+    logger.debug("[Register] Step 5: Checking existing user in DB");
     const { data: existingUser } = await supabaseAdmin
       .from("users")
       .select("id")
@@ -370,7 +371,7 @@ export async function POST(request: NextRequest) {
 
       // Setup complete
       if (process.env.NODE_ENV !== "production") {
-        console.log("[Setup] Auto-setup completed for new school");
+        logger.debug("[Setup] Auto-setup completed for new school");
       }
     } catch (setupError) {
       console.error("[Setup] Auto-setup failed:", setupError);

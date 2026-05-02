@@ -42,7 +42,8 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
 }
 
 function LoadingChecker({ children }: { children: ReactNode }) {
-  // Skip loader entirely - show content immediately
+  const { loading } = useAuth()
+  if (loading) return <AppLoader />
   return <>{children}</>
 }
 

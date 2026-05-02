@@ -252,6 +252,92 @@ html {
   );
 }
 
+/* ── Skeleton Shimmer Wave ── */
+@keyframes shimmer-wave {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer-wave {
+  animation: shimmer-wave 1.6s ease-in-out infinite;
+}
+
+/* ── Owl Loader Animations ── */
+@keyframes owl-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes owl-shadow {
+  0%, 100% { transform: scaleX(1); opacity: 0.12; }
+  50% { transform: scaleX(0.85); opacity: 0.08; }
+}
+@keyframes owl-blink {
+  0%, 45%, 55%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.1); }
+}
+@keyframes wing-left {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-8deg); }
+}
+@keyframes wing-right {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(8deg); }
+}
+@keyframes book-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes cap-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
+@keyframes typing-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+@keyframes pupil-look {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-1px, 0); }
+  75% { transform: translate(1px, 0); }
+}
+
+.animate-owl-float {
+  animation: owl-float 3s ease-in-out infinite;
+}
+.animate-owl-shadow {
+  transform-origin: center;
+  animation: owl-shadow 3s ease-in-out infinite;
+}
+.animate-owl-blink {
+  transform-origin: center 50px;
+  animation: owl-blink 4s ease-in-out infinite;
+}
+.animate-wing-left {
+  transform-origin: 30px 64px;
+  animation: wing-left 2.5s ease-in-out infinite;
+}
+.animate-wing-right {
+  transform-origin: 90px 64px;
+  animation: wing-right 2.5s ease-in-out infinite;
+}
+.animate-book-bounce {
+  animation: book-bounce 2s ease-in-out infinite;
+}
+.animate-cap-wiggle {
+  transform-origin: 60px 13px;
+  animation: cap-wiggle 3s ease-in-out infinite;
+}
+.animate-typing-dot {
+  animation: typing-dot 1.2s ease-in-out infinite;
+}
+.animate-pupil-left {
+  animation: pupil-look 5s ease-in-out infinite;
+}
+.animate-pupil-right {
+  animation: pupil-look 5s ease-in-out infinite reverse;
+}
+
 /* Page Atmospheric Transitions */
 main#main-content {
   animation: pageEnter 0.5s var(--ease) forwards;

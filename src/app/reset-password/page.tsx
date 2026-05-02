@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { Button, Input } from "@/components/ui";
+import { RingSpinner } from "@/components/loaders";
 
 function MaterialIcon({ icon, className }: { icon: string; className?: string }) {
   return (
@@ -146,7 +147,7 @@ export default function ResetPasswordPage() {
               </div>
             ) : !ready ? (
               <div className="flex flex-col items-center justify-center py-8 gap-4">
-                <div className="w-8 h-8 border-[3px] border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+                <RingSpinner size={32} color="var(--primary)" />
                 <p className="text-sm text-[var(--t3)]">Verifying reset link…</p>
               </div>
             ) : (

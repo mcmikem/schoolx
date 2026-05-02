@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import MaterialIcon from "@/components/MaterialIcon";
 import { usePathname } from "next/navigation";
 
@@ -7,63 +8,6 @@ interface Message {
   role: "user" | "assistant";
   text: string;
   time: string;
-}
-
-// ─── Owly SVG mascot — sits in green circle, head transcends above ────────────
-function OwlIcon({ size = 56 }: { size?: number }) {
-  const h = Math.round(size * 70 / 56);
-  return (
-    <svg viewBox="0 0 56 70" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: size, height: h }} aria-hidden>
-      {/* Body / seat circle */}
-      <circle cx="28" cy="47" r="23" fill="#0d9488" />
-      {/* Wing left */}
-      <ellipse cx="11" cy="51" rx="8" ry="11" fill="#0f766e" transform="rotate(-12 11 51)" />
-      {/* Wing right */}
-      <ellipse cx="45" cy="51" rx="8" ry="11" fill="#0f766e" transform="rotate(12 45 51)" />
-      {/* Belly highlight */}
-      <ellipse cx="28" cy="57" rx="11" ry="8" fill="rgba(255,255,255,0.13)" />
-      {/* Head — protrudes above the body circle */}
-      <circle cx="28" cy="21" r="18" fill="#0d9488" />
-      {/* Left ear tuft */}
-      <path d="M13 8 L18 21 L10 17 Z" fill="#0a7a70" />
-      {/* Right ear tuft */}
-      <path d="M43 8 L46 17 L38 21 Z" fill="#0a7a70" />
-      {/* Face disc */}
-      <ellipse cx="28" cy="22" rx="12.5" ry="11.5" fill="#b2f5ea" />
-      {/* Left eye */}
-      <circle cx="22.5" cy="20" r="5.5" fill="white" />
-      <circle cx="23" cy="20.5" r="3.2" fill="#001840" />
-      <circle cx="21.5" cy="18.8" r="1.2" fill="white" />
-      {/* Right eye */}
-      <circle cx="33.5" cy="20" r="5.5" fill="white" />
-      <circle cx="34" cy="20.5" r="3.2" fill="#001840" />
-      <circle cx="32.5" cy="18.8" r="1.2" fill="white" />
-      {/* Beak */}
-      <path d="M25.5 26.5 L28 30.5 L30.5 26.5 Z" fill="#f59e0b" />
-    </svg>
-  );
-}
-
-// Smaller inline version for chat header
-function OwlIconSmall() {
-  return (
-    <svg viewBox="0 0 56 70" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: 34, height: 42 }} aria-hidden>
-      <circle cx="28" cy="47" r="23" fill="rgba(255,255,255,0.2)" />
-      <ellipse cx="11" cy="51" rx="8" ry="11" fill="rgba(255,255,255,0.12)" transform="rotate(-12 11 51)" />
-      <ellipse cx="45" cy="51" rx="8" ry="11" fill="rgba(255,255,255,0.12)" transform="rotate(12 45 51)" />
-      <circle cx="28" cy="21" r="18" fill="rgba(255,255,255,0.25)" />
-      <path d="M13 8 L18 21 L10 17 Z" fill="rgba(255,255,255,0.2)" />
-      <path d="M43 8 L46 17 L38 21 Z" fill="rgba(255,255,255,0.2)" />
-      <ellipse cx="28" cy="22" rx="12.5" ry="11.5" fill="rgba(255,255,255,0.85)" />
-      <circle cx="22.5" cy="20" r="5.5" fill="white" />
-      <circle cx="23" cy="20.5" r="3.2" fill="#001840" />
-      <circle cx="21.5" cy="18.8" r="1.2" fill="white" />
-      <circle cx="33.5" cy="20" r="5.5" fill="white" />
-      <circle cx="34" cy="20.5" r="3.2" fill="#001840" />
-      <circle cx="32.5" cy="18.8" r="1.2" fill="white" />
-      <path d="M25.5 26.5 L28 30.5 L30.5 26.5 Z" fill="#f59e0b" />
-    </svg>
-  );
 }
 
 // ─── Built-in knowledge base ─────────────────────────────────────────────────
@@ -338,17 +282,23 @@ export default function OwlAssistant() {
           /* When open: show a simple close circle */
           <div
             className="w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-transform hover:scale-105 active:scale-95"
-            style={{ background: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)" }}
+            style={{ background: "linear-gradient(135deg, #0b1c39 0%, #17325f 100%)" }}
           >
             <MaterialIcon icon="close" className="text-white text-2xl" />
           </div>
         ) : (
-          /* When closed: show SVG owl with head transcending the circle */
-          <div className="relative transition-transform hover:scale-105 active:scale-95" style={{ width: 64, height: 78 }}>
-            <OwlIcon size={64} />
+          /* When closed: show SchoolMate logo icon */
+          <div className="relative transition-transform hover:scale-105 active:scale-95" style={{ width: 64, height: 64 }}>
+            <Image
+              src="/SkoolMate logos/SchoolMate icon.svg"
+              alt="SkoolMate"
+              width={64}
+              height={64}
+              className="rounded-2xl"
+            />
             {/* Online pulse dot */}
             <span
-              className="absolute top-2 right-0 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-white animate-pulse"
+              className="absolute top-0 right-0 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-white animate-pulse"
               aria-hidden
             />
           </div>
@@ -369,11 +319,17 @@ export default function OwlAssistant() {
           <div
             className="px-4 py-3 flex items-center gap-3"
             style={{
-              background: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
+              background: "linear-gradient(135deg, #0b1c39 0%, #17325f 100%)",
             }}
           >
-            <div className="shrink-0" style={{ marginTop: -8 }}>
-              <OwlIconSmall />
+            <div className="shrink-0">
+              <Image
+                src="/SkoolMate logos/SchoolMate icon.svg"
+                alt="SkoolMate"
+                width={36}
+                height={36}
+                className="rounded-xl"
+              />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white font-bold text-sm leading-tight">Owly Assistant</p>
@@ -402,22 +358,21 @@ export default function OwlAssistant() {
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 {msg.role === "assistant" && (
-                  <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center shrink-0 mr-2 mt-1 overflow-hidden">
-                    <svg viewBox="0 0 56 70" fill="none" style={{ width: 28, height: 35, marginTop: -4 }} aria-hidden>
-                      <circle cx="28" cy="47" r="23" fill="#0d9488" />
-                      <circle cx="28" cy="21" r="18" fill="#0d9488" />
-                      <ellipse cx="28" cy="22" rx="12.5" ry="11.5" fill="#b2f5ea" />
-                      <circle cx="22.5" cy="20" r="5.5" fill="white" /><circle cx="23" cy="20.5" r="3.2" fill="#001840" />
-                      <circle cx="33.5" cy="20" r="5.5" fill="white" /><circle cx="34" cy="20.5" r="3.2" fill="#001840" />
-                      <path d="M25.5 26.5 L28 30.5 L30.5 26.5 Z" fill="#f59e0b" />
-                    </svg>
+                  <div className="w-8 h-8 rounded-full bg-[#0b1c39]/10 flex items-center justify-center shrink-0 mr-2 mt-1 overflow-hidden">
+                    <Image
+                      src="/SkoolMate logos/SchoolMate icon.svg"
+                      alt="SkoolMate"
+                      width={28}
+                      height={28}
+                      className="rounded-md"
+                    />
                   </div>
                 )}
                 <div className="max-w-[82%]">
                   <div
                     className={`px-3 py-2.5 rounded-2xl text-sm leading-relaxed ${
                       msg.role === "user"
-                        ? "bg-[var(--primary,#0d9488)] text-white rounded-tr-sm"
+                        ? "bg-[var(--primary,#0b1c39)] text-white rounded-tr-sm"
                         : "bg-[var(--surface-container-low,#f4f4f5)] text-[var(--t1,#111)] rounded-tl-sm"
                     }`}
                   >
@@ -431,15 +386,14 @@ export default function OwlAssistant() {
             ))}
             {typing && (
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center overflow-hidden">
-                  <svg viewBox="0 0 56 70" fill="none" style={{ width: 28, height: 35, marginTop: -4 }} aria-hidden>
-                    <circle cx="28" cy="47" r="23" fill="#0d9488" />
-                    <circle cx="28" cy="21" r="18" fill="#0d9488" />
-                    <ellipse cx="28" cy="22" rx="12.5" ry="11.5" fill="#b2f5ea" />
-                    <circle cx="22.5" cy="20" r="5.5" fill="white" /><circle cx="23" cy="20.5" r="3.2" fill="#001840" />
-                    <circle cx="33.5" cy="20" r="5.5" fill="white" /><circle cx="34" cy="20.5" r="3.2" fill="#001840" />
-                    <path d="M25.5 26.5 L28 30.5 L30.5 26.5 Z" fill="#f59e0b" />
-                  </svg>
+                <div className="w-8 h-8 rounded-full bg-[#0b1c39]/10 flex items-center justify-center overflow-hidden">
+                  <Image
+                    src="/SkoolMate logos/SchoolMate icon.svg"
+                    alt="SkoolMate"
+                    width={28}
+                    height={28}
+                    className="rounded-md"
+                  />
                 </div>
                 <div className="bg-[var(--surface-container-low,#f4f4f5)] px-3 py-2.5 rounded-2xl rounded-tl-sm">
                   <span className="flex gap-1 items-center">
@@ -480,7 +434,7 @@ export default function OwlAssistant() {
                       }, 700);
                     }, 50);
                   }}
-                  className="px-2.5 py-1 bg-teal-50 text-teal-700 text-xs rounded-full border border-teal-200 hover:bg-teal-100 transition-colors"
+                  className="px-2.5 py-1 bg-[#0b1c39]/5 text-[#0b1c39] text-xs rounded-full border border-[#0b1c39]/10 hover:bg-[#0b1c39]/10 transition-colors"
                 >
                   {hint}
                 </button>
@@ -496,12 +450,12 @@ export default function OwlAssistant() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask about fees, attendance, NCDC..."
-              className="flex-1 px-3 py-2 rounded-xl text-sm bg-[var(--bg,#f9fafb)] border border-[var(--border,#e5e7eb)] outline-none focus:ring-2 focus:ring-teal-400/30 text-[var(--t1,#111)]"
+              className="flex-1 px-3 py-2 rounded-xl text-sm bg-[var(--bg,#f9fafb)] border border-[var(--border,#e5e7eb)] outline-none focus:ring-2 focus:ring-[#0b1c39]/20 text-[var(--t1,#111)]"
             />
             <button
               onClick={sendMessage}
               disabled={!input.trim() || typing}
-              className="w-9 h-9 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-40 flex items-center justify-center text-white transition-colors shrink-0"
+              className="w-9 h-9 rounded-xl bg-[#0b1c39] hover:bg-[#17325f] disabled:opacity-40 flex items-center justify-center text-white transition-colors shrink-0"
             >
               <MaterialIcon icon="send" className="text-sm" />
             </button>

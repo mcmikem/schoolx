@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+
+# Next.js build output
+.next/
+out/
+build/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+!.env.production.example
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+playwright-report/
+test-results/
+
+# Documentation
+docs/
+*.md
+
+# Agent tools
+.agent/
+.agents/
+
+# Misc
+.aider*
+.vercel
+supabase/.temp/
