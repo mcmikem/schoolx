@@ -204,10 +204,10 @@ async function sendInventoryAlertEmail(
   const resendApiKey = process.env.RESEND_API_KEY;
 
   if (!resendApiKey) {
-    console.log(
-      `[EMAIL] Inventory alert for ${itemName} (stock: ${currentStock}/${reorderLevel}) would be sent to ${email}`,
-    );
-    return { success: true, messageId: "dev-mode" };
+    return {
+      success: false,
+      error: "Email service not configured. Set RESEND_API_KEY to send inventory alerts.",
+    };
   }
 
   const html = `

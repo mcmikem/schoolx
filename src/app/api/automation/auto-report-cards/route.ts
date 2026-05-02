@@ -393,10 +393,10 @@ async function sendReportCardEmail(
   const resendApiKey = process.env.RESEND_API_KEY;
 
   if (!resendApiKey) {
-    console.log(
-      `[EMAIL] Report card for ${studentName} (${className}, ${academicYear} Term ${term}) would be sent to ${email}`,
-    );
-    return { success: true, messageId: "dev-mode" };
+    return {
+      success: false,
+      error: "Email service not configured. Set RESEND_API_KEY to send report cards.",
+    };
   }
 
   const subjectTable = subjects

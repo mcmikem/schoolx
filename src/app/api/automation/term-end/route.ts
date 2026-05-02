@@ -548,10 +548,10 @@ async function sendReportCardEmail(
   const resendApiKey = process.env.RESEND_API_KEY;
 
   if (!resendApiKey) {
-    console.log(
-      `[EMAIL] Report card for ${studentName} would be sent to ${email}`,
-    );
-    return { success: true, messageId: "dev-mode" };
+    return {
+      success: false,
+      error: "Email service not configured. Set RESEND_API_KEY to send report cards.",
+    };
   }
 
   const subjectTable = subjects
@@ -603,10 +603,10 @@ async function sendTermEndNoticeEmail(
   const resendApiKey = process.env.RESEND_API_KEY;
 
   if (!resendApiKey) {
-    console.log(
-      `[EMAIL] Term-end notice for ${studentName} would be sent to ${email}`,
-    );
-    return { success: true, messageId: "dev-mode" };
+    return {
+      success: false,
+      error: "Email service not configured. Set RESEND_API_KEY to send term-end notices.",
+    };
   }
 
   const html = `
