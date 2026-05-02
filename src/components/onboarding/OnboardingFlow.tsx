@@ -25,6 +25,7 @@ import {
   type SchoolSetupType,
 } from "@/lib/school-setup";
 import { saveSchoolSetting } from "@/lib/school-settings";
+import { logger } from "@/lib/logger";
 import { getErrorMessage } from "@/lib/validation";
 
 export default function OnboardingFlow({
@@ -102,7 +103,7 @@ export default function OnboardingFlow({
         .eq("id", school.id);
 
       if (error) {
-        console.error("Update error:", error);
+        logger.error("Update error:", error);
         throw error;
       }
 
@@ -125,91 +126,113 @@ export default function OnboardingFlow({
         );
 
       if (checklistError) {
-        throw checklistError;
+        logger.warn("Checklist upsert failed:", checklistError);
       }
 
       await Promise.all([
-        Promise.all([
-          saveSchoolSetting(school.id, "academic_year", currentYear),
-          saveSchoolSetting(school.id, "current_term", "1"),
-        ]),
         (async () => {
-          const { count } = await supabase
-            .from("classes")
-            .select("id", { count: "exact", head: true })
-            .eq("school_id", school.id)
-            .eq("academic_year", currentYear);
-
-          if (!count) {
-            // Use insert instead of upsert to avoid constraint issues on fresh setup
-            const classData = buildDefaultClasses(
-              school.id,
-              schoolType,
-              currentYear,
-            );
-            const { error: classError } = await supabase
+          try {
+            await Promise.all([
+              saveSchoolSetting(school.id, "academic_year", currentYear),
+              saveSchoolSetting(school.id, "current_term", "1"),
+            ]);
+          } catch (settingsError) {
+            logger.warn("Save school settings failed:", settingsError);
+          }
+        })(),
+        (async () => {
+          try {
+            const { count } = await supabase
               .from("classes")
-              .insert(classData);
-            if (classError) {
-              // If insert fails (existing data), try upsert as fallback
-              const { error: upsertError } = await supabase
+              .select("id", { count: "exact", head: true })
+              .eq("school_id", school.id)
+              .eq("academic_year", currentYear);
+
+            if (!count) {
+              const classData = buildDefaultClasses(
+                school.id,
+                schoolType,
+                currentYear,
+              );
+              const { error: classError } = await supabase
                 .from("classes")
-                .upsert(classData, {
-                  onConflict: "school_id,name,academic_year",
-                });
-              if (upsertError)
-                console.error("Classes upsert error:", upsertError);
+                .insert(classData);
+              if (classError) {
+                const { error: upsertError } = await supabase
+                  .from("classes")
+                  .upsert(classData, {
+                    onConflict: "school_id,name,academic_year",
+                  });
+                if (upsertError)
+                  logger.error("Classes upsert error:", upsertError);
+              }
             }
+          } catch (err) {
+            logger.warn("Classes seeding failed:", err);
           }
         })(),
         (async () => {
-          const { count } = await supabase
-            .from("academic_terms")
-            .select("id", { count: "exact", head: true })
-            .eq("school_id", school.id)
-            .eq("academic_year", currentYear);
-
-          if (!count) {
-            const termData = buildUgandaAcademicTerms(school.id, currentYear);
-            const { error: termError } = await supabase
+          try {
+            const { count } = await supabase
               .from("academic_terms")
-              .insert(termData);
-            if (termError) {
-              const { error: upsertError } = await supabase
+              .select("id", { count: "exact", head: true })
+              .eq("school_id", school.id)
+              .eq("academic_year", currentYear);
+
+            if (!count) {
+              const termData = buildUgandaAcademicTerms(school.id, currentYear);
+              const { error: termError } = await supabase
                 .from("academic_terms")
-                .upsert(termData, {
-                  onConflict: "school_id,academic_year,term_number",
-                });
-              if (upsertError)
-                console.error("Terms upsert error:", upsertError);
+                .insert(termData);
+              if (termError) {
+                const { error: upsertError } = await supabase
+                  .from("academic_terms")
+                  .upsert(termData, {
+                    onConflict: "school_id,academic_year,term_number",
+                  });
+                if (upsertError)
+                  logger.error("Terms upsert error:", upsertError);
+              }
             }
+          } catch (err) {
+            logger.warn("Terms seeding failed:", err);
           }
         })(),
         (async () => {
-          const { count } = await supabase
-            .from("events")
-            .select("id", { count: "exact", head: true })
-            .eq("school_id", school.id)
-            .in("event_type", ["academic", "holiday"]);
-
-          if (!count) {
-            const { error: eventError } = await supabase
+          try {
+            const { count } = await supabase
               .from("events")
-              .insert(buildUgandaCalendarEvents(school.id, currentYear));
-            if (eventError) throw eventError;
+              .select("id", { count: "exact", head: true })
+              .eq("school_id", school.id)
+              .in("event_type", ["academic", "holiday"]);
+
+            if (!count) {
+              const { error: eventError } = await supabase
+                .from("events")
+                .insert(buildUgandaCalendarEvents(school.id, currentYear));
+              if (eventError)
+                logger.warn("Events seeding failed:", eventError);
+            }
+          } catch (err) {
+            logger.warn("Events seeding failed:", err);
           }
         })(),
         (async () => {
-          const { count } = await supabase
-            .from("timetable_slots")
-            .select("id", { count: "exact", head: true })
-            .eq("school_id", school.id);
-
-          if (!count) {
-            const { error: slotError } = await supabase
+          try {
+            const { count } = await supabase
               .from("timetable_slots")
-              .insert(buildDefaultTimetableSlots(school.id));
-            if (slotError) throw slotError;
+              .select("id", { count: "exact", head: true })
+              .eq("school_id", school.id);
+
+            if (!count) {
+              const { error: slotError } = await supabase
+                .from("timetable_slots")
+                .insert(buildDefaultTimetableSlots(school.id));
+              if (slotError)
+                logger.warn("Timetable slots seeding failed:", slotError);
+            }
+          } catch (err) {
+            logger.warn("Timetable slots seeding failed:", err);
           }
         })(),
       ]);
@@ -221,7 +244,7 @@ export default function OnboardingFlow({
         "Setup complete. Your school can start working immediately.",
       );
     } catch (error: unknown) {
-      console.error("Final error:", error);
+      logger.error("Final error:", error);
       toast.error(
         getErrorMessage(error, "Failed to save your setup. Please try again."),
       );
