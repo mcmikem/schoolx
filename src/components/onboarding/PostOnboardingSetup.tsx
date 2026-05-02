@@ -67,6 +67,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
   const [terms, setTerms] = useState(
     buildUgandaAcademicTerms("preview", currentYear).map((term) => ({
       name: term.name,
+      term_number: term.term_number,
       start: term.start_date,
       end: term.end_date,
     })),
@@ -103,6 +104,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
       buildUgandaAcademicTerms(school?.id || "preview", currentYear).map(
         (term) => ({
           name: term.name,
+          term_number: term.term_number,
           start: term.start_date,
           end: term.end_date,
         }),
@@ -144,14 +146,16 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
         .map((term) => ({
           school_id: school.id,
           name: term.name,
+          term_number: term.term_number || 0,
           start_date: term.start,
           end_date: term.end,
           academic_year: new Date().getFullYear().toString(),
+          is_current: false,
         }));
 
       if (termRows.length > 0) {
         const { error } = await supabase.from("academic_terms").upsert(termRows, {
-          onConflict: "school_id,name,academic_year",
+          onConflict: "school_id,term_number,academic_year",
         });
         if (error) throw error;
       }

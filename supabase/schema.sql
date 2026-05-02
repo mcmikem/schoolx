@@ -295,6 +295,66 @@ CREATE TABLE IF NOT EXISTS fee_structure (
 );
 
 -- ============================================
+-- 11.5 ACADEMIC TERMS (also see "terms" table above for FK-based variant)
+-- ============================================
+CREATE TABLE IF NOT EXISTS academic_terms (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    code TEXT,
+    term_number INT NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    academic_year TEXT NOT NULL,
+    is_current BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(school_id, term_number, academic_year)
+);
+
+ALTER TABLE academic_terms ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE academic_terms ADD COLUMN IF NOT EXISTS code TEXT;
+ALTER TABLE academic_terms ADD COLUMN IF NOT EXISTS term_number INT;
+ALTER TABLE academic_terms ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+ALTER TABLE academic_terms ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+ALTER TABLE academic_terms ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "School users academic_terms select" ON academic_terms;
+CREATE POLICY "School users academic_terms select"
+ON academic_terms
+FOR SELECT
+TO authenticated
+USING (
+  school_id IN (
+    SELECT school_id
+    FROM users
+    WHERE auth_id = auth.uid()
+  )
+);
+
+DROP POLICY IF EXISTS "School users academic_terms write" ON academic_terms;
+CREATE POLICY "School users academic_terms write"
+ON academic_terms
+FOR ALL
+TO authenticated
+USING (
+  school_id IN (
+    SELECT school_id
+    FROM users
+    WHERE auth_id = auth.uid()
+  )
+)
+WITH CHECK (
+  school_id IN (
+    SELECT school_id
+    FROM users
+    WHERE auth_id = auth.uid()
+  )
+);
+
+-- ============================================
 -- 12. FEE PAYMENTS
 -- ============================================
 CREATE TABLE IF NOT EXISTS fee_payments (
