@@ -139,6 +139,7 @@ export default function LoginPage() {
             });
             sessionStorage.setItem(DEMO_KEY, encoded);
             localStorage.removeItem(DEMO_KEY);
+            document.cookie = `${DEMO_KEY}=${encoded}; path=/; max-age=86400`;
             toast.success(
               tWithParams("auth.welcomeDemo", { name: demoData.user.name }),
             );
