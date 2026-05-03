@@ -18,7 +18,8 @@ const DEMO_MODE_ENABLED =
 
 function serializeDemoData(data: object): string {
   try {
-    return btoa(JSON.stringify(data));
+    const json = JSON.stringify(data);
+    return btoa(unescape(encodeURIComponent(json)));
   } catch {
     return "";
   }
@@ -58,11 +59,17 @@ export default function LoginPage() {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
 
-  // Redirect already-logged-in users away from the login page
+  // Redirect already-logged-in users away from the login page.
+  // Respect the ?redirect= param set by proxy.ts middleware so users
+  // land on the page they originally tried to visit.
   useEffect(() => {
     if (!authLoading && user) {
-      const dest =
-        user.role === "super_admin" ? "/super-admin"
+      const redirectParam = typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("redirect")
+        : null;
+      const dest = redirectParam && redirectParam.startsWith("/")
+        ? redirectParam
+        : user.role === "super_admin" ? "/super-admin"
         : user.role === "parent" ? "/parent-portal"
         : "/dashboard";
       router.replace(dest);

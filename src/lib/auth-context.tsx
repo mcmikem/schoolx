@@ -48,6 +48,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isTrialExpired, setIsTrialExpired] = useState(false);
   const router = useRouter();
 
+  const authFetchAborted = useRef(false);
+  const authCheckedRef = useRef(false);
+
   const isSubscriptionActive = useCallback(() => {
     return isSubscriptionActiveCheck(school);
   }, [school]);
@@ -65,6 +68,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
         return null;
       }
+      // Abort if component unmounted (ref set by unmount cleanup)
+      if (authFetchAborted.current) return null;
       try {
         const { userData, lastError } = await withSupabaseLockRetry(
           async () => {
@@ -235,9 +240,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const checkUser = useCallback(async () => {
+    // Safety timer: fallback to non-loading state if auth takes too long.
+    // 12s accounts for slow connections (3G, VPN, cold-start Supabase).
+    // Only fires if auth hasn't already resolved.
     const safetyTimer = setTimeout(() => {
       setLoading(false);
-    }, 2500);
+    }, 12000);
 
     try {
       const demoUserStr = readDemoStorage();
@@ -348,12 +356,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchUserData]);
 
   useEffect(() => {
-    checkUser();
+    // Deduplicate: INITIAL_SESSION fires immediately after subscribing and
+    // would race with the manual checkUser() call below. Skip checkUser()
+    // since the onAuthStateChange handler will handle INITIAL_SESSION.
+    // Only run checkUser() if the handler didn't fire within 500ms.
+    let handlerFired = false;
+    const timer = setTimeout(() => {
+      if (!handlerFired && !authCheckedRef.current) {
+        checkUser();
+        authCheckedRef.current = true;
+      }
+    }, 500);
 
     if (supabase) {
       const {
         data: { subscription },
       } = supabase!.auth.onAuthStateChange(async (event, session) => {
+        handlerFired = true;
+        clearTimeout(timer);
         try {
           const isCurrentlyDemo = readDemoStorage() !== null;
 
@@ -372,6 +392,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             );
 
             if (verifiedUser) {
+              authCheckedRef.current = true;
               try {
                 await fetchUserData(verifiedUser.id);
               } catch {
@@ -413,8 +434,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       });
 
-      return () => subscription.unsubscribe();
+      return () => {
+        clearTimeout(timer);
+        subscription.unsubscribe();
+        authFetchAborted.current = true;
+      };
     }
+
+    return () => {
+      clearTimeout(timer);
+      authFetchAborted.current = true;
+    };
   }, [checkUser, fetchUserData]);
 
   useEffect(() => {
@@ -561,17 +591,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = useCallback(async () => {
+    try {
+      await supabase!.auth.signOut({ scope: "global" });
+    } catch (e) {
+      logger.warn("signOut API call failed, proceeding with local clear");
+    }
     setUser(null);
     setSchool(null);
     setIsDemo(false);
     setIsTrialExpired(false);
     clearDemoStorage();
-
-    try {
-      await supabase!.auth.signOut({ scope: "global" });
-    } catch (e) {
-      logger.warn("signOut API call failed, local state already cleared");
-    }
     router.push("/login");
   }, [router]);
 
