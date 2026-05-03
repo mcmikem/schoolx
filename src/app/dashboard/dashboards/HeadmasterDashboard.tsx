@@ -13,7 +13,7 @@ import {
   useStaff,
 } from "@/lib/hooks";
 import { useDashboardExtraData } from "@/lib/hooks/useDashboardExtraData";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import DashboardInsights from "@/components/dashboard/DashboardInsights";
@@ -60,12 +60,19 @@ function HeadmasterDashboardContent() {
     academicYear,
   );
 
-  // Fetch calendar events from database
+  // Calendar state
   const [calendarEvents, setCalendarEvents] = useState<
     Array<{ id: string; title: string; start_date: string; event_type: string }>
   >([]);
   const [eventsLoading, setEventsLoading] = useState(true);
+  const [viewDate, setViewDate] = useState(() => new Date());
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [showAddEvent, setShowAddEvent] = useState(false);
+  const [newEventTitle, setNewEventTitle] = useState("");
+  const [newEventDate, setNewEventDate] = useState("");
+  const dayInputRef = useRef<HTMLInputElement>(null);
 
+  // Fetch events from database
   useEffect(() => {
     if (!school?.id) return;
     const fetchEvents = async () => {
@@ -80,6 +87,56 @@ function HeadmasterDashboardContent() {
     };
     fetchEvents();
   }, [school?.id]);
+
+  // Seed academic calendar events if none exist
+  useEffect(() => {
+    if (!school?.id || eventsLoading) return;
+    if (calendarEvents.length > 0) return;
+    const seedCalendar = async () => {
+      const { buildUgandaCalendarEvents } = await import(
+        "@/lib/uganda-school-calendar"
+      );
+      const defaultEvents = buildUgandaCalendarEvents(
+        school.id,
+        new Date().getFullYear().toString(),
+      );
+      const { error } = await supabase.from("events").upsert(defaultEvents, {
+        onConflict: "school_id,title,start_date",
+      });
+      if (!error) {
+        const { data } = await supabase
+          .from("events")
+          .select("id, title, start_date, event_type")
+          .eq("school_id", school.id)
+          .order("start_date");
+        if (data) setCalendarEvents(data as any);
+      }
+    };
+    seedCalendar();
+  }, [school?.id, calendarEvents.length, eventsLoading]);
+
+  const addCalendarEvent = async () => {
+    if (!school?.id || !newEventTitle.trim() || !newEventDate) return;
+    const { error } = await supabase.from("events").insert({
+      school_id: school.id,
+      title: newEventTitle.trim(),
+      start_date: newEventDate,
+      end_date: newEventDate,
+      event_type: "event",
+      created_by: user?.id,
+    });
+    if (!error) {
+      const { data } = await supabase
+        .from("events")
+        .select("id, title, start_date, event_type")
+        .eq("school_id", school.id)
+        .order("start_date");
+      if (data) setCalendarEvents(data as any);
+      setNewEventTitle("");
+      setNewEventDate("");
+      setShowAddEvent(false);
+    }
+  };
 
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
@@ -389,11 +446,6 @@ function HeadmasterDashboardContent() {
   const todayIso = new Date().toISOString().split("T")[0];
   const pendingTaskCount = tasks.filter((task) => !task.done).length;
 
-  const calendarAnchor = useMemo(
-    () => new Date(currentDate.getFullYear(), currentDate.getMonth(), 1),
-    [currentDate],
-  );
-
   const academicEvents = useMemo(() => {
     return calendarEvents.map((e) => ({
       id: e.id,
@@ -403,12 +455,10 @@ function HeadmasterDashboardContent() {
     }));
   }, [calendarEvents]);
 
-  const monthStartDay = calendarAnchor.getDay();
-  const daysInMonth = new Date(
-    calendarAnchor.getFullYear(),
-    calendarAnchor.getMonth() + 1,
-    0,
-  ).getDate();
+  const calendarYear = viewDate.getFullYear();
+  const calendarMonth = viewDate.getMonth();
+  const monthStartDay = new Date(calendarYear, calendarMonth, 1).getDay();
+  const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
 
   const calendarCells = useMemo(() => {
     const cells: Array<{
@@ -421,11 +471,7 @@ function HeadmasterDashboardContent() {
       cells.push(null);
     }
     for (let day = 1; day <= daysInMonth; day++) {
-      const iso = new Date(
-        calendarAnchor.getFullYear(),
-        calendarAnchor.getMonth(),
-        day,
-      )
+      const iso = new Date(calendarYear, calendarMonth, day)
         .toISOString()
         .split("T")[0];
       cells.push({
@@ -436,7 +482,17 @@ function HeadmasterDashboardContent() {
       });
     }
     return cells;
-  }, [academicEvents, calendarAnchor, daysInMonth, monthStartDay, todayIso]);
+  }, [academicEvents, calendarYear, calendarMonth, monthStartDay, daysInMonth, todayIso]);
+
+  const navMonth = (delta: number) => {
+    const d = new Date(calendarYear, calendarMonth + delta, 1);
+    setViewDate(d);
+  };
+
+  const eventsOnSelected = useMemo(() => {
+    if (!selectedDate) return [];
+    return academicEvents.filter((e) => e.date === selectedDate);
+  }, [academicEvents, selectedDate]);
 
   return (
     <div className="content">
@@ -871,14 +927,36 @@ function HeadmasterDashboardContent() {
                     School calendar
                   </p>
                   <h2 className="mt-2 font-['Sora'] text-2xl font-semibold tracking-[-0.04em] text-[#17325f]">
-                    This month
+                    {viewDate.toLocaleDateString("en-UG", {
+                      month: "long",
+                      year: "numeric",
+                    })}
                   </h2>
                 </div>
-                <div className="rounded-full bg-[#eef5ff] px-3 py-1 text-[11px] font-semibold text-[#42638d]">
-                  {calendarAnchor.toLocaleDateString("en-UG", {
-                    month: "long",
-                    year: "numeric",
-                  })}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => navMonth(-1)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-[#7f91aa] hover:bg-[#edf4ff] hover:text-[#17325f]"
+                    aria-label="Previous month"
+                  >
+                    <MaterialIcon icon="chevron_left" className="text-lg" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewDate(new Date())}
+                    className="rounded-full bg-[#eef5ff] px-3 py-1 text-[10px] font-semibold text-[#42638d] hover:bg-[#dce8f5]"
+                  >
+                    Today
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navMonth(1)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-[#7f91aa] hover:bg-[#edf4ff] hover:text-[#17325f]"
+                    aria-label="Next month"
+                  >
+                    <MaterialIcon icon="chevron_right" className="text-lg" />
+                  </button>
                 </div>
               </div>
 
@@ -891,49 +969,122 @@ function HeadmasterDashboardContent() {
               <div className="mt-1 grid grid-cols-7">
                 {calendarCells.map((cell, idx) =>
                   cell ? (
-                    <div
+                    <button
+                      type="button"
                       key={cell.iso}
-                      className={`relative flex items-center justify-center rounded-lg border text-center text-[11px] sm:text-xs font-semibold aspect-square ${cell.isToday ? "border-[#17325f] bg-[#edf4ff] text-[#17325f]" : "border-[#e7edf5] bg-[#f8fbff] text-[#5e7390]"}`}
+                      onClick={() => setSelectedDate(cell.iso === selectedDate ? null : cell.iso)}
+                      className={`relative rounded-xl border py-2 text-center text-[11px] sm:text-xs font-semibold transition-colors ${
+                        cell.iso === selectedDate
+                          ? "border-[#17325f] bg-[#17325f] text-white"
+                          : cell.isToday
+                            ? "border-[#17325f] bg-[#edf4ff] text-[#17325f]"
+                            : "border-[#e7edf5] bg-[#f8fbff] text-[#5e7390]"
+                      } hover:border-[#aac1df] hover:bg-[#f0f6ff]`}
                     >
                       {cell.day}
                       {cell.hasEvent && (
-                        <span className="absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[#2d69a4]" />
+                        <span
+                          className={`absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${
+                            cell.iso === selectedDate
+                              ? "bg-white"
+                              : "bg-[#2d69a4]"
+                          }`}
+                        />
                       )}
-                    </div>
+                    </button>
                   ) : (
                     <div key={`empty_${idx}`} />
                   ),
                 )}
               </div>
 
-              {academicEvents.length > 0 && (
-                <div className="mt-3 space-y-1.5">
-                  {academicEvents.slice(0, 3).map((event) => (
+              {/* Events for selected day or upcoming events */}
+              {selectedDate && eventsOnSelected.length > 0 && (
+                <div className="mt-3 space-y-1.5 rounded-[16px] bg-[#f0f6ff] p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#7f91aa]">
+                    {new Date(selectedDate).toLocaleDateString("en-UG", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </p>
+                  {eventsOnSelected.map((event) => (
                     <div
                       key={event.id}
-                      className="flex items-center justify-between rounded-[12px] bg-[#f4f8fc] px-2.5 py-1.5"
+                      className="flex items-center justify-between rounded-[12px] bg-white px-3 py-2 shadow-sm"
                     >
-                      <div className="min-w-0 pr-2">
-                        <p className="truncate text-[11px] font-semibold text-[#17325f]">
-                          {event.title}
-                        </p>
-                        <p className="text-[9px] text-[#7d8fa8]">
-                          {event.kind}
-                        </p>
-                      </div>
-                      <div className="shrink-0 text-[10px] font-semibold text-[#5f7390]">
-                        {new Date(event.date).toLocaleDateString("en-UG", {
-                          day: "numeric",
-                          month: "short",
-                        })}
-                      </div>
+                      <p className="truncate text-sm font-semibold text-[#17325f]">
+                        {event.title}
+                      </p>
+                      <span className="shrink-0 rounded-full bg-[#edf4ff] px-2 py-0.5 text-[9px] font-semibold uppercase text-[#42638d]">
+                        {event.kind}
+                      </span>
                     </div>
                   ))}
                 </div>
               )}
-              {academicEvents.length === 0 && (
+
+              <div className="mt-3 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddEvent(!showAddEvent);
+                    if (!showAddEvent) {
+                      setNewEventDate(selectedDate || todayIso);
+                    }
+                  }}
+                  className="flex items-center gap-1.5 rounded-full bg-[#17325f] px-4 py-2 text-[11px] font-semibold text-white hover:opacity-90"
+                >
+                  <MaterialIcon icon="add" className="text-[14px]" />
+                  Add event
+                </button>
+                {!showAddEvent && academicEvents.length > 0 && !selectedDate && (
+                  <div className="flex items-center gap-2 text-[10px] text-[#8ba0bc]">
+                    <span className="inline-block h-2 w-2 rounded-full bg-[#2d69a4]" />
+                    {academicEvents.length} event{academicEvents.length > 1 ? "s" : ""} this month
+                  </div>
+                )}
+              </div>
+
+              {showAddEvent && (
+                <div className="mt-3 rounded-[16px] border border-[#d7e3f2] bg-[#f8fbff] p-3">
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <input
+                      ref={dayInputRef}
+                      type="text"
+                      value={newEventTitle}
+                      onChange={(e) => setNewEventTitle(e.target.value)}
+                      placeholder="Event title..."
+                      className="min-w-0 flex-1 rounded-xl border border-[#dde6f2] bg-white px-3 py-2 text-sm text-[#17325f] outline-none focus:border-[#aac1df]"
+                    />
+                    <input
+                      type="date"
+                      value={newEventDate}
+                      onChange={(e) => setNewEventDate(e.target.value)}
+                      className="rounded-xl border border-[#dde6f2] bg-white px-3 py-2 text-sm text-[#17325f] outline-none focus:border-[#aac1df]"
+                    />
+                    <button
+                      type="button"
+                      onClick={addCalendarEvent}
+                      disabled={!newEventTitle.trim() || !newEventDate}
+                      className="rounded-xl bg-[#17325f] px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddEvent(false)}
+                      className="rounded-xl border border-[#dde6f2] px-3 py-2 text-sm font-semibold text-[#7f91aa] hover:bg-[#edf4ff]"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {!selectedDate && academicEvents.length === 0 && !showAddEvent && (
                 <p className="mt-3 text-center text-[11px] text-[#8ba0bc]">
-                  No events this month
+                  No events. Add one above.
                 </p>
               )}
             </div>
