@@ -547,6 +547,29 @@ export function useStudents(
       setStudents((prev) => [createdStudent as StudentWithClass, ...prev]);
       setTotalCount((prev) => prev + 1);
       invalidateCache(`students:${schoolId}`);
+
+      // Auto-create parent portal account if student has a parent phone
+      const parentPhoneRaw = (studentPayload as Record<string, unknown>).parent_phone;
+      if (createdStudent && parentPhoneRaw) {
+        fetch(`/api/students/create-parent-portal/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            studentId: createdRow.id,
+            schoolId: querySchoolId,
+          }),
+        })
+          .then((r) => r.json())
+          .then((result) => {
+            if (result.created) {
+              logger.info(
+                `Parent portal created: ${result.parentPhone} / ${result.generatedPassword}`,
+              );
+            }
+          })
+          .catch(() => {});
+      }
+
       return createdStudent as StudentWithClass;
     } catch (err: unknown) {
       throw new Error(getErrorMessage(err, "Failed to add student"));

@@ -1,0 +1,127 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { normalizeAuthPhone } from "@/lib/validation";
+import { buildAuthEmailFromPhone } from "@/lib/auth-login";
+import { logger } from "@/lib/logger";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+
+export async function POST(request: NextRequest) {
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false },
+  });
+
+  const { studentId, schoolId } = await request.json();
+  if (!studentId || !schoolId) {
+    return NextResponse.json({ error: "studentId and schoolId required" }, { status: 400 });
+  }
+
+  // Fetch student record
+  const { data: student, error: studentError } = await supabaseAdmin
+    .from("students")
+    .select("id, first_name, last_name, parent_name, parent_phone")
+    .eq("id", studentId)
+    .eq("school_id", schoolId)
+    .single();
+
+  if (studentError || !student) {
+    return NextResponse.json({ error: "Student not found" }, { status: 404 });
+  }
+
+  const parentPhone = student.parent_phone?.replace(/[^0-9]/g, "");
+  if (!parentPhone || parentPhone.length < 9) {
+    return NextResponse.json({ error: "Student has no valid parent phone number" }, { status: 400 });
+  }
+
+  // Check if parent account already exists for this school
+  const phoneNormalized = normalizeAuthPhone(parentPhone);
+  const { data: existingUser } = await supabaseAdmin
+    .from("users")
+    .select("id, role")
+    .eq("phone", phoneNormalized)
+    .eq("school_id", schoolId)
+    .maybeSingle();
+
+  if (existingUser) {
+    // Parent exists — ensure link to this student
+    const { data: existingLink } = await supabaseAdmin
+      .from("parent_students")
+      .select("id")
+      .eq("parent_id", existingUser.id)
+      .eq("student_id", student.id)
+      .maybeSingle();
+
+    if (!existingLink) {
+      await supabaseAdmin.from("parent_students").insert({
+        parent_id: existingUser.id,
+        student_id: student.id,
+        relationship: "parent",
+      });
+    }
+
+    return NextResponse.json({
+      created: false,
+      message: "Parent account already exists and is linked",
+      parentPhone: phoneNormalized,
+    });
+  }
+
+  // Create parent account
+  const parentName = student.parent_name?.trim() || `Parent of ${student.first_name}`;
+  const generatedPassword = `parent${parentPhone.slice(-4)}`;
+  const authEmail = buildAuthEmailFromPhone(phoneNormalized);
+
+  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    email: authEmail,
+    phone: phoneNormalized,
+    password: generatedPassword,
+    email_confirm: true,
+    user_metadata: { full_name: parentName, phone: phoneNormalized, role: "parent" },
+  });
+
+  if (authError) {
+    logger.error("[create-parent-portal] Auth creation failed:", authError);
+    return NextResponse.json({ error: "Failed to create auth account" }, { status: 500 });
+  }
+
+  if (!authData.user) {
+    return NextResponse.json({ error: "Auth user not returned" }, { status: 500 });
+  }
+
+  // Insert into users table
+  const { error: userError } = await supabaseAdmin.from("users").insert({
+    auth_id: authData.user.id,
+    school_id: schoolId,
+    full_name: parentName,
+    phone: phoneNormalized,
+    email: authEmail,
+    role: "parent",
+    is_active: true,
+  });
+
+  if (userError) {
+    logger.error("[create-parent-portal] Users insert failed:", userError);
+    await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+    return NextResponse.json({ error: "Failed to create user profile" }, { status: 500 });
+  }
+
+  // Link parent to student
+  const { error: linkError } = await supabaseAdmin.from("parent_students").insert({
+    parent_id: authData.user.id,
+    student_id: student.id,
+    relationship: "parent",
+  });
+
+  if (linkError) {
+    logger.warn("[create-parent-portal] parent_students link failed:", linkError);
+  }
+
+  return NextResponse.json({
+    created: true,
+    message: `Parent portal created for ${parentName}`,
+    parentName,
+    parentPhone: phoneNormalized,
+    generatedPassword,
+  });
+}

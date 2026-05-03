@@ -1033,16 +1033,46 @@ export default function StudentProfilePage() {
                 </span>
               </div>
               {student.parent_phone2 && (
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {student.parent_phone2}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+                 <div className="flex items-center gap-2">
+                   <Phone className="w-4 h-4 text-gray-400" />
+                   <span className="text-gray-700 dark:text-gray-300">
+                     {student.parent_phone2}
+                   </span>
+                 </div>
+               )}
+               {student.parent_phone && (
+                 <button
+                   type="button"
+                   onClick={async () => {
+                     try {
+                       const res = await fetch("/api/students/create-parent-portal/", {
+                         method: "POST",
+                         headers: { "Content-Type": "application/json" },
+                         body: JSON.stringify({
+                           studentId: student.id,
+                           schoolId: student.school_id,
+                         }),
+                       });
+                       const data = await res.json();
+                       if (data.created) {
+                         alert(
+                           `Parent portal created!\nLogin: ${data.parentPhone}\nPassword: ${data.generatedPassword}`,
+                         );
+                       } else {
+                         alert(data.message || "Parent already linked");
+                       }
+                     } catch {
+                       alert("Failed to create parent portal");
+                     }
+                   }}
+                   className="mt-2 w-full rounded-xl bg-[var(--navy)] px-3 py-2 text-xs font-semibold text-white hover:opacity-90"
+                 >
+                   Create Parent Portal
+                 </button>
+               )}
+             </div>
+           </div>
+         </div>
       </div>
 
       {/* Additional Info - House, Origin, Leadership */}
