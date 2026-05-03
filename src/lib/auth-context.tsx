@@ -62,107 +62,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchUserData = useCallback(
     async (
       authId: string,
-      retryCount = 0,
     ): Promise<{ role: string } | null> => {
-      if (!supabase) {
-        setLoading(false);
-        return null;
-      }
-      // Abort if component unmounted (ref set by unmount cleanup)
       if (authFetchAborted.current) return null;
       try {
-        const { userData, lastError } = await withSupabaseLockRetry(
-          async () => {
-            let resolvedUserData: any = null;
-            let resolvedLastError: unknown = null;
-
-            const profileByAuth = await supabase
-              .from("users")
-              .select("*")
-              .eq("auth_id", authId)
-              .maybeSingle();
-
-            resolvedUserData = profileByAuth.data;
-            resolvedLastError = profileByAuth.error;
-
-            if (!resolvedUserData) {
-              const authResult = await supabase.auth.getUser();
-              const authUser = authResult.data.user;
-
-              const phoneCandidates = buildPhoneLookupCandidates(
-                authUser?.phone ?? authUser?.user_metadata?.phone,
-              );
-
-              for (const phoneCandidate of phoneCandidates) {
-                const fallbackProfile = await supabase
-                  .from("users")
-                  .select("*")
-                  .eq("phone", phoneCandidate)
-                  .maybeSingle();
-
-                if (fallbackProfile.error) {
-                  resolvedLastError = fallbackProfile.error;
-                  continue;
-                }
-
-                if (fallbackProfile.data) {
-                  resolvedUserData = fallbackProfile.data;
-                  resolvedLastError = null;
-
-                  if (fallbackProfile.data.auth_id !== authId) {
-                    const { error: relinkError } = await supabase
-                      .from("users")
-                      .update({ auth_id: authId })
-                      .eq("id", fallbackProfile.data.id);
-
-                    if (relinkError) {
-                      logger.warn(
-                        "[Auth] Profile found but auth_id relink failed:",
-                        getErrorMessage(relinkError),
-                      );
-                    } else {
-                      resolvedUserData = {
-                        ...fallbackProfile.data,
-                        auth_id: authId,
-                      };
-                    }
-                  }
-                  break;
-                }
-              }
-            }
-
-            return {
-              userData: resolvedUserData,
-              lastError: resolvedLastError,
-            };
-          },
-        );
-
-        if (!userData) {
-          if (lastError) {
-            logger.warn(
-              "[Auth] Unable to load user profile:",
-              getErrorMessage(lastError),
-            );
-          }
-
-          if (retryCount < 3) {
-            logger.warn(
-              `[Auth] User profile not found for auth_id: ${authId}. Retrying...`,
-            );
-            await new Promise((resolve) =>
-              setTimeout(resolve, 300 * (retryCount + 1)),
-            );
-            return fetchUserData(authId, retryCount + 1);
-          }
-          logger.warn(
-            "No user profile found for auth_id after retries:",
-            authId,
-          );
+        // Get the current session token to authenticate the API call
+        const { data: { session } } = await supabase!.auth.getSession();
+        const token = session?.access_token;
+        if (!token) {
           setLoading(false);
           return null;
         }
+
+        const res = await fetch("/api/auth/me/", {
+          headers: { authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          if (res.status === 404) {
+            logger.warn("[Auth] No user profile found for auth_id:", authId);
+          } else {
+            logger.warn("[Auth] Profile fetch failed:", res.status);
+          }
+          setLoading(false);
+          return null;
+        }
+
+        const { user: userData, school: schoolData } = await res.json();
 
         setUser({
           ...userData,
@@ -177,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }),
           );
         } catch (error) {
-          console.error("Failed to persist offline user data:", error);
+          logger.warn("Failed to persist offline user data:", error);
         }
 
         if (userData.role === "super_admin") {
@@ -186,57 +110,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return { role: userData.role };
         }
 
-        if (userData.school_id) {
-          const { data: schoolData, error: schoolError } =
-            await withSupabaseLockRetry(
-              async () =>
-                await supabase
-                  .from("schools")
-                  .select("*")
-                  .eq("id", userData.school_id)
-                  .single(),
+        if (schoolData) {
+          const schoolObj = {
+            ...schoolData,
+            feature_stage:
+              (schoolData.feature_stage as FeatureStage) ||
+              DEFAULT_FEATURE_STAGE,
+          };
+          setSchool(schoolObj);
+          try {
+            localStorage.setItem(
+              OFFLINE_SCHOOL_KEY,
+              JSON.stringify(schoolObj),
             );
-
-          if (schoolError) {
-            logger.error("Error fetching school profile:", schoolError);
+          } catch (error) {
+            logger.warn("Failed to persist offline school data:", error);
           }
-
-          if (schoolData) {
-            const schoolObj = {
-              ...schoolData,
-              feature_stage:
-                (schoolData.feature_stage as FeatureStage) ||
-                DEFAULT_FEATURE_STAGE,
-            };
-            setSchool(schoolObj);
-            try {
-              localStorage.setItem(
-                OFFLINE_SCHOOL_KEY,
-                JSON.stringify(schoolObj),
-              );
-            } catch (error) {
-              console.error("Failed to persist offline school data:", error);
-            }
-            setIsTrialExpired(computeTrialExpired(schoolObj));
-          }
+          setIsTrialExpired(computeTrialExpired(schoolObj));
         }
 
         setLoading(false);
         return { role: userData.role };
       } catch (error) {
-        if (isSupabaseLockAbortError(error) && retryCount < 2) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, 300 * (retryCount + 1)),
-          );
-          return fetchUserData(authId, retryCount + 1);
-        }
-
         logger.error("Error fetching user data:", getErrorMessage(error));
         setLoading(false);
         return null;
       }
     },
-    [],
+    [supabase],
   );
 
   const checkUser = useCallback(async () => {
