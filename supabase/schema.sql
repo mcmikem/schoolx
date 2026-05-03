@@ -504,6 +504,30 @@ ALTER TABLE "events" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "messages" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "parent_students" ENABLE ROW LEVEL SECURITY;
 
+-- Helper: SECURITY DEFINER functions to avoid RLS recursion when querying users
+CREATE OR REPLACE FUNCTION my_school_id()
+RETURNS UUID
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT school_id FROM users WHERE auth_id = auth.uid() LIMIT 1
+$$;
+
+CREATE OR REPLACE FUNCTION is_school_admin(p_school_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM users
+    WHERE auth_id = auth.uid()
+      AND school_id = p_school_id
+      AND role IN ('school_admin', 'headmaster', 'admin', 'super_admin')
+  )
+$$;
+
 -- Users can see their own record (no subquery on users to avoid infinite recursion)
 DROP POLICY IF EXISTS "Users select own and school" ON "users";
 DROP POLICY IF EXISTS "Users select own" ON "users";
