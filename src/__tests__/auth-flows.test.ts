@@ -247,8 +247,8 @@ describe("auth-context: onAuthStateChange SIGNED_IN loading guard", () => {
     );
     const source = fs.default.readFileSync(filePath, "utf-8");
 
-    // The guard should appear as: if (session) setLoading(true)
+    // The guard should appear as: if (session && event !== "TOKEN_REFRESHED") setLoading(true)
     // before the withSupabaseLockRetry / getUser call inside the SIGNED_IN branch.
-    expect(source).toMatch(/if\s*\(\s*session\s*\)\s*setLoading\s*\(\s*true\s*\)/);
+    expect(source).toMatch(/if\s*\(\s*session\s*&&\s*event\s*!==\s*"TOKEN_REFRESHED"\s*\)\s*setLoading\s*\(\s*true\s*\)/);
   });
 });

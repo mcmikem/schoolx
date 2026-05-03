@@ -163,11 +163,12 @@ describe('Validation - Score Validation', () => {
 
 describe('Validation - Student Input', () => {
   describe('normalizeStudentInput', () => {
-    test('normalizes names, phones, and student number', () => {
+    test('normalizes names, phones, gender, and student number', () => {
       expect(
         normalizeStudentInput({
           first_name: '  Jane ',
           last_name: ' Doe ',
+          gender: 'F',
           parent_name: ' Parent Name ',
           parent_phone: '+256 700 000 000',
           parent_phone2: '0700-111-222',
@@ -178,6 +179,7 @@ describe('Validation - Student Input', () => {
       ).toEqual({
         first_name: 'Jane',
         last_name: 'Doe',
+        gender: 'F',
         parent_name: 'Parent Name',
         parent_phone: '256700000000',
         parent_phone2: '256700111222',
@@ -202,6 +204,7 @@ describe('Validation - Student Input', () => {
         validateStudentInput({
           first_name: 'Jane',
           last_name: 'Doe',
+          gender: 'M',
           parent_name: 'Parent',
           parent_phone: '0700000000',
           class_id: 'class-1',
@@ -217,6 +220,7 @@ describe('Validation - Student Input', () => {
           {
             first_name: 'Jane',
             last_name: 'Doe',
+            gender: 'M',
             parent_name: 'Parent',
             parent_phone: '0700000000',
             class_id: 'class-1',
@@ -242,6 +246,7 @@ describe('Validation - Student Input', () => {
         validateStudentInput({
           first_name: 'Jane',
           last_name: 'Doe',
+          gender: 'M',
           parent_name: 'Parent',
           parent_phone: '123',
           parent_phone2: 'abc',
@@ -258,6 +263,7 @@ describe('Validation - Student Input', () => {
         validateStudentInput({
           first_name: 'Jane',
           last_name: 'Doe',
+          gender: 'M',
           parent_name: 'Parent',
           parent_phone: '0700000000',
           parent_phone2: '0700 000 000',

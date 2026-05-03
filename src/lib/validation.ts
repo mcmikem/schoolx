@@ -179,9 +179,12 @@ export function normalizeStudentInput(input: Record<string, any>): Record<string
   const balance = typeof input.opening_balance === 'string'
     ? Number(input.opening_balance.replace(/[^\d.\-]/g, ''))
     : Number(input.opening_balance);
+  const rawGender = String(input.gender || '').trim().toUpperCase();
+  const gender = rawGender === 'M' || rawGender === 'MALE' ? 'M' : rawGender === 'F' || rawGender === 'FEMALE' ? 'F' : '';
   return {
     first_name: String(input.first_name || '').trim(),
     last_name: String(input.last_name || '').trim(),
+    gender,
     parent_name: String(input.parent_name || '').trim(),
     parent_phone: normalizeAuthPhone(String(input.parent_phone || '')),
     parent_phone2: normalizeAuthPhone(String(input.parent_phone2 || '')),
@@ -263,6 +266,13 @@ export function validateStudentInput(
 
   if (input.date_of_birth && isFutureDate(String(input.date_of_birth), today)) {
     errors.push('Date of birth cannot be in the future');
+  }
+
+  if (!partial) {
+    const g = String(input.gender || '').trim().toUpperCase();
+    if (g !== 'M' && g !== 'MALE' && g !== 'F' && g !== 'FEMALE') {
+      errors.push('Gender must be Male or Female');
+    }
   }
 
   return errors;
