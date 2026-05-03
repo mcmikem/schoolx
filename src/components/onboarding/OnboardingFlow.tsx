@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Button, Input, Select } from "@/components/ui";
@@ -39,8 +40,10 @@ export default function OnboardingFlow({
   const [loading, setLoading] = useState(false);
   const [branding, setBranding] = useState({
     primary_color: school?.primary_color || "#0d9488",
+    accent_color: (school as any)?.accent_color || "#3b82f6",
     logo_url: school?.logo_url || "",
   });
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   // School details that can be edited during onboarding
   const [schoolDetails, setSchoolDetails] = useState({
@@ -48,10 +51,83 @@ export default function OnboardingFlow({
     district: (school as any)?.district || "",
     subcounty: (school as any)?.subcounty || "",
     parish: (school as any)?.parish || "",
+    motto: (school as any)?.motto || "",
+    phone: school?.phone || "",
+    email: school?.email || "",
+    uneb_center_number: (school as any)?.uneb_center_number || (school as any)?.uneab_center_number || "",
+    ownership: school?.ownership || "private",
+    address: (school as any)?.address || "",
   });
   const [schoolType, setSchoolType] = useState<SchoolSetupType>(
     ((school as any)?.school_type as SchoolSetupType) || "primary",
   );
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !school?.id) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Logo must be under 5MB");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    setUploadingLogo(true);
+    try {
+      const compressed = await compressImage(file, 800, 800, 0.8);
+      const ext = file.name.split(".").pop() || "png";
+      const filePath = `school-${school.id}-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("school-logos")
+        .upload(filePath, compressed, { contentType: file.type, upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage
+        .from("school-logos")
+        .getPublicUrl(filePath);
+      const logoUrl = urlData?.publicUrl;
+      if (logoUrl) {
+        setBranding((prev) => ({ ...prev, logo_url: logoUrl }));
+        const { error: updateError } = await supabase
+          .from("schools")
+          .update({ logo_url: logoUrl })
+          .eq("id", school.id);
+        if (updateError) logger.warn("Logo URL save failed:", updateError);
+      }
+      toast.success("Logo uploaded");
+    } catch (err) {
+      logger.error("Logo upload failed:", err);
+      toast.error("Failed to upload logo. You can add it later in settings.");
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const compressImage = (
+    file: File,
+    maxW: number,
+    maxH: number,
+    quality: number,
+  ): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = h * maxW / w; w = maxW; }
+        if (h > maxH) { w = w * maxH / h; h = maxH; }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { reject(new Error("Canvas not available")); return; }
+        ctx.drawImage(img, 0, 0, w, h);
+        canvas.toBlob((b) => b ? resolve(b) : reject(new Error("Compression failed")), "image/jpeg", quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Failed to load image")); };
+      img.src = url;
+    });
+  };
+
   const [featureStage, setFeatureStage] = useState<
     "core" | "academic" | "finance" | "full"
   >(
@@ -87,7 +163,15 @@ export default function OnboardingFlow({
         district: schoolDetails.district,
         subcounty: schoolDetails.subcounty,
         parish: schoolDetails.parish,
+        village: schoolDetails.address,
         primary_color: branding.primary_color,
+        accent_color: branding.accent_color,
+        logo_url: branding.logo_url || school?.logo_url || null,
+        motto: schoolDetails.motto || null,
+        phone: schoolDetails.phone || null,
+        email: schoolDetails.email || null,
+        uneb_center_number: schoolDetails.uneb_center_number || null,
+        ownership: schoolDetails.ownership,
         feature_stage: featureStage,
         onboarding_completed: true,
         onboarding_completed_at: new Date().toISOString(),
@@ -393,6 +477,80 @@ export default function OnboardingFlow({
                     />
                   </div>
 
+                  {/* School Motto */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-3">
+                      School Motto <span className="text-slate-400 font-normal">(optional)</span>
+                    </label>
+                    <Input
+                      value={schoolDetails.motto}
+                      onChange={(e) =>
+                        setSchoolDetails({ ...schoolDetails, motto: e.target.value })
+                      }
+                      placeholder="For God and My Country"
+                    />
+                  </div>
+
+                  {/* Ownership Type */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-3">
+                      Ownership Type
+                    </label>
+                    <select
+                      value={schoolDetails.ownership}
+                      onChange={(e) =>
+                        setSchoolDetails({ ...schoolDetails, ownership: e.target.value as "private" | "government" | "government_aided" })
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-400"
+                    >
+                      <option value="private">Private</option>
+                      <option value="government">Government</option>
+                      <option value="government_aided">Government Aided</option>
+                    </select>
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-3">
+                      School Phone <span className="text-slate-400 font-normal">(optional)</span>
+                    </label>
+                    <Input
+                      value={schoolDetails.phone}
+                      onChange={(e) =>
+                        setSchoolDetails({ ...schoolDetails, phone: e.target.value })
+                      }
+                      placeholder="0772 123456"
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-3">
+                      School Email <span className="text-slate-400 font-normal">(optional)</span>
+                    </label>
+                    <Input
+                      value={schoolDetails.email}
+                      onChange={(e) =>
+                        setSchoolDetails({ ...schoolDetails, email: e.target.value })
+                      }
+                      placeholder="admin@school.ug"
+                    />
+                  </div>
+
+                  {/* UNEB Center Number */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-3">
+                      UNEB Center Number <span className="text-slate-400 font-normal">(optional)</span>
+                    </label>
+                    <Input
+                      value={schoolDetails.uneb_center_number}
+                      onChange={(e) =>
+                        setSchoolDetails({ ...schoolDetails, uneb_center_number: e.target.value })
+                      }
+                      placeholder="U0012"
+                    />
+                  </div>
+
                   {/* District */}
                   <Select
                     label="District"
@@ -495,9 +653,52 @@ export default function OnboardingFlow({
                     </div>
                   </div>
 
+                  {/* Logo Upload */}
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-3">
-                      Primary Theme Color
+                      School Logo <span className="text-slate-400 font-normal">(optional)</span>
+                    </label>
+                    <div className="flex items-center gap-4">
+                      {branding.logo_url ? (
+                        <Image
+                          src={branding.logo_url}
+                          alt="School logo"
+                          width={64}
+                          height={64}
+                          className="h-16 w-16 rounded-xl border border-slate-200 object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50">
+                          <MaterialIcon icon="school" className="text-slate-400" />
+                        </div>
+                      )}
+                      <label className="cursor-pointer rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200">
+                        {uploadingLogo ? "Uploading..." : "Choose file"}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          className="hidden"
+                          disabled={uploadingLogo}
+                        />
+                      </label>
+                      {branding.logo_url && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setBranding({ ...branding, logo_url: "" })
+                          }
+                          className="text-sm text-red-500 hover:text-red-700"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-3">
+                      Primary Color
                     </label>
                     <div className="flex gap-4">
                       {[
@@ -524,6 +725,47 @@ export default function OnboardingFlow({
                             setBranding({
                               ...branding,
                               primary_color: e.target.value,
+                            })
+                          }
+                          className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                        />
+                        <div className="w-12 h-12 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center">
+                          <MaterialIcon icon="add" className="text-slate-400" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Accent Color */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-3">
+                      Accent Color <span className="text-slate-400 font-normal">(optional)</span>
+                    </label>
+                    <div className="flex gap-4">
+                      {[
+                        "#3b82f6",
+                        "#8b5cf6",
+                        "#ec4899",
+                        "#f59e0b",
+                        "#10b981",
+                      ].map((color) => (
+                        <button
+                          key={color}
+                          onClick={() =>
+                            setBranding({ ...branding, accent_color: color })
+                          }
+                          className={`w-12 h-12 rounded-full border-[3px] transition-transform hover:scale-110 ${branding.accent_color === color ? "border-slate-800 ring-2 ring-offset-2 ring-slate-200" : "border-transparent"}`}
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                      <div className="relative">
+                        <input
+                          type="color"
+                          value={branding.accent_color}
+                          onChange={(e) =>
+                            setBranding({
+                              ...branding,
+                              accent_color: e.target.value,
                             })
                           }
                           className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"

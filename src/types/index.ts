@@ -13,7 +13,10 @@ export interface School {
   email?: string;
   logo_url?: string;
   primary_color: string;
-  uneab_center_number?: string;
+  accent_color?: string;
+  motto?: string;
+  uneb_center_number?: string;
+  address?: string;
   subscription_plan:
     | "starter"
     | "growth"
