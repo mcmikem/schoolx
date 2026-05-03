@@ -530,7 +530,7 @@ function HeadmasterDashboardContent() {
         <div className="relative z-10 grid gap-4 xl:grid-cols-[1.35fr_0.95fr]">
           <div className="grid gap-4">
             <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-              <div className="rounded-[30px] border border-white/80 bg-white/78 p-5 shadow-[0_18px_48px_rgba(15,23,42,0.08)] backdrop-blur">
+              <div className="overflow-hidden rounded-[30px] border border-white/80 bg-white/78 p-5 shadow-[0_18px_48px_rgba(15,23,42,0.08)] backdrop-blur">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-4">
                     {school?.logo_url ? (
@@ -633,7 +633,7 @@ function HeadmasterDashboardContent() {
                 </div>
               </div>
 
-              <div className="rounded-[30px] border border-[#d8e3f3] bg-[linear-gradient(180deg,#16345f_0%,#214f80_100%)] p-5 text-white shadow-[0_24px_48px_rgba(23,50,95,0.22)]">
+              <div className="overflow-hidden rounded-[30px] border border-[#d8e3f3] bg-[linear-gradient(180deg,#16345f_0%,#214f80_100%)] p-5 text-white shadow-[0_24px_48px_rgba(23,50,95,0.22)]">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/60">
@@ -748,7 +748,7 @@ function HeadmasterDashboardContent() {
           </div>
 
           <div className="grid gap-4">
-            <div className="rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
+            <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">
@@ -804,7 +804,7 @@ function HeadmasterDashboardContent() {
               </div>
             </div>
 
-            <div className="rounded-[30px] border border-[#d7e3f2] bg-[linear-gradient(180deg,#ffffff_0%,#f7faff_100%)] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
+            <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-[linear-gradient(180deg,#ffffff_0%,#f7faff_100%)] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">
@@ -853,7 +853,7 @@ function HeadmasterDashboardContent() {
               </div>
             </div>
 
-            <div className="rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
+            <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">
@@ -920,7 +920,7 @@ function HeadmasterDashboardContent() {
               </div>
             </div>
 
-            <div className="rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
+            <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">
@@ -1089,7 +1089,7 @@ function HeadmasterDashboardContent() {
               )}
             </div>
 
-            <div className="rounded-[30px] border border-[#d7e3f2] bg-[linear-gradient(180deg,#ffffff_0%,#f8fafd_100%)] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
+            <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-[linear-gradient(180deg,#ffffff_0%,#f8fafd_100%)] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">

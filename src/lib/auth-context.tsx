@@ -372,13 +372,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             );
 
             if (verifiedUser) {
-              await fetchUserData(verifiedUser.id);
+              try {
+                await fetchUserData(verifiedUser.id);
+              } catch {
+                logger.warn(
+                  "[Auth] fetchUserData failed in state change handler",
+                );
+              }
               setIsDemo(false);
               setLoading(false);
             } else if (event === "INITIAL_SESSION" && !session) {
               setUser(null);
               setSchool(null);
               setIsDemo(false);
+              setLoading(false);
+            } else {
               setLoading(false);
             }
           } else if (event === "SIGNED_OUT") {
@@ -395,6 +403,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
         } catch (error) {
+          setLoading(false);
           if (!isSupabaseLockAbortError(error)) {
             logger.error(
               "[Auth] Auth state change handler failed:",
