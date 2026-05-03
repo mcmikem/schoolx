@@ -196,7 +196,7 @@ export default function LoginPage() {
 
   const handleDemoClick = (demoPhone: string) => {
     setPhone(demoPhone);
-    setPassword("demo");
+    setPassword("skoolmate_demo_2024");
   };
 
   return (
