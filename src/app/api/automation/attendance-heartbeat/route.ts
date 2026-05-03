@@ -13,7 +13,6 @@ export async function POST(request: NextRequest) {
 
     // @ts-ignore - Supabase type inference issue with service role client
     const supabase = createServiceRoleClientOrThrow();
-
     const { schoolId } = await request.json();
     const school = await requireExistingSchoolOrDeny({ supabase, schoolId });
     if (!school.ok) return school.response;

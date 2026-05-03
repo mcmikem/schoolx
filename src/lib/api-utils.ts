@@ -520,7 +520,7 @@ export function createServiceRoleClientOrThrow() {
 }
 
 export async function requireExistingSchoolOrDeny(params: {
-  supabase: ReturnType<typeof createClient>;
+  supabase: any;
   schoolId: unknown;
 }): Promise<
   | { ok: true; schoolId: string; school: Record<string, unknown> }

@@ -11,7 +11,6 @@ export async function POST(request: NextRequest) {
     const cron = requireCronSecretOrDeny(request);
     if (!cron.ok) return cron.response;
 
-    const supabase = createServiceRoleClientOrThrow();
 
     const { schoolId, academicYear, criteria } = await request.json();
 
@@ -22,6 +21,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const supabase = createServiceRoleClientOrThrow();
     const school = await requireExistingSchoolOrDeny({ supabase, schoolId });
     if (!school.ok) return school.response;
 
