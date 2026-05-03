@@ -364,7 +364,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             event === "INITIAL_SESSION" ||
             event === "TOKEN_REFRESHED"
           ) {
-            if (session) setLoading(true);
+            if (session && event !== "TOKEN_REFRESHED") setLoading(true);
             const {
               data: { user: verifiedUser },
             } = await withSupabaseLockRetry(

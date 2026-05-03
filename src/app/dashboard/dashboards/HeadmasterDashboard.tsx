@@ -19,6 +19,14 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import DashboardInsights from "@/components/dashboard/DashboardInsights";
 import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
 
+function toLocalDate(year: number, month: number, day: number): string {
+  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function localISODate(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 type HeadmasterTask = {
   id: string;
   title: string;
@@ -443,7 +451,7 @@ function HeadmasterDashboardContent() {
     setTasks((prev) => prev.filter((task) => task.id !== taskId));
   };
 
-  const todayIso = new Date().toISOString().split("T")[0];
+  const todayIso = localISODate(new Date());
   const pendingTaskCount = tasks.filter((task) => !task.done).length;
 
   const academicEvents = useMemo(() => {
@@ -471,9 +479,7 @@ function HeadmasterDashboardContent() {
       cells.push(null);
     }
     for (let day = 1; day <= daysInMonth; day++) {
-      const iso = new Date(calendarYear, calendarMonth, day)
-        .toISOString()
-        .split("T")[0];
+      const iso = toLocalDate(calendarYear, calendarMonth, day);
       cells.push({
         day,
         iso,
