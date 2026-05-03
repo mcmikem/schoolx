@@ -139,11 +139,7 @@ ON "subjects"
 FOR SELECT
 TO authenticated
 USING (
-  "school_id" IN (
-    SELECT "school_id"
-    FROM "users"
-    WHERE "auth_id" = auth.uid()
-  )
+  school_id = my_school_id()
 );
 
 DROP POLICY IF EXISTS "School users subjects write" ON "subjects";
@@ -152,18 +148,10 @@ ON "subjects"
 FOR ALL
 TO authenticated
 USING (
-  "school_id" IN (
-    SELECT "school_id"
-    FROM "users"
-    WHERE "auth_id" = auth.uid()
-  )
+  school_id = my_school_id()
 )
 WITH CHECK (
-  "school_id" IN (
-    SELECT "school_id"
-    FROM "users"
-    WHERE "auth_id" = auth.uid()
-  )
+  school_id = my_school_id()
 );
 
 -- ============================================
@@ -393,11 +381,7 @@ ON "events"
 FOR SELECT
 TO authenticated
 USING (
-  "school_id" IN (
-    SELECT "school_id"
-    FROM "users"
-    WHERE "auth_id" = auth.uid()
-  )
+  school_id = my_school_id()
 );
 
 DROP POLICY IF EXISTS "School users events write" ON "events";
@@ -406,18 +390,10 @@ ON "events"
 FOR ALL
 TO authenticated
 USING (
-  "school_id" IN (
-    SELECT "school_id"
-    FROM "users"
-    WHERE "auth_id" = auth.uid()
-  )
+  school_id = my_school_id()
 )
 WITH CHECK (
-  "school_id" IN (
-    SELECT "school_id"
-    FROM "users"
-    WHERE "auth_id" = auth.uid()
-  )
+  school_id = my_school_id()
 );
 
 -- School settings (RLS with my_school_id() helper — SECURITY DEFINER bypasses recursion)
@@ -582,11 +558,7 @@ ON "students"
 FOR SELECT
 TO authenticated
 USING (
-  "school_id" IN (
-    SELECT "school_id"
-    FROM "users"
-    WHERE "auth_id" = auth.uid()
-  )
+  school_id = my_school_id()
 );
 
 -- INSERT (create students too)
@@ -596,11 +568,7 @@ ON "students"
 FOR INSERT
 TO authenticated
 WITH CHECK (
-  "school_id" IN (
-    SELECT "school_id"
-    FROM "users"
-    WHERE "auth_id" = auth.uid()
-  )
+  school_id = my_school_id()
 );
 
 -- UPDATE
@@ -610,18 +578,10 @@ ON "students"
 FOR UPDATE
 TO authenticated
 USING (
-  "school_id" IN (
-    SELECT "school_id"
-    FROM "users"
-    WHERE "auth_id" = auth.uid()
-  )
+  school_id = my_school_id()
 )
 WITH CHECK (
-  "school_id" IN (
-    SELECT "school_id"
-    FROM "users"
-    WHERE "auth_id" = auth.uid()
-  )
+  school_id = my_school_id()
 );
 
 -- DELETE
@@ -631,11 +591,7 @@ ON "students"
 FOR DELETE
 TO authenticated
 USING (
-  "school_id" IN (
-    SELECT "school_id"
-    FROM "users"
-    WHERE "auth_id" = auth.uid()
-  )
+  school_id = my_school_id()
 );
 
 -- =========================
@@ -648,11 +604,7 @@ ON "classes"
 FOR SELECT
 TO authenticated
 USING (
-  "school_id" IN (
-    SELECT "school_id"
-    FROM "users"
-    WHERE "auth_id" = auth.uid()
-  )
+  school_id = my_school_id()
 );
 
 DROP POLICY IF EXISTS "School users classes write" ON "classes";
@@ -661,18 +613,10 @@ ON "classes"
 FOR ALL
 TO authenticated
 USING (
-  "school_id" IN (
-    SELECT "school_id"
-    FROM "users"
-    WHERE "auth_id" = auth.uid()
-  )
+  school_id = my_school_id()
 )
 WITH CHECK (
-  "school_id" IN (
-    SELECT "school_id"
-    FROM "users"
-    WHERE "auth_id" = auth.uid()
-  )
+  school_id = my_school_id()
 );
 
 -- =========================
@@ -685,11 +629,7 @@ ON "houses"
 FOR SELECT
 TO authenticated
 USING (
-  "school_id" IN (
-    SELECT "school_id"
-    FROM "users"
-    WHERE "auth_id" = auth.uid()
-  )
+  school_id = my_school_id()
 );
 
 DROP POLICY IF EXISTS "School users houses write" ON "houses";
@@ -698,18 +638,10 @@ ON "houses"
 FOR ALL
 TO authenticated
 USING (
-  "school_id" IN (
-    SELECT "school_id"
-    FROM "users"
-    WHERE "auth_id" = auth.uid()
-  )
+  school_id = my_school_id()
 )
 WITH CHECK (
-  "school_id" IN (
-    SELECT "school_id"
-    FROM "users"
-    WHERE "auth_id" = auth.uid()
-  )
+  school_id = my_school_id()
 );
 
 -- =========================
@@ -725,11 +657,7 @@ USING (
   "class_id" IN (
     SELECT "id"
     FROM "classes"
-    WHERE "school_id" IN (
-      SELECT "school_id"
-      FROM "users"
-      WHERE "auth_id" = auth.uid()
-    )
+    WHERE school_id = my_school_id()
   )
 );
 
@@ -742,22 +670,14 @@ USING (
   "class_id" IN (
     SELECT "id"
     FROM "classes"
-    WHERE "school_id" IN (
-      SELECT "school_id"
-      FROM "users"
-      WHERE "auth_id" = auth.uid()
-    )
+    WHERE school_id = my_school_id()
   )
 )
 WITH CHECK (
   "class_id" IN (
     SELECT "id"
     FROM "classes"
-    WHERE "school_id" IN (
-      SELECT "school_id"
-      FROM "users"
-      WHERE "auth_id" = auth.uid()
-    )
+    WHERE school_id = my_school_id()
   )
 );
 
@@ -774,11 +694,7 @@ USING (
   "class_id" IN (
     SELECT "id"
     FROM "classes"
-    WHERE "school_id" IN (
-      SELECT "school_id"
-      FROM "users"
-      WHERE "auth_id" = auth.uid()
-    )
+    WHERE school_id = my_school_id()
   )
 );
 
@@ -791,22 +707,14 @@ USING (
   "class_id" IN (
     SELECT "id"
     FROM "classes"
-    WHERE "school_id" IN (
-      SELECT "school_id"
-      FROM "users"
-      WHERE "auth_id" = auth.uid()
-    )
+    WHERE school_id = my_school_id()
   )
 )
 WITH CHECK (
   "class_id" IN (
     SELECT "id"
     FROM "classes"
-    WHERE "school_id" IN (
-      SELECT "school_id"
-      FROM "users"
-      WHERE "auth_id" = auth.uid()
-    )
+    WHERE school_id = my_school_id()
   )
 );
 
@@ -1536,17 +1444,17 @@ ALTER TABLE pending_mobile_payments ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "School users subscription payments all" ON subscription_payments;
 CREATE POLICY "School users subscription payments all" ON subscription_payments FOR ALL TO authenticated USING (
-  school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid())
+  school_id = my_school_id()
 );
 
 DROP POLICY IF EXISTS "School users payment history all" ON payment_history;
 CREATE POLICY "School users payment history all" ON payment_history FOR ALL TO authenticated USING (
-  school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid())
+  school_id = my_school_id()
 );
 
 DROP POLICY IF EXISTS "School users pending mobile payments all" ON pending_mobile_payments;
 CREATE POLICY "School users pending mobile payments all" ON pending_mobile_payments FOR ALL TO authenticated USING (
-  school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid())
+  school_id = my_school_id()
 );
 
 -- ============================================
@@ -1620,7 +1528,7 @@ ALTER TABLE payroll_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE library_books ENABLE ROW LEVEL SECURITY;
 ALTER TABLE library_checkouts ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "School users budget_items all" ON budget_items FOR ALL TO authenticated USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
-CREATE POLICY "School users payroll_history all" ON payroll_history FOR ALL TO authenticated USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
-CREATE POLICY "School users library_books all" ON library_books FOR ALL TO authenticated USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
-CREATE POLICY "School users library_checkouts all" ON library_checkouts FOR ALL TO authenticated USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
+CREATE POLICY "School users budget_items all" ON budget_items FOR ALL TO authenticated USING (school_id = my_school_id());
+CREATE POLICY "School users payroll_history all" ON payroll_history FOR ALL TO authenticated USING (school_id = my_school_id());
+CREATE POLICY "School users library_books all" ON library_books FOR ALL TO authenticated USING (school_id = my_school_id());
+CREATE POLICY "School users library_checkouts all" ON library_checkouts FOR ALL TO authenticated USING (school_id = my_school_id());
