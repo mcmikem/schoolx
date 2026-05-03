@@ -395,37 +395,12 @@ function HeadmasterDashboardContent() {
   );
 
   const academicEvents = useMemo(() => {
-    // Use real events from database, or fall back to placeholder if none
-    if (calendarEvents.length > 0) {
-      return calendarEvents.map((e) => ({
-        id: e.id,
-        title: e.title,
-        date: e.start_date,
-        kind: e.event_type || "event",
-      }));
-    }
-    // Fallback placeholder events for demo
-    const toIso = (date: Date) => date.toISOString().split("T")[0];
-    const mkDate = (offset: number) => {
-      const d = new Date();
-      d.setDate(d.getDate() + offset);
-      return d;
-    };
-
-    return [
-      {
-        id: "event-attendance",
-        title: "Attendance review",
-        date: toIso(mkDate(1)),
-        kind: "ops",
-      },
-      {
-        id: "event-fees",
-        title: "Fee follow-up",
-        date: toIso(mkDate(3)),
-        kind: "finance",
-      },
-    ];
+    return calendarEvents.map((e) => ({
+      id: e.id,
+      title: e.title,
+      date: e.start_date,
+      kind: e.event_type || "event",
+    }));
   }, [calendarEvents]);
 
   const monthStartDay = calendarAnchor.getDay();
@@ -907,22 +882,22 @@ function HeadmasterDashboardContent() {
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-7 gap-1 sm:gap-2 text-center text-[10px] font-bold uppercase tracking-[0.15em] text-[#8ba0bc]">
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+              <div className="mt-4 grid grid-cols-7 text-center text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.1em] text-[#8ba0bc]">
+                {["S", "M", "T", "W", "T", "F", "S"].map((d) => (
                   <div key={d}>{d}</div>
                 ))}
               </div>
 
-              <div className="mt-2 grid grid-cols-7 gap-1 sm:gap-2">
+              <div className="mt-1 grid grid-cols-7">
                 {calendarCells.map((cell, idx) =>
                   cell ? (
                     <div
                       key={cell.iso}
-                      className={`relative rounded-xl border px-1.5 py-2 text-center text-xs font-semibold ${cell.isToday ? "border-[#17325f] bg-[#edf4ff] text-[#17325f]" : "border-[#e7edf5] bg-[#f8fbff] text-[#5e7390]"}`}
+                      className={`relative flex items-center justify-center rounded-lg border text-center text-[11px] sm:text-xs font-semibold aspect-square ${cell.isToday ? "border-[#17325f] bg-[#edf4ff] text-[#17325f]" : "border-[#e7edf5] bg-[#f8fbff] text-[#5e7390]"}`}
                     >
                       {cell.day}
                       {cell.hasEvent && (
-                        <span className="absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#2d69a4]" />
+                        <span className="absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[#2d69a4]" />
                       )}
                     </div>
                   ) : (
@@ -931,27 +906,36 @@ function HeadmasterDashboardContent() {
                 )}
               </div>
 
-              <div className="mt-4 space-y-2">
-                {academicEvents.slice(0, 3).map((event) => (
-                  <div
-                    key={event.id}
-                    className="flex items-center justify-between rounded-[16px] bg-[#f4f8fc] px-3 py-2"
-                  >
-                    <div className="min-w-0 pr-2">
-                      <p className="truncate text-xs font-semibold text-[#17325f]">
-                        {event.title}
-                      </p>
-                      <p className="text-[10px] text-[#7d8fa8]">{event.kind}</p>
+              {academicEvents.length > 0 && (
+                <div className="mt-3 space-y-1.5">
+                  {academicEvents.slice(0, 3).map((event) => (
+                    <div
+                      key={event.id}
+                      className="flex items-center justify-between rounded-[12px] bg-[#f4f8fc] px-2.5 py-1.5"
+                    >
+                      <div className="min-w-0 pr-2">
+                        <p className="truncate text-[11px] font-semibold text-[#17325f]">
+                          {event.title}
+                        </p>
+                        <p className="text-[9px] text-[#7d8fa8]">
+                          {event.kind}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-[10px] font-semibold text-[#5f7390]">
+                        {new Date(event.date).toLocaleDateString("en-UG", {
+                          day: "numeric",
+                          month: "short",
+                        })}
+                      </div>
                     </div>
-                    <div className="text-[11px] font-semibold text-[#5f7390]">
-                      {new Date(event.date).toLocaleDateString("en-UG", {
-                        day: "numeric",
-                        month: "short",
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
+              {academicEvents.length === 0 && (
+                <p className="mt-3 text-center text-[11px] text-[#8ba0bc]">
+                  No events this month
+                </p>
+              )}
             </div>
 
             <div className="rounded-[30px] border border-[#d7e3f2] bg-[linear-gradient(180deg,#ffffff_0%,#f8fafd_100%)] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
