@@ -504,6 +504,29 @@ ALTER TABLE "events" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "messages" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "parent_students" ENABLE ROW LEVEL SECURITY;
 
+-- Users can see their own record and school admins can see users in their school
+DROP POLICY IF EXISTS "Users select own and school" ON "users";
+CREATE POLICY "Users select own and school"
+ON "users"
+FOR SELECT
+TO authenticated
+USING (
+  auth_id = auth.uid()
+  OR
+  school_id IN (
+    SELECT school_id FROM users WHERE auth_id = auth.uid()
+  )
+);
+
+-- Users can update their own record
+DROP POLICY IF EXISTS "Users update own" ON "users";
+CREATE POLICY "Users update own"
+ON "users"
+FOR UPDATE
+TO authenticated
+USING (auth_id = auth.uid())
+WITH CHECK (auth_id = auth.uid());
+
 -- Super Admin can see everything
 DROP POLICY IF EXISTS "Super admin full access" ON "schools";
 CREATE POLICY "Super admin full access"
