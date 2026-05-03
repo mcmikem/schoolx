@@ -39,6 +39,12 @@ const SETUP_STEPS = [
     route: "/dashboard/fees",
   },
   {
+    key: "report_card_branding",
+    title: "Report Card",
+    icon: "badge",
+    route: "/dashboard/settings?tab=config",
+  },
+  {
     key: "staff_accounts",
     title: "Staff Accounts",
     icon: "people",
@@ -64,6 +70,16 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
   const schoolType = ((school as any)?.school_type || "primary") as SchoolSetupType;
 
   // Inline form states
+  const [reportBrand, setReportBrand] = useState({
+    header: (school as any)?.report_header_text || "",
+    footer: (school as any)?.report_footer_text || "",
+    receipt_footer: (school as any)?.receipt_footer_text || "",
+    show_position: (school as any)?.show_position_in_report !== false,
+    show_conduct: (school as any)?.show_conduct_in_report !== false,
+    show_attendance: (school as any)?.show_attendance_in_report !== false,
+    show_remarks: (school as any)?.show_remarks_in_report !== false,
+  });
+
   const [terms, setTerms] = useState(
     buildUgandaAcademicTerms("preview", currentYear).map((term) => ({
       name: term.name,
@@ -192,6 +208,32 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
       await markComplete("class_structure");
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to save classes"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveReportBranding = async () => {
+    if (!school?.id) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("schools")
+        .update({
+          report_header_text: reportBrand.header || null,
+          report_footer_text: reportBrand.footer || null,
+          receipt_footer_text: reportBrand.receipt_footer || null,
+          show_position_in_report: reportBrand.show_position,
+          show_conduct_in_report: reportBrand.show_conduct,
+          show_attendance_in_report: reportBrand.show_attendance,
+          show_remarks_in_report: reportBrand.show_remarks,
+        })
+        .eq("id", school.id);
+      if (error) throw error;
+      await markComplete("report_card_branding");
+      toast.success("Report card settings saved");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save report card settings"));
     } finally {
       setLoading(false);
     }
@@ -450,6 +492,89 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                           className="w-full"
                         >
                           Save Fees
+                        </Button>
+                      </div>
+                    )}
+
+                    {idx === 0 && step.key === "report_card_branding" && (
+                      <div className="space-y-3 mb-4">
+                        <div>
+                          <label className="text-xs font-semibold text-slate-600 mb-1 block">
+                            Report Header Text
+                          </label>
+                          <input
+                            type="text"
+                            value={reportBrand.header}
+                            onChange={(e) =>
+                              setReportBrand({ ...reportBrand, header: e.target.value })
+                            }
+                            className="input text-sm w-full"
+                            placeholder="Annual Academic Report"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-slate-600 mb-1 block">
+                            Report Footer Text
+                          </label>
+                          <input
+                            type="text"
+                            value={reportBrand.footer}
+                            onChange={(e) =>
+                              setReportBrand({ ...reportBrand, footer: e.target.value })
+                            }
+                            className="input text-sm w-full"
+                            placeholder="Education is the key to success"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-slate-600 mb-1 block">
+                            Receipt Footer Text
+                          </label>
+                          <input
+                            type="text"
+                            value={reportBrand.receipt_footer}
+                            onChange={(e) =>
+                              setReportBrand({ ...reportBrand, receipt_footer: e.target.value })
+                            }
+                            className="input text-sm w-full"
+                            placeholder="Thank you for your payment"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 pt-2">
+                          {[
+                            { key: "show_position", label: "Show Position" },
+                            { key: "show_conduct", label: "Show Conduct" },
+                            { key: "show_attendance", label: "Show Attendance" },
+                            { key: "show_remarks", label: "Show Remarks" },
+                          ].map((item) => (
+                            <label
+                              key={item.key}
+                              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-50"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={
+                                  reportBrand[item.key as keyof typeof reportBrand] as boolean
+                                }
+                                onChange={() =>
+                                  setReportBrand({
+                                    ...reportBrand,
+                                    [item.key]: !reportBrand[item.key as keyof typeof reportBrand],
+                                  })
+                                }
+                                className="rounded"
+                              />
+                              {item.label}
+                            </label>
+                          ))}
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={saveReportBranding}
+                          loading={loading}
+                          className="w-full"
+                        >
+                          Save Report Settings
                         </Button>
                       </div>
                     )}
