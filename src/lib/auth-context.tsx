@@ -63,10 +63,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (
       authId: string,
     ): Promise<{ role: string } | null> => {
-      if (authFetchAborted.current) return null;
+      if (authFetchAborted.current || !supabase) return null;
       try {
-        // Get the current session token to authenticate the API call
-        const { data: { session } } = await supabase!.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
         if (!token) {
           setLoading(false);
@@ -137,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return null;
       }
     },
-    [supabase],
+    [],
   );
 
   const checkUser = useCallback(async () => {
