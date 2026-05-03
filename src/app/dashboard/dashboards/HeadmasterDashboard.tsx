@@ -961,7 +961,7 @@ function HeadmasterDashboardContent() {
               </div>
 
               <div className="mt-4 grid grid-cols-7 text-center text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.1em] text-[#8ba0bc]">
-                {["S", "M", "T", "W", "T", "F", "S"].map((d) => (
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
                   <div key={d}>{d}</div>
                 ))}
               </div>

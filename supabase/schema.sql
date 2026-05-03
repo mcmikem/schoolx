@@ -504,19 +504,14 @@ ALTER TABLE "events" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "messages" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "parent_students" ENABLE ROW LEVEL SECURITY;
 
--- Users can see their own record and school admins can see users in their school
+-- Users can see their own record (no subquery on users to avoid infinite recursion)
 DROP POLICY IF EXISTS "Users select own and school" ON "users";
-CREATE POLICY "Users select own and school"
+DROP POLICY IF EXISTS "Users select own" ON "users";
+CREATE POLICY "Users select own"
 ON "users"
 FOR SELECT
 TO authenticated
-USING (
-  auth_id = auth.uid()
-  OR
-  school_id IN (
-    SELECT school_id FROM users WHERE auth_id = auth.uid()
-  )
-);
+USING (auth_id = auth.uid());
 
 -- Users can update their own record
 DROP POLICY IF EXISTS "Users update own" ON "users";
