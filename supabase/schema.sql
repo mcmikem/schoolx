@@ -289,7 +289,7 @@ CREATE TABLE IF NOT EXISTS academic_terms (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    code TEXT,
+    code TEXT NOT NULL,
     term_number INT NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,

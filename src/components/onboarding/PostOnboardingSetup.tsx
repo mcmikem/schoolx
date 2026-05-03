@@ -109,6 +109,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
   const [terms, setTerms] = useState(
     buildUgandaAcademicTerms("preview", currentYear).map((term) => ({
       name: term.name,
+      code: term.code,
       term_number: term.term_number,
       start: term.start_date,
       end: term.end_date,
@@ -248,6 +249,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
       buildUgandaAcademicTerms(school?.id || "preview", currentYear).map(
         (term) => ({
           name: term.name,
+          code: term.code,
           term_number: term.term_number,
           start: term.start_date,
           end: term.end_date,
@@ -293,6 +295,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
         .map((term) => ({
           school_id: school.id,
           name: term.name,
+          code: term.code || `T${term.term_number}-${new Date().getFullYear()}`,
           term_number: term.term_number || 0,
           start_date: term.start,
           end_date: term.end,
