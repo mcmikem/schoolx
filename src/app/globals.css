@@ -943,7 +943,8 @@ table tr {
 
   /* -- MAIN CONTENT OVERFLOW FIX -- */
   .main-content {
-    overflow: visible !important;
+    overflow-x: clip;
+    overflow-y: auto;
   }
 
   /* -- LAYOUT SAFETY & OVERLAP FIXES -- */

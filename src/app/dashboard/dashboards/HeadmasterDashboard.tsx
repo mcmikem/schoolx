@@ -907,13 +907,13 @@ function HeadmasterDashboardContent() {
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-7 gap-2 text-center text-[10px] font-bold uppercase tracking-[0.15em] text-[#8ba0bc]">
+              <div className="mt-4 grid grid-cols-7 gap-1 sm:gap-2 text-center text-[10px] font-bold uppercase tracking-[0.15em] text-[#8ba0bc]">
                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
                   <div key={d}>{d}</div>
                 ))}
               </div>
 
-              <div className="mt-2 grid grid-cols-7 gap-2">
+              <div className="mt-2 grid grid-cols-7 gap-1 sm:gap-2">
                 {calendarCells.map((cell, idx) =>
                   cell ? (
                     <div
