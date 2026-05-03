@@ -449,15 +449,23 @@ export function useStudents(
           (await generateUniqueStudentNumber()),
       };
 
-      await assertUniqueStudentNumber(studentPayload.student_number as string);
+      await withTimeout(
+        assertUniqueStudentNumber(studentPayload.student_number as string),
+        5000,
+        undefined,
+      );
 
       let createdRow: { id: string } | null = null;
 
-      const firstInsert = await supabase
-        .from("students")
-        .insert(studentPayload)
-        .select("id")
-        .single();
+      const firstInsert = await withTimeout(
+        supabase
+          .from("students")
+          .insert(studentPayload)
+          .select("id")
+          .single(),
+        10000,
+        { data: null, error: { message: "Timeout", code: "TIMEOUT" } } as any,
+      );
 
       if (firstInsert.error) {
         logger.warn(
@@ -465,20 +473,8 @@ export function useStudents(
           firstInsert.error,
         );
 
-        const retryInsert = await supabase
-          .from("students")
-          .insert(
-            buildPortableStudentPayload(
-              studentPayload as Record<string, unknown>,
-            ),
-          )
-          .select("id")
-          .single();
-
-        if (isMissingStudentColumnError(retryInsert.error, "photo_url")) {
-          studentPhotoColumnSupported = false;
-
-          const legacyRetryInsert = await supabase
+        const retryInsert = await withTimeout(
+          supabase
             .from("students")
             .insert(
               buildPortableStudentPayload(
@@ -486,7 +482,27 @@ export function useStudents(
               ),
             )
             .select("id")
-            .single();
+            .single(),
+          10000,
+          { data: null, error: { message: "Timeout", code: "TIMEOUT" } } as any,
+        );
+
+        if (isMissingStudentColumnError(retryInsert.error, "photo_url")) {
+          studentPhotoColumnSupported = false;
+
+          const legacyRetryInsert = await withTimeout(
+            supabase
+              .from("students")
+              .insert(
+                buildPortableStudentPayload(
+                  studentPayload as Record<string, unknown>,
+                ),
+              )
+              .select("id")
+              .single(),
+            10000,
+            { data: null, error: { message: "Timeout", code: "TIMEOUT" } } as any,
+          );
 
           if (legacyRetryInsert.error) throw legacyRetryInsert.error;
           createdRow = legacyRetryInsert.data;
@@ -498,10 +514,18 @@ export function useStudents(
         createdRow = firstInsert.data;
       }
 
+      if (!createdRow) {
+        throw new Error("Failed to create student record");
+      }
+
       let createdStudent: StudentWithClass | null = null;
 
       try {
-        createdStudent = await fetchStudentByIdWithFallback(createdRow.id);
+        createdStudent = await withTimeout(
+          fetchStudentByIdWithFallback(createdRow.id),
+          10000,
+          null,
+        );
       } catch (fetchError: unknown) {
         logger.warn(
           "Student was inserted but could not be re-fetched with current schema shape:",
