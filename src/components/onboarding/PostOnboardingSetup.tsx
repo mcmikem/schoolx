@@ -14,6 +14,7 @@ import {
   type SchoolSetupType,
 } from "@/lib/school-setup";
 import { getErrorMessage } from "@/lib/validation";
+import { logger } from "@/lib/logger";
 
 interface Props {
   onComplete?: () => void;
@@ -56,6 +57,30 @@ const SETUP_STEPS = [
     icon: "sms",
     route: "/dashboard/sms-templates",
   },
+  {
+    key: "sms_automation",
+    title: "SMS Automation",
+    icon: "sync_alt",
+    route: "/dashboard/settings?tab=config",
+  },
+  {
+    key: "grading",
+    title: "Grading",
+    icon: "grade",
+    route: "/dashboard/settings?tab=config",
+  },
+  {
+    key: "signatures",
+    title: "Signatures",
+    icon: "signature",
+    route: "/dashboard/settings?tab=config",
+  },
+  {
+    key: "import_students",
+    title: "Import Students",
+    icon: "group_add",
+    route: "/dashboard/students",
+  },
 ];
 
 export default function PostOnboardingSetup({ onComplete }: Props) {
@@ -94,20 +119,122 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
       stream: cls.stream,
     })),
   );
-  const [fees, setFees] = useState<{ name: string; amount: string }[]>([
-    { name: "Tuition", amount: "150000" },
-    { name: "Development", amount: "50000" },
+  const [fees, setFees] = useState<
+    { name: string; amount: string; category: string; class_id: string | null }[]
+  >([
+    { name: "Tuition", amount: "150000", category: "Tuition", class_id: null },
+    { name: "Development", amount: "50000", category: "Development", class_id: null },
   ]);
+  const [applyFeeToAllClasses, setApplyFeeToAllClasses] = useState(true);
+
+  const [smsAutomations, setSmsAutomations] = useState([
+    { event_type: "fee_overdue", message_template: "", is_active: false, name: "Send fee reminder" },
+    { event_type: "absentee_alert", message_template: "", is_active: false, name: "Alert on absence" },
+    { event_type: "payment_confirmation", message_template: "", is_active: false, name: "Payment confirmation" },
+    { event_type: "report_card_ready", message_template: "", is_active: false, name: "Report card ready" },
+    { event_type: "exam_results", message_template: "", is_active: false, name: "Exam result published" },
+  ]);
+
+  const [gradingPrefs, setGradingPrefs] = useState({
+    passing_mark: 50,
+    grades: [
+      { label: "A", min: 80, max: 100 },
+      { label: "B", min: 70, max: 79 },
+      { label: "C", min: 60, max: 69 },
+      { label: "D", min: 50, max: 59 },
+      { label: "E", min: 0, max: 49 },
+    ],
+  });
+
+  const [signatures, setSignatures] = useState<{
+    headteacher: File | null;
+    class_teacher: File | null;
+    headteacherPreview: string;
+    classTeacherPreview: string;
+  }>({
+    headteacher: null,
+    class_teacher: null,
+    headteacherPreview: "",
+    classTeacherPreview: "",
+  });
+  const [uploadingSignature, setUploadingSignature] = useState(false);
+  const [importState, setImportState] = useState<{
+    step: "upload" | "preview" | "importing" | "complete";
+    rows: Record<string, string>[];
+    errors: string[];
+    success: number;
+    failed: number;
+  }>({ step: "upload", rows: [], errors: [], success: 0, failed: 0 });
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      const lines = text.split("\n").filter(Boolean);
+      if (lines.length < 2) {
+        toast.error("CSV must have a header row and at least one student");
+        return;
+      }
+      const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+      const rows = lines.slice(1).map((line) => {
+        const vals = line.split(",").map((v) => v.trim());
+        const row: Record<string, string> = {};
+        headers.forEach((h, i) => { row[h] = vals[i] || ""; });
+        return row;
+      });
+      setImportState({ ...importState, step: "preview", rows });
+    };
+    reader.readAsText(file);
+  };
+
+  const handleRunImport = async () => {
+    if (!school?.id) return;
+    setImportState((prev) => ({ ...prev, step: "importing", errors: [] }));
+    try {
+      const res = await fetch("/api/import/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ students: importState.rows, schoolId: school.id }),
+      });
+      const result = await res.json();
+      setImportState((prev) => ({
+        ...prev,
+        step: "complete",
+        errors: result.errors || [],
+        success: result.success || 0,
+        failed: result.failed || 0,
+      }));
+      if (result.success > 0) await markComplete("import_students");
+    } catch {
+      toast.error("Import failed. Check your connection and try again.");
+      setImportState((prev) => ({ ...prev, step: "upload" }));
+    }
+  };
+
+  const downloadCsvTemplate = () => {
+    const csv = "first_name,last_name,gender,class_name,parent_name,parent_phone\nJane,Doe,F,P.1,Parent Name,0700000000\nJohn,Smith,M,S.1,Guardian Name,0700000001";
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "student_import_template.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const checkCompletedItems = useCallback(async () => {
     if (!school?.id) return;
-    const { data } = await supabase
-      .from("setup_checklist")
-      .select("item_key, is_completed")
-      .eq("school_id", school.id);
+    try {
+      const { data } = await supabase
+        .from("setup_checklist")
+        .select("item_key, is_completed")
+        .eq("school_id", school.id);
 
-    if (data) {
-      setCompleted(data.filter((i) => i.is_completed).map((i) => i.item_key));
+      if (data) {
+        setCompleted(data.filter((i) => i.is_completed).map((i) => i.item_key));
+      }
+    } catch {
+      logger.warn("Failed to load completed checklist items");
     }
   }, [school?.id]);
 
@@ -136,21 +263,24 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
 
   const markComplete = async (key: string) => {
     if (!school?.id) return;
-
-    await supabase
-      .from("setup_checklist")
-      .upsert(
-        {
-          school_id: school.id,
-          item_key: key,
-          is_completed: true,
-          completed_at: new Date().toISOString(),
-        },
-        { onConflict: "school_id,item_key" },
-      );
-
-    setCompleted([...completed, key]);
-    toast.success(`${SETUP_STEPS.find((s) => s.key === key)?.title} complete!`);
+    try {
+      const { error } = await supabase
+        .from("setup_checklist")
+        .upsert(
+          {
+            school_id: school.id,
+            item_key: key,
+            is_completed: true,
+            completed_at: new Date().toISOString(),
+          },
+          { onConflict: "school_id,item_key" },
+        );
+      if (error) throw error;
+      setCompleted([...completed, key]);
+      toast.success(`${SETUP_STEPS.find((s) => s.key === key)?.title} complete!`);
+    } catch (err) {
+      logger.warn("markComplete failed:", getErrorMessage(err));
+    }
   };
 
   const saveTerms = async () => {
@@ -213,6 +343,38 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     }
   };
 
+  const saveFees = async () => {
+    if (!school?.id) return;
+    setLoading(true);
+    try {
+      const year = new Date().getFullYear().toString();
+      const feeRows = fees
+        .filter((fee) => fee.name && parseFloat(fee.amount) > 0)
+        .map((fee) => ({
+          school_id: school.id,
+          name: fee.name,
+          amount: parseFloat(fee.amount),
+          category: fee.category,
+          class_id: applyFeeToAllClasses ? null : fee.class_id || null,
+          term: 1,
+          academic_year: year,
+        }));
+
+      if (feeRows.length > 0) {
+        const { error: insertError } = await supabase
+          .from("fee_structure")
+          .insert(feeRows);
+        if (insertError) throw insertError;
+      }
+
+      await markComplete("fee_structure");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save fees"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const saveReportBranding = async () => {
     if (!school?.id) return;
     setLoading(true);
@@ -239,32 +401,147 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     }
   };
 
-  const saveFees = async () => {
+  const saveSmsAutomations = async () => {
     if (!school?.id) return;
     setLoading(true);
     try {
-      const feeRows = fees
-        .filter((fee) => fee.name && parseFloat(fee.amount) > 0)
-        .map((fee) => ({
-          school_id: school.id,
-          name: fee.name,
-          amount: parseFloat(fee.amount),
-          term: 1,
-          academic_year: new Date().getFullYear().toString(),
-        }));
+      const active = smsAutomations.filter((a) => a.is_active);
+      if (active.length > 0) {
+        const { error: delError } = await supabase
+          .from("sms_triggers")
+          .delete()
+          .eq("school_id", school.id);
+        if (delError) logger.warn("SMS trigger cleanup:", delError);
 
-      if (feeRows.length > 0) {
-        const { error } = await supabase.from("fee_structure").upsert(feeRows, {
-          onConflict: "school_id,name,term,academic_year",
+        const rows = active.map((a) => ({
+          school_id: school.id,
+          name: a.name,
+          event_type: a.event_type,
+          message_template: a.message_template || null,
+          is_active: true,
+        }));
+        const { error } = await supabase.from("sms_triggers").insert(rows);
+        if (error) throw error;
+      }
+      await markComplete("sms_automation");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save SMS automations"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveGradingPrefs = async () => {
+    if (!school?.id) return;
+    setLoading(true);
+    try {
+      const { error: pmError } = await supabase
+        .from("school_settings")
+        .upsert(
+          { school_id: school.id, key: "passing_mark", value: String(gradingPrefs.passing_mark) },
+          { onConflict: "school_id,key" },
+        );
+      if (pmError) throw pmError;
+
+      const { error: gradesError } = await supabase
+        .from("school_settings")
+        .upsert(
+          { school_id: school.id, key: "grade_labels", value: JSON.stringify(gradingPrefs.grades) },
+          { onConflict: "school_id,key" },
+        );
+      if (gradesError) throw gradesError;
+
+      await markComplete("grading");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save grading preferences"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const compressImage = (file: File, maxW = 400, maxH = 400, quality = 0.8): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = (h * maxW) / w; w = maxW; }
+        if (h > maxH) { w = (w * maxH) / h; h = maxH; }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { reject(new Error("Canvas not available")); return; }
+        ctx.drawImage(img, 0, 0, w, h);
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Compression failed"))), "image/jpeg", quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Failed to load image")); };
+      img.src = url;
+    });
+  };
+
+  const uploadSignatureToStorage = async (file: File, type: "headteacher" | "class_teacher"): Promise<string | null> => {
+    if (!school?.id) return null;
+    try {
+      const compressed = await compressImage(file);
+      const filePath = `signature-${school.id}-${type}.jpg`;
+      let { error: uploadError } = await supabase.storage
+        .from("school-logos")
+        .upload(filePath, compressed, { contentType: "image/jpeg", upsert: true });
+      if (uploadError && uploadError.message.includes("bucket")) {
+        await supabase.storage.createBucket("school-logos", {
+          public: true,
+          fileSizeLimit: 5242880,
+          allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
         });
+        const retry = await supabase.storage
+          .from("school-logos")
+          .upload(filePath, compressed, { contentType: "image/jpeg", upsert: true });
+        if (retry.error) throw retry.error;
+      } else if (uploadError) {
+        throw uploadError;
+      }
+      const { data: urlData } = supabase.storage.from("school-logos").getPublicUrl(filePath);
+      return urlData?.publicUrl || null;
+    } catch (err) {
+      logger.error("Signature upload failed:", err);
+      return null;
+    }
+  };
+
+  const saveSignatures = async () => {
+    if (!school?.id) return;
+    setUploadingSignature(true);
+    try {
+      let headteacherUrl = "";
+      let classTeacherUrl = "";
+
+      if (signatures.headteacher) {
+        const url = await uploadSignatureToStorage(signatures.headteacher, "headteacher");
+        if (url) headteacherUrl = url;
+      }
+      if (signatures.class_teacher) {
+        const url = await uploadSignatureToStorage(signatures.class_teacher, "class_teacher");
+        if (url) classTeacherUrl = url;
+      }
+
+      const updateData: Record<string, string> = {};
+      if (headteacherUrl) updateData.signature_headteacher_url = headteacherUrl;
+      if (classTeacherUrl) updateData.signature_class_teacher_url = classTeacherUrl;
+
+      if (Object.keys(updateData).length > 0) {
+        const { error } = await supabase
+          .from("schools")
+          .update(updateData)
+          .eq("id", school.id);
         if (error) throw error;
       }
 
-      await markComplete("fee_structure");
+      await markComplete("signatures");
     } catch (err: unknown) {
-      toast.error(getErrorMessage(err, "Failed to save fees"));
+      toast.error(getErrorMessage(err, "Failed to save signatures"));
     } finally {
-      setLoading(false);
+      setUploadingSignature(false);
     }
   };
 
@@ -448,37 +725,66 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
 
                     {idx === 0 && step.key === "fee_structure" && (
                       <div className="space-y-3 mb-4">
+                        <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-50">
+                          <input
+                            type="checkbox"
+                            checked={applyFeeToAllClasses}
+                            onChange={() => setApplyFeeToAllClasses(!applyFeeToAllClasses)}
+                            className="rounded"
+                          />
+                          Apply to all classes
+                        </label>
                         {fees.map((fee, i) => (
-                          <div key={i} className="flex gap-2">
-                            <input
-                              type="text"
-                              value={fee.name}
-                              onChange={(e) => {
-                                const newFees = [...fees];
-                                newFees[i].name = e.target.value;
-                                setFees(newFees);
-                              }}
-                              className="input text-sm flex-1"
-                              placeholder="Fee name"
-                            />
-                            <input
-                              type="number"
-                              value={fee.amount}
-                              onChange={(e) => {
-                                const newFees = [...fees];
-                                newFees[i].amount = e.target.value;
-                                setFees(newFees);
-                              }}
-                              className="input text-sm w-28"
-                              placeholder="UGX"
-                            />
+                          <div key={i} className="space-y-2 rounded-xl border border-slate-200 bg-white p-3">
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={fee.name}
+                                onChange={(e) => {
+                                  const newFees = [...fees];
+                                  newFees[i].name = e.target.value;
+                                  setFees(newFees);
+                                }}
+                                className="input text-sm flex-1"
+                                placeholder="Fee name"
+                              />
+                              <input
+                                type="number"
+                                value={fee.amount}
+                                onChange={(e) => {
+                                  const newFees = [...fees];
+                                  newFees[i].amount = e.target.value;
+                                  setFees(newFees);
+                                }}
+                                className="input text-sm w-28"
+                                placeholder="UGX"
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <select
+                                value={fee.category}
+                                onChange={(e) => {
+                                  const newFees = [...fees];
+                                  newFees[i].category = e.target.value;
+                                  setFees(newFees);
+                                }}
+                                className="input text-sm flex-1"
+                              >
+                                <option value="Tuition">Tuition</option>
+                                <option value="Development">Development</option>
+                                <option value="PTA">PTA</option>
+                                <option value="Lunch">Lunch</option>
+                                <option value="Transport">Transport</option>
+                                <option value="Other">Other</option>
+                              </select>
+                            </div>
                           </div>
                         ))}
                         <Button
                           size="sm"
                           variant="secondary"
                           onClick={() =>
-                            setFees([...fees, { name: "", amount: "" }])
+                            setFees([...fees, { name: "", amount: "", category: "Tuition", class_id: null }])
                           }
                           className="w-full"
                         >
@@ -576,6 +882,263 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                         >
                           Save Report Settings
                         </Button>
+                      </div>
+                    )}
+
+                    {idx === 0 && step.key === "sms_automation" && (
+                      <div className="space-y-3 mb-4">
+                        {smsAutomations.map((auto, i) => (
+                          <div key={auto.event_type} className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
+                            <label className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-slate-700">{auto.name}</span>
+                              <input
+                                type="checkbox"
+                                checked={auto.is_active}
+                                onChange={() => {
+                                  const next = [...smsAutomations];
+                                  next[i].is_active = !next[i].is_active;
+                                  setSmsAutomations(next);
+                                }}
+                                className="rounded"
+                              />
+                            </label>
+                            {auto.is_active && (
+                              <textarea
+                                value={auto.message_template}
+                                onChange={(e) => {
+                                  const next = [...smsAutomations];
+                                  next[i].message_template = e.target.value;
+                                  setSmsAutomations(next);
+                                }}
+                                className="input text-sm w-full"
+                                rows={2}
+                                placeholder="Optional message template..."
+                              />
+                            )}
+                          </div>
+                        ))}
+                        <Button
+                          size="sm"
+                          onClick={saveSmsAutomations}
+                          loading={loading}
+                          className="w-full"
+                        >
+                          Save Automation Settings
+                        </Button>
+                      </div>
+                    )}
+
+                    {idx === 0 && step.key === "grading" && (
+                      <div className="space-y-3 mb-4">
+                        <div>
+                          <label className="text-xs font-semibold text-slate-600 mb-1 block">
+                            Passing Mark
+                          </label>
+                          <input
+                            type="number"
+                            value={gradingPrefs.passing_mark}
+                            onChange={(e) =>
+                              setGradingPrefs({ ...gradingPrefs, passing_mark: parseInt(e.target.value) || 0 })
+                            }
+                            className="input text-sm w-full"
+                            min={0}
+                            max={100}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-slate-600 mb-1 block">
+                            Grade Labels &amp; Score Ranges
+                          </label>
+                          {gradingPrefs.grades.map((g, i) => (
+                            <div key={g.label} className="flex gap-2 items-center mb-2">
+                              <span className="text-sm font-bold w-8">{g.label}</span>
+                              <input
+                                type="number"
+                                value={g.min}
+                                onChange={(e) => {
+                                  const newGrades = [...gradingPrefs.grades];
+                                  newGrades[i].min = parseInt(e.target.value) || 0;
+                                  setGradingPrefs({ ...gradingPrefs, grades: newGrades });
+                                }}
+                                className="input text-sm w-20"
+                                placeholder="Min"
+                              />
+                              <span className="text-xs text-slate-400">to</span>
+                              <input
+                                type="number"
+                                value={g.max}
+                                onChange={(e) => {
+                                  const newGrades = [...gradingPrefs.grades];
+                                  newGrades[i].max = parseInt(e.target.value) || 0;
+                                  setGradingPrefs({ ...gradingPrefs, grades: newGrades });
+                                }}
+                                className="input text-sm w-20"
+                                placeholder="Max"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={saveGradingPrefs}
+                          loading={loading}
+                          className="w-full"
+                        >
+                          Save Grading Preferences
+                        </Button>
+                      </div>
+                    )}
+
+                    {idx === 0 && step.key === "signatures" && (
+                      <div className="space-y-3 mb-4">
+                        <div>
+                          <label className="text-xs font-semibold text-slate-600 mb-1 block">
+                            Headteacher Signature
+                          </label>
+                          {signatures.headteacherPreview && (
+                            <div className="mb-2">
+                              <img
+                                src={signatures.headteacherPreview}
+                                alt="Headteacher signature preview"
+                                className="max-h-16 border border-slate-200 rounded"
+                              />
+                            </div>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setSignatures({
+                                  ...signatures,
+                                  headteacher: file,
+                                  headteacherPreview: URL.createObjectURL(file),
+                                });
+                              }
+                            }}
+                            className="text-sm w-full"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-slate-600 mb-1 block">
+                            Class Teacher Signature
+                          </label>
+                          {signatures.classTeacherPreview && (
+                            <div className="mb-2">
+                              <img
+                                src={signatures.classTeacherPreview}
+                                alt="Class teacher signature preview"
+                                className="max-h-16 border border-slate-200 rounded"
+                              />
+                            </div>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setSignatures({
+                                  ...signatures,
+                                  class_teacher: file,
+                                  classTeacherPreview: URL.createObjectURL(file),
+                                });
+                              }
+                            }}
+                            className="text-sm w-full"
+                          />
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={saveSignatures}
+                          loading={uploadingSignature}
+                          className="w-full"
+                        >
+                          Upload Signatures
+                        </Button>
+                      </div>
+                    )}
+
+                    {step.key === "import_students" && (
+                      <div className="space-y-3 mb-4">
+                        {importState.step === "upload" && (
+                          <div className="space-y-3">
+                            <p className="text-xs text-slate-500">
+                              Upload a CSV file with columns: first_name, last_name, gender (M/F), class_name, parent_name, parent_phone
+                            </p>
+                            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-600 hover:border-slate-400">
+                              <MaterialIcon icon="upload_file" className="text-lg" />
+                              Choose CSV file
+                              <input type="file" accept=".csv" onChange={handleImportFile} className="hidden" />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={downloadCsvTemplate}
+                              className="text-xs text-[var(--primary)] hover:underline"
+                            >
+                              Download template CSV
+                            </button>
+                          </div>
+                        )}
+                        {importState.step === "preview" && (
+                          <div className="space-y-3">
+                            <p className="text-sm font-semibold text-slate-700">
+                              {importState.rows.length} students found
+                            </p>
+                            <div className="max-h-40 overflow-y-auto rounded-xl border border-slate-200 text-xs">
+                              <table className="w-full">
+                                <thead className="bg-slate-100 text-left">
+                                  <tr>
+                                    <th className="px-2 py-1">Name</th>
+                                    <th className="px-2 py-1">Gender</th>
+                                    <th className="px-2 py-1">Class</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {importState.rows.slice(0, 10).map((r, i) => (
+                                    <tr key={i} className="border-t border-slate-100">
+                                      <td className="px-2 py-1">{r.first_name} {r.last_name}</td>
+                                      <td className="px-2 py-1">{r.gender}</td>
+                                      <td className="px-2 py-1">{r.class_name}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button size="sm" onClick={handleRunImport} className="flex-1">
+                                Import {importState.rows.length} Students
+                              </Button>
+                              <Button size="sm" variant="secondary" onClick={() => setImportState((p) => ({ ...p, step: "upload", rows: [] }))}>
+                                Change file
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        {importState.step === "importing" && (
+                          <div className="flex items-center justify-center py-6">
+                            <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-[var(--primary)]" />
+                            <span className="ml-3 text-sm text-slate-600">Importing students...</span>
+                          </div>
+                        )}
+                        {importState.step === "complete" && (
+                          <div className="space-y-3">
+                            <div className="rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800">
+                              {importState.success} students added successfully
+                            </div>
+                            {importState.failed > 0 && (
+                              <div className="max-h-32 overflow-y-auto rounded-xl bg-red-50 px-4 py-3 text-xs text-red-700">
+                                {importState.errors.slice(0, 10).map((e, i) => (
+                                  <p key={i}>{e}</p>
+                                ))}
+                              </div>
+                            )}
+                            <Button size="sm" onClick={() => setImportState((p) => ({ ...p, step: "upload", rows: [], errors: [], success: 0, failed: 0 }))} className="w-full">
+                              Done
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     )}
 

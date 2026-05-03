@@ -548,6 +548,121 @@ USING (
 );
 
 -- =========================
+-- ACADEMIC YEARS
+-- =========================
+DROP POLICY IF EXISTS "School users academic_years select" ON "academic_years";
+CREATE POLICY "School users academic_years select"
+ON "academic_years"
+FOR SELECT
+TO authenticated
+USING (school_id = my_school_id());
+
+DROP POLICY IF EXISTS "School users academic_years write" ON "academic_years";
+CREATE POLICY "School users academic_years write"
+ON "academic_years"
+FOR ALL
+TO authenticated
+USING (school_id = my_school_id())
+WITH CHECK (school_id = my_school_id());
+
+-- =========================
+-- TERMS
+-- =========================
+DROP POLICY IF EXISTS "School users terms access" ON "terms";
+CREATE POLICY "School users terms access"
+ON "terms"
+FOR ALL
+TO authenticated
+USING (school_id = my_school_id())
+WITH CHECK (school_id = my_school_id());
+
+-- =========================
+-- TEACHER SUBJECTS
+-- =========================
+DROP POLICY IF EXISTS "School users teacher_subjects select" ON "teacher_subjects";
+CREATE POLICY "School users teacher_subjects select"
+ON "teacher_subjects"
+FOR SELECT
+TO authenticated
+USING (class_id IN (SELECT id FROM classes WHERE school_id = my_school_id()));
+
+DROP POLICY IF EXISTS "School users teacher_subjects write" ON "teacher_subjects";
+CREATE POLICY "School users teacher_subjects write"
+ON "teacher_subjects"
+FOR ALL
+TO authenticated
+USING (class_id IN (SELECT id FROM classes WHERE school_id = my_school_id()))
+WITH CHECK (class_id IN (SELECT id FROM classes WHERE school_id = my_school_id()));
+
+-- =========================
+-- FEE STRUCTURE
+-- =========================
+DROP POLICY IF EXISTS "School users fee_structure select" ON "fee_structure";
+CREATE POLICY "School users fee_structure select"
+ON "fee_structure"
+FOR SELECT
+TO authenticated
+USING (school_id = my_school_id());
+
+DROP POLICY IF EXISTS "School users fee_structure write" ON "fee_structure";
+CREATE POLICY "School users fee_structure write"
+ON "fee_structure"
+FOR ALL
+TO authenticated
+USING (school_id = my_school_id())
+WITH CHECK (school_id = my_school_id());
+
+-- =========================
+-- FEE PAYMENTS
+-- =========================
+DROP POLICY IF EXISTS "School users fee_payments select" ON "fee_payments";
+CREATE POLICY "School users fee_payments select"
+ON "fee_payments"
+FOR SELECT
+TO authenticated
+USING (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()));
+
+DROP POLICY IF EXISTS "School users fee_payments write" ON "fee_payments";
+CREATE POLICY "School users fee_payments write"
+ON "fee_payments"
+FOR ALL
+TO authenticated
+USING (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()))
+WITH CHECK (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()));
+
+-- =========================
+-- MESSAGES
+-- =========================
+DROP POLICY IF EXISTS "School users messages access" ON "messages";
+CREATE POLICY "School users messages access"
+ON "messages"
+FOR ALL
+TO authenticated
+USING (school_id = my_school_id())
+WITH CHECK (school_id = my_school_id());
+
+-- =========================
+-- PARENT STUDENTS
+-- =========================
+DROP POLICY IF EXISTS "School users parent_students select" ON "parent_students";
+CREATE POLICY "School users parent_students select"
+ON "parent_students"
+FOR SELECT
+TO authenticated
+USING (
+  parent_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+  OR student_id IN (SELECT id FROM students WHERE school_id = my_school_id())
+);
+
+DROP POLICY IF EXISTS "School users parent_students write" ON "parent_students";
+CREATE POLICY "School users parent_students write"
+ON "parent_students"
+FOR ALL
+TO authenticated
+USING (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()))
+WITH CHECK (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()));
+
+-- =========================
 -- STUDENTS
 -- =========================
 

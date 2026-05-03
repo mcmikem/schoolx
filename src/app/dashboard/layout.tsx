@@ -189,15 +189,16 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const schoolAny = school as any;
+    const onboardingCompleted = schoolAny?.onboarding_completed;
     if (
       school &&
-      !schoolAny?.onboarding_completed &&
+      !onboardingCompleted &&
       user?.role === "school_admin"
     ) {
       setShowOnboarding(true);
     } else if (
       school &&
-      schoolAny?.onboarding_completed &&
+      onboardingCompleted &&
       user?.role === "school_admin"
     ) {
       // Only auto-open the post-setup panel once per browser session so that
@@ -217,7 +218,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       setShowOnboarding(false);
       setShowPostSetup(false);
     }
-  }, [school, user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [(school as any)?.onboarding_completed, school?.id, user?.role, user?.id]);
 
   if (loading) {
     return (

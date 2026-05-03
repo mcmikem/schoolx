@@ -26,6 +26,7 @@ import {
   type SchoolSetupType,
 } from "@/lib/school-setup";
 import { saveSchoolSetting } from "@/lib/school-settings";
+import { PRIMARY_TEMPLATE, SECONDARY_TEMPLATE } from "@/lib/curriculum-templates";
 import { logger } from "@/lib/logger";
 import { getErrorMessage } from "@/lib/validation";
 
@@ -135,6 +136,53 @@ export default function OnboardingFlow({
       "core",
   );
 
+  const getTemplateForType = (type: SchoolSetupType) => {
+    if (type === "secondary") return SECONDARY_TEMPLATE;
+    if (type === "combined")
+      return {
+        classes: [...PRIMARY_TEMPLATE.classes, ...SECONDARY_TEMPLATE.classes],
+        subjects: [
+          ...PRIMARY_TEMPLATE.subjects,
+          ...SECONDARY_TEMPLATE.subjects,
+        ],
+      };
+    return PRIMARY_TEMPLATE;
+  };
+
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>(() =>
+    getTemplateForType(schoolType).subjects.map((s) => s.name),
+  );
+
+  const ADDITIONAL_OPTIONAL_SUBJECTS: { name: string; code: string }[] = [
+    { name: "Music", code: "MUS" },
+    { name: "Physical Education", code: "PE" },
+    { name: "Islamic Studies", code: "ISL" },
+    { name: "Arabic", code: "ARB" },
+    { name: "French", code: "FRN" },
+    { name: "Additional Mathematics", code: "ADM" },
+    { name: "Home Economics", code: "HEC" },
+  ];
+
+  const [boardingConfig, setBoardingConfig] = useState<{
+    hasBoarding: boolean;
+    dormCount: number;
+    dormitories: { name: string; type: "boys" | "girls"; capacity: number }[];
+    hasHouses: boolean;
+    houseCount: number;
+    houses: string[];
+  }>({
+    hasBoarding: false,
+    dormCount: 1,
+    dormitories: [{ name: "", type: "boys", capacity: 40 }],
+    hasHouses: false,
+    houseCount: 1,
+    houses: [""],
+  });
+
+  useEffect(() => {
+    setSelectedSubjects(getTemplateForType(schoolType).subjects.map((s) => s.name));
+  }, [schoolType]);
+
   // Prevent background scrolling while onboarding is active (desktop only)
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
@@ -175,6 +223,7 @@ export default function OnboardingFlow({
         feature_stage: featureStage,
         onboarding_completed: true,
         onboarding_completed_at: new Date().toISOString(),
+        selected_subjects: JSON.stringify(selectedSubjects),
         setup_progress: JSON.stringify({
           completed: ["branding", "features", "activation"],
           skipped: [],
@@ -321,6 +370,48 @@ export default function OnboardingFlow({
         })(),
       ]);
 
+      // Insert dorms if boarding was configured
+      if (boardingConfig.hasBoarding) {
+        try {
+          const dormsData = boardingConfig.dormitories
+            .filter((d) => d.name.trim())
+            .map((d) => ({
+              school_id: school.id,
+              name: d.name.trim(),
+              type: d.type,
+              capacity: d.capacity,
+            }));
+          if (dormsData.length > 0) {
+            const { error: dormsError } = await supabase
+              .from("dorms")
+              .insert(dormsData);
+            if (dormsError) logger.warn("Dorms insert failed:", dormsError);
+          }
+        } catch (err) {
+          logger.warn("Dorms insertion failed:", err);
+        }
+      }
+
+      // Insert houses if configured
+      if (boardingConfig.hasHouses) {
+        try {
+          const housesData = boardingConfig.houses
+            .filter((h) => h.trim())
+            .map((h) => ({
+              school_id: school.id,
+              name: h.trim(),
+            }));
+          if (housesData.length > 0) {
+            const { error: housesError } = await supabase
+              .from("houses")
+              .insert(housesData);
+            if (housesError) logger.warn("Houses insert failed:", housesError);
+          }
+        } catch (err) {
+          logger.warn("Houses insertion failed:", err);
+        }
+      }
+
       await refreshSchool();
       setLoading(false);
       onComplete();
@@ -340,6 +431,7 @@ export default function OnboardingFlow({
     { title: "Welcome", icon: "waving_hand" },
     { title: "Essentials", icon: "domain" },
     { title: "Curriculum", icon: "auto_stories" },
+    { title: "Boarding & Houses", icon: "hotel" },
     { title: "Features", icon: "widgets" },
     { title: "Launch", icon: "verified" },
   ];
@@ -812,94 +904,124 @@ export default function OnboardingFlow({
                 <OwlStage
                   compact
                   eyebrow="Curriculum ready"
-                  title="Classes preloaded"
-                  description={`Default classes for ${schoolType === "primary" ? "a primary school" : schoolType === "secondary" ? "a secondary school" : "a combined school"} are ready for ${school.name}. You can add streams and subjects right after setup.`}
+                  title="Choose your subjects"
+                  description={`Select optional subjects for ${school.name}. Core subjects are already selected.`}
                   chips={[
                     schoolType === "primary"
                       ? "P.1 – P.7"
                       : schoolType === "secondary"
                         ? "S.1 – S.6"
                         : "P.1 – S.6",
-                    "Subjects prepared",
+                    "Customise your curriculum",
                   ]}
                   className="mb-6"
                 />
 
-                <div className="mb-8 rounded-[24px] border border-slate-100 bg-[linear-gradient(180deg,#fbfcfe_0%,#f6f8fb_100%)] p-5 shadow-sm">
-                  {schoolType === "primary" && (
-                    <>
-                      <div className="flex items-center gap-3 mb-4">
-                        <MaterialIcon
-                          icon="check_circle"
-                          className="text-teal-500"
-                        />
-                        <span className="font-semibold text-slate-700">
-                          P.1 to P.7 Classes
+                <div className="mb-8 rounded-[24px] border border-slate-100 bg-[linear-gradient(180deg,#fbfcfe_0%,#f6f8fb_100%)] p-5 shadow-sm max-h-[360px] overflow-y-auto">
+                  {/* Compulsory subjects - read-only */}
+                  <div className="mb-4">
+                    <h4 className="text-sm font-semibold text-slate-700 mb-3">
+                      Core Subjects
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {getTemplateForType(schoolType).subjects
+                        .filter((s) => s.is_compulsory)
+                        .map((subj) => (
+                          <span
+                            key={subj.code}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 border border-teal-200 px-3 py-1.5 text-xs font-medium text-teal-700"
+                          >
+                            <MaterialIcon
+                              icon="check_circle"
+                              className="text-teal-500 text-sm"
+                            />
+                            {subj.name}
+                          </span>
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Template optional subjects */}
+                  {getTemplateForType(schoolType).subjects.filter((s) => !s.is_compulsory)
+                    .length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="text-sm font-semibold text-slate-700 mb-3">
+                        Optional Subjects{" "}
+                        <span className="text-slate-400 font-normal">
+                          (toggle on/off)
                         </span>
+                      </h4>
+                      <div className="space-y-1.5">
+                        {getTemplateForType(schoolType).subjects
+                          .filter((s) => !s.is_compulsory)
+                          .map((subj) => (
+                            <label
+                              key={subj.code}
+                              className={`flex items-center gap-3 cursor-pointer rounded-xl border-2 p-3 transition-all ${
+                                selectedSubjects.includes(subj.name)
+                                  ? "border-teal-400 bg-teal-50/50"
+                                  : "border-slate-200 hover:border-slate-300"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedSubjects.includes(subj.name)}
+                                onChange={() =>
+                                  setSelectedSubjects((prev) =>
+                                    prev.includes(subj.name)
+                                      ? prev.filter((s) => s !== subj.name)
+                                      : [...prev, subj.name],
+                                  )
+                                }
+                                className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                              />
+                              <span className="text-sm font-medium text-slate-700">
+                                {subj.name}
+                              </span>
+                            </label>
+                          ))}
                       </div>
-                      <div className="flex items-center gap-3">
-                        <MaterialIcon
-                          icon="check_circle"
-                          className="text-teal-500"
-                        />
-                        <span className="font-semibold text-slate-700">
-                          English, SST, Math, Science, CRE, MTC
-                        </span>
-                      </div>
-                    </>
+                    </div>
                   )}
-                  {schoolType === "secondary" && (
-                    <>
-                      <div className="flex items-center gap-3 mb-4">
-                        <MaterialIcon
-                          icon="check_circle"
-                          className="text-teal-500"
-                        />
-                        <span className="font-semibold text-slate-700">
-                          S.1 to S.6 Classes
+
+                  {/* Additional optional subjects */}
+                  {ADDITIONAL_OPTIONAL_SUBJECTS.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-700 mb-3">
+                        More Subjects{" "}
+                        <span className="text-slate-400 font-normal">
+                          (optional)
                         </span>
+                      </h4>
+                      <div className="space-y-1.5">
+                        {ADDITIONAL_OPTIONAL_SUBJECTS.map((subj) => (
+                          <label
+                            key={subj.code}
+                            className={`flex items-center gap-3 cursor-pointer rounded-xl border-2 p-3 transition-all ${
+                              selectedSubjects.includes(subj.name)
+                                ? "border-teal-400 bg-teal-50/50"
+                                : "border-slate-200 hover:border-slate-300"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedSubjects.includes(subj.name)}
+                              onChange={() =>
+                                setSelectedSubjects((prev) =>
+                                  prev.includes(subj.name)
+                                    ? prev.filter((s) => s !== subj.name)
+                                    : [...prev, subj.name],
+                                )
+                              }
+                              className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                            />
+                            <span className="text-sm font-medium text-slate-700">
+                              {subj.name}
+                            </span>
+                          </label>
+                        ))}
                       </div>
-                      <div className="flex items-center gap-3 mb-4">
-                        <MaterialIcon
-                          icon="check_circle"
-                          className="text-teal-500"
-                        />
-                        <span className="font-semibold text-slate-700">
-                          O-Level core subjects (Eng, Math, Bio, Chem, Hist…)
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <MaterialIcon
-                          icon="check_circle"
-                          className="text-teal-500"
-                        />
-                        <span className="font-semibold text-slate-700">
-                          A-Level subjects (Arts, Sciences, Commerce)
-                        </span>
-                      </div>
-                    </>
-                  )}
-                  {schoolType === "combined" && (
-                    <>
-                      <div className="flex items-center gap-3 mb-4">
-                        <MaterialIcon
-                          icon="check_circle"
-                          className="text-teal-500"
-                        />
-                        <span className="font-semibold text-slate-700">
-                          P.1 – P.7 and S.1 – S.6 Classes
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <MaterialIcon
-                          icon="check_circle"
-                          className="text-teal-500"
-                        />
-                        <span className="font-semibold text-slate-700">
-                          Primary + secondary subjects prepared
-                        </span>
-                      </div>
-                    </>
+                    </div>
                   )}
                 </div>
 
@@ -914,6 +1036,236 @@ export default function OnboardingFlow({
                     Back
                   </Button>
                   <Button variant="primary" onClick={() => setStep(4)}>
+                    Next: Boarding
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 4 && (
+              <motion.div
+                key="step4"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="flex-1 flex flex-col justify-start md:justify-center max-w-md"
+              >
+                <OwlStage
+                  compact
+                  eyebrow="Accommodation"
+                  title="Boarding & Houses"
+                  description="Set up dormitories and sports houses so students can be assigned easily."
+                  chips={["Dormitory setup", "Competition houses"]}
+                  className="mb-6"
+                />
+
+                <div className="mb-8 rounded-[24px] border border-slate-100 bg-[linear-gradient(180deg,#fbfcfe_0%,#f6f8fb_100%)] p-5 shadow-sm">
+                  {/* Boarding toggle */}
+                  <div className="mb-5">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={boardingConfig.hasBoarding}
+                        onChange={() =>
+                          setBoardingConfig((prev) => ({
+                            ...prev,
+                            hasBoarding: !prev.hasBoarding,
+                          }))
+                        }
+                        className="h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                      />
+                      <span className="text-sm font-semibold text-slate-700">
+                        Does your school have boarding facilities?
+                      </span>
+                    </label>
+                  </div>
+
+                  {boardingConfig.hasBoarding && (
+                    <>
+                      {/* Dorm count */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Number of Dormitories
+                        </label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="range"
+                            min={1}
+                            max={10}
+                            value={boardingConfig.dormCount}
+                            onChange={(e) => {
+                              const count = Number(e.target.value);
+                              setBoardingConfig((prev) => ({
+                                ...prev,
+                                dormCount: count,
+                                dormitories: Array.from(
+                                  { length: count },
+                                  (_, i) =>
+                                    prev.dormitories[i] || {
+                                      name: "",
+                                      type: "boys" as const,
+                                      capacity: 40,
+                                    },
+                                ),
+                              }));
+                            }}
+                            className="flex-1 accent-teal-600"
+                          />
+                          <span className="text-sm font-semibold text-slate-700 w-6 text-center">
+                            {boardingConfig.dormCount}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Dorm names & type */}
+                      <div className="space-y-3 mb-5">
+                        {boardingConfig.dormitories
+                          .slice(0, boardingConfig.dormCount)
+                          .map((dorm, i) => (
+                            <div
+                              key={i}
+                              className="flex items-center gap-2"
+                            >
+                              <input
+                                placeholder={`Dormitory ${i + 1} name`}
+                                value={dorm.name}
+                                onChange={(e) =>
+                                  setBoardingConfig((prev) => {
+                                    const updated = [...prev.dormitories];
+                                    updated[i] = {
+                                      ...updated[i],
+                                      name: e.target.value,
+                                    };
+                                    return { ...prev, dormitories: updated };
+                                  })
+                                }
+                                className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
+                              />
+                              <select
+                                value={dorm.type}
+                                onChange={(e) =>
+                                  setBoardingConfig((prev) => {
+                                    const updated = [...prev.dormitories];
+                                    updated[i] = {
+                                      ...updated[i],
+                                      type: e.target.value as "boys" | "girls",
+                                    };
+                                    return { ...prev, dormitories: updated };
+                                  })
+                                }
+                                className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
+                              >
+                                <option value="boys">Boys</option>
+                                <option value="girls">Girls</option>
+                              </select>
+                              <input
+                                type="number"
+                                min={1}
+                                placeholder="Capacity"
+                                value={dorm.capacity}
+                                onChange={(e) =>
+                                  setBoardingConfig((prev) => {
+                                    const updated = [...prev.dormitories];
+                                    updated[i] = {
+                                      ...updated[i],
+                                      capacity: Number(e.target.value),
+                                    };
+                                    return { ...prev, dormitories: updated };
+                                  })
+                                }
+                                className="w-20 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
+                              />
+                            </div>
+                          ))}
+                      </div>
+
+                      {/* Houses toggle */}
+                      <div className="mb-4 pt-4 border-t border-slate-200">
+                        <label className="flex items-center gap-3 cursor-pointer mb-4">
+                          <input
+                            type="checkbox"
+                            checked={boardingConfig.hasHouses}
+                            onChange={() =>
+                              setBoardingConfig((prev) => ({
+                                ...prev,
+                                hasHouses: !prev.hasHouses,
+                              }))
+                            }
+                            className="h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                          />
+                          <span className="text-sm font-semibold text-slate-700">
+                            Does your school have sports/competition houses?
+                          </span>
+                        </label>
+
+                        {boardingConfig.hasHouses && (
+                          <>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              Number of Houses
+                            </label>
+                            <div className="flex items-center gap-3 mb-3">
+                              <input
+                                type="range"
+                                min={1}
+                                max={8}
+                                value={boardingConfig.houseCount}
+                                onChange={(e) => {
+                                  const count = Number(e.target.value);
+                                  setBoardingConfig((prev) => ({
+                                    ...prev,
+                                    houseCount: count,
+                                    houses: Array.from(
+                                      { length: count },
+                                      (_, i) => prev.houses[i] || "",
+                                    ),
+                                  }));
+                                }}
+                                className="flex-1 accent-teal-600"
+                              />
+                              <span className="text-sm font-semibold text-slate-700 w-6 text-center">
+                                {boardingConfig.houseCount}
+                              </span>
+                            </div>
+                            <div className="space-y-2">
+                              {boardingConfig.houses
+                                .slice(0, boardingConfig.houseCount)
+                                .map((house, i) => (
+                                  <input
+                                    key={i}
+                                    placeholder={`House ${i + 1} name`}
+                                    value={house}
+                                    onChange={(e) =>
+                                      setBoardingConfig((prev) => {
+                                        const updated = [...prev.houses];
+                                        updated[i] = e.target.value;
+                                        return {
+                                          ...prev,
+                                          houses: updated,
+                                        };
+                                      })
+                                    }
+                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
+                                  />
+                                ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div
+                  className="flex gap-3 mt-auto pt-4 pb-8 md:pb-0 md:pt-0"
+                  style={{
+                    paddingBottom:
+                      "max(2rem, env(safe-area-inset-bottom, 2rem))",
+                  }}
+                >
+                  <Button variant="secondary" onClick={() => setStep(3)}>
+                    Back
+                  </Button>
+                  <Button variant="primary" onClick={() => setStep(5)}>
                     Choose Features
                   </Button>
                 </div>
@@ -921,9 +1273,9 @@ export default function OnboardingFlow({
             )}
 
             {/* NEW STEP: Feature Stage Selection */}
-            {step === 4 && (
+            {step === 5 && (
               <motion.div
-                key="step4"
+                key="step5"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -999,19 +1351,19 @@ export default function OnboardingFlow({
                       "max(2rem, env(safe-area-inset-bottom, 2rem))",
                   }}
                 >
-                  <Button variant="secondary" onClick={() => setStep(3)}>
+                  <Button variant="secondary" onClick={() => setStep(4)}>
                     Back
                   </Button>
-                  <Button variant="primary" onClick={() => setStep(5)}>
+                  <Button variant="primary" onClick={() => setStep(6)}>
                     Review & Launch
                   </Button>
                 </div>
               </motion.div>
             )}
 
-            {step === 5 && (
+            {step === 6 && (
               <motion.div
-                key="step4"
+                key="step6"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -1089,7 +1441,7 @@ export default function OnboardingFlow({
                       "max(2rem, env(safe-area-inset-bottom, 2rem))",
                   }}
                 >
-                  <Button variant="secondary" onClick={() => setStep(4)}>
+                  <Button variant="secondary" onClick={() => setStep(5)}>
                     Back
                   </Button>
                   <Button
