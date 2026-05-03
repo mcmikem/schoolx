@@ -420,6 +420,15 @@ WITH CHECK (
   )
 );
 
+-- School settings (RLS with my_school_id() helper — SECURITY DEFINER bypasses recursion)
+DROP POLICY IF EXISTS "School users can access school_settings" ON school_settings;
+CREATE POLICY "School users can access school_settings"
+ON school_settings
+FOR ALL
+TO authenticated
+USING (school_id = my_school_id())
+WITH CHECK (school_id = my_school_id());
+
 -- ============================================
 -- 14. MESSAGES (SMS Log)
 -- ============================================
@@ -503,6 +512,7 @@ ALTER TABLE "fee_payments" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "events" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "messages" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "parent_students" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "school_settings" ENABLE ROW LEVEL SECURITY;
 
 -- Helper: SECURITY DEFINER functions to avoid RLS recursion when querying users
 CREATE OR REPLACE FUNCTION my_school_id()

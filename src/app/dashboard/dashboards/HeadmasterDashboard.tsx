@@ -495,7 +495,7 @@ function HeadmasterDashboardContent() {
   }, [academicEvents, selectedDate]);
 
   return (
-    <div className="content">
+    <div className="content overflow-x-hidden">
       <section className="relative mb-6 overflow-hidden rounded-[36px] border border-white/65 bg-[linear-gradient(135deg,#f6fbff_0%,#eef4ff_44%,#f7f9fc_100%)] p-4 shadow-[0_28px_70px_rgba(15,23,42,0.08)] sm:p-6">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -left-16 bottom-0 h-48 w-48 rounded-full bg-[#b8e6ef]/30 blur-3xl" />
