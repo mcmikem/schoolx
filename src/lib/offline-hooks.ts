@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from './supabase'
 import { offlineDB, useOnlineStatus } from './offline'
 import type { Student, Attendance, Grade, FeePayment, FeeStructure } from '@/types'
+import { logger } from './logger'
 
 interface OfflineHookOptions {
   skipCache?: boolean
@@ -41,7 +42,7 @@ export function useOfflineData<T>(
         return
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : 'Unknown error'
-        console.error(`Error fetching ${table} from server:`, msg)
+        logger.error(`Error fetching ${table} from server:`, msg)
       }
     }
 
@@ -175,7 +176,7 @@ export function useOfflineFees(schoolId?: string, options?: OfflineHookOptions) 
         return
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : 'Unknown error'
-        console.error('Error fetching fee_payments from server:', msg)
+        logger.error('Error fetching fee_payments from server:', msg)
       }
     }
 

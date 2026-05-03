@@ -9,6 +9,7 @@ import BursarDashboard from "./dashboards/BursarDashboard";
 import TeacherDashboard from "./dashboards/TeacherDashboard";
 import SuperAdminDashboard from "./dashboards/SuperAdminDashboard";
 import { DashboardSkeleton } from "@/components/Skeletons";
+import { logger } from "@/lib/logger";
 
 function getFirstName(fullName?: string | null) {
   return fullName?.trim().split(" ").filter(Boolean)[0] || "User";
@@ -280,7 +281,7 @@ export default function DashboardRouter() {
     case "dorm_master":
       return <DormMasterDashboard />;
     default:
-      console.warn(
+      logger.warn(
         "[DashboardRouter] Unknown role:",
         role,
         "- defaulting to HeadmasterDashboard",

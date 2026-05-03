@@ -12,6 +12,7 @@ import { useOfflineStudents, useOfflineGrades } from "@/lib/offline-hooks";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
+import { logger } from "@/lib/logger";
 
 import { PageHeader, PageSection } from "@/components/ui/PageHeader";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
@@ -323,7 +324,7 @@ export default function GradesPage() {
       setLockedByName(staff.find((s) => s.id === user.id)?.full_name || "You");
       toast.success("Tests have been closed for edits");
     } catch (err) {
-      console.error("Error locking tests:", err);
+      logger.error("Error locking tests:", err);
       toast.error("Failed to close tests for edits");
     } finally {
       setSaving(false);
@@ -369,7 +370,7 @@ export default function GradesPage() {
       setLockedByName("");
       toast.success("Tests have been opened for edits again");
     } catch (err) {
-      console.error("Error opening tests:", err);
+      logger.error("Error opening tests:", err);
       toast.error("Failed to open tests");
     } finally {
       setSaving(false);
@@ -798,7 +799,7 @@ export default function GradesPage() {
           setSubmissionStatus(nextStatus);
           toast.success(`Grades ${nextStatus}`);
         } catch (err) {
-          console.error("Error updating grade workflow:", err);
+          logger.error("Error updating grade workflow:", err);
           toast.error("Failed to update workflow status");
         } finally {
           setSaving(false);
@@ -840,7 +841,7 @@ export default function GradesPage() {
       }));
       setCoverage(mapped);
     } catch (err) {
-      console.error("Error fetching coverage:", err);
+      logger.error("Error fetching coverage:", err);
     } finally {
       setLoading(false);
     }

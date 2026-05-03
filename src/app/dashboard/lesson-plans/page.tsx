@@ -16,6 +16,7 @@ import {
   splitLessonProcedure,
 } from '@/lib/academics-utils'
 import { getErrorMessage } from '@/lib/validation'
+import { logger } from '@/lib/logger'
 
 interface LessonPlan {
   id: string
@@ -125,7 +126,7 @@ export default function LessonPlansPage() {
 
       setPlans(mapped)
     } catch (err) {
-      console.error('Failed to fetch lesson plans:', err)
+      logger.error('Failed to fetch lesson plans:', err)
     } finally {
       setLoading(false)
     }
@@ -191,7 +192,7 @@ export default function LessonPlansPage() {
       resetForm()
       fetchPlans()
     } catch (err) {
-      console.error('Failed to save lesson plan:', err)
+      logger.error('Failed to save lesson plan:', err)
       toast.error(getErrorMessage(err, 'Failed to save lesson plan'))
     } finally {
       setSaving(false)
@@ -245,7 +246,7 @@ export default function LessonPlansPage() {
       resetForm()
       fetchPlans()
     } catch (err) {
-      console.error('Failed to delete lesson plan:', err)
+      logger.error('Failed to delete lesson plan:', err)
       toast.error('Failed to delete lesson plan')
     }
   }

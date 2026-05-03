@@ -11,6 +11,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import { TableSkeleton } from "@/components/ui/Skeleton";
+import { logger } from "@/lib/logger";
 
 export default function MOESReportsPage() {
   const { school } = useAuth();
@@ -85,7 +86,7 @@ export default function MOESReportsPage() {
 
       setReportData(data);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setLoading(false);
     }
@@ -138,7 +139,7 @@ export default function MOESReportsPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setExporting(false);
     }

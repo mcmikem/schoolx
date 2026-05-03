@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import type { Attendance, FeePayment } from "@/types";
+import { logger } from "@/lib/logger";
 
 const DEMO_SCHOOL_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -57,7 +58,7 @@ const SUBJECTS = [
 ];
 
 export async function seedDemoData() {
-  console.log("Starting comprehensive seeding for Demo School...");
+  logger.debug("Starting comprehensive seeding for Demo School...");
 
   try {
     // 1. Check if classes exist, create if needed
@@ -67,7 +68,7 @@ export async function seedDemoData() {
       .eq("school_id", DEMO_SCHOOL_ID);
 
     if (!classes || classes.length === 0) {
-      console.log("No classes found, creating default classes...");
+      logger.debug("No classes found, creating default classes...");
       const classNames = [
         "Primary 1",
         "Primary 2",
@@ -96,7 +97,7 @@ export async function seedDemoData() {
     }
 
     // 2. Generate Students
-    console.log("Seeding students...");
+    logger.debug("Seeding students...");
     const students = [];
     for (let i = 0; i < 50; i++) {
       const firstName =
@@ -130,7 +131,7 @@ export async function seedDemoData() {
       .select();
 
     if (studentError) throw studentError;
-    console.log(`Seeded ${seededStudents.length} students.`);
+    logger.debug(`Seeded ${seededStudents.length} students.`);
 
     // 3. Get a fee ID for payments
     const { data: feeStructure } = await supabase
@@ -142,7 +143,7 @@ export async function seedDemoData() {
     const feeId = feeStructure?.[0]?.id;
 
     // 4. Seed Attendance (Last 30 days)
-    console.log("Seeding attendance...");
+    logger.debug("Seeding attendance...");
     const attendanceRecords: Attendance[] = [];
     const today = new Date();
 
@@ -187,10 +188,10 @@ export async function seedDemoData() {
         .from("attendance")
         .upsert(chunk, { onConflict: "student_id,date" });
     }
-    console.log("Seeded attendance history.");
+    logger.debug("Seeded attendance history.");
 
     // 5. Seed Payments
-    console.log("Seeding payments...");
+    logger.debug("Seeding payments...");
     const payments: FeePayment[] = [];
     seededStudents.forEach((student, index) => {
       // 80% of students have paid something
@@ -213,11 +214,11 @@ export async function seedDemoData() {
     if (payments.length > 0) {
       await supabase.from("fee_payments").insert(payments);
     }
-    console.log("Seeded fee payments.");
+    logger.debug("Seeded fee payments.");
 
     return { success: true, count: seededStudents.length };
   } catch (err: any) {
-    console.error("Seeding error:", err.message);
+    logger.error("Seeding error:", err.message);
     return { success: false, error: err.message };
   }
 }

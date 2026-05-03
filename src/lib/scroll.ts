@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+
 export function smoothScroll(id: string) {
   try {
     const el = document.querySelector(id);
@@ -10,6 +12,6 @@ export function smoothScroll(id: string) {
         targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   } catch (e) {
-    console.error("Scroll error:", e);
+    logger.error("Scroll error:", e);
   }
 }

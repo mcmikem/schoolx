@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardHeader, CardBody, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
+import { logger } from "@/lib/logger";
 
 interface BudgetItem {
   id?: string;
@@ -131,7 +132,7 @@ export default function BudgetPage() {
 
       setBudgetItems({ ...items });
     } catch (err) {
-      console.error("Error loading budget data:", err);
+      logger.error("Error loading budget data:", err);
     } finally {
       setLoading(false);
     }

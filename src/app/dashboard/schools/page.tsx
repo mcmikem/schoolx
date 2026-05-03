@@ -183,7 +183,7 @@ export default function SchoolsPage() {
         revenue: totalRevenue,
       })
     } catch (err) {
-      console.error('Error:', err)
+      logger.error('Error:', err)
     } finally {
       setLoading(false)
     }
@@ -196,7 +196,7 @@ export default function SchoolsPage() {
       if (error) throw error
       setSchoolUsers(data || [])
     } catch (err) {
-      console.error('Error fetching users:', err)
+      logger.error('Error fetching users:', err)
     } finally {
       setLoadingUsers(false)
     }

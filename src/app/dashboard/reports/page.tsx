@@ -10,6 +10,7 @@ import type { ReportCard as ReportCardType } from "@/types";
 import { supabase } from "@/lib/supabase";
 import Image from "next/image";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { logger } from "@/lib/logger";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
@@ -60,7 +61,7 @@ export default function ReportsPage() {
         });
 
         if (!response.ok) {
-          console.error("Failed to fetch report from API");
+          logger.error("Failed to fetch report from API");
           return;
         }
 
@@ -127,7 +128,7 @@ export default function ReportsPage() {
 
         setSelectedStudentId(studentId);
       } catch (err) {
-        console.error("Error:", err);
+        logger.error("Error:", err);
       } finally {
         setLoadingReport(false);
       }
@@ -268,7 +269,7 @@ export default function ReportsPage() {
         printWindow.print();
       }, 500);
     } catch (err) {
-      console.error("Error in bulk print:", err);
+      logger.error("Error in bulk print:", err);
     } finally {
       setLoadingReport(false);
     }
@@ -289,7 +290,7 @@ export default function ReportsPage() {
         });
 
         if (!response.ok) {
-          console.error("Failed to generate report");
+          logger.error("Failed to generate report");
           return;
         }
 
@@ -443,7 +444,7 @@ export default function ReportsPage() {
           `Report_${reportDataForPDF.student.first_name}_${reportDataForPDF.student.last_name}_T${reportDataForPDF.term}.pdf`,
         );
       } catch (err) {
-        console.error("Error generating report:", err);
+        logger.error("Error generating report:", err);
       }
     },
     [school, currentTerm, academicYear],

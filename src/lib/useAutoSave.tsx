@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import { logger } from './logger'
 
 interface UseAutoSaveOptions {
   key: string
@@ -31,7 +32,7 @@ export function useAutoSave<T extends Record<string, any>>(
         }
       }
     } catch (e) {
-      console.error('Failed to load auto-save:', e)
+      logger.error('Failed to load auto-save:', e)
     }
   }, [storageKey, onRestore])
 
@@ -58,7 +59,7 @@ export function useAutoSave<T extends Record<string, any>>(
         setLastSaved(new Date())
         setIsDirty(false)
       } catch (e) {
-        console.error('Failed to auto-save:', e)
+        logger.error('Failed to auto-save:', e)
       }
     }, debounceMs)
 
@@ -71,7 +72,7 @@ export function useAutoSave<T extends Record<string, any>>(
       localStorage.removeItem(storageKey)
       setLastSaved(null)
     } catch (e) {
-      console.error('Failed to clear auto-save:', e)
+      logger.error('Failed to clear auto-save:', e)
     }
   }, [storageKey])
 

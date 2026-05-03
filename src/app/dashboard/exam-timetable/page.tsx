@@ -7,6 +7,7 @@ import { useClasses, useSubjects, useStaff } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
+import { logger } from "@/lib/logger";
 
 interface ExamSlot {
   id: string;
@@ -84,7 +85,7 @@ export default function ExamTimetablePage() {
       });
       setExamSlots(slots);
     } catch (err) {
-      console.error("Error fetching exam timetable:", err);
+      logger.error("Error fetching exam timetable:", err);
     } finally {
       setLoading(false);
     }

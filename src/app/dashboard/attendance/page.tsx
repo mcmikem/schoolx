@@ -12,6 +12,7 @@ import { DEMO_ATTENDANCE, DEMO_STUDENTS } from "@/lib/demo-data";
 import MaterialIcon from "@/components/MaterialIcon";
 import PersonInitials from "@/components/ui/PersonInitials";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { logger } from "@/lib/logger";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
@@ -331,7 +332,7 @@ export default function AttendancePage() {
       toast.success(`Saved locally (${records.length} records)`);
       await loadOfflineCount();
     } catch (err) {
-      console.error("Offline save failed:", err);
+      logger.error("Offline save failed:", err);
       toast.error("Failed to save locally");
     }
   };

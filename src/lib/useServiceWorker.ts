@@ -7,10 +7,10 @@ export function useServiceWorker() {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
         .then((registration) => {
-          console.debug('Service Worker registered:', registration.scope)
+          logger.debug('Service Worker registered:', registration.scope)
         })
         .catch((error) => {
-          console.error('Service Worker registration failed:', error)
+          logger.error('Service Worker registration failed:', error)
         })
     }
   }, [])

@@ -2,6 +2,7 @@ import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import { createSupabaseServerClient } from "../supabase/server";
 import { sendAfricasTalkingSMS } from "@/lib/africas-talking";
+import { logger } from "@/lib/logger";
 
 export interface ReceiptData {
   schoolName: string;
@@ -113,7 +114,7 @@ export async function sendEmailReceipt(
     const resendApiKey = process.env.RESEND_API_KEY;
 
     if (!resendApiKey) {
-      console.log("Resend API key not configured, skipping email receipt");
+      logger.debug("Resend API key not configured, skipping email receipt");
       return { success: false, message: "Email service not configured" };
     }
 
@@ -197,13 +198,13 @@ export async function sendEmailReceipt(
 
     if (!response.ok) {
       const error = await response.text();
-      console.error("Resend API error:", error);
+      logger.error("Resend API error:", error);
       return { success: false, message: "Failed to send email" };
     }
 
     return { success: true, message: "Receipt sent successfully" };
   } catch (error) {
-    console.error("Email receipt error:", error);
+    logger.error("Email receipt error:", error);
     return { success: false, message: "Failed to send email receipt" };
   }
 }
@@ -217,7 +218,7 @@ export async function sendSMSReceipt(
     const smsUsername = process.env.AFRICAS_TALKING_USERNAME;
 
     if (!smsApiKey || !smsUsername) {
-      console.log("SMS not configured, skipping SMS receipt");
+      logger.debug("SMS not configured, skipping SMS receipt");
       return { success: false, message: "SMS service not configured" };
     }
 
@@ -239,13 +240,13 @@ export async function sendSMSReceipt(
     });
 
     if (!smsResult.success) {
-      console.error("Africa's Talking API error:", smsResult.error);
+      logger.error("Africa's Talking API error:", smsResult.error);
       return { success: false, message: "Failed to send SMS" };
     }
 
     return { success: true, message: "SMS receipt sent successfully" };
   } catch (error) {
-    console.error("SMS receipt error:", error);
+    logger.error("SMS receipt error:", error);
     return { success: false, message: "Failed to send SMS receipt" };
   }
 }

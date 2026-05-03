@@ -14,6 +14,7 @@ import {
   type SchoolSetupType,
 } from "@/lib/school-setup";
 import { getErrorMessage } from "@/lib/validation";
+import Image from "next/image";
 import { logger } from "@/lib/logger";
 
 interface Props {
@@ -92,17 +93,17 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
   const [loading, setLoading] = useState(false);
 
   const currentYear = new Date().getFullYear().toString();
-  const schoolType = ((school as any)?.school_type || "primary") as SchoolSetupType;
+  const schoolType = (school?.school_type || "primary") as SchoolSetupType;
 
   // Inline form states
   const [reportBrand, setReportBrand] = useState({
-    header: (school as any)?.report_header_text || "",
-    footer: (school as any)?.report_footer_text || "",
-    receipt_footer: (school as any)?.receipt_footer_text || "",
-    show_position: (school as any)?.show_position_in_report !== false,
-    show_conduct: (school as any)?.show_conduct_in_report !== false,
-    show_attendance: (school as any)?.show_attendance_in_report !== false,
-    show_remarks: (school as any)?.show_remarks_in_report !== false,
+    header: ((school as unknown as Record<string, unknown>)?.report_header_text as string) || "",
+    footer: ((school as unknown as Record<string, unknown>)?.report_footer_text as string) || "",
+    receipt_footer: ((school as unknown as Record<string, unknown>)?.receipt_footer_text as string) || "",
+    show_position: (school as unknown as Record<string, unknown>)?.show_position_in_report !== false,
+    show_conduct: (school as unknown as Record<string, unknown>)?.show_conduct_in_report !== false,
+    show_attendance: (school as unknown as Record<string, unknown>)?.show_attendance_in_report !== false,
+    show_remarks: (school as unknown as Record<string, unknown>)?.show_remarks_in_report !== false,
   });
 
   const [terms, setTerms] = useState(
@@ -997,9 +998,11 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                           </label>
                           {signatures.headteacherPreview && (
                             <div className="mb-2">
-                              <img
+                              <Image
                                 src={signatures.headteacherPreview}
                                 alt="Headteacher signature preview"
+                                width={80}
+                                height={80}
                                 className="max-h-16 border border-slate-200 rounded"
                               />
                             </div>
@@ -1026,9 +1029,11 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                           </label>
                           {signatures.classTeacherPreview && (
                             <div className="mb-2">
-                              <img
+                              <Image
                                 src={signatures.classTeacherPreview}
                                 alt="Class teacher signature preview"
+                                width={80}
+                                height={80}
                                 className="max-h-16 border border-slate-200 rounded"
                               />
                             </div>

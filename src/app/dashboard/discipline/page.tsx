@@ -13,6 +13,7 @@ import { Card, CardBody } from '@/components/ui/Card'
 import { Button } from '@/components/ui/index'
 import { TableSkeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
+import { logger } from '@/lib/logger'
 
 interface DisciplineRecord {
   id: string
@@ -89,7 +90,7 @@ export default function DisciplinePage() {
       if (error) throw error
       setRecords(data || [])
     } catch (err) {
-      console.error('Error:', err)
+      logger.error('Error:', err)
       toast.error('Failed to load discipline records')
     } finally {
       setLoading(false)
@@ -109,7 +110,7 @@ export default function DisciplinePage() {
       if (error) throw error
       setExams(data || [])
     } catch (err) {
-      console.error('Error fetching exams:', err)
+      logger.error('Error fetching exams:', err)
     }
   }, [school?.id])
 

@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { isSupabaseLockAbortError, withSupabaseLockRetry } from './supabase-lock'
+import { logger } from './logger'
 import { getErrorMessage } from './validation'
 
 export type SchoolSettingsMap = Record<string, string>
@@ -45,10 +46,10 @@ export async function loadSchoolSettings(
     return Object.fromEntries(entries)
   } catch (error) {
     if (isSupabaseLockAbortError(error)) {
-      console.warn('School settings temporarily unavailable during auth recovery')
+      logger.warn('School settings temporarily unavailable during auth recovery')
       return {}
     }
-    console.warn('School settings fallback in use:', getErrorMessage(error))
+    logger.warn('School settings fallback in use:', getErrorMessage(error))
     return {}
   }
 }

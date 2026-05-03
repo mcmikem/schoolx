@@ -8,6 +8,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
+import { logger } from "@/lib/logger";
 
 interface PendingItem {
   id: number | string;
@@ -55,7 +56,7 @@ export default function SyncCenterPage() {
       );
       setMetadata(metaList);
     } catch (e) {
-      console.error("Error loading sync data:", e);
+      logger.error("Error loading sync data:", e);
     }
   }, []);
 

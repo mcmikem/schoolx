@@ -23,6 +23,7 @@ import {
   P7_ALL_SUBJECTS,
   NSDCTopic,
 } from "@/lib/ndc-syllabus";
+import { logger } from "@/lib/logger";
 import {
   buildAcademicYear,
   parseStoredSubtopics,
@@ -161,7 +162,7 @@ export default function SyllabusPage() {
       toast.success(`Added ${toInsert.length} NCDC topics`);
       fetchSyllabus();
     } catch (err) {
-      console.error("Failed to populate syllabus:", err);
+      logger.error("Failed to populate syllabus:", err);
       const msg =
         err instanceof Error
           ? err.message
@@ -202,7 +203,7 @@ export default function SyllabusPage() {
 
       setTopics(processed);
     } catch (err) {
-      console.error("Failed to fetch syllabus:", err);
+      logger.error("Failed to fetch syllabus:", err);
       toast.error("Failed to load syllabus");
     } finally {
       setLoading(false);

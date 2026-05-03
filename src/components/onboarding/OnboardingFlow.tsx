@@ -41,7 +41,7 @@ export default function OnboardingFlow({
   const [loading, setLoading] = useState(false);
   const [branding, setBranding] = useState({
     primary_color: school?.primary_color || "#0d9488",
-    accent_color: (school as any)?.accent_color || "#3b82f6",
+    accent_color: school?.accent_color || "#3b82f6",
     logo_url: school?.logo_url || "",
   });
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -49,18 +49,18 @@ export default function OnboardingFlow({
   // School details that can be edited during onboarding
   const [schoolDetails, setSchoolDetails] = useState({
     name: school?.name || "",
-    district: (school as any)?.district || "",
-    subcounty: (school as any)?.subcounty || "",
-    parish: (school as any)?.parish || "",
-    motto: (school as any)?.motto || "",
+    district: school?.district || "",
+    subcounty: school?.subcounty || "",
+    parish: school?.parish || "",
+    motto: school?.motto || "",
     phone: school?.phone || "",
     email: school?.email || "",
-    uneb_center_number: (school as any)?.uneb_center_number || (school as any)?.uneab_center_number || "",
+    uneb_center_number: school?.uneb_center_number || ((school as unknown as Record<string, unknown>)?.uneab_center_number as string) || "",
     ownership: school?.ownership || "private",
-    address: (school as any)?.address || "",
+    address: school?.address || "",
   });
   const [schoolType, setSchoolType] = useState<SchoolSetupType>(
-    ((school as any)?.school_type as SchoolSetupType) || "primary",
+    (school?.school_type as SchoolSetupType) || "primary",
   );
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -205,7 +205,7 @@ export default function OnboardingFlow({
       const currentYear = new Date().getFullYear().toString();
 
       // Build complete update with all onboarding settings
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         school_type: schoolType,
         name: schoolDetails.name || school.name,
         district: schoolDetails.district,
@@ -1319,7 +1319,7 @@ export default function OnboardingFlow({
                   ].map((option) => (
                     <div
                       key={option.key}
-                      onClick={() => setFeatureStage(option.key as any)}
+                      onClick={() => setFeatureStage(option.key as "core" | "academic" | "finance" | "full")}
                       className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${featureStage === option.key ? "border-purple-500 bg-purple-50 shadow-sm" : "border-slate-200 hover:border-slate-300"}`}
                     >
                       <div className="flex items-center gap-3">

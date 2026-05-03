@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { EmptyState } from "@/components/EmptyState";
 import PersonInitials from "@/components/ui/PersonInitials";
+import { logger } from "@/lib/logger";
 
 const PERIODS = [
   "Period 1",
@@ -71,7 +72,7 @@ export default function PeriodAttendancePage() {
       });
       setAttendance(attMap);
     } catch (err) {
-      console.error("Error:", err);
+      logger.error("Error:", err);
     } finally {
       setLoading(false);
     }

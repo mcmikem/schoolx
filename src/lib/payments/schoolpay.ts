@@ -2,6 +2,7 @@
 // For syncing fee payments from SchoolPay platform
 // Docs: https://schoolpay.co.ug/paymentapi
 
+import { logger } from "@/lib/logger";
 import crypto from "crypto";
 
 const SCHOOLPAY_BASE_URL = "https://schoolpay.co.ug/paymentapi";
@@ -81,7 +82,7 @@ export class SchoolPayService {
       const data = (await response.json()) as SchoolPaySyncResponse;
       return data;
     } catch (error) {
-      console.error("SchoolPay sync error:", error);
+      logger.error("SchoolPay sync error:", error);
       throw error;
     }
   }
@@ -101,7 +102,7 @@ export class SchoolPayService {
       const data = (await response.json()) as SchoolPaySyncResponse;
       return data;
     } catch (error) {
-      console.error("SchoolPay sync error:", error);
+      logger.error("SchoolPay sync error:", error);
       throw error;
     }
   }

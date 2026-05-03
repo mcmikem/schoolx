@@ -14,6 +14,7 @@ import {
   canUseModule,
   ModuleKey,
 } from "@/lib/featureStages";
+import { logger } from "@/lib/logger";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
@@ -211,7 +212,7 @@ export default function SettingsPage() {
         setLogoUrl(schoolData.logo_url);
       }
     } catch (err) {
-      console.error("Error:", err);
+      logger.error("Error:", err);
     }
   }, [school?.id]);
 
@@ -244,7 +245,7 @@ export default function SettingsPage() {
     try {
       await saveSchoolSetting(school.id, key, value);
     } catch (err) {
-      console.error("Error:", err);
+      logger.error("Error:", err);
     }
   };
 
@@ -276,7 +277,7 @@ export default function SettingsPage() {
         await refreshSchool();
         toast.success(`Successfully switched to ${plan.toUpperCase()} plan!`);
       } catch (err: any) {
-        console.error("Plan upgrade error:", err);
+        logger.error("Plan upgrade error:", err);
         toast.error(err.message || "Failed to update plan. Please try again.");
       } finally {
         setUpgradingPlan(false);
@@ -356,7 +357,7 @@ export default function SettingsPage() {
       setShowPaymentModal(false);
       toast.success("Redirecting to payment...");
     } catch (err: any) {
-      console.error("Payment error:", err);
+      logger.error("Payment error:", err);
       toast.error(err.message || "Failed to initiate payment");
     } finally {
       setUpgradingPlan(false);
@@ -441,7 +442,7 @@ export default function SettingsPage() {
           : "No student photos were found, but an empty manifest was exported",
       );
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Photo export failed");
     }
   };
@@ -468,7 +469,7 @@ export default function SettingsPage() {
       if (error) throw error;
       setUsers(data || []);
     } catch (err) {
-      console.error("Error:", err);
+      logger.error("Error:", err);
     } finally {
       setLoadingUsers(false);
     }
@@ -967,7 +968,7 @@ export default function SettingsPage() {
                               })
                               .eq("id", cls.id);
                           } catch (err) {
-                            console.error(
+                            logger.error(
                               "Failed to update class teacher:",
                               err,
                             );

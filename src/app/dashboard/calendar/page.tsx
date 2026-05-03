@@ -13,6 +13,7 @@ import { Card, CardHeader, CardBody } from '@/components/ui/Card'
 import { EmptyState } from '@/components/EmptyState'
 import TermTimeline from '@/components/dashboard/TermTimeline'
 import { getErrorMessage } from '@/lib/validation'
+import { logger } from '@/lib/logger'
 
 interface SchoolEvent {
   id: string
@@ -91,7 +92,7 @@ export default function CalendarPage() {
       toast.success('Event added')
       refetchEvents()
     } catch (err) {
-      console.error('Error:', err)
+      logger.error('Error:', err)
       toast.error(getErrorMessage(err, 'Failed to add event'))
     }
   }

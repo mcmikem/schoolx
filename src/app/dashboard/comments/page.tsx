@@ -12,6 +12,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Button } from '@/components/ui/index'
 import { Tabs, TabPanel } from '@/components/ui/Tabs'
+import { logger } from '@/lib/logger'
 
 export default function CommentsPage() {
   const { school, user, isDemo } = useAuth()
@@ -58,7 +59,7 @@ export default function CommentsPage() {
         setGrades(data || [])
       }
     } catch (err) {
-      console.error(err)
+      logger.error(err)
     } finally {
       setLoading(false)
     }

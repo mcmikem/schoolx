@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { createBrowserClient } from "@supabase/ssr";
+import { logger } from "@/lib/logger";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -67,7 +68,7 @@ const createMockQueryBuilder = () => {
 
 const createMockClient = (): SupabaseClient => {
   if (process.env.NODE_ENV !== "test") {
-    console.warn(
+    logger.warn(
       "[Supabase] WARNING: Using mock Supabase client. " +
       "Data operations will silently return empty results. " +
       "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY for real data.",
@@ -176,7 +177,7 @@ if (!hasUsableSupabaseConfig && process.env.NODE_ENV === "production") {
   // Log a clear error but do NOT throw at module evaluation time.
   // Throwing here causes the entire Next.js app to crash with a 500 error
   // rather than rendering a user-friendly configuration page.
-  console.error(
+  logger.error(
     "[Supabase] CRITICAL: Supabase configuration missing/invalid. " +
       "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.",
   );

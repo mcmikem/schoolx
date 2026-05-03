@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import Stripe from 'stripe';
 
 function getStripeClientOrThrow() {
@@ -41,7 +42,7 @@ export async function createPaymentIntent(
       paymentIntentId: paymentIntent.id,
     };
   } catch (error) {
-    console.error('Error creating payment intent:', error);
+    logger.error('Error creating payment intent:', error);
     throw new Error('Failed to create payment intent');
   }
 }
@@ -61,7 +62,7 @@ export async function confirmPaymentIntent(
 
     return paymentIntent;
   } catch (error) {
-    console.error('Error confirming payment intent:', error);
+    logger.error('Error confirming payment intent:', error);
     throw new Error('Failed to confirm payment intent');
   }
 }
@@ -82,7 +83,7 @@ export async function createSubscription(
 
     return subscription;
   } catch (error) {
-    console.error('Error creating subscription:', error);
+    logger.error('Error creating subscription:', error);
     throw new Error('Failed to create subscription');
   }
 }
@@ -101,7 +102,7 @@ export async function updateSubscription(
 
     return subscription;
   } catch (error) {
-    console.error('Error updating subscription:', error);
+    logger.error('Error updating subscription:', error);
     throw new Error('Failed to update subscription');
   }
 }
@@ -118,7 +119,7 @@ export async function cancelSubscription(
 
     return subscription;
   } catch (error) {
-    console.error('Error canceling subscription:', error);
+    logger.error('Error canceling subscription:', error);
     throw new Error('Failed to cancel subscription');
   }
 }
@@ -136,7 +137,7 @@ export async function createCustomerPortalSession(
 
     return session.url;
   } catch (error) {
-    console.error('Error creating customer portal session:', error);
+    logger.error('Error creating customer portal session:', error);
     throw new Error('Failed to create customer portal session');
   }
 }
@@ -150,7 +151,7 @@ export async function getSubscription(subscriptionId: string) {
 
     return subscription;
   } catch (error) {
-    console.error('Error retrieving subscription:', error);
+    logger.error('Error retrieving subscription:', error);
     throw new Error('Failed to retrieve subscription');
   }
 }
@@ -170,7 +171,7 @@ export async function createCustomer(
 
     return customer;
   } catch (error) {
-    console.error('Error creating customer:', error);
+    logger.error('Error creating customer:', error);
     throw new Error('Failed to create customer');
   }
 }
@@ -182,7 +183,7 @@ export async function getCustomer(customerId: string) {
 
     return customer;
   } catch (error) {
-    console.error('Error retrieving customer:', error);
+    logger.error('Error retrieving customer:', error);
     throw new Error('Failed to retrieve customer');
   }
 }
@@ -201,7 +202,7 @@ export async function handleWebhookEvent(
       getStripeWebhookSecretOrThrow()
     );
   } catch (err) {
-    console.error(`Webhook signature verification failed.`, err);
+    logger.error(`Webhook signature verification failed.`, err);
     throw new Error('Invalid webhook signature');
   }
 

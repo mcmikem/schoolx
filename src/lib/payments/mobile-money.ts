@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import crypto from "crypto";
 
 const FLUTTERWAVE_BASE_URL = "https://api.flutterwave.com/v3";
@@ -87,13 +88,13 @@ export class FlutterwaveMobileMoney {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error("Flutterwave API error:", data);
+        logger.error("Flutterwave API error:", data);
         throw new Error(data.message || "Flutterwave API request failed");
       }
 
       return data;
     } catch (error) {
-      console.error("Flutterwave request error:", error);
+      logger.error("Flutterwave request error:", error);
       throw error;
     }
   }
@@ -223,7 +224,7 @@ export class FlutterwaveMobileMoney {
         };
       }
     } catch (error) {
-      console.error("Error checking transaction status:", error);
+      logger.error("Error checking transaction status:", error);
       return {
         status: "pending",
         message: "Unable to verify payment",

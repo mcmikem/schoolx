@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Student } from "@/types";
+import { logger } from "@/lib/logger";
 
 export function useHeadmasterDashboardData(
   schoolId?: string,
@@ -182,7 +183,7 @@ export function useHeadmasterDashboardData(
           loading: false,
         });
       } catch (err) {
-        console.error("Error fetching dashboard data:", err);
+        logger.error("Error fetching dashboard data:", err);
         setData((prev) => ({ ...prev, loading: false }));
       }
     }

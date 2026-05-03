@@ -13,6 +13,7 @@ import {
 } from "@/lib/grading";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
+import { logger } from "@/lib/logger";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
@@ -144,7 +145,7 @@ export default function UNEBAnalysisPage() {
       processedResults.sort((a, b) => b.average - a.average);
       setResults(processedResults);
     } catch (err) {
-      console.error("Error:", err);
+      logger.error("Error:", err);
     } finally {
       setLoading(false);
     }

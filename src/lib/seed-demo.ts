@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { logger } from "@/lib/logger";
 
 const DEMO_SCHOOL_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -149,7 +150,7 @@ export async function seedDemoData() {
 
     return { success: true };
   } catch (error: any) {
-    console.error("Demo seeding failed:", error);
+    logger.error("Demo seeding failed:", error);
     return { error: error.message };
   }
 }

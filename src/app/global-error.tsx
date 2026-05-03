@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import { t } from "@/i18n";
+import { logger } from "@/lib/logger";
 
 export default function GlobalError({
   error,
@@ -12,7 +13,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("Application error:", error);
+    logger.error("Application error:", error);
   }, [error]);
 
   return (

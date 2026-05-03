@@ -6,6 +6,7 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { logger } from './logger';
 
 export async function initCapacitor() {
   if (typeof window === 'undefined') return;
@@ -28,7 +29,7 @@ export async function initCapacitor() {
     // App lifecycle events
     App.addListener('appStateChange', ({ isActive }) => {
       if (isActive) {
-        console.log('App resumed');
+        logger.debug('App resumed');
       }
     });
 
@@ -48,7 +49,7 @@ export async function initCapacitor() {
       }
     });
   } catch (error) {
-    console.warn('Capacitor init error:', error);
+    logger.warn('Capacitor init error:', error);
   }
 }
 
@@ -57,7 +58,7 @@ async function setupPushNotifications() {
     // Request permission
     const permStatus = await PushNotifications.requestPermissions();
     if (permStatus.receive !== 'granted') {
-      console.log('Push notification permission not granted');
+      logger.debug('Push notification permission not granted');
       return;
     }
 
@@ -66,18 +67,18 @@ async function setupPushNotifications() {
 
     // Listen for token
     PushNotifications.addListener('registration', (token) => {
-      console.log('Push registration success');
+      logger.debug('Push registration success');
       savePushToken(token.value);
     });
 
     // Listen for push received
     PushNotifications.addListener('pushNotificationReceived', (notification) => {
-      console.log('Push received:', notification);
+      logger.debug('Push received:', notification);
     });
 
     // Listen for push action performed
     PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-      console.log('Push action:', action);
+      logger.debug('Push action:', action);
       // Navigate based on notification data
       const data = action.notification.data;
       if (data.route) {
@@ -85,7 +86,7 @@ async function setupPushNotifications() {
       }
     });
   } catch (error) {
-    console.warn('Push notification setup failed:', error);
+    logger.warn('Push notification setup failed:', error);
   }
 }
 
@@ -101,6 +102,6 @@ async function savePushToken(token: string) {
       keys: {},
     });
   } catch (error) {
-    console.error('Failed to save push token:', error);
+    logger.error('Failed to save push token:', error);
   }
 }

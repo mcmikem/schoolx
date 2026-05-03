@@ -187,9 +187,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showPostSetup, setShowPostSetup] = useState(false);
 
+  const onboardingCompleted = (school as unknown as Record<string, unknown>)?.onboarding_completed;
+
   useEffect(() => {
-    const schoolAny = school as any;
-    const onboardingCompleted = schoolAny?.onboarding_completed;
     if (
       school &&
       !onboardingCompleted &&
@@ -219,7 +219,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       setShowPostSetup(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [(school as any)?.onboarding_completed, school?.id, user?.role, user?.id]);
+  }, [onboardingCompleted, school?.id, user?.role, user?.id]);
 
   if (loading) {
     return (

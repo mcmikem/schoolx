@@ -13,6 +13,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
+import { logger } from "@/lib/logger";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { getErrorMessage } from "@/lib/validation";
@@ -85,7 +86,7 @@ export default function HomeworkPage() {
       if (error) throw error;
       setHomework(data || []);
     } catch (err) {
-      console.error("Error:", err);
+      logger.error("Error:", err);
     } finally {
       setLoading(false);
     }

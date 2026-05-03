@@ -1,6 +1,8 @@
 // External Storage Service for cPanel/big files
 // This handles photos, PDFs, and large files via external storage
 
+import { logger } from "@/lib/logger";
+
 const EXTERNAL_STORAGE_BASE =
   process.env.NEXT_PUBLIC_EXTERNAL_STORAGE_URL || "";
 
@@ -52,7 +54,7 @@ export async function uploadToExternalStorage(
       url: simulatedUrl,
     };
   } catch (error) {
-    console.error("Upload error:", error);
+    logger.error("Upload error:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Upload failed",

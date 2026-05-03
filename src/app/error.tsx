@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { logger } from "@/lib/logger";
 import Link from "next/link";
 
 export default function GlobalError({
@@ -11,7 +12,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[App Error]", error);
+    logger.error("[App Error]", error);
   }, [error]);
 
   return (

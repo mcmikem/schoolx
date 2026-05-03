@@ -7,6 +7,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { useToast } from "@/components/Toast";
 import Image from "next/image";
 import { OwlLoader } from "@/components/loaders";
+import { logger } from "@/lib/logger";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1575,7 +1576,7 @@ export default function SuperAdminPage() {
       const saved = localStorage.getItem("platform_settings");
       if (saved) setSettings((prev) => ({ ...prev, ...JSON.parse(saved) }));
     } catch (error) {
-      console.error(
+      logger.error(
         "Failed to load platform settings from localStorage:",
         error,
       );
@@ -1648,7 +1649,7 @@ export default function SuperAdminPage() {
       });
     } catch (e: any) {
       toast.error("Failed to load data. Check your connection.");
-      console.error("[SuperAdmin] loadData error:", e);
+      logger.error("[SuperAdmin] loadData error:", e);
     } finally {
       setDataLoading(false);
     }

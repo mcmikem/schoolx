@@ -16,6 +16,7 @@ import {
 } from "@/lib/school-setup";
 import { saveSchoolSetting } from "@/lib/school-settings";
 import { getErrorMessage } from "@/lib/validation";
+import { logger } from "@/lib/logger";
 
 interface SetupWizardProps {
   onComplete?: () => void;
@@ -146,7 +147,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         .upsert(classData, { onConflict: "school_id,name,academic_year" });
 
       if (classError) {
-        console.error("Class insert error:", classError);
+        logger.error("Class insert error:", classError);
         toast.error(`Failed to save classes: ${classError.message}`);
         setLoading(false);
         return;
@@ -166,13 +167,13 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         );
 
       if (checklistError) {
-        console.error("Checklist update error:", checklistError);
+        logger.error("Checklist update error:", checklistError);
       }
 
       toast.success("Classes created!");
       setStep(3);
     } catch (err: unknown) {
-      console.error("Save classes exception:", err);
+      logger.error("Save classes exception:", err);
       toast.error(getErrorMessage(err, "Failed to save classes"));
     } finally {
       setLoading(false);
@@ -196,7 +197,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         .insert(feeData);
 
       if (feeError) {
-        console.error("Fee insert error:", feeError);
+        logger.error("Fee insert error:", feeError);
         toast.error(`Failed to save fees: ${feeError.message}`);
         setLoading(false);
         return;
@@ -216,7 +217,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         );
 
       if (checklistError) {
-        console.error("Checklist update error:", checklistError);
+        logger.error("Checklist update error:", checklistError);
       }
 
       toast.success("Fee structure saved!");
@@ -281,7 +282,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         );
 
       if (checklistError) {
-        console.error("Checklist update error:", checklistError);
+        logger.error("Checklist update error:", checklistError);
       }
 
       if (failures.length > 0) {

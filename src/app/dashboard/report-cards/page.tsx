@@ -13,6 +13,7 @@ import {
 } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import { DEMO_GRADES, DEMO_SUBJECTS } from "@/lib/demo-data";
+import { logger } from "@/lib/logger";
 import MaterialIcon from "@/components/MaterialIcon";
 import PersonInitials from "@/components/ui/PersonInitials";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -273,7 +274,7 @@ export default function ReportCardsPage() {
       setGenerated(true);
       toast.success(`Report cards generated for ${reportList.length} students`);
     } catch (err) {
-      console.error("Error generating report cards:", err);
+      logger.error("Error generating report cards:", err);
       toast.error("Failed to generate report cards");
     }
   };
@@ -548,7 +549,7 @@ export default function ReportCardsPage() {
       if (error) throw error;
       toast.success(`Result summary sent to ${student.parent_phone}`);
     } catch (err) {
-      console.error("SMS Error:", err);
+      logger.error("SMS Error:", err);
       toast.error("Failed to send results via SMS");
     } finally {
       setSendingSms(false);

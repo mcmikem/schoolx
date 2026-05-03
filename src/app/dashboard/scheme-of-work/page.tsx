@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { buildAcademicYear, mapSchemeWeekFromRecord } from "@/lib/academics-utils";
+import { logger } from "@/lib/logger";
 
 interface SchemeWeek {
   week: number;
@@ -76,7 +77,7 @@ export default function SchemeOfWorkPage() {
         setWeeks(baseWeeks);
       }
     } catch (err) {
-      console.error("Failed to load scheme:", err);
+      logger.error("Failed to load scheme:", err);
       toast.error("Failed to load scheme of work");
       setWeeks(createEmptyWeeks());
     } finally {

@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect, ReactNode, useCallback 
 import { useAuth } from './auth-context'
 import { loadSchoolSettings, saveSchoolSetting } from './school-settings'
 import { getErrorMessage } from './validation'
+import { logger } from './logger'
 
 const getDefaultAcademicYear = () => new Date().getFullYear().toString()
 const getStoredAcademicYear = () => {
@@ -79,7 +80,7 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
         ])
       }
     } catch (err) {
-      console.warn('Academic settings fallback in use:', getErrorMessage(err))
+      logger.warn('Academic settings fallback in use:', getErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -97,7 +98,7 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
       try {
         await saveSchoolSetting(school.id, 'academic_year', year)
       } catch (error) {
-        console.warn('Error saving academic year:', getErrorMessage(error))
+        logger.warn('Error saving academic year:', getErrorMessage(error))
       }
     }
   }
@@ -109,7 +110,7 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
       try {
         await saveSchoolSetting(school.id, 'current_term', term.toString())
       } catch (error) {
-        console.warn('Error saving current term:', getErrorMessage(error))
+        logger.warn('Error saving current term:', getErrorMessage(error))
       }
     }
   }
@@ -132,7 +133,7 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
     try {
       await saveSchoolSetting(school.id, key, val)
     } catch (error) {
-      console.warn('Error locking term:', getErrorMessage(error))
+      logger.warn('Error locking term:', getErrorMessage(error))
     }
   }
 

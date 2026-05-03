@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+
 export interface AfricasTalkingSMSResult {
   success: boolean;
   messageId?: string;
@@ -57,7 +59,7 @@ export async function sendAfricasTalkingSMS(
   const recipient = options?.formatUgandaNumber ? formatUgandaPhone(to) : to;
 
   if (!apiKey) {
-    console.log(`[SMS Demo] To: ${recipient}, Message: ${message}`);
+    logger.debug(`[SMS Demo] To: ${recipient}, Message: ${message}`);
     return {
       success: true,
       demo: true,
@@ -91,7 +93,7 @@ export async function sendAfricasTalkingSMS(
     try {
       payload = responseText ? JSON.parse(responseText) : null;
     } catch (err) {
-      console.error("[SMS] Failed to parse API response:", err);
+      logger.error("[SMS] Failed to parse API response:", err);
       payload = null;
     }
 
@@ -148,14 +150,14 @@ export async function checkSmsDailyLimit(
       .gte("created_at", today.toISOString());
 
     if (error) {
-      console.error("[SMS] Failed to check daily limit:", error);
+      logger.error("[SMS] Failed to check daily limit:", error);
       return true;
     }
 
     const sentToday = count ?? 0;
     return sentToday + requestedCount <= SMS_DAILY_LIMIT;
   } catch (err) {
-    console.error("[SMS] Error checking daily limit:", err);
+    logger.error("[SMS] Error checking daily limit:", err);
     return true;
   }
 }

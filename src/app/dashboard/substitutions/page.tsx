@@ -14,6 +14,7 @@ import {
   suggestAvailableSubstitutes,
   type SubstituteSuggestion,
 } from "@/lib/operations";
+import { logger } from "@/lib/logger";
 
 interface Teacher {
   id: string;
@@ -93,7 +94,7 @@ export default function SubstitutionsPage() {
         .order("date", { ascending: false });
 
       if (error) {
-        console.error("Error fetching substitutions:", error);
+        logger.error("Error fetching substitutions:", error);
         setSubstitutions([]);
         return;
       }
@@ -212,7 +213,7 @@ export default function SubstitutionsPage() {
       setAvailability({ status: "free", message: selectedSuggestion.reason });
       return;
     } catch (err) {
-      console.error("Availability check failed", err);
+      logger.error("Availability check failed", err);
       setAvailability({ status: "idle" });
       setSuggestions([]);
     }
@@ -334,7 +335,7 @@ export default function SubstitutionsPage() {
       });
       fetchSubstitutions();
     } catch (err) {
-      console.error("Failed to log substitution", err);
+      logger.error("Failed to log substitution", err);
       toast.error("Failed to log substitution");
     } finally {
       setSaving(false);

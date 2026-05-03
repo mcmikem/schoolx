@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import { logger } from './logger'
 import { offlineDB } from './offline'
 
 interface SyncStatus {
@@ -44,7 +45,7 @@ export function useSyncStatus() {
         lastSyncedPerTable: perTable
       }))
     } catch (e) {
-      console.error('Error checking pending:', e)
+      logger.error('Error checking pending:', e)
     }
   }, [])
 

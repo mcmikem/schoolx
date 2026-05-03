@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useAuth } from "@/lib/auth-context";
+import { logger } from "@/lib/logger";
 
 interface DashboardWidget {
   id: string;
@@ -112,7 +113,7 @@ export function useDashboardCustomization() {
           });
           setWidgets(merged);
         } catch (e) {
-          console.error("Failed to load dashboard preferences", e);
+          logger.error("Failed to load dashboard preferences", e);
         }
       }
     }

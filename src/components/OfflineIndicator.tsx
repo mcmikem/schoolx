@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { offlineDB } from "@/lib/offline";
 import MaterialIcon from "@/components/MaterialIcon";
+import { logger } from "@/lib/logger";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -336,7 +337,7 @@ export function useOfflineSync() {
         const pending = await offlineDB.getPendingSync();
         setPendingCount(pending.length);
       } catch (err) {
-        console.error("Failed to check pending sync:", err);
+        logger.error("Failed to check pending sync:", err);
       }
     };
 

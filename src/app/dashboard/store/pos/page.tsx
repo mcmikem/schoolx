@@ -10,6 +10,7 @@ import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { format } from "date-fns";
 import Image from "next/image";
+import { logger } from "@/lib/logger";
 
 interface POSItem {
   id: string;
@@ -76,7 +77,7 @@ export default function CanteenPOSPage() {
           }
         }
       } catch (err) {
-        console.error("Failed to load inventory:", err);
+        logger.error("Failed to load inventory:", err);
       }
     };
     fetchInventory();

@@ -11,6 +11,7 @@ import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import MaterialIcon from "@/components/MaterialIcon";
 import PersonInitials from "@/components/ui/PersonInitials";
+import { logger } from "@/lib/logger";
 
 interface StaffMember {
   id: string;
@@ -66,7 +67,7 @@ export default function StaffAttendancePage() {
       });
       setAttendance(attendanceMap);
     } catch (err) {
-      console.error("Error:", err);
+      logger.error("Error:", err);
     } finally {
       setLoading(false);
     }

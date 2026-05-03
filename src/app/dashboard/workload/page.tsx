@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Button } from '@/components/ui/index'
 import { EmptyState } from '@/components/EmptyState'
+import { logger } from '@/lib/logger'
 
 interface TimetableEntry {
   id: string
@@ -62,7 +63,7 @@ export default function WorkloadPage() {
       if (!ttRes.error) setTimetable(ttRes.data || [])
       if (!tRes.error) setTeachers(tRes.data || [])
     } catch {
-      console.error('Error fetching workload data')
+      logger.error('Error fetching workload data')
       toast.error('Failed to load workload data')
     } finally {
       setLoading(false)

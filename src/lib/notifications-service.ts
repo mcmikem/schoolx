@@ -2,6 +2,7 @@
 // Handles push notifications for Parent Portal (smartphone users)
 
 import { supabase } from "./supabase";
+import { logger } from "@/lib/logger";
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || "";
 
@@ -14,7 +15,7 @@ export function isPushSupported(): boolean {
 // Request notification permission
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
   if (!isPushSupported()) {
-    console.warn("Push notifications not supported");
+    logger.warn("Push notifications not supported");
     return "denied";
   }
 
@@ -22,7 +23,7 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
     const permission = await Notification.requestPermission();
     return permission;
   } catch (error) {
-    console.error("Error requesting notification permission:", error);
+    logger.error("Error requesting notification permission:", error);
     return "denied";
   }
 }
@@ -44,7 +45,7 @@ export async function subscribeToPush(
 
     // For development/testing without VAPID key
     if (!VAPID_PUBLIC_KEY) {
-      console.warn("VAPID key not configured - push disabled");
+      logger.warn("VAPID key not configured - push disabled");
       return null;
     }
 
@@ -57,10 +58,10 @@ export async function subscribeToPush(
     // Save subscription to database
     await savePushSubscription(userId, subscription);
 
-    console.log("Push subscription successful");
+    logger.debug("Push subscription successful");
     return subscription;
   } catch (error) {
-    console.error("Push subscription failed:", error);
+    logger.error("Push subscription failed:", error);
     return null;
   }
 }
@@ -78,7 +79,7 @@ export async function unsubscribeFromPush(userId: string): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error("Unsubscribe failed:", error);
+    logger.error("Unsubscribe failed:", error);
     return false;
   }
 }

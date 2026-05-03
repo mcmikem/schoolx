@@ -217,7 +217,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 return;
               }
             } catch (error) {
-              console.error("Failed to load cached user data:", error);
+              logger.error("Failed to load cached user data:", error);
             }
           }
 
@@ -320,7 +320,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               localStorage.removeItem(OFFLINE_USER_KEY);
               localStorage.removeItem(OFFLINE_SCHOOL_KEY);
             } catch (error) {
-              console.error("Failed to clear offline data on sign out:", error);
+              logger.error("Failed to clear offline data on sign out:", error);
             }
           }
         } catch (error) {
@@ -376,7 +376,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signIn(phone: string, password: string) {
     try {
       const attempts = buildAuthLoginAttempts(phone);
-      let lastError: any = null;
+      let lastError: unknown = null;
 
       for (const attempt of attempts) {
         const { data, error } = await withSupabaseLockRetry(async () =>

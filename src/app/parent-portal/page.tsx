@@ -11,6 +11,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
 import { useToast } from "@/components/Toast";
+import { logger } from "@/lib/logger";
 import {
   calculateFeeStats,
   mapParentStudentLinks,
@@ -106,7 +107,7 @@ function ParentDashboardContent() {
           }
 
         } catch (err) {
-          console.error("Fetch children error:", err);
+          logger.error("Fetch children error:", err);
         } finally {
           setLoading(false);
         }
@@ -189,7 +190,7 @@ function ParentDashboardContent() {
         setGrades(normalizeGrades(gradesRes.data || []));
         setFeeStats(calculateFeeStats(normalizedFeeStructure, normalizedPayments));
       } catch (err) {
-        console.error("Fetch student data error:", err);
+        logger.error("Fetch student data error:", err);
       }
     }
     fetchStudentData();

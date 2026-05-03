@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useOnlineStatus } from "@/lib/offline";
+import { logger } from "@/lib/logger";
 
 interface SyncStatus {
   isOnline: boolean;
@@ -38,7 +39,7 @@ export function useOfflineSync() {
       const pending = await offlineDB.getPendingSync();
       setStatus((prev) => ({ ...prev, pendingCount: pending.length }));
     } catch (e) {
-      console.error("Failed to check pending sync", e);
+      logger.error("Failed to check pending sync", e);
     }
   }, []);
 

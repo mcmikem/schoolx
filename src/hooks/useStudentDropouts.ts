@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { DEMO_ATTENDANCE } from "@/lib/demo-data";
+import { logger } from "@/lib/logger";
 
 interface AtRiskStudent {
   id: string;
@@ -146,7 +147,7 @@ export function useStudentDropouts(
         atRiskList.sort((a, b) => b.consecutive_absent - a.consecutive_absent),
       );
     } catch (err) {
-      console.error("Error computing at-risk students:", err);
+      logger.error("Error computing at-risk students:", err);
     } finally {
       setLoadingAtRisk(false);
     }

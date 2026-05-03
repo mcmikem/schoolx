@@ -13,6 +13,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import { Modal } from "@/components/ui/Modal";
+import { logger } from "@/lib/logger";
 import BulkImport from "@/components/BulkImport";
 import { Button } from "@/components/ui/index";
 import StudentPhotoField from "@/components/students/StudentPhotoField";
@@ -566,7 +567,7 @@ export default function StudentHubPage() {
         });
         success++;
       } catch (error) {
-        console.error("Bulk student import error:", error);
+        logger.error("Bulk student import error:", error);
         failed++;
       }
     }

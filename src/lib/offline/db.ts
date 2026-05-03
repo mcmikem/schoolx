@@ -1,6 +1,8 @@
 // Offline-first IndexedDB storage for rural Uganda
 // Stores data locally and syncs when online
 
+import { logger } from '../logger'
+
 const DB_NAME = 'omuto.org_offline'
 const DB_VERSION = 1
 
@@ -200,7 +202,7 @@ export async function syncWithServer(supabase: any): Promise<{ synced: number; f
       synced++
     } catch (error) {
       failed++
-      console.error(`Failed to sync ${item.table}:`, error)
+      logger.error(`Failed to sync ${item.table}:`, error)
     }
   }
 

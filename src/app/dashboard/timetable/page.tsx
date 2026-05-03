@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/index'
 import { TableSkeleton } from '@/components/ui/Skeleton'
 import { getErrorMessage } from '@/lib/validation'
+import { logger } from '@/lib/logger'
 
 // ── Uganda 2026 Public Holidays ─────────────────────────────────────────────
 const UGANDA_PUBLIC_HOLIDAYS_2026 = [
@@ -363,7 +364,7 @@ export default function TimetablePage() {
       if (error) throw error
       setTimetable(data || [])
     } catch (err) {
-      console.error('Error fetching timetable:', err)
+      logger.error('Error fetching timetable:', err)
       toast.error('Failed to load timetable')
     } finally {
       setLoading(false)
@@ -381,7 +382,7 @@ export default function TimetablePage() {
         .eq('class_id', selectedClassId || '')
       setAllClassTimetables(data || [])
     } catch (err) {
-      console.error('Error fetching all timetables:', err)
+      logger.error('Error fetching all timetables:', err)
     }
    
   }, [school?.id, selectedClassId])

@@ -3,6 +3,7 @@
 import { supabase } from './supabase'
 import { buildAuditDiff } from './operations'
 import { offlineDB } from './offline'
+import { logger } from './logger'
 
 export interface AuditEntry {
   id: string
@@ -42,7 +43,7 @@ export async function logAuditEvent(
   })
   
   if (error) {
-    console.error('Failed to log audit event:', error)
+    logger.error('Failed to log audit event:', error)
   }
 }
 
@@ -74,7 +75,7 @@ export async function logAuditEventWithOfflineSupport(
   if (online) {
     const { error } = await supabase.from('audit_log').insert(payload)
     if (error) {
-      console.error('Failed to log audit event:', error)
+      logger.error('Failed to log audit event:', error)
     }
     return
   }
@@ -82,7 +83,7 @@ export async function logAuditEventWithOfflineSupport(
   try {
     await offlineDB.save('audit_log', payload)
   } catch (error) {
-    console.error('Failed to queue audit event offline:', error)
+    logger.error('Failed to queue audit event offline:', error)
   }
 }
 
@@ -114,7 +115,7 @@ export async function getAuditLog(schoolId: string, options?: {
   const { data, error } = await query
 
   if (error) {
-    console.error('Failed to fetch audit log:', error)
+    logger.error('Failed to fetch audit log:', error)
     return []
   }
 

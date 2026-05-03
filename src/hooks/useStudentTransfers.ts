@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { DEMO_CLASSES } from "@/lib/demo-data";
+import { logger } from "@/lib/logger";
 
 const TRANSFER_REASONS = [
   "Family relocation",
@@ -121,7 +122,7 @@ export function useStudentTransfers(
       }));
       setTransferHistory(records);
     } catch (err) {
-      console.error("Error fetching transfer history:", err);
+      logger.error("Error fetching transfer history:", err);
     } finally {
       setLoadingTransferHistory(false);
     }

@@ -6,6 +6,7 @@ import Providers from "./providers";
 import MobileInit from "./mobile-init";
 import DebugPing from "@/components/DebugPing";
 import Script from "next/script";
+import { logger } from "@/lib/logger";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -117,7 +118,7 @@ export default function RootLayout({
                     }
                   });
                 }).catch(function(err) {
-                  console.warn('SW registration failed:', err);
+                  logger.warn('SW registration failed:', err);
                 });
               });
             }

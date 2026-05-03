@@ -17,6 +17,7 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+import { logger } from "@/lib/logger";
 
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -57,7 +58,7 @@ export default function TrendAnalyticsPage() {
         setAcademicYears(data.map((d) => d.year));
       }
     } catch (err) {
-      console.error("Error:", err);
+      logger.error("Error:", err);
       toast.error("Failed to load trend data");
     }
   }, [school?.id, toast]);
@@ -144,7 +145,7 @@ export default function TrendAnalyticsPage() {
 
       setHistoricalData(data);
     } catch (err) {
-      console.error("Error:", err);
+      logger.error("Error:", err);
       setHistoricalData([
         {
           term: "Term 1",

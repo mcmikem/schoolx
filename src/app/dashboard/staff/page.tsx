@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { Card, CardBody } from "@/components/ui/Card";
 import { DEMO_STAFF, DEMO_SCHOOL_ID } from "@/lib/demo-data";
 import { useStaffReviews, useDashboardStats } from "@/lib/hooks";
+import { logger } from "@/lib/logger";
 import { StaffReview } from "@/types";
 import { PageGuidance } from "@/components/PageGuidance";
 import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
@@ -219,7 +220,7 @@ function DirectoryTab({
       if (error) throw error;
       setStaff(data || []);
     } catch (err) {
-      console.error("Error:", err);
+      logger.error("Error:", err);
     } finally {
       setLoading(false);
     }
@@ -1310,7 +1311,7 @@ function LeaveTab({
       }
       setRequests(data || []);
     } catch (err) {
-      console.error(
+      logger.error(
         "Error fetching leave requests:",
         err instanceof Error ? err.message : "unknown",
       );

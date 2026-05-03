@@ -9,6 +9,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card as UICard } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
+import { logger } from "@/lib/logger";
 
 export default function ExportPage() {
   const { school, isDemo } = useAuth();
@@ -225,7 +226,7 @@ export default function ExportPage() {
 
       toast.success("Export downloaded successfully");
     } catch (err: unknown) {
-      console.error("Export error:", err);
+      logger.error("Export error:", err);
       toast.error(err instanceof Error ? err.message : "Export failed");
     } finally {
       setExporting(false);

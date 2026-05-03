@@ -1,4 +1,6 @@
 // Subscription plans - matches landing page pricing
+import { logger } from "@/lib/logger";
+
 // Starter: UGX 2,000/student/term (≤200 students, rural/primary)
 // Growth: UGX 3,500/student/term (≤500 students, urban/secondary)
 // Enterprise: UGX 5,500/student/term (unlimited, full features + UNEB)
@@ -342,13 +344,13 @@ export async function updateSchoolSubscription(
       .eq("id", schoolId);
 
     if (error) {
-      console.error("Error updating school subscription:", error);
+      logger.error("Error updating school subscription:", error);
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error("Error in updateSchoolSubscription:", error);
+    logger.error("Error in updateSchoolSubscription:", error);
     throw error;
   }
 }
@@ -374,7 +376,7 @@ export async function sendPaymentReceipt(
       .single();
 
     if (schoolError) {
-      console.error("Error fetching school for receipt:", schoolError);
+      logger.error("Error fetching school for receipt:", schoolError);
       throw schoolError;
     }
 
@@ -383,7 +385,7 @@ export async function sendPaymentReceipt(
       currency: "UGX",
     }).format(paymentData.amount);
 
-    console.log(`Sending payment receipt to ${school.email}:`, {
+    logger.debug(`Sending payment receipt to ${school.email}:`, {
       subject: `Payment Receipt - ${school.name}`,
       amount: formattedAmount,
       plan: paymentData.plan,
@@ -391,12 +393,12 @@ export async function sendPaymentReceipt(
 
     if (school.phone) {
       const smsMessage = `Payment confirmed for ${school.name}. Amount: ${formattedAmount}. Plan: ${paymentData.plan}. Thank you!`;
-      console.log(`Sending SMS to ${school.phone}:`, smsMessage);
+      logger.debug(`Sending SMS to ${school.phone}:`, smsMessage);
     }
 
     return { success: true };
   } catch (error) {
-    console.error("Error sending payment receipt:", error);
+    logger.error("Error sending payment receipt:", error);
     throw error;
   }
 }
@@ -453,14 +455,14 @@ export async function handleSubscriptionChange(
 
     await updateSchoolSubscription(schoolId, updates);
 
-    console.log(
+    logger.debug(
       `Subscription changed for school ${schoolId}:`,
       subscriptionStatus,
     );
 
     return { success: true };
   } catch (error) {
-    console.error("Error handling subscription change:", error);
+    logger.error("Error handling subscription change:", error);
     throw error;
   }
 }

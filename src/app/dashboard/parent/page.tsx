@@ -6,6 +6,7 @@ import { useAcademic } from "@/lib/academic-context";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { calculateStudentFeePosition } from "@/lib/operations";
+import { logger } from "@/lib/logger";
 
 export default function ParentPortal() {
   const { user, school } = useAuth();
@@ -97,7 +98,7 @@ export default function ParentPortal() {
           setCanteenSales(canteenRes.data || []);
         }
       } catch (err) {
-        console.error("Error:", err);
+        logger.error("Error:", err);
       } finally {
         setLoading(false);
       }

@@ -9,6 +9,7 @@ import {
 } from "react";
 import { supabase } from "./supabase";
 import { useAuth } from "./auth-context";
+import { logger } from "./logger";
 
 interface Notification {
   id: string;
@@ -90,7 +91,7 @@ export function NotificationsProvider({
           });
         }
       } catch (err) {
-        console.error("Attendance check failed:", err);
+        logger.error("Attendance check failed:", err);
       }
 
       // 2. Check for fee payments today
@@ -117,7 +118,7 @@ export function NotificationsProvider({
           });
         }
       } catch (err) {
-        console.error("Attendance check failed:", err);
+        logger.error("Attendance check failed:", err);
       }
 
       // 3. Check for overdue fees (students with balance > 0)
@@ -162,7 +163,7 @@ export function NotificationsProvider({
           }
         }
       } catch (err) {
-        console.error("Fee check failed:", err);
+        logger.error("Fee check failed:", err);
       }
 
       // 4. Add sample notifications if no data
@@ -180,7 +181,7 @@ export function NotificationsProvider({
 
       setNotifications(generatedNotifications);
     } catch (error) {
-      console.error("Error fetching notifications:", error);
+      logger.error("Error fetching notifications:", error);
     } finally {
       setLoading(false);
     }

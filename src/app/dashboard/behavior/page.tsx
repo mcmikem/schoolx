@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/index";
 import { Tabs } from "@/components/ui/Tabs";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { logger } from "@/lib/logger";
 
 interface Student {
   id: string;
@@ -92,7 +93,7 @@ export default function BehaviorPage() {
       errorShownRef.current = false;
       setLogs(data || []);
     } catch (err) {
-      console.error("Error fetching behavior logs:", err);
+      logger.error("Error fetching behavior logs:", err);
       if (!errorShownRef.current) {
         errorShownRef.current = true;
         toast.error("Failed to load behaviour records");

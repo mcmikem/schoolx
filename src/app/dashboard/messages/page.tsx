@@ -14,6 +14,7 @@ import {
   DEMO_NOTICES,
   DEMO_STAFF,
 } from "@/lib/demo-data";
+import { logger } from "@/lib/logger";
 import { detectConsecutiveAbsenceAlerts } from "@/lib/operations";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -266,7 +267,7 @@ export default function CommunicationHubPage() {
       if (classesRes.data) setClasses(classesRes.data);
       if (messagesRes.data) setMessages(messagesRes.data);
     } catch (err) {
-      console.error("Error:", err);
+      logger.error("Error:", err);
     } finally {
       setLoading(false);
     }
@@ -300,7 +301,7 @@ export default function CommunicationHubPage() {
         setAllStudents(studentsRes.data as unknown as typeof allStudents);
       if (templatesRes.data) setTemplates(templatesRes.data);
     } catch (err) {
-      console.error("Error:", err);
+      logger.error("Error:", err);
     } finally {
       setBulkLoading(false);
     }
@@ -345,7 +346,7 @@ export default function CommunicationHubPage() {
       if (error) throw error;
       setNotices(data || []);
     } catch (err) {
-      console.error("Error:", err);
+      logger.error("Error:", err);
     } finally {
       setNoticesLoading(false);
     }
@@ -418,7 +419,7 @@ export default function CommunicationHubPage() {
         });
         setAbsencePreview({ count: alerts.length, threshold });
       } catch (error) {
-        console.error("Failed to load absence preview", error);
+        logger.error("Failed to load absence preview", error);
       }
     }
     if (!triggersLoading) loadAbsencePreview();
@@ -867,7 +868,7 @@ export default function CommunicationHubPage() {
         recipient_count: phones.length,
       });
     } catch (err) {
-      console.error("Failed to send notice SMS:", err);
+      logger.error("Failed to send notice SMS:", err);
     }
   };
 

@@ -125,7 +125,7 @@ export default function GeneralSettings({
       const response = await fetch("/api/storage", { method: "GET" });
       const result = await response.json();
 
-      console.debug("Storage check:", result);
+      logger.debug("Storage check:", result);
 
       if (result.success) {
         if (result.exists) {
@@ -151,7 +151,7 @@ export default function GeneralSettings({
         toast.error(result.error || "Storage error");
       }
     } catch (err) {
-      console.error("Storage test exception:", err);
+      logger.error("Storage test exception:", err);
       setStorageStatus("error");
       toast.error("Failed to connect to storage");
     }
@@ -187,7 +187,7 @@ export default function GeneralSettings({
       const fileExt = "jpg";
       const fileName = `${school.id}-logo.${fileExt}`;
 
-      console.debug("Starting upload to bucket...");
+      logger.debug("Starting upload to bucket...");
 
       let uploadData = await supabase.storage
         .from("school-logos")
@@ -196,12 +196,12 @@ export default function GeneralSettings({
           contentType: "image/jpeg",
         });
 
-      console.debug("Upload result:", uploadData);
+      logger.debug("Upload result:", uploadData);
 
       let { data, error } = uploadData;
 
       if (error && error.message.includes("bucket")) {
-        console.debug("Bucket not found, attempting to create...");
+        logger.debug("Bucket not found, attempting to create...");
         await supabase.storage.createBucket("school-logos", {
           public: true,
           fileSizeLimit: 5242880,
@@ -220,7 +220,7 @@ export default function GeneralSettings({
       }
 
       if (error) {
-        console.error("Storage error:", error);
+        logger.error("Storage error:", error);
         toast.error(`Upload failed: ${error.message}`);
         throw error;
       }
@@ -235,7 +235,7 @@ export default function GeneralSettings({
         .eq("id", school.id);
 
       if (updateError) {
-        console.error("Update error:", updateError);
+        logger.error("Update error:", updateError);
       } else {
         await refreshSchool();
       }
@@ -243,7 +243,7 @@ export default function GeneralSettings({
       setLogoUrl(publicUrl);
       toast.success("Logo uploaded successfully");
     } catch (err) {
-      console.error("Logo upload error:", err);
+      logger.error("Logo upload error:", err);
       toast.error("Failed to upload logo. Check console for details.");
     } finally {
       setUploadingLogo(false);
@@ -305,7 +305,7 @@ export default function GeneralSettings({
         `${type === "signature_headteacher" ? "Head teacher" : "Class teacher"} signature uploaded`,
       );
     } catch (err) {
-      console.error("Signature upload error:", err);
+      logger.error("Signature upload error:", err);
       toast.error("Failed to upload signature");
     } finally {
       setUploadingLogo(false);

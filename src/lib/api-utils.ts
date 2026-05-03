@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { User } from "@/types";
+import { logger } from "@/lib/logger";
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -46,7 +47,7 @@ export function handleApiError(error: unknown): NextResponse<ApiResponse> {
   Sentry.captureException(error);
 
   if (error instanceof Error) {
-    console.error("[Server Error]", {
+    logger.error("[Server Error]", {
       message: error.message,
       stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
       timestamp: new Date().toISOString(),
@@ -122,7 +123,7 @@ async function rateLimitViaSupabase(
       resetTime: Date.now() + windowMs,
     };
   } catch (err) {
-    console.error("[RateLimit] Supabase fallback error:", err);
+    logger.error("[RateLimit] Supabase fallback error:", err);
     return null; // fall back to in-memory
   }
 }
@@ -386,7 +387,7 @@ export async function requireUserWithSchool(
     context: {
       authUserId: auth.context.authUserId,
       user: userRow as User,
-      schoolId: (userRow as any).school_id ?? null,
+      schoolId: (userRow as Record<string, unknown>).school_id as string | null ?? null,
     },
   };
 }
@@ -502,7 +503,7 @@ export function requireCronSecretOrDeny(
   return { ok: true };
 }
 
-export function createServiceRoleClientOrThrow(): any {
+export function createServiceRoleClientOrThrow() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -515,11 +516,11 @@ export function createServiceRoleClientOrThrow(): any {
       autoRefreshToken: false,
       persistSession: false,
     },
-  }) as any;
+  });
 }
 
 export async function requireExistingSchoolOrDeny(params: {
-  supabase: any;
+  supabase: ReturnType<typeof createClient>;
   schoolId: unknown;
 }): Promise<
   | { ok: true; schoolId: string; school: Record<string, unknown> }

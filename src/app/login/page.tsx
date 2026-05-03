@@ -10,6 +10,7 @@ import { Button, Input } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { normalizeAuthPhone } from "@/lib/validation";
 import { OwlLoader } from "@/components/loaders";
+import { logger } from "@/lib/logger";
 
 const DEMO_KEY = "skoolmate_demo_v1";
 const DEMO_MODE_ENABLED =
@@ -187,7 +188,7 @@ export default function LoginPage() {
       setLoading(false);
       return;
     } catch (err: unknown) {
-      console.error("Login exception:", err);
+      logger.error("Login exception:", err);
       const errorMessage =
         err instanceof Error ? err.message : "An error occurred";
       toast.error(errorMessage);

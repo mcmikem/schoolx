@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -239,7 +240,7 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (userError && userError.name !== "AuthSessionMissingError") {
-    console.error("Auth user error:", userError);
+    logger.error("Auth user error:", userError);
   }
 
   if (!authUser) {
