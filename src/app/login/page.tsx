@@ -124,7 +124,7 @@ export default function LoginPage() {
 
     try {
       if (DEMO_MODE_ENABLED) {
-        const demoResponse = await fetch("/api/demo-login", {
+        const demoResponse = await fetch("/api/demo-login/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ phone: cleanPhone, password }),
