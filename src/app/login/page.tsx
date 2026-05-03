@@ -196,9 +196,7 @@ export default function LoginPage() {
 
   const handleDemoClick = (demoPhone: string) => {
     setPhone(demoPhone);
-    // Use last 4 digits of demo phone to make demo password unique
-    const demoPass = "demo" + demoPhone.slice(-4);
-    setPassword(demoPass);
+    setPassword("demo");
   };
 
   return (
