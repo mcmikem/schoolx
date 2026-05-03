@@ -9,6 +9,7 @@ import {
 import { sendPaymentReceipt } from "@/lib/subscription";
 import { requireUserWithSchool, assertUserRoleOrDeny } from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -119,7 +120,7 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   } catch (error) {
-    console.error("Payment verification error:", error);
+    logger.error("Payment verification error:", error);
     return NextResponse.json(
       { error: "Failed to verify payment" },
       { status: 500 },
@@ -175,7 +176,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Get payment error:", error);
+    logger.error("Get payment error:", error);
     return NextResponse.json(
       { error: "Failed to get payment details" },
       { status: 500 },

@@ -12,6 +12,7 @@ import {
   rateLimit,
 } from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
 
 const BILLING_ROLES = [
   "super_admin",
@@ -139,7 +140,7 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   } catch (error) {
-    console.error("Checkout error:", error);
+    logger.error("Checkout error:", error);
     return NextResponse.json(
       { error: "Failed to create checkout session" },
       { status: 500 },

@@ -412,7 +412,7 @@ export async function POST(request: NextRequest) {
       "Registration successful",
     );
   } catch (error) {
-    console.error("[Register Error]", error);
+    logger.error("[Register Error]", error);
     // Provide more specific error messages for common database issues
     if (error instanceof Error) {
       const msg = error.message.toLowerCase();
