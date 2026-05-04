@@ -31,6 +31,9 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
+  MessageCircle,
+  Copy,
+  Share2,
 } from "lucide-react";
 import {
   LineChart,
@@ -49,6 +52,7 @@ import { useClasses } from "@/lib/hooks";
 import { SendSMSModal } from "@/components/SendSMSModal";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
+import { useToast } from "@/components/Toast";
 
 type AttendanceRecord = {
   status: "present" | "absent" | "late";
@@ -486,6 +490,7 @@ export default function StudentProfilePage() {
   const params = useParams<{ id: string }>();
   const studentId = params?.id || "";
   const { isDemo, school } = useAuth();
+  const toast = useToast();
   const router = useRouter();
   const { student, loading: studentLoading, error } = useStudent(studentId);
   const { classes } = useClasses(school?.id);
@@ -518,6 +523,11 @@ export default function StudentProfilePage() {
   const [smsOpen, setSmsOpen] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
+  const [portalCreds, setPortalCreds] = useState<{
+    parentPhone: string;
+    generatedPassword: string;
+    parentName: string;
+  } | null>(null);
   const [editForm, setEditForm] = useState({
     first_name: "",
     last_name: "",
@@ -534,8 +544,8 @@ export default function StudentProfilePage() {
       first_name: student.first_name || "",
       last_name: student.last_name || "",
       class_id: student.class_id || "",
-      blood_type: (student as any).blood_type || "",
-      boarding_status: (student as any).boarding_status || "day",
+      blood_type: student.blood_type || "",
+      boarding_status: student.boarding_status || "day",
       parent_name: student.parent_name || "",
       parent_phone: student.parent_phone || "",
     });
@@ -560,13 +570,14 @@ export default function StudentProfilePage() {
         .eq("id", student.id);
       if (updateError) throw updateError;
       setShowEdit(false);
-      router.refresh();
+      toast.success("Student updated successfully");
+      window.location.reload();
     } catch (err: any) {
-      alert(err?.message || "Failed to save changes");
+      toast.error(err?.message || "Failed to save changes");
     } finally {
       setEditSaving(false);
     }
-  }, [student, editForm, router]);
+  }, [student, editForm, toast]);
 
   if (studentLoading)
     return (
@@ -641,10 +652,13 @@ export default function StudentProfilePage() {
             <FileText className="w-4 h-4" />
             Admission Letter
           </Link>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          <Link
+            href="/dashboard/report-cards/"
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
             <Printer className="w-4 h-4" />
             Print Report
-          </button>
+          </Link>
           <button className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors" onClick={openEdit}>
             <Edit className="w-4 h-4" />
             Edit
@@ -738,10 +752,10 @@ export default function StudentProfilePage() {
                   <Droplets className="w-4 h-4" /> Blood:{" "}
                   {student.blood_type || "N/A"}
                 </span>
-                {(student as any).boarding_status &&
-                  (student as any).boarding_status !== "day" && (
+                {student.boarding_status &&
+                  student.boarding_status !== "day" && (
                     <span className="px-3 py-1 bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-teal-100 dark:border-teal-800">
-                      {(student as any).boarding_status}
+                      {student.boarding_status}
                     </span>
                   )}
               </div>
@@ -1040,36 +1054,89 @@ export default function StudentProfilePage() {
                    </span>
                  </div>
                )}
-               {student.parent_phone && (
-                 <button
-                   type="button"
-                   onClick={async () => {
-                     try {
-                       const res = await fetch("/api/students/create-parent-portal/", {
-                         method: "POST",
-                         headers: { "Content-Type": "application/json" },
-                         body: JSON.stringify({
-                           studentId: student.id,
-                           schoolId: student.school_id,
-                         }),
-                       });
-                       const data = await res.json();
-                       if (data.created) {
-                         alert(
-                           `Parent portal created!\nLogin: ${data.parentPhone}\nPassword: ${data.generatedPassword}`,
-                         );
-                       } else {
-                         alert(data.message || "Parent already linked");
-                       }
-                     } catch {
-                       alert("Failed to create parent portal");
-                     }
-                   }}
-                   className="mt-2 w-full rounded-xl bg-[var(--navy)] px-3 py-2 text-xs font-semibold text-white hover:opacity-90"
-                 >
-                   Create Parent Portal
-                 </button>
-               )}
+{student.parent_phone && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const res = await fetch("/api/students/create-parent-portal/", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            studentId: student.id,
+                            schoolId: student.school_id,
+                          }),
+                        });
+                        const data = await res.json();
+                        if (data.error) {
+                          toast.error(data.error);
+                        } else if (data.created) {
+                          setPortalCreds({
+                            parentPhone: data.parentPhone,
+                            generatedPassword: data.generatedPassword,
+                            parentName: data.parentName || "Parent",
+                          });
+                          toast.success(
+                            `Parent portal created! Login: ${data.parentPhone}  Password: ${data.generatedPassword}`,
+                          );
+                        } else {
+                          setPortalCreds({
+                            parentPhone: data.parentPhone,
+                            generatedPassword: data.generatedPassword,
+                            parentName: data.parentName || "Parent",
+                          });
+                          toast.info(data.message || "Parent already linked");
+                        }
+                       } catch {
+                         toast.error("Failed to create parent portal");
+                      }
+                    }}
+                    className="mt-2 w-full rounded-xl bg-[var(--navy)] px-3 py-2 text-xs font-semibold text-white hover:opacity-90"
+                  >
+                    Create Parent Portal
+                  </button>
+                )}
+                {portalCreds && (
+                  <div className="mt-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800 text-xs space-y-2">
+                    <div className="font-semibold text-emerald-800 dark:text-emerald-300">
+                      Portal Credentials
+                    </div>
+                    <div className="text-gray-700 dark:text-gray-300">
+                      <span className="text-gray-500">Phone:</span> {portalCreds.parentPhone}
+                    </div>
+                    <div className="text-gray-700 dark:text-gray-300">
+                      <span className="text-gray-500">Password:</span> {portalCreds.generatedPassword}
+                    </div>
+                    <div className="text-gray-700 dark:text-gray-300">
+                      <span className="text-gray-500">Link:</span>{" "}
+                      <span className="break-all">{typeof window !== "undefined" ? `${window.location.origin}/parent-portal` : ""}</span>
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const text = `Hello ${portalCreds.parentName}! Your SkoolMate parent portal is ready.\n\nLogin: ${portalCreds.parentPhone}\nPassword: ${portalCreds.generatedPassword}\nLink: ${window.location.origin}/parent-portal\n\n- ${student.school_name || "SkoolMate"}`;
+                          window.open(`https://wa.me/${portalCreds.parentPhone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`, "_blank");
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1 rounded-lg bg-green-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-green-700"
+                      >
+                        <MessageCircle className="w-3 h-3" />
+                        WhatsApp
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`Login: ${portalCreds.parentPhone}\nPassword: ${portalCreds.generatedPassword}\nLink: ${window.location.origin}/parent-portal`);
+                          toast.success("Credentials copied!");
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1 rounded-lg bg-gray-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-gray-700"
+                      >
+                        <Copy className="w-3 h-3" />
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                )}
              </div>
            </div>
          </div>
@@ -1077,10 +1144,10 @@ export default function StudentProfilePage() {
 
       {/* Additional Info - House, Origin, Leadership */}
       {(student.houses ||
-        (student as any).previous_school ||
-        (student as any).district_origin ||
-        (student as any).prefect_role ||
-        (student as any).student_council_role) && (
+        student.previous_school ||
+        student.district_origin ||
+        student.prefect_role ||
+        student.student_council_role) && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           {student.houses && (
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
@@ -1103,8 +1170,8 @@ export default function StudentProfilePage() {
                     </div>
                   </div>
                 )}
-                {(student as any).boarding_status &&
-                  (student as any).boarding_status !== "day" && (
+                {student.boarding_status &&
+                  student.boarding_status !== "day" && (
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg flex items-center justify-center">
                         <Moon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
@@ -1114,12 +1181,12 @@ export default function StudentProfilePage() {
                           Boarding
                         </div>
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
-                          {(student as any).boarding_status}
+                          {student.boarding_status}
                         </div>
                       </div>
                     </div>
                   )}
-                {(student as any).games_house && (
+                {student.games_house && (
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-orange-50 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
                       <Trophy className="w-4 h-4 text-orange-600 dark:text-orange-400" />
@@ -1129,7 +1196,7 @@ export default function StudentProfilePage() {
                         Games House
                       </div>
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {(student as any).games_house || "Assigned"}
+                        {student.games_house || "Assigned"}
                       </div>
                     </div>
                   </div>
@@ -1137,14 +1204,14 @@ export default function StudentProfilePage() {
               </div>
             </div>
           )}
-          {((student as any).previous_school ||
-            (student as any).district_origin) && (
+          {(student.previous_school ||
+            student.district_origin) && (
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
                 Origin
               </h3>
               <div className="space-y-3">
-                {(student as any).previous_school && (
+                {student.previous_school && (
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
                       <School className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -1154,12 +1221,12 @@ export default function StudentProfilePage() {
                         Previous School
                       </div>
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {(student as any).previous_school}
+                        {student.previous_school}
                       </div>
                     </div>
                   </div>
                 )}
-                {(student as any).district_origin && (
+                {student.district_origin && (
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
                       <MapPin className="w-4 h-4 text-green-600 dark:text-green-400" />
@@ -1169,12 +1236,12 @@ export default function StudentProfilePage() {
                         District
                       </div>
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {(student as any).district_origin}
+                        {student.district_origin}
                       </div>
                     </div>
                   </div>
                 )}
-                {(student as any).sub_county && (
+                {student.sub_county && (
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg flex items-center justify-center">
                       <MapPin className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
@@ -1184,12 +1251,12 @@ export default function StudentProfilePage() {
                         Sub-county
                       </div>
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {(student as any).sub_county}
+                        {student.sub_county}
                       </div>
                     </div>
                   </div>
                 )}
-                {(student as any).village && (
+                {student.village && (
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-red-50 dark:bg-red-900/20 rounded-lg flex items-center justify-center">
                       <Home className="w-4 h-4 text-red-600 dark:text-red-400" />
@@ -1199,7 +1266,7 @@ export default function StudentProfilePage() {
                         Village
                       </div>
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {(student as any).village}
+                        {student.village}
                       </div>
                     </div>
                   </div>
@@ -1207,15 +1274,15 @@ export default function StudentProfilePage() {
               </div>
             </div>
           )}
-          {((student as any).prefect_role ||
-            (student as any).student_council_role ||
-            (student as any).is_class_monitor) && (
+          {(student.prefect_role ||
+            student.student_council_role ||
+            student.is_class_monitor) && (
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
                 Leadership
               </h3>
               <div className="space-y-3">
-                {(student as any).is_class_monitor && (
+                {student.is_class_monitor && (
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg flex items-center justify-center">
                       <Star className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
@@ -1230,7 +1297,7 @@ export default function StudentProfilePage() {
                     </div>
                   </div>
                 )}
-                {(student as any).prefect_role && (
+                {student.prefect_role && (
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-amber-50 dark:bg-amber-900/20 rounded-lg flex items-center justify-center">
                       <Award className="w-4 h-4 text-amber-600 dark:text-amber-400" />
@@ -1240,12 +1307,12 @@ export default function StudentProfilePage() {
                         Prefect Role
                       </div>
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
-                        {(student as any).prefect_role.replace(/_/g, " ")}
+                        {student.prefect_role.replace(/_/g, " ")}
                       </div>
                     </div>
                   </div>
                 )}
-                {(student as any).student_council_role && (
+                {student.student_council_role && (
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg flex items-center justify-center">
                       <User className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
@@ -1255,7 +1322,7 @@ export default function StudentProfilePage() {
                         Council Role
                       </div>
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
-                        {(student as any).student_council_role.replace(
+                        {student.student_council_role.replace(
                           /_/g,
                           " ",
                         )}

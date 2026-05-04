@@ -43,6 +43,10 @@ export async function POST(request: NextRequest) {
     .eq("school_id", schoolId)
     .maybeSingle();
 
+  const parentName = student.parent_name?.trim() || `Parent of ${student.first_name}`;
+  const generatedPassword = `parent${parentPhone.slice(-4)}`;
+  const authEmail = buildAuthEmailFromPhone(phoneNormalized);
+
   if (existingUser) {
     // Parent exists — ensure link to this student
     const { data: existingLink } = await supabaseAdmin
@@ -63,13 +67,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       created: false,
       message: "Parent account already exists and is linked",
+      parentName,
       parentPhone: phoneNormalized,
+      generatedPassword,
+      authEmail,
     });
   }
-
-  // Create parent account
-  const parentName = student.parent_name?.trim() || `Parent of ${student.first_name}`;
-  const generatedPassword = `parent${parentPhone.slice(-4)}`;
   const authEmail = buildAuthEmailFromPhone(phoneNormalized);
 
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({

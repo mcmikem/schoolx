@@ -108,6 +108,18 @@ export interface Student {
   consecutive_absent_days?: number;
   created_at: string;
   classes?: Class;
+  houses?: { id: string; name: string; color: string } | null;
+  house_id?: string;
+  previous_school?: string;
+  district_origin?: string;
+  sub_county?: string;
+  parish?: string;
+  village?: string;
+  boarding_status?: string;
+  games_house?: string;
+  is_class_monitor?: boolean;
+  prefect_role?: string;
+  student_council_role?: string;
 }
 
 export interface CreateStudentInput {
