@@ -6,8 +6,16 @@ const startTime = Date.now();
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ status: "unauthorized" }, { status: 401 });
+  const isAuthenticated = !cronSecret || authHeader === `Bearer ${cronSecret}`;
+
+  // Unauthenticated requests get a basic health check (for Docker/uptime monitoring)
+  // Authenticated requests get full diagnostic details
+  if (!isAuthenticated) {
+    return NextResponse.json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      version: "1.0.0",
+    });
   }
 
   const checks: Record<string, string> = {};

@@ -125,30 +125,36 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const toast = useToast();
-  const hasCheckedAuth = useRef(false);
+  const hasRedirectedRef = useRef(false);
   const { close: closeSidebar } = useSidebar();
 
   useAccessControl();
 
+  // Auth redirect guard — runs once after initial auth check resolves.
+  // Uses a ref to prevent re-firing if loading/user state changes later
+  // (e.g. token refresh, visibility change) which would cause redirect loops.
   useEffect(() => {
-    if (!loading) {
-      hasCheckedAuth.current = true;
-    }
-    // Only redirect after we've finished checking AND determined no valid session
-    if (hasCheckedAuth.current && !loading && !user && !isDemo) {
+    if (hasRedirectedRef.current) return;
+    if (loading) return;
+    if (!user && !isDemo) {
+      hasRedirectedRef.current = true;
       router.replace("/login");
     }
   }, [loading, user, isDemo, router]);
 
+  // Role-based redirect — parents and super_admin should not see dashboard.
   useEffect(() => {
+    if (hasRedirectedRef.current) return;
     if (loading || !user || isDemo) return;
 
     if (user.role === "parent") {
+      hasRedirectedRef.current = true;
       router.replace("/parent-portal");
       return;
     }
 
     if (user.role === "super_admin") {
+      hasRedirectedRef.current = true;
       router.replace("/super-admin");
       return;
     }

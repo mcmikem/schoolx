@@ -2,41 +2,66 @@
 
 # ============================================
 # SkoolMate OS - Production Docker Image
-# For self-hosting (Lifetime plan) and local dev parity
-# Usage: docker compose up --build
+# Multi-stage build optimized for Next.js 16
 # ============================================
 
 FROM node:20-alpine AS base
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install dependencies
+# ============================================
+# Stage 1: Install dependencies
+# ============================================
 FROM base AS deps
 COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev --ignore-scripts
 
-# Build the application
+# ============================================
+# Stage 2: Build the application
+# ============================================
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Set build-time env vars (can be overridden)
+ARG NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder
+ARG SUPABASE_SERVICE_ROLE_KEY=placeholder
+ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
+ARG CRON_SECRET=placeholder
+
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV DOCKER_BUILD=1
+
 RUN npm run build
 
-# Production runner
+# ============================================
+# Stage 3: Production runner
+# ============================================
 FROM base AS runner
 WORKDIR /app
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Copy built assets
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
 USER nextjs
+
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
-CMD ["npm", "start"]
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health/ || exit 1
+
+CMD ["node", "server.js"]

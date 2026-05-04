@@ -1,7 +1,7 @@
 # ============================================
 # SkoolMate OS - Production Docker Compose
 # Self-hosted deployment (Lifetime plan)
-# Usage: docker compose up -d
+# Usage: docker compose -f docker-compose.prod.yml up -d
 # ============================================
 
 services:
@@ -24,14 +24,14 @@ services:
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
       - CRON_SECRET=${CRON_SECRET}
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
-      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
-      - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID:-}
-      - PAYPAL_CLIENT_SECRET=${PAYPAL_CLIENT_SECRET:-}
-      - AFRICAS_TALKING_API_KEY=${AFRICAS_TALKING_API_KEY:-}
-      - AFRICAS_TALKING_USERNAME=${AFRICAS_TALKING_USERNAME:-}
-      - RESEND_API_KEY=${RESEND_API_KEY:-}
-      - EMAIL_FROM=${EMAIL_FROM:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID}
+      - PAYPAL_CLIENT_SECRET=${PAYPAL_CLIENT_SECRET}
+      - AFRICAS_TALKING_API_KEY=${AFRICAS_TALKING_API_KEY}
+      - AFRICAS_TALKING_USERNAME=${AFRICAS_TALKING_USERNAME}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - EMAIL_FROM=${EMAIL_FROM}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health/"]
@@ -52,3 +52,23 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  # Cron runner for scheduled tasks
+  cron:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - CRON_SECRET=${CRON_SECRET}
+      - AFRICAS_TALKING_API_KEY=${AFRICAS_TALKING_API_KEY}
+      - AFRICAS_TALKING_USERNAME=${AFRICAS_TALKING_USERNAME}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - EMAIL_FROM=${EMAIL_FROM}
+    restart: unless-stopped
+    command: sh -c "while true; do curl -s -H 'Authorization: Bearer $$CRON_SECRET' http://app:3000/api/cron/sms-reminders/ && sleep 86400; done"
+    depends_on:
+      - app

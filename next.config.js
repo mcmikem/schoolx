@@ -21,7 +21,7 @@ function supabaseImageHosts() {
 }
 
 const nextConfig = {
-  output: process.env.MOBILE_BUILD === "1" ? "export" : undefined,
+  output: process.env.MOBILE_BUILD === "1" ? "export" : process.env.DOCKER_BUILD === "1" ? "standalone" : undefined,
   trailingSlash: true,
   poweredByHeader: false,
   compress: true,

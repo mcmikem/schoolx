@@ -45,3 +45,9 @@ docs/
 .aider*
 .vercel
 supabase/.temp/
+
+# Docker
+docker-compose.dev.yml
+Dockerfile.dev
+.husky/
+lint-staged.config.json

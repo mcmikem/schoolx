@@ -237,7 +237,7 @@ describe("register password validation", () => {
 // ---------------------------------------------------------------------------
 
 describe("auth-context: onAuthStateChange SIGNED_IN loading guard", () => {
-  it("source sets loading before awaiting getUser for SIGNED_IN with session", async () => {
+  it("source sets loading only on SIGNED_IN event (not INITIAL_SESSION or TOKEN_REFRESHED)", async () => {
     // Read the compiled source to assert the invariant exists.
     const fs = await import("fs");
     const path = await import("path");
@@ -247,8 +247,9 @@ describe("auth-context: onAuthStateChange SIGNED_IN loading guard", () => {
     );
     const source = fs.default.readFileSync(filePath, "utf-8");
 
-    // The guard should appear as: if (session && event !== "TOKEN_REFRESHED") setLoading(true)
-    // before the withSupabaseLockRetry / getUser call inside the SIGNED_IN branch.
-    expect(source).toMatch(/if\s*\(\s*session\s*&&\s*event\s*!==\s*"TOKEN_REFRESHED"\s*\)\s*setLoading\s*\(\s*true\s*\)/);
+    // The guard should only set loading=true on explicit SIGNED_IN events.
+    // INITIAL_SESSION and TOKEN_REFRESHED must NOT toggle loading to prevent
+    // loading flickers / infinite loading loops during normal navigation.
+    expect(source).toMatch(/if\s*\(\s*event\s*===\s*"SIGNED_IN"\s*\)\s*setLoading\s*\(\s*true\s*\)/);
   });
 });

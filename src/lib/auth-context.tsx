@@ -50,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const authFetchAborted = useRef(false);
   const authCheckedRef = useRef(false);
+  const fetchUserDataInProgress = useRef(false);
 
   const isSubscriptionActive = useCallback(() => {
     return isSubscriptionActiveCheck(school);
@@ -64,6 +65,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authId: string,
     ): Promise<{ role: string } | null> => {
       if (authFetchAborted.current || !supabase) return null;
+      if (fetchUserDataInProgress.current) return null;
+      fetchUserDataInProgress.current = true;
       try {
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
@@ -87,17 +90,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const { user: userData, school: schoolData } = await res.json();
 
-        setUser({
+        const newUser = {
           ...userData,
           role: userData.role as User["role"],
+        };
+        setUser((prev) => {
+          if (prev && prev.id === newUser.id && prev.role === newUser.role) {
+            return prev;
+          }
+          return newUser;
         });
         try {
           localStorage.setItem(
             OFFLINE_USER_KEY,
-            JSON.stringify({
-              ...userData,
-              role: userData.role as User["role"],
-            }),
+            JSON.stringify(newUser),
           );
         } catch (error) {
           logger.warn("Failed to persist offline user data:", error);
@@ -116,7 +122,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               (schoolData.feature_stage as FeatureStage) ||
               DEFAULT_FEATURE_STAGE,
           };
-          setSchool(schoolObj);
+          setSchool((prev) => {
+            if (prev && prev.id === schoolObj.id) return prev;
+            return schoolObj;
+          });
           try {
             localStorage.setItem(
               OFFLINE_SCHOOL_KEY,
@@ -134,6 +143,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logger.error("Error fetching user data:", getErrorMessage(error));
         setLoading(false);
         return null;
+      } finally {
+        fetchUserDataInProgress.current = false;
       }
     },
     [],
@@ -227,6 +238,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             async () => await supabase!.auth.getUser(),
           );
           if (authUser) {
+            // fetchUserData has its own in-progress guard, so safe to call.
             await fetchUserData(authUser.id);
             setIsDemo(false);
             setLoading(false);
@@ -260,8 +272,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // since the onAuthStateChange handler will handle INITIAL_SESSION.
     // Only run checkUser() if the handler didn't fire within 500ms.
     let handlerFired = false;
+    let checkUserRan = false;
     const timer = setTimeout(() => {
       if (!handlerFired && !authCheckedRef.current) {
+        checkUserRan = true;
         checkUser();
         authCheckedRef.current = true;
       }
@@ -283,7 +297,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             event === "INITIAL_SESSION" ||
             event === "TOKEN_REFRESHED"
           ) {
-            if (session && event !== "TOKEN_REFRESHED") setLoading(true);
+            // Only set loading=true on explicit SIGNED_IN (user just logged in).
+            // INITIAL_SESSION and TOKEN_REFRESHED should NOT toggle loading
+            // because they can fire during normal navigation and cause
+            // loading flickers / infinite loading loops.
+            if (event === "SIGNED_IN") setLoading(true);
             const {
               data: { user: verifiedUser },
             } = await withSupabaseLockRetry(
@@ -360,10 +378,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!freshUser && userRef.current) {
             setUser(null);
             setSchool(null);
-            setLoading(false);
             router.push("/login");
           }
         } catch {
+          // Silently ignore — network errors on visibility change are common
         }
       }
     };

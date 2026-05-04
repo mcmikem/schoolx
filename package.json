@@ -28,6 +28,13 @@
     "build:ios": "MOBILE_BUILD=1 npm run build && npx cap sync ios",
     "dev:android": "npx cap run android --livereload --external",
     "dev:ios": "npx cap run ios --livereload --external",
+    "docker:dev": "docker compose -f docker-compose.dev.yml up",
+    "docker:dev:build": "docker compose -f docker-compose.dev.yml up --build",
+    "docker:prod": "docker compose -f docker-compose.yml up -d",
+    "docker:prod:build": "docker compose -f docker-compose.yml up -d --build",
+    "docker:logs": "docker compose -f docker-compose.yml logs -f",
+    "docker:stop": "docker compose -f docker-compose.yml down",
+    "docker:clean": "docker compose -f docker-compose.yml down -v --rmi local",
     "prepare": "husky"
   },
   "dependencies": {
