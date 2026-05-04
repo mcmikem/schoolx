@@ -1,133 +1,33 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import OwlMascot from "@/components/brand/OwlMascot";
 import { Card, CardBody } from "@/components/ui/Card";
-import { Button, Input, Select } from "@/components/ui";
-import { buildUgandaAcademicTerms } from "@/lib/uganda-school-calendar";
-import {
-  getDefaultClassTemplates,
-  type SchoolSetupType,
-} from "@/lib/school-setup";
+import { Button } from "@/components/ui";
+import { logger } from "@/lib/logger";
 import { getErrorMessage } from "@/lib/validation";
 import Image from "next/image";
-import { logger } from "@/lib/logger";
 
 interface Props {
   onComplete?: () => void;
 }
 
-const SETUP_STEPS = [
-  {
-    key: "academic_calendar",
-    title: "Academic Calendar",
-    icon: "calendar_month",
-    route: "/dashboard/settings?tab=config",
-  },
-  {
-    key: "class_structure",
-    title: "Classes & Streams",
-    icon: "school",
-    route: "/dashboard/settings?tab=config",
-  },
-  {
-    key: "fee_structure",
-    title: "Fee Structure",
-    icon: "payments",
-    route: "/dashboard/fees",
-  },
-  {
-    key: "report_card_branding",
-    title: "Report Card",
-    icon: "badge",
-    route: "/dashboard/settings?tab=config",
-  },
-  {
-    key: "staff_accounts",
-    title: "Staff Accounts",
-    icon: "people",
-    route: "/dashboard/settings?tab=users",
-  },
-  {
-    key: "sms_templates",
-    title: "SMS Templates",
-    icon: "sms",
-    route: "/dashboard/sms-templates",
-  },
-  {
-    key: "sms_automation",
-    title: "SMS Automation",
-    icon: "sync_alt",
-    route: "/dashboard/settings?tab=config",
-  },
-  {
-    key: "grading",
-    title: "Grading",
-    icon: "grade",
-    route: "/dashboard/settings?tab=config",
-  },
-  {
-    key: "signatures",
-    title: "Signatures",
-    icon: "signature",
-    route: "/dashboard/settings?tab=config",
-  },
-  {
-    key: "import_students",
-    title: "Import Students",
-    icon: "group_add",
-    route: "/dashboard/students",
-  },
+const OPTIONAL_STEPS = [
+  { key: "sms_automation", title: "SMS Automation", icon: "sync_alt", desc: "Auto-send fee reminders, absence alerts, and more" },
+  { key: "import_students", title: "Import Students", icon: "group_add", desc: "Bulk upload students from a CSV file" },
+  { key: "signatures", title: "Signatures", icon: "signature", desc: "Upload headteacher & class teacher signatures" },
 ];
 
 export default function PostOnboardingSetup({ onComplete }: Props) {
-  const router = useRouter();
   const { school, refreshSchool } = useAuth();
   const toast = useToast();
   const [isOpen, setIsOpen] = useState(true);
   const [completed, setCompleted] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-
-  const currentYear = new Date().getFullYear().toString();
-  const schoolType = (school?.school_type || "primary") as SchoolSetupType;
-
-  // Inline form states
-  const [reportBrand, setReportBrand] = useState({
-    header: ((school as unknown as Record<string, unknown>)?.report_header_text as string) || "",
-    footer: ((school as unknown as Record<string, unknown>)?.report_footer_text as string) || "",
-    receipt_footer: ((school as unknown as Record<string, unknown>)?.receipt_footer_text as string) || "",
-    show_position: (school as unknown as Record<string, unknown>)?.show_position_in_report !== false,
-    show_conduct: (school as unknown as Record<string, unknown>)?.show_conduct_in_report !== false,
-    show_attendance: (school as unknown as Record<string, unknown>)?.show_attendance_in_report !== false,
-    show_remarks: (school as unknown as Record<string, unknown>)?.show_remarks_in_report !== false,
-  });
-
-  const [terms, setTerms] = useState(
-    buildUgandaAcademicTerms("preview", currentYear).map((term) => ({
-      name: term.name,
-      code: term.code,
-      term_number: term.term_number,
-      start: term.start_date,
-      end: term.end_date,
-    })),
-  );
-  const [classes, setClasses] = useState<{ name: string; stream: string }[]>(
-    getDefaultClassTemplates(schoolType).map((cls) => ({
-      name: cls.name,
-      stream: cls.stream,
-    })),
-  );
-  const [fees, setFees] = useState<
-    { name: string; amount: string; category: string; class_id: string | null }[]
-  >([
-    { name: "Tuition", amount: "150000", category: "Tuition", class_id: null },
-    { name: "Development", amount: "50000", category: "Development", class_id: null },
-  ]);
-  const [applyFeeToAllClasses, setApplyFeeToAllClasses] = useState(true);
+  const [uploadingSignature, setUploadingSignature] = useState(false);
 
   const [smsAutomations, setSmsAutomations] = useState([
     { event_type: "fee_overdue", message_template: "", is_active: false, name: "Send fee reminder" },
@@ -136,17 +36,6 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     { event_type: "report_card_ready", message_template: "", is_active: false, name: "Report card ready" },
     { event_type: "exam_results", message_template: "", is_active: false, name: "Exam result published" },
   ]);
-
-  const [gradingPrefs, setGradingPrefs] = useState({
-    passing_mark: 50,
-    grades: [
-      { label: "A", min: 80, max: 100 },
-      { label: "B", min: 70, max: 79 },
-      { label: "C", min: 60, max: 69 },
-      { label: "D", min: 50, max: 59 },
-      { label: "E", min: 0, max: 49 },
-    ],
-  });
 
   const [signatures, setSignatures] = useState<{
     headteacher: File | null;
@@ -159,7 +48,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     headteacherPreview: "",
     classTeacherPreview: "",
   });
-  const [uploadingSignature, setUploadingSignature] = useState(false);
+
   const [importState, setImportState] = useState<{
     step: "upload" | "preview" | "importing" | "complete";
     rows: Record<string, string>[];
@@ -244,26 +133,6 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     checkCompletedItems();
   }, [checkCompletedItems]);
 
-  useEffect(() => {
-    setTerms(
-      buildUgandaAcademicTerms(school?.id || "preview", currentYear).map(
-        (term) => ({
-          name: term.name,
-          code: term.code,
-          term_number: term.term_number,
-          start: term.start_date,
-          end: term.end_date,
-        }),
-      ),
-    );
-    setClasses(
-      getDefaultClassTemplates(schoolType).map((cls) => ({
-        name: cls.name,
-        stream: cls.stream,
-      })),
-    );
-  }, [school?.id, schoolType, currentYear]);
-
   const markComplete = async (key: string) => {
     if (!school?.id) return;
     try {
@@ -279,129 +148,10 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
           { onConflict: "school_id,item_key" },
         );
       if (error) throw error;
-      setCompleted([...completed, key]);
-      toast.success(`${SETUP_STEPS.find((s) => s.key === key)?.title} complete!`);
+      setCompleted((prev) => [...prev, key]);
+      toast.success(`${OPTIONAL_STEPS.find((s) => s.key === key)?.title} marked complete!`);
     } catch (err) {
       logger.warn("markComplete failed:", getErrorMessage(err));
-    }
-  };
-
-  const saveTerms = async () => {
-    if (!school?.id) return;
-    setLoading(true);
-    try {
-      const termRows = terms
-        .filter((term) => term.start && term.end)
-        .map((term) => ({
-          school_id: school.id,
-          name: term.name,
-          code: term.code || `T${term.term_number}-${new Date().getFullYear()}`,
-          term_number: term.term_number || 0,
-          start_date: term.start,
-          end_date: term.end,
-          academic_year: new Date().getFullYear().toString(),
-          is_current: false,
-        }));
-
-      if (termRows.length > 0) {
-        const { error } = await supabase.from("academic_terms").upsert(termRows, {
-          onConflict: "school_id,term_number,academic_year",
-        });
-        if (error) throw error;
-      }
-
-      await markComplete("academic_calendar");
-    } catch (err: unknown) {
-      toast.error(getErrorMessage(err, "Failed to save terms"));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const saveClasses = async () => {
-    if (!school?.id) return;
-    setLoading(true);
-    try {
-      const classRows = classes
-        .filter((cls) => cls.name)
-        .map((cls) => ({
-          school_id: school.id,
-          name: cls.name,
-          stream: cls.stream || null,
-          level: cls.name.startsWith("P") ? "primary" : "secondary",
-          academic_year: new Date().getFullYear().toString(),
-        }));
-
-      if (classRows.length > 0) {
-        const { error } = await supabase.from("classes").upsert(classRows, {
-          onConflict: "school_id,name,academic_year",
-        });
-        if (error) throw error;
-      }
-
-      await markComplete("class_structure");
-    } catch (err: unknown) {
-      toast.error(getErrorMessage(err, "Failed to save classes"));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const saveFees = async () => {
-    if (!school?.id) return;
-    setLoading(true);
-    try {
-      const year = new Date().getFullYear().toString();
-      const feeRows = fees
-        .filter((fee) => fee.name && parseFloat(fee.amount) > 0)
-        .map((fee) => ({
-          school_id: school.id,
-          name: fee.name,
-          amount: parseFloat(fee.amount),
-          category: fee.category,
-          class_id: applyFeeToAllClasses ? null : fee.class_id || null,
-          term: 1,
-          academic_year: year,
-        }));
-
-      if (feeRows.length > 0) {
-        const { error: insertError } = await supabase
-          .from("fee_structure")
-          .insert(feeRows);
-        if (insertError) throw insertError;
-      }
-
-      await markComplete("fee_structure");
-    } catch (err: unknown) {
-      toast.error(getErrorMessage(err, "Failed to save fees"));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const saveReportBranding = async () => {
-    if (!school?.id) return;
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from("schools")
-        .update({
-          report_header_text: reportBrand.header || null,
-          report_footer_text: reportBrand.footer || null,
-          receipt_footer_text: reportBrand.receipt_footer || null,
-          show_position_in_report: reportBrand.show_position,
-          show_conduct_in_report: reportBrand.show_conduct,
-          show_attendance_in_report: reportBrand.show_attendance,
-          show_remarks_in_report: reportBrand.show_remarks,
-        })
-        .eq("id", school.id);
-      if (error) throw error;
-      await markComplete("report_card_branding");
-      toast.success("Report card settings saved");
-    } catch (err: unknown) {
-      toast.error(getErrorMessage(err, "Failed to save report card settings"));
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -430,34 +180,6 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
       await markComplete("sms_automation");
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to save SMS automations"));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const saveGradingPrefs = async () => {
-    if (!school?.id) return;
-    setLoading(true);
-    try {
-      const { error: pmError } = await supabase
-        .from("school_settings")
-        .upsert(
-          { school_id: school.id, key: "passing_mark", value: String(gradingPrefs.passing_mark) },
-          { onConflict: "school_id,key" },
-        );
-      if (pmError) throw pmError;
-
-      const { error: gradesError } = await supabase
-        .from("school_settings")
-        .upsert(
-          { school_id: school.id, key: "grade_labels", value: JSON.stringify(gradingPrefs.grades) },
-          { onConflict: "school_id,key" },
-        );
-      if (gradesError) throw gradesError;
-
-      await markComplete("grading");
-    } catch (err: unknown) {
-      toast.error(getErrorMessage(err, "Failed to save grading preferences"));
     } finally {
       setLoading(false);
     }
@@ -551,22 +273,22 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
 
   if (!school) return null;
 
-  const incompleteSteps = SETUP_STEPS.filter((s) => !completed.includes(s.key));
-  const progress = Math.round(
-    ((SETUP_STEPS.length - incompleteSteps.length) / SETUP_STEPS.length) * 100,
-  );
+  const incompleteSteps = OPTIONAL_STEPS.filter((s) => !completed.includes(s.key));
+  const progress = OPTIONAL_STEPS.length > 0
+    ? Math.round(((OPTIONAL_STEPS.length - incompleteSteps.length) / OPTIONAL_STEPS.length) * 100)
+    : 100;
 
   return (
     <>
       {/* Collapsed State - Floating Button */}
-      {!isOpen && completed.length < SETUP_STEPS.length && (
+      {!isOpen && incompleteSteps.length > 0 && (
         <div className="fixed bottom-24 right-6 md:bottom-6 z-[85]">
           <button
             onClick={() => setIsOpen(true)}
             className="flex items-center gap-3 rounded-full border border-[#d7dfea] bg-white px-3 py-2 text-[var(--t1)] shadow-[0_18px_40px_rgba(11,28,57,0.16)] transition-all hover:-translate-y-0.5"
           >
             <OwlMascot size={40} premium />
-            <span className="font-medium">Setup ({progress}%)</span>
+            <span className="font-medium">Optional Setup ({progress}%)</span>
           </button>
         </div>
       )}
@@ -579,10 +301,12 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
             <div className="flex items-center gap-3">
               <OwlMascot size={46} premium ring glow />
               <div>
-              <h2 className="font-bold text-[var(--on-surface)]">
-                School Setup
-              </h2>
-              <p className="text-sm text-[var(--t3)]">{progress}% complete</p>
+                <h2 className="font-bold text-[var(--on-surface)]">
+                  Optional Setup
+                </h2>
+                <p className="text-sm text-[var(--t3)]">
+                  {incompleteSteps.length === 0 ? "All done!" : `${incompleteSteps.length} remaining`}
+                </p>
               </div>
             </div>
             <button
@@ -594,12 +318,14 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
           </div>
 
           {/* Progress Bar */}
-          <div className="h-1 bg-[var(--border)]">
-            <div
-              className="h-full bg-[var(--primary)] transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
+          {OPTIONAL_STEPS.length > 0 && (
+            <div className="h-1 bg-[var(--border)]">
+              <div
+                className="h-full bg-[var(--primary)] transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          )}
 
           {/* Content */}
           <div className="p-4 overflow-y-auto h-[calc(100vh-120px)] space-y-4">
@@ -608,9 +334,9 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                 <div className="mx-auto mb-4 flex justify-center">
                   <OwlMascot size={72} premium ring glow animated />
                 </div>
-                <h3 className="font-bold text-lg mb-2">All Done! 🎉</h3>
+                <h3 className="font-bold text-lg mb-2">All Done!</h3>
                 <p className="text-[var(--t3)] mb-6">
-                  Your school is ready to use.
+                  Your school is fully configured.
                 </p>
                 <Button onClick={onComplete} className="w-full">
                   Go to Dashboard
@@ -624,272 +350,21 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                 </Button>
               </div>
             ) : (
-              incompleteSteps.map((step, idx) => (
-                <Card key={step.key} className={idx === 0 ? "ring-2 ring-[var(--primary)]" : ""}>
+              incompleteSteps.map((item, idx) => (
+                <Card key={item.key} className={idx === 0 ? "ring-2 ring-[var(--primary)]" : ""}>
                   <CardBody className="p-4">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="flex h-11 w-11 items-center justify-center rounded-[16px] border border-[#dbe3ed] bg-white shadow-sm">
-                        <MaterialIcon
-                          icon={step.icon}
-                          className="text-[var(--primary)]"
-                        />
+                        <MaterialIcon icon={item.icon} className="text-[var(--primary)]" />
                       </div>
                       <div>
-                        <h3 className="font-semibold">{step.title}</h3>
-                        <p className="text-xs text-[var(--t3)]">
-                          {idx === 0 ? "Required" : "Optional"}
-                        </p>
+                        <h3 className="font-semibold">{item.title}</h3>
+                        <p className="text-xs text-[var(--t3)]">{item.desc}</p>
                       </div>
                     </div>
 
-                    {/* Inline Forms */}
-                    {idx === 0 && step.key === "academic_calendar" && (
-                      <div className="space-y-3 mb-4">
-                        {terms.map((term, i) => (
-                          <div key={i} className="grid grid-cols-2 gap-2">
-                            <input
-                              type="text"
-                              value={term.name}
-                              readOnly
-                              className="input text-sm bg-gray-50"
-                            />
-                            <input
-                              type="date"
-                              value={term.start}
-                              onChange={(e) => {
-                                const newTerms = [...terms];
-                                newTerms[i].start = e.target.value;
-                                setTerms(newTerms);
-                              }}
-                              className="input text-sm"
-                              placeholder="Start"
-                            />
-                          </div>
-                        ))}
-                        <Button
-                          size="sm"
-                          onClick={saveTerms}
-                          loading={loading}
-                          className="w-full"
-                        >
-                          Save Terms
-                        </Button>
-                      </div>
-                    )}
-
-                    {idx === 0 && step.key === "class_structure" && (
-                      <div className="space-y-3 mb-4">
-                        {classes.map((cls, i) => (
-                          <div key={i} className="flex gap-2">
-                            <input
-                              type="text"
-                              value={cls.name}
-                              onChange={(e) => {
-                                const newClasses = [...classes];
-                                newClasses[i].name = e.target.value;
-                                setClasses(newClasses);
-                              }}
-                              className="input text-sm flex-1"
-                              placeholder="Class (e.g., P.1)"
-                            />
-                            <input
-                              type="text"
-                              value={cls.stream}
-                              onChange={(e) => {
-                                const newClasses = [...classes];
-                                newClasses[i].stream = e.target.value;
-                                setClasses(newClasses);
-                              }}
-                              className="input text-sm flex-1"
-                              placeholder="Stream (optional)"
-                            />
-                          </div>
-                        ))}
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() =>
-                            setClasses([...classes, { name: "", stream: "" }])
-                          }
-                          className="w-full"
-                        >
-                          <MaterialIcon icon="add" className="text-sm" /> Add
-                          Class
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={saveClasses}
-                          loading={loading}
-                          className="w-full"
-                        >
-                          Save Classes
-                        </Button>
-                      </div>
-                    )}
-
-                    {idx === 0 && step.key === "fee_structure" && (
-                      <div className="space-y-3 mb-4">
-                        <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-50">
-                          <input
-                            type="checkbox"
-                            checked={applyFeeToAllClasses}
-                            onChange={() => setApplyFeeToAllClasses(!applyFeeToAllClasses)}
-                            className="rounded"
-                          />
-                          Apply to all classes
-                        </label>
-                        {fees.map((fee, i) => (
-                          <div key={i} className="space-y-2 rounded-xl border border-slate-200 bg-white p-3">
-                            <div className="flex gap-2">
-                              <input
-                                type="text"
-                                value={fee.name}
-                                onChange={(e) => {
-                                  const newFees = [...fees];
-                                  newFees[i].name = e.target.value;
-                                  setFees(newFees);
-                                }}
-                                className="input text-sm flex-1"
-                                placeholder="Fee name"
-                              />
-                              <input
-                                type="number"
-                                value={fee.amount}
-                                onChange={(e) => {
-                                  const newFees = [...fees];
-                                  newFees[i].amount = e.target.value;
-                                  setFees(newFees);
-                                }}
-                                className="input text-sm w-28"
-                                placeholder="UGX"
-                              />
-                            </div>
-                            <div className="flex gap-2">
-                              <select
-                                value={fee.category}
-                                onChange={(e) => {
-                                  const newFees = [...fees];
-                                  newFees[i].category = e.target.value;
-                                  setFees(newFees);
-                                }}
-                                className="input text-sm flex-1"
-                              >
-                                <option value="Tuition">Tuition</option>
-                                <option value="Development">Development</option>
-                                <option value="PTA">PTA</option>
-                                <option value="Lunch">Lunch</option>
-                                <option value="Transport">Transport</option>
-                                <option value="Other">Other</option>
-                              </select>
-                            </div>
-                          </div>
-                        ))}
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() =>
-                            setFees([...fees, { name: "", amount: "", category: "Tuition", class_id: null }])
-                          }
-                          className="w-full"
-                        >
-                          <MaterialIcon icon="add" className="text-sm" /> Add
-                          Fee
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={saveFees}
-                          loading={loading}
-                          className="w-full"
-                        >
-                          Save Fees
-                        </Button>
-                      </div>
-                    )}
-
-                    {idx === 0 && step.key === "report_card_branding" && (
-                      <div className="space-y-3 mb-4">
-                        <div>
-                          <label className="text-xs font-semibold text-slate-600 mb-1 block">
-                            Report Header Text
-                          </label>
-                          <input
-                            type="text"
-                            value={reportBrand.header}
-                            onChange={(e) =>
-                              setReportBrand({ ...reportBrand, header: e.target.value })
-                            }
-                            className="input text-sm w-full"
-                            placeholder="Annual Academic Report"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs font-semibold text-slate-600 mb-1 block">
-                            Report Footer Text
-                          </label>
-                          <input
-                            type="text"
-                            value={reportBrand.footer}
-                            onChange={(e) =>
-                              setReportBrand({ ...reportBrand, footer: e.target.value })
-                            }
-                            className="input text-sm w-full"
-                            placeholder="Education is the key to success"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs font-semibold text-slate-600 mb-1 block">
-                            Receipt Footer Text
-                          </label>
-                          <input
-                            type="text"
-                            value={reportBrand.receipt_footer}
-                            onChange={(e) =>
-                              setReportBrand({ ...reportBrand, receipt_footer: e.target.value })
-                            }
-                            className="input text-sm w-full"
-                            placeholder="Thank you for your payment"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 pt-2">
-                          {[
-                            { key: "show_position", label: "Show Position" },
-                            { key: "show_conduct", label: "Show Conduct" },
-                            { key: "show_attendance", label: "Show Attendance" },
-                            { key: "show_remarks", label: "Show Remarks" },
-                          ].map((item) => (
-                            <label
-                              key={item.key}
-                              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-50"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={
-                                  reportBrand[item.key as keyof typeof reportBrand] as boolean
-                                }
-                                onChange={() =>
-                                  setReportBrand({
-                                    ...reportBrand,
-                                    [item.key]: !reportBrand[item.key as keyof typeof reportBrand],
-                                  })
-                                }
-                                className="rounded"
-                              />
-                              {item.label}
-                            </label>
-                          ))}
-                        </div>
-                        <Button
-                          size="sm"
-                          onClick={saveReportBranding}
-                          loading={loading}
-                          className="w-full"
-                        >
-                          Save Report Settings
-                        </Button>
-                      </div>
-                    )}
-
-                    {idx === 0 && step.key === "sms_automation" && (
+                    {/* SMS Automation */}
+                    {item.key === "sms_automation" && (
                       <div className="space-y-3 mb-4">
                         {smsAutomations.map((auto, i) => (
                           <div key={auto.event_type} className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
@@ -914,7 +389,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                   next[i].message_template = e.target.value;
                                   setSmsAutomations(next);
                                 }}
-                                className="input text-sm w-full"
+                                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
                                 rows={2}
                                 placeholder="Optional message template..."
                               />
@@ -932,143 +407,8 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                       </div>
                     )}
 
-                    {idx === 0 && step.key === "grading" && (
-                      <div className="space-y-3 mb-4">
-                        <div>
-                          <label className="text-xs font-semibold text-slate-600 mb-1 block">
-                            Passing Mark
-                          </label>
-                          <input
-                            type="number"
-                            value={gradingPrefs.passing_mark}
-                            onChange={(e) =>
-                              setGradingPrefs({ ...gradingPrefs, passing_mark: parseInt(e.target.value) || 0 })
-                            }
-                            className="input text-sm w-full"
-                            min={0}
-                            max={100}
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs font-semibold text-slate-600 mb-1 block">
-                            Grade Labels &amp; Score Ranges
-                          </label>
-                          {gradingPrefs.grades.map((g, i) => (
-                            <div key={g.label} className="flex gap-2 items-center mb-2">
-                              <span className="text-sm font-bold w-8">{g.label}</span>
-                              <input
-                                type="number"
-                                value={g.min}
-                                onChange={(e) => {
-                                  const newGrades = [...gradingPrefs.grades];
-                                  newGrades[i].min = parseInt(e.target.value) || 0;
-                                  setGradingPrefs({ ...gradingPrefs, grades: newGrades });
-                                }}
-                                className="input text-sm w-20"
-                                placeholder="Min"
-                              />
-                              <span className="text-xs text-slate-400">to</span>
-                              <input
-                                type="number"
-                                value={g.max}
-                                onChange={(e) => {
-                                  const newGrades = [...gradingPrefs.grades];
-                                  newGrades[i].max = parseInt(e.target.value) || 0;
-                                  setGradingPrefs({ ...gradingPrefs, grades: newGrades });
-                                }}
-                                className="input text-sm w-20"
-                                placeholder="Max"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                        <Button
-                          size="sm"
-                          onClick={saveGradingPrefs}
-                          loading={loading}
-                          className="w-full"
-                        >
-                          Save Grading Preferences
-                        </Button>
-                      </div>
-                    )}
-
-                    {idx === 0 && step.key === "signatures" && (
-                      <div className="space-y-3 mb-4">
-                        <div>
-                          <label className="text-xs font-semibold text-slate-600 mb-1 block">
-                            Headteacher Signature
-                          </label>
-                          {signatures.headteacherPreview && (
-                            <div className="mb-2">
-                              <Image
-                                src={signatures.headteacherPreview}
-                                alt="Headteacher signature preview"
-                                width={80}
-                                height={80}
-                                className="max-h-16 border border-slate-200 rounded"
-                              />
-                            </div>
-                          )}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                setSignatures({
-                                  ...signatures,
-                                  headteacher: file,
-                                  headteacherPreview: URL.createObjectURL(file),
-                                });
-                              }
-                            }}
-                            className="text-sm w-full"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs font-semibold text-slate-600 mb-1 block">
-                            Class Teacher Signature
-                          </label>
-                          {signatures.classTeacherPreview && (
-                            <div className="mb-2">
-                              <Image
-                                src={signatures.classTeacherPreview}
-                                alt="Class teacher signature preview"
-                                width={80}
-                                height={80}
-                                className="max-h-16 border border-slate-200 rounded"
-                              />
-                            </div>
-                          )}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                setSignatures({
-                                  ...signatures,
-                                  class_teacher: file,
-                                  classTeacherPreview: URL.createObjectURL(file),
-                                });
-                              }
-                            }}
-                            className="text-sm w-full"
-                          />
-                        </div>
-                        <Button
-                          size="sm"
-                          onClick={saveSignatures}
-                          loading={uploadingSignature}
-                          className="w-full"
-                        >
-                          Upload Signatures
-                        </Button>
-                      </div>
-                    )}
-
-                    {step.key === "import_students" && (
+                    {/* Student Import */}
+                    {item.key === "import_students" && (
                       <div className="space-y-3 mb-4">
                         {importState.step === "upload" && (
                           <div className="space-y-3">
@@ -1150,31 +490,99 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                       </div>
                     )}
 
-                    {/* Action Buttons */}
-                    {idx > 0 && (
-                      <div className="flex gap-2">
+                    {/* Signatures */}
+                    {item.key === "signatures" && (
+                      <div className="space-y-3 mb-4">
+                        <div>
+                          <label className="text-xs font-semibold text-slate-600 mb-1 block">
+                            Headteacher Signature
+                          </label>
+                          {signatures.headteacherPreview && (
+                            <div className="mb-2">
+                              <Image
+                                src={signatures.headteacherPreview}
+                                alt="Headteacher signature preview"
+                                width={80}
+                                height={80}
+                                unoptimized
+                                className="max-h-16 border border-slate-200 rounded"
+                              />
+                            </div>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setSignatures({
+                                  ...signatures,
+                                  headteacher: file,
+                                  headteacherPreview: URL.createObjectURL(file),
+                                });
+                              }
+                            }}
+                            className="text-sm w-full"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-slate-600 mb-1 block">
+                            Class Teacher Signature
+                          </label>
+                          {signatures.classTeacherPreview && (
+                            <div className="mb-2">
+                              <Image
+                                src={signatures.classTeacherPreview}
+                                alt="Class teacher signature preview"
+                                width={80}
+                                height={80}
+                                unoptimized
+                                className="max-h-16 border border-slate-200 rounded"
+                              />
+                            </div>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setSignatures({
+                                  ...signatures,
+                                  class_teacher: file,
+                                  classTeacherPreview: URL.createObjectURL(file),
+                                });
+                              }
+                            }}
+                            className="text-sm w-full"
+                          />
+                        </div>
                         <Button
                           size="sm"
-                          className="flex-1"
-                          onClick={() => router.push(step.route)}
+                          onClick={saveSignatures}
+                          loading={uploadingSignature}
+                          className="w-full"
                         >
-                          Configure
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => markComplete(step.key)}
-                        >
-                          Skip
+                          Upload Signatures
                         </Button>
                       </div>
                     )}
+
+                    {/* Skip button */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => markComplete(item.key)}
+                      className="w-full"
+                    >
+                      Skip for now
+                    </Button>
                   </CardBody>
                 </Card>
               ))
             )}
 
-            {/* Skip All */}
+            {/* Skip All / Done */}
             {incompleteSteps.length > 0 && (
               <div className="pt-4 border-t">
                 <Button

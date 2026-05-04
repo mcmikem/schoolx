@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -23,12 +23,18 @@ import {
 import {
   buildDefaultClasses,
   buildDefaultTimetableSlots,
+  getDefaultClassTemplates,
   type SchoolSetupType,
 } from "@/lib/school-setup";
 import { saveSchoolSetting } from "@/lib/school-settings";
 import { PRIMARY_TEMPLATE, SECONDARY_TEMPLATE } from "@/lib/curriculum-templates";
 import { logger } from "@/lib/logger";
 import { getErrorMessage } from "@/lib/validation";
+
+interface StepConfig {
+  title: string;
+  icon: string;
+}
 
 export default function OnboardingFlow({
   onComplete,
@@ -39,14 +45,19 @@ export default function OnboardingFlow({
   const toast = useToast();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+
+  const currentYear = new Date().getFullYear().toString();
+  const schoolType = (school?.school_type as SchoolSetupType) || "primary";
+
+  // Step 2: School details
   const [branding, setBranding] = useState({
     primary_color: school?.primary_color || "#0d9488",
     accent_color: school?.accent_color || "#3b82f6",
     logo_url: school?.logo_url || "",
   });
   const [uploadingLogo, setUploadingLogo] = useState(false);
-
-  // School details that can be edited during onboarding
   const [schoolDetails, setSchoolDetails] = useState({
     name: school?.name || "",
     district: school?.district || "",
@@ -59,9 +70,178 @@ export default function OnboardingFlow({
     ownership: school?.ownership || "private",
     address: school?.address || "",
   });
-  const [schoolType, setSchoolType] = useState<SchoolSetupType>(
-    (school?.school_type as SchoolSetupType) || "primary",
+  const [localSchoolType, setLocalSchoolType] = useState<SchoolSetupType>(schoolType);
+
+  // Step 3: Curriculum
+  const getTemplateForType = (type: SchoolSetupType) => {
+    if (type === "secondary") return SECONDARY_TEMPLATE;
+    if (type === "combined")
+      return {
+        classes: [...PRIMARY_TEMPLATE.classes, ...SECONDARY_TEMPLATE.classes],
+        subjects: [...PRIMARY_TEMPLATE.subjects, ...SECONDARY_TEMPLATE.subjects],
+      };
+    return PRIMARY_TEMPLATE;
+  };
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>(() =>
+    getTemplateForType(localSchoolType).subjects.map((s) => s.name),
   );
+  const ADDITIONAL_OPTIONAL_SUBJECTS: { name: string; code: string }[] = [
+    { name: "Music", code: "MUS" },
+    { name: "Physical Education", code: "PE" },
+    { name: "Islamic Studies", code: "ISL" },
+    { name: "Arabic", code: "ARB" },
+    { name: "French", code: "FRN" },
+    { name: "Additional Mathematics", code: "ADM" },
+    { name: "Home Economics", code: "HEC" },
+  ];
+
+  // Step 4: Boarding
+  const [boardingConfig, setBoardingConfig] = useState({
+    hasBoarding: false,
+    dormCount: 1,
+    dormitories: [{ name: "", type: "boys" as "boys" | "girls", capacity: 40 }],
+    hasHouses: false,
+    houseCount: 1,
+    houses: [""],
+  });
+
+  // Step 5: Academic Calendar
+  const [terms, setTerms] = useState(
+    buildUgandaAcademicTerms("preview", currentYear).map((term) => ({
+      name: term.name,
+      code: term.code,
+      term_number: term.term_number,
+      start: term.start_date,
+      end: term.end_date,
+    })),
+  );
+
+  // Step 6: Fee Structure
+  const [fees, setFees] = useState<
+    { name: string; amount: string; category: string }[]
+  >([
+    { name: "Tuition", amount: "150000", category: "Tuition" },
+    { name: "Development", amount: "50000", category: "Development" },
+  ]);
+  const [applyFeeToAllClasses, setApplyFeeToAllClasses] = useState(true);
+
+  // Step 7: Grading
+  const [gradingPrefs, setGradingPrefs] = useState({
+    passing_mark: 50,
+    grades: [
+      { label: "A", min: 80, max: 100 },
+      { label: "B", min: 70, max: 79 },
+      { label: "C", min: 60, max: 69 },
+      { label: "D", min: 50, max: 59 },
+      { label: "E", min: 0, max: 49 },
+    ],
+  });
+
+  // Step 8: Report Card Branding
+  const [reportBrand, setReportBrand] = useState({
+    header: ((school as unknown as Record<string, unknown>)?.report_header_text as string) || "",
+    footer: ((school as unknown as Record<string, unknown>)?.report_footer_text as string) || "",
+    receipt_footer: ((school as unknown as Record<string, unknown>)?.receipt_footer_text as string) || "",
+    show_position: (school as unknown as Record<string, unknown>)?.show_position_in_report !== false,
+    show_conduct: (school as unknown as Record<string, unknown>)?.show_conduct_in_report !== false,
+    show_attendance: (school as unknown as Record<string, unknown>)?.show_attendance_in_report !== false,
+    show_remarks: (school as unknown as Record<string, unknown>)?.show_remarks_in_report !== false,
+  });
+
+  // Step 9: Features
+  const [featureStage, setFeatureStage] = useState<
+    "core" | "academic" | "finance" | "full"
+  >(
+    (school?.feature_stage as "core" | "academic" | "finance" | "full") ||
+      "core",
+  );
+
+  const selectedPlan = PLANS[normalizePlanType(school?.subscription_plan || "free")];
+
+  // Steps config
+  const steps: StepConfig[] = [
+    { title: "Welcome", icon: "waving_hand" },
+    { title: "School Info", icon: "domain" },
+    { title: "Curriculum", icon: "auto_stories" },
+    { title: "Boarding", icon: "hotel" },
+    { title: "Calendar", icon: "calendar_month" },
+    { title: "Fees", icon: "payments" },
+    { title: "Grading", icon: "grade" },
+    { title: "Reports", icon: "badge" },
+    { title: "Features", icon: "widgets" },
+    { title: "Launch", icon: "verified" },
+  ];
+
+  const TOTAL_STEPS = steps.length;
+
+  // Sync subjects when school type changes
+  useEffect(() => {
+    setSelectedSubjects(getTemplateForType(localSchoolType).subjects.map((s) => s.name));
+  }, [localSchoolType]);
+
+  // Sync terms when school ID changes
+  useEffect(() => {
+    if (school?.id) {
+      setTerms(
+        buildUgandaAcademicTerms(school.id, currentYear).map((term) => ({
+          name: term.name,
+          code: term.code,
+          term_number: term.term_number,
+          start: term.start_date,
+          end: term.end_date,
+        })),
+      );
+    }
+  }, [school?.id, currentYear]);
+
+  // Prevent background scrolling on desktop
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const apply = () => {
+      document.body.style.overflow = mq.matches ? "hidden" : "";
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => {
+      document.body.style.overflow = "";
+      mq.removeEventListener("change", apply);
+    };
+  }, []);
+
+  const markStepComplete = useCallback((stepNum: number) => {
+    setCompletedSteps((prev) => {
+      const next = new Set(prev);
+      next.add(stepNum);
+      return next;
+    });
+  }, []);
+
+  const compressImage = (
+    file: File,
+    maxW: number,
+    maxH: number,
+    quality: number,
+  ): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = h * maxW / w; w = maxW; }
+        if (h > maxH) { w = w * maxH / h; h = maxH; }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { reject(new Error("Canvas not available")); return; }
+        ctx.drawImage(img, 0, 0, w, h);
+        canvas.toBlob((b) => b ? resolve(b) : reject(new Error("Compression failed")), "image/jpeg", quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Failed to load image")); };
+      img.src = url;
+    });
+  };
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !school?.id) return;
@@ -103,112 +283,139 @@ export default function OnboardingFlow({
     }
   };
 
-  const compressImage = (
-    file: File,
-    maxW: number,
-    maxH: number,
-    quality: number,
-  ): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      const img = new window.Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-        let w = img.width, h = img.height;
-        if (w > maxW) { h = h * maxW / w; w = maxW; }
-        if (h > maxH) { w = w * maxH / h; h = maxH; }
-        const canvas = document.createElement("canvas");
-        canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) { reject(new Error("Canvas not available")); return; }
-        ctx.drawImage(img, 0, 0, w, h);
-        canvas.toBlob((b) => b ? resolve(b) : reject(new Error("Compression failed")), "image/jpeg", quality);
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Failed to load image")); };
-      img.src = url;
-    });
+  // Save terms (Step 5)
+  const saveTerms = async () => {
+    if (!school?.id) return;
+    setSaving(true);
+    try {
+      const termRows = terms
+        .filter((term) => term.start && term.end)
+        .map((term) => ({
+          school_id: school.id,
+          name: term.name,
+          code: term.code || `T${term.term_number}-${new Date().getFullYear()}`,
+          term_number: term.term_number || 0,
+          start_date: term.start,
+          end_date: term.end,
+          academic_year: new Date().getFullYear().toString(),
+          is_current: false,
+        }));
+
+      if (termRows.length > 0) {
+        const { error } = await supabase.from("academic_terms").upsert(termRows, {
+          onConflict: "school_id,term_number,academic_year",
+        });
+        if (error) throw error;
+      }
+
+      toast.success("Academic calendar saved");
+      markStepComplete(5);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save terms"));
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const [featureStage, setFeatureStage] = useState<
-    "core" | "academic" | "finance" | "full"
-  >(
-    (school?.feature_stage as "core" | "academic" | "finance" | "full") ||
-      "core",
-  );
+  // Save fees (Step 6)
+  const saveFees = async () => {
+    if (!school?.id) return;
+    setSaving(true);
+    try {
+      const year = new Date().getFullYear().toString();
+      const feeRows = fees
+        .filter((fee) => fee.name && parseFloat(fee.amount) > 0)
+        .map((fee) => ({
+          school_id: school.id,
+          name: fee.name,
+          amount: parseFloat(fee.amount),
+          category: fee.category,
+          class_id: applyFeeToAllClasses ? null : null,
+          term: 1,
+          academic_year: year,
+        }));
 
-  const getTemplateForType = (type: SchoolSetupType) => {
-    if (type === "secondary") return SECONDARY_TEMPLATE;
-    if (type === "combined")
-      return {
-        classes: [...PRIMARY_TEMPLATE.classes, ...SECONDARY_TEMPLATE.classes],
-        subjects: [
-          ...PRIMARY_TEMPLATE.subjects,
-          ...SECONDARY_TEMPLATE.subjects,
-        ],
-      };
-    return PRIMARY_TEMPLATE;
+      if (feeRows.length > 0) {
+        const { error: insertError } = await supabase
+          .from("fee_structure")
+          .insert(feeRows);
+        if (insertError) throw insertError;
+      }
+
+      toast.success("Fee structure saved");
+      markStepComplete(6);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save fees"));
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>(() =>
-    getTemplateForType(schoolType).subjects.map((s) => s.name),
-  );
+  // Save grading (Step 7)
+  const saveGradingPrefs = async () => {
+    if (!school?.id) return;
+    setSaving(true);
+    try {
+      const { error: pmError } = await supabase
+        .from("school_settings")
+        .upsert(
+          { school_id: school.id, key: "passing_mark", value: String(gradingPrefs.passing_mark) },
+          { onConflict: "school_id,key" },
+        );
+      if (pmError) throw pmError;
 
-  const ADDITIONAL_OPTIONAL_SUBJECTS: { name: string; code: string }[] = [
-    { name: "Music", code: "MUS" },
-    { name: "Physical Education", code: "PE" },
-    { name: "Islamic Studies", code: "ISL" },
-    { name: "Arabic", code: "ARB" },
-    { name: "French", code: "FRN" },
-    { name: "Additional Mathematics", code: "ADM" },
-    { name: "Home Economics", code: "HEC" },
-  ];
+      const { error: gradesError } = await supabase
+        .from("school_settings")
+        .upsert(
+          { school_id: school.id, key: "grade_labels", value: JSON.stringify(gradingPrefs.grades) },
+          { onConflict: "school_id,key" },
+        );
+      if (gradesError) throw gradesError;
 
-  const [boardingConfig, setBoardingConfig] = useState<{
-    hasBoarding: boolean;
-    dormCount: number;
-    dormitories: { name: string; type: "boys" | "girls"; capacity: number }[];
-    hasHouses: boolean;
-    houseCount: number;
-    houses: string[];
-  }>({
-    hasBoarding: false,
-    dormCount: 1,
-    dormitories: [{ name: "", type: "boys", capacity: 40 }],
-    hasHouses: false,
-    houseCount: 1,
-    houses: [""],
-  });
+      toast.success("Grading system saved");
+      markStepComplete(7);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save grading preferences"));
+    } finally {
+      setSaving(false);
+    }
+  };
 
-  useEffect(() => {
-    setSelectedSubjects(getTemplateForType(schoolType).subjects.map((s) => s.name));
-  }, [schoolType]);
+  // Save report branding (Step 8)
+  const saveReportBranding = async () => {
+    if (!school?.id) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("schools")
+        .update({
+          report_header_text: reportBrand.header || null,
+          report_footer_text: reportBrand.footer || null,
+          receipt_footer_text: reportBrand.receipt_footer || null,
+          show_position_in_report: reportBrand.show_position,
+          show_conduct_in_report: reportBrand.show_conduct,
+          show_attendance_in_report: reportBrand.show_attendance,
+          show_remarks_in_report: reportBrand.show_remarks,
+        })
+        .eq("id", school.id);
+      if (error) throw error;
+      toast.success("Report card settings saved");
+      markStepComplete(8);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save report card settings"));
+    } finally {
+      setSaving(false);
+    }
+  };
 
-  // Prevent background scrolling while onboarding is active (desktop only)
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
-    const apply = () => {
-      document.body.style.overflow = mq.matches ? "hidden" : "";
-    };
-    apply();
-    mq.addEventListener("change", apply);
-    return () => {
-      document.body.style.overflow = "";
-      mq.removeEventListener("change", apply);
-    };
-  }, []);
-
-  if (!school) return null;
-
+  // Final complete handler
   const handleComplete = async () => {
     setLoading(true);
     const failedSeeding: string[] = [];
     try {
-      const currentYear = new Date().getFullYear().toString();
-
-      // Build complete update with all onboarding settings
       const updateData: Record<string, unknown> = {
-        school_type: schoolType,
-        name: schoolDetails.name || school.name,
+        school_type: localSchoolType,
+        name: schoolDetails.name || school?.name || "",
         district: schoolDetails.district,
         subcounty: schoolDetails.subcounty,
         parish: schoolDetails.parish,
@@ -234,12 +441,9 @@ export default function OnboardingFlow({
       const { error } = await supabase
         .from("schools")
         .update(updateData)
-        .eq("id", school.id);
+        .eq("id", school!.id);
 
-      if (error) {
-        logger.error("Update error:", error);
-        throw error;
-      }
+      if (error) throw error;
 
       const checklistItems = [
         { item_key: "academic_calendar", item_label: "Academic Calendar" },
@@ -255,7 +459,7 @@ export default function OnboardingFlow({
       const { error: checklistError } = await supabase
         .from("setup_checklist")
         .upsert(
-          checklistItems.map((item) => ({ ...item, school_id: school.id })),
+          checklistItems.map((item) => ({ ...item, school_id: school!.id })),
           { onConflict: "school_id,item_key" },
         );
 
@@ -267,8 +471,8 @@ export default function OnboardingFlow({
         (async () => {
           try {
             await Promise.all([
-              saveSchoolSetting(school.id, "academic_year", currentYear),
-              saveSchoolSetting(school.id, "current_term", "1"),
+              saveSchoolSetting(school!.id, "academic_year", currentYear),
+              saveSchoolSetting(school!.id, "current_term", "1"),
             ]);
           } catch (settingsError) {
             logger.warn("Save school settings failed:", settingsError);
@@ -279,13 +483,13 @@ export default function OnboardingFlow({
             const { count } = await supabase
               .from("classes")
               .select("id", { count: "exact", head: true })
-              .eq("school_id", school.id)
+              .eq("school_id", school!.id)
               .eq("academic_year", currentYear);
 
             if (!count) {
               const classData = buildDefaultClasses(
-                school.id,
-                schoolType,
+                school!.id,
+                localSchoolType,
                 currentYear,
               );
               const { error: classError } = await supabase
@@ -313,11 +517,11 @@ export default function OnboardingFlow({
             const { count } = await supabase
               .from("academic_terms")
               .select("id", { count: "exact", head: true })
-              .eq("school_id", school.id)
+              .eq("school_id", school!.id)
               .eq("academic_year", currentYear);
 
             if (!count) {
-              const termData = buildUgandaAcademicTerms(school.id, currentYear);
+              const termData = buildUgandaAcademicTerms(school!.id, currentYear);
               const { error: termError } = await supabase
                 .from("academic_terms")
                 .insert(termData);
@@ -343,13 +547,13 @@ export default function OnboardingFlow({
             const { count } = await supabase
               .from("events")
               .select("id", { count: "exact", head: true })
-              .eq("school_id", school.id)
+              .eq("school_id", school!.id)
               .in("event_type", ["academic", "holiday"]);
 
             if (!count) {
               const { error: eventError } = await supabase
                 .from("events")
-                .insert(buildUgandaCalendarEvents(school.id, currentYear));
+                .insert(buildUgandaCalendarEvents(school!.id, currentYear));
               if (eventError) {
                 logger.warn("Events seeding failed:", eventError);
                 failedSeeding.push("Calendar Events");
@@ -365,12 +569,12 @@ export default function OnboardingFlow({
             const { count } = await supabase
               .from("timetable_slots")
               .select("id", { count: "exact", head: true })
-              .eq("school_id", school.id);
+              .eq("school_id", school!.id);
 
             if (!count) {
               const { error: slotError } = await supabase
                 .from("timetable_slots")
-                .insert(buildDefaultTimetableSlots(school.id));
+                .insert(buildDefaultTimetableSlots(school!.id));
               if (slotError) {
                 logger.warn("Timetable slots seeding failed:", slotError);
                 failedSeeding.push("Timetable Slots");
@@ -389,7 +593,7 @@ export default function OnboardingFlow({
           const dormsData = boardingConfig.dormitories
             .filter((d) => d.name.trim())
             .map((d) => ({
-              school_id: school.id,
+              school_id: school!.id,
               name: d.name.trim(),
               type: d.type,
               capacity: d.capacity,
@@ -415,7 +619,7 @@ export default function OnboardingFlow({
           const housesData = boardingConfig.houses
             .filter((h) => h.trim())
             .map((h) => ({
-              school_id: school.id,
+              school_id: school!.id,
               name: h.trim(),
             }));
           if (housesData.length > 0) {
@@ -454,22 +658,87 @@ export default function OnboardingFlow({
     }
   };
 
-  const steps = [
-    { title: "Welcome", icon: "waving_hand" },
-    { title: "Essentials", icon: "domain" },
-    { title: "Curriculum", icon: "auto_stories" },
-    { title: "Boarding & Houses", icon: "hotel" },
-    { title: "Features", icon: "widgets" },
-    { title: "Launch", icon: "verified" },
-  ];
+  const handleNext = (nextStep: number) => {
+    markStepComplete(step);
+    setStep(nextStep);
+  };
 
-  const selectedPlan = PLANS[normalizePlanType(school.subscription_plan)];
+  const handleBack = (prevStep: number) => {
+    setStep(prevStep);
+  };
+
+  if (!school) return null;
+
+  const progressPercent = Math.round((step / TOTAL_STEPS) * 100);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-[var(--bg)]/90 backdrop-blur-xl overflow-y-auto md:overflow-hidden">
+    <div className="fixed inset-0 z-[100] flex flex-col bg-white md:bg-[var(--bg)]/90 md:backdrop-blur-xl md:items-center md:justify-center">
+      {/* Mobile header with progress */}
+      <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-slate-100 bg-white sticky top-0 z-10">
+        <button
+          onClick={() => {
+            if (step > 1) handleBack(step - 1);
+            else onComplete();
+          }}
+          className="p-2 -ml-2 rounded-full hover:bg-slate-100 active:bg-slate-200"
+          aria-label="Go back"
+        >
+          <MaterialIcon icon="arrow_back" className="text-slate-600" />
+        </button>
+        <div className="flex-1">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-semibold text-slate-500">
+              Step {step} of {TOTAL_STEPS}
+            </span>
+            <span className="text-xs font-semibold text-teal-600">
+              {progressPercent}%
+            </span>
+          </div>
+          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-teal-500 rounded-full transition-all duration-300"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+        <button
+          onClick={onComplete}
+          className="p-2 -mr-2 rounded-full hover:bg-slate-100 active:bg-slate-200"
+          aria-label="Close onboarding"
+        >
+          <MaterialIcon icon="close" className="text-slate-400" />
+        </button>
+      </div>
+
+      {/* Mobile step dots */}
+      <div className="md:hidden flex items-center justify-center gap-1.5 py-2 bg-white border-b border-slate-100">
+        {steps.map((s, idx) => {
+          const stepNum = idx + 1;
+          const isActive = stepNum === step;
+          const isPassed = completedSteps.has(stepNum) || stepNum < step;
+          return (
+            <button
+              key={idx}
+              onClick={() => {
+                if (stepNum < step || completedSteps.has(stepNum)) {
+                  setStep(stepNum);
+                }
+              }}
+              className={`rounded-full transition-all duration-200 ${
+                isActive
+                  ? "w-6 h-2 bg-teal-500"
+                  : isPassed
+                    ? "w-2 h-2 bg-teal-300"
+                    : "w-2 h-2 bg-slate-200"
+              }`}
+              aria-label={`Go to step ${stepNum}: ${s.title}`}
+            />
+          );
+        })}
+      </div>
+
       <div
-        className="relative flex w-full h-auto min-h-[100dvh] md:min-h-auto md:h-full md:max-h-[80vh] flex-col md:overflow-y-auto md:overflow-x-hidden py-6 md:py-0 md:rounded-[36px] bg-white shadow-[0_38px_90px_rgba(15,23,42,0.16)] ring-1 ring-black/5 md:flex-row"
-        style={{ WebkitOverflowScrolling: "touch" }}
+        className="relative flex w-full h-full md:h-auto md:max-h-[80vh] flex-col md:flex-row md:overflow-hidden md:rounded-[36px] md:shadow-[0_38px_90px_rgba(15,23,42,0.16)] md:ring-1 md:ring-black/5"
       >
         {/* Left Side: Progress & Info - Desktop only */}
         <div className="relative hidden md:flex md:w-1/3 md:min-h-[600px] flex-col overflow-hidden bg-[linear-gradient(160deg,#0b1c39_0%,#17325f_54%,#1a4b79_100%)] p-10 text-white">
@@ -489,7 +758,7 @@ export default function OnboardingFlow({
               {steps.map((s, idx) => {
                 const stepNum = idx + 1;
                 const isActive = stepNum === step;
-                const isPassed = stepNum < step;
+                const isPassed = completedSteps.has(stepNum) || stepNum < step;
 
                 return (
                   <div
@@ -525,463 +794,423 @@ export default function OnboardingFlow({
         </div>
 
         {/* Right Side: Step Content */}
-        <div className="flex-1 flex flex-col p-4 md:p-8 lg:p-12 pb-24 md:pb-12 relative min-h-[400px] md:min-h-[600px] w-full md:max-w-lg">
-          <AnimatePresence mode="wait">
-            {step === 1 && (
-              <motion.div
-                key="step1"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="flex-1 flex flex-col justify-start md:justify-center max-w-md"
-              >
-                <OwlStage
-                  eyebrow="Launch setup"
-                  title="Welcome to SkoolMate OS"
-                  description="The owl will walk you through school essentials, curriculum defaults, feature activation, and launch settings in one clear flow."
-                  chips={[
-                    "School identity",
-                    "Curriculum defaults",
-                    "Launch-ready modules",
-                  ]}
-                  className="mb-8"
-                />
-                <Button
-                  variant="primary"
-                  onClick={() => setStep(2)}
-                  className="w-max"
-                  icon={<MaterialIcon icon="arrow_forward" />}
+        <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+          <div className="flex-1 p-4 md:p-8 lg:p-12">
+            <AnimatePresence mode="wait">
+              {/* Step 1: Welcome */}
+              {step === 1 && (
+                <motion.div
+                  key="step1"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="flex-1 flex flex-col justify-center max-w-md mx-auto"
                 >
-                  Let's Begin
-                </Button>
-              </motion.div>
-            )}
+                  <OwlStage
+                    eyebrow="Launch setup"
+                    title="Welcome to SkoolMate OS"
+                    description="The owl will walk you through school essentials, curriculum defaults, feature activation, and launch settings in one clear flow."
+                    chips={[
+                      "School identity",
+                      "Curriculum defaults",
+                      "Launch-ready modules",
+                    ]}
+                    className="mb-8"
+                  />
+                  <Button
+                    variant="primary"
+                    onClick={() => handleNext(2)}
+                    className="w-max"
+                    icon={<MaterialIcon icon="arrow_forward" />}
+                  >
+                    Let&apos;s Begin
+                  </Button>
+                </motion.div>
+              )}
 
-            {step === 2 && (
-              <motion.div
-                key="step2"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="flex-1 flex flex-col justify-start md:justify-center max-w-md"
-              >
-                <OwlStage
-                  compact
-                  eyebrow="School identity"
-                  title="School branding"
-                  description="Set the details staff and parents recognize immediately. These choices carry through receipts, report cards, and daily communication."
-                  chips={[
-                    "Official school name",
-                    "Local area details",
-                    "Primary theme color",
-                  ]}
-                  className="mb-8"
-                />
+              {/* Step 2: School Essentials */}
+              {step === 2 && (
+                <motion.div
+                  key="step2"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="flex-1 flex flex-col max-w-md mx-auto"
+                >
+                  <OwlStage
+                    compact
+                    eyebrow="School identity"
+                    title="School branding"
+                    description="Set the details staff and parents recognize immediately. These choices carry through receipts, report cards, and daily communication."
+                    chips={[
+                      "Official school name",
+                      "Local area details",
+                      "Primary theme color",
+                    ]}
+                    className="mb-6"
+                  />
 
-                <div className="space-y-6 mb-8">
-                  {/* School Name */}
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-3">
-                      School Name
-                    </label>
-                    <Input
-                      value={schoolDetails.name}
+                  <div className="space-y-4 mb-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        School Name
+                      </label>
+                      <Input
+                        value={schoolDetails.name}
+                        onChange={(e) =>
+                          setSchoolDetails({ ...schoolDetails, name: e.target.value })
+                        }
+                        placeholder="St. Mary&apos;s Primary School"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        School Motto <span className="text-slate-400 font-normal">(optional)</span>
+                      </label>
+                      <Input
+                        value={schoolDetails.motto}
+                        onChange={(e) =>
+                          setSchoolDetails({ ...schoolDetails, motto: e.target.value })
+                        }
+                        placeholder="For God and My Country"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Ownership Type
+                      </label>
+                      <select
+                        value={schoolDetails.ownership}
+                        onChange={(e) =>
+                          setSchoolDetails({ ...schoolDetails, ownership: e.target.value as "private" | "government" | "government_aided" })
+                        }
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-400"
+                      >
+                        <option value="private">Private</option>
+                        <option value="government">Government</option>
+                        <option value="government_aided">Government Aided</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        School Phone <span className="text-slate-400 font-normal">(optional)</span>
+                      </label>
+                      <Input
+                        value={schoolDetails.phone}
+                        onChange={(e) =>
+                          setSchoolDetails({ ...schoolDetails, phone: e.target.value })
+                        }
+                        placeholder="0772 123456"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        School Email <span className="text-slate-400 font-normal">(optional)</span>
+                      </label>
+                      <Input
+                        value={schoolDetails.email}
+                        onChange={(e) =>
+                          setSchoolDetails({ ...schoolDetails, email: e.target.value })
+                        }
+                        placeholder="admin@school.ug"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        UNEB Center Number <span className="text-slate-400 font-normal">(optional)</span>
+                      </label>
+                      <Input
+                        value={schoolDetails.uneb_center_number}
+                        onChange={(e) =>
+                          setSchoolDetails({ ...schoolDetails, uneb_center_number: e.target.value })
+                        }
+                        placeholder="U0012"
+                      />
+                    </div>
+
+                    <Select
+                      label="District"
+                      options={[
+                        { value: "", label: "Select district" },
+                        ...getDistrictOptions(),
+                      ]}
+                      value={schoolDetails.district}
                       onChange={(e) =>
                         setSchoolDetails({
                           ...schoolDetails,
-                          name: e.target.value,
+                          district: e.target.value,
+                          subcounty: "",
+                          parish: "",
                         })
                       }
-                      placeholder="St. Mary's Primary School"
                     />
-                  </div>
 
-                  {/* School Motto */}
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-3">
-                      School Motto <span className="text-slate-400 font-normal">(optional)</span>
-                    </label>
-                    <Input
-                      value={schoolDetails.motto}
+                    <Select
+                      label="Subcounty / Division"
+                      options={[
+                        { value: "", label: "Select subcounty or division" },
+                        ...getSubcountyOptions(schoolDetails.district),
+                      ]}
+                      value={schoolDetails.subcounty}
                       onChange={(e) =>
-                        setSchoolDetails({ ...schoolDetails, motto: e.target.value })
+                        setSchoolDetails({
+                          ...schoolDetails,
+                          subcounty: e.target.value,
+                          parish: "",
+                        })
                       }
-                      placeholder="For God and My Country"
                     />
-                  </div>
 
-                  {/* Ownership Type */}
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-3">
-                      Ownership Type
-                    </label>
-                    <select
-                      value={schoolDetails.ownership}
+                    <Select
+                      label="Parish / Ward"
+                      options={[
+                        { value: "", label: "Select parish or ward (optional)" },
+                        ...getParishOptions(
+                          schoolDetails.district,
+                          schoolDetails.subcounty,
+                        ),
+                      ]}
+                      value={schoolDetails.parish}
                       onChange={(e) =>
-                        setSchoolDetails({ ...schoolDetails, ownership: e.target.value as "private" | "government" | "government_aided" })
+                        setSchoolDetails({
+                          ...schoolDetails,
+                          parish: e.target.value,
+                        })
                       }
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-400"
-                    >
-                      <option value="private">Private</option>
-                      <option value="government">Government</option>
-                      <option value="government_aided">Government Aided</option>
-                    </select>
-                  </div>
-
-                  {/* Phone */}
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-3">
-                      School Phone <span className="text-slate-400 font-normal">(optional)</span>
-                    </label>
-                    <Input
-                      value={schoolDetails.phone}
-                      onChange={(e) =>
-                        setSchoolDetails({ ...schoolDetails, phone: e.target.value })
-                      }
-                      placeholder="0772 123456"
                     />
-                  </div>
 
-                  {/* Email */}
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-3">
-                      School Email <span className="text-slate-400 font-normal">(optional)</span>
-                    </label>
-                    <Input
-                      value={schoolDetails.email}
-                      onChange={(e) =>
-                        setSchoolDetails({ ...schoolDetails, email: e.target.value })
-                      }
-                      placeholder="admin@school.ug"
-                    />
-                  </div>
-
-                  {/* UNEB Center Number */}
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-3">
-                      UNEB Center Number <span className="text-slate-400 font-normal">(optional)</span>
-                    </label>
-                    <Input
-                      value={schoolDetails.uneb_center_number}
-                      onChange={(e) =>
-                        setSchoolDetails({ ...schoolDetails, uneb_center_number: e.target.value })
-                      }
-                      placeholder="U0012"
-                    />
-                  </div>
-
-                  {/* District */}
-                  <Select
-                    label="District"
-                    options={[
-                      { value: "", label: "Select district" },
-                      ...getDistrictOptions(),
-                    ]}
-                    value={schoolDetails.district}
-                    onChange={(e) =>
-                      setSchoolDetails({
-                        ...schoolDetails,
-                        district: e.target.value,
-                        subcounty: "",
-                        parish: "",
-                      })
-                    }
-                  />
-
-                  <Select
-                    label="Subcounty / Division"
-                    options={[
-                      { value: "", label: "Select subcounty or division" },
-                      ...getSubcountyOptions(schoolDetails.district),
-                    ]}
-                    value={schoolDetails.subcounty}
-                    onChange={(e) =>
-                      setSchoolDetails({
-                        ...schoolDetails,
-                        subcounty: e.target.value,
-                        parish: "",
-                      })
-                    }
-                  />
-
-                  <Select
-                    label="Parish / Ward"
-                    options={[
-                      { value: "", label: "Select parish or ward (optional)" },
-                      ...getParishOptions(
-                        schoolDetails.district,
-                        schoolDetails.subcounty,
-                      ),
-                    ]}
-                    value={schoolDetails.parish}
-                    onChange={(e) =>
-                      setSchoolDetails({
-                        ...schoolDetails,
-                        parish: e.target.value,
-                      })
-                    }
-                  />
-
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-3">
-                      School Type
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(
-                        [
-                          {
-                            key: "primary",
-                            label: "Primary",
-                            icon: "child_care",
-                            desc: "P.1 – P.7",
-                          },
-                          {
-                            key: "secondary",
-                            label: "Secondary",
-                            icon: "school",
-                            desc: "S.1 – S.6",
-                          },
-                          {
-                            key: "combined",
-                            label: "Combined",
-                            icon: "account_balance",
-                            desc: "P.1 – S.6",
-                          },
-                        ] as const
-                      ).map((opt) => (
-                        <button
-                          key={opt.key}
-                          type="button"
-                          onClick={() => setSchoolType(opt.key)}
-                          className={`flex flex-col items-center gap-1 rounded-xl border-2 p-3 text-xs font-semibold transition-all ${
-                            schoolType === opt.key
-                              ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
-                              : "border-slate-200 text-slate-500 hover:border-slate-300"
-                          }`}
-                        >
-                          <MaterialIcon
-                            icon={opt.icon}
-                            className="text-[22px]"
-                          />
-                          <span>{opt.label}</span>
-                          <span className="font-normal text-[10px] opacity-70">
-                            {opt.desc}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Logo Upload */}
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-3">
-                      School Logo <span className="text-slate-400 font-normal">(optional)</span>
-                    </label>
-                    <div className="flex items-center gap-4">
-                      {branding.logo_url ? (
-                        <Image
-                          src={branding.logo_url}
-                          alt="School logo"
-                          width={64}
-                          height={64}
-                          className="h-16 w-16 rounded-xl border border-slate-200 object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50">
-                          <MaterialIcon icon="school" className="text-slate-400" />
-                        </div>
-                      )}
-                      <label className="cursor-pointer rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200">
-                        {uploadingLogo ? "Uploading..." : "Choose file"}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleLogoUpload}
-                          className="hidden"
-                          disabled={uploadingLogo}
-                        />
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        School Type
                       </label>
-                      {branding.logo_url && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setBranding({ ...branding, logo_url: "" })
-                          }
-                          className="text-sm text-red-500 hover:text-red-700"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-3">
-                      Primary Color
-                    </label>
-                    <div className="flex gap-4">
-                      {[
-                        "#0d9488",
-                        "#2563eb",
-                        "#0f172a",
-                        "#16a34a",
-                        "#dc2626",
-                      ].map((color) => (
-                        <button
-                          key={color}
-                          onClick={() =>
-                            setBranding({ ...branding, primary_color: color })
-                          }
-                          className={`w-12 h-12 rounded-full border-[3px] transition-transform hover:scale-110 ${branding.primary_color === color ? "border-slate-800 ring-2 ring-offset-2 ring-slate-200" : "border-transparent"}`}
-                          style={{ backgroundColor: color }}
-                        />
-                      ))}
-                      <div className="relative">
-                        <input
-                          type="color"
-                          value={branding.primary_color}
-                          onChange={(e) =>
-                            setBranding({
-                              ...branding,
-                              primary_color: e.target.value,
-                            })
-                          }
-                          className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                        />
-                        <div className="w-12 h-12 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center">
-                          <MaterialIcon icon="add" className="text-slate-400" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Accent Color */}
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-3">
-                      Accent Color <span className="text-slate-400 font-normal">(optional)</span>
-                    </label>
-                    <div className="flex gap-4">
-                      {[
-                        "#3b82f6",
-                        "#8b5cf6",
-                        "#ec4899",
-                        "#f59e0b",
-                        "#10b981",
-                      ].map((color) => (
-                        <button
-                          key={color}
-                          onClick={() =>
-                            setBranding({ ...branding, accent_color: color })
-                          }
-                          className={`w-12 h-12 rounded-full border-[3px] transition-transform hover:scale-110 ${branding.accent_color === color ? "border-slate-800 ring-2 ring-offset-2 ring-slate-200" : "border-transparent"}`}
-                          style={{ backgroundColor: color }}
-                        />
-                      ))}
-                      <div className="relative">
-                        <input
-                          type="color"
-                          value={branding.accent_color}
-                          onChange={(e) =>
-                            setBranding({
-                              ...branding,
-                              accent_color: e.target.value,
-                            })
-                          }
-                          className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                        />
-                        <div className="w-12 h-12 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center">
-                          <MaterialIcon icon="add" className="text-slate-400" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-[24px] border border-[#e2e8f0] bg-[linear-gradient(180deg,#fbfcfe_0%,#f5f7fb_100%)] p-4 text-sm text-slate-600 shadow-sm">
-                  We preload common Uganda district, division, and parish
-                  options so school leaders can finish setup quickly even on
-                  slow connections.
-                </div>
-
-                <div
-                  className="flex gap-3 mt-auto pt-4 pb-8 md:pb-0 md:pt-0"
-                  style={{
-                    paddingBottom:
-                      "max(2rem, env(safe-area-inset-bottom, 2rem))",
-                  }}
-                >
-                  <Button variant="secondary" onClick={() => setStep(1)}>
-                    Back
-                  </Button>
-                  <Button variant="primary" onClick={() => setStep(3)}>
-                    Next Step
-                  </Button>
-                </div>
-              </motion.div>
-            )}
-
-            {step === 3 && (
-              <motion.div
-                key="step3"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="flex-1 flex flex-col justify-start md:justify-center max-w-md"
-              >
-                <OwlStage
-                  compact
-                  eyebrow="Curriculum ready"
-                  title="Choose your subjects"
-                  description={`Select optional subjects for ${school.name}. Core subjects are already selected.`}
-                  chips={[
-                    schoolType === "primary"
-                      ? "P.1 – P.7"
-                      : schoolType === "secondary"
-                        ? "S.1 – S.6"
-                        : "P.1 – S.6",
-                    "Customise your curriculum",
-                  ]}
-                  className="mb-6"
-                />
-
-                <div className="mb-8 rounded-[24px] border border-slate-100 bg-[linear-gradient(180deg,#fbfcfe_0%,#f6f8fb_100%)] p-5 shadow-sm max-h-[360px] overflow-y-auto">
-                  {/* Compulsory subjects - read-only */}
-                  <div className="mb-4">
-                    <h4 className="text-sm font-semibold text-slate-700 mb-3">
-                      Core Subjects
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {getTemplateForType(schoolType).subjects
-                        .filter((s) => s.is_compulsory)
-                        .map((subj) => (
-                          <span
-                            key={subj.code}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 border border-teal-200 px-3 py-1.5 text-xs font-medium text-teal-700"
+                      <div className="grid grid-cols-3 gap-2">
+                        {(
+                          [
+                            { key: "primary", label: "Primary", icon: "child_care", desc: "P.1 – P.7" },
+                            { key: "secondary", label: "Secondary", icon: "school", desc: "S.1 – S.6" },
+                            { key: "combined", label: "Combined", icon: "account_balance", desc: "P.1 – S.6" },
+                          ] as const
+                        ).map((opt) => (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            onClick={() => setLocalSchoolType(opt.key)}
+                            className={`flex flex-col items-center gap-1 rounded-xl border-2 p-3 text-xs font-semibold transition-all ${
+                              localSchoolType === opt.key
+                                ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
+                                : "border-slate-200 text-slate-500 hover:border-slate-300"
+                            }`}
                           >
-                            <MaterialIcon
-                              icon="check_circle"
-                              className="text-teal-500 text-sm"
-                            />
-                            {subj.name}
-                          </span>
+                            <MaterialIcon icon={opt.icon} className="text-[22px]" />
+                            <span>{opt.label}</span>
+                            <span className="font-normal text-[10px] opacity-70">{opt.desc}</span>
+                          </button>
                         ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        School Logo <span className="text-slate-400 font-normal">(optional)</span>
+                      </label>
+                      <div className="flex items-center gap-4">
+                        {branding.logo_url ? (
+                          <Image
+                            src={branding.logo_url}
+                            alt="School logo"
+                            width={64}
+                            height={64}
+                            className="h-16 w-16 rounded-xl border border-slate-200 object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50">
+                            <MaterialIcon icon="school" className="text-slate-400" />
+                          </div>
+                        )}
+                        <label className="cursor-pointer rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200">
+                          {uploadingLogo ? "Uploading..." : "Choose file"}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            className="hidden"
+                            disabled={uploadingLogo}
+                          />
+                        </label>
+                        {branding.logo_url && (
+                          <button
+                            type="button"
+                            onClick={() => setBranding({ ...branding, logo_url: "" })}
+                            className="text-sm text-red-500 hover:text-red-700"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Primary Color
+                      </label>
+                      <div className="flex gap-3 flex-wrap">
+                        {["#0d9488", "#2563eb", "#0f172a", "#16a34a", "#dc2626"].map((color) => (
+                          <button
+                            key={color}
+                            onClick={() => setBranding({ ...branding, primary_color: color })}
+                            className={`w-10 h-10 rounded-full border-[3px] transition-transform hover:scale-110 ${
+                              branding.primary_color === color
+                                ? "border-slate-800 ring-2 ring-offset-2 ring-slate-200"
+                                : "border-transparent"
+                            }`}
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                        <div className="relative">
+                          <input
+                            type="color"
+                            value={branding.primary_color}
+                            onChange={(e) =>
+                              setBranding({ ...branding, primary_color: e.target.value })
+                            }
+                            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                          />
+                          <div className="w-10 h-10 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center">
+                            <MaterialIcon icon="add" className="text-slate-400" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Accent Color <span className="text-slate-400 font-normal">(optional)</span>
+                      </label>
+                      <div className="flex gap-3 flex-wrap">
+                        {["#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981"].map((color) => (
+                          <button
+                            key={color}
+                            onClick={() => setBranding({ ...branding, accent_color: color })}
+                            className={`w-10 h-10 rounded-full border-[3px] transition-transform hover:scale-110 ${
+                              branding.accent_color === color
+                                ? "border-slate-800 ring-2 ring-offset-2 ring-slate-200"
+                                : "border-transparent"
+                            }`}
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                        <div className="relative">
+                          <input
+                            type="color"
+                            value={branding.accent_color}
+                            onChange={(e) =>
+                              setBranding({ ...branding, accent_color: e.target.value })
+                            }
+                            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                          />
+                          <div className="w-10 h-10 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center">
+                            <MaterialIcon icon="add" className="text-slate-400" />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Template optional subjects */}
-                  {getTemplateForType(schoolType).subjects.filter((s) => !s.is_compulsory)
-                    .length > 0 && (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                    We preload common Uganda district, division, and parish options so school leaders can finish setup quickly even on slow connections.
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Step 3: Curriculum */}
+              {step === 3 && (
+                <motion.div
+                  key="step3"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="flex-1 flex flex-col max-w-md mx-auto"
+                >
+                  <OwlStage
+                    compact
+                    eyebrow="Curriculum ready"
+                    title="Choose your subjects"
+                    description={`Select optional subjects. Core subjects are already selected.`}
+                    chips={[
+                      localSchoolType === "primary" ? "P.1 – P.7" : localSchoolType === "secondary" ? "S.1 – S.6" : "P.1 – S.6",
+                      "Customise your curriculum",
+                    ]}
+                    className="mb-6"
+                  />
+
+                  <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm max-h-[50vh] overflow-y-auto">
                     <div className="mb-4">
-                      <h4 className="text-sm font-semibold text-slate-700 mb-3">
-                        Optional Subjects{" "}
-                        <span className="text-slate-400 font-normal">
-                          (toggle on/off)
-                        </span>
+                      <h4 className="text-sm font-semibold text-slate-700 mb-2">
+                        Core Subjects
                       </h4>
-                      <div className="space-y-1.5">
-                        {getTemplateForType(schoolType).subjects
-                          .filter((s) => !s.is_compulsory)
+                      <div className="flex flex-wrap gap-2">
+                        {getTemplateForType(localSchoolType).subjects
+                          .filter((s) => s.is_compulsory)
                           .map((subj) => (
+                            <span
+                              key={subj.code}
+                              className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 border border-teal-200 px-3 py-1.5 text-xs font-medium text-teal-700"
+                            >
+                              <MaterialIcon icon="check_circle" className="text-teal-500 text-sm" />
+                              {subj.name}
+                            </span>
+                          ))}
+                      </div>
+                    </div>
+
+                    {getTemplateForType(localSchoolType).subjects.filter((s) => !s.is_compulsory).length > 0 && (
+                      <div className="mb-4">
+                        <h4 className="text-sm font-semibold text-slate-700 mb-2">
+                          Optional Subjects <span className="text-slate-400 font-normal">(toggle on/off)</span>
+                        </h4>
+                        <div className="space-y-1.5">
+                          {getTemplateForType(localSchoolType).subjects
+                            .filter((s) => !s.is_compulsory)
+                            .map((subj) => (
+                              <label
+                                key={subj.code}
+                                className={`flex items-center gap-3 cursor-pointer rounded-xl border-2 p-3 transition-all ${
+                                  selectedSubjects.includes(subj.name)
+                                    ? "border-teal-400 bg-teal-50/50"
+                                    : "border-slate-200 hover:border-slate-300"
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedSubjects.includes(subj.name)}
+                                  onChange={() =>
+                                    setSelectedSubjects((prev) =>
+                                      prev.includes(subj.name)
+                                        ? prev.filter((s) => s !== subj.name)
+                                        : [...prev, subj.name],
+                                    )
+                                  }
+                                  className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                                />
+                                <span className="text-sm font-medium text-slate-700">{subj.name}</span>
+                              </label>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {ADDITIONAL_OPTIONAL_SUBJECTS.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-slate-700 mb-2">
+                          More Subjects <span className="text-slate-400 font-normal">(optional)</span>
+                        </h4>
+                        <div className="space-y-1.5">
+                          {ADDITIONAL_OPTIONAL_SUBJECTS.map((subj) => (
                             <label
                               key={subj.code}
                               className={`flex items-center gap-3 cursor-pointer rounded-xl border-2 p-3 transition-all ${
@@ -1002,487 +1231,723 @@ export default function OnboardingFlow({
                                 }
                                 className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
                               />
-                              <span className="text-sm font-medium text-slate-700">
-                                {subj.name}
-                              </span>
+                              <span className="text-sm font-medium text-slate-700">{subj.name}</span>
                             </label>
                           ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                </motion.div>
+              )}
 
-                  {/* Additional optional subjects */}
-                  {ADDITIONAL_OPTIONAL_SUBJECTS.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-slate-700 mb-3">
-                        More Subjects{" "}
-                        <span className="text-slate-400 font-normal">
-                          (optional)
+              {/* Step 4: Boarding & Houses */}
+              {step === 4 && (
+                <motion.div
+                  key="step4"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="flex-1 flex flex-col max-w-md mx-auto"
+                >
+                  <OwlStage
+                    compact
+                    eyebrow="Accommodation"
+                    title="Boarding & Houses"
+                    description="Set up dormitories and sports houses so students can be assigned easily."
+                    chips={["Dormitory setup", "Competition houses"]}
+                    className="mb-6"
+                  />
+
+                  <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm">
+                    <div className="mb-4">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={boardingConfig.hasBoarding}
+                          onChange={() =>
+                            setBoardingConfig((prev) => ({
+                              ...prev,
+                              hasBoarding: !prev.hasBoarding,
+                            }))
+                          }
+                          className="h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                        />
+                        <span className="text-sm font-semibold text-slate-700">
+                          Does your school have boarding facilities?
                         </span>
-                      </h4>
-                      <div className="space-y-1.5">
-                        {ADDITIONAL_OPTIONAL_SUBJECTS.map((subj) => (
-                          <label
-                            key={subj.code}
-                            className={`flex items-center gap-3 cursor-pointer rounded-xl border-2 p-3 transition-all ${
-                              selectedSubjects.includes(subj.name)
-                                ? "border-teal-400 bg-teal-50/50"
-                                : "border-slate-200 hover:border-slate-300"
-                            }`}
-                          >
+                      </label>
+                    </div>
+
+                    {boardingConfig.hasBoarding && (
+                      <>
+                        <div className="mb-3">
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            Number of Dormitories
+                          </label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="range"
+                              min={1}
+                              max={10}
+                              value={boardingConfig.dormCount}
+                              onChange={(e) => {
+                                const count = Number(e.target.value);
+                                setBoardingConfig((prev) => ({
+                                  ...prev,
+                                  dormCount: count,
+                                  dormitories: Array.from(
+                                    { length: count },
+                                    (_, i) =>
+                                      prev.dormitories[i] || {
+                                        name: "",
+                                        type: "boys" as const,
+                                        capacity: 40,
+                                      },
+                                  ),
+                                }));
+                              }}
+                              className="flex-1 accent-teal-600"
+                            />
+                            <span className="text-sm font-semibold text-slate-700 w-6 text-center">
+                              {boardingConfig.dormCount}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 mb-4">
+                          {boardingConfig.dormitories
+                            .slice(0, boardingConfig.dormCount)
+                            .map((dorm, i) => (
+                              <div key={i} className="flex items-center gap-2">
+                                <input
+                                  placeholder={`Dormitory ${i + 1} name`}
+                                  value={dorm.name}
+                                  onChange={(e) =>
+                                    setBoardingConfig((prev) => {
+                                      const updated = [...prev.dormitories];
+                                      updated[i] = { ...updated[i], name: e.target.value };
+                                      return { ...prev, dormitories: updated };
+                                    })
+                                  }
+                                  className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
+                                />
+                                <select
+                                  value={dorm.type}
+                                  onChange={(e) =>
+                                    setBoardingConfig((prev) => {
+                                      const updated = [...prev.dormitories];
+                                      updated[i] = { ...updated[i], type: e.target.value as "boys" | "girls" };
+                                      return { ...prev, dormitories: updated };
+                                    })
+                                  }
+                                  className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
+                                >
+                                  <option value="boys">Boys</option>
+                                  <option value="girls">Girls</option>
+                                </select>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  placeholder="Capacity"
+                                  value={dorm.capacity}
+                                  onChange={(e) =>
+                                    setBoardingConfig((prev) => {
+                                      const updated = [...prev.dormitories];
+                                      updated[i] = { ...updated[i], capacity: Number(e.target.value) };
+                                      return { ...prev, dormitories: updated };
+                                    })
+                                  }
+                                  className="w-20 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
+                                />
+                              </div>
+                            ))}
+                        </div>
+
+                        <div className="pt-3 border-t border-slate-200">
+                          <label className="flex items-center gap-3 cursor-pointer mb-3">
                             <input
                               type="checkbox"
-                              checked={selectedSubjects.includes(subj.name)}
+                              checked={boardingConfig.hasHouses}
                               onChange={() =>
-                                setSelectedSubjects((prev) =>
-                                  prev.includes(subj.name)
-                                    ? prev.filter((s) => s !== subj.name)
-                                    : [...prev, subj.name],
-                                )
+                                setBoardingConfig((prev) => ({
+                                  ...prev,
+                                  hasHouses: !prev.hasHouses,
+                                }))
                               }
-                              className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                              className="h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
                             />
-                            <span className="text-sm font-medium text-slate-700">
-                              {subj.name}
+                            <span className="text-sm font-semibold text-slate-700">
+                              Sports/competition houses?
                             </span>
                           </label>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
 
-                <div
-                  className="flex gap-3 mt-auto pt-4 pb-8 md:pb-0 md:pt-0"
-                  style={{
-                    paddingBottom:
-                      "max(2rem, env(safe-area-inset-bottom, 2rem))",
-                  }}
+                          {boardingConfig.hasHouses && (
+                            <>
+                              <div className="flex items-center gap-3 mb-2">
+                                <input
+                                  type="range"
+                                  min={1}
+                                  max={8}
+                                  value={boardingConfig.houseCount}
+                                  onChange={(e) => {
+                                    const count = Number(e.target.value);
+                                    setBoardingConfig((prev) => ({
+                                      ...prev,
+                                      houseCount: count,
+                                      houses: Array.from(
+                                        { length: count },
+                                        (_, i) => prev.houses[i] || "",
+                                      ),
+                                    }));
+                                  }}
+                                  className="flex-1 accent-teal-600"
+                                />
+                                <span className="text-sm font-semibold text-slate-700 w-6 text-center">
+                                  {boardingConfig.houseCount}
+                                </span>
+                              </div>
+                              <div className="space-y-2">
+                                {boardingConfig.houses
+                                  .slice(0, boardingConfig.houseCount)
+                                  .map((house, i) => (
+                                    <input
+                                      key={i}
+                                      placeholder={`House ${i + 1} name`}
+                                      value={house}
+                                      onChange={(e) =>
+                                        setBoardingConfig((prev) => {
+                                          const updated = [...prev.houses];
+                                          updated[i] = e.target.value;
+                                          return { ...prev, houses: updated };
+                                        })
+                                      }
+                                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
+                                    />
+                                  ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </>
+                    )}
+
+                    {!boardingConfig.hasBoarding && (
+                      <p className="text-sm text-slate-500">
+                        No boarding? That&apos;s fine. You can add dorms later in settings.
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Step 5: Academic Calendar */}
+              {step === 5 && (
+                <motion.div
+                  key="step5"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="flex-1 flex flex-col max-w-md mx-auto"
                 >
-                  <Button variant="secondary" onClick={() => setStep(2)}>
-                    Back
-                  </Button>
-                  <Button variant="primary" onClick={() => setStep(4)}>
-                    Next: Boarding
-                  </Button>
-                </div>
-              </motion.div>
-            )}
+                  <OwlStage
+                    compact
+                    eyebrow="Academic Calendar"
+                    title="Set term dates"
+                    description="Uganda term dates are preloaded. Adjust start and end dates to match your school calendar."
+                    chips={["3 terms per year", "Holiday windows included"]}
+                    className="mb-6"
+                  />
 
-            {step === 4 && (
-              <motion.div
-                key="step4"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="flex-1 flex flex-col justify-start md:justify-center max-w-md"
-              >
-                <OwlStage
-                  compact
-                  eyebrow="Accommodation"
-                  title="Boarding & Houses"
-                  description="Set up dormitories and sports houses so students can be assigned easily."
-                  chips={["Dormitory setup", "Competition houses"]}
-                  className="mb-6"
-                />
+                  <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm space-y-3">
+                    {terms.map((term, i) => (
+                      <div key={i} className="rounded-xl bg-white border border-slate-200 p-3">
+                        <p className="text-sm font-semibold text-slate-700 mb-2">{term.name}</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-xs text-slate-500 mb-1 block">Start Date</label>
+                            <input
+                              type="date"
+                              value={term.start}
+                              onChange={(e) => {
+                                const newTerms = [...terms];
+                                newTerms[i].start = e.target.value;
+                                setTerms(newTerms);
+                              }}
+                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-slate-500 mb-1 block">End Date</label>
+                            <input
+                              type="date"
+                              value={term.end}
+                              onChange={(e) => {
+                                const newTerms = [...terms];
+                                newTerms[i].end = e.target.value;
+                                setTerms(newTerms);
+                              }}
+                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
 
-                <div className="mb-8 rounded-[24px] border border-slate-100 bg-[linear-gradient(180deg,#fbfcfe_0%,#f6f8fb_100%)] p-5 shadow-sm">
-                  {/* Boarding toggle */}
-                  <div className="mb-5">
-                    <label className="flex items-center gap-3 cursor-pointer">
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        await saveTerms();
+                        setTimeout(() => handleNext(6), 600);
+                      }}
+                      loading={saving}
+                      className="w-full"
+                    >
+                      Save & Continue
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Step 6: Fee Structure */}
+              {step === 6 && (
+                <motion.div
+                  key="step6"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="flex-1 flex flex-col max-w-md mx-auto"
+                >
+                  <OwlStage
+                    compact
+                    eyebrow="Fee Structure"
+                    title="Set school fees"
+                    description="Define the fee categories and amounts. These will apply to all classes unless you customize later."
+                    chips={["UGX currency", "Per-term billing"]}
+                    className="mb-6"
+                  />
+
+                  <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm space-y-3">
+                    <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-50">
                       <input
                         type="checkbox"
-                        checked={boardingConfig.hasBoarding}
-                        onChange={() =>
-                          setBoardingConfig((prev) => ({
-                            ...prev,
-                            hasBoarding: !prev.hasBoarding,
-                          }))
-                        }
-                        className="h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                        checked={applyFeeToAllClasses}
+                        onChange={() => setApplyFeeToAllClasses(!applyFeeToAllClasses)}
+                        className="rounded"
                       />
-                      <span className="text-sm font-semibold text-slate-700">
-                        Does your school have boarding facilities?
-                      </span>
+                      Apply fees to all classes
                     </label>
-                  </div>
 
-                  {boardingConfig.hasBoarding && (
-                    <>
-                      {/* Dorm count */}
-                      <div className="mb-4">
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                          Number of Dormitories
-                        </label>
-                        <div className="flex items-center gap-3">
+                    {fees.map((fee, i) => (
+                      <div key={i} className="space-y-2 rounded-xl border border-slate-200 bg-white p-3">
+                        <div className="flex gap-2">
                           <input
-                            type="range"
-                            min={1}
-                            max={10}
-                            value={boardingConfig.dormCount}
+                            type="text"
+                            value={fee.name}
                             onChange={(e) => {
-                              const count = Number(e.target.value);
-                              setBoardingConfig((prev) => ({
-                                ...prev,
-                                dormCount: count,
-                                dormitories: Array.from(
-                                  { length: count },
-                                  (_, i) =>
-                                    prev.dormitories[i] || {
-                                      name: "",
-                                      type: "boys" as const,
-                                      capacity: 40,
-                                    },
-                                ),
-                              }));
+                              const newFees = [...fees];
+                              newFees[i].name = e.target.value;
+                              setFees(newFees);
                             }}
-                            className="flex-1 accent-teal-600"
+                            className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                            placeholder="Fee name"
                           />
-                          <span className="text-sm font-semibold text-slate-700 w-6 text-center">
-                            {boardingConfig.dormCount}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Dorm names & type */}
-                      <div className="space-y-3 mb-5">
-                        {boardingConfig.dormitories
-                          .slice(0, boardingConfig.dormCount)
-                          .map((dorm, i) => (
-                            <div
-                              key={i}
-                              className="flex items-center gap-2"
-                            >
-                              <input
-                                placeholder={`Dormitory ${i + 1} name`}
-                                value={dorm.name}
-                                onChange={(e) =>
-                                  setBoardingConfig((prev) => {
-                                    const updated = [...prev.dormitories];
-                                    updated[i] = {
-                                      ...updated[i],
-                                      name: e.target.value,
-                                    };
-                                    return { ...prev, dormitories: updated };
-                                  })
-                                }
-                                className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
-                              />
-                              <select
-                                value={dorm.type}
-                                onChange={(e) =>
-                                  setBoardingConfig((prev) => {
-                                    const updated = [...prev.dormitories];
-                                    updated[i] = {
-                                      ...updated[i],
-                                      type: e.target.value as "boys" | "girls",
-                                    };
-                                    return { ...prev, dormitories: updated };
-                                  })
-                                }
-                                className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
-                              >
-                                <option value="boys">Boys</option>
-                                <option value="girls">Girls</option>
-                              </select>
-                              <input
-                                type="number"
-                                min={1}
-                                placeholder="Capacity"
-                                value={dorm.capacity}
-                                onChange={(e) =>
-                                  setBoardingConfig((prev) => {
-                                    const updated = [...prev.dormitories];
-                                    updated[i] = {
-                                      ...updated[i],
-                                      capacity: Number(e.target.value),
-                                    };
-                                    return { ...prev, dormitories: updated };
-                                  })
-                                }
-                                className="w-20 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
-                              />
-                            </div>
-                          ))}
-                      </div>
-
-                      {/* Houses toggle */}
-                      <div className="mb-4 pt-4 border-t border-slate-200">
-                        <label className="flex items-center gap-3 cursor-pointer mb-4">
                           <input
-                            type="checkbox"
-                            checked={boardingConfig.hasHouses}
-                            onChange={() =>
-                              setBoardingConfig((prev) => ({
-                                ...prev,
-                                hasHouses: !prev.hasHouses,
-                              }))
-                            }
-                            className="h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                            type="number"
+                            value={fee.amount}
+                            onChange={(e) => {
+                              const newFees = [...fees];
+                              newFees[i].amount = e.target.value;
+                              setFees(newFees);
+                            }}
+                            className="w-28 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                            placeholder="UGX"
                           />
-                          <span className="text-sm font-semibold text-slate-700">
-                            Does your school have sports/competition houses?
-                          </span>
-                        </label>
-
-                        {boardingConfig.hasHouses && (
-                          <>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">
-                              Number of Houses
-                            </label>
-                            <div className="flex items-center gap-3 mb-3">
-                              <input
-                                type="range"
-                                min={1}
-                                max={8}
-                                value={boardingConfig.houseCount}
-                                onChange={(e) => {
-                                  const count = Number(e.target.value);
-                                  setBoardingConfig((prev) => ({
-                                    ...prev,
-                                    houseCount: count,
-                                    houses: Array.from(
-                                      { length: count },
-                                      (_, i) => prev.houses[i] || "",
-                                    ),
-                                  }));
-                                }}
-                                className="flex-1 accent-teal-600"
-                              />
-                              <span className="text-sm font-semibold text-slate-700 w-6 text-center">
-                                {boardingConfig.houseCount}
-                              </span>
-                            </div>
-                            <div className="space-y-2">
-                              {boardingConfig.houses
-                                .slice(0, boardingConfig.houseCount)
-                                .map((house, i) => (
-                                  <input
-                                    key={i}
-                                    placeholder={`House ${i + 1} name`}
-                                    value={house}
-                                    onChange={(e) =>
-                                      setBoardingConfig((prev) => {
-                                        const updated = [...prev.houses];
-                                        updated[i] = e.target.value;
-                                        return {
-                                          ...prev,
-                                          houses: updated,
-                                        };
-                                      })
-                                    }
-                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
-                                  />
-                                ))}
-                            </div>
-                          </>
+                        </div>
+                        <select
+                          value={fee.category}
+                          onChange={(e) => {
+                            const newFees = [...fees];
+                            newFees[i].category = e.target.value;
+                            setFees(newFees);
+                          }}
+                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                        >
+                          <option value="Tuition">Tuition</option>
+                          <option value="Development">Development</option>
+                          <option value="PTA">PTA</option>
+                          <option value="Lunch">Lunch</option>
+                          <option value="Transport">Transport</option>
+                          <option value="Other">Other</option>
+                        </select>
+                        {fees.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setFees(fees.filter((_, idx) => idx !== i))}
+                            className="text-xs text-red-500 hover:text-red-700"
+                          >
+                            Remove
+                          </button>
                         )}
                       </div>
-                    </>
-                  )}
-                </div>
+                    ))}
 
-                <div
-                  className="flex gap-3 mt-auto pt-4 pb-8 md:pb-0 md:pt-0"
-                  style={{
-                    paddingBottom:
-                      "max(2rem, env(safe-area-inset-bottom, 2rem))",
-                  }}
-                >
-                  <Button variant="secondary" onClick={() => setStep(3)}>
-                    Back
-                  </Button>
-                  <Button variant="primary" onClick={() => setStep(5)}>
-                    Choose Features
-                  </Button>
-                </div>
-              </motion.div>
-            )}
-
-            {/* NEW STEP: Feature Stage Selection */}
-            {step === 5 && (
-              <motion.div
-                key="step5"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="flex-1 flex flex-col justify-start md:justify-center max-w-md"
-              >
-                <OwlStage
-                  compact
-                  eyebrow="Module access"
-                  title="Select your features"
-                  description="Turn on the modules your school needs immediately. Start lean or go full-suite, then expand later without losing continuity."
-                  chips={[selectedPlan.name, "Flexible rollout"]}
-                  className="mb-6"
-                />
-
-                <div className="space-y-3 mb-8">
-                  {[
-                    {
-                      key: "core",
-                      label: "Core Essentials",
-                      desc: "Attendance, Students, Basic Reports",
-                      icon: "school",
-                    },
-                    {
-                      key: "academic",
-                      label: "Academic Focus",
-                      desc: "Core + Grades, Exams, Report Cards",
-                      icon: "menu_book",
-                    },
-                    {
-                      key: "finance",
-                      label: "Finance & Operations",
-                      desc: "Core + Fees, Payroll, Budgeting",
-                      icon: "account_balance",
-                    },
-                    {
-                      key: "full",
-                      label: "Full Suite",
-                      desc: "Everything including Parent Portal, Analytics",
-                      icon: "rocket_launch",
-                    },
-                  ].map((option) => (
-                    <div
-                      key={option.key}
-                      onClick={() => setFeatureStage(option.key as "core" | "academic" | "finance" | "full")}
-                      className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${featureStage === option.key ? "border-purple-500 bg-purple-50 shadow-sm" : "border-slate-200 hover:border-slate-300"}`}
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        setFees([...fees, { name: "", amount: "", category: "Tuition" }])
+                      }
+                      className="w-full"
+                      icon={<MaterialIcon icon="add" className="text-sm" />}
                     >
-                      <div className="flex items-center gap-3">
-                        <MaterialIcon
-                          icon={option.icon}
-                          className={
-                            featureStage === option.key
-                              ? "text-purple-600"
-                              : "text-slate-400"
-                          }
-                        />
-                        <div>
-                          <h4 className="font-semibold text-slate-800">
-                            {option.label}
-                          </h4>
-                          <p className="text-xs text-slate-500">
-                            {option.desc}
-                          </p>
+                      Add Fee
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        await saveFees();
+                        setTimeout(() => handleNext(7), 600);
+                      }}
+                      loading={saving}
+                      className="w-full"
+                    >
+                      Save & Continue
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Step 7: Grading System */}
+              {step === 7 && (
+                <motion.div
+                  key="step7"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="flex-1 flex flex-col max-w-md mx-auto"
+                >
+                  <OwlStage
+                    compact
+                    eyebrow="Grading System"
+                    title="Set grading ranges"
+                    description="Define the passing mark and grade ranges used in report cards and exams."
+                    chips={["A–E grades", "Customizable ranges"]}
+                    className="mb-6"
+                  />
+
+                  <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm space-y-3">
+                    <div>
+                      <label className="text-sm font-semibold text-slate-700 mb-2 block">
+                        Passing Mark (%)
+                      </label>
+                      <input
+                        type="number"
+                        value={gradingPrefs.passing_mark}
+                        onChange={(e) =>
+                          setGradingPrefs({ ...gradingPrefs, passing_mark: parseInt(e.target.value) || 0 })
+                        }
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
+                        min={0}
+                        max={100}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-semibold text-slate-700 mb-2 block">
+                        Grade Labels & Score Ranges
+                      </label>
+                      {gradingPrefs.grades.map((g, i) => (
+                        <div key={g.label} className="flex items-center gap-2 mb-2">
+                          <span className="text-sm font-bold w-8 text-center">{g.label}</span>
+                          <input
+                            type="number"
+                            value={g.min}
+                            onChange={(e) => {
+                              const newGrades = [...gradingPrefs.grades];
+                              newGrades[i].min = parseInt(e.target.value) || 0;
+                              setGradingPrefs({ ...gradingPrefs, grades: newGrades });
+                            }}
+                            className="w-20 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                            placeholder="Min"
+                          />
+                          <span className="text-xs text-slate-400">to</span>
+                          <input
+                            type="number"
+                            value={g.max}
+                            onChange={(e) => {
+                              const newGrades = [...gradingPrefs.grades];
+                              newGrades[i].max = parseInt(e.target.value) || 0;
+                              setGradingPrefs({ ...gradingPrefs, grades: newGrades });
+                            }}
+                            className="w-20 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                            placeholder="Max"
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        await saveGradingPrefs();
+                        setTimeout(() => handleNext(8), 600);
+                      }}
+                      loading={saving}
+                      className="w-full"
+                    >
+                      Save & Continue
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Step 8: Report Card Branding */}
+              {step === 8 && (
+                <motion.div
+                  key="step8"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="flex-1 flex flex-col max-w-md mx-auto"
+                >
+                  <OwlStage
+                    compact
+                    eyebrow="Report Cards"
+                    title="Report card branding"
+                    description="Customize the text and sections that appear on printed report cards and fee receipts."
+                    chips={["Header/footer text", "Section toggles"]}
+                    className="mb-6"
+                  />
+
+                  <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm space-y-3">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-600 mb-1 block">
+                        Report Header Text
+                      </label>
+                      <input
+                        type="text"
+                        value={reportBrand.header}
+                        onChange={(e) => setReportBrand({ ...reportBrand, header: e.target.value })}
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                        placeholder="Annual Academic Report"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-600 mb-1 block">
+                        Report Footer Text
+                      </label>
+                      <input
+                        type="text"
+                        value={reportBrand.footer}
+                        onChange={(e) => setReportBrand({ ...reportBrand, footer: e.target.value })}
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                        placeholder="Education is the key to success"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-600 mb-1 block">
+                        Receipt Footer Text
+                      </label>
+                      <input
+                        type="text"
+                        value={reportBrand.receipt_footer}
+                        onChange={(e) => setReportBrand({ ...reportBrand, receipt_footer: e.target.value })}
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                        placeholder="Thank you for your payment"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 pt-2">
+                      {[
+                        { key: "show_position", label: "Show Position" },
+                        { key: "show_conduct", label: "Show Conduct" },
+                        { key: "show_attendance", label: "Show Attendance" },
+                        { key: "show_remarks", label: "Show Remarks" },
+                      ].map((item) => (
+                        <label
+                          key={item.key}
+                          className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-50"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={reportBrand[item.key as keyof typeof reportBrand] as boolean}
+                            onChange={() =>
+                              setReportBrand({
+                                ...reportBrand,
+                                [item.key]: !reportBrand[item.key as keyof typeof reportBrand],
+                              })
+                            }
+                            className="rounded"
+                          />
+                          {item.label}
+                        </label>
+                      ))}
+                    </div>
+
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        await saveReportBranding();
+                        setTimeout(() => handleNext(9), 600);
+                      }}
+                      loading={saving}
+                      className="w-full"
+                    >
+                      Save & Continue
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Step 9: Features */}
+              {step === 9 && (
+                <motion.div
+                  key="step9"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="flex-1 flex flex-col max-w-md mx-auto"
+                >
+                  <OwlStage
+                    compact
+                    eyebrow="Module access"
+                    title="Select your features"
+                    description="Turn on the modules your school needs immediately. Start lean or go full-suite, then expand later."
+                    chips={[selectedPlan.name, "Flexible rollout"]}
+                    className="mb-6"
+                  />
+
+                  <div className="space-y-3 mb-6">
+                    {[
+                      { key: "core", label: "Core Essentials", desc: "Attendance, Students, Basic Reports", icon: "school" },
+                      { key: "academic", label: "Academic Focus", desc: "Core + Grades, Exams, Report Cards", icon: "menu_book" },
+                      { key: "finance", label: "Finance & Operations", desc: "Core + Fees, Payroll, Budgeting", icon: "account_balance" },
+                      { key: "full", label: "Full Suite", desc: "Everything including Parent Portal, Analytics", icon: "rocket_launch" },
+                    ].map((option) => (
+                      <div
+                        key={option.key}
+                        onClick={() => setFeatureStage(option.key as "core" | "academic" | "finance" | "full")}
+                        className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${
+                          featureStage === option.key
+                            ? "border-purple-500 bg-purple-50 shadow-sm"
+                            : "border-slate-200 hover:border-slate-300"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <MaterialIcon
+                            icon={option.icon}
+                            className={featureStage === option.key ? "text-purple-600" : "text-slate-400"}
+                          />
+                          <div>
+                            <h4 className="font-semibold text-slate-800">{option.label}</h4>
+                            <p className="text-xs text-slate-500">{option.desc}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
 
-                <div
-                  className="flex gap-3 mt-auto pt-4 pb-8 md:pb-0 md:pt-0"
-                  style={{
-                    paddingBottom:
-                      "max(2rem, env(safe-area-inset-bottom, 2rem))",
-                  }}
+              {/* Step 10: Launch */}
+              {step === 10 && (
+                <motion.div
+                  key="step10"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="flex-1 flex flex-col max-w-md mx-auto"
                 >
-                  <Button variant="secondary" onClick={() => setStep(4)}>
-                    Back
-                  </Button>
-                  <Button variant="primary" onClick={() => setStep(6)}>
-                    Review & Launch
-                  </Button>
-                </div>
-              </motion.div>
-            )}
+                  <h3 className="text-2xl font-bold text-slate-800 mb-2">
+                    Launch Ready
+                  </h3>
+                  <p className="text-slate-500 mb-6">
+                    Your school package, default calendar, and starter setup are already in place so the team can begin working immediately.
+                  </p>
 
-            {step === 6 && (
-              <motion.div
-                key="step6"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="flex-1 flex flex-col justify-start md:justify-center w-full"
-              >
-                <h3 className="text-2xl font-bold text-slate-800 mb-2">
-                  Launch Ready
-                </h3>
-                <p className="text-slate-500 mb-6">
-                  Your school package, default calendar, and starter setup are
-                  already in place so the team can begin working immediately.
-                </p>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div className="rounded-2xl border border-teal-200 bg-teal-50/70 p-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-bold text-slate-800">
-                        Chosen Package
-                      </h4>
-                      <MaterialIcon
-                        icon="workspace_premium"
-                        className="text-teal-600"
-                      />
-                    </div>
-                    <p className="text-sm font-semibold text-slate-800">
-                      {selectedPlan.name}
-                    </p>
-                    <p className="text-sm text-slate-500 mt-2">
-                      The school selected this package during registration.
-                      Billing can be refined later in Subscription Settings.
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-bold text-slate-800">
-                        Calendar Ready
-                      </h4>
-                      <MaterialIcon
-                        icon="calendar_month"
-                        className="text-blue-600"
-                      />
-                    </div>
-                    <p className="text-sm text-slate-500">
-                      Uganda term dates and holiday windows are preloaded from
-                      the latest published school calendar pattern. Headteachers
-                      can tweak them later if a circular changes.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-5 mb-8">
-                  <div className="flex items-start gap-3">
-                    <MaterialIcon
-                      icon="bolt"
-                      className="text-amber-500 mt-0.5"
-                    />
-                    <div>
-                      <p className="font-semibold text-slate-800 mb-1">
-                        Rural-first setup
+                  <div className="grid grid-cols-1 gap-4 mb-6">
+                    <div className="rounded-2xl border border-teal-200 bg-teal-50/70 p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-bold text-slate-800">Chosen Package</h4>
+                        <MaterialIcon icon="workspace_premium" className="text-teal-600" />
+                      </div>
+                      <p className="text-sm font-semibold text-slate-800">{selectedPlan.name}</p>
+                      <p className="text-sm text-slate-500 mt-2">
+                        The school selected this package during registration. Billing can be refined later.
                       </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-bold text-slate-800">Calendar Ready</h4>
+                        <MaterialIcon icon="calendar_month" className="text-blue-600" />
+                      </div>
                       <p className="text-sm text-slate-500">
-                        We keep the first-run flow short, preload local school
-                        details, and avoid forcing payment or heavy setup before
-                        staff can start using the system.
+                        Uganda term dates and holiday windows are preloaded. Headteachers can tweak them later.
                       </p>
                     </div>
                   </div>
-                </div>
 
-                <div
-                  className="flex gap-3 mt-auto pt-4 pb-8 md:pb-0 md:pt-0"
-                  style={{
-                    paddingBottom:
-                      "max(2rem, env(safe-area-inset-bottom, 2rem))",
-                  }}
-                >
-                  <Button variant="secondary" onClick={() => setStep(5)}>
-                    Back
-                  </Button>
+                  <div className="rounded-2xl bg-slate-50 border border-slate-100 p-5 mb-6">
+                    <div className="flex items-start gap-3">
+                      <MaterialIcon icon="bolt" className="text-amber-500 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-slate-800 mb-1">Rural-first setup</p>
+                        <p className="text-sm text-slate-500">
+                          We keep the first-run flow short, preload local school details, and avoid forcing payment or heavy setup before staff can start using the system.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   <Button
                     variant="primary"
                     onClick={handleComplete}
                     loading={loading}
-                    className="flex-1"
+                    className="w-full"
+                    size="lg"
                   >
-                    Finish Setup
+                    Finish Setup & Launch
                   </Button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Bottom Navigation - Fixed on mobile, inline on desktop */}
+          {step > 1 && step < TOTAL_STEPS && (
+            <div className="md:hidden sticky bottom-0 bg-white border-t border-slate-100 px-4 py-3" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}>
+              <div className="flex gap-3">
+                <Button
+                  variant="secondary"
+                  onClick={() => handleBack(step - 1)}
+                  className="flex-1"
+                >
+                  Back
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => handleNext(step + 1)}
+                  className="flex-1"
+                >
+                  {step === TOTAL_STEPS - 1 ? "Review & Launch" : "Next"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Desktop bottom nav for step 2-9 */}
+          {step > 1 && step < TOTAL_STEPS && (
+            <div className="hidden md:flex gap-3 px-8 pb-8 pt-4">
+              <Button variant="secondary" onClick={() => handleBack(step - 1)}>
+                Back
+              </Button>
+              <Button variant="primary" onClick={() => handleNext(step + 1)}>
+                {step === TOTAL_STEPS - 1 ? "Review & Launch" : "Next Step"}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>
