@@ -41,12 +41,15 @@ function ParentDashboardContent() {
   const [showTopup, setShowTopup] = useState(false);
   const [topupAmount, setTopupAmount] = useState("");
   const [topupLoading, setTopupLoading] = useState(false);
+  const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
   const [notices, setNotices] = useState<ParentPortalNotice[]>([]);
   const [attendance, setAttendance] = useState<ParentPortalAttendanceRecord[]>(
     [],
   );
   const [grades, setGrades] = useState<ParentPortalGradeRecord[]>([]);
   const [feeStats, setFeeStats] = useState({ totalPaid: 0, totalFee: 0, balance: 0, status: 'unknown' });
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     async function fetchChildren() {
@@ -207,6 +210,37 @@ function ParentDashboardContent() {
       .then(({ data }) => setWalletBalance(data?.balance ?? 0));
   }, [selectedChild, isDemo, children]);
 
+  // Fetch notifications
+  useEffect(() => {
+    if (isDemo) {
+      setNotifications([
+        { id: "1", type: "grade_posted", title: "New Grade Posted", message: "Math exam results ready", is_read: false, created_at: new Date().toISOString() },
+        { id: "2", type: "payment_received", title: "Payment Received", message: "UGX 50,000 received", is_read: true, created_at: new Date(Date.now() - 86400000).toISOString() },
+      ]);
+      setUnreadCount(1);
+      return;
+    }
+    fetch("/api/parent/notifications?limit=10")
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setNotifications(data.notifications || []);
+          setUnreadCount((data.notifications || []).filter((n: any) => !n.is_read).length);
+        }
+      })
+      .catch(() => {});
+  }, [isDemo]);
+
+  const markNotificationRead = async (id: string) => {
+    await fetch("/api/parent/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notification_id: id }),
+    });
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    setUnreadCount(prev => Math.max(0, prev - 1));
+  };
+
   const handleTopup = async () => {
     if (!selectedChild || !topupAmount) return;
     setTopupLoading(true);
@@ -296,8 +330,82 @@ function ParentDashboardContent() {
                     })}
                   </p>
                 </div>
+                <button
+                  onClick={() => setShowNotificationsDropdown(!showNotificationsDropdown)}
+                  className="relative rounded-xl border border-gray-200 bg-white px-3 py-2 hover:bg-gray-50"
+                >
+                  <MaterialIcon icon="notifications" className="text-xl text-gray-600" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
               </div>
             </section>
+
+            {/* Notifications Dropdown */}
+            {showNotificationsDropdown && (
+              <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-gray-900">Notifications</h3>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={async () => {
+                        await fetch("/api/parent/notifications", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ mark_all_read: true }),
+                        });
+                        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+                        setUnreadCount(0);
+                      }}
+                      className="text-sm text-[var(--primary)] hover:underline"
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                </div>
+                {notifications.length === 0 ? (
+                  <p className="text-sm text-gray-500 text-center py-4">No notifications</p>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {notifications.slice(0, 5).map((n: any) => (
+                      <div
+                        key={n.id}
+                        className={`p-3 rounded-xl cursor-pointer ${n.is_read ? "bg-gray-50" : "bg-blue-50 border border-blue-100"}`}
+                        onClick={() => {
+                          if (!n.is_read) markNotificationRead(n.id);
+                          if (n.action_url) router.push(n.action_url);
+                          setShowNotificationsDropdown(false);
+                        }}
+                      >
+                        <div className="flex items-start gap-2">
+                          <MaterialIcon
+                            icon={
+                              n.type === "grade_posted" ? "grade" :
+                              n.type === "payment_received" ? "payments" :
+                              n.type === "attendance_alert" ? "warning" :
+                              n.type === "report_card" ? "description" :
+                              "notifications"
+                            }
+                            className={`text-lg ${n.is_read ? "text-gray-400" : "text-blue-600"}`}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900">{n.title}</p>
+                            <p className="text-xs text-gray-600 truncate">{n.message}</p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {new Date(n.created_at).toLocaleDateString("en-UG")}
+                            </p>
+                          </div>
+                          {!n.is_read && <div className="w-2 h-2 rounded-full bg-blue-500 mt-2" />}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Child selector */}
             {children.length > 1 && (
