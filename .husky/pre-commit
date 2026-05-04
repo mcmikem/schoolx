@@ -1,0 +1,28 @@
+#!/usr/bin/env sh
+echo "🔒 Running pre-commit checks..."
+
+echo "  [1/3] Linting staged files..."
+npx lint-staged --config lint-staged.config.json 2>&1
+if [ $? -ne 0 ]; then
+  echo "❌ Lint failed. Fix errors before committing."
+  exit 1
+fi
+echo "  ✅ Lint passed"
+
+echo "  [2/3] TypeScript type check..."
+npm run typecheck --silent 2>&1
+if [ $? -ne 0 ]; then
+  echo "❌ TypeScript failed. Fix type errors before committing."
+  exit 1
+fi
+echo "  ✅ TypeScript passed"
+
+echo "  [3/3] Regression tests..."
+npm run test:regression --silent 2>&1 | tail -n 5
+if [ ${PIPESTATUS[0]} -ne 0 ]; then
+  echo "❌ Regression tests failed. Fix before committing."
+  exit 1
+fi
+echo "  ✅ Regression tests passed"
+
+echo "✅ All checks passed. Committing..."

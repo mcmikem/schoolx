@@ -50,6 +50,12 @@ jobs:
         env:
           ALLOW_SUPABASE_MOCK: "true"
           NODE_ENV: test
+
+      - name: Run regression tests
+        run: npm run test:regression -- --forceExit
+        env:
+          ALLOW_SUPABASE_MOCK: "true"
+          NODE_ENV: test
       
       - name: Build application
         run: npm run build
