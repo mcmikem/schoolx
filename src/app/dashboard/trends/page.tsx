@@ -43,6 +43,8 @@ export default function TrendAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [academicYears, setAcademicYears] = useState<string[]>([]);
   const [selectedYear, setSelectedYear] = useState(academicYear);
+  const studentsCount = students.length;
+  const paymentsTotal = payments.reduce((s, p) => s + Number(p.amount_paid || 0), 0);
 
   const fetchAcademicYears = useCallback(async () => {
     if (!school?.id) return;
@@ -74,6 +76,8 @@ export default function TrendAnalyticsPage() {
         .eq("school_id", school.id)
         .order("term_number", { ascending: true });
 
+      if (terms.error) throw new Error(terms.error.message);
+
       const data: TrendData[] = [];
 
       if (terms.data) {
@@ -88,15 +92,21 @@ export default function TrendAnalyticsPage() {
             .eq("school_id", school.id)
             .eq("status", "active");
 
+          if (termStudents.error) throw new Error(termStudents.error.message);
+
           const termPayments = await supabase
             .from("fee_payments")
             .select("amount_paid")
             .eq("school_id", school.id);
 
+          if (termPayments.error) throw new Error(termPayments.error.message);
+
           const feeStructure = await supabase
             .from("fee_structure")
             .select("amount")
             .eq("school_id", school.id);
+
+          if (feeStructure.error) throw new Error(feeStructure.error.message);
 
           const totalExpected = (feeStructure.data || []).reduce(
             (sum, f) => sum + Number(f.amount || 0),
@@ -121,21 +131,21 @@ export default function TrendAnalyticsPage() {
         data.push(
           {
             term: "Term 1",
-            students: students.length,
+            students: studentsCount,
             attendance: 88,
-            collected: payments.reduce((s, p) => s + Number(p.amount_paid), 0),
+            collected: paymentsTotal,
             expected: 1000000,
           },
           {
             term: "Term 2",
-            students: students.length,
+            students: studentsCount,
             attendance: 85,
             collected: 850000,
             expected: 1000000,
           },
           {
             term: "Term 3",
-            students: students.length,
+            students: studentsCount,
             attendance: 82,
             collected: 750000,
             expected: 1000000,
@@ -149,21 +159,21 @@ export default function TrendAnalyticsPage() {
       setHistoricalData([
         {
           term: "Term 1",
-          students: students.length,
+          students: studentsCount,
           attendance: 88,
           collected: 800000,
           expected: 1000000,
         },
         {
           term: "Term 2",
-          students: students.length,
+          students: studentsCount,
           attendance: 85,
           collected: 850000,
           expected: 1000000,
         },
         {
           term: "Term 3",
-          students: students.length,
+          students: studentsCount,
           attendance: 82,
           collected: 750000,
           expected: 1000000,
@@ -172,7 +182,7 @@ export default function TrendAnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  }, [school?.id, academicYear, students, payments]);
+  }, [school?.id, academicYear, studentsCount, paymentsTotal]);
 
   useEffect(() => {
     if (school?.id) {

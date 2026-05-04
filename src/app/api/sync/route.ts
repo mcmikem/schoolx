@@ -4,6 +4,7 @@ import {
   apiSuccess,
   apiError,
   handleApiError,
+  withSecurity,
   requireUserWithSchool,
   assertSchoolScopeOrDeny,
   assertUserRoleOrDeny,
@@ -245,7 +246,7 @@ async function resolveSchoolOwnership(params: {
   return { ok: false, error: `Unsupported sync table: ${table}` }
 }
 
-export async function POST(request: NextRequest) {
+async function handleSyncPost(request: NextRequest) {
   try {
     const body = await request.json()
     const items: SyncItem[] = body.items
@@ -275,8 +276,8 @@ export async function POST(request: NextRequest) {
     if (!scope.ok) return scope.response
 
     // Use service role to support background sync for offline clients, but enforce tenancy checks below.
-    const key = supabaseServiceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    if (!key) return apiError('Server configuration error', 500)
+    const key = supabaseServiceKey
+    if (!key) return apiError('Server configuration error: SUPABASE_SERVICE_ROLE_KEY not set', 500)
 
     const supabase: SupabaseClient<Database> = createClient(supabaseUrl, key, {
       auth: {
@@ -387,3 +388,7 @@ export async function POST(request: NextRequest) {
     return handleApiError(error)
   }
 }
+
+export const POST = withSecurity(handleSyncPost, {
+  rateLimit: { limit: 10, windowMs: 60000 },
+})

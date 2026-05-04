@@ -51,11 +51,15 @@ export default function CommentsPage() {
         }))
         setGrades(mockGrades)
       } else {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('grades')
           .select('student_id, assessment_type, score, max_score')
           .eq('class_id', selectedClass)
           .eq('subject_id', selectedSubject)
+        if (error) {
+          logger.error('Fetch grades error:', error)
+          toast.error('Failed to load grades')
+        }
         setGrades(data || [])
       }
     } catch (err) {

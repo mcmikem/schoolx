@@ -24,6 +24,14 @@
     {
       "path": "/api/automation/auto-inventory-alerts",
       "schedule": "0 7 * * 1"
+    },
+    {
+      "path": "/api/automation/auto-promote",
+      "schedule": "0 6 15 3,7,11 *"
+    },
+    {
+      "path": "/api/automation/auto-payroll",
+      "schedule": "0 2 28 * *"
     }
   ]
 }

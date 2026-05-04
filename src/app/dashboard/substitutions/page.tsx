@@ -61,13 +61,17 @@ export default function SubstitutionsPage() {
       );
       return;
     }
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("users")
       .select("id, full_name")
       .eq("school_id", school.id)
       .eq("role", "teacher")
       .eq("is_active", true)
       .order("full_name");
+    if (error) {
+      logger.error("Fetch teachers error:", error);
+      toast.error("Failed to load teachers");
+    }
     setTeachers(data || []);
   }, [school?.id, isDemo]);
 

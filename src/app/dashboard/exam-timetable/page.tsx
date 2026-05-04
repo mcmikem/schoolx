@@ -69,17 +69,24 @@ export default function ExamTimetablePage() {
       if (error) throw error;
 
       const slots: ExamSlot[] = (data || []).map((event: any) => {
-        const desc = event.description ? JSON.parse(event.description) : {};
+        let desc: Record<string, unknown> = {};
+        if (event.description) {
+          try {
+            desc = JSON.parse(event.description);
+          } catch {
+            logger.warn("Failed to parse exam event description:", event.id);
+          }
+        }
         return {
           id: event.id,
           date: event.start_date,
           day: getDayName(event.start_date),
-          start_time: desc.time?.split("-")[0] || "09:00",
-          end_time: desc.time?.split("-")[1] || "11:00",
-          subject_id: desc.subject_id || "",
-          class_id: desc.class_id || "",
-          room: desc.room || "",
-          supervisor_id: desc.supervisor_id || "",
+          start_time: (desc.time as string)?.split("-")[0] || "09:00",
+          end_time: (desc.time as string)?.split("-")[1] || "11:00",
+          subject_id: (desc.subject_id as string) || "",
+          class_id: (desc.class_id as string) || "",
+          room: (desc.room as string) || "",
+          supervisor_id: (desc.supervisor_id as string) || "",
           title: event.title,
         };
       });

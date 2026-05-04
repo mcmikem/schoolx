@@ -130,38 +130,33 @@ function ParentDashboardContent() {
       const scopedChild = resolveSelectedChild(children, selectedChildId);
       if (!scopedChild) return;
       try {
-        const [attRes, gradesRes] = await Promise.all([
-          supabase.from("attendance").select("id, date, status, remarks").eq("student_id", scopedChild.id).limit(10),
-          supabase.from("grades").select("id, score, max_score, grade, term, exam_type, teacher_comment, subjects(name)").eq("student_id", scopedChild.id).limit(6),
-        ]);
+        const attRes = await Promise.resolve(supabase.from("attendance").select("id, date, status, remarks").eq("student_id", scopedChild.id).limit(10)).catch((err: unknown) => { logger.error("Attendance fetch error:", err); return { data: null, error: err }; });
+        const gradesRes = await Promise.resolve(supabase.from("grades").select("id, score, max_score, grade, term, exam_type, teacher_comment, subjects(name)").eq("student_id", scopedChild.id).limit(6)).catch((err: unknown) => { logger.error("Grades fetch error:", err); return { data: null, error: err }; });
 
-        const [modernFeeTermsRes, modernPaymentsRes, legacyPaymentsRes, legacyFeeTermsRes] =
-          await Promise.all([
-            supabase
-              .from("student_fee_terms")
-              .select("id, final_amount, academic_year, fee_terms(name)")
-              .eq("student_id", scopedChild.id)
-              .order("created_at", { ascending: false }),
-            supabase
-              .from("fee_payments")
-              .select(
-                "id, amount, payment_date, payment_method, transaction_reference, student_fee_terms!inner(student_id, fee_terms(name))",
-              )
-              .eq("student_fee_terms.student_id", scopedChild.id)
-              .order("payment_date", { ascending: false }),
-            supabase
-              .from("fee_payments")
-              .select(
-                "id, amount_paid, payment_date, payment_method, payment_reference",
-              )
-              .eq("student_id", scopedChild.id),
-            supabase
-              .from("fee_structure")
-              .select("*")
-              .eq("school_id", scopedChild.school_id)
-              .is("deleted_at", null)
-              .or(`class_id.is.null,class_id.eq.${scopedChild.class_id}`),
-          ]);
+        const modernFeeTermsRes = await Promise.resolve(supabase
+          .from("student_fee_terms")
+          .select("id, final_amount, academic_year, fee_terms(name)")
+          .eq("student_id", scopedChild.id)
+          .order("created_at", { ascending: false })).catch((err: unknown) => { logger.error("Fee terms fetch error:", err); return { data: null, error: err }; });
+        const modernPaymentsRes = await Promise.resolve(supabase
+          .from("fee_payments")
+          .select(
+            "id, amount, payment_date, payment_method, transaction_reference, student_fee_terms!inner(student_id, fee_terms(name))",
+          )
+          .eq("student_fee_terms.student_id", scopedChild.id)
+          .order("payment_date", { ascending: false })).catch((err: unknown) => { logger.error("Modern payments fetch error:", err); return { data: null, error: err }; });
+        const legacyPaymentsRes = await Promise.resolve(supabase
+          .from("fee_payments")
+          .select(
+            "id, amount_paid, payment_date, payment_method, payment_reference",
+          )
+          .eq("student_id", scopedChild.id)).catch((err: unknown) => { logger.error("Legacy payments fetch error:", err); return { data: null, error: err }; });
+        const legacyFeeTermsRes = await Promise.resolve(supabase
+          .from("fee_structure")
+          .select("*")
+          .eq("school_id", scopedChild.school_id)
+          .is("deleted_at", null)
+          .or(`class_id.is.null,class_id.eq.${scopedChild.class_id}`)).catch((err: unknown) => { logger.error("Fee structure fetch error:", err); return { data: null, error: err }; });
 
         const normalizedFeeStructure = pickPreferredSchemaRows({
           modernRows: normalizeFeeTermItems(
@@ -180,10 +175,10 @@ function ParentDashboardContent() {
         });
 
         setAttendance(
-          (attRes.data || []).map((record) => ({
+          (attRes.data || []).map((record: { id: string; date: string; status: string; remarks?: string }) => ({
             id: record.id,
             date: record.date,
-            status: record.status,
+            status: record.status as ParentPortalAttendanceRecord["status"],
             notes: record.remarks ?? null,
           })),
         );

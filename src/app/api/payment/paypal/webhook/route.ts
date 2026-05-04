@@ -154,7 +154,7 @@ async function handlePayPalPaymentSuccess(
 ) {
   const schoolId = await resolveSchoolIdFromPayPalResource(payment, supabase);
   if (!schoolId) {
-    throw new Error("No school ID found in PayPal payment resource");
+    logger.warn("No school ID found in PayPal payment resource — skipping"); return;
   }
 
   const { data: school, error } = await supabase
@@ -164,7 +164,7 @@ async function handlePayPalPaymentSuccess(
     .single();
 
   if (error || !school) {
-    throw new Error(`School not found for PayPal payment: ${schoolId}`);
+    logger.warn(`School not found for PayPal payment: ${schoolId} — skipping`); return;
   }
 
   await supabase
@@ -204,7 +204,7 @@ async function handlePayPalPaymentFailure(
 ) {
   const schoolId = await resolveSchoolIdFromPayPalResource(payment, supabase);
   if (!schoolId) {
-    throw new Error("No school ID found in PayPal payment resource");
+    logger.warn("No school ID found in PayPal payment resource — skipping"); return;
   }
 
   const { data: school, error } = await supabase
@@ -214,7 +214,7 @@ async function handlePayPalPaymentFailure(
     .single();
 
   if (error || !school) {
-    throw new Error(`School not found for PayPal payment: ${schoolId}`);
+    logger.warn(`School not found for PayPal payment: ${schoolId} — skipping`); return;
   }
 
   await supabase
@@ -235,7 +235,7 @@ async function handlePayPalSubscriptionActivated(
 ) {
   const schoolId = await resolveSchoolIdFromPayPalResource(subscription, supabase);
   if (!schoolId) {
-    throw new Error("No school ID found in PayPal subscription resource");
+    logger.warn("No school ID found in PayPal subscription resource — skipping"); return;
   }
 
   const { data: school, error } = await supabase
@@ -245,7 +245,7 @@ async function handlePayPalSubscriptionActivated(
     .single();
 
   if (error || !school) {
-    throw new Error(`School not found for PayPal subscription: ${schoolId}`);
+    logger.warn(`School not found for PayPal subscription: ${schoolId} — skipping`); return;
   }
 
   await supabase
@@ -266,7 +266,7 @@ async function handlePayPalSubscriptionCancelled(
 ) {
   const schoolId = await resolveSchoolIdFromPayPalResource(subscription, supabase);
   if (!schoolId) {
-    throw new Error("No school ID found in PayPal subscription resource");
+    logger.warn("No school ID found in PayPal subscription resource — skipping"); return;
   }
 
   const { data: school, error } = await supabase
@@ -276,7 +276,7 @@ async function handlePayPalSubscriptionCancelled(
     .single();
 
   if (error || !school) {
-    throw new Error(`School not found for PayPal subscription: ${schoolId}`);
+    logger.warn(`School not found for PayPal subscription: ${schoolId} — skipping`); return;
   }
 
   await supabase
@@ -297,7 +297,7 @@ async function handlePayPalSubscriptionSuspended(
 ) {
   const schoolId = await resolveSchoolIdFromPayPalResource(subscription, supabase);
   if (!schoolId) {
-    throw new Error("No school ID found in PayPal subscription resource");
+    logger.warn("No school ID found in PayPal subscription resource — skipping"); return;
   }
 
   const { data: school, error } = await supabase
@@ -307,7 +307,7 @@ async function handlePayPalSubscriptionSuspended(
     .single();
 
   if (error || !school) {
-    throw new Error(`School not found for PayPal subscription: ${schoolId}`);
+    logger.warn(`School not found for PayPal subscription: ${schoolId} — skipping`); return;
   }
 
   await supabase
@@ -326,7 +326,7 @@ async function handlePayPalSubscriptionPaymentFailed(
 ) {
   const schoolId = await resolveSchoolIdFromPayPalResource(subscription, supabase);
   if (!schoolId) {
-    throw new Error("No school ID found in PayPal subscription resource");
+    logger.warn("No school ID found in PayPal subscription resource — skipping"); return;
   }
 
   const { data: school, error } = await supabase
@@ -336,7 +336,7 @@ async function handlePayPalSubscriptionPaymentFailed(
     .single();
 
   if (error || !school) {
-    throw new Error(`School not found for PayPal subscription: ${schoolId}`);
+    logger.warn(`School not found for PayPal subscription: ${schoolId} — skipping`); return;
   }
 
   await supabase
