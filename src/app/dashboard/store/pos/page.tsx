@@ -1,7 +1,7 @@
 "use client";
 
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { supabase } from "@/lib/supabase";
@@ -11,6 +11,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { format } from "date-fns";
 import Image from "next/image";
 import { logger } from "@/lib/logger";
+import { Html5Qrcode } from "html5-qrcode";
 
 interface POSItem {
   id: string;
@@ -25,6 +26,15 @@ interface CartItem extends POSItem {
   quantity: number;
 }
 
+interface ScannedStudent {
+  id: string;
+  first_name: string;
+  last_name: string;
+  student_number: string;
+  balance: number;
+  photo_url?: string;
+}
+
 export default function CanteenPOSPage() {
   const { school, user } = useAuth();
   const { academicYear } = useAcademic();
@@ -33,12 +43,15 @@ export default function CanteenPOSPage() {
   const [categories, setCategories] = useState<string[]>(["All"]);
   const [activeCategory, setActiveCategory] = useState("All");
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [student, setStudent] = useState<any>(null);
+  const [student, setStudent] = useState<ScannedStudent | null>(null);
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"wallet" | "cash">(
     "wallet",
   );
-  const [demoCounter, setDemoCounter] = useState(42);
+  const [showScanner, setShowScanner] = useState(false);
+  const [manualStudentNum, setManualStudentNum] = useState("");
+  const [scannerError, setScannerError] = useState<string | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
 
   const isOnline = useOnlineStatus();
 
@@ -171,6 +184,104 @@ export default function CanteenPOSPage() {
     }
   };
 
+  // QR Scanner functions
+  const startScanner = async () => {
+    setScannerError(null);
+    setShowScanner(true);
+    try {
+      const scanner = new Html5Qrcode("canteen-qr-reader");
+      scannerRef.current = scanner;
+      await scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        async (decodedText) => {
+          // Stop scanner on successful scan
+          await stopScanner();
+          await lookupStudent(decodedText.trim());
+        },
+        () => {
+          // Ignore scan errors (no QR in frame)
+        },
+      );
+    } catch (err: any) {
+      setScannerError(err.message || "Could not start camera");
+      logger.error("QR scanner error:", err);
+    }
+  };
+
+  const stopScanner = async () => {
+    if (scannerRef.current) {
+      try {
+        await scannerRef.current.stop();
+        await scannerRef.current.clear();
+      } catch {
+        // Ignore cleanup errors
+      }
+      scannerRef.current = null;
+    }
+    setShowScanner(false);
+  };
+
+  const lookupStudent = async (studentIdOrNumber: string) => {
+    if (!school?.id) {
+      toast.error("School not loaded");
+      return;
+    }
+    setLoading(true);
+    try {
+      // Try lookup by ID first, then by student_number
+      let query = supabase
+        .from("students")
+        .select("id, first_name, last_name, student_number, photo_url")
+        .eq("school_id", school.id);
+
+      // Check if it looks like a UUID
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        studentIdOrNumber,
+      );
+
+      if (isUuid) {
+        query = query.eq("id", studentIdOrNumber);
+      } else {
+        query = query.eq("student_number", studentIdOrNumber);
+      }
+
+      const { data: studentData, error: studentError } = await query.single();
+
+      if (studentError || !studentData) {
+        toast.error("Student not found. Please check the ID card.");
+        return;
+      }
+
+      // Fetch wallet balance
+      const { data: walletData } = await supabase
+        .from("student_wallets")
+        .select("balance")
+        .eq("student_id", studentData.id)
+        .maybeSingle();
+
+      setStudent({
+        id: studentData.id,
+        first_name: studentData.first_name || "",
+        last_name: studentData.last_name || "",
+        student_number: studentData.student_number || "",
+        balance: Number(walletData?.balance || 0),
+        photo_url: studentData.photo_url,
+      });
+      toast.success(`Verified: ${studentData.first_name} ${studentData.last_name}`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to look up student");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleManualLookup = async () => {
+    if (!manualStudentNum.trim()) return;
+    await lookupStudent(manualStudentNum.trim());
+    setManualStudentNum("");
+  };
+
   return (
     <PageErrorBoundary>
     <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
@@ -279,37 +390,42 @@ export default function CanteenPOSPage() {
               Customer Identity
             </h3>
             {!student ? (
-              <div className="p-4 rounded-[28px] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center space-y-3 hover:bg-slate-50/50 transition-colors cursor-pointer group">
-                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:text-primary-800 transition-colors">
-                  <MaterialIcon
-                    icon="qr_code_scanner"
-                    style={{ fontSize: 32 }}
-                  />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-800">
-                    Scan Student ID
-                  </p>
-                  <p className="text-[10px] text-slate-400 font-medium">
-                    Verify wallet balance instantly
-                  </p>
-                </div>
+              <div className="space-y-3">
                 <button
-                  onClick={() => {
-                    const counterStr = String(demoCounter).padStart(3, "0");
-                    setStudent({
-                      id: "demo123",
-                      first_name: "Isaac",
-                      last_name: "Mugisha",
-                      balance: 15000,
-                      student_number: `SM/${academicYear}/${counterStr}`,
-                    });
-                    setDemoCounter((c) => c + 1);
-                  }}
-                  className="text-[9px] font-black uppercase text-primary-700 hover:underline"
+                  onClick={startScanner}
+                  className="w-full p-4 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center space-y-3 hover:bg-slate-50/50 transition-colors cursor-pointer group"
                 >
-                  Simulate Scan
+                  <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:text-primary-800 transition-colors">
+                    <MaterialIcon
+                      icon="qr_code_scanner"
+                      style={{ fontSize: 32 }}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-800">
+                      Scan Student ID Card
+                    </p>
+                    <p className="text-xs text-slate-400 font-medium">
+                      Tap to open camera and scan QR code
+                    </p>
+                  </div>
                 </button>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={manualStudentNum}
+                    onChange={(e) => setManualStudentNum(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleManualLookup()}
+                    placeholder="Or type student number..."
+                    className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                  <button
+                    onClick={handleManualLookup}
+                    className="px-4 py-2 bg-primary-800 text-white text-sm font-bold rounded-xl hover:bg-primary-900 transition-colors"
+                  >
+                    Look up
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="p-4 rounded-[28px] bg-primary-800 text-white relative overflow-hidden">
@@ -456,6 +572,44 @@ export default function CanteenPOSPage() {
         </div>
       </div>
     </div>
+
+    {/* QR Scanner Modal */}
+    {showScanner && (
+      <div className="fixed inset-0 z-50 bg-black/80 flex flex-col items-center justify-center p-4">
+        <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b border-slate-100">
+            <h3 className="text-lg font-bold text-slate-800">Scan Student ID</h3>
+            <button
+              onClick={stopScanner}
+              className="p-2 hover:bg-slate-100 rounded-lg"
+            >
+              <MaterialIcon icon="close" className="text-slate-500" />
+            </button>
+          </div>
+          <div className="p-4">
+            {scannerError ? (
+              <div className="text-center py-8">
+                <MaterialIcon icon="error" className="text-red-500 text-4xl mb-3" />
+                <p className="text-red-600 font-medium">{scannerError}</p>
+                <p className="text-sm text-slate-500 mt-2">
+                  Make sure you have granted camera permission.
+                </p>
+              </div>
+            ) : (
+              <div
+                id="canteen-qr-reader"
+                className="w-full aspect-square bg-slate-900 rounded-xl overflow-hidden"
+              />
+            )}
+          </div>
+          <div className="p-4 bg-slate-50 border-t border-slate-100">
+            <p className="text-xs text-slate-500 text-center">
+              Point the camera at the student&apos;s ID card QR code
+            </p>
+          </div>
+        </div>
+      </div>
+    )}
     </PageErrorBoundary>
   );
 }
