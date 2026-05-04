@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { normalizeAuthPhone } from "@/lib/validation";
 import { buildAuthEmailFromPhone } from "@/lib/auth-login";
 import { logger } from "@/lib/logger";
+import { sendParentPortalCredentials, isWhatsAppConfigured } from "@/lib/whatsapp";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
@@ -47,6 +48,25 @@ export async function POST(request: NextRequest) {
   const generatedPassword = `parent${parentPhone.slice(-4)}`;
   const authEmail = buildAuthEmailFromPhone(phoneNormalized);
 
+  // Fetch school name for WhatsApp message
+  let schoolName = "SkoolMate";
+  const { data: school } = await supabaseAdmin
+    .from("schools")
+    .select("name")
+    .eq("id", schoolId)
+    .maybeSingle();
+  if (school?.name) schoolName = school.name;
+
+  const portalUrl = `${request.nextUrl.origin}/parent-portal`;
+  const whatsappOpts = {
+    parentName,
+    parentPhone: phoneNormalized,
+    studentName: `${student.first_name} ${student.last_name}`,
+    password: generatedPassword,
+    portalUrl,
+    schoolName,
+  };
+
   if (existingUser) {
     // Parent exists — ensure link to this student
     const { data: existingLink } = await supabaseAdmin
@@ -64,6 +84,15 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Generate WhatsApp share link for existing parent credentials
+    let whatsappLink: string | undefined;
+    try {
+      const { generateWhatsAppShareLink } = await import("@/lib/whatsapp");
+      whatsappLink = generateWhatsAppShareLink(phoneNormalized, `Hello ${parentName}! Your SkoolMate parent portal credentials.\n\nLogin: ${phoneNormalized}\nPassword: ${generatedPassword}\nLink: ${portalUrl}\n\n- ${schoolName}`);
+    } catch {
+      whatsappLink = undefined;
+    }
+
     return NextResponse.json({
       created: false,
       message: "Parent account already exists and is linked",
@@ -71,9 +100,9 @@ export async function POST(request: NextRequest) {
       parentPhone: phoneNormalized,
       generatedPassword,
       authEmail,
+      whatsappLink,
     });
   }
-  const authEmail = buildAuthEmailFromPhone(phoneNormalized);
 
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email: authEmail,
@@ -120,11 +149,32 @@ export async function POST(request: NextRequest) {
     logger.warn("[create-parent-portal] parent_students link failed:", linkError);
   }
 
+  // Auto-send via WhatsApp if configured
+  let whatsappLink: string | undefined;
+  let whatsappSent = false;
+  try {
+    if (isWhatsAppConfigured()) {
+      const waResult = await sendParentPortalCredentials(whatsappOpts);
+      whatsappLink = waResult.shareLink;
+      whatsappSent = waResult.success && !waResult.demo;
+      if (waResult.success && !waResult.demo) {
+        logger.info(`[create-parent-portal] WhatsApp credentials sent to ${phoneNormalized}`);
+      }
+    } else {
+      const { generateWhatsAppShareLink } = await import("@/lib/whatsapp");
+      whatsappLink = generateWhatsAppShareLink(phoneNormalized, `Hello ${parentName}! Your SkoolMate parent portal is ready.\n\nLogin: ${phoneNormalized}\nPassword: ${generatedPassword}\nLink: ${portalUrl}\n\n- ${schoolName}`);
+    }
+  } catch (e) {
+    logger.warn("[create-parent-portal] WhatsApp send failed (non-blocking):", e);
+  }
+
   return NextResponse.json({
     created: true,
     message: `Parent portal created for ${parentName}`,
     parentName,
     parentPhone: phoneNormalized,
     generatedPassword,
+    whatsappLink,
+    whatsappSent,
   });
 }

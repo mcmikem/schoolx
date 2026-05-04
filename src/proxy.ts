@@ -99,6 +99,7 @@ function applySecurityHeaders(response: NextResponse) {
     "https://*.supabase.co",
     "https://api.resend.com",
     "https://api.africastalking.com",
+    "https://graph.facebook.com",
     "https://*.google.com",
     "https://*.gstatic.com",
   ];

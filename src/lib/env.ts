@@ -75,6 +75,20 @@ export function validateEnv(): EnvValidationResult {
     warnings.push("Africa's Talking not configured. SMS features will be unavailable.");
   }
 
+  const hasWhatsAppToken = !!process.env.WHATSAPP_BUSINESS_TOKEN;
+  const hasWhatsAppPhoneId = !!process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+  if (hasWhatsAppToken || hasWhatsAppPhoneId) {
+    const missing: string[] = [];
+    if (!hasWhatsAppToken) missing.push("WHATSAPP_BUSINESS_TOKEN");
+    if (!hasWhatsAppPhoneId) missing.push("WHATSAPP_PHONE_NUMBER_ID");
+    if (missing.length > 0) {
+      warnings.push(`WhatsApp partially configured. Missing: ${missing.join(", ")}`);
+    }
+  } else {
+    warnings.push("WhatsApp Business API not configured. Auto-messaging will use share links instead.");
+  }
+
   const hasResendApiKey = !!process.env.RESEND_API_KEY;
   const hasEmailFrom = !!process.env.EMAIL_FROM;
 
@@ -110,6 +124,10 @@ export const isPayPalConfigured =
 export const isSmsConfigured =
   !!process.env.AFRICAS_TALKING_API_KEY &&
   !!process.env.AFRICAS_TALKING_USERNAME;
+
+export const isWhatsAppConfigured =
+  !!process.env.WHATSAPP_BUSINESS_TOKEN &&
+  !!process.env.WHATSAPP_PHONE_NUMBER_ID;
 
 export const isEmailConfigured =
   !!process.env.RESEND_API_KEY &&

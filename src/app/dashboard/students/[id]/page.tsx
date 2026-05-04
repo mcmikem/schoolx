@@ -528,6 +528,8 @@ export default function StudentProfilePage() {
     generatedPassword: string;
     parentName: string;
   } | null>(null);
+  const [whatsappSent, setWhatsappSent] = useState(false);
+  const [whatsappLink, setWhatsappLink] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     first_name: "",
     last_name: "",
@@ -1076,8 +1078,12 @@ export default function StudentProfilePage() {
                             generatedPassword: data.generatedPassword,
                             parentName: data.parentName || "Parent",
                           });
+                          setWhatsappSent(!!data.whatsappSent);
+                          setWhatsappLink(data.whatsappLink || null);
                           toast.success(
-                            `Parent portal created! Login: ${data.parentPhone}  Password: ${data.generatedPassword}`,
+                            data.whatsappSent
+                              ? `Parent portal created & WhatsApp sent to ${data.parentPhone}!`
+                              : `Parent portal created! Login: ${data.parentPhone}  Password: ${data.generatedPassword}`,
                           );
                         } else {
                           setPortalCreds({
@@ -1085,6 +1091,8 @@ export default function StudentProfilePage() {
                             generatedPassword: data.generatedPassword,
                             parentName: data.parentName || "Parent",
                           });
+                          setWhatsappSent(!!data.whatsappSent);
+                          setWhatsappLink(data.whatsappLink || null);
                           toast.info(data.message || "Parent already linked");
                         }
                        } catch {
@@ -1098,8 +1106,13 @@ export default function StudentProfilePage() {
                 )}
                 {portalCreds && (
                   <div className="mt-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800 text-xs space-y-2">
-                    <div className="font-semibold text-emerald-800 dark:text-emerald-300">
+                    <div className="font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
                       Portal Credentials
+                      {whatsappSent && (
+                        <span className="inline-flex items-center gap-0.5 ml-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-300 rounded text-[10px] font-medium">
+                          <MessageCircle className="w-3 h-3" /> Sent
+                        </span>
+                      )}
                     </div>
                     <div className="text-gray-700 dark:text-gray-300">
                       <span className="text-gray-500">Phone:</span> {portalCreds.parentPhone}
@@ -1115,8 +1128,12 @@ export default function StudentProfilePage() {
                       <button
                         type="button"
                         onClick={() => {
-                          const text = `Hello ${portalCreds.parentName}! Your SkoolMate parent portal is ready.\n\nLogin: ${portalCreds.parentPhone}\nPassword: ${portalCreds.generatedPassword}\nLink: ${window.location.origin}/parent-portal\n\n- ${student.school_name || "SkoolMate"}`;
-                          window.open(`https://wa.me/${portalCreds.parentPhone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`, "_blank");
+                          if (whatsappLink) {
+                            window.open(whatsappLink, "_blank");
+                          } else {
+                            const text = `Hello ${portalCreds.parentName}! Your SkoolMate parent portal is ready.\n\nLogin: ${portalCreds.parentPhone}\nPassword: ${portalCreds.generatedPassword}\nLink: ${window.location.origin}/parent-portal\n\n- SkoolMate`;
+                            window.open(`https://wa.me/${portalCreds.parentPhone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`, "_blank");
+                          }
                         }}
                         className="flex-1 flex items-center justify-center gap-1 rounded-lg bg-green-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-green-700"
                       >
