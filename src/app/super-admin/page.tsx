@@ -1512,7 +1512,7 @@ function UserActions({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function SuperAdminPage() {
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, authInitialized, signOut } = useAuth();
   const router = useRouter();
   const toast = useToast();
 
@@ -1566,10 +1566,10 @@ export default function SuperAdminPage() {
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && user && user.role !== "super_admin")
+    if (authInitialized && user && user.role !== "super_admin")
       router.replace("/dashboard");
-    if (!authLoading && !user) router.replace("/login");
-  }, [authLoading, user, router]);
+    if (authInitialized && !user) router.replace("/login");
+  }, [authInitialized, user, router]);
 
   useEffect(() => {
     try {
@@ -1756,7 +1756,7 @@ export default function SuperAdminPage() {
     }
   };
 
-  if (authLoading || (!user && !authLoading)) {
+  if (!authInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--bg)]">
         <OwlLoader size={100} text="SkoolMate OS" subtext="Loading admin panel..." />

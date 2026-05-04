@@ -42,8 +42,8 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
 }
 
 function LoadingChecker({ children }: { children: ReactNode }) {
-  const { loading } = useAuth()
-  if (loading) return <AppLoader />
+  const { authInitialized } = useAuth()
+  if (!authInitialized) return <AppLoader />
   return <>{children}</>
 }
 

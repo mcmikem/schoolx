@@ -7,9 +7,9 @@ import { OwlLoader } from "@/components/loaders";
 
 export default function SetupWizardPage() {
   const router = useRouter();
-  const { user, school, loading } = useAuth();
+  const { user, school, authInitialized } = useAuth();
 
-  if (loading) {
+  if (!authInitialized) {
     return (
       <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
         <OwlLoader size={100} text="SkoolMate OS" subtext="Loading your school..." />

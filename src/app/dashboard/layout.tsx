@@ -121,7 +121,7 @@ function SessionTimeoutWarning({
 }
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
-  const { user, school, loading, isDemo, isTrialExpired, signOut } = useAuth();
+  const { user, school, loading, authInitialized, isDemo, isTrialExpired, signOut } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const toast = useToast();
@@ -135,17 +135,17 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   // (e.g. token refresh, visibility change) which would cause redirect loops.
   useEffect(() => {
     if (hasRedirectedRef.current) return;
-    if (loading) return;
+    if (!authInitialized) return;
     if (!user && !isDemo) {
       hasRedirectedRef.current = true;
       router.replace("/login");
     }
-  }, [loading, user, isDemo, router]);
+  }, [authInitialized, user, isDemo, router]);
 
   // Role-based redirect — parents and super_admin should not see dashboard.
   useEffect(() => {
     if (hasRedirectedRef.current) return;
-    if (loading || !user || isDemo) return;
+    if (!authInitialized || !user || isDemo) return;
 
     if (user.role === "parent") {
       hasRedirectedRef.current = true;
@@ -158,7 +158,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       router.replace("/super-admin");
       return;
     }
-  }, [loading, user, isDemo, router]);
+  }, [authInitialized, user, isDemo, router]);
 
   const handleSignOut = async () => {
     sessionStorage.removeItem("lastDeniedPath");

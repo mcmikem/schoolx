@@ -30,7 +30,7 @@ function serializeDemoData(data: object): string {
 export default function LoginPage() {
   const toast = useToast();
   const router = useRouter();
-  const { signIn, user, loading: authLoading } = useAuth();
+  const { signIn, user, authInitialized } = useAuth();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -44,7 +44,7 @@ export default function LoginPage() {
   // Respect the ?redirect= param set by proxy.ts middleware so users
   // land on the page they originally tried to visit.
   useEffect(() => {
-    if (!authLoading && user) {
+    if (authInitialized && user) {
       const redirectParam = typeof window !== "undefined"
         ? new URLSearchParams(window.location.search).get("redirect")
         : null;
@@ -55,21 +55,7 @@ export default function LoginPage() {
         : "/dashboard";
       router.replace(dest);
     }
-  }, [user, authLoading, router]);
-
-  // Safety net: if authLoading is stuck for more than 15s, force it false
-  // so the login form becomes accessible again.
-  useEffect(() => {
-    if (!authLoading || !user) return;
-    const timer = setTimeout(() => {
-      logger.warn("[Login] authLoading stuck for 15s, forcing redirect");
-      const dest = user?.role === "super_admin" ? "/super-admin"
-        : user?.role === "parent" ? "/parent-portal"
-        : "/dashboard";
-      router.replace(dest);
-    }, 15000);
-    return () => clearTimeout(timer);
-  }, [authLoading, user, router]);
+  }, [user, authInitialized, router]);
 
   // Show a helpful toast when arriving from registration
   useEffect(() => {
@@ -209,11 +195,9 @@ export default function LoginPage() {
 
   return (
     <PageErrorBoundary>
-    {/* Guard: if user is known (just logged in or already authenticated),
-        show a plain spinner so there's no flash of the form while router
-        is processing the redirect from the useEffect below.
-        If authLoading is stuck for too long, show the form anyway. */}
-    {(authLoading && !user) ? (
+    {/* Guard: if auth hasn't been checked yet, show a plain spinner so there's
+        no flash of the form while router is processing the redirect. */}
+    {(!authInitialized && !user) ? (
       <div className="min-h-screen bg-[#f4f7fb] flex items-center justify-center">
         <OwlLoader size={100} text="SkoolMate OS" subtext="Getting things ready..." />
       </div>

@@ -43,7 +43,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [school, setSchool] = useState<School | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [authInitialized, setAuthInitialized] = useState(false);
   const [isDemo, setIsDemo] = useState(false);
   const [isTrialExpired, setIsTrialExpired] = useState(false);
   const router = useRouter();
@@ -204,6 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setIsDemo(true);
             setIsTrialExpired(false);
             setLoading(false);
+            setAuthInitialized(true);
             return;
           }
         } catch (e) {
@@ -222,6 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setSchool(null);
             setIsDemo(false);
             setLoading(false);
+            setAuthInitialized(true);
             return;
           }
 
@@ -234,6 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setSchool(cachedSchool ? JSON.parse(cachedSchool) : null);
                 setIsDemo(false);
                 setLoading(false);
+                setAuthInitialized(true);
                 return;
               }
             } catch (error) {
@@ -251,11 +255,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await fetchUserData(authUser.id);
             setIsDemo(false);
             setLoading(false);
+            setAuthInitialized(true);
           } else {
             setUser(null);
             setSchool(null);
             setIsDemo(false);
             setLoading(false);
+            setAuthInitialized(true);
           }
         } catch {
           setUser(null);
@@ -266,12 +272,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setIsDemo(false);
         setLoading(false);
+        setAuthInitialized(true);
       }
     } catch {
       setIsDemo(false);
       setLoading(false);
     } finally {
       clearTimeout(safetyTimer);
+      setAuthInitialized(true);
     }
   }, [fetchUserData]);
 
@@ -328,13 +336,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
               setIsDemo(false);
               setLoading(false);
+              setAuthInitialized(true);
             } else if (event === "INITIAL_SESSION" && !session) {
               setUser(null);
               setSchool(null);
               setIsDemo(false);
               setLoading(false);
+              setAuthInitialized(true);
             } else {
               setLoading(false);
+              setAuthInitialized(true);
             }
           } else if (event === "SIGNED_OUT") {
             setUser(null);
@@ -342,6 +353,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setIsDemo(false);
             setIsTrialExpired(false);
             setLoading(false);
+            setAuthInitialized(true);
             try {
               localStorage.removeItem(OFFLINE_USER_KEY);
               localStorage.removeItem(OFFLINE_SCHOOL_KEY);
@@ -351,6 +363,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } catch (error) {
           setLoading(false);
+          setAuthInitialized(true);
           if (!isSupabaseLockAbortError(error)) {
             logger.error(
               "[Auth] Auth state change handler failed:",
@@ -539,6 +552,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         school,
         loading,
+        authInitialized,
         isDemo,
         isTrialExpired,
         signIn,

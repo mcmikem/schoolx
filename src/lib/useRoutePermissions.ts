@@ -26,13 +26,13 @@ const roleBasedRoutes: Record<string, keyof RolePermissions> = {
 }
 
 export function useRoutePermissions() {
-  const { user, loading: authLoading, school } = useAuth()
+  const { user, authInitialized, school } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const path = pathname ?? ''
 
   useEffect(() => {
-    if (authLoading) return
+    if (!authInitialized) return
 
     if (!user && !publicRoutes.includes(path)) {
       router.push('/login')
@@ -56,7 +56,7 @@ export function useRoutePermissions() {
         router.push('/dashboard')
       }
     }
-  }, [user, authLoading, path, router])
+  }, [user, authInitialized, path, router])
 
-  return { user, loading: authLoading }
+  return { user, authInitialized }
 }

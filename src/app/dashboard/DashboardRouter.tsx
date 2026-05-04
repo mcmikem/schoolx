@@ -226,7 +226,7 @@ function DormMasterDashboard() {
 }
 
 export default function DashboardRouter() {
-  const { user, school, loading } = useAuth();
+  const { user, school, loading, authInitialized } = useAuth();
   const router = useRouter();
 
   const requiresSetup =
@@ -235,14 +235,14 @@ export default function DashboardRouter() {
     (!school || !school.name || school.name === "My School");
 
   useEffect(() => {
-    if (loading || !requiresSetup) return;
+    if (!authInitialized || !requiresSetup) return;
 
     const redirectTimer = window.setTimeout(() => {
       router.replace("/dashboard/setup-wizard");
     }, 0);
 
     return () => window.clearTimeout(redirectTimer);
-  }, [loading, requiresSetup, router]);
+  }, [authInitialized, requiresSetup, router]);
 
   if (loading) {
     return <DashboardSkeleton />;

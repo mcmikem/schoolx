@@ -10,7 +10,7 @@ import {
 } from "@/lib/featureStages";
 
 export function useParentPortalGuard() {
-  const { user, school, loading, isDemo } = useAuth();
+  const { user, school, authInitialized, isDemo } = useAuth();
   const router = useRouter();
   const featureStage =
     (school?.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE;
@@ -18,7 +18,7 @@ export function useParentPortalGuard() {
     isDemo || canUseModule(featureStage, "parentPortal");
 
   useEffect(() => {
-    if (loading) return;
+    if (!authInitialized) return;
 
     if (!user && !isDemo) {
       router.replace("/login");
@@ -33,11 +33,11 @@ export function useParentPortalGuard() {
     if (user && !isDemo && !parentPortalEnabled) {
       router.replace("/parent-portal");
     }
-  }, [user, loading, isDemo, parentPortalEnabled, router]);
+  }, [user, authInitialized, isDemo, parentPortalEnabled, router]);
 
   const isAuthorized =
     (isDemo || user?.role === "parent") && parentPortalEnabled;
-  const isChecking = loading || (!isDemo && !isAuthorized);
+  const isChecking = !authInitialized || (!isDemo && !isAuthorized);
 
   return { isAuthorized, isChecking };
 }

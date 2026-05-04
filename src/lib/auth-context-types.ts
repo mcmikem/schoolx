@@ -45,6 +45,7 @@ export interface AuthContextType {
   user: User | null;
   school: School | null;
   loading: boolean;
+  authInitialized: boolean;
   isDemo: boolean;
   isTrialExpired: boolean;
   signIn: (
