@@ -4,7 +4,8 @@ import {
   createServiceRoleClientOrThrow,
   requireExistingSchoolOrDeny,
 } from "@/lib/api-utils";
-import { sendAfricasTalkingSMS } from "@/lib/africas-talking";
+import { sendAfricasTalkingSMSWithRetry } from "@/lib/africas-talking";
+import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
         const message = `Friendly Nudge: Attendance for ${cls.name} hasn't been marked yet. Please update the system as soon as possible. - SkoolMate Admin`;
 
         try {
-          const smsRes = await sendAfricasTalkingSMS(
+          const smsRes = await sendAfricasTalkingSMSWithRetry(
             teacherUser.phone,
             message,
             { formatUgandaNumber: true },
@@ -75,7 +76,8 @@ export async function POST(request: NextRequest) {
               status: "sent",
             } as any);
           }
-        } catch {
+        } catch (err) {
+          logger.error("Attendance heartbeat SMS failed:", err);
           results.errors++;
         }
       }
@@ -87,6 +89,7 @@ export async function POST(request: NextRequest) {
       unmarked: unmarkedClasses.map((c: any) => c.name),
     });
   } catch (error) {
+    logger.error("Attendance heartbeat failed:", error);
     return NextResponse.json({ error: "Heartbeat failed" }, { status: 500 });
   }
 }

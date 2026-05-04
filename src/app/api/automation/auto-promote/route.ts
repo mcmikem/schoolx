@@ -72,10 +72,12 @@ export async function POST(request: NextRequest) {
         studentUpdateSuccess: boolean;
         promotionInsertSuccess: boolean;
         promotionRecord: any;
+        originalClassId: string | null;
       } = {
         studentUpdateSuccess: false,
         promotionInsertSuccess: false,
         promotionRecord: null,
+        originalClassId: null,
       };
 
       try {
@@ -86,6 +88,8 @@ export async function POST(request: NextRequest) {
           errors.push({ studentId: student.id, reason: "No class assigned" });
           continue;
         }
+
+        studentOps.originalClassId = studentClass.id;
 
         const grades = student.grades || [];
         const validGrades = grades.filter(
@@ -151,6 +155,7 @@ export async function POST(request: NextRequest) {
 
           if (nextClasses && nextClasses.length > 0) {
             const nextClassId = nextClasses[0].id;
+            const originalClassId = studentClass.id;
 
             const { error: updateError } = await supabase
               .from("students")
@@ -181,7 +186,7 @@ export async function POST(request: NextRequest) {
             if (insertError) {
               await supabase
                 .from("students")
-                .update({ class_id: studentClass.id, repeating: null })
+                .update({ class_id: originalClassId, repeating: false })
                 .eq("id", student.id);
               studentOps.studentUpdateSuccess = false;
               throw new Error(
@@ -233,7 +238,7 @@ export async function POST(request: NextRequest) {
           try {
             await supabase
               .from("students")
-              .update({ class_id: null, repeating: null })
+              .update({ class_id: studentOps.originalClassId, repeating: false })
               .eq("id", student.id);
           } catch (rollbackErr) {
             logger.error(

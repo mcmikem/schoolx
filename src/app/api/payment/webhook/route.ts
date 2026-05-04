@@ -62,10 +62,6 @@ export async function POST(request: Request) {
           });
         } catch (error) {
           logger.error("Error handling checkout session completed:", error);
-          return new NextResponse(
-            JSON.stringify({ error: "Failed to process checkout session" }),
-            { status: 500 },
-          );
         }
       }
 
@@ -105,10 +101,6 @@ export async function POST(request: Request) {
         });
       } catch (error) {
         logger.error("Error handling invoice.payment_succeeded:", error);
-        return new NextResponse(
-          JSON.stringify({ error: "Failed to process invoice payment" }),
-          { status: 500 },
-        );
       }
 
       try {
@@ -157,10 +149,6 @@ export async function POST(request: Request) {
         });
       } catch (error) {
         logger.error("Error handling invoice.payment_failed:", error);
-        return new NextResponse(
-          JSON.stringify({ error: "Failed to process failed payment" }),
-          { status: 500 },
-        );
       }
 
       break;
@@ -180,10 +168,6 @@ export async function POST(request: Request) {
         });
       } catch (error) {
         logger.error("Error handling customer.subscription.created:", error);
-        return new NextResponse(
-          JSON.stringify({ error: "Failed to process subscription creation" }),
-          { status: 500 },
-        );
       }
 
       break;
@@ -203,10 +187,6 @@ export async function POST(request: Request) {
         });
       } catch (error) {
         logger.error("Error handling customer.subscription.updated:", error);
-        return new NextResponse(
-          JSON.stringify({ error: "Failed to process subscription update" }),
-          { status: 500 },
-        );
       }
 
       break;
@@ -224,10 +204,6 @@ export async function POST(request: Request) {
         });
       } catch (error) {
         logger.error("Error handling customer.subscription.deleted:", error);
-        return new NextResponse(
-          JSON.stringify({ error: "Failed to process subscription deletion" }),
-          { status: 500 },
-        );
       }
 
       break;

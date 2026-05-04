@@ -5,7 +5,7 @@ import {
   requireExistingSchoolOrDeny,
 } from "@/lib/api-utils";
 import { requireActiveSubscription } from "@/lib/subscription-guard";
-import { sendAfricasTalkingSMS, checkSmsDailyLimit } from "@/lib/africas-talking";
+import { sendAfricasTalkingSMSWithRetry, checkSmsDailyLimit } from "@/lib/africas-talking";
 import { logger } from "@/lib/logger";
 
 // Auto Fee Reminder SMS Scheduler
@@ -147,67 +147,91 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Check which triggers apply
-        for (const trigger of reminderTriggers) {
-          if (daysOverdue >= trigger.days) {
-              const withinLimit = await checkSmsDailyLimit(school.schoolId, 1);
-              if (!withinLimit) {
-                results.skipped.push({
-                  studentId: student.id,
-                  name: `${student.first_name} ${student.last_name}`,
-                  reason: "Daily SMS limit reached",
-                });
-                break;
-              }
+        // Check which triggers apply (only send the highest applicable trigger not yet sent)
+        const applicableTriggers = (reminderTriggers as Array<{ days: number; message: string }>)
+          .filter((t: { days: number }) => daysOverdue >= t.days)
+          .sort((a: { days: number }, b: { days: number }) => b.days - a.days);
 
-              const message = trigger.message
-                .replace(
-                  "{student_name}",
-                  `${student.first_name} ${student.last_name}`,
-                )
-                .replace("{balance}", balance.toLocaleString())
-                .replace("{due_date}", dueDate.toLocaleDateString())
-                .replace("{class}", student.classes?.name || "Unknown");
+        if (applicableTriggers.length === 0) continue;
 
-              // Send SMS via Africa's Talking or similar provider
-              const smsResult = await sendAfricasTalkingSMS(
-                student.parent_phone,
-                message,
-                { formatUgandaNumber: true },
-              );
+        // Check if we already sent a reminder at this or higher level
+        const { data: priorReminders } = await supabase
+          .from("messages")
+          .select("created_at")
+          .eq("student_id", student.id)
+          .eq("type", "fee_reminder")
+          .order("created_at", { ascending: false })
+          .limit(1);
 
-              if (smsResult.success) {
-                // Skip the update as it's causing type issues
-                // The reminder being sent is sufficient indication
+        const lastReminderDate = priorReminders?.[0]?.created_at
+          ? new Date(priorReminders[0].created_at)
+          : null;
 
-                // Log the SMS
-                await supabase.from("messages").insert({
-                  school_id: school.schoolId,
-                  recipient: student.parent_phone,
-                  message: message,
-                  status: "sent",
-                  sent_at: now.toISOString(),
-                  type: "fee_reminder",
-                  student_id: student.id,
-                } as any);
+        const highestTrigger = applicableTriggers[0];
+        const alreadySentAtThisLevel = lastReminderDate
+          ? Math.floor((now.getTime() - lastReminderDate.getTime()) / (1000 * 60 * 60 * 24)) < highestTrigger.days
+          : false;
 
-                results.remindersSent.push({
-                  studentId: student.id,
-                  name: `${student.first_name} ${student.last_name}`,
-                  phone: student.parent_phone,
-                  balance: balance,
-                  daysOverdue,
-                  triggerDays: trigger.days,
-                  messageId: smsResult.messageId,
-                });
-              } else {
-                results.errors.push({
-                  studentId: student.id,
-                  name: `${student.first_name} ${student.last_name}`,
-                  reason: `SMS failed: ${smsResult.error}`,
-                });
-              }
-          }
+        if (alreadySentAtThisLevel) {
+          results.skipped.push({
+            studentId: student.id,
+            name: `${student.first_name} ${student.last_name}`,
+            reason: `Reminder already sent within ${highestTrigger.days}-day window`,
+          });
+          continue;
+        }
+
+        const withinLimit = await checkSmsDailyLimit(school.schoolId, 1);
+        if (!withinLimit) {
+          results.skipped.push({
+            studentId: student.id,
+            name: `${student.first_name} ${student.last_name}`,
+            reason: "Daily SMS limit reached",
+          });
+          continue;
+        }
+
+        const message = highestTrigger.message
+          .replace(
+            "{student_name}",
+            `${student.first_name} ${student.last_name}`,
+          )
+          .replace("{balance}", balance.toLocaleString())
+          .replace("{due_date}", dueDate.toLocaleDateString())
+          .replace("{class}", student.classes?.name || "Unknown");
+
+        const smsResult = await sendAfricasTalkingSMSWithRetry(
+          student.parent_phone,
+          message,
+          { formatUgandaNumber: true },
+        );
+
+        if (smsResult.success) {
+          await supabase.from("messages").insert({
+            school_id: school.schoolId,
+            recipient: student.parent_phone,
+            message: message,
+            status: "sent",
+            sent_at: now.toISOString(),
+            type: "fee_reminder",
+            student_id: student.id,
+          } as any);
+
+          results.remindersSent.push({
+            studentId: student.id,
+            name: `${student.first_name} ${student.last_name}`,
+            phone: student.parent_phone,
+            balance: balance,
+            daysOverdue,
+            triggerDays: highestTrigger.days,
+            messageId: smsResult.messageId,
+          });
+        } else {
+          results.errors.push({
+            studentId: student.id,
+            name: `${student.first_name} ${student.last_name}`,
+            reason: `SMS failed: ${smsResult.error}`,
+          });
         }
       } catch (err) {
         results.errors.push({

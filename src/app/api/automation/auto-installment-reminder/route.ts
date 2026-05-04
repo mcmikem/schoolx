@@ -6,7 +6,7 @@ import {
   createServiceRoleClientOrThrow,
   requireExistingSchoolOrDeny,
 } from "@/lib/api-utils";
-import { sendAfricasTalkingSMS } from "@/lib/africas-talking";
+import { sendAfricasTalkingSMSWithRetry } from "@/lib/africas-talking";
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 
       // Send SMS
       try {
-        const smsRes = await sendAfricasTalkingSMS(
+        const smsRes = await sendAfricasTalkingSMSWithRetry(
           reminder.parentPhone,
           reminder.smsMessage,
           { formatUgandaNumber: true },

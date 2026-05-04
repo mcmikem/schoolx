@@ -218,7 +218,6 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    // Require a shared secret for delivery callbacks to prevent spoofing.
     const expected = process.env.AFRICAS_TALKING_DELIVERY_SECRET;
     if (expected) {
       const provided = request.headers.get("x-delivery-secret");
@@ -227,17 +226,18 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    // This endpoint receives delivery reports from Africa's Talking
     const body = await request.json();
     const { id, status, phoneNumber, failureReason } = body;
 
-    // Log delivery status
     logger.debug(
       `[SMS Delivery] ID: ${id}, Status: ${status}, Phone: ${phoneNumber}`,
     );
 
-    // In production, update the message record in database
-    // await supabase.from('messages').update({ status, delivery_status: status }).eq('message_id', id)
+    const supabase = createServiceRoleClientOrThrow();
+    await supabase
+      .from("messages")
+      .update({ status, delivery_status: status })
+      .eq("message_id", id);
 
     return apiSuccess({ received: true });
   } catch (error) {

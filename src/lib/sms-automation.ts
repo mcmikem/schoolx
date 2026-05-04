@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase"
 import { DEMO_STUDENTS, DEMO_FEE_STRUCTURE, DEMO_FEE_PAYMENTS, DEMO_ATTENDANCE } from "@/lib/demo-data"
 import { isDemoSchool } from "@/lib/demo-utils"
 import { getCurrentTerm } from "@/lib/automation"
-import { checkSmsDailyLimit } from "@/lib/africas-talking"
+import { checkSmsDailyLimit, sendAfricasTalkingSMS } from "@/lib/africas-talking"
 
 export interface SMSResult {
   success: boolean
@@ -63,17 +63,12 @@ export function generateSMSTemplate(
   return message
 }
 
-async function sendSMSViaAPI(phone: string, message: string): Promise<boolean> {
+async function sendSMSDirect(phone: string, message: string): Promise<boolean> {
   try {
-    const response = await fetch('/api/sms', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, message, schoolId: 'system', type: 'individual' }),
-    })
-    const result = await response.json()
-    return result?.success || result?.data?.status === 'sent'
+    const result = await sendAfricasTalkingSMS(phone, message, { formatUgandaNumber: true });
+    return result.success;
   } catch {
-    return false
+    return false;
   }
 }
 
@@ -106,7 +101,7 @@ async function logSMS(
       return logEntry
     }
 
-    const sent = await sendSMSViaAPI(entry.parent_phone, entry.message)
+    const sent = await sendSMSDirect(entry.parent_phone, entry.message)
 
     await supabase.from("sms_logs").insert({
       school_id: schoolId,

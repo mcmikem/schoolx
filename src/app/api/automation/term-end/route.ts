@@ -16,7 +16,7 @@ import {
   createServiceRoleClientOrThrow,
   requireExistingSchoolOrDeny,
 } from "@/lib/api-utils";
-import { sendAfricasTalkingSMS } from "@/lib/africas-talking";
+import { sendAfricasTalkingSMSWithRetry } from "@/lib/africas-talking";
 import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
@@ -222,44 +222,70 @@ export async function POST(request: NextRequest) {
             aggregate = uaceResult.points;
           }
 
-          // Insert report card
-          const { data: newCard } = await (supabase as any)
+          // Check for existing report card (idempotency)
+          const { data: existingCard } = await (supabase as any)
             .from("report_cards")
-            .insert({
-              school_id: school.schoolId,
-              student_id: student.id,
-              class_id: student.class_id,
-              academic_year: year,
-              term,
-              subjects: subjectResults,
-              aggregate,
-              division,
-              best4,
-              generated_at: new Date().toISOString(),
-              generated_by: "system",
-            })
             .select("id")
-            .single();
+            .eq("student_id", student.id)
+            .eq("academic_year", year)
+            .eq("term", term)
+            .limit(1);
 
-          if (newCard) {
-            generatedCount++;
+          if (existingCard && existingCard.length > 0) {
+            // Update existing card instead of creating duplicate
+            const { data: updatedCard } = await (supabase as any)
+              .from("report_cards")
+              .update({
+                subjects: subjectResults,
+                aggregate,
+                division,
+                best4,
+                generated_at: new Date().toISOString(),
+                generated_by: "system",
+              })
+              .eq("id", existingCard[0].id)
+              .select("id")
+              .single();
 
-            // Send email if parent email exists
-            if (student.parent_email) {
-              try {
-                await sendReportCardEmail(
-                  student.parent_email,
-                  `${student.first_name} ${student.last_name}`,
-                  studentClass.name,
-                  year,
-                  term,
-                  subjectResults,
-                  division,
-                );
-                emailedCount++;
-              } catch (_) {
-                // Email failure is non-fatal
-              }
+            if (updatedCard) generatedCount++;
+          } else {
+            // Insert new report card
+            const { data: newCard } = await (supabase as any)
+              .from("report_cards")
+              .insert({
+                school_id: school.schoolId,
+                student_id: student.id,
+                class_id: student.class_id,
+                academic_year: year,
+                term,
+                subjects: subjectResults,
+                aggregate,
+                division,
+                best4,
+                generated_at: new Date().toISOString(),
+                generated_by: "system",
+              })
+              .select("id")
+              .single();
+
+            if (newCard) generatedCount++;
+          }
+
+          // Send email if parent email exists
+          if (student.parent_email) {
+            try {
+              await sendReportCardEmail(
+                student.parent_email,
+                `${student.first_name} ${student.last_name}`,
+                studentClass.name,
+                year,
+                term,
+                subjectResults,
+                division,
+              );
+              emailedCount++;
+            } catch (_) {
+              // Email failure is non-fatal
             }
           }
         } catch (_) {
@@ -393,7 +419,7 @@ export async function POST(request: NextRequest) {
         if (student.parent_phone) {
           try {
             const smsMessage = `Dear parent, Term ${term} ${year} has ended for ${studentName} (${className}). Report cards are now available. Contact the school for any inquiries.`;
-            await sendAfricasTalkingSMS(student.parent_phone, smsMessage, {
+            await sendAfricasTalkingSMSWithRetry(student.parent_phone, smsMessage, {
               formatUgandaNumber: true,
             });
             noticesSent++;

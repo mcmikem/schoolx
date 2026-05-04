@@ -123,6 +123,33 @@ export async function sendAfricasTalkingSMS(
   }
 }
 
+export async function sendAfricasTalkingSMSWithRetry(
+  to: string,
+  message: string,
+  options?: { from?: string; formatUgandaNumber?: boolean; maxRetries?: number },
+): Promise<AfricasTalkingSMSResult> {
+  const maxRetries = options?.maxRetries ?? 2;
+  let lastError: AfricasTalkingSMSResult | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const result = await sendAfricasTalkingSMS(to, message, {
+      from: options?.from,
+      formatUgandaNumber: options?.formatUgandaNumber,
+    });
+
+    if (result.success) return result;
+
+    lastError = result;
+    if (attempt < maxRetries) {
+      const delay = Math.pow(2, attempt) * 1000;
+      logger.warn(`[SMS] Retry ${attempt + 1}/${maxRetries} after ${delay}ms: ${result.error}`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  return lastError ?? { success: false, error: "SMS failed after all retries" };
+}
+
 export async function checkSmsDailyLimit(
   schoolId: string,
   requestedCount: number,

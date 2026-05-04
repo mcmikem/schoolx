@@ -9,7 +9,7 @@ import {
   createServiceRoleClientOrThrow,
   requireExistingSchoolOrDeny,
 } from "@/lib/api-utils";
-import { sendAfricasTalkingSMS } from "@/lib/africas-talking";
+import { sendAfricasTalkingSMSWithRetry } from "@/lib/africas-talking";
 import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
 
       // Send SMS to parent
       try {
-        const smsResult = await sendAfricasTalkingSMS(
+        const smsResult = await sendAfricasTalkingSMSWithRetry(
           alert.parentPhone,
           alert.smsMessage,
           { formatUgandaNumber: true },

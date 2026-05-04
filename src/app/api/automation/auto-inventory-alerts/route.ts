@@ -5,7 +5,7 @@ import {
   requireExistingSchoolOrDeny,
 } from "@/lib/api-utils";
 import { requireActiveSubscription } from "@/lib/subscription-guard";
-import { sendAfricasTalkingSMS, checkSmsDailyLimit } from "@/lib/africas-talking";
+import { sendAfricasTalkingSMSWithRetry, checkSmsDailyLimit } from "@/lib/africas-talking";
 import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
@@ -81,8 +81,8 @@ export async function POST(request: NextRequest) {
           lastRestocked: item.last_restocked_at,
         });
 
-        // Send email alert if configured
-        if (item.supplier_contact) {
+        // Send email alert if configured and contact looks like an email
+        if (item.supplier_contact && item.supplier_contact.includes("@")) {
           try {
             await sendInventoryAlertEmail(
               item.supplier_contact,
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
               });
             } else {
               const smsMessage = `ALERT: ${item.name} stock is low (${currentStock} units). Reorder level: ${reorderLevel}. Please restock.`;
-              const smsResult = await sendAfricasTalkingSMS(phone, smsMessage, {
+              const smsResult = await sendAfricasTalkingSMSWithRetry(phone, smsMessage, {
                 formatUgandaNumber: true,
               });
 
