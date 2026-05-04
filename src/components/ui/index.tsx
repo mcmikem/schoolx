@@ -199,6 +199,7 @@ export function Avatar({ src, name, size = "md" }: AvatarProps) {
       <img
         src={src}
         alt={name}
+        loading="lazy"
         className={`${sizes[size]} rounded-full object-cover`}
       />
     );

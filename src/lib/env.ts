@@ -68,6 +68,9 @@ export function validateEnv(): EnvValidationResult {
     if (!process.env.SMS_DAILY_LIMIT) {
       warnings.push("SMS_DAILY_LIMIT not set. Using default of 500 messages per school per day.");
     }
+    if (!process.env.AFRICAS_TALKING_DELIVERY_SECRET) {
+      warnings.push("AFRICAS_TALKING_DELIVERY_SECRET not set. SMS delivery reports will accept unauthenticated requests.");
+    }
   } else {
     warnings.push("Africa's Talking not configured. SMS features will be unavailable.");
   }

@@ -38,11 +38,11 @@ function SecretaryDashboard() {
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Link href="/dashboard/visitors" className="stat-card">
+        <Link href="/dashboard/messages?tab=notices" className="stat-card">
           <div className="stat-accent" style={{ background: "var(--navy)" }} />
           <div className="stat-inner">
             <div className="stat-meta">
-              <div className="stat-label">Visitors Log</div>
+              <div className="stat-label">Notices & Visitors</div>
               <div
                 className="stat-icon-box"
                 style={{ background: "var(--navy-soft)", color: "var(--navy)" }}
@@ -51,15 +51,15 @@ function SecretaryDashboard() {
                   className="material-symbols-outlined"
                   style={{ fontSize: 18 }}
                 >
-                  badge
+                  campaign
                 </span>
               </div>
             </div>
             <div className="stat-val" style={{ color: "var(--navy)" }}>
-              Track Visitors
+              School Notices
             </div>
             <div className="text-[11px] text-[var(--t3)] font-medium mt-1">
-              Log and manage school visitors
+              View announcements and visitor log
             </div>
           </div>
         </Link>

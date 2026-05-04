@@ -209,6 +209,26 @@ export async function POST(request: Request) {
       break;
     }
 
+    case "charge.refunded": {
+      const charge = event.data.object;
+
+      logger.debug(`Charge refunded: ${charge.id}`);
+
+      try {
+        const schoolId = (charge.metadata?.school_id as string) || "";
+        if (schoolId) {
+          await handleSubscriptionChange(schoolId, {
+            status: "past_due",
+            provider: "stripe",
+          });
+        }
+      } catch (error) {
+        logger.error("Error handling charge.refunded:", error);
+      }
+
+      break;
+    }
+
     default:
       logger.debug(`Unhandled Stripe event type: ${event.type}`);
   }
