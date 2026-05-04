@@ -42,6 +42,12 @@ export interface School {
   on_premise?: boolean;
   trial_ends_at?: string;
   feature_stage?: "core" | "academic" | "finance" | "full";
+  student_id_format?: string;
+  has_boarding?: boolean;
+  has_houses?: boolean;
+  has_student_council?: boolean;
+  has_prefects?: boolean;
+  location_type?: "urban" | "peri_urban" | "rural";
   created_at: string;
 }
 
@@ -136,7 +142,10 @@ export interface CreateStudentInput {
   status?: "active" | "transferred" | "dropped" | "completed";
   opening_balance?: number;
   transfer_from?: string;
+  transfer_to?: string;
   transfer_reason?: string;
+  dropout_reason?: string;
+  dropout_date?: string;
   repeating?: boolean;
   photo_url?: string;
   parent_email?: string;

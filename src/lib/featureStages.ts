@@ -11,6 +11,7 @@ export type ModuleKey =
   | 'exports'
   | 'staff'
   | 'operations'
+  | 'settings'
   | 'parentPortal'
   | 'dorm'
   | 'health'
@@ -28,22 +29,22 @@ export const FEATURE_STAGES: Record<FeatureStage, FeatureStageDefinition> = deep
   core: {
     label: 'Core controls',
     description: 'Attendance, student records, basic communication and the dashboards you first need.',
-    modules: ['dashboard', 'attendance', 'communications', 'staff'],
+    modules: ['dashboard', 'attendance', 'communications', 'staff', 'settings'],
   },
   academic: {
     label: 'Academic focus',
     description: 'Everything in Core plus marks, exams, reports, and UNEB support when available.',
-    modules: ['dashboard', 'attendance', 'communications', 'marks', 'exam', 'reports', 'exports', 'staff'],
+    modules: ['dashboard', 'attendance', 'communications', 'marks', 'exam', 'reports', 'exports', 'staff', 'settings'],
   },
   finance: {
     label: 'Finance & operations',
     description: 'Adds invoicing, payments, payroll, budgeting, and health/operations modules.',
-    modules: ['dashboard', 'attendance', 'communications', 'finance', 'operations', 'staff', 'exports'],
+    modules: ['dashboard', 'attendance', 'communications', 'finance', 'operations', 'staff', 'exports', 'settings'],
   },
   full: {
     label: 'Full suite',
     description: 'Unlocks parent portal, dorm, health, analytics, and every module the plan supports.',
-    modules: ['dashboard', 'attendance', 'communications', 'marks', 'exam', 'finance', 'reports', 'exports', 'staff', 'operations', 'parentPortal', 'dorm', 'health', 'analytics'],
+    modules: ['dashboard', 'attendance', 'communications', 'marks', 'exam', 'finance', 'reports', 'exports', 'staff', 'operations', 'settings', 'parentPortal', 'dorm', 'health', 'analytics'],
   },
 })
 

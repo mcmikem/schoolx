@@ -2,6 +2,8 @@ import { useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { DEMO_ATTENDANCE } from "@/lib/demo-data";
 import { logger } from "@/lib/logger";
+import type { StudentWithClass } from "@/lib/hooks/students";
+import type { CreateStudentInput } from "@/types";
 
 interface AtRiskStudent {
   id: string;
@@ -20,9 +22,9 @@ interface AtRiskStudent {
 
 export function useStudentDropouts(
   schoolId: string | undefined,
-  students: any[],
+  students: StudentWithClass[],
   isDemo: boolean,
-  updateStudent: (id: string, data: any) => Promise<any>,
+  updateStudent: (id: string, data: Partial<CreateStudentInput>) => Promise<unknown>,
   toast: { success: (msg: string) => void; error: (msg: string) => void },
   user?: { id?: string; full_name?: string } | null,
 ) {
@@ -85,7 +87,7 @@ export function useStudentDropouts(
         .limit(10000);
       if (error) throw error;
       const studentAtt: Record<string, { date: string; status: string }[]> = {};
-      attendanceData?.forEach((record: any) => {
+      attendanceData?.forEach((record) => {
         if (!studentAtt[record.student_id]) studentAtt[record.student_id] = [];
         studentAtt[record.student_id].push({
           date: record.date,

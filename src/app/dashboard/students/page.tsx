@@ -185,9 +185,12 @@ export default function StudentHubPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
-  const [editingStudent, setEditingStudent] = useState<any>(null);
+  const [editingStudent, setEditingStudent] = useState<{
+    id: string;
+    photo_url?: string | null;
+  } | null>(null);
   const [saving, setSaving] = useState(false);
-  const [houses, setHouses] = useState<any[]>([]);
+  const [houses, setHouses] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     if (searchParams?.get("action") === "add") {
@@ -254,7 +257,7 @@ export default function StudentHubPage() {
     },
   ]);
 
-  const newStudentDraft: any = {
+  const newStudentDraft = {
     showRestoreDialog: false,
     discardDraft: () => {},
     savedDraft: null,
@@ -329,7 +332,7 @@ export default function StudentHubPage() {
               setNewStudent((prev) => ({ ...prev, photo_url: result }));
             } else {
               setEditForm((prev) => ({ ...prev, photo_url: result }));
-              setEditingStudent((prev: any) =>
+              setEditingStudent((prev) =>
                 prev ? { ...prev, photo_url: result } : prev,
               );
             }
@@ -355,7 +358,7 @@ export default function StudentHubPage() {
         setNewStudent((prev) => ({ ...prev, photo_url: publicUrl }));
       } else {
         setEditForm((prev) => ({ ...prev, photo_url: publicUrl }));
-        setEditingStudent((prev: any) =>
+        setEditingStudent((prev) =>
           prev ? { ...prev, photo_url: publicUrl } : prev,
         );
       }

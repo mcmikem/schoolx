@@ -1,9 +1,11 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { DEMO_CLASSES } from "@/lib/demo-data";
+import type { StudentWithClass } from "@/lib/hooks/students";
+import type { CreateStudentInput } from "@/types";
 
-type StudentAction = "promote" | "repeat" | "demote" | "skip";
-interface StudentActionMap {
+export type StudentAction = "promote" | "repeat" | "demote" | "skip";
+export interface StudentActionMap {
   [studentId: string]: {
     action: StudentAction;
     targetClassId?: string;
@@ -30,9 +32,9 @@ interface PromotionStudent {
 
 export function useStudentPromotion(
   schoolId: string | undefined,
-  students: any[],
+  students: StudentWithClass[],
   isDemo: boolean,
-  updateStudent: (id: string, data: any) => Promise<any>,
+  updateStudent: (id: string, data: Partial<CreateStudentInput>) => Promise<unknown>,
   toast: { success: (msg: string) => void; error: (msg: string) => void },
   academicYear: string,
   user?: { id?: string; full_name?: string } | null,
@@ -55,7 +57,7 @@ export function useStudentPromotion(
   const fetchPromotionClasses = useCallback(async () => {
     if (!schoolId) return;
     if (isDemo) {
-      setPromotionClasses(DEMO_CLASSES as any);
+      setPromotionClasses(DEMO_CLASSES);
       return;
     }
     const { data } = await supabase
@@ -71,7 +73,7 @@ export function useStudentPromotion(
     setPromotionLoading(true);
     if (isDemo) {
       const classStudents = students.filter((s) => s.class_id === fromClass);
-      setPromotionStudents(classStudents as any);
+      setPromotionStudents(classStudents);
       setSelectedStudents(new Set(classStudents.map((s) => s.id)));
       const defaultActions: StudentActionMap = {};
       classStudents.forEach((s) => {

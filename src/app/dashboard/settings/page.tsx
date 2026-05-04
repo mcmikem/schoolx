@@ -75,6 +75,7 @@ const MODULE_LABELS: Record<ModuleKey, string> = {
   exports: "Exports",
   staff: "Staff",
   operations: "Operations",
+  settings: "Settings",
   parentPortal: "Parent Portal",
   dorm: "Dorm",
   health: "Health",
@@ -153,15 +154,15 @@ export default function SettingsPage() {
   );
   const [savingStage, setSavingStage] = useState(false);
   const [schoolConfig, setSchoolConfig] = useState({
-    student_id_format: (school as any)?.student_id_format || "STU{YYYY}{####}",
-    has_boarding: (school as any)?.has_boarding || false,
-    has_houses: (school as any)?.has_houses || false,
-    has_student_council: (school as any)?.has_student_council || false,
-    has_prefects: (school as any)?.has_prefects || false,
-    location_type: (school as any)?.location_type || "urban",
+    student_id_format: school?.student_id_format ?? "STU{YYYY}{####}",
+    has_boarding: school?.has_boarding ?? false,
+    has_houses: school?.has_houses ?? false,
+    has_student_council: school?.has_student_council ?? false,
+    has_prefects: school?.has_prefects ?? false,
+    location_type: school?.location_type ?? "urban",
   });
   const [savingConfig, setSavingConfig] = useState(false);
-  const [houses, setHouses] = useState<any[]>([]);
+  const [houses, setHouses] = useState<{ id: string; name: string; color: string; motto?: string | null }[]>([]);
   const [loadingHouses, setLoadingHouses] = useState(false);
   const [showAddHouse, setShowAddHouse] = useState(false);
   const [showAddClass, setShowAddClass] = useState(false);
@@ -171,9 +172,7 @@ export default function SettingsPage() {
     motto: "",
   });
   const [newClass, setNewClass] = useState({ name: "", stream: "" });
-  const sc = school as any;
-  const schoolType = ((school as any)?.school_type ||
-    "primary") as SchoolSetupType;
+  const schoolType = school?.school_type || "primary";
   const selectedRoleOption = ROLE_OPTIONS.find(
     (option) => option.value === newUser.role,
   );
@@ -276,9 +275,9 @@ export default function SettingsPage() {
 
         await refreshSchool();
         toast.success(`Successfully switched to ${plan.toUpperCase()} plan!`);
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error("Plan upgrade error:", err);
-        toast.error(err.message || "Failed to update plan. Please try again.");
+        toast.error(err instanceof Error ? err.message : "Failed to update plan. Please try again.");
       } finally {
         setUpgradingPlan(false);
       }
@@ -356,9 +355,9 @@ export default function SettingsPage() {
 
       setShowPaymentModal(false);
       toast.success("Redirecting to payment...");
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error("Payment error:", err);
-      toast.error(err.message || "Failed to initiate payment");
+      toast.error(err instanceof Error ? err.message : "Failed to initiate payment");
     } finally {
       setUpgradingPlan(false);
     }
@@ -516,8 +515,8 @@ export default function SettingsPage() {
       if (error) throw error;
       toast.success("School configuration saved");
       await refreshSchool();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setSavingConfig(false);
     }
@@ -769,7 +768,7 @@ export default function SettingsPage() {
                 ))}
               </div>
               <div className="space-y-3">
-                {[
+                {([
                   {
                     key: "has_boarding",
                     label: "Boarding School",
@@ -790,7 +789,7 @@ export default function SettingsPage() {
                     label: "Prefects",
                     desc: "Head Boy, Head Girl, Sports Prefect, etc.",
                   },
-                ].map(({ key, label, desc }) => (
+                ] as const).map(({ key, label, desc }) => (
                   <label
                     key={key}
                     className="flex items-center justify-between p-3 bg-[var(--surface-container)] rounded-xl cursor-pointer"
@@ -803,7 +802,7 @@ export default function SettingsPage() {
                     </div>
                     <input
                       type="checkbox"
-                      checked={(schoolConfig as any)[key]}
+                      checked={schoolConfig[key]}
                       onChange={(e) =>
                         setSchoolConfig({
                           ...schoolConfig,
@@ -941,7 +940,7 @@ export default function SettingsPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {classes.slice(0, 10).map((cls: any) => (
+                  {classes.slice(0, 10).map((cls) => (
                     <div
                       key={cls.id}
                       className="flex items-center justify-between p-3 bg-[var(--surface-container)] rounded-lg"
@@ -979,8 +978,8 @@ export default function SettingsPage() {
                         >
                         <option value="">No teacher</option>
                         {users
-                          .filter((s: any) => s.role === "teacher")
-                          .map((s: any) => (
+                          .filter((s) => s.role === "teacher")
+                          .map((s) => (
                             <option key={s.id} value={s.id}>
                               {s.full_name}
                             </option>
@@ -1030,7 +1029,7 @@ export default function SettingsPage() {
                 <div className="text-sm text-[var(--t3)]">Loading...</div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {classes.map((cls: any) => (
+                  {classes.map((cls) => (
                     <div
                       key={cls.id}
                       className="flex items-center justify-between p-3 bg-[var(--surface-container)] rounded-lg border border-[var(--border)]"

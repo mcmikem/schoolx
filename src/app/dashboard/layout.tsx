@@ -11,6 +11,7 @@ import TopBar from "@/components/dashboard/TopBar";
 import MobileBottomNav from "@/components/dashboard/MobileBottomNav";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import PostOnboardingSetup from "@/components/onboarding/PostOnboardingSetup";
+import GoLiveGate from "@/components/GoLiveGate";
 import {
   useAccessControl,
   getPageTitle,
@@ -192,6 +193,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showPostSetup, setShowPostSetup] = useState(false);
+  const [showGoLive, setShowGoLive] = useState(false);
 
   const onboardingCompleted = (school as unknown as Record<string, unknown>)?.onboarding_completed;
 
@@ -223,6 +225,30 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     } else {
       setShowOnboarding(false);
       setShowPostSetup(false);
+    }
+
+    // Show go-live gate once per session for school_admins who completed onboarding
+    // but haven't set up minimum required data yet
+    if (school && onboardingCompleted && user?.role === "school_admin") {
+      const goLiveKey = user?.id
+        ? `golive_shown_${school.id}|${user.id}`
+        : null;
+      if (
+        typeof window !== "undefined" &&
+        goLiveKey &&
+        !sessionStorage.getItem(goLiveKey) &&
+        !sessionStorage.getItem(`post_setup_shown_${school.id}|${user.id}`)
+      ) {
+        // Defer go-live check until after post-setup panel
+        const checkGoLive = () => {
+          if (goLiveKey && !sessionStorage.getItem(goLiveKey)) {
+            setShowGoLive(true);
+          }
+        };
+        // Show after a short delay so the dashboard loads first
+        const timer = setTimeout(checkGoLive, 2000);
+        return () => clearTimeout(timer);
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onboardingCompleted, school?.id, user?.role, user?.id]);
@@ -257,6 +283,14 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       )}
       {showPostSetup && !showOnboarding && (
         <PostOnboardingSetup onComplete={() => setShowPostSetup(false)} />
+      )}
+      {showGoLive && !showOnboarding && !showPostSetup && (
+        <GoLiveGate onDismiss={() => {
+          setShowGoLive(false);
+          if (typeof window !== "undefined" && school?.id && user?.id) {
+            sessionStorage.setItem(`golive_shown_${school.id}|${user.id}`, "1");
+          }
+        }} />
       )}
       <div className="bg-motif dashboard-shell flex min-h-screen bg-[var(--bg)]">
         <SidebarShell onNavigate={handleNavigate} />

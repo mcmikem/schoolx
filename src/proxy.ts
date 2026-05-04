@@ -44,6 +44,7 @@ const alwaysPublicPaths = [
   "/login",
   "/register",
   "/demo-login",
+  "/privacy",
   "/api/auth",
   "/api/demo-login",
   "/api/register",

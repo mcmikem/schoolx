@@ -5,6 +5,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui";
 import { EmptyState } from "@/components/EmptyState";
 import { TableSkeleton } from "@/components/ui/Skeleton";
+import type { StudentAction, StudentActionMap } from "@/hooks/useStudentPromotion";
 
 interface ClassData {
   id: string;
@@ -39,8 +40,8 @@ interface StudentPromotionPanelProps {
   promotionStudents: PromotionStudent[];
   promotionLoading: boolean;
   toggleStudent: (id: string) => void;
-  studentActions: Record<string, { action: "promote" | "repeat" | "demote" }>;
-  setAction: (studentId: string, action: "promote" | "repeat" | "demote") => void;
+  studentActions: StudentActionMap;
+  setAction: (studentId: string, action: StudentAction) => void;
   promotionHistory: any[];
   showDemoteModal: string | null;
   setShowDemoteModal: (value: string | null) => void;

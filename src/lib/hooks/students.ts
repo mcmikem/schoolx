@@ -22,7 +22,7 @@ import {
 } from "@/lib/payments/subscription-client";
 import { buildDefaultClasses, type SchoolSetupType } from "@/lib/school-setup";
 
-type StudentWithClass = Student & {
+export type StudentWithClass = Student & {
   classes?: { id: string; name: string; level: string } | Class;
   houses?: { id: string; name: string; color: string } | null;
   prefect_role?: string;

@@ -3,7 +3,7 @@
 import { deepFreeze } from "./deep-freeze";
 import type { UserRole } from "./roles";
 
-interface NavItem {
+export interface NavItem {
   href: string;
   label: string;
   icon: string;

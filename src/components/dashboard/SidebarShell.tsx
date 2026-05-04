@@ -5,8 +5,32 @@ import { useAcademic } from "@/lib/academic-context";
 import { useSyncStatus } from "@/lib/useSyncStatus";
 import CollapsibleSidebar from "@/components/CollapsibleSidebar";
 import { getNavigationForRole } from "@/lib/navigation";
+import { canUseModule, type FeatureStage, type ModuleKey, DEFAULT_FEATURE_STAGE } from "@/lib/featureStages";
+import { MODULE_FOR_ROUTE } from "@/components/dashboard/AccessControlGuard";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useSidebar } from "@/contexts/SidebarContext";
+
+const ROUTE_TO_MODULE: Record<string, ModuleKey> = {};
+for (const [route, mod] of Object.entries(MODULE_FOR_ROUTE)) {
+  ROUTE_TO_MODULE[route] = mod;
+}
+
+function filterGroupsByFeatureStage(
+  groups: readonly import("@/lib/navigation").NavGroup[],
+  featureStage: FeatureStage | undefined,
+): import("@/lib/navigation").NavGroup[] {
+  const stage = featureStage || DEFAULT_FEATURE_STAGE;
+  return groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        const mod = ROUTE_TO_MODULE[item.href];
+        if (!mod) return true;
+        return canUseModule(stage, mod);
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
+}
 
 function SyncStatus() {
   const { isOnline, pendingCount, isSyncing } = useSyncStatus();
@@ -39,7 +63,8 @@ export default function SidebarShell({
   const { user, school } = useAuth();
   const { currentTerm } = useAcademic();
   const { isOpen, close } = useSidebar();
-  const navigationGroups = user?.role ? getNavigationForRole(user.role) : [];
+  const rawGroups = user?.role ? getNavigationForRole(user.role) : [];
+  const navigationGroups = filterGroupsByFeatureStage(rawGroups, school?.feature_stage as FeatureStage | undefined);
 
   const schoolName = school?.name || "My School";
 

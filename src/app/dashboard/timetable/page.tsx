@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/index'
 import { TableSkeleton } from '@/components/ui/Skeleton'
 import { getErrorMessage } from '@/lib/validation'
 import { logger } from '@/lib/logger'
+import type { Class, Subject, TimetableSlot } from '@/types'
 
 // ── Uganda 2026 Public Holidays ─────────────────────────────────────────────
 const UGANDA_PUBLIC_HOLIDAYS_2026 = [
@@ -54,6 +55,40 @@ type CalendarEvent = {
   event_type: string
   start_date: string
   end_date: string | null
+}
+
+type DisplayEvent = CalendarEvent & { _builtin: boolean }
+
+interface TimetableEntry {
+  id: string
+  class_id: string
+  subject_id: string
+  teacher_id: string
+  day_of_week: number
+  period_number: number
+  start_time: string
+  end_time: string
+  room?: string
+  academic_year: string
+  subjects?: { name?: string | null; code?: string | null } | null
+}
+
+interface AllClassTimetableEntry {
+  teacher_id: string
+  day_of_week: number
+  period_number: number
+  class_id: string
+}
+
+interface Slot {
+  id: string
+  name: string
+  start_time: string
+  end_time: string
+  order_number: number
+  is_break?: boolean
+  is_lesson?: boolean
+  period_number?: number
 }
 
 const EVENT_COLORS: Record<string, string> = {
@@ -152,7 +187,7 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
 
   // Merge school events with built-in Uganda dates
   const allEvents = useMemo(() => {
-    const builtIn = [
+    const builtIn: DisplayEvent[] = [
       ...UGANDA_PUBLIC_HOLIDAYS_2026.map(h => ({
         id: `ph-${h.date}`,
         title: h.name,
@@ -172,7 +207,7 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
         _builtin: true,
       })),
     ]
-    const school = events.map(e => ({ ...e, _builtin: false }))
+    const school: DisplayEvent[] = events.map(e => ({ ...e, _builtin: false }))
     return [...builtIn, ...school].sort((a, b) => a.start_date.localeCompare(b.start_date))
   }, [events])
 
@@ -232,7 +267,7 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
                         <div className="flex items-start gap-2 flex-wrap">
                           <span className="text-sm font-medium text-[var(--t1)] leading-tight">{ev.title}</span>
                           {isToday && <span className="px-1.5 py-0.5 bg-[var(--primary)] text-white text-[9px] font-bold rounded uppercase tracking-wide">Today</span>}
-                          {(ev as any)._builtin && <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[9px] rounded uppercase tracking-wide">Uganda Govt</span>}
+                          {ev._builtin && <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[9px] rounded uppercase tracking-wide">Uganda Govt</span>}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-xs text-[var(--t3)]">
@@ -244,9 +279,9 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
                           </span>
                         </div>
                       </div>
-                      {!(ev as any)._builtin && (
+                      {!ev._builtin && (
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => openEdit(ev as CalendarEvent)} className="p-1 hover:bg-[var(--surface)] rounded text-[var(--t3)] hover:text-[var(--t1)]">
+                          <button onClick={() => openEdit(ev)} className="p-1 hover:bg-[var(--surface)] rounded text-[var(--t3)] hover:text-[var(--t1)]">
                             <MaterialIcon icon="edit" className="text-sm" />
                           </button>
                           <button onClick={() => handleDelete(ev.id)} className="p-1 hover:bg-red-50 rounded text-[var(--t3)] hover:text-red-500">
@@ -330,23 +365,23 @@ export default function TimetablePage() {
   const { staff } = useStaff(school?.id)
 
   // Only show teaching staff in the dropdown
-  const teachers = staff.filter((s: any) =>
+  const teachers = staff.filter((s) =>
     ['teacher', 'head_teacher', 'dean_of_studies', 'deputy_headteacher'].includes(s.role)
   )
   const teacherNameById = useMemo(
     () =>
       Object.fromEntries(
-        teachers.map((teacher: any) => [teacher.id, teacher.full_name]),
-      ) as Record<string, string>,
+        teachers.map((teacher): [string, string] => [teacher.id, teacher.full_name]),
+      ),
     [teachers],
   )
 
   const [selectedClassId, setSelectedClassId] = useState('')
-  const [timetable, setTimetable] = useState<any[]>([])
-  const [allClassTimetables, setAllClassTimetables] = useState<any[]>([])
+  const [timetable, setTimetable] = useState<TimetableEntry[]>([])
+  const [allClassTimetables, setAllClassTimetables] = useState<AllClassTimetableEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [showEntryModal, setShowEntryModal] = useState(false)
-  const [selectedSlot, setSelectedSlot] = useState<any>(null)
+  const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [selectedDay, setSelectedDay] = useState<number>(1)
   const [conflicts, setConflicts] = useState<string[]>([])
 
@@ -362,7 +397,7 @@ export default function TimetablePage() {
         .order('day_of_week')
         .order('period_number')
       if (error) throw error
-      setTimetable(data || [])
+      setTimetable((data || []) as TimetableEntry[])
     } catch (err) {
       logger.error('Error fetching timetable:', err)
       toast.error('Failed to load timetable')
@@ -418,7 +453,7 @@ export default function TimetablePage() {
         t.class_id !== selectedClassId
     )
     if (teacherConflict) {
-      const conflictClass = classes.find((c: any) => c.id === teacherConflict.class_id)
+      const conflictClass = classes.find((c) => c.id === teacherConflict.class_id)
       found.push(`Teacher is already scheduled in ${conflictClass?.name || 'another class'} at this slot`)
     }
 
@@ -446,6 +481,7 @@ export default function TimetablePage() {
 
   const handleAddEntry = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (!selectedSlot) return
     const formData = new FormData(e.currentTarget)
     const teacherId = formData.get('teacher_id') as string
 
@@ -526,7 +562,7 @@ export default function TimetablePage() {
 
   // If slots failed to load (empty after loading), show a usable empty timetable
   // rather than a broken UI
-  const effectiveSlots = slots.length > 0 ? slots : [
+  const effectiveSlots: Slot[] = slots.length > 0 ? slots : [
     { id: 'p1', name: 'Period 1', start_time: '08:00', end_time: '08:40', order_number: 1, is_break: false, is_lesson: true },
     { id: 'p2', name: 'Period 2', start_time: '08:40', end_time: '09:20', order_number: 2, is_break: false, is_lesson: true },
     { id: 'p3', name: 'Break', start_time: '09:20', end_time: '09:40', order_number: 3, is_break: true, is_lesson: false },
@@ -568,7 +604,7 @@ export default function TimetablePage() {
               className="px-4 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-[var(--on-surface)] outline-none focus:ring-2 focus:ring-[var(--primary)]/50"
             >
               <option value="">Select a Class...</option>
-              {classes.map((c: any) => (
+              {classes.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
@@ -601,7 +637,7 @@ export default function TimetablePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {effectiveSlots.map((slot: any) => {
+                    {effectiveSlots.map((slot) => {
                       const isBreak = slot.is_break ?? slot.is_lesson === false
                       const entry = getEntry(day.value, slot.order_number ?? slot.period_number)
                       return (
@@ -682,7 +718,7 @@ export default function TimetablePage() {
                 <label className="text-sm font-medium text-[var(--t2)]">Subject</label>
                 <select name="subject_id" required className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-xl text-[var(--on-surface)]">
                   <option value="">Choose subject...</option>
-                  {subjects.map((s: any) => (
+                  {subjects.map((s) => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
@@ -692,7 +728,7 @@ export default function TimetablePage() {
                 <label className="text-sm font-medium text-[var(--t2)]">Teacher</label>
                 <select name="teacher_id" required onChange={handleTeacherChange} className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-xl text-[var(--on-surface)]">
                   <option value="">Select teacher...</option>
-                  {teachers.map((t: any) => (
+                  {teachers.map((t) => (
                     <option key={t.id} value={t.id}>{t.full_name} ({t.role})</option>
                   ))}
                 </select>

@@ -2,6 +2,8 @@ import { useState, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { DEMO_CLASSES } from "@/lib/demo-data";
 import { logger } from "@/lib/logger";
+import type { StudentWithClass } from "@/lib/hooks/students";
+import type { CreateStudentInput } from "@/types";
 
 const TRANSFER_REASONS = [
   "Family relocation",
@@ -30,10 +32,10 @@ interface TransferOutRecord {
 
 export function useStudentTransfers(
   schoolId: string | undefined,
-  students: any[],
+  students: StudentWithClass[],
   isDemo: boolean,
-  createStudent: (data: any) => Promise<any>,
-  updateStudent: (id: string, data: any) => Promise<any>,
+  createStudent: (data: CreateStudentInput) => Promise<unknown>,
+  updateStudent: (id: string, data: Partial<CreateStudentInput>) => Promise<unknown>,
   toast: { success: (msg: string) => void; error: (msg: string) => void },
 ) {
   const transferPrintRef = useRef<HTMLDivElement>(null);
@@ -91,7 +93,7 @@ export function useStudentTransfers(
             student_name: `${student.first_name} ${student.last_name}`,
             class_name:
               student.classes?.name ||
-              DEMO_CLASSES.find((c: any) => c.id === student.class_id)?.name ||
+              DEMO_CLASSES.find((c) => c.id === student.class_id)?.name ||
               "-",
             student_number: student.student_number || "",
             gender: student.gender || "",
@@ -108,7 +110,7 @@ export function useStudentTransfers(
         .eq("status", "transferred")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      const records: TransferOutRecord[] = (data || []).map((s: any) => ({
+      const records: TransferOutRecord[] = (data || []).map((s) => ({
         id: s.id,
         student_id: s.id,
         transfer_to: s.transfer_to || "Unknown",
