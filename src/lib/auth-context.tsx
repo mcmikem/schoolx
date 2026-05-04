@@ -51,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const authFetchAborted = useRef(false);
   const authCheckedRef = useRef(false);
+  const signInInProgress = useRef(false);
 
   const isSubscriptionActive = useCallback(() => {
     return isSubscriptionActiveCheck(school);
@@ -331,12 +332,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (verifiedUser) {
               authCheckedRef.current = true;
-              try {
-                await fetchUserData(verifiedUser.id);
-              } catch {
-                logger.warn(
-                  "[Auth] fetchUserData failed in state change handler",
-                );
+              // Skip fetchUserData if signIn() is already handling it —
+              // prevents duplicate /api/auth/me/ calls and loading flicker
+              if (!signInInProgress.current) {
+                try {
+                  await fetchUserData(verifiedUser.id);
+                } catch {
+                  logger.warn(
+                    "[Auth] fetchUserData failed in state change handler",
+                  );
+                }
               }
               setIsDemo(false);
               setLoading(false);
@@ -425,6 +430,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: { message: "Login already in progress" } };
       }
       signInLock.current = true;
+      signInInProgress.current = true;
 
       const attempts = buildAuthLoginAttempts(phone);
       let lastError: unknown = null;
@@ -452,10 +458,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           continue;
         }
 
-        // Don't call fetchUserData here — onAuthStateChange's SIGNED_IN
-        // handler already calls fetchUserData. Calling it here too causes
-        // duplicate /api/auth/me/ requests and loading flicker.
-        // Just wait for auth state to propagate.
+        const userData = await fetchUserData(data.user.id);
+
+        if (!userData) {
+          await supabase!.auth.signOut();
+          signInInProgress.current = false;
+          signInLock.current = false;
+          return {
+            error: {
+              message:
+                "No user profile found. Please contact your school administrator.",
+            },
+          };
+        }
+
         import("@/lib/offline")
           .then(({ offlineDB }) => {
             offlineDB
@@ -476,16 +492,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           })
           .catch(() => {});
 
-        return { error: null, role: data.user.user_metadata?.role || "admin" };
+        signInInProgress.current = false;
+        signInLock.current = false;
+        return { error: null, role: userData.role };
       }
 
+      signInInProgress.current = false;
+      signInLock.current = false;
       return {
         error: lastError || { message: "Invalid phone number or password" },
       };
     } catch (error) {
-      return { error };
-    } finally {
+      signInInProgress.current = false;
       signInLock.current = false;
+      return { error };
     }
   }
 

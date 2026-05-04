@@ -56,6 +56,25 @@ export default function LoginPage() {
     }
   }, [user, authInitialized, router]);
 
+  // Fail-safe: if login succeeded but redirect hasn't happened in 8s, force it
+  useEffect(() => {
+    if (!loading || !authInitialized) return;
+    const timer = setTimeout(() => {
+      if (user) {
+        const redirectParam = typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("redirect")
+          : null;
+        const dest = redirectParam && redirectParam.startsWith("/")
+          ? redirectParam
+          : user.role === "super_admin" ? "/super-admin"
+          : user.role === "parent" ? "/parent-portal"
+          : "/dashboard";
+        router.replace(dest);
+      }
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [loading, user, authInitialized, router]);
+
   // Show a helpful toast when arriving from registration
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -165,9 +184,7 @@ export default function LoginPage() {
       }
       setFailedAttempts(0);
       setLockoutUntil(null);
-
-      // After successful signIn, keep loading=true so the button stays disabled
-      // while the redirect effect fires. The redirect useEffect handles navigation.
+      setLoading(false);
       return;
     } catch (err: unknown) {
       logger.error("Login exception:", err);

@@ -147,6 +147,17 @@ export default function CanteenPOSPage() {
 
       if (!isOnline) {
         // Offline: save to IDB and Sync Queue
+        // Include wallet deduction flag so sync handler can process it later
+        if (paymentMethod === "wallet" && student) {
+          (saleRecord as any).pending_wallet_deduction = {
+            student_id: student.id,
+            amount: total,
+          };
+          // Optimistically update local balance so UI reflects it
+          setStudent((prev: any) =>
+            prev ? { ...prev, balance: Math.max(0, prev.balance - total) } : prev,
+          );
+        }
         await offlineDB.save("canteen_sales", saleRecord);
         toast.info("Offline: Order saved to sync queue");
       } else {

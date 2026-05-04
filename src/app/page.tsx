@@ -50,6 +50,7 @@ export default function HomePage() {
     DEFAULT_DEVICE_TARGET,
   );
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showIosModal, setShowIosModal] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -1200,6 +1201,28 @@ export default function HomePage() {
         </div>
 
         <PWAInstallPrompt />
+
+        {/* iOS Install Instructions Modal */}
+        {showIosModal && (
+          <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+              <h3 className="text-lg font-bold text-slate-800 mb-3">
+                Add to Home Screen
+              </h3>
+              <p className="text-sm text-slate-600 mb-4">
+                On iPhone or iPad: Open this page in <strong>Safari</strong>, tap
+                the <strong>Share Button</strong> (the square with arrow pointing
+                up), then tap <strong>&quot;Add to Home Screen&quot;</strong>.
+              </p>
+              <button
+                onClick={() => setShowIosModal(false)}
+                className="w-full py-3 bg-primary-800 text-white rounded-xl font-bold text-sm hover:bg-primary-900 transition-colors"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        )}
       </main>
     </PageErrorBoundary>
   );
