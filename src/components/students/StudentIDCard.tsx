@@ -6,6 +6,7 @@ import Image from "next/image";
 
 interface StudentIDCardProps {
   student: {
+    id: string;
     first_name: string;
     last_name: string;
     student_number: string;
@@ -146,14 +147,14 @@ export default function StudentIDCard({ student, school }: StudentIDCardProps) {
         <div className="w-[15mm] flex flex-col items-center justify-center gap-1">
           <div className="p-1 bg-white rounded-lg shadow-sm border border-slate-100">
             <QRCodeSVG
-              value={`SM-OS:${student.student_number}`}
+              value={student.id}
               size={48}
               level="H"
               includeMargin={false}
             />
           </div>
-          <p className="text-[6px] font-black text-slate-400 uppercase tracking-tighter">
-            Scan To Verify
+          <p className="text-[6px] font-black text-slate-400 uppercase tracking-tighter text-center">
+            Scan at Canteen
           </p>
         </div>
       </div>
