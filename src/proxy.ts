@@ -15,6 +15,7 @@ const DEMO_ALLOWED_ROLES = new Set([
   "teacher",
   "secretary",
   "dorm_master",
+  "parent",
 ]);
 
 function hasValidDemoSession(request: NextRequest) {
@@ -135,7 +136,7 @@ function issueCSRFToken(response: NextResponse) {
   const token = Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
   response.headers.set("x-csrf-token", token);
   response.cookies.set("csrf-token", token, {
-    httpOnly: true,
+    httpOnly: false,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
@@ -257,9 +258,9 @@ export async function proxy(request: NextRequest) {
 
   if (user && !user.is_active) {
     await supabase.auth.signOut();
-    return NextResponse.redirect(
-      new URL("/login?reason=inactive", request.url),
-    );
+    const inactiveUrl = new URL("/login", request.url);
+    inactiveUrl.searchParams.set("reason", "inactive");
+    return NextResponse.redirect(inactiveUrl);
   }
 
   supabaseResponse.headers.set("x-user-id", authUser.id);

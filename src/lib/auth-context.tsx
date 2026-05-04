@@ -242,7 +242,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsDemo(false);
           setLoading(false);
         }
-        setLoading(false);
       } else {
         setIsDemo(false);
         setLoading(false);
@@ -347,6 +346,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [checkUser, fetchUserData]);
 
+  const userRef = useRef(user);
+  userRef.current = user;
+
   useEffect(() => {
     if (!supabase) return;
     const handleVisibilityChange = async () => {
@@ -355,7 +357,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const {
             data: { user: freshUser },
           } = await supabase!.auth.getUser();
-          if (!freshUser && user) {
+          if (!freshUser && userRef.current) {
             setUser(null);
             setSchool(null);
             setLoading(false);
@@ -368,7 +370,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () =>
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [user, router]);
+  }, [router]);
 
   const SESSION_TIMEOUT_MS_REF = useRef(30 * 60 * 1000);
   const CHECK_INTERVAL_MS_REF = useRef(60 * 1000);
@@ -492,7 +494,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
-      await supabase!.auth.signOut({ scope: "global" });
+      await supabase!.auth.signOut({ scope: "local" });
     } catch (e) {
       logger.warn("signOut API call failed, proceeding with local clear");
     }

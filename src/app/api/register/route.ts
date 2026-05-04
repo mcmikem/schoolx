@@ -279,7 +279,11 @@ export async function POST(request: NextRequest) {
     if (schoolError) {
       // Cleanup: delete auth user if school creation fails
       if (authData?.user) {
-        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+        try {
+          await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+        } catch (deleteErr) {
+          logger.error("[Register] Failed to cleanup auth user:", deleteErr);
+        }
       }
       throw schoolError;
     }
@@ -297,8 +301,20 @@ export async function POST(request: NextRequest) {
 
     if (userError) {
       // Cleanup: delete auth user and school if user creation fails
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-      await supabaseAdmin.from("schools").delete().eq("id", schoolData.id);
+      const cleanupErrors: Error[] = [];
+      try {
+        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      } catch (deleteErr) {
+        cleanupErrors.push(deleteErr instanceof Error ? deleteErr : new Error(String(deleteErr)));
+      }
+      try {
+        await supabaseAdmin.from("schools").delete().eq("id", schoolData.id);
+      } catch (deleteErr) {
+        cleanupErrors.push(deleteErr instanceof Error ? deleteErr : new Error(String(deleteErr)));
+      }
+      if (cleanupErrors.length > 0) {
+        logger.error("[Register] Cleanup errors:", cleanupErrors);
+      }
       throw userError;
     }
 

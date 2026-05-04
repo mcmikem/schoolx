@@ -46,10 +46,18 @@ export async function POST(request: NextRequest) {
     // Look up the email derived from the phone number
     const email = `${phone}@omuto.org`;
 
+    // Build redirect URL with fallback
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    const redirectUrl = appUrl
+      ? `${appUrl}/reset-password`
+      : `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : ""}/reset-password`;
+
     // Trigger Supabase password reset email (sends to the auth email)
-    await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/reset-password`,
-    });
+    const resetOpts: { redirectTo?: string } = {};
+    if (redirectUrl) {
+      resetOpts.redirectTo = redirectUrl;
+    }
+    await supabase.auth.resetPasswordForEmail(email, resetOpts);
 
     // Always return success regardless — prevents user enumeration
     return NextResponse.json({ ok: true });

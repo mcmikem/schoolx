@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { BookOpen, CheckCircle } from "lucide-react";
 import { Button, Input } from "@/components/ui";
-import { getErrorMessage } from "@/lib/validation";
+import { getErrorMessage, normalizeAuthPhone } from "@/lib/validation";
 
 export default function SetupAdminPage() {
   const [loading, setLoading] = useState(false);
@@ -31,14 +31,25 @@ export default function SetupAdminPage() {
       setLoading(false);
       return;
     }
-    if (form.password.length < 6) {
-      setError("Password must be at least 6 characters");
+    const cleanPhone = normalizeAuthPhone(form.phone);
+    if (cleanPhone.length < 10 || cleanPhone.length > 12) {
+      setError("Please enter a valid phone number");
+      setLoading(false);
+      return;
+    }
+    if (form.password.length < 8) {
+      setError("Password must be at least 8 characters");
+      setLoading(false);
+      return;
+    }
+    if (!/[A-Z]/.test(form.password) || !/[0-9]/.test(form.password)) {
+      setError("Password must contain at least one uppercase letter and one number");
       setLoading(false);
       return;
     }
 
     try {
-      const response = await fetch('/api/setup-admin', {
+      const response = await fetch('/api/setup-admin/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -128,7 +139,7 @@ export default function SetupAdminPage() {
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             required
-            minLength={6}
+            minLength={8}
             autoComplete="new-password"
           />
           <Button

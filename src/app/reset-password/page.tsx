@@ -24,11 +24,18 @@ export default function ResetPasswordPage() {
   const [expired, setExpired] = useState(false);
 
   useEffect(() => {
+    let expiredTimer: ReturnType<typeof setTimeout> | null = null;
+    let unsubscribed = false;
+
     // Supabase sends the recovery token in the URL hash.
     // onAuthStateChange fires PASSWORD_RECOVERY when the hash is present.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
         setReady(true);
+        if (expiredTimer) {
+          clearTimeout(expiredTimer);
+          expiredTimer = null;
+        }
       }
     });
 
@@ -37,16 +44,18 @@ export default function ResetPasswordPage() {
     const hash = typeof window !== "undefined" ? window.location.hash : "";
     if (!hash.includes("type=recovery") && !hash.includes("access_token")) {
       // Give the listener a moment to fire before declaring expired
-      const timer = setTimeout(() => {
-        setExpired(true);
+      expiredTimer = setTimeout(() => {
+        if (!unsubscribed) {
+          setExpired(true);
+        }
       }, 1200);
-      return () => {
-        subscription.unsubscribe();
-        clearTimeout(timer);
-      };
     }
 
-    return () => subscription.unsubscribe();
+    return () => {
+      unsubscribed = true;
+      subscription.unsubscribe();
+      if (expiredTimer) clearTimeout(expiredTimer);
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

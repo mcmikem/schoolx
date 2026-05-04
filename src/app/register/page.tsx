@@ -178,7 +178,7 @@ export default function RegisterPage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-      const response = await fetch("/api/register", {
+      const response = await fetch("/api/register/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -201,11 +201,18 @@ export default function RegisterPage() {
 
       clearTimeout(timeoutId);
 
-      const data = await response.json();
+      let data: Record<string, unknown>;
+      try {
+        data = await response.json();
+      } catch {
+        setError("Registration failed. Please check your connection and try again.");
+        setLoading(false);
+        return;
+      }
       logger.log("Registration response:", response.status, data);
 
       if (!response.ok) {
-        setError(data.error || `Registration failed (${response.status})`);
+        setError((data.error as string) || `Registration failed (${response.status})`);
         setLoading(false);
         return;
       }
@@ -246,7 +253,7 @@ export default function RegisterPage() {
       }
 
       setLoading(false);
-      router.push("/dashboard");
+      router.push("/dashboard/");
     } catch (err: unknown) {
       setLoading(false);
       if (err instanceof Error && err.name === "AbortError") {

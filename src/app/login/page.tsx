@@ -66,7 +66,7 @@ export default function LoginPage() {
       if (prefilledPhone) setPhone(prefilledPhone);
       toast.success("Account created! Sign in to continue to your dashboard.");
       // Clean the URL so refresh doesn't re-toast
-      window.history.replaceState({}, "", "/login");
+      window.history.replaceState({}, "", window.location.pathname);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -142,6 +142,11 @@ export default function LoginPage() {
             router.replace(redirectPath);
             return;
           }
+        } else {
+          const errorData = await demoResponse.json().catch(() => null);
+          toast.error(errorData?.error || "Demo login failed. Check DEMO_ADMIN_PASSWORD in .env.local");
+          setLoading(false);
+          return;
         }
       }
 
