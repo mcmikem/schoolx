@@ -15,7 +15,7 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { seedDemoSession } from "./helpers/demo";
 
-const SUPABASE_URL = "https://gucxpmgwvnbqykevucbi.supabase.co";
+const SUPABASE_URL = "http://127.0.0.1:54321";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -211,6 +211,12 @@ test.describe("Auth – login form", () => {
     ).toBeVisible({ timeout: 10_000 });
   });
 });
+
+// NOTE: Real Supabase auth E2E tests require NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES=false
+// so the login form falls through to signIn() instead of /api/demo-login/.
+// In the current test env (dev mode + demo routes enabled), all form logins
+// hit the demo endpoint first. The fetchUserData race condition is covered
+// by regression tests in src/__tests__/regression.test.ts.
 
 // ─── Register form validation ─────────────────────────────────────────────────
 // These don't hit the backend — they verify the client-side validation that

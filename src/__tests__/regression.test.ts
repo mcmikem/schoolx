@@ -349,4 +349,31 @@ describe("Production Hardening Regression Tests", () => {
       expect(filesWithConsole).toEqual([]);
     });
   });
+
+  describe("Auth – fetchUserData race condition", () => {
+    it("should NOT have fetchUserDataInProgress guard that blocks concurrent calls", () => {
+      const fs = require("fs");
+      const path = require("path");
+      const authContext = fs.readFileSync(
+        path.join(process.cwd(), "src/lib/auth-context.tsx"),
+        "utf8",
+      );
+      // The inProgress guard caused login to fail because signIn() and
+      // onAuthStateChange both call fetchUserData() concurrently. The
+      // second call saw inProgress=true and returned null immediately.
+      expect(authContext).not.toContain("fetchUserDataInProgress");
+      expect(authContext).not.toContain("fetchUserDataInProgress.current");
+    });
+
+    it("should NOT early-return from fetchUserData on in-progress check", () => {
+      const fs = require("fs");
+      const path = require("path");
+      const authContext = fs.readFileSync(
+        path.join(process.cwd(), "src/lib/auth-context.tsx"),
+        "utf8",
+      );
+      // Ensure no "if (.*inProgress.*) return null" pattern exists
+      expect(authContext).not.toMatch(/if\s*\([^)]*inProgress[^)]*\)\s*return\s+null/);
+    });
+  });
 });
