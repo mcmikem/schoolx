@@ -123,6 +123,12 @@ export default function LoginPage() {
 
     setLoading(true);
 
+    // Safety valve: if signIn doesn't resolve in 15s, stop the spinner
+    // so the user isn't stuck with a spinning button forever
+    const loginTimeout = setTimeout(() => {
+      setLoading((prev) => prev ? false : prev);
+    }, 15000);
+
     const cleanPhone = normalizeAuthPhone(phone);
 
     // Clear any previous demo data before login
@@ -158,17 +164,20 @@ export default function LoginPage() {
                   : "/dashboard";
 
             router.replace(redirectPath);
+            clearTimeout(loginTimeout);
             return;
           }
         } else {
           const errorData = await demoResponse.json().catch(() => null);
           toast.error(errorData?.error || "Demo login failed. Check DEMO_ADMIN_PASSWORD in .env.local");
+          clearTimeout(loginTimeout);
           setLoading(false);
           return;
         }
       }
 
       const { error: authError, role } = await signIn(cleanPhone, password);
+      clearTimeout(loginTimeout);
       if (authError) {
         const newAttempts = failedAttempts + 1;
         setFailedAttempts(newAttempts);
@@ -187,6 +196,7 @@ export default function LoginPage() {
       setLoading(false);
       return;
     } catch (err: unknown) {
+      clearTimeout(loginTimeout);
       logger.error("Login exception:", err);
       const errorMessage =
         err instanceof Error ? err.message : "An error occurred";

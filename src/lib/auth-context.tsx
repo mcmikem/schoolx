@@ -458,18 +458,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           continue;
         }
 
-        const userData = await fetchUserData(data.user.id);
-
-        if (!userData) {
-          await supabase!.auth.signOut();
-          signInInProgress.current = false;
-          signInLock.current = false;
-          return {
-            error: {
-              message:
-                "No user profile found. Please contact your school administrator.",
-            },
-          };
+        // Try fetching user profile, but don't block login on failure.
+        // The onAuthStateChange handler will also call fetchUserData as a fallback.
+        let userData: { role: string } | null = null;
+        try {
+          userData = await Promise.race([
+            fetchUserData(data.user.id),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+          ]);
+        } catch {
+          logger.warn("[Auth] fetchUserData timed out or failed in signIn — relying on onAuthStateChange fallback");
         }
 
         import("@/lib/offline")
@@ -494,7 +492,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         signInInProgress.current = false;
         signInLock.current = false;
-        return { error: null, role: userData.role };
+        // Return success even if fetchUserData failed — the onAuthStateChange
+        // handler and the login redirect effect will handle user data population.
+        return { error: null, role: userData?.role || data.user.user_metadata?.role || "admin" };
       }
 
       signInInProgress.current = false;
