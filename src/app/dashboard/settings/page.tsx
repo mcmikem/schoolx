@@ -957,26 +957,26 @@ export default function SettingsPage() {
                           </span>
                         )}
                       </div>
-                      <select
-                        value={cls.class_teacher_id || ""}
-                        onChange={async (e) => {
-                          try {
-                            await supabase
-                              .from("classes")
-                              .update({
-                                class_teacher_id: e.target.value || null,
-                              })
-                              .eq("id", cls.id);
-                          } catch (err) {
-                            logger.error(
-                              "Failed to update class teacher:",
-                              err,
-                            );
-                          }
-                        }}
-                        className="input text-sm"
-                        style={{ width: "auto", minWidth: "150px" }}
-                      >
+                        <select
+                          value={cls.class_teacher_id || ""}
+                          onChange={async (e) => {
+                            try {
+                              const { error } = await supabase
+                                .from("classes")
+                                .update({
+                                  class_teacher_id: e.target.value || null,
+                                })
+                                .eq("id", cls.id);
+                              if (error) throw error;
+                              toast.success("Class teacher updated");
+                            } catch (err) {
+                              logger.error("Failed to update class teacher:", err);
+                              toast.error("Failed to update class teacher");
+                            }
+                          }}
+                          className="input text-sm"
+                          style={{ width: "auto", minWidth: "150px" }}
+                        >
                         <option value="">No teacher</option>
                         {users
                           .filter((s: any) => s.role === "teacher")
@@ -1081,88 +1081,6 @@ export default function SettingsPage() {
                         <div className="w-24 h-3 bg-[var(--border)] rounded" />
                       </div>
                     </div>
-
-                    {/* Payment Modal */}
-                    {showPaymentModal && (
-                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                        <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
-                          <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-bold text-[var(--on-surface)]">
-                              Complete Payment
-                            </h3>
-                            <button
-                              onClick={() => setShowPaymentModal(false)}
-                              className="text-[var(--t3)] hover:text-[var(--on-surface)]"
-                            >
-                              <MaterialIcon icon="close" />
-                            </button>
-                          </div>
-
-                          <div className="mb-6">
-                            <p className="text-[var(--t3)] mb-2">
-                              You selected{" "}
-                              <strong>
-                                {selectedPaymentPlan?.toUpperCase()}
-                              </strong>{" "}
-                              plan
-                            </p>
-                            <p className="text-sm text-[var(--t3)]">
-                              Choose your payment method:
-                            </p>
-                          </div>
-
-                          <div className="space-y-3">
-                            <button
-                              onClick={() => initiatePayment("mtn")}
-                              disabled={upgradingPlan}
-                              className="w-full p-4 rounded-xl border-2 border-yellow-400 bg-yellow-50 hover:bg-yellow-100 flex items-center gap-3 transition-colors"
-                            >
-                              <span className="text-2xl">🟡</span>
-                              <div className="text-left">
-                                <div className="font-semibold text-[var(--on-surface)]">
-                                  MTN Mobile Money
-                                </div>
-                                <div className="text-xs text-[var(--t3)]">
-                                  Instant payment via MoMo
-                                </div>
-                              </div>
-                            </button>
-
-                            <button
-                              onClick={() => initiatePayment("airtel")}
-                              disabled={upgradingPlan}
-                              className="w-full p-4 rounded-xl border-2 border-red-400 bg-red-50 hover:bg-red-100 flex items-center gap-3 transition-colors"
-                            >
-                              <span className="text-2xl">🔴</span>
-                              <div className="text-left">
-                                <div className="font-semibold text-[var(--on-surface)]">
-                                  Airtel Money
-                                </div>
-                                <div className="text-xs text-[var(--t3)]">
-                                  Instant payment via Airtel
-                                </div>
-                              </div>
-                            </button>
-
-                            <button
-                              onClick={() => initiatePayment("paypal")}
-                              disabled={upgradingPlan}
-                              className="w-full p-4 rounded-xl border-2 border-blue-500 bg-blue-50 hover:bg-blue-100 flex items-center gap-3 transition-colors"
-                            >
-                              <span className="text-2xl">💳</span>
-                              <div className="text-left">
-                                <div className="font-semibold text-[var(--on-surface)]">
-                                  PayPal
-                                </div>
-                                <div className="text-xs text-[var(--t3)]">
-                                  International cards accepted
-                                </div>
-                              </div>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </CardBody>
                 </Card>
               ))}
@@ -1942,6 +1860,88 @@ export default function SettingsPage() {
                   Add Class
                 </Button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-[var(--on-surface)]">
+                Complete Payment
+              </h3>
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                className="text-[var(--t3)] hover:text-[var(--on-surface)]"
+              >
+                <MaterialIcon icon="close" />
+              </button>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-[var(--t3)] mb-2">
+                You selected{" "}
+                <strong>
+                  {selectedPaymentPlan?.toUpperCase()}
+                </strong>{" "}
+                plan
+              </p>
+              <p className="text-sm text-[var(--t3)]">
+                Choose your payment method:
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => initiatePayment("mtn")}
+                disabled={upgradingPlan}
+                className="w-full p-4 rounded-xl border-2 border-yellow-400 bg-yellow-50 hover:bg-yellow-100 flex items-center gap-3 transition-colors"
+              >
+                <span className="text-2xl">🟡</span>
+                <div className="text-left">
+                  <div className="font-semibold text-[var(--on-surface)]">
+                    MTN Mobile Money
+                  </div>
+                  <div className="text-xs text-[var(--t3)]">
+                    Instant payment via MoMo
+                  </div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => initiatePayment("airtel")}
+                disabled={upgradingPlan}
+                className="w-full p-4 rounded-xl border-2 border-red-400 bg-red-50 hover:bg-red-100 flex items-center gap-3 transition-colors"
+              >
+                <span className="text-2xl">🔴</span>
+                <div className="text-left">
+                  <div className="font-semibold text-[var(--on-surface)]">
+                    Airtel Money
+                  </div>
+                  <div className="text-xs text-[var(--t3)]">
+                    Instant payment via Airtel
+                  </div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => initiatePayment("paypal")}
+                disabled={upgradingPlan}
+                className="w-full p-4 rounded-xl border-2 border-blue-500 bg-blue-50 hover:bg-blue-100 flex items-center gap-3 transition-colors"
+              >
+                <span className="text-2xl">💳</span>
+                <div className="text-left">
+                  <div className="font-semibold text-[var(--on-surface)]">
+                    PayPal
+                  </div>
+                  <div className="text-xs text-[var(--t3)]">
+                    International cards accepted
+                  </div>
+                </div>
+              </button>
             </div>
           </div>
         </div>

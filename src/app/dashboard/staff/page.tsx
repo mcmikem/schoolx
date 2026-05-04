@@ -319,7 +319,6 @@ function DirectoryTab({
         password: "",
         subject: "",
       });
-      fetchStaff();
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to add staff";

@@ -379,13 +379,13 @@ export default function TimetablePage() {
       const { data } = await supabase
         .from('teacher_timetable')
         .select('teacher_id, day_of_week, period_number, class_id')
-        .eq('class_id', selectedClassId || '')
+        .eq('school_id', school.id)
       setAllClassTimetables(data || [])
     } catch (err) {
       logger.error('Error fetching all timetables:', err)
     }
    
-  }, [school?.id, selectedClassId])
+  }, [school?.id])
 
   useEffect(() => {
     if (selectedClassId) fetchTimetable()

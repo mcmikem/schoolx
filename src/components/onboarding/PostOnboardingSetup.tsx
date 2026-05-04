@@ -133,7 +133,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     checkCompletedItems();
   }, [checkCompletedItems]);
 
-  const markComplete = async (key: string) => {
+  const markComplete = useCallback(async (key: string) => {
     if (!school?.id) return;
     try {
       const { error } = await supabase
@@ -153,7 +153,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     } catch (err) {
       logger.warn("markComplete failed:", getErrorMessage(err));
     }
-  };
+  }, [school?.id, toast]);
 
   const saveSmsAutomations = async () => {
     if (!school?.id) return;
@@ -572,7 +572,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => markComplete(item.key)}
+                      onClick={async () => { await markComplete(item.key); }}
                       className="w-full"
                     >
                       Skip for now

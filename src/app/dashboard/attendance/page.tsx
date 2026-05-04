@@ -414,13 +414,14 @@ export default function AttendancePage() {
                         const phone = (student as any).parent_phone;
                         if (!phone) continue;
 
-                        await sb.from("messages").insert({
+                        const { error: msgError } = await sb.from("messages").insert({
                           school_id: school?.id,
                           recipient_phone: phone,
                           message: `SkoolMate Alert: ${student.first_name} was marked ABSENT today (${date}). Please confirm with school if this is unexpected.`,
                           status: "sent",
                           type: "attendance_alert",
                         });
+                        if (msgError) throw msgError;
                       }
                       toast.success(
                         `Absence alerts queued for ${absentees.length} parents`,
