@@ -57,6 +57,20 @@ export default function LoginPage() {
     }
   }, [user, authLoading, router]);
 
+  // Safety net: if authLoading is stuck for more than 15s, force it false
+  // so the login form becomes accessible again.
+  useEffect(() => {
+    if (!authLoading || !user) return;
+    const timer = setTimeout(() => {
+      logger.warn("[Login] authLoading stuck for 15s, forcing redirect");
+      const dest = user?.role === "super_admin" ? "/super-admin"
+        : user?.role === "parent" ? "/parent-portal"
+        : "/dashboard";
+      router.replace(dest);
+    }, 15000);
+    return () => clearTimeout(timer);
+  }, [authLoading, user, router]);
+
   // Show a helpful toast when arriving from registration
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -197,8 +211,9 @@ export default function LoginPage() {
     <PageErrorBoundary>
     {/* Guard: if user is known (just logged in or already authenticated),
         show a plain spinner so there's no flash of the form while router
-        is processing the redirect from the useEffect below. */}
-    {(authLoading || user) ? (
+        is processing the redirect from the useEffect below.
+        If authLoading is stuck for too long, show the form anyway. */}
+    {(authLoading && !user) ? (
       <div className="min-h-screen bg-[#f4f7fb] flex items-center justify-center">
         <OwlLoader size={100} text="SkoolMate OS" subtext="Getting things ready..." />
       </div>
