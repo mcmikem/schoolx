@@ -14,22 +14,7 @@ import {
 } from "@/lib/uganda-admin";
 import { normalizeAuthPhone } from "@/lib/validation";
 import { withSupabaseLockRetry } from "@/lib/supabase-lock";
-
-function MaterialIcon({
-  icon,
-  className,
-  children,
-}: {
-  icon: string;
-  className?: string;
-  children?: React.ReactNode;
-}) {
-  return (
-    <span className={`material-symbols-outlined ${className || ""}`}>
-      {icon || children}
-    </span>
-  );
-}
+import MaterialIcon from "@/components/MaterialIcon";
 
 const SCHOOL_TYPE_OPTIONS = [
   { value: "primary", label: "Primary School" },
@@ -291,9 +276,7 @@ export default function RegisterPage() {
               href="/"
               className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--t3)] hover:text-[var(--primary)] transition-colors"
             >
-              <span className="material-symbols-outlined text-[16px]">
-                arrow_back
-              </span>
+              <MaterialIcon icon="arrow_back" className="text-[16px]" />
               Back to home
             </Link>
           </div>
@@ -427,9 +410,7 @@ export default function RegisterPage() {
                     autoComplete="address-level1"
                   />
                   <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
-                    <span className="material-symbols-outlined text-xs align-middle">
-                      help
-                    </span>
+                    <MaterialIcon icon="help" className="text-xs align-middle" />
                     We preload Uganda district, division, and parish options to
                     reduce typing. If your area is missing, contact support.
                   </div>

@@ -308,7 +308,7 @@ export default function OwlAssistant() {
       {/* ── Chat panel ───────────────────────────────────────────────────────── */}
       {open && (
         <div
-          className="fixed z-[9989] w-[360px] max-w-[calc(100vw-24px)] rounded-2xl shadow-2xl flex flex-col overflow-hidden bottom-[172px] right-4 sm:bottom-[100px] sm:right-6"
+          className="fixed z-[9989] w-full max-w-[360px] rounded-2xl shadow-2xl flex flex-col overflow-hidden bottom-[172px] right-4 sm:bottom-[100px] sm:right-6"
           style={{
             background: "var(--surface, #fff)",
             border: "1px solid var(--border, #e5e7eb)",

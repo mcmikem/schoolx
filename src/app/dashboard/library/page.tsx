@@ -112,7 +112,7 @@ export default function LibraryPage() {
         </div>
         <div className="flex gap-3">
           <div className="relative">
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search catalogue..." className="pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-4 focus:ring-slate-100 min-w-[280px]" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search catalogue..." className="pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-4 focus:ring-slate-100 w-full min-w-[200px]" />
             <MaterialIcon icon="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           </div>
           <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:scale-105 transition-all shadow-lg shadow-indigo-600/20">

@@ -12,7 +12,7 @@ export default function ExpiredNotice() {
   };
 
   return (
-    <div className="fixed inset-0 bg-[#f8fbff] flex flex-col items-center justify-center p-4 z-[9999] overflow-y-auto">
+    <div className="fixed inset-0 bg-[#f8fbff] flex flex-col items-center justify-center p-4 z-[9997] overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-6 sm:p-8 max-w-md w-full border border-red-100/50 text-center relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-red-500 to-orange-400"></div>
 

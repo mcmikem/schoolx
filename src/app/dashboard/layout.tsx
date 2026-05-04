@@ -93,7 +93,7 @@ function SessionTimeoutWarning({
       role="alertdialog"
       aria-modal="true"
       aria-label="Session timeout warning"
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/50"
     >
       <div className="bg-[var(--surface)] rounded-[var(--r)] shadow-[var(--sh3)] p-6 max-w-sm w-full mx-4 text-center">
         <div className="flex justify-center mb-3">

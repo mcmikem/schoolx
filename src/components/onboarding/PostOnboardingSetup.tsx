@@ -560,7 +560,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     <>
       {/* Collapsed State - Floating Button */}
       {!isOpen && completed.length < SETUP_STEPS.length && (
-        <div className="fixed bottom-6 right-6 z-[85]">
+        <div className="fixed bottom-24 right-6 md:bottom-6 z-[85]">
           <button
             onClick={() => setIsOpen(true)}
             className="flex items-center gap-3 rounded-full border border-[#d7dfea] bg-white px-3 py-2 text-[var(--t1)] shadow-[0_18px_40px_rgba(11,28,57,0.16)] transition-all hover:-translate-y-0.5"

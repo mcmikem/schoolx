@@ -272,7 +272,7 @@ export default function CanteenPOSPage() {
         </div>
 
         {/* Right: Cart & Identity */}
-        <div className="w-[400px] bg-white border-l border-slate-100 flex flex-col shrink-0 flex-1 lg:flex-none">
+        <div className="w-full max-w-[400px] bg-white border-l border-slate-100 flex flex-col shrink-0 flex-1 lg:flex-none">
           {/* Student Verification */}
           <div className="p-6 border-b border-slate-100">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">

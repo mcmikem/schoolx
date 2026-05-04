@@ -500,6 +500,21 @@ function HeadmasterDashboardContent() {
     return academicEvents.filter((e) => e.date === selectedDate);
   }, [academicEvents, selectedDate]);
 
+  const isDataLoading = statsLoading || loadingExtra || eventsLoading;
+
+  if (isDataLoading) {
+    return (
+      <div className="content overflow-x-hidden">
+        <section className="relative mb-6 overflow-hidden rounded-[36px] border border-white/65 bg-[linear-gradient(135deg,#f6fbff_0%,#eef4ff_44%,#f7f9fc_100%)] p-4 shadow-[0_28px_70px_rgba(15,23,42,0.08)] sm:p-6">
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#17325f]/20 border-t-[#17325f]" />
+            <p className="mt-4 text-sm font-medium text-[#5d708d]">Loading dashboard data...</p>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="content overflow-x-hidden">
       <section className="relative mb-6 overflow-hidden rounded-[36px] border border-white/65 bg-[linear-gradient(135deg,#f6fbff_0%,#eef4ff_44%,#f7f9fc_100%)] p-4 shadow-[0_28px_70px_rgba(15,23,42,0.08)] sm:p-6">

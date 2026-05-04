@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth-context";
 import { normalizeAuthPhone } from "@/lib/validation";
 import { OwlLoader } from "@/components/loaders";
 import { logger } from "@/lib/logger";
+import MaterialIcon from "@/components/MaterialIcon";
 
 const DEMO_KEY = "skoolmate_demo_v1";
 const DEMO_MODE_ENABLED =
@@ -24,27 +25,6 @@ function serializeDemoData(data: object): string {
   } catch {
     return "";
   }
-}
-
-function MaterialIcon({
-  icon,
-  className,
-  style,
-  children,
-}: {
-  icon: string;
-  className?: string;
-  style?: React.CSSProperties;
-  children?: React.ReactNode;
-}) {
-  return (
-    <span
-      className={`material-symbols-outlined ${className || ""}`}
-      style={style}
-    >
-      {icon || children}
-    </span>
-  );
 }
 
 export default function LoginPage() {

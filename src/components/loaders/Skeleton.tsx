@@ -147,7 +147,7 @@ export function PageSkeleton() {
 
 export function SidebarSkeleton() {
   return (
-    <div className="w-[264px] space-y-4 border-r border-[var(--border)] bg-[var(--surface)] p-4">
+    <div className="w-full max-w-[264px] space-y-4 border-r border-[var(--border)] bg-[var(--surface)] p-4">
       <Skeleton className="h-10 w-3/4 rounded-xl" />
       <div className="space-y-2 pt-4">
         {Array.from({ length: 8 }).map((_, i) => (

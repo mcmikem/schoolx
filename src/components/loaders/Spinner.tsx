@@ -189,7 +189,7 @@ export function CircularProgress({
 export function TopProgressBar({ progress, color }: { progress: number; color?: string }) {
   const c = color || "var(--navy)";
   return (
-    <div className="fixed left-0 right-0 top-0 z-[9999] h-[3px] bg-[var(--border)]">
+    <div className="fixed left-0 right-0 top-0 z-[9996] h-[3px] bg-[var(--border)]">
       <div
         className="h-full transition-all duration-300 ease-out"
         style={{

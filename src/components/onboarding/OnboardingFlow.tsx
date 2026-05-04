@@ -201,6 +201,7 @@ export default function OnboardingFlow({
 
   const handleComplete = async () => {
     setLoading(true);
+    const failedSeeding: string[] = [];
     try {
       const currentYear = new Date().getFullYear().toString();
 
@@ -296,12 +297,15 @@ export default function OnboardingFlow({
                   .upsert(classData, {
                     onConflict: "school_id,name,academic_year",
                   });
-                if (upsertError)
+                if (upsertError) {
                   logger.error("Classes upsert error:", upsertError);
+                  failedSeeding.push("Classes");
+                }
               }
             }
           } catch (err) {
             logger.warn("Classes seeding failed:", err);
+            failedSeeding.push("Classes");
           }
         })(),
         (async () => {
@@ -323,12 +327,15 @@ export default function OnboardingFlow({
                   .upsert(termData, {
                     onConflict: "school_id,academic_year,term_number",
                   });
-                if (upsertError)
+                if (upsertError) {
                   logger.error("Terms upsert error:", upsertError);
+                  failedSeeding.push("Academic Terms");
+                }
               }
             }
           } catch (err) {
             logger.warn("Terms seeding failed:", err);
+            failedSeeding.push("Academic Terms");
           }
         })(),
         (async () => {
@@ -343,11 +350,14 @@ export default function OnboardingFlow({
               const { error: eventError } = await supabase
                 .from("events")
                 .insert(buildUgandaCalendarEvents(school.id, currentYear));
-              if (eventError)
+              if (eventError) {
                 logger.warn("Events seeding failed:", eventError);
+                failedSeeding.push("Calendar Events");
+              }
             }
           } catch (err) {
             logger.warn("Events seeding failed:", err);
+            failedSeeding.push("Calendar Events");
           }
         })(),
         (async () => {
@@ -361,11 +371,14 @@ export default function OnboardingFlow({
               const { error: slotError } = await supabase
                 .from("timetable_slots")
                 .insert(buildDefaultTimetableSlots(school.id));
-              if (slotError)
+              if (slotError) {
                 logger.warn("Timetable slots seeding failed:", slotError);
+                failedSeeding.push("Timetable Slots");
+              }
             }
           } catch (err) {
             logger.warn("Timetable slots seeding failed:", err);
+            failedSeeding.push("Timetable Slots");
           }
         })(),
       ]);
@@ -385,10 +398,14 @@ export default function OnboardingFlow({
             const { error: dormsError } = await supabase
               .from("dorms")
               .insert(dormsData);
-            if (dormsError) logger.warn("Dorms insert failed:", dormsError);
+            if (dormsError) {
+              logger.warn("Dorms insert failed:", dormsError);
+              failedSeeding.push("Dormitories");
+            }
           }
         } catch (err) {
           logger.warn("Dorms insertion failed:", err);
+          failedSeeding.push("Dormitories");
         }
       }
 
@@ -405,19 +422,29 @@ export default function OnboardingFlow({
             const { error: housesError } = await supabase
               .from("houses")
               .insert(housesData);
-            if (housesError) logger.warn("Houses insert failed:", housesError);
+            if (housesError) {
+              logger.warn("Houses insert failed:", housesError);
+              failedSeeding.push("Houses");
+            }
           }
         } catch (err) {
           logger.warn("Houses insertion failed:", err);
+          failedSeeding.push("Houses");
         }
       }
 
       await refreshSchool();
       setLoading(false);
       onComplete();
-      toast.success(
-        "Setup complete. Your school can start working immediately.",
-      );
+      if (failedSeeding.length > 0) {
+        toast.warning(
+          `Setup complete, but these items failed to seed and can be added later: ${failedSeeding.join(", ")}`,
+        );
+      } else {
+        toast.success(
+          "Setup complete. Your school can start working immediately.",
+        );
+      }
     } catch (error: unknown) {
       logger.error("Final error:", error);
       toast.error(

@@ -176,7 +176,7 @@ export default function StudentWalletsPage() {
                 placeholder="Search students..."
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                className="pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none focus:ring-2 focus:ring-primary-100 min-w-[300px]"
+                className="pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none focus:ring-2 focus:ring-primary-100 w-full min-w-[200px]"
               />
               <MaterialIcon
                 icon="search"
