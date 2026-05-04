@@ -4,11 +4,34 @@ import { randomBytes } from "crypto";
 import { apiSuccess, apiError } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!;
+const resetAttempts = new Map<string, { count: number; resetAt: number }>();
 
 export async function POST(request: NextRequest) {
   try {
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      "unknown";
+    const now = Date.now();
+    const window = 15 * 60 * 1000;
+    const limit = 5;
+
+    const entry = resetAttempts.get(ip);
+    if (entry && now < entry.resetAt) {
+      if (entry.count >= limit) {
+        return apiError("Too many attempts. Please try again later.", 429);
+      }
+      entry.count++;
+    } else {
+      resetAttempts.set(ip, { count: 1, resetAt: now + window });
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return apiError("Server configuration error", 500);
+    }
+
     const body = await request.json();
     const { token, newPassword } = body;
 

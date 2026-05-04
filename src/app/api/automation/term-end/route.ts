@@ -284,12 +284,12 @@ export async function POST(request: NextRequest) {
                 division,
               );
               emailedCount++;
-            } catch (_) {
-              // Email failure is non-fatal
+            } catch (e) {
+              logger.warn(`Report card email failed for student ${student.id}:`, e);
             }
           }
-        } catch (_) {
-          // Individual student failure is non-fatal
+        } catch (e) {
+          logger.warn(`Report card generation failed for student ${student.id}:`, e);
         }
       }
 
@@ -410,7 +410,8 @@ export async function POST(request: NextRequest) {
               term,
             );
             noticesSent++;
-          } catch (_) {
+          } catch (e) {
+            logger.warn(`Term end email failed for student ${student.id}:`, e);
             noticeErrors++;
           }
         }
@@ -423,7 +424,8 @@ export async function POST(request: NextRequest) {
               formatUgandaNumber: true,
             });
             noticesSent++;
-          } catch (_) {
+          } catch (e) {
+            logger.warn(`Term end SMS failed for student ${student.id}:`, e);
             noticeErrors++;
           }
         }

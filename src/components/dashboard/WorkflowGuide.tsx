@@ -23,7 +23,7 @@ const STEPS: Step[] = [
 export function resolveActiveStep(pathname: string | null): number {
   if (!pathname) return 0
   const attendanceRoutes = ['/dashboard/attendance', '/dashboard/period-attendance', '/dashboard/dorm-attendance']
-  const feeRoutes = ['/dashboard/fees', '/dashboard/fees-lookup', '/dashboard/payment-plans', '/dashboard/budget', '/dashboard/cashbook']
+  const feeRoutes = ['/dashboard/fees', '/dashboard/fees/lookup', '/dashboard/payment-plans', '/dashboard/budget', '/dashboard/cashbook']
   const reportingRoutes = ['/dashboard/reports', '/dashboard/report-cards', '/dashboard/grades', '/dashboard/exams', '/dashboard/analytics', '/dashboard/moes-reports', '/dashboard/uneb']
 
   if (attendanceRoutes.some(route => pathname.startsWith(route))) return 1
