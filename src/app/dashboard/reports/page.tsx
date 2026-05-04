@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 import Image from "next/image";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { logger } from "@/lib/logger";
+import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
@@ -23,6 +24,7 @@ export default function ReportsPage() {
   const { academicYear, currentTerm } = useAcademic();
   const { students, loading: studentsLoading } = useStudents(school?.id);
   const { classes } = useClasses(school?.id);
+  const toast = useToast();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClass, setSelectedClass] = useState("");
@@ -129,6 +131,7 @@ export default function ReportsPage() {
         setSelectedStudentId(studentId);
       } catch (err) {
         logger.error("Error:", err);
+        toast.error(err instanceof Error ? err.message : "Failed to fetch student report");
       } finally {
         setLoadingReport(false);
       }
@@ -270,6 +273,7 @@ export default function ReportsPage() {
       }, 500);
     } catch (err) {
       logger.error("Error in bulk print:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to generate bulk print");
     } finally {
       setLoadingReport(false);
     }
@@ -445,6 +449,7 @@ export default function ReportsPage() {
         );
       } catch (err) {
         logger.error("Error generating report:", err);
+        toast.error(err instanceof Error ? err.message : "Failed to generate report PDF");
       }
     },
     [school, currentTerm, academicYear],
