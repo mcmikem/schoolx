@@ -38,6 +38,10 @@ export default function LoginPage() {
   const [passwordError, setPasswordError] = useState("");
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
+  const [otpMode, setOtpMode] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otp, setOtp] = useState("");
 
   // Redirect already-logged-in users away from the login page.
   // Respect the ?redirect= param set by proxy.ts middleware so users
@@ -109,6 +113,42 @@ export default function LoginPage() {
       return;
     }
 
+    // OTP mode - verify OTP
+    if (otpMode && otpSent) {
+      if (!otp || otp.length !== 6) {
+        setPasswordError("Enter the 6-digit OTP");
+        return;
+      }
+
+      setLoading(true);
+      const loginTimeout = setTimeout(() => setLoading((prev) => prev ? false : prev), 15000);
+      localStorage.removeItem(DEMO_KEY);
+
+      try {
+        const res = await fetch("/api/auth/verify-otp/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: normalizeAuthPhone(phone), otp }),
+        });
+        const data = await res.json();
+
+        if (data.success && data.user) {
+          const { session } = data;
+          await signIn(session.access_token, session.refresh_token);
+        } else {
+          toast.error(data.error || "Invalid OTP");
+          setOtp("");
+        }
+      } catch {
+        toast.error("Login failed");
+      } finally {
+        clearTimeout(loginTimeout);
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Password mode
     if (!password.trim()) {
       setPasswordError("Password is required");
       return;
@@ -288,50 +328,151 @@ export default function LoginPage() {
                 />
               </div>
 
-              <Input
-                label={t("auth.password")}
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder={t("auth.passwordPlaceholder")}
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (passwordError) setPasswordError("");
-                }}
-                error={passwordError}
-                required
-                autoComplete="current-password"
-                endAdornment={
+              {!otpMode ? (
+                <Input
+                  label={t("auth.password")}
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder={t("auth.passwordPlaceholder")}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (passwordError) setPasswordError("");
+                  }}
+                  error={passwordError}
+                  required
+                  autoComplete="current-password"
+                  endAdornment={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="rounded-lg p-1.5 text-[var(--t3)] hover:bg-[var(--surface-container)] hover:text-[var(--primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/30"
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                      title={showPassword ? "Hide password" : "Show password"}
+                    >
+                      <MaterialIcon
+                        icon={showPassword ? "visibility_off" : "visibility"}
+                        className="text-xl"
+                      />
+                    </button>
+                  }
+                />
+              ) : (
+                <div className="space-y-3">
+                  {!otpSent ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="w-full"
+                      loading={otpLoading}
+                      onClick={async () => {
+                        if (!phone) {
+                          setPhoneError("Phone number required");
+                          return;
+                        }
+                        setOtpLoading(true);
+                        try {
+                          const res = await fetch("/api/auth/otp/", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ phone: phone.trim() }),
+                          });
+                          const data = await res.json();
+                          if (data.success) {
+                            setOtpSent(true);
+                            toast.success("OTP sent to your phone");
+                          } else {
+                            toast.error(data.error || "Failed to send OTP");
+                          }
+                        } catch {
+                          toast.error("Network error");
+                        } finally {
+                          setOtpLoading(false);
+                        }
+                      }}
+                    >
+                      Send OTP to Phone
+                    </Button>
+                  ) : (
+                    <>
+                      <Input
+                        label="One-Time Password"
+                        id="otp"
+                        type="text"
+                        placeholder="Enter 6-digit OTP"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        maxLength={6}
+                        required
+                        autoComplete="one-time-code"
+                      />
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        className="w-full"
+                        loading={loading}
+                      >
+                        {loading ? t("auth.signingIn") : "Verify & Login"}
+                      </Button>
+                      <button
+                        type="button"
+                        className="w-full text-sm text-[var(--t3)] hover:text-[var(--primary)]"
+                        onClick={() => {
+                          setOtpSent(false);
+                          setOtp("");
+                        }}
+                      >
+                        Change phone number
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center justify-center gap-2">
+                {!otpMode ? (
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="rounded-lg p-1.5 text-[var(--t3)] hover:bg-[var(--surface-container)] hover:text-[var(--primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/30"
-                    aria-label={
-                      showPassword ? "Hide password" : "Show password"
-                    }
-                    title={showPassword ? "Hide password" : "Show password"}
+                    className="text-sm text-[var(--primary)] hover:underline"
+                    onClick={() => {
+                      setOtpMode(true);
+                      setPassword("");
+                    }}
                   >
-                    <MaterialIcon
-                      icon={showPassword ? "visibility_off" : "visibility"}
-                      className="text-xl"
-                    />
+                    Login with OTP instead
                   </button>
-                }
-              />
+                ) : (
+                  <button
+                    type="button"
+                    className="text-sm text-[var(--primary)] hover:underline"
+                    onClick={() => {
+                      setOtpMode(false);
+                      setOtpSent(false);
+                      setOtp("");
+                    }}
+                  >
+                    Login with password
+                  </button>
+                )}
+              </div>
 
-              <Button
-                type="submit"
-                variant="primary"
-                className="w-full"
-                loading={loading}
-                icon={
-                  !loading ? (
-                    <MaterialIcon icon="login" className="text-lg" />
-                  ) : undefined
-                }
-              >
-                {loading ? t("auth.signingIn") : t("auth.signIn")}
-              </Button>
+              {!otpMode && (
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="w-full"
+                  loading={loading}
+                  icon={
+                    !loading ? (
+                      <MaterialIcon icon="login" className="text-lg" />
+                    ) : undefined
+                  }
+                >
+                  {loading ? t("auth.signingIn") : t("auth.signIn")}
+                </Button>
+              )}
 
               <div className="text-center">
                 <Link

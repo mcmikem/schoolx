@@ -8,10 +8,11 @@ import { useOfflineAcademicTerms } from '@/lib/offline-hooks';
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Button, Badge } from "@/components/ui/index";
+import { Button, Badge, Select } from "@/components/ui/index";
 import { Modal } from "@/components/ui/Modal";
 import { getErrorMessage } from "@/lib/validation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { buildUgandaAcademicTerms } from "@/lib/uganda-school-calendar";
 
 interface AcademicTerm {
   id: string;
@@ -132,22 +133,25 @@ export default function AcademicTermsPage() {
     setConfirmOpen(true);
   };
 
-  const loadUgandaDefaultTerms = async () => {
+  const loadUgandaDefaultTerms = async (year: string) => {
     if (!school?.id || !canManageTerms) return;
-    const year = new Date().getFullYear().toString();
-    const defaultTerms = [
-      { name: "Term 1", code: `${year}-T1`, start_date: `${year}-01-13`, end_date: `${year}-04-03`, term_number: 1, academic_year: year, is_active: true, is_current: true, school_id: school.id },
-      { name: "Term 2", code: `${year}-T2`, start_date: `${year}-05-11`, end_date: `${year}-08-14`, term_number: 2, academic_year: year, is_active: true, is_current: false, school_id: school.id },
-      { name: "Term 3", code: `${year}-T3`, start_date: `${year}-09-07`, end_date: `${year}-12-05`, term_number: 3, academic_year: year, is_active: true, is_current: false, school_id: school.id },
-    ];
+    const defaultTerms = buildUgandaAcademicTerms(school.id, year);
     const { error } = await supabase.from("academic_terms").insert(defaultTerms);
     if (error) {
-      toast.error(getErrorMessage(error, "Failed to load default terms"));
+      toast.error(getErrorMessage(error, "Failed to load terms"));
     } else {
-      toast.success("Uganda default terms loaded");
+      toast.success(`MoES ${year} term calendar loaded`);
       refetchTerms();
     }
   };
+
+  const currentYear = new Date().getFullYear();
+  const yearOptions = [
+    { value: currentYear.toString(), label: `${currentYear} (Current)` },
+    { value: (currentYear + 1).toString(), label: `${currentYear + 1} (Next Year)` },
+    { value: (currentYear + 2).toString(), label: `${currentYear + 2}` },
+  ];
+  const [selectedYear, setSelectedYear] = useState(currentYear.toString());
 
   const openModal = (term?: AcademicTerm) => {
     if (term) {
@@ -226,12 +230,20 @@ export default function AcademicTermsPage() {
             Add your first academic term to get started
           </p>
           {canManageTerms && (
-            <Button
-              onClick={loadUgandaDefaultTerms}
-              icon={<MaterialIcon icon="auto_fix_high" />}
-            >
-              Load Uganda Default Terms
-            </Button>
+            <div className="flex items-center justify-center gap-3">
+              <Select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                options={yearOptions}
+                className="w-40"
+              />
+              <Button
+                onClick={() => loadUgandaDefaultTerms(selectedYear)}
+                icon={<MaterialIcon icon="auto_fix_high" />}
+              >
+                Load MoES Terms
+              </Button>
+            </div>
           )}
         </div>
       ) : (

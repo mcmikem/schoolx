@@ -34,6 +34,8 @@ interface StudentReport {
     score: number;
     grade: string;
     gradeColor: string;
+    competencyLevel?: string;
+    competencyNotes?: string;
   }[];
   totalMarks: number;
   maxMarks: number;
@@ -55,6 +57,16 @@ function getGradeLabel(score: number): { grade: string; color: string } {
   if (score >= 45) return { grade: "P7", color: "text-yellow-600" };
   if (score >= 40) return { grade: "P8", color: "text-yellow-500" };
   return { grade: "F9", color: "text-red-500" };
+}
+
+function getCompetencyLabel(level: string | undefined): { label: string; emoji: string; color: string } {
+  switch (level) {
+    case "mastered": return { label: "Mastered", emoji: "⭐⭐⭐", color: "text-green-600" };
+    case "demonstrates": return { label: "Demonstrates", emoji: "⭐⭐", color: "text-blue-600" };
+    case "developing": return { label: "Developing", emoji: "⭐", color: "text-yellow-600" };
+    case "extended": return { label: "Extended", emoji: "🏆", color: "text-purple-600" };
+    default: return { label: "Not Started", emoji: "—", color: "text-gray-400" };
+  }
 }
 
 function getDivision(total: number, maxTotal: number): string {
@@ -84,6 +96,7 @@ export default function ReportCardsPage() {
   const { feeStructure } = useFeeStructure(school?.id);
 
   const [selectedClass, setSelectedClass] = useState("");
+  const [reportFormat, setReportFormat] = useState<"numerical" | "competency" | "both">("numerical");
   const [generated, setGenerated] = useState(false);
   const [hideWithFees, setHideWithFees] = useState(false);
   const [reports, setReports] = useState<StudentReport[]>([]);
@@ -144,6 +157,7 @@ export default function ReportCardsPage() {
 
     try {
       let gradesData: any[] = [];
+      let competencyData: any[] = [];
 
       if (isDemo) {
         gradesData = DEMO_GRADES.filter(
@@ -162,16 +176,29 @@ export default function ReportCardsPage() {
           .select("*, subjects(id, name)")
           .eq("class_id", selectedClass)
           .eq("term", currentTerm)
-          .eq("academic_year", academicYear);
+          .eq("academic_year", academicYear)
+          .in("assessment_type", ["numerical", "both", null]);
 
         if (error) throw error;
         gradesData = data || [];
+
+        if (reportFormat !== "numerical") {
+          const compResult = await sb
+            .from("grades")
+            .select("student_id, subject_id, competency_level, competency_notes, subjects(id, name)")
+            .eq("class_id", selectedClass)
+            .eq("term", currentTerm)
+            .eq("academic_year", academicYear)
+            .in("assessment_type", ["competency", "both", null]);
+          
+          if (!compResult.error) {
+            competencyData = compResult.data || [];
+          }
+        }
       }
 
-      const studentSubjectScores: Record<
-        string,
-        Record<string, { total: number; name: string }>
-      > = {};
+      const studentSubjectScores: Record<string, Record<string, { total: number; name: string }>> = {};
+      const studentCompetencies: Record<string, Record<string, { level: string; notes: string; name: string }>> = {};
 
       for (const g of gradesData) {
         if (!studentSubjectScores[g.student_id]) {
@@ -189,6 +216,18 @@ export default function ReportCardsPage() {
         );
       }
 
+      for (const c of competencyData) {
+        if (!studentCompetencies[c.student_id]) {
+          studentCompetencies[c.student_id] = {};
+        }
+        const subjName = c.subjects?.name || "Unknown";
+        studentCompetencies[c.student_id][c.subject_id] = {
+          level: c.competency_level || "not_started",
+          notes: c.competency_notes || "",
+          name: subjName,
+        };
+      }
+
       const subjectList =
         Object.values(studentSubjectScores).length > 0
           ? Object.values(Object.values(studentSubjectScores)[0]).map(
@@ -199,13 +238,17 @@ export default function ReportCardsPage() {
 
       const reportList: StudentReport[] = filteredStudents.map((student) => {
         const subjScores = studentSubjectScores[student.id] || {};
-        const subjectDetails = Object.entries(subjScores).map(([, data]) => {
+        const studentComp = studentCompetencies[student.id] || {};
+        const subjectDetails = Object.entries(subjScores).map(([subjId, data]) => {
           const gradeInfo = getGradeLabel(data.total);
+          const comp = studentComp[subjId];
           return {
             name: data.name,
             score: data.total,
             grade: gradeInfo.grade,
             gradeColor: gradeInfo.color,
+            competencyLevel: comp?.level,
+            competencyNotes: comp?.notes,
           };
         });
 
@@ -217,6 +260,7 @@ export default function ReportCardsPage() {
               score: 0,
               grade: "F9",
               gradeColor: "text-red-500",
+              competencyLevel: "not_started",
             }
           );
         });
@@ -315,14 +359,17 @@ export default function ReportCardsPage() {
         .replace(/'/g, "&#039;");
 
     const subjectRows = report.subjects
-      .map(
-        (s) =>
-          `<tr>
+      .map((s) => {
+        const compCell = reportFormat !== "numerical" && s.competencyLevel
+          ? `<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">${s.competencyLevel === "mastered" ? "⭐⭐⭐" : s.competencyLevel === "demonstrates" ? "⭐⭐" : s.competencyLevel === "developing" ? "⭐" : "—"}</td>`
+          : "";
+        return `<tr>
         <td style="padding:6px 10px;border:1px solid #ddd">${escapeHtml(s.name)}</td>
-        <td style="padding:6px 10px;border:1px solid #ddd;text-align:center">${s.score}</td>
-        <td style="padding:6px 10px;border:1px solid #ddd;text-align:center;font-weight:bold">${escapeHtml(s.grade)}</td>
-      </tr>`,
-      )
+        ${reportFormat !== "competency" ? `<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">${s.score}</td>
+        <td style="padding:6px 10px;border:1px solid #ddd;text-align:center;font-weight:bold">${escapeHtml(s.grade)}</td>` : ""}
+        ${compCell}
+      </tr>`;
+      })
       .join("");
 
     const feeBlock =
@@ -376,7 +423,7 @@ export default function ReportCardsPage() {
       </div>
       <table>
         <thead>
-          <tr><th>Subject</th><th style="text-align:center">Score</th><th style="text-align:center">Grade</th></tr>
+          <tr><th>Subject</th>${reportFormat !== "competency" ? "<th style=\"text-align:center\">Score</th><th style=\"text-align:center\">Grade</th>" : ""}${reportFormat !== "numerical" ? "<th style=\"text-align:center\">Competency</th>" : ""}</tr>
         </thead>
         <tbody>${subjectRows}</tbody>
       </table>
@@ -629,6 +676,20 @@ export default function ReportCardsPage() {
               <div className="px-4 py-3 rounded-xl bg-[var(--surface-container)] text-[var(--primary)] font-semibold">
                 {filteredStudents.length} students
               </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2 text-[var(--on-surface)]">
+                Report Format
+              </label>
+              <select
+                value={reportFormat}
+                onChange={(e) => setReportFormat(e.target.value as "numerical" | "competency" | "both")}
+                className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
+              >
+                <option value="numerical">Numerical (Marks)</option>
+                <option value="competency">CBC Competency</option>
+                <option value="both">Combined (Marks + Competency)</option>
+              </select>
             </div>
           </div>
         </CardBody>
