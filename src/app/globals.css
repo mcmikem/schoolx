@@ -919,6 +919,9 @@ table tr {
   .tbl-wrap {
     @apply overflow-x-auto;
   }
+  .table-wrapper {
+    @apply overflow-x-auto;
+  }
   .table-responsive {
     @apply w-full;
   }
@@ -933,6 +936,15 @@ table tr {
   }
   .table-responsive tr:hover td {
     @apply bg-[var(--surface-container-low)];
+  }
+  .tbl {
+    @apply w-full border-collapse;
+  }
+  .tbl th {
+    @apply px-4 py-3 text-xs font-bold text-[var(--t3)] uppercase tracking-wider text-left border-b border-[var(--border)] bg-[var(--surface-container-low)];
+  }
+  .tbl td {
+    @apply px-4 py-3 text-sm text-[var(--on-surface-variant)] border-b border-[var(--bg)];
   }
 
   /* -- MOBILE CONTAINER -- */

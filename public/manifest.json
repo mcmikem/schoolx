@@ -6,27 +6,27 @@
   "display": "standalone",
   "background_color": "#001F3F",
   "theme_color": "#001F3F",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "scope": "/",
   "categories": ["education", "productivity"],
   "icons": [
     {
-      "src": "/SkoolMate logos/SchoolMate icon.svg",
+      "src": "/assemble-icon.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "/SkoolMate logos/SchoolMate icon.svg",
+      "src": "/assemble-icon.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "any"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "/SkoolMate logos/SchoolMate icon.svg",
-      "sizes": "512x512",
+      "src": "/SkoolMate%20logos/SchoolMate%20icon.svg",
+      "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "maskable"
+      "purpose": "any"
     }
   ],
   "shortcuts": [
@@ -34,41 +34,31 @@
       "name": "Dashboard",
       "short_name": "Dashboard",
       "url": "/dashboard",
-      "icons": [
-        { "src": "/SkoolMate logos/SchoolMate icon.svg", "sizes": "192x192" }
-      ]
+      "icons": [{ "src": "/assemble-icon.png", "sizes": "192x192" }]
     },
     {
       "name": "Attendance",
       "short_name": "Attendance",
       "url": "/dashboard/attendance",
-      "icons": [
-        { "src": "/SkoolMate logos/SchoolMate icon.svg", "sizes": "192x192" }
-      ]
+      "icons": [{ "src": "/assemble-icon.png", "sizes": "192x192" }]
     },
     {
       "name": "Students",
       "short_name": "Students",
       "url": "/dashboard/students",
-      "icons": [
-        { "src": "/SkoolMate logos/SchoolMate icon.svg", "sizes": "192x192" }
-      ]
+      "icons": [{ "src": "/assemble-icon.png", "sizes": "192x192" }]
     },
     {
       "name": "Fees",
       "short_name": "Fees",
       "url": "/dashboard/fees",
-      "icons": [
-        { "src": "/SkoolMate logos/SchoolMate icon.svg", "sizes": "192x192" }
-      ]
+      "icons": [{ "src": "/assemble-icon.png", "sizes": "192x192" }]
     },
     {
       "name": "Messages",
       "short_name": "Messages",
       "url": "/dashboard/messages",
-      "icons": [
-        { "src": "/SkoolMate logos/SchoolMate icon.svg", "sizes": "192x192" }
-      ]
+      "icons": [{ "src": "/assemble-icon.png", "sizes": "192x192" }]
     }
   ],
   "screenshots": [],

@@ -1,6 +1,7 @@
 "use client";
 
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -204,6 +205,12 @@ export default function HomePage() {
                   Features
                 </button>
                 <button
+                  onClick={() => smoothScroll("#how-it-works")}
+                  className="transition hover:text-slate-950 cursor-pointer"
+                >
+                  How it works
+                </button>
+                <button
                   onClick={() => smoothScroll("#story")}
                   className="transition hover:text-slate-950 cursor-pointer"
                 >
@@ -220,6 +227,12 @@ export default function HomePage() {
                   className="transition hover:text-slate-950 cursor-pointer"
                 >
                   Pricing
+                </button>
+                <button
+                  onClick={() => smoothScroll("#faq")}
+                  className="transition hover:text-slate-950 cursor-pointer"
+                >
+                  FAQ
                 </button>
               </div>
               <div className="flex items-center gap-2 sm:gap-3">
@@ -252,6 +265,7 @@ export default function HomePage() {
                   {[
                     { label: "Features", id: "#features" },
                     { label: "How it works", id: "#how-it-works" },
+                    { label: "Install", id: "#install" },
                     { label: "Story", id: "#story" },
                     { label: "Security", id: "#security" },
                     { label: "Pricing", id: "#pricing" },
@@ -598,6 +612,71 @@ export default function HomePage() {
                   </FadeIn>
                 ))}
               </div>
+            </div>
+          </FadeIn>
+        </section>
+
+        {/* ===== INSTALL ON ANY DEVICE ===== */}
+        <section id="install" className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
+          <FadeIn>
+            <div className="text-center mb-10">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
+                Install on any device
+              </p>
+              <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
+                Use SkoolMate OS everywhere
+              </h2>
+              <p className="mt-4 max-w-xl mx-auto text-base text-slate-600">
+                Install on your phone, tablet, or computer for quick access — even works offline.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                {
+                  icon: "phone_iphone",
+                  platform: "iPhone & iPad",
+                  desc: "Open in Safari, tap Share, then Add to Home Screen.",
+                  color: "bg-slate-100 text-slate-700",
+                },
+                {
+                  icon: "android",
+                  platform: "Android",
+                  desc: ANDROID_APP_URL
+                    ? "Download the APK directly to your device."
+                    : "Tap the install banner or use Chrome menu > Install app.",
+                  color: "bg-green-50 text-green-700",
+                },
+                {
+                  icon: "desktop_windows",
+                  platform: "Windows",
+                  desc: WINDOWS_APP_URL
+                    ? "Download the Windows desktop build."
+                    : "Use Chrome or Edge address bar install icon.",
+                  color: "bg-blue-50 text-blue-700",
+                },
+                {
+                  icon: "laptop_mac",
+                  platform: "Mac",
+                  desc: MAC_APP_URL
+                    ? "Download the macOS desktop build."
+                    : "Use Chrome address bar install icon.",
+                  color: "bg-slate-100 text-slate-700",
+                },
+              ].map((item, i) => (
+                <FadeIn key={item.platform} delay={i * 100}>
+                  <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-all h-full">
+                    <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${item.color}`}>
+                      <MaterialIcon icon={item.icon} className="text-[22px]" />
+                    </div>
+                    <p className="mt-4 text-sm font-semibold text-slate-900">
+                      {item.platform}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500 leading-5">
+                      {item.desc}
+                    </p>
+                  </div>
+                </FadeIn>
+              ))}
             </div>
           </FadeIn>
         </section>
@@ -1104,11 +1183,23 @@ export default function HomePage() {
             >
               Start free trial
             </Link>
-            <Link href="/login" className="btn btn-secondary py-3 px-5 text-sm">
-              Sign in
-            </Link>
+            {installPrompt ? (
+              <button
+                onClick={handleInstallApp}
+                className="btn btn-secondary py-3 px-5 text-sm flex items-center gap-2"
+              >
+                <MaterialIcon icon="install_mobile" className="text-[16px]" />
+                Install
+              </button>
+            ) : (
+              <Link href="/login" className="btn btn-secondary py-3 px-5 text-sm">
+                Sign in
+              </Link>
+            )}
           </div>
         </div>
+
+        <PWAInstallPrompt />
       </main>
     </PageErrorBoundary>
   );

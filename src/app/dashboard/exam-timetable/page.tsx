@@ -372,6 +372,7 @@ export default function ExamTimetablePage() {
                 })}
               </div>
             </div>
+            <div className="overflow-x-auto">
             <table className="tbl">
               <thead>
                 <tr>
@@ -441,6 +442,7 @@ export default function ExamTimetablePage() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         ))
       )}

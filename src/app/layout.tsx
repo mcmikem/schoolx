@@ -118,7 +118,7 @@ export default function RootLayout({
                     }
                   });
                 }).catch(function(err) {
-                  logger.warn('SW registration failed:', err);
+                  console.warn('[SW] Registration failed:', err);
                 });
               });
             }
