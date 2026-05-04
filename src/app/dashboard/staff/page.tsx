@@ -14,7 +14,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { DEMO_STAFF, DEMO_SCHOOL_ID } from "@/lib/demo-data";
 import { useStaffReviews, useDashboardStats } from "@/lib/hooks";
 import { logger } from "@/lib/logger";
-import { StaffReview } from "@/types";
+import { StaffReview, School } from "@/types";
 import { PageGuidance } from "@/components/PageGuidance";
 import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -164,7 +164,7 @@ function DirectoryTab({
   isDemo,
   toast,
 }: {
-  school: { id: string } | null | undefined;
+  school: School | null | undefined;
   isDemo: boolean;
   toast: ReturnType<typeof useToast>;
 }) {
@@ -414,7 +414,7 @@ function DirectoryTab({
   const printStaffIDCard = (member: StaffMember) => {
     const cardWindow = window.open("", "_blank");
     if (!cardWindow) return;
-    const schoolName = (school as any)?.name || "School";
+    const schoolName = school?.name || "School";
     const schoolColor = "#1e40af";
     cardWindow.document.write(`
       <!DOCTYPE html>

@@ -127,6 +127,30 @@ interface StudentActionMap {
   };
 }
 
+type EditableStudent = {
+  id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  gender?: string | null;
+  date_of_birth?: string | null;
+  parent_name?: string | null;
+  parent_phone?: string | null;
+  parent_phone2?: string | null;
+  class_id?: string | null;
+  student_number?: string | null;
+  ple_index_number?: string | null;
+  opening_balance?: string | number | null;
+  photo_url?: string | null;
+};
+
+type SmsTarget = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  parent_phone?: string | null;
+  parent_name?: string | null;
+};
+
 export default function StudentHubPage() {
   const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
@@ -379,12 +403,7 @@ export default function StudentHubPage() {
     opening_balance: "0",
     photo_url: "",
   });
-  const [smsTarget, setSmsTarget] = useState<{
-    id: string;
-    first_name: string;
-    last_name: string;
-    parent_phone?: string;
-  } | null>(null);
+  const [smsTarget, setSmsTarget] = useState<SmsTarget | null>(null);
   const [templateRows, setTemplateRows] = useState<Record<string, string>[]>(
     [],
   );
@@ -439,13 +458,12 @@ export default function StudentHubPage() {
         s.student_number?.toLowerCase().includes(normalizedSearch);
       const matchesClass =
         selectedClass === "all" || s.class_id === selectedClass;
-      const sAny = s as any;
       const matchesGender = filterGender === "all" || s.gender === filterGender;
       const matchesPosition =
         filterPosition === "all" ||
-        (filterPosition === "monitor" && sAny.is_class_monitor) ||
+        (filterPosition === "monitor" && s.is_class_monitor) ||
         (filterPosition === "prefect" &&
-          (sAny.prefect_role || sAny.student_council_role));
+          (s.prefect_role || s.student_council_role));
       const matchesDefaulters =
         !filterDefaulters || Number(s.opening_balance || 0) > 0;
       return (
@@ -660,12 +678,12 @@ export default function StudentHubPage() {
     setDeleteConfirm({ open: true, studentId: id });
   };
 
-  const openEditModal = (student: any) => {
+  const openEditModal = (student: EditableStudent) => {
     setEditingStudent(student);
     setEditForm({
       first_name: student.first_name || "",
       last_name: student.last_name || "",
-      gender: student.gender || "M",
+      gender: student.gender === "F" ? "F" : "M",
       date_of_birth: student.date_of_birth || "",
       parent_name: student.parent_name || "",
       parent_phone: student.parent_phone || "",
@@ -813,7 +831,7 @@ export default function StudentHubPage() {
             boysCount={boysCount}
             girlsCount={girlsCount}
             classesCount={classes.length}
-            classes={classes as any}
+            classes={classes}
             templateStatus={templateStatus}
             templateErrors={templateErrors}
             templateRowsCount={templateRows.length}
@@ -843,7 +861,7 @@ export default function StudentHubPage() {
             loading={loading}
             filteredCount={filtered.length}
             filteredTotal={totalCount}
-            paginatedStudents={paginatedStudents as any}
+            paginatedStudents={paginatedStudents}
             currentPage={currentPage}
             totalPages={totalPages}
             onPreviousPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
@@ -851,7 +869,7 @@ export default function StudentHubPage() {
               setCurrentPage((p) => Math.min(totalPages, p + 1))
             }
             onAddStudent={() => setShowAddModal(true)}
-            onSmsParent={(student) => setSmsTarget(student as any)}
+            onSmsParent={(student) => setSmsTarget(student)}
             onEditStudent={(student) => openEditModal(student)}
             onDeleteStudent={confirmDelete}
           />
@@ -2174,8 +2192,8 @@ export default function StudentHubPage() {
         {/* ===== TRANSFERS TAB ===== */}
         <TabPanel activeTab={activeTab} tabId="transfers">
           <StudentTransfersPanel
-            activeStudents={transfers.activeStudents as any}
-            transferredIn={transfers.transferredIn as any}
+            activeStudents={transfers.activeStudents}
+            transferredIn={transfers.transferredIn}
             transferredInCount={transfers.transferredInCount}
             transferredOutCount={transfers.transferredOutCount}
             transferHistory={transfers.transferHistory}
@@ -2195,7 +2213,7 @@ export default function StudentHubPage() {
             onTransferIn={transfers.handleTransferIn}
             onTransferOut={transfers.handleTransferOut}
             printData={transfers.printData}
-            onPreparePrint={(record: any) => {
+            onPreparePrint={(record: TransferOutRecord) => {
               transfers.setPrintData(record);
               setTimeout(transfers.handlePrint, 200);
             }}
@@ -2223,7 +2241,7 @@ export default function StudentHubPage() {
             filteredAtRisk={dropouts.filteredAtRisk}
             loadingAtRisk={dropouts.loadingAtRisk}
             sendingSms={dropouts.sendingSms}
-            onContactParent={dropouts.handleContactParent as any}
+            onContactParent={dropouts.handleContactParent}
             showDropoutModal={dropouts.showDropoutModal}
             setShowDropoutModal={dropouts.setShowDropoutModal}
             dropoutReason={dropouts.dropoutReason}
@@ -2250,11 +2268,11 @@ export default function StudentHubPage() {
             getNextClassOptions={promotion.getNextClassOptions}
             getPrevClassOptions={promotion.getPrevClassOptions}
             toggleAll={promotion.toggleAll}
-            promotionStudents={promotion.promotionStudents as any}
+            promotionStudents={promotion.promotionStudents}
             promotionLoading={promotion.promotionLoading}
             toggleStudent={promotion.toggleStudent}
-            studentActions={promotion.studentActions as any}
-            setAction={promotion.setAction as any}
+            studentActions={promotion.studentActions}
+            setAction={promotion.setAction}
             promotionHistory={promotion.promotionHistory}
             showDemoteModal={promotion.showDemoteModal}
             setShowDemoteModal={promotion.setShowDemoteModal}

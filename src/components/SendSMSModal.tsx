@@ -9,8 +9,8 @@ interface StudentInfo {
   id: string;
   first_name: string;
   last_name: string;
-  parent_phone?: string;
-  parent_name?: string;
+  parent_phone?: string | null;
+  parent_name?: string | null;
 }
 
 interface QuickTemplate {

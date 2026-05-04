@@ -300,8 +300,8 @@ export function useStudentPromotion(
       fetchPromotionHistory();
       setSelectedStudents(new Set());
       setStudentActions({});
-    } catch (err: any) {
-      toast.error(err.message || "Processing failed");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Processing failed");
     } finally {
       setPromoting(false);
     }
@@ -365,8 +365,8 @@ export function useStudentPromotion(
         `Auto-promotion complete: ${data.summary.promoted} promoted, ${data.summary.retained} retained`,
       );
       fetchPromotionHistory();
-    } catch (err: any) {
-      toast.error(err.message || "Auto-promotion failed");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Auto-promotion failed");
     } finally {
       setAutoPromoting(false);
     }
