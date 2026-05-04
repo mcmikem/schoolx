@@ -9,7 +9,6 @@ import { t, tWithParams } from "@/i18n";
 import { Button, Input } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { normalizeAuthPhone } from "@/lib/validation";
-import { OwlLoader } from "@/components/loaders";
 import { logger } from "@/lib/logger";
 import MaterialIcon from "@/components/MaterialIcon";
 
@@ -167,10 +166,8 @@ export default function LoginPage() {
       setFailedAttempts(0);
       setLockoutUntil(null);
 
-      // setLoading(false) so React re-renders; the useEffect below will then
-      // call router.replace() after the render — this is more reliable than
-      // calling router.replace() from inside an async handler after an await.
-      setLoading(false);
+      // After successful signIn, keep loading=true so the button stays disabled
+      // while the redirect effect fires. The redirect useEffect handles navigation.
       return;
     } catch (err: unknown) {
       logger.error("Login exception:", err);
@@ -195,13 +192,6 @@ export default function LoginPage() {
 
   return (
     <PageErrorBoundary>
-    {/* Guard: if auth hasn't been checked yet, show a plain spinner so there's
-        no flash of the form while router is processing the redirect. */}
-    {(!authInitialized && !user) ? (
-      <div className="min-h-screen bg-[#f4f7fb] flex items-center justify-center">
-        <OwlLoader size={100} text="SkoolMate OS" subtext="Getting things ready..." />
-      </div>
-    ) : (
     <div className="min-h-screen bg-[linear-gradient(145deg,#f0f5fc_0%,#e8f0fb_40%,#f4f8ff_100%)] flex relative overflow-hidden">
       <div className="flex-1 flex flex-col justify-center relative z-10 w-full lg:max-w-[45%] xl:max-w-[40%] px-6 lg:px-16 xl:px-24">
         <div className="absolute top-[-10%] left-[-10%] h-[60%] w-[60%] rounded-full bg-[#bdd6ff] blur-[150px] opacity-30" />
@@ -459,7 +449,6 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-    )}
     </PageErrorBoundary>
   );
 }

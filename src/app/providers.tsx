@@ -43,7 +43,18 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
 
 function LoadingChecker({ children }: { children: ReactNode }) {
   const { authInitialized } = useAuth()
-  if (!authInitialized) return <AppLoader />
+  const [showLoader, setShowLoader] = useState(true)
+
+  // Show loader for at most 2 seconds, then render content anyway.
+  // This prevents infinite blank screens if auth init hangs (e.g. Supabase down).
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowLoader(false)
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (!authInitialized && showLoader) return <AppLoader />
   return <>{children}</>
 }
 

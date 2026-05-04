@@ -76,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const res = await fetch("/api/auth/me/", {
           headers: { authorization: `Bearer ${token}` },
+          signal: AbortSignal.timeout(10000),
         });
         if (!res.ok) {
           if (res.status === 404) {
@@ -153,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Only fires if auth hasn't already resolved.
     const safetyTimer = setTimeout(() => {
       setLoading(false);
+      setAuthInitialized(true);
     }, 12000);
 
     try {
@@ -271,6 +273,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchUserData]);
 
   useEffect(() => {
+    // Reset the abort flag on (re)mount — React StrictMode unmounts/remounts
+    // effects, and the cleanup sets authFetchAborted=true. Without this reset,
+    // fetchUserData returns null on every subsequent call in dev mode.
+    authFetchAborted.current = false;
+
     // Deduplicate: INITIAL_SESSION fires immediately after subscribing and
     // would race with the manual checkUser() call below. Skip checkUser()
     // since the onAuthStateChange handler will handle INITIAL_SESSION.
@@ -301,6 +308,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             event === "INITIAL_SESSION" ||
             event === "TOKEN_REFRESHED"
           ) {
+            // Fast path: no session means no user — skip getUser() entirely.
+            if (event === "INITIAL_SESSION" && !session) {
+              setUser(null);
+              setSchool(null);
+              setIsDemo(false);
+              setLoading(false);
+              setAuthInitialized(true);
+              return;
+            }
+
             // Only set loading=true on explicit SIGNED_IN (user just logged in).
             // INITIAL_SESSION and TOKEN_REFRESHED should NOT toggle loading
             // because they can fire during normal navigation and cause
@@ -324,13 +341,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setIsDemo(false);
               setLoading(false);
               setAuthInitialized(true);
-            } else if (event === "INITIAL_SESSION" && !session) {
+            } else {
               setUser(null);
               setSchool(null);
               setIsDemo(false);
-              setLoading(false);
-              setAuthInitialized(true);
-            } else {
               setLoading(false);
               setAuthInitialized(true);
             }
@@ -402,8 +416,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const SESSION_TIMEOUT_MS_REF = useRef(30 * 60 * 1000);
   const CHECK_INTERVAL_MS_REF = useRef(60 * 1000);
 
+  const signInLock = useRef(false);
+
   async function signIn(phone: string, password: string) {
     try {
+      // Prevent duplicate sign-in attempts (e.g. double-click)
+      if (signInLock.current) {
+        return { error: { message: "Login already in progress" } };
+      }
+      signInLock.current = true;
+
       const attempts = buildAuthLoginAttempts(phone);
       let lastError: unknown = null;
 
@@ -430,18 +452,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           continue;
         }
 
-        const userData = await fetchUserData(data.user.id);
-
-        if (!userData) {
-          await supabase!.auth.signOut();
-          return {
-            error: {
-              message:
-                "No user profile found. Please contact your school administrator.",
-            },
-          };
-        }
-
+        // Don't call fetchUserData here — onAuthStateChange's SIGNED_IN
+        // handler already calls fetchUserData. Calling it here too causes
+        // duplicate /api/auth/me/ requests and loading flicker.
+        // Just wait for auth state to propagate.
         import("@/lib/offline")
           .then(({ offlineDB }) => {
             offlineDB
@@ -462,7 +476,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           })
           .catch(() => {});
 
-        return { error: null, role: userData.role };
+        return { error: null, role: data.user.user_metadata?.role || "admin" };
       }
 
       return {
@@ -470,6 +484,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
     } catch (error) {
       return { error };
+    } finally {
+      signInLock.current = false;
     }
   }
 
