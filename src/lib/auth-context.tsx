@@ -51,7 +51,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const authFetchAborted = useRef(false);
   const authCheckedRef = useRef(false);
-  const fetchUserDataInProgress = useRef(false);
 
   const isSubscriptionActive = useCallback(() => {
     return isSubscriptionActiveCheck(school);
@@ -66,15 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authId: string,
     ): Promise<{ role: string } | null> => {
       if (authFetchAborted.current || !supabase) return null;
-      if (fetchUserDataInProgress.current) return null;
-      fetchUserDataInProgress.current = true;
-
-      // Timeout guard: if fetchUserData takes longer than 15s, force reset
-      const timeoutId = setTimeout(() => {
-        logger.warn("[Auth] fetchUserData timed out, forcing reset");
-        fetchUserDataInProgress.current = false;
-        setLoading(false);
-      }, 15000);
 
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -152,9 +142,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logger.error("Error fetching user data:", getErrorMessage(error));
         setLoading(false);
         return null;
-      } finally {
-        clearTimeout(timeoutId);
-        fetchUserDataInProgress.current = false;
       }
     },
     [],
