@@ -9,6 +9,7 @@ import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { getErrorMessage } from "@/lib/validation";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 type TransportRoute = {
   id: string;
@@ -57,6 +58,8 @@ export default function TransportPage() {
     driver_phone: "",
     monthly_fee: "",
   });
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   // Offline hook handles fetching routes
 
@@ -99,18 +102,20 @@ export default function TransportPage() {
       toast.error(`Cannot delete route with ${studentCount} enrolled student${studentCount > 1 ? 's' : ''}. Remove students first.`);
       return;
     }
-    if (!confirm("Delete this transport route?")) return;
-    setDeletingId(id);
-    try {
-      const { error } = await supabase.from("transport_routes").delete().eq("id", id);
-      if (error) throw error;
-      refetchRoutes();
-      toast.success("Route deleted");
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error, "Failed to delete route"));
-    } finally {
-      setDeletingId(null);
-    }
+    setPendingAction(() => async () => {
+      setDeletingId(id);
+      try {
+        const { error } = await supabase.from("transport_routes").delete().eq("id", id);
+        if (error) throw error;
+        refetchRoutes();
+        toast.success("Route deleted");
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, "Failed to delete route"));
+      } finally {
+        setDeletingId(null);
+      }
+    });
+    setConfirmOpen(true);
   };
 
   const totalStudents = routes.reduce((s, r) => s + (r._student_count || 0), 0);
@@ -244,6 +249,18 @@ export default function TransportPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          pendingAction?.();
+        }}
+        title="Delete Route"
+        message="Delete this transport route?"
+        variant="danger"
+      />
     </PageErrorBoundary>
   );
 }

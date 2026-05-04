@@ -10,6 +10,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { cardClassName } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { getErrorMessage } from "@/lib/validation";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 type HealthRecord = {
   id: string;
@@ -59,6 +60,8 @@ export default function HealthPage() {
     treatment: "",
     status: "admitted" as "admitted" | "discharged" | "referred",
   });
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   // Offline hook handles data loading; no need for fetchRecords or useEffect
 
@@ -140,18 +143,20 @@ export default function HealthPage() {
   };
 
   const deleteRecord = async (id: string) => {
-    if (!confirm("Delete this health record? This cannot be undone.")) return;
-    setDeletingHealthId(id);
-    try {
-      const { error } = await supabase.from("health_records").delete().eq("id", id);
-      if (error) throw error;
-      refetchRecords();
-      toast.success("Record deleted");
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error, "Failed to delete record"));
-    } finally {
-      setDeletingHealthId(null);
-    }
+    setPendingAction(() => async () => {
+      setDeletingHealthId(id);
+      try {
+        const { error } = await supabase.from("health_records").delete().eq("id", id);
+        if (error) throw error;
+        refetchRecords();
+        toast.success("Record deleted");
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, "Failed to delete record"));
+      } finally {
+        setDeletingHealthId(null);
+      }
+    });
+    setConfirmOpen(true);
   };
 
   const admitted = records.filter((r) => r.status === "admitted");
@@ -376,7 +381,19 @@ export default function HealthPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          pendingAction?.();
+        }}
+        title="Delete Health Record"
+        message="Delete this health record? This cannot be undone."
+        variant="danger"
+      />
     </PageErrorBoundary>
   );
 }

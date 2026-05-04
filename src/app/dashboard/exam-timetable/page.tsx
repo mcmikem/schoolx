@@ -8,6 +8,7 @@ import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { logger } from "@/lib/logger";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface ExamSlot {
   id: string;
@@ -43,6 +44,8 @@ export default function ExamTimetablePage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [conflicts, setConflicts] = useState<string[]>([]);
   const [examToDelete, setExamToDelete] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   const [newExam, setNewExam] = useState({
     exam_date: "",
@@ -244,15 +247,16 @@ export default function ExamTimetablePage() {
   };
 
   const handleDeleteExam = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this exam?")) return;
-
-    try {
-      await supabase.from("events").delete().eq("id", id);
-      toast.success("Exam deleted");
-      fetchExamTimetable();
-    } catch (err) {
-      toast.error("Failed to delete exam");
-    }
+    setPendingAction(() => async () => {
+      try {
+        await supabase.from("events").delete().eq("id", id);
+        toast.success("Exam deleted");
+        fetchExamTimetable();
+      } catch (err) {
+        toast.error("Failed to delete exam");
+      }
+    });
+    setConfirmOpen(true);
   };
 
   const handlePrint = () => {
@@ -793,6 +797,18 @@ export default function ExamTimetablePage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          pendingAction?.();
+        }}
+        title="Delete Exam"
+        message="Are you sure you want to delete this exam?"
+        variant="danger"
+      />
     </div>
     </PageErrorBoundary>
   );

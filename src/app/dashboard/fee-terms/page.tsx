@@ -9,6 +9,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button, Badge } from "@/components/ui/index";
 import { Modal } from "@/components/ui/Modal";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface FeeTermLine {
   installment_number: number;
@@ -39,6 +40,8 @@ export default function FeeTermsPage() {
   const [showModal, setShowModal] = useState(false);
   const [showInstallments, setShowInstallments] = useState<string | null>(null);
   const [editingTerm, setEditingTerm] = useState<FeeTerm | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -158,18 +161,19 @@ export default function FeeTermsPage() {
   };
 
   const deleteTerm = async (termId: string) => {
-    if (!confirm("Delete this fee term? All related data will be lost."))
-      return;
-    const { error } = await supabase
-      .from("fee_terms")
-      .delete()
-      .eq("id", termId);
-    if (error) {
-      toast.error("Failed to delete term");
-    } else {
-      toast.success("Term deleted");
-      fetchFeeTerms();
-    }
+    setPendingAction(() => async () => {
+      const { error } = await supabase
+        .from("fee_terms")
+        .delete()
+        .eq("id", termId);
+      if (error) {
+        toast.error("Failed to delete term");
+      } else {
+        toast.success("Term deleted");
+        fetchFeeTerms();
+      }
+    });
+    setConfirmOpen(true);
   };
 
   const openModal = (term?: FeeTerm) => {
@@ -564,6 +568,18 @@ export default function FeeTermsPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          pendingAction?.();
+        }}
+        title="Delete Fee Term"
+        message="Delete this fee term? All related data will be lost."
+        variant="danger"
+      />
     </>
     </PageErrorBoundary>
   );

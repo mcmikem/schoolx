@@ -17,6 +17,7 @@ import { logger } from "@/lib/logger";
 import { StaffReview } from "@/types";
 import { PageGuidance } from "@/components/PageGuidance";
 import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface StaffMember {
   id: string;
@@ -180,6 +181,8 @@ function DirectoryTab({
     role: "teacher",
     subject: "",
   });
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [newStaff, setNewStaff] = useState({
     full_name: "",
     phone: "",
@@ -392,18 +395,20 @@ function DirectoryTab({
   };
 
   const handleDeleteStaff = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this staff member?")) return;
-    try {
-      const { error } = await supabase.from("users").delete().eq("id", id);
-      if (error) throw error;
-      setStaff(staff.filter((s) => s.id !== id));
-      setTotalCount((prev) => Math.max(0, prev - 1));
-      toast.success("Staff member deleted");
-    } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to delete staff";
-      toast.error(errorMessage);
-    }
+    setPendingAction(() => async () => {
+      try {
+        const { error } = await supabase.from("users").delete().eq("id", id);
+        if (error) throw error;
+        setStaff(staff.filter((s) => s.id !== id));
+        setTotalCount((prev) => Math.max(0, prev - 1));
+        toast.success("Staff member deleted");
+      } catch (err: unknown) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to delete staff";
+        toast.error(errorMessage);
+      }
+    });
+    setConfirmOpen(true);
   };
 
   const printStaffIDCard = (member: StaffMember) => {
@@ -990,6 +995,18 @@ function DirectoryTab({
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          pendingAction?.();
+        }}
+        title="Delete Staff Member"
+        message="Are you sure you want to delete this staff member?"
+        variant="danger"
+      />
     </div>
   );
 }
@@ -1249,6 +1266,7 @@ function ReviewsTab({
           </div>
         </div>
       )}
+
     </div>
   );
 }

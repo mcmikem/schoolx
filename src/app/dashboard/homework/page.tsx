@@ -17,6 +17,7 @@ import { logger } from "@/lib/logger";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { getErrorMessage } from "@/lib/validation";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface Homework {
   id: string;
@@ -45,6 +46,8 @@ export default function HomeworkPage() {
   const [showModal, setShowModal] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedClass, setSelectedClass] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   // Auto-save for homework form
   const homeworkDraft = useFormDraft("homework_add_form");
@@ -151,18 +154,20 @@ export default function HomeworkPage() {
   };
 
   const handleDeleteHomework = async (id: string) => {
-    if (!confirm("Delete this homework assignment?")) return;
-    setDeletingId(id);
-    try {
-      const { error } = await supabase.from("homework").delete().eq("id", id);
-      if (error) throw error;
-      setHomework((prev) => prev.filter((hw) => hw.id !== id));
-      toast.success("Homework deleted");
-    } catch (err: unknown) {
-      toast.error(getErrorMessage(err, "Failed to delete homework"));
-    } finally {
-      setDeletingId(null);
-    }
+    setPendingAction(() => async () => {
+      setDeletingId(id);
+      try {
+        const { error } = await supabase.from("homework").delete().eq("id", id);
+        if (error) throw error;
+        setHomework((prev) => prev.filter((hw) => hw.id !== id));
+        toast.success("Homework deleted");
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err, "Failed to delete homework"));
+      } finally {
+        setDeletingId(null);
+      }
+    });
+    setConfirmOpen(true);
   };
 
   const getStatusBadge = (homework: Homework) => {
@@ -504,6 +509,18 @@ export default function HomeworkPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          pendingAction?.();
+        }}
+        title="Delete Homework"
+        message="Delete this homework assignment?"
+        variant="danger"
+      />
     </div>
     </PageErrorBoundary>
   );

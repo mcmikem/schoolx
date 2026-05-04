@@ -73,7 +73,7 @@ export default function SubstitutionsPage() {
       toast.error("Failed to load teachers");
     }
     setTeachers(data || []);
-  }, [school?.id, isDemo]);
+  }, [school?.id, isDemo, toast]);
 
   const fetchSubstitutions = useCallback(async () => {
     if (!school?.id) return;

@@ -24,6 +24,7 @@ import { EmptyState, NoData } from "@/components/EmptyState";
 import PersonInitials from "@/components/ui/PersonInitials";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
 import { useOnlineStatus, offlineDB } from "@/lib/offline";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
   deriveGradeWorkflowStatus,
   getNextGradeWorkflowStatusActions,
@@ -157,6 +158,8 @@ export default function GradesPage() {
     message: string;
     onConfirm: () => void;
   }>({ open: false, message: "", onConfirm: () => {} });
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [caLocked, setCaLocked] = useState(false);
   const [lockedByName, setLockedByName] = useState("");
   const [marksBy, setMarksBy] = useState<
@@ -334,47 +337,48 @@ export default function GradesPage() {
   const handleUnlockCA = async () => {
     if (!selectedClass || !selectedSubject || !user?.id) return;
 
-    if (!confirm("Are you sure you want to unlock CA marks?")) return;
+    setPendingAction(() => async () => {
+      try {
+        setSaving(true);
+        await supabase
+          .from("grades")
+          .update({
+            ca_locked: false,
+            locked_by: null,
+            locked_at: null,
+          })
+          .eq("class_id", selectedClass)
+          .eq("subject_id", selectedSubject)
+          .in("assessment_type", ["ca1", "ca2", "ca3"])
+          .eq("term", currentTerm)
+          .eq("academic_year", academicYear);
 
-    try {
-      setSaving(true);
-      await supabase
-        .from("grades")
-        .update({
-          ca_locked: false,
-          locked_by: null,
-          locked_at: null,
-        })
-        .eq("class_id", selectedClass)
-        .eq("subject_id", selectedSubject)
-        .in("assessment_type", ["ca1", "ca2", "ca3"])
-        .eq("term", currentTerm)
-        .eq("academic_year", academicYear);
+        if (school?.id && user?.id) {
+          await logAuditEventWithOfflineSupport(
+            isOnline,
+            school.id,
+            user.id,
+            user.full_name,
+            "update",
+            "grades",
+            `Unlocked CA marks for class ${selectedClass} subject ${selectedSubject}`,
+            `${selectedClass}:${selectedSubject}:${currentTerm}:${academicYear}`,
+            { ca_locked: true },
+            { ca_locked: false, locked_by: null },
+          );
+        }
 
-      if (school?.id && user?.id) {
-        await logAuditEventWithOfflineSupport(
-          isOnline,
-          school.id,
-          user.id,
-          user.full_name,
-          "update",
-          "grades",
-          `Unlocked CA marks for class ${selectedClass} subject ${selectedSubject}`,
-          `${selectedClass}:${selectedSubject}:${currentTerm}:${academicYear}`,
-          { ca_locked: true },
-          { ca_locked: false, locked_by: null },
-        );
+        setCaLocked(false);
+        setLockedByName("");
+        toast.success("Tests have been opened for edits again");
+      } catch (err) {
+        logger.error("Error opening tests:", err);
+        toast.error("Failed to open tests");
+      } finally {
+        setSaving(false);
       }
-
-      setCaLocked(false);
-      setLockedByName("");
-      toast.success("Tests have been opened for edits again");
-    } catch (err) {
-      logger.error("Error opening tests:", err);
-      toast.error("Failed to open tests");
-    } finally {
-      setSaving(false);
-    }
+    });
+    setConfirmOpen(true);
   };
 
   const handleMarkChange = (studentId: string, type: string, value: string) => {
@@ -505,13 +509,12 @@ export default function GradesPage() {
   );
 
   const handleClearAll = useCallback(() => {
-    if (
-      !confirm("Clear all marks for this class/subject? This cannot be undone.")
-    )
-      return;
-    setMarks({});
-    setSaveStatuses({});
-    toast.success("All marks cleared");
+    setPendingAction(() => () => {
+      setMarks({});
+      setSaveStatuses({});
+      toast.success("All marks cleared");
+    });
+    setConfirmOpen(true);
   }, [toast]);
 
   const handleCopyFromPreviousTerm = useCallback(async () => {
@@ -1936,6 +1939,17 @@ export default function GradesPage() {
           </button>
         </div>
       </div>
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          pendingAction?.();
+        }}
+        title="Confirm Action"
+        message="Are you sure you want to proceed with this action?"
+        variant="danger"
+      />
     </PageErrorBoundary>
   );
 }

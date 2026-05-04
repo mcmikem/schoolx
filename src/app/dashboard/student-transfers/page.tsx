@@ -218,10 +218,11 @@ export default function StudentTransfersPage() {
       if (transferErr) throw transferErr;
 
       // Mark student as transferred
-      await supabase
+      const { error: studentUpdateErr } = await supabase
         .from("students")
         .update({ status: "transferred" })
         .eq("id", formOut.studentId);
+      if (studentUpdateErr) throw studentUpdateErr;
 
       toast.success("Student transferred out");
       setShowTransferOutModal(false);

@@ -13,7 +13,7 @@ export const logger = {
   debug(...a: unknown[]) { if (isDev) console.debug("[DEBUG]", ...fmt(a)); },
   info(...a: unknown[]) { if (isDev) console.info("[INFO]", ...fmt(a)); },
   warn(...a: unknown[]) { console.warn("[WARN]", ...fmt(a)); },
-  log(...a: unknown[]) { if (isDev) console.log("[LOG]", ...fmt(a)); },
+  log(...a: unknown[]) { if (isDev) console.info("[LOG]", ...fmt(a)); },
   error(...a: unknown[]) {
     if (isDev) console.error("[ERROR]", ...fmt(a));
     else console.error("[ERROR]", ...a.map((x: unknown) => x instanceof Error ? x["message"] : x));

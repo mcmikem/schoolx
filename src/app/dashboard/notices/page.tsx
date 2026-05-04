@@ -10,6 +10,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { DEMO_NOTICES } from "@/lib/demo-data";
 import { getErrorMessage } from "@/lib/validation";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 export default function NoticesPage() {
   const { user, school, isDemo } = useAuth();
@@ -20,6 +21,8 @@ export default function NoticesPage() {
   const [showPostModal, setShowPostModal] = useState(false);
   const [posting, setPosting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [form, setForm] = useState({
     title: "",
     content: "",
@@ -65,22 +68,24 @@ export default function NoticesPage() {
   }, [fetchNotices]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this notice?")) return;
-    setDeletingId(id);
-    try {
-      if (isDemo) {
-        setNotices((prev) => prev.filter((n) => n.id !== id));
-      } else {
-        const { error } = await supabase.from("notices").delete().eq("id", id);
-        if (error) throw error;
-        setNotices((prev) => prev.filter((n) => n.id !== id));
+    setPendingAction(() => async () => {
+      setDeletingId(id);
+      try {
+        if (isDemo) {
+          setNotices((prev) => prev.filter((n) => n.id !== id));
+        } else {
+          const { error } = await supabase.from("notices").delete().eq("id", id);
+          if (error) throw error;
+          setNotices((prev) => prev.filter((n) => n.id !== id));
+        }
+        toast.success("Notice deleted");
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, "Failed to delete notice"));
+      } finally {
+        setDeletingId(null);
       }
-      toast.success("Notice deleted");
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error, "Failed to delete notice"));
-    } finally {
-      setDeletingId(null);
-    }
+    });
+    setConfirmOpen(true);
   };
 
   const handlePost = async (e: React.FormEvent) => {
@@ -277,7 +282,19 @@ export default function NoticesPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          pendingAction?.();
+        }}
+        title="Delete Notice"
+        message="Delete this notice?"
+        variant="danger"
+      />
     </PageErrorBoundary>
   );
 }

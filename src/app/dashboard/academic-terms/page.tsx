@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Button, Badge } from "@/components/ui/index";
 import { Modal } from "@/components/ui/Modal";
 import { getErrorMessage } from "@/lib/validation";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface AcademicTerm {
   id: string;
@@ -47,6 +48,8 @@ export default function AcademicTermsPage() {
     academic_year: new Date().getFullYear().toString(),
     is_active: true,
   });
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   // Offline hook handles fetching terms
 
@@ -114,17 +117,19 @@ export default function AcademicTermsPage() {
 
   const deleteTerm = async (termId: string) => {
     if (!canManageTerms) return;
-    if (!confirm("Delete this term?")) return;
-    const { error } = await supabase
-      .from("academic_terms")
-      .delete()
-      .eq("id", termId);
-    if (error) {
-      toast.error(getErrorMessage(error, "Failed to delete term"));
-    } else {
-      toast.success("Term deleted");
-      refetchTerms();
-    }
+    setPendingAction(() => async () => {
+      const { error } = await supabase
+        .from("academic_terms")
+        .delete()
+        .eq("id", termId);
+      if (error) {
+        toast.error(getErrorMessage(error, "Failed to delete term"));
+      } else {
+        toast.success("Term deleted");
+        refetchTerms();
+      }
+    });
+    setConfirmOpen(true);
   };
 
   const loadUgandaDefaultTerms = async () => {
@@ -433,6 +438,18 @@ export default function AcademicTermsPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          pendingAction?.();
+        }}
+        title="Delete Term"
+        message="Delete this term?"
+        variant="danger"
+      />
     </>
     </PageErrorBoundary>
   );

@@ -331,6 +331,7 @@ function ParentDashboardContent() {
                   <div className="h-full rounded-2xl border border-gray-200 bg-white p-6 text-center">
                     <div className="w-40 h-40 rounded-full bg-blue-900 mx-auto mb-4 flex items-center justify-center overflow-hidden">
                       {childPhotoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={childPhotoUrl}
                           alt={`${selectedChild.first_name} ${selectedChild.last_name}`}

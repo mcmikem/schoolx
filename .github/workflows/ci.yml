@@ -16,10 +16,7 @@ jobs:
         with:
           config-path: .gitleaks.toml
       - name: Check for demo leakage
-        run: |
-          if grep -rE 'DEMO_|mockRecords|Math.random\(|demo-school|ALLOW_SUPABASE_MOCK' src/; then
-            echo 'Demo leakage detected!'; exit 1;
-          fi
+        run: npm run check:production-leakage
 
   build:
     runs-on: ubuntu-latest

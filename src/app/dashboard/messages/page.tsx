@@ -26,6 +26,7 @@ import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import Image from "next/image";
 import { PageGuidance } from "@/components/PageGuidance";
 import { getErrorMessage } from "@/lib/validation";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 const communicationTabs = [
   { id: "messages", label: "Messages" },
@@ -126,6 +127,8 @@ export default function CommunicationHubPage() {
   } = useSMSTriggers(school?.id);
 
   const [activeTab, setActiveTab] = useState("messages");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   useEffect(() => {
     const requestedTab = searchParams?.get("tab");
@@ -800,16 +803,18 @@ export default function CommunicationHubPage() {
   };
 
   const deleteTemplate = async (id: string) => {
-    if (!confirm("Delete this template?")) return;
-    try {
-      const { error } = await supabase.from("sms_templates").delete().eq("id", id);
-      if (error) throw error;
+    setPendingAction(() => async () => {
+      try {
+        const { error } = await supabase.from("sms_templates").delete().eq("id", id);
+        if (error) throw error;
 
-      toast.success("Template deleted");
-      fetchTemplates();
-    } catch (err: unknown) {
-      toast.error(getErrorMessage(err, "Failed to delete template"));
-    }
+        toast.success("Template deleted");
+        fetchTemplates();
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err, "Failed to delete template"));
+      }
+    });
+    setConfirmOpen(true);
   };
 
   const createDefaultTemplates = async () => {
@@ -986,20 +991,22 @@ export default function CommunicationHubPage() {
   };
 
   const deleteNotice = async (id: string) => {
-    if (!confirm("Delete this notice?")) return;
-    if (isDemo) {
-      setNotices(notices.filter((n) => n.id !== id));
-      toast.success("Notice deleted");
-      return;
-    }
-    try {
-      const { error } = await supabase.from("notices").delete().eq("id", id);
-      if (error) throw error;
-      setNotices(notices.filter((n) => n.id !== id));
-      toast.success("Notice deleted");
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete");
-    }
+    setPendingAction(() => async () => {
+      if (isDemo) {
+        setNotices(notices.filter((n) => n.id !== id));
+        toast.success("Notice deleted");
+        return;
+      }
+      try {
+        const { error } = await supabase.from("notices").delete().eq("id", id);
+        if (error) throw error;
+        setNotices(notices.filter((n) => n.id !== id));
+        toast.success("Notice deleted");
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : "Failed to delete");
+      }
+    });
+    setConfirmOpen(true);
   };
 
   const acknowledgeNotice = async (noticeId: string) => {
@@ -2320,6 +2327,18 @@ export default function CommunicationHubPage() {
           </div>
         )}
       </TabPanel>
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          pendingAction?.();
+        }}
+        title="Confirm Deletion"
+        message="Are you sure you want to delete this item?"
+        variant="danger"
+      />
     </div>
     </PageErrorBoundary>
   );

@@ -67,7 +67,7 @@ export default function CommentsPage() {
     } finally {
       setLoading(false)
     }
-  }, [selectedClass, selectedSubject, school?.id, isDemo, filteredStudents])
+  }, [selectedClass, selectedSubject, school?.id, isDemo, filteredStudents, toast])
 
   useEffect(() => { loadGrades() }, [loadGrades])
 

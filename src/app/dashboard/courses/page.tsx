@@ -9,6 +9,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/index";
 import { Modal } from "@/components/ui/Modal";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface Course {
   id: string;
@@ -86,6 +87,8 @@ export default function CoursesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [filterCategory, setFilterCategory] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -212,22 +215,23 @@ export default function CoursesPage() {
   };
 
   const deleteCourse = async (id: string) => {
-    if (!confirm("Delete this course?")) return;
-
-    try {
-      const { error } = await supabase.from("courses").delete().eq("id", id);
-      if (error) throw error;
-      toast.success("Course deleted");
-      fetchCourses();
-    } catch {
-      const { error } = await supabase.from("subjects").delete().eq("id", id);
-      if (error) {
-        toast.error("Failed to delete subject");
-      } else {
-        toast.success("Subject deleted");
+    setPendingAction(() => async () => {
+      try {
+        const { error } = await supabase.from("courses").delete().eq("id", id);
+        if (error) throw error;
+        toast.success("Course deleted");
         fetchCourses();
+      } catch {
+        const { error } = await supabase.from("subjects").delete().eq("id", id);
+        if (error) {
+          toast.error("Failed to delete subject");
+        } else {
+          toast.success("Subject deleted");
+          fetchCourses();
+        }
       }
-    }
+    });
+    setConfirmOpen(true);
   };
 
   const toggleActive = async (id: string, isActive: boolean) => {
@@ -602,6 +606,18 @@ export default function CoursesPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          pendingAction?.();
+        }}
+        title="Delete Course"
+        message="Delete this course?"
+        variant="danger"
+      />
     </>
     </PageErrorBoundary>
   );

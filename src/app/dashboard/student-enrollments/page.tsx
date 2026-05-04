@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Button, Badge, Select } from "@/components/ui/index";
 import { Modal } from "@/components/ui/Modal";
 import { getErrorMessage } from "@/lib/validation";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface StudentEnrollment {
   id: string;
@@ -57,6 +58,8 @@ export default function StudentEnrollmentsPage() {
     new Date().getFullYear().toString(),
   );
   const [filterClass, setFilterClass] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   const [formData, setFormData] = useState({
     student_id: "",
@@ -179,17 +182,19 @@ export default function StudentEnrollmentsPage() {
   };
 
   const deleteEnrollment = async (id: string) => {
-    if (!confirm("Delete this enrollment?")) return;
-    const { error } = await supabase
-      .from("student_enrollments")
-      .delete()
-      .eq("id", id);
-    if (error) {
-      toast.error(getErrorMessage(error, "Failed to delete enrollment"));
-    } else {
-      toast.success("Enrollment deleted");
-      fetchEnrollments();
-    }
+    setPendingAction(() => async () => {
+      const { error } = await supabase
+        .from("student_enrollments")
+        .delete()
+        .eq("id", id);
+      if (error) {
+        toast.error(getErrorMessage(error, "Failed to delete enrollment"));
+      } else {
+        toast.success("Enrollment deleted");
+        fetchEnrollments();
+      }
+    });
+    setConfirmOpen(true);
   };
 
   const stateColors: Record<string, string> = {
@@ -437,6 +442,18 @@ export default function StudentEnrollmentsPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          pendingAction?.();
+        }}
+        title="Delete Enrollment"
+        message="Delete this enrollment?"
+        variant="danger"
+      />
     </>
     </PageErrorBoundary>
   );
