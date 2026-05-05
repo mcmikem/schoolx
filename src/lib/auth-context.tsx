@@ -103,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchUserData = useCallback(
     async (
       authId: string,
+      retryCount = 0,
     ): Promise<{ role: string } | null> => {
       if (authFetchAborted.current || !supabase) return null;
 
@@ -119,6 +120,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           signal: AbortSignal.timeout(10000),
         });
         if (!res.ok) {
+          // Retry once on transient server errors (502, 503, 504)
+          if (retryCount < 1 && (res.status === 502 || res.status === 503 || res.status === 504)) {
+            logger.warn(`[Auth] Profile fetch got ${res.status}, retrying...`);
+            await new Promise(r => setTimeout(r, 1000));
+            return fetchUserData(authId, retryCount + 1);
+          }
           if (res.status === 404) {
             logger.warn("[Auth] No user profile found for auth_id:", authId);
           } else {
@@ -180,7 +187,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
         return { role: userData.role };
       } catch (error) {
-        logger.error("Error fetching user data:", getErrorMessage(error));
+        const errMsg = getErrorMessage(error);
+        // Retry once on network errors
+        if (retryCount < 1 && (errMsg.includes("network") || errMsg.includes("fetch") || errMsg.includes("timed out") || errMsg.includes("abort"))) {
+          logger.warn("[Auth] Profile fetch network error, retrying...");
+          await new Promise(r => setTimeout(r, 1500));
+          return fetchUserData(authId, retryCount + 1);
+        }
+        logger.error("Error fetching user data:", errMsg);
         setLoading(false);
         return null;
       }
@@ -568,6 +582,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           if (error) {
             lastError = error;
+            // FAST-FAIL: If the credentials are explicitly rejected, don't
+            // try other formats — wrong password means wrong password regardless
+            // of which email format we used. Only retry on "user not found" or
+            // transient errors (network, lock contention).
+            const errMsg = (error.message || "").toLowerCase();
+            const isInvalidCredentials =
+              errMsg.includes("invalid login credentials") ||
+              errMsg.includes("invalid login") ||
+              errMsg.includes("wrong password") ||
+              errMsg.includes("incorrect password");
+
+            if (isInvalidCredentials) {
+              // The user exists but password is wrong. No point trying other formats.
+              break;
+            }
+            // Otherwise it's a transient error or "user not found" — try next format.
             continue;
           }
 

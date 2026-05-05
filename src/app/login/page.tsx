@@ -197,8 +197,13 @@ export default function LoginPage() {
     // Clear any previous demo data before login
     localStorage.removeItem(DEMO_KEY);
 
+    // DEMO_PHONE_NUMBERS: only try demo login for known demo phone numbers
+    // to avoid wasting a network round-trip for every real user
+    const DEMO_PHONE_NUMBERS = ["25670000001", "25670000002", "25670000003", "25670000004"];
+    const isDemoPhone = DEMO_PHONE_NUMBERS.includes(cleanPhone);
+
     try {
-      if (DEMO_MODE_ENABLED) {
+      if (DEMO_MODE_ENABLED && isDemoPhone) {
         const demoResponse = await fetch("/api/demo-login/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -258,7 +263,10 @@ export default function LoginPage() {
           msgLower.includes("too many requests") ||
           msgLower.includes("request has expired");
         const isNetwork =
-          msgLower.includes("network") || msgLower.includes("fetch");
+          msgLower.includes("network") || msgLower.includes("fetch") ||
+          msgLower.includes("timed out") || msgLower.includes("timeout") ||
+          msgLower.includes("abort") || msgLower.includes("lock") ||
+          msgLower.includes("failed to fetch") || msgLower.includes("networkerror");
 
         if (newAttempts >= 5) {
           const lockDuration = Math.min(
@@ -291,7 +299,8 @@ export default function LoginPage() {
       setFailedAttempts(0);
       setLockoutUntil(null);
       setShowSlowMessage(false);
-      setLoading(false);
+      // Don't set loading=false here - wait for auth redirect to happen
+      // The redirect effect (line 51-63) handles the transition
       return;
     } catch (err: unknown) {
       clearTimeout(loginTimeout);

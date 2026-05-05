@@ -23,6 +23,20 @@ export function buildAuthEmailFromPhone(phone: string): string {
   return `${normalizeAuthPhone(phone)}@omuto.org`;
 }
 
+/**
+ * Build prioritized login attempts.
+ *
+ * CRITICAL: Supabase signInWithPassword is slow (1-3s per call).
+ * Previous code tried 8-12 formats sequentially, taking 10-60+ seconds.
+ *
+ * New strategy:
+ * 1. Try the most likely format FIRST (normalized@omuto.org)
+ * 2. If that fails with "Invalid login credentials", the credentials
+ *    are wrong — stop immediately. No point trying other formats.
+ * 3. If it fails with a transient error (network, lock) or "user not found",
+ *    try fallback formats.
+ * 4. Max 3 attempts total, with smart ordering.
+ */
 export function buildAuthLoginAttempts(input: string): AuthLoginAttempt[] {
   const attempts: AuthLoginAttempt[] = [];
   const seen = new Set<string>();
@@ -30,38 +44,22 @@ export function buildAuthLoginAttempts(input: string): AuthLoginAttempt[] {
 
   if (!trimmed) return attempts;
 
+  // If user typed an email, just use it directly
   if (trimmed.includes("@")) {
     addAttempt(attempts, seen, "email", trimmed.toLowerCase());
     return attempts;
   }
 
-  const digitOnly = sanitizePhone(trimmed).replace(/[^0-9]/g, "");
   const normalized = normalizeAuthPhone(trimmed);
-  const localPhone = normalized.startsWith("256") && normalized.length === 12
-    ? `0${normalized.slice(3)}`
-    : digitOnly.startsWith("0")
-      ? digitOnly
-      : digitOnly.length === 9
-        ? `0${digitOnly}`
-        : digitOnly;
 
-  // Accounts are stored as 256XXXXXXXXX@omuto.org — try that format FIRST
-  // to avoid a guaranteed-failing attempt that wastes time and risks rate limits.
+  // Primary: normalized@omuto.org (covers 99%+ of accounts)
   addAttempt(attempts, seen, "email", `${normalized}@omuto.org`);
-  addAttempt(attempts, seen, "email", `${localPhone}@omuto.org`);
-  addAttempt(attempts, seen, "email", `${digitOnly}@omuto.org`);
 
-  // Legacy accounts (created before the @omuto.org scheme) use @omuto.sms domain.
-  // Try those as fallbacks so old real accounts can still sign in.
+  // Secondary: legacy @omuto.sms domain (for old accounts created before migration)
   addAttempt(attempts, seen, "email", `${normalized}@omuto.sms`);
-  addAttempt(attempts, seen, "email", `${localPhone}@omuto.sms`);
-  addAttempt(attempts, seen, "email", `${digitOnly}@omuto.sms`);
 
-  // Phone fallbacks (for legacy accounts stored with phone format)
-  addAttempt(attempts, seen, "phone", trimmed);
-  addAttempt(attempts, seen, "phone", localPhone);
-  addAttempt(attempts, seen, "phone", normalized);
-  addAttempt(attempts, seen, "phone", normalized ? `+${normalized}` : null);
+  // Tertiary: phone format fallback (rare, only for very old accounts)
+  addAttempt(attempts, seen, "phone", `+${normalized}`);
 
   return attempts;
 }

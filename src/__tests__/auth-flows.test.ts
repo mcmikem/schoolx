@@ -87,13 +87,15 @@ describe("buildAuthLoginAttempts", () => {
     expect(attempts[0].value).toBe("admin@school.com");
   });
 
-  it("includes omuto.org email variants for phone input", () => {
+  it("includes normalized omuto.org email for phone input", () => {
     const attempts = buildAuthLoginAttempts("0700000000");
     const emailValues = attempts
       .filter((a) => a.type === "email")
       .map((a) => a.value);
-    expect(emailValues).toContain("0700000000@omuto.org");
+    // Primary format: normalized@omuto.org
     expect(emailValues).toContain("256700000000@omuto.org");
+    // Legacy fallback: normalized@omuto.sms
+    expect(emailValues).toContain("256700000000@omuto.sms");
   });
 
   it("includes phone fallback attempts for phone input", () => {
