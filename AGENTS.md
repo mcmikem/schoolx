@@ -17,9 +17,19 @@ npm run typecheck     # tsc --noEmit
 npm test              # jest --runInBand --forceExit
 npm run test:regression
 npm run test:e2e      # playwright test
+
+# CI / build status checks (run locally after pushing)
+npm run check:ci              # one-shot GitHub Actions + Vercel status
+npm run check:ci -- --watch   # poll every 15s until done
 ```
 
 Pre-commit hook runs: `lint-staged → typecheck → test:regression`. All must pass.
+
+**Post-push workflow:** Always run `npm run check:ci` after pushing to verify GitHub Actions and Vercel build status before notifying the user. This catches secret-scan failures, build errors, or Vercel deployment issues without manual browser checking.
+
+Env vars for `check:ci` (optional):
+- `GITHUB_TOKEN` — required for private repos
+- `VERCEL_TOKEN` — required for Vercel deployment checks (`https://vercel.com/account/tokens`)
 
 ## Architecture
 

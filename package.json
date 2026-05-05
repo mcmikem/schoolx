@@ -16,6 +16,8 @@
     "check:production-leakage": "node scripts/check-production-leakage.mjs",
     "pre-commit": "npm run lint --silent && npm run typecheck --silent && npm test --silent",
     "health": "node scripts/health-check.mjs",
+    "check:ci": "node scripts/check-ci.mjs",
+    "check:ci:watch": "node scripts/check-ci.mjs --watch",
     "audit:uiux": "node scripts/audit-uiux.mjs",
     "audit:uiux:strict": "node scripts/audit-uiux.mjs --strict",
     "cap:init": "cap init \"SkoolMate OS\" com.skoolmate.os --web-dir=out",
