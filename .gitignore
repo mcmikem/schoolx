@@ -25,6 +25,7 @@ serveo.log
 ws.log
 antigravity_phone_chat/
 .devprobe.log
+openeducat_erp_reference/
 
 # OS
 .DS_Store
