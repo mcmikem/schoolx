@@ -24,6 +24,7 @@ npm-debug.log*
 serveo.log
 ws.log
 antigravity_phone_chat/
+.devprobe.log
 
 # OS
 .DS_Store

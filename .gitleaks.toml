@@ -74,3 +74,48 @@ id = "africas-talking-api-key"
 description = "Africa's Talking API key"
 regex = '''[Aa]fricas[_-]?[Tt]alking.*[Aa][Pp][Ii][_-]?[Kk]ey\s*[=:]\s*[A-Za-z0-9]{10,}'''
 tags = ["sms"]
+
+[allowlist]
+description = "Allowlist for example files, docs, tests, and known demo values"
+paths = [
+  '''\.env\.example$''',
+  '''\.env\.local\.example$''',
+  '''\.env\.production\.example$''',
+  '''\.env\.docker\.example$''',
+  '''README\.md$''',
+  '''docs\/.*\.md$''',
+  '''playwright\.config\.ts$''',
+  '''scripts\/check-production-leakage\.mjs$''',
+  '''src\/app\/api\/demo-login\/route\.ts$''',
+  '''src\/lib\/demo-data\.ts$''',
+  '''src\/lib\/demo-utils\.ts$''',
+  '''src\/lib\/parent-portal-demo\.ts$''',
+  '''src\/lib\/seed-demo\.ts$''',
+  '''tests\/.*''',
+  '''\.devprobe\.log$''',
+  '''antigravity_phone_chat\/.*''',
+]
+stopwords = [
+  "YOUR_",
+  "your_",
+  "EXAMPLE",
+  "example",
+  "placeholder",
+  "PLACEHOLDER",
+  "xxxxxxxx",
+  "XXXXXXXX",
+  "dummy",
+  "DUMMY",
+  "test",
+  "TEST",
+  "demo",
+  "DEMO",
+  "fake",
+  "FAKE",
+  "sample",
+  "SAMPLE",
+  "changeme",
+  "CHANGE_ME",
+  "insert_",
+  "replace_me",
+]
