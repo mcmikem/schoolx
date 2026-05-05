@@ -738,7 +738,7 @@ export default function OnboardingFlow({
       </div>
 
       <div
-        className="relative flex w-full h-full md:h-auto md:max-h-[80vh] flex-col md:flex-row md:overflow-hidden md:rounded-[36px] md:shadow-[0_38px_90px_rgba(15,23,42,0.16)] md:ring-1 md:ring-black/5"
+        className="relative flex w-full h-full md:h-auto md:max-h-[80vh] md:min-h-0 flex-col md:flex-row md:overflow-hidden md:rounded-[36px] md:shadow-[0_38px_90px_rgba(15,23,42,0.16)] md:ring-1 md:ring-black/5"
       >
         {/* Left Side: Progress & Info - Desktop only */}
         <div className="relative hidden md:flex md:w-1/3 md:min-h-[600px] flex-col overflow-hidden bg-[linear-gradient(160deg,#0b1c39_0%,#17325f_54%,#1a4b79_100%)] p-10 text-white">
@@ -794,8 +794,8 @@ export default function OnboardingFlow({
         </div>
 
         {/* Right Side: Step Content */}
-        <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
-          <div className="flex-1 p-4 md:p-8 lg:p-12">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12">
             <AnimatePresence mode="wait">
               {/* Step 1: Welcome */}
               {step === 1 && (
