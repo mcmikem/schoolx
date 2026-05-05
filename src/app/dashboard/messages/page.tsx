@@ -2248,7 +2248,7 @@ export default function CommunicationHubPage() {
                     Image (Optional)
                   </label>
                   <div className="flex items-center gap-3">
-                    <label className="btn btn-secondary cursor-pointer">
+                    <label className="inline-flex items-center gap-2 rounded-xl border border-[#e8eaed] bg-white px-4 py-2 text-sm font-medium text-[#5c6670] hover:bg-[#f8fafb] cursor-pointer">
                       <MaterialIcon icon="upload" className="text-lg" />
                       {uploadingImage ? "Uploading..." : "Upload Image"}
                       <input
@@ -2307,20 +2307,22 @@ export default function CommunicationHubPage() {
                   </label>
                 </div>
                 <div className="flex gap-3 pt-4">
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setShowNoticeModal(false)}
-                    className="btn btn-secondary flex-1"
+                    variant="secondary"
+                    className="flex-1"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
                     disabled={sendingSMS}
-                    className="btn btn-primary flex-1"
+                    loading={sendingSMS}
+                    className="flex-1"
                   >
-                    {sendingSMS ? "Posting..." : "Post Notice"}
-                  </button>
+                    Post Notice
+                  </Button>
                 </div>
               </form>
             </div>

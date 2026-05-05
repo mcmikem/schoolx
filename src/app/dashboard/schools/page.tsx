@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
+import { Button } from '@/components/ui/index'
 import { getErrorMessage } from '@/lib/validation'
 import { logger } from '@/lib/logger'
 
@@ -512,10 +513,10 @@ export default function SchoolsPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-[#002045]">School Management</h1>
           <p className="text-sm text-[#5c6670] mt-1 hidden sm:block">Manage all registered schools and subscriptions</p>
         </div>
-        <button onClick={() => setShowAddModal(true)} className="btn btn-primary w-full sm:w-auto">
+        <Button onClick={() => setShowAddModal(true)} className="w-full sm:w-auto">
           <MaterialIcon icon="add" />
           Add School
-        </button>
+        </Button>
       </div>
 
       {/* Stats - Mobile friendly */}
@@ -664,15 +665,15 @@ export default function SchoolsPage() {
 
               {/* Actions */}
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => { setSubForm({ plan: selectedSchool.subscription_plan === 'suspended' ? 'starter' : normalizePlan(selectedSchool.subscription_plan), status: selectedSchool.subscription_status === 'suspended' ? 'active' : selectedSchool.subscription_status, billing: 'annual' }); setShowSubModal(true) }} className="btn btn-primary text-sm">
+                <Button onClick={() => { setSubForm({ plan: selectedSchool.subscription_plan === 'suspended' ? 'starter' : normalizePlan(selectedSchool.subscription_plan), status: selectedSchool.subscription_status === 'suspended' ? 'active' : selectedSchool.subscription_status, billing: 'annual' }); setShowSubModal(true) }} className="text-sm">
                   <MaterialIcon icon="swap_horiz" /> Change Plan
-                </button>
-                <button onClick={() => setShowTrialModal(true)} className="btn btn-secondary text-sm">
+                </Button>
+                <Button onClick={() => setShowTrialModal(true)} variant="secondary" className="text-sm">
                   <MaterialIcon icon="timer" /> Extend Trial
-                </button>
-                <button onClick={() => setShowResetModal(true)} className="btn btn-secondary text-sm">
+                </Button>
+                <Button onClick={() => setShowResetModal(true)} variant="secondary" className="text-sm">
                   <MaterialIcon icon="lock_reset" /> Reset Password
-                </button>
+                </Button>
                 <button onClick={() => setShowSuspendModal(true)} className="text-sm px-4 py-2 rounded-xl border font-medium text-red-600 border-red-200 hover:bg-red-50">
                   <MaterialIcon icon="block" /> {selectedSchool.subscription_status === 'suspended' ? 'Reactivate' : 'Suspend'}
                 </button>
@@ -773,8 +774,8 @@ export default function SchoolsPage() {
                 <div><label className="label">School Phone</label><input type="tel" value={newSchool.phone} onChange={(e) => setNewSchool({...newSchool, phone: e.target.value})} className="input" placeholder="0700000000" /></div>
                 <div><label className="label">Starting Plan</label><select value={newSchool.subscription_plan} onChange={(e) => setNewSchool({...newSchool, subscription_plan: e.target.value})} className="input"><option value="starter">Starter (UGX 50K/student)</option><option value="growth">Growth (UGX 65K/student)</option><option value="enterprise">Enterprise (UGX 80K/student)</option></select></div>
                 <div className="flex gap-3 pt-4">
-                  <button type="button" onClick={() => { setShowAddModal(false); setAddStep(1) }} className="btn btn-secondary flex-1">Cancel</button>
-                  <button type="button" onClick={() => { if (!newSchool.name || !newSchool.school_code || !newSchool.district) { toast.error('Please fill in all required fields'); return } setAddStep(2) }} className="btn btn-primary flex-1">Next →</button>
+                  <Button type="button" onClick={() => { setShowAddModal(false); setAddStep(1) }} variant="secondary" className="flex-1">Cancel</Button>
+                  <Button type="button" onClick={() => { if (!newSchool.name || !newSchool.school_code || !newSchool.district) { toast.error('Please fill in all required fields'); return } setAddStep(2) }} className="flex-1">Next</Button>
                 </div>
               </div>
             ) : (
@@ -790,8 +791,8 @@ export default function SchoolsPage() {
                 <div><label className="label">Admin Phone (Login ID)</label><input type="tel" value={newAdmin.phone} onChange={(e) => setNewAdmin({...newAdmin, phone: e.target.value})} className="input" required placeholder="0700000000" /></div>
                 <div><label className="label">Admin Password</label><input type="text" value={newAdmin.password} onChange={(e) => setNewAdmin({...newAdmin, password: e.target.value})} className="input" required placeholder="Min 6 characters" minLength={6} /></div>
                 <div className="flex gap-3 pt-4">
-                  <button type="button" onClick={() => setAddStep(1)} className="btn btn-secondary flex-1">← Back</button>
-                  <button type="button" onClick={handleAddSchool} className="btn btn-primary flex-1">Create School & Admin</button>
+                  <Button type="button" onClick={() => setAddStep(1)} variant="secondary" className="flex-1">Back</Button>
+                  <Button type="button" onClick={handleAddSchool} className="flex-1">Create School & Admin</Button>
                 </div>
               </div>
             )}
@@ -834,8 +835,8 @@ export default function SchoolsPage() {
               </div>
 
               <div className="flex gap-3">
-                <button onClick={() => setShowCreatedModal(false)} className="btn btn-secondary flex-1">Close</button>
-                <button onClick={() => { setShowCreatedModal(false); setAddStep(1); setShowAddModal(true) }} className="btn btn-primary flex-1">Add Another</button>
+                <Button onClick={() => setShowCreatedModal(false)} variant="secondary" className="flex-1">Close</Button>
+                <Button onClick={() => { setShowCreatedModal(false); setAddStep(1); setShowAddModal(true) }} className="flex-1">Add Another</Button>
               </div>
             </div>
           </div>
@@ -885,8 +886,8 @@ export default function SchoolsPage() {
                 <div className="text-sm text-[#5c6670]">Price: <span className="font-semibold">{formatUGX(subForm.billing === 'annual' ? PLANS[subForm.plan].annual : PLANS[subForm.plan].monthly)}</span>/{subForm.billing === 'annual' ? 'year' : 'month'}</div>
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setShowSubModal(false)} className="btn btn-secondary flex-1">Cancel</button>
-                <button onClick={handleUpdateSubscription} className="btn btn-primary flex-1">Update</button>
+                <Button onClick={() => setShowSubModal(false)} variant="secondary" className="flex-1">Cancel</Button>
+                <Button onClick={handleUpdateSubscription} className="flex-1">Update</Button>
               </div>
             </div>
           </div>
@@ -913,8 +914,8 @@ export default function SchoolsPage() {
                 </select>
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setShowResetModal(false)} className="btn btn-secondary flex-1">Cancel</button>
-                <button onClick={handleResetPassword} className="btn btn-primary flex-1">Flag Reset</button>
+                <Button onClick={() => setShowResetModal(false)} variant="secondary" className="flex-1">Cancel</Button>
+                <Button onClick={handleResetPassword} className="flex-1">Flag Reset</Button>
               </div>
             </div>
           </div>
@@ -941,8 +942,8 @@ export default function SchoolsPage() {
                 <div className="font-semibold">{new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toLocaleDateString('en-UG', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setShowTrialModal(false)} className="btn btn-secondary flex-1">Cancel</button>
-                <button onClick={handleExtendTrial} className="btn btn-primary flex-1">Extend Trial</button>
+                <Button onClick={() => setShowTrialModal(false)} variant="secondary" className="flex-1">Cancel</Button>
+                <Button onClick={handleExtendTrial} className="flex-1">Extend Trial</Button>
               </div>
             </div>
           </div>
@@ -966,10 +967,10 @@ export default function SchoolsPage() {
                   : `Suspend ${selectedSchool.name}? They will lose access to the dashboard. This is typically used for non-payment.`}
               </p>
               <div className="flex gap-3">
-                <button onClick={() => setShowSuspendModal(false)} className="btn btn-secondary flex-1">Cancel</button>
-                <button onClick={handleSuspendSchool} className={`btn flex-1 ${selectedSchool.subscription_status === 'suspended' ? 'btn-primary' : ''}`} style={selectedSchool.subscription_status !== 'suspended' ? { background: '#dc2626', color: '#fff' } : {}}>
+                <Button onClick={() => setShowSuspendModal(false)} variant="secondary" className="flex-1">Cancel</Button>
+                <Button onClick={handleSuspendSchool} variant={selectedSchool.subscription_status === 'suspended' ? 'primary' : 'danger'} className="flex-1">
                   {selectedSchool.subscription_status === 'suspended' ? 'Reactivate' : 'Suspend'}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -1002,8 +1003,8 @@ export default function SchoolsPage() {
                 <div className="text-xs text-amber-800"><strong>Save these credentials!</strong> Share them securely with the user.</div>
               </div>
               <div className="flex gap-3">
-                <button type="button" onClick={() => setShowAddUserModal(false)} className="btn btn-secondary flex-1">Cancel</button>
-                <button type="submit" className="btn btn-primary flex-1">Create User</button>
+                <Button type="button" onClick={() => setShowAddUserModal(false)} variant="secondary" className="flex-1">Cancel</Button>
+                <Button type="submit" className="flex-1">Create User</Button>
               </div>
             </form>
           </div>

@@ -8,6 +8,7 @@ import { useStudents, useClasses } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import MaterialIcon from '@/components/MaterialIcon'
+import { Button } from '@/components/ui/index'
 import { buildRolloverPreview, getNextClassName } from '@/lib/operations'
 import { logAuditEventWithOfflineSupport } from '@/lib/audit'
 import { saveSchoolSetting } from '@/lib/school-settings'
@@ -393,13 +394,14 @@ export default function RolloverPage() {
           )}
 
           <div className="pt-4">
-            <button 
+            <Button
               onClick={rolloverType === 'term' ? handleTermRollover : handleYearRollover}
               disabled={promoting}
-              className="btn btn-primary w-full"
+              loading={promoting}
+              className="w-full"
             >
-              {promoting ? 'Processing...' : rolloverType === 'term' ? 'Start Next Term' : 'Start Year Rollover'}
-            </button>
+              {rolloverType === 'term' ? 'Start Next Term' : 'Start Year Rollover'}
+            </Button>
           </div>
         </div>
       </div>
