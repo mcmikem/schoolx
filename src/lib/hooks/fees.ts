@@ -581,11 +581,23 @@ export function useFeeAdjustments(schoolId?: string) {
           .from("fee_adjustments")
           .select("*")
           .eq("school_id", querySchoolId)
-          .is("deleted_at", null)
           .order("created_at", { ascending: false })
-          .then((r) => {
-            if (r.error) throw r.error;
-            return r.data;
+          .then(async (r) => {
+            if (r.error) {
+              // deleted_at column may not exist in older schemas — retry without it
+              if (r.error.code === "42703" && r.error.message?.includes("deleted_at")) {
+                const fallback = await supabase
+                  .from("fee_adjustments")
+                  .select("*")
+                  .eq("school_id", querySchoolId)
+                  .order("created_at", { ascending: false });
+                if (fallback.error) throw fallback.error;
+                return fallback.data;
+              }
+              throw r.error;
+            }
+            // Filter out soft-deleted records in JS if column exists
+            return (r.data || []).filter((a: Record<string, unknown>) => !a.deleted_at);
           }),
         5000,
         [] as unknown as Record<string, unknown>[],
@@ -710,7 +722,18 @@ export function useFeeAdjustments(schoolId?: string) {
         .from("fee_adjustments")
         .update(payload)
         .eq("id", id);
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        // deleted_at may not exist yet — fall back to hard delete
+        if (deleteError.code === "42703" && deleteError.message?.includes("deleted_at")) {
+          const { error: hardDeleteError } = await supabase
+            .from("fee_adjustments")
+            .delete()
+            .eq("id", id);
+          if (hardDeleteError) throw hardDeleteError;
+        } else {
+          throw deleteError;
+        }
+      }
       setAdjustments((prev) => prev.filter((a) => a.id !== id));
       invalidateCache(cacheKey);
       if (school?.id && user?.id && existing) {

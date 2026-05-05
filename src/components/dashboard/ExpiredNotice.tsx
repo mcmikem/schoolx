@@ -65,7 +65,7 @@ export default function ExpiredNotice() {
 
         <div className="flex flex-col gap-3">
           <a
-            href="/dashboard/payment-plans"
+            href="/dashboard/fees?tab=payment-plans"
             className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] transition-all text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30"
           >
             <MaterialIcon style={{ fontSize: 20 }}>rocket_launch</MaterialIcon>
