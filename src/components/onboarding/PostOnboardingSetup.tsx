@@ -295,9 +295,9 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
 
       {/* Slide-over Panel */}
       {isOpen && (
-        <div className="fixed inset-y-0 right-0 z-[85] w-full max-w-md transform bg-[linear-gradient(180deg,#fffdfa_0%,#f7f4ec_100%)] shadow-2xl transition-transform duration-300">
+        <div className="fixed inset-y-0 right-0 z-[85] w-full max-w-md flex flex-col transform bg-[linear-gradient(180deg,#fffdfa_0%,#f7f4ec_100%)] shadow-2xl transition-transform duration-300 overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-[#e0e6ee] bg-white/84 p-4 backdrop-blur-sm">
+          <div className="flex-shrink-0 flex items-center justify-between border-b border-[#e0e6ee] bg-white/84 p-4 backdrop-blur-sm">
             <div className="flex items-center gap-3">
               <OwlMascot size={46} premium ring glow />
               <div>
@@ -328,7 +328,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
           )}
 
           {/* Content */}
-          <div className="p-4 overflow-y-auto h-[calc(100vh-120px)] space-y-4">
+          <div className="flex-1 p-4 overflow-y-auto space-y-4">
             {incompleteSteps.length === 0 ? (
               <div className="text-center py-8">
                 <div className="mx-auto mb-4 flex justify-center">
