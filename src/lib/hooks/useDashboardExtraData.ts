@@ -103,6 +103,11 @@ export function useDashboardExtraData(
         monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
         const weekStart = monday.toISOString().split("T")[0];
 
+        // Cap fee history to ~6 months (a full school year term window)
+        const termLookbackDate = new Date(now);
+        termLookbackDate.setDate(now.getDate() - 180);
+        const termStart = termLookbackDate.toISOString().split("T")[0];
+
         // Build date range for dropout check
         const fourteenDaysAgo = new Date(now);
         fourteenDaysAgo.setDate(now.getDate() - 14);
@@ -134,17 +139,24 @@ export function useDashboardExtraData(
             .select("status, created_at")
             .eq("school_id", schoolId)
             .gte("created_at", today),
+          // Scoped to this school's students via inner join + bounded to 180-day window
           supabase
             .from("fee_payments")
-            .select("amount_paid, payment_date"),
+            .select("student_id, amount_paid, payment_date, students!inner(school_id)")
+            .eq("students.school_id", schoolId)
+            .gte("payment_date", termStart),
+          // Scoped to this school's staff via users inner join
           supabase
             .from("staff_attendance")
-            .select("status, staff_id, users(school_id)")
+            .select("status, staff_id, users!inner(school_id)")
+            .eq("users.school_id", schoolId)
             .eq("date", today)
             .in("status", ["present", "late"]),
+          // Scoped to this school's students via inner join + bounded to 14 days
           supabase
             .from("attendance")
-            .select("student_id, status, date")
+            .select("student_id, status, date, students!inner(school_id)")
+            .eq("students.school_id", schoolId)
             .gte("date", dropoutStartDate)
             .lte("date", today)
             .order("date", { ascending: false }),
@@ -302,7 +314,7 @@ export function useDashboardExtraData(
         if (feeStructure.length > 0) {
           const paidByStudent: Record<string, number> = {};
           allPayments?.forEach((p: any) => {
-            const sid = p.students?.id || "";
+            const sid = p.student_id || "";
             if (sid)
               paidByStudent[sid] =
                 (paidByStudent[sid] || 0) + Number(p.amount_paid);
