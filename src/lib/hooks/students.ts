@@ -201,7 +201,10 @@ async function fetchStudentsWithFallback(options: {
       return result.data as unknown as StudentWithClass[];
     }
 
-    if (isMissingStudentColumnError(result.error, "photo_url")) {
+    if (
+      isMissingStudentColumnError(result.error, "photo_url") ||
+      isMissingStudentColumnError(result.error, "nationality")
+    ) {
       studentPhotoColumnSupported = false;
       return fetchStudentsWithFallback(options);
     }
