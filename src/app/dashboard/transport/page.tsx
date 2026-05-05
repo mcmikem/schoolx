@@ -8,6 +8,7 @@ import { useOfflineData } from '@/lib/offline-hooks';
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Button } from "@/components/ui/index";
 import { getErrorMessage } from "@/lib/validation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 
@@ -127,9 +128,9 @@ export default function TransportPage() {
           title="Transport Management"
           subtitle="School routes, vehicles, and drivers"
           actions={
-            <button onClick={() => setShowAdd(true)} className="btn btn-primary text-sm">
+            <Button onClick={() => setShowAdd(true)} size="sm">
               <MaterialIcon icon="add" style={{ fontSize: 18 }} /> Add Route
-            </button>
+            </Button>
           }
         />
 
@@ -241,9 +242,9 @@ export default function TransportPage() {
                     <input value={form.driver_phone} onChange={(e) => setForm({ ...form, driver_phone: e.target.value })} placeholder="07XXXXXXXX" className="w-full px-3 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm outline-none" />
                   </div>
                 </div>
-                <button onClick={saveRoute} disabled={!form.route_name || saving} className="btn btn-primary w-full">
+                <Button onClick={saveRoute} disabled={!form.route_name || saving} loading={saving} className="w-full">
                   {saving ? "Saving…" : "Save Route"}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

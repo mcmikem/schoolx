@@ -13,6 +13,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { getErrorMessage } from "@/lib/validation";
+import { withTimeout } from "@/lib/hooks/utils";
 
 interface ClassRow {
   id: string;
@@ -71,22 +72,27 @@ export default function ClassesPage() {
     }
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("classes")
-        .select("*, teacher:class_teacher_id(full_name)")
-        .eq("school_id", school.id)
-        .order("name");
-      if (error) throw error;
+      const data = await withTimeout(
+        supabase
+          .from("classes")
+          .select("*, teacher:class_teacher_id(full_name)")
+          .eq("school_id", school.id)
+          .order("name")
+          .then((r) => { if (r.error) throw r.error; return r.data; }),
+        8000,
+        [] as ClassRow[]
+      );
 
       // Get student counts per class
       const classIds = (data || []).map((c: ClassRow) => c.id);
       let countMap: Record<string, number> = {};
       if (classIds.length > 0) {
-        const { data: students } = await supabase
-          .from("students")
-          .select("class_id")
-          .in("class_id", classIds)
-          .eq("status", "active");
+        const students = await withTimeout(
+          supabase.from("students").select("class_id").in("class_id", classIds).eq("status", "active")
+            .then((r) => r.data || []),
+          5000,
+          [] as { class_id: string }[]
+        );
         (students || []).forEach((s: { class_id: string }) => {
           countMap[s.class_id] = (countMap[s.class_id] || 0) + 1;
         });
@@ -102,14 +108,14 @@ export default function ClassesPage() {
 
   const fetchTeachers = useCallback(async () => {
     if (!school?.id || isDemo) return;
-    const { data } = await supabase
-      .from("users")
-      .select("id, full_name")
-      .eq("school_id", school.id)
-      .in("role", ["teacher", "dos", "headmaster"])
-      .eq("is_active", true)
-      .order("full_name");
-    setTeachers(data || []);
+    const data = await withTimeout(
+      supabase.from("users").select("id, full_name").eq("school_id", school.id)
+        .in("role", ["teacher", "dos", "headmaster"]).eq("is_active", true).order("full_name")
+        .then((r) => r.data || []),
+      5000,
+      [] as { id: string; full_name: string }[]
+    );
+    setTeachers(data);
   }, [school?.id, isDemo]);
 
   useEffect(() => { fetchClasses(); fetchTeachers(); }, [fetchClasses, fetchTeachers]);
@@ -169,14 +175,22 @@ export default function ClassesPage() {
       };
 
       if (editingClass) {
-        const { error } = await supabase.from("classes").update(payload).eq("id", editingClass.id);
-        if (error) throw error;
+        const updateError = await withTimeout(
+          supabase.from("classes").update(payload).eq("id", editingClass.id).then((r) => r.error),
+          8000,
+          new Error("Update timed out — please try again")
+        );
+        if (updateError) throw updateError;
         toast.success("Class updated");
       } else {
-        const { error } = await supabase.from("classes").insert(payload);
-        if (error) {
-          if (error.code === "23505") throw new Error("A class with this name already exists for this year");
-          throw error;
+        const insertError = await withTimeout(
+          supabase.from("classes").insert(payload).then((r) => r.error),
+          8000,
+          new Error("Insert timed out — please try again")
+        );
+        if (insertError) {
+          if ((insertError as any).code === "23505") throw new Error("A class with this name already exists for this year");
+          throw insertError;
         }
         toast.success("Class created");
       }
@@ -204,8 +218,12 @@ export default function ClassesPage() {
         setConfirmOpen(false);
         return;
       }
-      const { error } = await supabase.from("classes").delete().eq("id", pendingDelete.id);
-      if (error) throw error;
+      const deleteError = await withTimeout(
+        supabase.from("classes").delete().eq("id", pendingDelete.id).then((r) => r.error),
+        8000,
+        new Error("Delete timed out — please try again")
+      );
+      if (deleteError) throw deleteError;
       setClasses(prev => prev.filter(c => c.id !== pendingDelete.id));
       toast.success("Class deleted");
       setConfirmOpen(false);

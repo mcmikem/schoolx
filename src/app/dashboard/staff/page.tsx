@@ -904,20 +904,23 @@ function DirectoryTab({
               </div>
 
               <div className="flex gap-3 pt-4">
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   onClick={() => setShowAddModal(false)}
-                  className="btn btn-secondary flex-1"
+                  className="flex-1"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
+                  variant="primary"
                   disabled={saving}
-                  className="btn btn-primary flex-1"
+                  loading={saving}
+                  className="flex-1"
                 >
                   {saving ? "Adding..." : "Add Staff"}
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -999,20 +1002,23 @@ function DirectoryTab({
               </div>
 
               <div className="flex gap-3 pt-4">
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   onClick={() => setShowEditModal(false)}
-                  className="btn btn-secondary flex-1"
+                  className="flex-1"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
+                  variant="primary"
                   disabled={saving}
-                  className="btn btn-primary flex-1"
+                  loading={saving}
+                  className="flex-1"
                 >
                   {saving ? "Updating..." : "Update Staff"}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

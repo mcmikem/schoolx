@@ -24,6 +24,7 @@ import {
   NSDCTopic,
 } from "@/lib/ndc-syllabus";
 import { logger } from "@/lib/logger";
+import { Button } from "@/components/ui/index";
 import {
   buildAcademicYear,
   parseStoredSubtopics,
@@ -351,14 +352,13 @@ export default function SyllabusPage() {
               Track curriculum coverage per subject
             </p>
           </div>
-          <button
+          <Button
             onClick={() => setShowAddModal(true)}
             disabled={!selectedClass || !selectedSubject}
-            className="btn btn-primary"
           >
             <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
             Add Topic
-          </button>
+          </Button>
         </div>
 
         {/* Filters */}
@@ -465,12 +465,12 @@ export default function SyllabusPage() {
               menu_book
             </MaterialIcon>
             <p className="mt-2">No topics added yet</p>
-            <button
+            <Button
               onClick={() => setShowAddModal(true)}
-              className="btn btn-primary mt-4"
+              className="mt-4"
             >
               Add First Topic
-            </button>
+            </Button>
           </div>
         ) : (
           <>

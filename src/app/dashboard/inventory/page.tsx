@@ -23,6 +23,7 @@ export default function InventoryPage() {
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
   const [transactionType, setTransactionType] = useState<'in' | 'out'>('out')
   const [activeTab, setActiveTab] = useState('stock')
+  const [submitting, setSubmitting] = useState(false)
 
   const handleTransactionSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -30,22 +31,33 @@ export default function InventoryPage() {
 
     const formData = new FormData(e.currentTarget)
     const quantity = Number(formData.get('quantity'))
-    
-    const result = await recordTransaction({
-      school_id: school!.id,
-      asset_id: selectedAsset.id,
-      transaction_type: transactionType,
-      quantity: quantity,
-      notes: formData.get('notes') as string,
-      transaction_date: new Date().toISOString().split('T')[0],
-      recorded_by: user!.id
-    })
+    if (!quantity || quantity < 1) {
+      toast.error('Quantity must be at least 1')
+      return
+    }
 
-    if (result.success) {
-      toast.success(`Inventory updated: ${selectedAsset.name}`)
-      setShowTransactionModal(false)
-    } else {
-      toast.error('Transaction failed')
+    setSubmitting(true)
+    try {
+      const result = await recordTransaction({
+        school_id: school!.id,
+        asset_id: selectedAsset.id,
+        transaction_type: transactionType,
+        quantity,
+        notes: formData.get('notes') as string,
+        transaction_date: new Date().toISOString().split('T')[0],
+        recorded_by: user!.id
+      })
+
+      if (result.success) {
+        toast.success(`Inventory updated: ${selectedAsset.name}`)
+        setShowTransactionModal(false)
+      } else {
+        toast.error('Transaction failed')
+      }
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Transaction failed')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -229,10 +241,10 @@ export default function InventoryPage() {
                 
                 <Button 
                   type="submit"
-                  className={`w-full mt-4 ${
-                    transactionType === 'in' ? '' : ''
-                  }`}
+                  loading={submitting}
+                  disabled={submitting}
                   variant={transactionType === 'in' ? 'primary' : 'danger'}
+                  className="w-full mt-4"
                 >
                   Confirm {transactionType === 'in' ? 'Addition' : 'Issuance'}
                 </Button>

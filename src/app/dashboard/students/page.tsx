@@ -1783,22 +1783,23 @@ export default function StudentHubPage() {
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 10 }}>
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
                           onClick={() => setShowAddModal(false)}
-                          className="btn btn-ghost"
                           style={{ flex: 1 }}
                         >
                           Cancel
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="submit"
+                          variant="primary"
                           disabled={saving}
-                          className="btn btn-primary"
+                          loading={saving}
                           style={{ flex: 1 }}
                         >
                           {saving ? "Adding..." : "Add Student"}
-                        </button>
+                        </Button>
                       </div>
                     </form>
                   </div>
@@ -2171,22 +2172,23 @@ export default function StudentHubPage() {
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 10 }}>
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
                           onClick={() => setShowEditModal(false)}
-                          className="btn btn-ghost"
                           style={{ flex: 1 }}
                         >
                           Cancel
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="submit"
+                          variant="primary"
                           disabled={saving}
-                          className="btn btn-primary"
+                          loading={saving}
                           style={{ flex: 1 }}
                         >
                           {saving ? "Updating..." : "Update Student"}
-                        </button>
+                        </Button>
                       </div>
                     </form>
                   </div>
