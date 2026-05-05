@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/index'
 import { TableSkeleton } from '@/components/ui/Skeleton'
 import { getErrorMessage } from '@/lib/validation'
 import { logger } from '@/lib/logger'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import type { Class, Subject, TimetableSlot } from '@/types'
 
 // ── Uganda 2026 Public Holidays ─────────────────────────────────────────────
@@ -106,6 +107,7 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
   const [showModal, setShowModal] = useState(false)
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null)
   const [saving, setSaving] = useState(false)
+  const [pendingDeleteEventId, setPendingDeleteEventId] = useState<string | null>(null)
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -177,8 +179,10 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this event?')) return
+  const handleDelete = async () => {
+    if (!pendingDeleteEventId) return
+    const id = pendingDeleteEventId
+    setPendingDeleteEventId(null)
     const { error } = await supabase.from('events').delete().eq('id', id)
     if (error) { toast.error('Failed to delete'); return }
     setEvents(prev => prev.filter(e => e.id !== id))
@@ -230,6 +234,7 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
   const today = new Date().toISOString().split('T')[0]
 
   return (
+    <>
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div>
@@ -284,7 +289,7 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
                           <button onClick={() => openEdit(ev)} className="p-1 hover:bg-[var(--surface)] rounded text-[var(--t3)] hover:text-[var(--t1)]">
                             <MaterialIcon icon="edit" className="text-sm" />
                           </button>
-                          <button onClick={() => handleDelete(ev.id)} className="p-1 hover:bg-red-50 rounded text-[var(--t3)] hover:text-red-500">
+                          <button onClick={() => setPendingDeleteEventId(ev.id)} className="p-1 hover:bg-red-50 rounded text-[var(--t3)] hover:text-red-500">
                             <MaterialIcon icon="delete" className="text-sm" />
                           </button>
                         </div>
@@ -345,6 +350,16 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
         </div>
       )}
     </div>
+      <ConfirmDialog
+        isOpen={!!pendingDeleteEventId}
+        onClose={() => setPendingDeleteEventId(null)}
+        onConfirm={handleDelete}
+        title="Delete Event"
+        message="Delete this event? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+      />
+    </>
   )
 }
 
@@ -384,6 +399,7 @@ export default function TimetablePage() {
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [selectedDay, setSelectedDay] = useState<number>(1)
   const [conflicts, setConflicts] = useState<string[]>([])
+  const [pendingDeleteEntryId, setPendingDeleteEntryId] = useState<string | null>(null)
 
   // Fetch the timetable for the selected class
   const fetchTimetable = useCallback(async () => {
@@ -525,8 +541,10 @@ export default function TimetablePage() {
     }
   }
 
-  const handleDeleteEntry = async (entryId: string) => {
-    if (!confirm('Remove this timetable entry?')) return
+  const handleDeleteEntry = async () => {
+    if (!pendingDeleteEntryId) return
+    const entryId = pendingDeleteEntryId
+    setPendingDeleteEntryId(null)
     try {
       const { error } = await supabase.from('teacher_timetable').delete().eq('id', entryId)
       if (error) throw error
@@ -661,7 +679,7 @@ export default function TimetablePage() {
                                     {teacherNameById[entry.teacher_id] || 'Teacher'}
                                   </div>
                                   <button
-                                    onClick={() => handleDeleteEntry(entry.id)}
+                                    onClick={() => setPendingDeleteEntryId(entry.id)}
                                     className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded text-red-500 transition-all"
                                     title="Remove entry"
                                   >
@@ -755,6 +773,15 @@ export default function TimetablePage() {
       )}
       </TabPanel>
     </div>
+      <ConfirmDialog
+        isOpen={!!pendingDeleteEntryId}
+        onClose={() => setPendingDeleteEntryId(null)}
+        onConfirm={handleDeleteEntry}
+        title="Remove Timetable Entry"
+        message="Remove this timetable entry? This action cannot be undone."
+        confirmLabel="Remove"
+        variant="danger"
+      />
     </PageErrorBoundary>
   )
 }

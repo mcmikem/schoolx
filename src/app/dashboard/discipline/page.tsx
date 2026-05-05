@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/index'
 import { TableSkeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
 import { logger } from '@/lib/logger'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 interface DisciplineRecord {
   id: string
@@ -63,6 +64,7 @@ export default function DisciplinePage() {
   const { school, user } = useAuth()
   const toast = useToast()
   const { students } = useStudents(school?.id)
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [records, setRecords] = useState<DisciplineRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -167,8 +169,10 @@ export default function DisciplinePage() {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this discipline record? This cannot be undone.')) return
+  const handleDelete = async () => {
+    if (!pendingDeleteId) return
+    const id = pendingDeleteId
+    setPendingDeleteId(null)
     try {
       const { error } = await supabase.from('discipline').delete().eq('id', id)
       if (error) throw error
@@ -358,6 +362,15 @@ export default function DisciplinePage() {
           onClose={() => setSmsTarget(null)}
         />
       )}
+      <ConfirmDialog
+        isOpen={!!pendingDeleteId}
+        onClose={() => setPendingDeleteId(null)}
+        onConfirm={handleDelete}
+        title="Delete Record"
+        message="Delete this discipline record? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+      />
     </div>
     </PageErrorBoundary>
   )
@@ -432,7 +445,7 @@ export default function DisciplinePage() {
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => handleDelete(record.id)}
+                    onClick={() => setPendingDeleteId(record.id)}
                     title="Delete record"
                     className="text-red-500 hover:text-red-700"
                   >

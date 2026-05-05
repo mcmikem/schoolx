@@ -14,6 +14,7 @@ import { EmptyState } from '@/components/EmptyState'
 import TermTimeline from '@/components/dashboard/TermTimeline'
 import { getErrorMessage } from '@/lib/validation'
 import { logger } from '@/lib/logger'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 interface SchoolEvent {
   id: string
@@ -46,6 +47,7 @@ export default function CalendarPage() {
   } = useOfflineEvents(school?.id);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [view, setView] = useState<'grid' | 'timeline'>('grid')
   const [newEvent, setNewEvent] = useState({
@@ -97,8 +99,10 @@ export default function CalendarPage() {
     }
   }
 
-  const deleteEvent = async (id: string) => {
-    if (!confirm('Delete this event?')) return
+  const deleteEvent = async () => {
+    if (!pendingDeleteId) return
+    const id = pendingDeleteId
+    setPendingDeleteId(null)
     try {
       const { error } = await supabase.from('events').delete().eq('id', id)
       if (error) throw error
@@ -241,7 +245,7 @@ export default function CalendarPage() {
                         className={`text-[10px] px-2 py-1 rounded truncate font-medium ${
                           typeColors[evt.event_type]?.bg || 'bg-[#f8fafb]'
                         } ${typeColors[evt.event_type]?.text || 'text-[#5c6670]'}`}
-                        onClick={(e) => { e.stopPropagation(); deleteEvent(evt.id) }}
+                        onClick={(e) => { e.stopPropagation(); setPendingDeleteId(evt.id) }}
                         title="Click to delete"
                       >
                         {evt.title}
@@ -295,7 +299,7 @@ export default function CalendarPage() {
                       </div>
                       {event.description && <div className="text-xs text-[#5c6670] mt-1">{event.description}</div>}
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => deleteEvent(event.id)}>
+                    <Button variant="ghost" size="sm" onClick={() => setPendingDeleteId(event.id)}>
                       <MaterialIcon icon="close" style={{ fontSize: 16 }} />
                     </Button>
                   </div>
@@ -374,6 +378,15 @@ export default function CalendarPage() {
         </div>
       )}
     </div>
+      <ConfirmDialog
+        isOpen={!!pendingDeleteId}
+        onClose={() => setPendingDeleteId(null)}
+        onConfirm={deleteEvent}
+        title="Delete Event"
+        message="Delete this event? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+      />
     </PageErrorBoundary>
   )
 }
