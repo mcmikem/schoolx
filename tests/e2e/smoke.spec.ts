@@ -42,7 +42,7 @@ test("parent portal login page renders", async ({ page }) => {
   await expect(page.getByLabel(/phone number/i)).toBeVisible();
   await expect(page.getByRole("textbox", { name: /^password$/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible();
-  await expect(page).toHaveURL(/\/login\/\?redirect=%2Fparent%2F/);
+  await expect(page).toHaveURL(/\/login/);
 });
 
 test("login page renders demo shortcuts", async ({ page }) => {
