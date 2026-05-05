@@ -506,10 +506,31 @@ function HeadmasterDashboardContent() {
   if (isDataLoading) {
     return (
       <div className="content overflow-x-hidden">
-        <section className="relative mb-6 overflow-hidden rounded-[36px] border border-white/65 bg-[linear-gradient(135deg,#f6fbff_0%,#eef4ff_44%,#f7f9fc_100%)] p-4 shadow-[0_28px_70px_rgba(15,23,42,0.08)] sm:p-6">
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#17325f]/20 border-t-[#17325f]" />
-            <p className="mt-4 text-sm font-medium text-[#5d708d]">Loading dashboard data...</p>
+        <section className="relative mb-6 overflow-hidden rounded-[36px] border border-white/65 bg-[linear-gradient(135deg,#f6fbff_0%,#eef4ff_44%,#f7f9fc_100%)] p-4 shadow-[0_28px_70px_rgba(15,23,42,0.08)] sm:p-6 animate-pulse">
+          {/* Chip row */}
+          <div className="flex flex-wrap gap-2 mb-5">
+            <div className="h-8 w-36 rounded-full bg-white/70" />
+            <div className="h-8 w-28 rounded-full bg-white/60" />
+            <div className="h-8 w-32 rounded-full bg-white/60" />
+          </div>
+          {/* Main 2-col grid skeleton */}
+          <div className="grid gap-4 xl:grid-cols-[1.35fr_0.95fr]">
+            <div className="space-y-4">
+              <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+                <div className="h-56 rounded-[30px] bg-white/65" />
+                <div className="h-56 rounded-[30px] bg-[#17325f]/10" />
+              </div>
+              <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} className="h-[110px] rounded-[28px] bg-white/65" />
+                ))}
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="h-52 rounded-[30px] bg-white/65" />
+              <div className="h-44 rounded-[30px] bg-white/65" />
+              <div className="h-36 rounded-[30px] bg-white/65" />
+            </div>
           </div>
         </section>
       </div>
@@ -696,7 +717,7 @@ function HeadmasterDashboardContent() {
                   ].map((meter) => (
                     <div
                       key={meter.label}
-                      className="rounded-[24px] border border-white/10 bg-white/8 p-4 backdrop-blur-sm"
+                      className="rounded-[24px] border border-white/10 bg-white/[0.08] p-4 backdrop-blur-sm"
                     >
                       <div className="mb-2 flex items-center justify-between gap-3">
                         <p className="text-sm font-semibold text-white/88">
@@ -995,7 +1016,7 @@ function HeadmasterDashboardContent() {
                       type="button"
                       key={cell.iso}
                       onClick={() => setSelectedDate(cell.iso === selectedDate ? null : cell.iso)}
-                      className={`relative rounded-xl border py-2 text-center text-[11px] sm:text-xs font-semibold transition-colors ${
+                      className={`relative flex items-center justify-center rounded-xl border min-h-[36px] text-center text-[11px] sm:text-xs font-semibold transition-colors ${
                         cell.iso === selectedDate
                           ? "border-[#17325f] bg-[#17325f] text-white"
                           : cell.isToday
@@ -1139,12 +1160,12 @@ function HeadmasterDashboardContent() {
                   placeholder="Add task or reminder"
                   className="w-full rounded-xl border border-[#dde6f2] bg-[#f6f9fc] px-3 py-2.5 text-sm text-[#17325f] outline-none focus:border-[#aac1df]"
                 />
-                <div className="grid grid-cols-[1fr_auto_auto] gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <input
                     type="date"
                     value={taskDueDate}
                     onChange={(e) => setTaskDueDate(e.target.value)}
-                    className="rounded-xl border border-[#dde6f2] bg-[#f6f9fc] px-3 py-2 text-xs text-[#17325f] outline-none focus:border-[#aac1df]"
+                    className="flex-1 min-w-[120px] rounded-xl border border-[#dde6f2] bg-[#f6f9fc] px-3 py-2 text-xs text-[#17325f] outline-none focus:border-[#aac1df]"
                   />
                   <select
                     value={taskPriority}
