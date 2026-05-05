@@ -23,6 +23,9 @@ export default function NoticesPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [editingNotice, setEditingNotice] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState({ title: "", content: "", category: "General" });
+  const [editSaving, setEditSaving] = useState(false);
   const [form, setForm] = useState({
     title: "",
     content: "",
@@ -86,6 +89,41 @@ export default function NoticesPage() {
       }
     });
     setConfirmOpen(true);
+  };
+
+  const handleEdit = (notice: any) => {
+    setEditingNotice(notice);
+    setEditForm({ title: notice.title, content: notice.content, category: notice.type || notice.category || "General" });
+  };
+
+  const handleEditSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingNotice) return;
+    if (!editForm.title.trim() || !editForm.content.trim()) {
+      toastRef.current.error("Title and content are required");
+      return;
+    }
+    setEditSaving(true);
+    try {
+      if (isDemo) {
+        setNotices(prev => prev.map(n => n.id === editingNotice.id ? { ...n, title: editForm.title.trim(), content: editForm.content.trim(), type: editForm.category, category: editForm.category } : n));
+      } else {
+        const { error } = await supabase.from("notices").update({
+          title: editForm.title.trim(),
+          content: editForm.content.trim(),
+          type: editForm.category,
+          priority: editForm.category === "Emergency" ? "high" : "normal",
+        }).eq("id", editingNotice.id);
+        if (error) throw error;
+        await fetchNotices();
+      }
+      toastRef.current.success("Notice updated");
+      setEditingNotice(null);
+    } catch (error: unknown) {
+      toastRef.current.error(getErrorMessage(error, "Failed to update notice"));
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   const handlePost = async (e: React.FormEvent) => {
@@ -185,7 +223,15 @@ export default function NoticesPage() {
                     {new Date(notice.created_at).toLocaleDateString()}
                   </span>
                 </div>
-                <div className="flex justify-end mt-3">
+                <div className="flex justify-end mt-3 gap-2">
+                  <button
+                    onClick={() => handleEdit(notice)}
+                    className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1"
+                    title="Edit notice"
+                  >
+                    <MaterialIcon icon="edit" className="text-sm" />
+                    Edit
+                  </button>
                   <button
                     onClick={() => handleDelete(notice.id)}
                     disabled={deletingId === notice.id}
@@ -199,6 +245,39 @@ export default function NoticesPage() {
               </CardBody>
             </Card>
           ))}
+        </div>
+      )}
+
+      {editingNotice && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg">
+            <h2 className="text-xl font-semibold mb-4">Edit Notice</h2>
+            <form onSubmit={handleEditSave}>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Title</label>
+                  <input type="text" value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} className="input w-full" maxLength={200} required />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Category</label>
+                  <select value={editForm.category} onChange={e => setEditForm({ ...editForm, category: e.target.value })} className="input w-full">
+                    <option value="General">General</option>
+                    <option value="Academic">Academic</option>
+                    <option value="Event">Event</option>
+                    <option value="Emergency">Emergency</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Content</label>
+                  <textarea value={editForm.content} onChange={e => setEditForm({ ...editForm, content: e.target.value })} className="input w-full min-h-[120px]" required />
+                </div>
+                <div className="flex gap-3">
+                  <Button type="button" variant="secondary" onClick={() => setEditingNotice(null)} className="flex-1">Cancel</Button>
+                  <Button type="submit" disabled={editSaving} className="flex-1">{editSaving ? "Saving..." : "Save Changes"}</Button>
+                </div>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

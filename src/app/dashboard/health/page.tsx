@@ -62,6 +62,9 @@ export default function HealthPage() {
   });
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [editingRecord, setEditingRecord] = useState<HealthRecord | null>(null);
+  const [editForm, setEditForm] = useState({ condition: "", severity: "mild" as "mild" | "moderate" | "severe", treatment: "", status: "admitted" as "admitted" | "discharged" | "referred" });
+  const [editSaving, setEditSaving] = useState(false);
 
   // Offline hook handles data loading; no need for fetchRecords or useEffect
 
@@ -157,6 +160,33 @@ export default function HealthPage() {
       }
     });
     setConfirmOpen(true);
+  };
+
+  const openEdit = (r: HealthRecord) => {
+    setEditingRecord(r);
+    setEditForm({ condition: r.condition, severity: r.severity, treatment: r.treatment, status: r.status });
+  };
+
+  const handleEditSave = async () => {
+    if (!editingRecord) return;
+    if (!editForm.condition.trim()) { toast.error("Condition is required"); return; }
+    setEditSaving(true);
+    try {
+      const { error } = await supabase.from("health_records").update({
+        condition: editForm.condition.trim(),
+        severity: editForm.severity,
+        treatment: editForm.treatment.trim(),
+        status: editForm.status,
+      }).eq("id", editingRecord.id);
+      if (error) throw error;
+      toast.success("Record updated");
+      refetchRecords();
+      setEditingRecord(null);
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Failed to update record"));
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   const admitted = records.filter((r) => r.status === "admitted");
@@ -267,6 +297,13 @@ export default function HealthPage() {
                           </>
                         )}
                         <button
+                          onClick={() => openEdit(r)}
+                          title="Edit record"
+                          className="p-1.5 hover:bg-blue-50 rounded-xl text-slate-300 hover:text-blue-500 transition-colors"
+                        >
+                          <MaterialIcon icon="edit" style={{ fontSize: 16 }} />
+                        </button>
+                        <button
                           onClick={() => deleteRecord(r.id)}
                           disabled={deletingHealthId === r.id}
                           title="Delete record"
@@ -283,6 +320,54 @@ export default function HealthPage() {
           </div>
         )}
       </div>
+
+      {/* Edit Record Modal */}
+      {editingRecord && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl p-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black text-slate-800">Edit Record</h2>
+              <button onClick={() => setEditingRecord(null)} className="p-2 hover:bg-slate-100 rounded-xl">
+                <MaterialIcon icon="close" className="text-slate-400" />
+              </button>
+            </div>
+            <div className="space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Condition</label>
+                  <input value={editForm.condition} onChange={e => setEditForm({ ...editForm, condition: e.target.value })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Severity</label>
+                  <select value={editForm.severity} onChange={e => setEditForm({ ...editForm, severity: e.target.value as any })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none">
+                    <option value="mild">Mild</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="severe">Severe</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Status</label>
+                <select value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value as any })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none">
+                  <option value="admitted">Admitted</option>
+                  <option value="discharged">Discharged</option>
+                  <option value="referred">Referred</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Treatment</label>
+                <textarea value={editForm.treatment} onChange={e => setEditForm({ ...editForm, treatment: e.target.value })} rows={2} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none resize-none" />
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setEditingRecord(null)} className="flex-1 py-3 border border-slate-200 rounded-2xl font-black text-slate-600 hover:bg-slate-50">Cancel</button>
+                <button onClick={handleEditSave} disabled={editSaving || !editForm.condition.trim()} className="flex-1 py-3 bg-blue-500 text-white rounded-2xl font-black disabled:opacity-50 flex items-center justify-center gap-2">
+                  {editSaving ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><MaterialIcon icon="save" /> Save Changes</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Admit Modal */}
       {showAdd && (

@@ -5,11 +5,12 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
-import { cardClassName } from "@/lib/utils";
 import { useToast } from "@/components/Toast";
 import { getErrorMessage } from "@/lib/validation";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 const CATEGORIES = ["All", "Textbooks", "Fiction", "Science", "History", "Reference", "Religious"];
+const BLANK_FORM = { title: "", author: "", isbn: "", category: "Textbooks", total_copies: "1" };
 
 export default function LibraryPage() {
   const { school } = useAuth();
@@ -19,8 +20,12 @@ export default function LibraryPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ title: "", author: "", isbn: "", category: "Textbooks", total_copies: "1" });
+  const [editingBook, setEditingBook] = useState<any | null>(null);
+  const [form, setForm] = useState(BLANK_FORM);
   const [saving, setSaving] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<any | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchBooks = useCallback(async () => {
     if (!school?.id) return;
@@ -63,37 +68,74 @@ export default function LibraryPage() {
 
     setSaving(true);
     try {
-      if (form.isbn.trim()) {
-        const { data: duplicateBook, error: duplicateError } = await supabase
-          .from("library_books")
-          .select("id")
-          .eq("school_id", school.id)
-          .eq("isbn", form.isbn.trim())
-          .maybeSingle();
-        if (duplicateError) throw duplicateError;
-        if (duplicateBook) throw new Error("A book with this ISBN already exists");
+      if (editingBook) {
+        // Edit existing book
+        const { error } = await supabase.from("library_books").update({
+          title: form.title.trim(),
+          author: form.author.trim(),
+          isbn: form.isbn.trim(),
+          category: form.category,
+          total_copies: totalCopies,
+          // Adjust available_copies by the delta in total_copies
+          available_copies: Math.max(0, (editingBook.available_copies || 0) + (totalCopies - editingBook.total_copies)),
+        }).eq("id", editingBook.id);
+        if (error) throw error;
+        toast.success("Book updated");
+      } else {
+        // Add new book
+        if (form.isbn.trim()) {
+          const { data: dup } = await supabase.from("library_books").select("id").eq("school_id", school.id).eq("isbn", form.isbn.trim()).maybeSingle();
+          if (dup) throw new Error("A book with this ISBN already exists");
+        }
+        const { error } = await supabase.from("library_books").insert({
+          school_id: school.id,
+          title: form.title.trim(),
+          author: form.author.trim(),
+          isbn: form.isbn.trim(),
+          category: form.category,
+          total_copies: totalCopies,
+          available_copies: totalCopies,
+        });
+        if (error) throw error;
+        toast.success("Book added to catalogue");
       }
 
-      const { error } = await supabase.from("library_books").insert({
-        school_id: school.id,
-        title: form.title.trim(),
-        author: form.author.trim(),
-        isbn: form.isbn.trim(),
-        category: form.category,
-        total_copies: totalCopies,
-        available_copies: totalCopies
-      });
-
-      if (error) throw error;
-      
-      toast.success("Book added to catalogue");
       fetchBooks();
-      setForm({ title: "", author: "", isbn: "", category: "Textbooks", total_copies: "1" });
+      setForm(BLANK_FORM);
       setShowAdd(false);
+      setEditingBook(null);
     } catch (err: unknown) {
-      toast.error(getErrorMessage(err, "Failed to add book"));
+      toast.error(getErrorMessage(err, "Failed to save book"));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openEdit = (book: any) => {
+    setEditingBook(book);
+    setForm({ title: book.title, author: book.author || "", isbn: book.isbn || "", category: book.category || "Textbooks", total_copies: String(book.total_copies || 1) });
+    setShowAdd(true);
+  };
+
+  const handleDeleteConfirm = (book: any) => {
+    setPendingDelete(book);
+    setConfirmOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase.from("library_books").delete().eq("id", pendingDelete.id);
+      if (error) throw error;
+      setBooks(prev => prev.filter(b => b.id !== pendingDelete.id));
+      toast.success("Book removed from catalogue");
+      setConfirmOpen(false);
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Failed to delete book"));
+    } finally {
+      setDeleting(false);
+      setPendingDelete(null);
     }
   };
 
@@ -186,9 +228,14 @@ export default function LibraryPage() {
                             <span className="text-lg font-black text-slate-800 leading-none">{book.available_copies}</span>
                             <span className="text-[8px] font-black text-slate-400">IN SHELF</span>
                         </div>
-                        <button className="p-2 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-xl transition-all">
-                            <MaterialIcon icon="arrow_forward" style={{ fontSize: 18 }} />
-                        </button>
+                        <div className="flex gap-1">
+                          <button onClick={() => openEdit(book)} className="p-2 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-xl transition-all" title="Edit book">
+                            <MaterialIcon icon="edit" style={{ fontSize: 18 }} />
+                          </button>
+                          <button onClick={() => handleDeleteConfirm(book)} className="p-2 bg-slate-50 hover:bg-red-600 hover:text-white rounded-xl transition-all" title="Delete book">
+                            <MaterialIcon icon="delete" style={{ fontSize: 18 }} />
+                          </button>
+                        </div>
                     </div>
                   </div>
                 </div>
@@ -197,13 +244,13 @@ export default function LibraryPage() {
         }
       </div>
 
-      {/* Add Book Modal */}
+      {/* Add / Edit Book Modal */}
       {showAdd && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl p-8 transform animate-in slide-in-from-bottom-8 duration-300">
             <div className="flex justify-between mb-8 items-center">
-              <h2 className="text-2xl font-black text-slate-800 tracking-tight">Add Volume</h2>
-              <button onClick={() => setShowAdd(false)} className="w-10 h-10 flex items-center justify-center hover:bg-slate-100 rounded-2xl transition-colors"><MaterialIcon icon="close" className="text-slate-400" /></button>
+              <h2 className="text-2xl font-black text-slate-800 tracking-tight">{editingBook ? "Edit Volume" : "Add Volume"}</h2>
+              <button onClick={() => { setShowAdd(false); setEditingBook(null); setForm(BLANK_FORM); }} className="w-10 h-10 flex items-center justify-center hover:bg-slate-100 rounded-2xl transition-colors"><MaterialIcon icon="close" className="text-slate-400" /></button>
             </div>
             <div className="space-y-5">
               {(["title", "author", "isbn"] as const).map((f) => (
@@ -225,12 +272,21 @@ export default function LibraryPage() {
                 </div>
               </div>
               <button onClick={saveBook} disabled={!form.title || saving} className="w-full py-4 bg-indigo-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest hover:shadow-xl hover:shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-4">
-                {saving ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><MaterialIcon icon="save" /> Register Volume</>}
+                {saving ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><MaterialIcon icon="save" /> {editingBook ? "Save Changes" : "Register Volume"}</>}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        title="Remove Book"
+        message={pendingDelete ? `Remove "${pendingDelete.title}" from the catalogue? This cannot be undone.` : ""}
+        confirmLabel={deleting ? "Removing…" : "Remove"}
+        onConfirm={() => { handleDelete(); }}
+        onClose={() => { setConfirmOpen(false); setPendingDelete(null); }}
+      />
     </div>
     </PageErrorBoundary>
   );

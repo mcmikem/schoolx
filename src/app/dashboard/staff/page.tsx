@@ -192,6 +192,7 @@ function DirectoryTab({
     subject: "",
   });
   const [activeTab, setActiveTab] = useState("all");
+  const [staffSearch, setStaffSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
   const [totalCount, setTotalCount] = useState(0);
@@ -553,12 +554,17 @@ function DirectoryTab({
     );
   };
 
-  const filteredStaff =
-    activeTab === "all"
-      ? staff
-      : activeTab === "active"
-        ? staff.filter((s) => s.is_active)
-        : staff.filter((s) => !s.is_active);
+  const filteredStaff = (activeTab === "all"
+    ? staff
+    : activeTab === "active"
+      ? staff.filter((s) => s.is_active)
+      : staff.filter((s) => !s.is_active)
+  ).filter((s) =>
+    !staffSearch ||
+    (s.full_name?.toLowerCase() ?? "").includes(staffSearch.toLowerCase()) ||
+    (s.role?.toLowerCase() ?? "").includes(staffSearch.toLowerCase()) ||
+    (s.email?.toLowerCase() ?? "").includes(staffSearch.toLowerCase())
+  );
 
   const tabs = [
     { id: "all", label: "All Staff", count: staff.length },
@@ -726,6 +732,18 @@ function DirectoryTab({
           },
         ]}
       />
+
+      <div className="flex flex-col sm:flex-row gap-4 mb-4">
+        <div className="relative flex-1 max-w-sm">
+          <MaterialIcon icon="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+          <input
+            value={staffSearch}
+            onChange={(e) => setStaffSearch(e.target.value)}
+            placeholder="Search by name, role, or email…"
+            className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-slate-100 w-full"
+          />
+        </div>
+      </div>
 
       <Tabs
         tabs={tabs}
