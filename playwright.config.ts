@@ -28,8 +28,6 @@ export default defineConfig({
   // When PLAYWRIGHT_USE_EXISTING_SERVER=true, no managed server is started
   // (useful when running against a pre-started dev server).
   // Otherwise Playwright starts a dev server on port 3000 with demo mode enabled.
-  // If a server is already on port 3000, it is reused (demo tests may need the
-  // NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES=true flag in that case).
   webServer: shouldUseManagedWebServer
     ? {
         command: "npm run dev",
@@ -38,6 +36,8 @@ export default defineConfig({
         timeout: 120 * 1000,
         env: {
           NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES: "true",
+          NEXT_PUBLIC_DEMO_ENABLED: "true",
+          DEMO_ADMIN_PASSWORD: "skoolmate_demo_2024",
         },
       }
     : undefined,
