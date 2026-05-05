@@ -54,7 +54,6 @@ const alwaysPublicPaths = [
   "/api/payment/paypal/webhook",
   "/api/sms",
   "/api/schoolpay",
-  "/api/students",
   "/api/reports",
   "/_next",
   "/downloads",

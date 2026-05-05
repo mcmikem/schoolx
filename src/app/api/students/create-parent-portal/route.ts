@@ -4,19 +4,32 @@ import { normalizeAuthPhone } from "@/lib/validation";
 import { buildAuthEmailFromPhone } from "@/lib/auth-login";
 import { logger } from "@/lib/logger";
 import { sendParentPortalCredentials, isWhatsAppConfigured } from "@/lib/whatsapp";
+import { requireUserWithSchool, assertSchoolScopeOrDeny } from "@/lib/api-utils";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 export async function POST(request: NextRequest) {
+  // Require authenticated school user
+  const auth = await requireUserWithSchool(request);
+  if (!auth.ok) return auth.response;
+
   const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
     auth: { persistSession: false },
   });
 
-  const { studentId, schoolId } = await request.json();
+  const body = await request.json();
+  const { studentId, schoolId } = body as { studentId?: string; schoolId?: string };
   if (!studentId || !schoolId) {
     return NextResponse.json({ error: "studentId and schoolId required" }, { status: 400 });
   }
+
+  // Ensure caller belongs to the school they are acting on
+  const scope = assertSchoolScopeOrDeny({
+    userSchoolId: auth.context.schoolId,
+    requestedSchoolId: schoolId,
+  });
+  if (!scope.ok) return scope.response;
 
   // Fetch student record
   const { data: student, error: studentError } = await supabaseAdmin
