@@ -23,6 +23,7 @@ CREATE INDEX IF NOT EXISTS idx_academic_terms_year ON academic_terms(academic_ye
 CREATE INDEX IF NOT EXISTS idx_academic_terms_current ON academic_terms(school_id, is_current) WHERE is_current = true;
 
 -- Trigger for updated_at
+DROP TRIGGER IF EXISTS set_academic_terms_updated ON academic_terms;
 CREATE TRIGGER set_academic_terms_updated
     BEFORE UPDATE ON academic_terms
     FOR EACH ROW
@@ -31,15 +32,19 @@ CREATE TRIGGER set_academic_terms_updated
 -- RLS
 ALTER TABLE academic_terms ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS academic_terms_select ON academic_terms;
 CREATE POLICY academic_terms_select ON academic_terms
     FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS academic_terms_insert ON academic_terms;
 CREATE POLICY academic_terms_insert ON academic_terms
     FOR INSERT WITH CHECK (auth.role() IN ('authenticated', 'service_role'));
 
+DROP POLICY IF EXISTS academic_terms_update ON academic_terms;
 CREATE POLICY academic_terms_update ON academic_terms
     FOR UPDATE USING (auth.role() IN ('authenticated', 'service_role'));
 
+DROP POLICY IF EXISTS academic_terms_delete ON academic_terms;
 CREATE POLICY academic_terms_delete ON academic_terms
     FOR DELETE USING (auth.role() = 'service_role');
 

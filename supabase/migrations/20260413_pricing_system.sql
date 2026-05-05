@@ -177,7 +177,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 6. Function to get SMS quota remaining
-CREATE OR REPLACE FUNCTION get_sms_quota(school_id UUID)
+CREATE OR REPLACE FUNCTION get_sms_quota(p_school_id UUID)
 RETURNS INTEGER AS $$
 DECLARE
     plan_val TEXT;
@@ -186,11 +186,11 @@ DECLARE
 BEGIN
     SELECT s.subscription_plan, COALESCE(s.sms_quota_monthly, 0)
     INTO plan_val, quota
-    FROM schools s WHERE s.id = school_id;
+    FROM schools s WHERE s.id = p_school_id;
     
     -- Get used count from last 30 days
     SELECT COUNT(*) INTO used FROM sms_logs 
-    WHERE school_id = school_id 
+    WHERE school_id = p_school_id 
     AND created_at > NOW() - INTERVAL '30 days';
     
     RETURN quota - used;
@@ -201,8 +201,8 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 GRANT SELECT ON plan_features TO authenticated;
 GRANT SELECT ON subscription_history TO authenticated;
 GRANT SELECT ON plan_limits TO authenticated;
-GRANT SELECT ON has_feature TO authenticated;
-GRANT SELECT ON get_sms_quota TO authenticated;
+GRANT EXECUTE ON FUNCTION has_feature(UUID, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_sms_quota(UUID) TO authenticated;
 
 -- 8. Update existing demo school to starter plan
 UPDATE schools SET subscription_plan = 'starter', price_per_student = 2000, admin_users_allowed = 3 WHERE name LIKE '%Demo%';
@@ -216,11 +216,16 @@ CREATE INDEX IF NOT EXISTS idx_subscription_history_status ON subscription_histo
 ALTER TABLE plan_features ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscription_history ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Schools can view own plan features" ON plan_features;
 CREATE POLICY  "Schools can view own plan features" ON plan_features
     FOR SELECT USING (TRUE);
     
+DROP POLICY IF EXISTS "Schools can view own subscription history" ON subscription_history;
 CREATE POLICY  "Schools can view own subscription history" ON subscription_history
-    FOR SELECT USING (school_id = (SELECT school_id FROM users WHERE auth_id = auth.uid()) OR role = 'super_admin');
+    FOR SELECT USING (
+            school_id IN (SELECT u.school_id FROM users u WHERE u.auth_id = auth.uid())
+      OR EXISTS (SELECT 1 FROM users u WHERE u.auth_id = auth.uid() AND u.role = 'super_admin')
+    );
 
 -- ============================================
 -- Migration complete

@@ -69,10 +69,18 @@ CREATE POLICY library_books_school ON library_books
   USING (school_id = my_school_id());
 
 -- parent_profiles
-ALTER TABLE parent_profiles ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS parent_profiles_school ON parent_profiles;
-CREATE POLICY parent_profiles_school ON parent_profiles
-  USING (school_id = my_school_id());
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'parent_profiles'
+  ) THEN
+    EXECUTE 'ALTER TABLE parent_profiles ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'DROP POLICY IF EXISTS parent_profiles_school ON parent_profiles';
+    EXECUTE 'CREATE POLICY parent_profiles_school ON parent_profiles USING (school_id = my_school_id())';
+  END IF;
+END $$;
 
 -- payment_plans
 ALTER TABLE payment_plans ENABLE ROW LEVEL SECURITY;
@@ -197,17 +205,26 @@ CREATE POLICY asset_assignments_school ON asset_assignments
 -- ─── User-scoped tables ───────────────────────────────────────────────────────
 
 -- push_subscriptions (user_id → users.auth_id = auth.uid())
-ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS push_subscriptions_own ON push_subscriptions;
-CREATE POLICY push_subscriptions_own ON push_subscriptions
-  USING (EXISTS (
-    SELECT 1 FROM users u WHERE u.id = push_subscriptions.user_id AND u.auth_id = auth.uid()
-  ));
-DROP POLICY IF EXISTS push_subscriptions_insert ON push_subscriptions;
-CREATE POLICY push_subscriptions_insert ON push_subscriptions FOR INSERT
-  WITH CHECK (EXISTS (
-    SELECT 1 FROM users u WHERE u.id = push_subscriptions.user_id AND u.auth_id = auth.uid()
-  ));
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'push_subscriptions'
+  ) THEN
+    EXECUTE 'ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'DROP POLICY IF EXISTS push_subscriptions_own ON push_subscriptions';
+    EXECUTE 'CREATE POLICY push_subscriptions_own ON push_subscriptions
+      USING (EXISTS (
+        SELECT 1 FROM users u WHERE u.id = push_subscriptions.user_id AND u.auth_id = auth.uid()
+      ))';
+    EXECUTE 'DROP POLICY IF EXISTS push_subscriptions_insert ON push_subscriptions';
+    EXECUTE 'CREATE POLICY push_subscriptions_insert ON push_subscriptions FOR INSERT
+      WITH CHECK (EXISTS (
+        SELECT 1 FROM users u WHERE u.id = push_subscriptions.user_id AND u.auth_id = auth.uid()
+      ))';
+  END IF;
+END $$;
 
 -- ─── Transport and UNEB tables ───────────────────────────────────────────────
 

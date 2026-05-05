@@ -27,7 +27,7 @@ ALTER TABLE schools ADD COLUMN IF NOT EXISTS school_type TEXT DEFAULT 'primary'
 CREATE INDEX IF NOT EXISTS idx_classes_stream ON classes(stream) WHERE stream IS NOT NULL;
 
 -- 8. Create index for cross-cutting theme queries
-CREATE INDEX IF NOT EXISTS idx_syllabus_themes ON syllabus((cross_cutting_theme[])) 
+CREATE INDEX IF NOT EXISTS idx_syllabus_themes ON syllabus USING GIN (cross_cutting_theme) 
   WHERE cross_cutting_theme IS NOT NULL;
 
 -- Enable RLS

@@ -40,6 +40,32 @@ CREATE POLICY parent_messages_parent_insert ON parent_messages
         )
     );
 
+-- Wallet tables may be absent in some deployments that did not bootstrap from schema.sql
+CREATE TABLE IF NOT EXISTS student_wallets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE UNIQUE,
+    balance NUMERIC(12,2) DEFAULT 0,
+    daily_spend_limit NUMERIC(12,2),
+    last_topup_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS wallet_transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    wallet_id UUID REFERENCES student_wallets(id) ON DELETE CASCADE,
+    student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+    amount NUMERIC(12,2) NOT NULL,
+    transaction_type TEXT CHECK (transaction_type IN ('topup', 'spend', 'refund', 'adjustment')),
+    type TEXT,
+    description TEXT,
+    reference_id TEXT,
+    reference TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 ALTER TABLE student_wallets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wallet_transactions ENABLE ROW LEVEL SECURITY;
 

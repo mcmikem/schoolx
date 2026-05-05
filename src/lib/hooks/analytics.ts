@@ -26,18 +26,51 @@ export function useDashboardStats(schoolId?: string) {
       const querySchoolId = getQuerySchoolId(schoolId, isDemo)
       try {
         setLoading(true)
+        const today = new Date().toISOString().split('T')[0]
+
+        const studentIds = await withTimeout(
+          supabase
+            .from('students')
+            .select('id')
+            .eq('school_id', querySchoolId)
+            .eq('status', 'active')
+            .then((r) => r.data?.map((s: { id: string }) => s.id) || []),
+          5000,
+          [] as string[],
+        )
+
+        const presentCountPromise = studentIds.length
+          ? withTimeout(
+              supabase
+                .from('attendance')
+                .select('id', { count: 'exact', head: true })
+                .in('student_id', studentIds)
+                .eq('date', today)
+                .eq('status', 'present')
+                .then((r) => r.count),
+              5000,
+              0,
+            )
+          : Promise.resolve(0)
+
+        const paymentsPromise = studentIds.length
+          ? withTimeout(
+              supabase
+                .from('fee_payments')
+                .select('amount_paid')
+                .in('student_id', studentIds)
+                .then((r) => r.data || []),
+              5000,
+              [] as Array<{ amount_paid: number | null }>,
+            )
+          : Promise.resolve([] as Array<{ amount_paid: number | null }>)
+
         const [studentCount, classCount, teacherCount, presentCount, payments, feeStructure] = await Promise.all([
           withTimeout(supabase.from('students').select('id', { count: 'exact', head: true }).eq('school_id', querySchoolId).eq('status', 'active').then(r => r.count), 5000, 0),
           withTimeout(supabase.from('classes').select('id', { count: 'exact', head: true }).eq('school_id', querySchoolId).then(r => r.count), 5000, 0),
           withTimeout(supabase.from('users').select('id', { count: 'exact', head: true }).eq('school_id', querySchoolId).eq('role', 'teacher').then(r => r.count), 5000, 0),
-          withTimeout(supabase.from('attendance').select('*', { count: 'exact', head: true }).eq('school_id', querySchoolId).eq('date', new Date().toISOString().split('T')[0]).eq('status', 'present').then(r => r.count), 5000, 0),
-          withTimeout(
-            supabase.from('fee_payments')
-              .select('amount_paid, students(school_id)')
-              .eq('students.school_id', querySchoolId)
-              .then(r => r.data || []),
-            5000, []
-          ),
+          presentCountPromise,
+          paymentsPromise,
           withTimeout(supabase.from('fee_structure').select('amount').eq('school_id', querySchoolId).then(r => r.data), 5000, []),
         ])
         if (cancelled) return

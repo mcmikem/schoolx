@@ -194,17 +194,17 @@ export default function OnboardingFlow({
     }
   }, [school?.id, currentYear]);
 
-  // Prevent background scrolling on desktop
+  // Keep page behind the wizard from scrolling while preserving wizard-internal scrolling.
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
-    const apply = () => {
-      document.body.style.overflow = mq.matches ? "hidden" : "";
-    };
-    apply();
-    mq.addEventListener("change", apply);
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
     return () => {
-      document.body.style.overflow = "";
-      mq.removeEventListener("change", apply);
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
     };
   }, []);
 
@@ -672,7 +672,7 @@ export default function OnboardingFlow({
   const progressPercent = Math.round((step / TOTAL_STEPS) * 100);
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-white md:bg-[var(--bg)]/90 md:backdrop-blur-xl md:items-center md:justify-center">
+    <div className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-white md:overflow-hidden md:bg-[var(--bg)]/90 md:backdrop-blur-xl md:items-center md:justify-center">
       {/* Mobile header with progress */}
       <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-slate-100 bg-white sticky top-0 z-10">
         <button
@@ -738,7 +738,7 @@ export default function OnboardingFlow({
       </div>
 
       <div
-        className="relative flex w-full h-full md:h-auto md:max-h-[80vh] md:min-h-0 flex-col md:flex-row md:overflow-hidden md:rounded-[36px] md:shadow-[0_38px_90px_rgba(15,23,42,0.16)] md:ring-1 md:ring-black/5"
+        className="relative flex w-full h-full min-h-0 md:h-auto md:max-h-[80vh] md:min-h-0 flex-col md:flex-row md:overflow-hidden md:rounded-[36px] md:shadow-[0_38px_90px_rgba(15,23,42,0.16)] md:ring-1 md:ring-black/5"
       >
         {/* Left Side: Progress & Info - Desktop only */}
         <div className="relative hidden md:flex md:w-1/3 md:min-h-[600px] flex-col overflow-hidden bg-[linear-gradient(160deg,#0b1c39_0%,#17325f_54%,#1a4b79_100%)] p-10 text-white">
@@ -795,7 +795,7 @@ export default function OnboardingFlow({
 
         {/* Right Side: Step Content */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12">
+          <div className="flex-1 overflow-y-auto p-4 pb-28 md:p-8 md:pb-8 lg:p-12">
             <AnimatePresence mode="wait">
               {/* Step 1: Welcome */}
               {step === 1 && (
@@ -1156,9 +1156,9 @@ export default function OnboardingFlow({
                       <div className="flex flex-wrap gap-2">
                         {getTemplateForType(localSchoolType).subjects
                           .filter((s) => s.is_compulsory)
-                          .map((subj) => (
+                          .map((subj, idx) => (
                             <span
-                              key={subj.code}
+                              key={`core-${subj.code}-${subj.name}-${idx}`}
                               className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 border border-teal-200 px-3 py-1.5 text-xs font-medium text-teal-700"
                             >
                               <MaterialIcon icon="check_circle" className="text-teal-500 text-sm" />
@@ -1176,9 +1176,9 @@ export default function OnboardingFlow({
                         <div className="space-y-1.5">
                           {getTemplateForType(localSchoolType).subjects
                             .filter((s) => !s.is_compulsory)
-                            .map((subj) => (
+                            .map((subj, idx) => (
                               <label
-                                key={subj.code}
+                                key={`optional-${subj.code}-${subj.name}-${idx}`}
                                 className={`flex items-center gap-3 cursor-pointer rounded-xl border-2 p-3 transition-all ${
                                   selectedSubjects.includes(subj.name)
                                     ? "border-teal-400 bg-teal-50/50"
@@ -1210,9 +1210,9 @@ export default function OnboardingFlow({
                           More Subjects <span className="text-slate-400 font-normal">(optional)</span>
                         </h4>
                         <div className="space-y-1.5">
-                          {ADDITIONAL_OPTIONAL_SUBJECTS.map((subj) => (
+                          {ADDITIONAL_OPTIONAL_SUBJECTS.map((subj, idx) => (
                             <label
-                              key={subj.code}
+                              key={`extra-${subj.code}-${subj.name}-${idx}`}
                               className={`flex items-center gap-3 cursor-pointer rounded-xl border-2 p-3 transition-all ${
                                 selectedSubjects.includes(subj.name)
                                   ? "border-teal-400 bg-teal-50/50"
@@ -1886,18 +1886,6 @@ export default function OnboardingFlow({
                       <p className="text-sm text-slate-500">
                         Uganda term dates and holiday windows are preloaded. Headteachers can tweak them later.
                       </p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl bg-slate-50 border border-slate-100 p-5 mb-6">
-                    <div className="flex items-start gap-3">
-                      <MaterialIcon icon="bolt" className="text-amber-500 mt-0.5" />
-                      <div>
-                        <p className="font-semibold text-slate-800 mb-1">Rural-first setup</p>
-                        <p className="text-sm text-slate-500">
-                          We keep the first-run flow short, preload local school details, and avoid forcing payment or heavy setup before staff can start using the system.
-                        </p>
-                      </div>
                     </div>
                   </div>
 

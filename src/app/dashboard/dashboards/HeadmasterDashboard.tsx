@@ -79,6 +79,7 @@ function HeadmasterDashboardContent() {
   const [newEventTitle, setNewEventTitle] = useState("");
   const [newEventDate, setNewEventDate] = useState("");
   const dayInputRef = useRef<HTMLInputElement>(null);
+  const seedCalendarAttemptedRef = useRef(false);
 
   // Fetch events from database
   useEffect(() => {
@@ -100,6 +101,8 @@ function HeadmasterDashboardContent() {
   useEffect(() => {
     if (!school?.id || eventsLoading) return;
     if (calendarEvents.length > 0) return;
+    if (seedCalendarAttemptedRef.current) return;
+    seedCalendarAttemptedRef.current = true;
     const seedCalendar = async () => {
       const { buildUgandaCalendarEvents } = await import(
         "@/lib/uganda-school-calendar"
@@ -108,9 +111,7 @@ function HeadmasterDashboardContent() {
         school.id,
         new Date().getFullYear().toString(),
       );
-      const { error } = await supabase.from("events").upsert(defaultEvents, {
-        onConflict: "school_id,title,start_date",
-      });
+      const { error } = await supabase.from("events").insert(defaultEvents);
       if (!error) {
         const { data } = await supabase
           .from("events")

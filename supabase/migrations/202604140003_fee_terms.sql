@@ -66,6 +66,10 @@ CREATE TABLE IF NOT EXISTS fee_payments (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Existing deployments may already have fee_payments without this FK column
+ALTER TABLE fee_payments
+    ADD COLUMN IF NOT EXISTS student_fee_term_id UUID REFERENCES student_fee_terms(id) ON DELETE CASCADE;
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_fee_terms_school ON fee_terms(school_id);
 CREATE INDEX IF NOT EXISTS idx_fee_terms_year ON fee_terms(academic_year);
@@ -74,11 +78,13 @@ CREATE INDEX IF NOT EXISTS idx_student_fee_terms_student ON student_fee_terms(st
 CREATE INDEX IF NOT EXISTS idx_fee_payments_student_term ON fee_payments(student_fee_term_id);
 
 -- Triggers for updated_at
+DROP TRIGGER IF EXISTS set_fee_terms_updated ON fee_terms;
 CREATE TRIGGER set_fee_terms_updated
     BEFORE UPDATE ON fee_terms
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at();
 
+DROP TRIGGER IF EXISTS set_student_fee_terms_updated ON student_fee_terms;
 CREATE TRIGGER set_student_fee_terms_updated
     BEFORE UPDATE ON student_fee_terms
     FOR EACH ROW
@@ -91,21 +97,34 @@ ALTER TABLE student_fee_terms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fee_payments ENABLE ROW LEVEL SECURITY;
 
 -- Basic RLS policies (simplified - should be more restrictive in production)
+DROP POLICY IF EXISTS fee_terms_select ON fee_terms;
 CREATE POLICY fee_terms_select ON fee_terms FOR SELECT USING (true);
+DROP POLICY IF EXISTS fee_terms_insert ON fee_terms;
 CREATE POLICY fee_terms_insert ON fee_terms FOR INSERT WITH CHECK (auth.role() IN ('authenticated', 'service_role'));
+DROP POLICY IF EXISTS fee_terms_update ON fee_terms;
 CREATE POLICY fee_terms_update ON fee_terms FOR UPDATE USING (auth.role() IN ('authenticated', 'service_role'));
+DROP POLICY IF EXISTS fee_terms_delete ON fee_terms;
 CREATE POLICY fee_terms_delete ON fee_terms FOR DELETE USING (auth.role() = 'service_role');
 
+DROP POLICY IF EXISTS fee_term_lines_select ON fee_term_lines;
 CREATE POLICY fee_term_lines_select ON fee_term_lines FOR SELECT USING (true);
+DROP POLICY IF EXISTS fee_term_lines_insert ON fee_term_lines;
 CREATE POLICY fee_term_lines_insert ON fee_term_lines FOR INSERT WITH CHECK (auth.role() IN ('authenticated', 'service_role'));
+DROP POLICY IF EXISTS fee_term_lines_update ON fee_term_lines;
 CREATE POLICY fee_term_lines_update ON fee_term_lines FOR UPDATE USING (auth.role() IN ('authenticated', 'service_role'));
 
+DROP POLICY IF EXISTS student_fee_terms_select ON student_fee_terms;
 CREATE POLICY student_fee_terms_select ON student_fee_terms FOR SELECT USING (true);
+DROP POLICY IF EXISTS student_fee_terms_insert ON student_fee_terms;
 CREATE POLICY student_fee_terms_insert ON student_fee_terms FOR INSERT WITH CHECK (auth.role() IN ('authenticated', 'service_role'));
+DROP POLICY IF EXISTS student_fee_terms_update ON student_fee_terms;
 CREATE POLICY student_fee_terms_update ON student_fee_terms FOR UPDATE USING (auth.role() IN ('authenticated', 'service_role'));
 
+DROP POLICY IF EXISTS fee_payments_select ON fee_payments;
 CREATE POLICY fee_payments_select ON fee_payments FOR SELECT USING (true);
+DROP POLICY IF EXISTS fee_payments_insert ON fee_payments;
 CREATE POLICY fee_payments_insert ON fee_payments FOR INSERT WITH CHECK (auth.role() IN ('authenticated', 'service_role'));
+DROP POLICY IF EXISTS fee_payments_update ON fee_payments;
 CREATE POLICY fee_payments_update ON fee_payments FOR UPDATE USING (auth.role() IN ('authenticated', 'service_role'));
 
 -- Function to calculate fee term lines amounts from percentage
@@ -125,6 +144,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS set_fee_term_line_amount ON fee_term_lines;
 CREATE TRIGGER set_fee_term_line_amount
     BEFORE INSERT OR UPDATE ON fee_term_lines
     FOR EACH ROW

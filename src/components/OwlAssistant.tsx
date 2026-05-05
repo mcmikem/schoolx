@@ -294,6 +294,7 @@ export default function OwlAssistant() {
               alt="SkoolMate"
               width={64}
               height={64}
+              loading="eager"
               className="rounded-2xl"
             />
             {/* Online pulse dot */}
@@ -328,6 +329,7 @@ export default function OwlAssistant() {
                 alt="SkoolMate"
                 width={36}
                 height={36}
+                loading="eager"
                 className="rounded-xl"
               />
             </div>
@@ -366,6 +368,7 @@ export default function OwlAssistant() {
                       alt="SkoolMate"
                       width={28}
                       height={28}
+                      loading="eager"
                       className="rounded-md"
                     />
                   </div>
@@ -394,6 +397,7 @@ export default function OwlAssistant() {
                     alt="SkoolMate"
                     width={28}
                     height={28}
+                    loading="eager"
                     className="rounded-md"
                   />
                 </div>

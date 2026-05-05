@@ -47,11 +47,13 @@ CREATE INDEX IF NOT EXISTS idx_course_classes_class ON course_classes(class_id);
 CREATE INDEX IF NOT EXISTS idx_course_classes_year ON course_classes(academic_year);
 
 -- Trigger for updated_at
+DROP TRIGGER IF EXISTS set_courses_updated ON courses;
 CREATE TRIGGER set_courses_updated
     BEFORE UPDATE ON courses
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at();
 
+DROP TRIGGER IF EXISTS set_course_classes_updated ON course_classes;
 CREATE TRIGGER set_course_classes_updated
     BEFORE UPDATE ON course_classes
     FOR EACH ROW
@@ -61,15 +63,23 @@ CREATE TRIGGER set_course_classes_updated
 ALTER TABLE courses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE course_classes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS courses_select ON courses;
 CREATE POLICY courses_select ON courses FOR SELECT USING (true);
+DROP POLICY IF EXISTS courses_insert ON courses;
 CREATE POLICY courses_insert ON courses FOR INSERT WITH CHECK (school_id IS NOT NULL);
+DROP POLICY IF EXISTS courses_update ON courses;
 CREATE POLICY courses_update ON courses FOR UPDATE USING (true);
+DROP POLICY IF EXISTS courses_delete ON courses;
 CREATE POLICY courses_delete ON courses FOR DELETE USING (true);
 
+DROP POLICY IF EXISTS course_classes_select ON course_classes;
 CREATE POLICY course_classes_select ON course_classes FOR SELECT USING (true);
+DROP POLICY IF EXISTS course_classes_insert ON course_classes;
 CREATE POLICY course_classes_insert ON course_classes FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS course_classes_update ON course_classes;
 CREATE POLICY course_classes_update ON course_classes FOR UPDATE USING (true);
+DROP POLICY IF EXISTS course_classes_delete ON course_classes;
 CREATE POLICY course_classes_delete ON course_classes FOR DELETE USING (true);
 
 COMMENT ON TABLE courses IS 'Courses/subjects taught at the school - similar to OpenEduCat course management';
-COMMENT ON TABLE course_classes FOR 'Link between courses and classes - which subjects are taught in which classes';
+COMMENT ON TABLE course_classes IS 'Link between courses and classes - which subjects are taught in which classes';

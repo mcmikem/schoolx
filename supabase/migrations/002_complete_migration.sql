@@ -87,15 +87,18 @@ ALTER TABLE student_conduct ENABLE ROW LEVEL SECURITY;
 -- RLS Policies
 -- Note: These policies are fixed in migration 003_fix_rls_policies.sql
 -- Keeping original policies for migration continuity, but they will be replaced
+DROP POLICY IF EXISTS "Super admins manage support tickets" ON support_tickets;
 CREATE POLICY  "Super admins manage support tickets" ON support_tickets
   FOR ALL USING (
     school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid())
     OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'super_admin')
   );
 
+DROP POLICY IF EXISTS "Schools manage their report templates" ON report_templates;
 CREATE POLICY  "Schools manage their report templates" ON report_templates
   FOR ALL USING (school_id IN (SELECT id FROM schools WHERE id = school_id));
 
+DROP POLICY IF EXISTS "Schools manage their student conduct" ON student_conduct;
 CREATE POLICY  "Schools manage their student conduct" ON student_conduct
   FOR ALL USING (school_id IN (SELECT id FROM schools WHERE id = school_id));
 
@@ -124,18 +127,21 @@ CREATE TABLE IF NOT EXISTS feedbacks (
 ALTER TABLE feedbacks ENABLE ROW LEVEL SECURITY;
 
 -- Note: These policies are fixed in migration 003_fix_rls_policies.sql
+DROP POLICY IF EXISTS "Users view all feedback" ON feedbacks;
 CREATE POLICY  "Users view all feedback" ON feedbacks
   FOR SELECT USING (
     school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid())
     OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'super_admin')
   );
 
+DROP POLICY IF EXISTS "Users create feedback" ON feedbacks;
 CREATE POLICY  "Users create feedback" ON feedbacks
   FOR INSERT WITH CHECK (
     school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid())
     OR school_id IS NULL
   );
 
+DROP POLICY IF EXISTS "Users update own feedback" ON feedbacks;
 CREATE POLICY  "Users update own feedback" ON feedbacks
   FOR UPDATE USING (
     school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid())
@@ -159,11 +165,13 @@ CREATE TABLE IF NOT EXISTS error_logs (
 ALTER TABLE error_logs ENABLE ROW LEVEL SECURITY;
 
 -- Note: These policies are fixed in migration 003_fix_rls_policies.sql
+DROP POLICY IF EXISTS "Super admins view error logs" ON error_logs;
 CREATE POLICY  "Super admins view error logs" ON error_logs
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'super_admin')
   );
 
+DROP POLICY IF EXISTS "System inserts error logs" ON error_logs;
 CREATE POLICY  "System inserts error logs" ON error_logs
   FOR INSERT WITH CHECK (true);
 
@@ -216,15 +224,19 @@ ALTER TABLE sms_automations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sms_templates ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
+DROP POLICY IF EXISTS "Schools view own SMS logs" ON sms_logs;
 CREATE POLICY  "Schools view own SMS logs" ON sms_logs
   FOR SELECT USING (school_id IN (SELECT id FROM schools WHERE id = school_id));
 
+DROP POLICY IF EXISTS "Schools insert SMS logs" ON sms_logs;
 CREATE POLICY  "Schools insert SMS logs" ON sms_logs
   FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Schools manage own SMS automations" ON sms_automations;
 CREATE POLICY  "Schools manage own SMS automations" ON sms_automations
   FOR ALL USING (school_id IN (SELECT id FROM schools WHERE id = school_id));
 
+DROP POLICY IF EXISTS "Schools manage own SMS templates" ON sms_templates;
 CREATE POLICY  "Schools manage own SMS templates" ON sms_templates
   FOR ALL USING (school_id IN (SELECT id FROM schools WHERE id = school_id));
 

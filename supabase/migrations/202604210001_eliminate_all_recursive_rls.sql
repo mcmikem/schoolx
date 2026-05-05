@@ -15,6 +15,46 @@
 -- Also fixed: duplicate super_admin schools policies consolidated.
 -- =============================================================================
 
+-- Ensure helper functions exist in environments where prior helper migrations
+-- were not applied in order.
+CREATE OR REPLACE FUNCTION public.my_school_id()
+RETURNS UUID
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT school_id FROM public.users WHERE auth_id = auth.uid() LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_super_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.users
+    WHERE auth_id = auth.uid() AND role = 'super_admin'
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_school_admin(p_school_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.users
+    WHERE auth_id = auth.uid()
+      AND school_id = p_school_id
+      AND role IN ('school_admin', 'headmaster', 'super_admin')
+  );
+$$;
+
 -- ─── attendance ───────────────────────────────────────────────────────────────
 -- Old: class_id IN (SELECT classes.id FROM classes WHERE classes.school_id IN
 --        (SELECT users.school_id FROM users WHERE users.auth_id = auth.uid()))
@@ -137,10 +177,19 @@ CREATE POLICY  "Super admin full access" ON public.schools
   USING (is_super_admin());
 
 -- ─── setup_checklist ──────────────────────────────────────────────────────────
-DROP POLICY IF EXISTS "School admins manage checklist" ON public.setup_checklist;
-CREATE POLICY  "School admins manage checklist" ON public.setup_checklist
-  FOR ALL
-  USING (school_id = my_school_id() AND is_school_admin(my_school_id()));
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'setup_checklist'
+  ) THEN
+    EXECUTE 'DROP POLICY IF EXISTS "School admins manage checklist" ON public.setup_checklist';
+    EXECUTE 'CREATE POLICY "School admins manage checklist" ON public.setup_checklist
+      FOR ALL
+      USING (school_id = my_school_id() AND is_school_admin(my_school_id()))';
+  END IF;
+END $$;
 
 -- ─── staff_attendance ─────────────────────────────────────────────────────────
 -- Old: EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid()

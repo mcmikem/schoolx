@@ -54,47 +54,63 @@ CREATE POLICY grades_school_all ON grades
 -- ─── timetable_slots: ensure INSERT WITH CHECK is explicit ────────────────────
 -- The existing policy from phase2_operations.sql only covers SELECT for non-admins.
 -- Admins already have FOR ALL. We just ensure it's idempotent.
-DROP POLICY IF EXISTS "Admins can manage timetable slots" ON timetable_slots;
-DROP POLICY IF EXISTS "School users can view timetable slots" ON timetable_slots;
-
-ALTER TABLE timetable_slots ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY timetable_slots_school ON timetable_slots
-  FOR ALL
-  USING  (school_id = my_school_id())
-  WITH CHECK (school_id = my_school_id());
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'timetable_slots'
+  ) THEN
+    EXECUTE 'DROP POLICY IF EXISTS "Admins can manage timetable slots" ON timetable_slots';
+    EXECUTE 'DROP POLICY IF EXISTS "School users can view timetable slots" ON timetable_slots';
+    EXECUTE 'ALTER TABLE timetable_slots ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'CREATE POLICY timetable_slots_school ON timetable_slots
+      FOR ALL
+      USING  (school_id = my_school_id())
+      WITH CHECK (school_id = my_school_id())';
+  END IF;
+END $$;
 
 -- ─── teacher_timetable: add explicit WITH CHECK for INSERT ────────────────────
-DROP POLICY IF EXISTS teacher_timetable_school ON teacher_timetable;
-
-ALTER TABLE teacher_timetable ENABLE ROW LEVEL SECURITY;
-
--- For INSERT: the teacher being assigned must belong to the caller's school.
--- For SELECT/UPDATE/DELETE: same rule applies.
-CREATE POLICY teacher_timetable_school ON teacher_timetable
-  FOR ALL
-  USING (EXISTS (
-    SELECT 1 FROM users u
-    WHERE u.id = teacher_timetable.teacher_id
-      AND u.school_id = my_school_id()
-  ))
-  WITH CHECK (EXISTS (
-    SELECT 1 FROM users u
-    WHERE u.id = teacher_timetable.teacher_id
-      AND u.school_id = my_school_id()
-  ));
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'teacher_timetable'
+  ) THEN
+    EXECUTE 'DROP POLICY IF EXISTS teacher_timetable_school ON teacher_timetable';
+    EXECUTE 'ALTER TABLE teacher_timetable ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'CREATE POLICY teacher_timetable_school ON teacher_timetable
+      FOR ALL
+      USING (EXISTS (
+        SELECT 1 FROM users u
+        WHERE u.id = teacher_timetable.teacher_id
+          AND u.school_id = my_school_id()
+      ))
+      WITH CHECK (EXISTS (
+        SELECT 1 FROM users u
+        WHERE u.id = teacher_timetable.teacher_id
+          AND u.school_id = my_school_id()
+      ))';
+  END IF;
+END $$;
 
 -- ─── staff_reviews: ensure school-level access ────────────────────────────────
-ALTER TABLE staff_reviews ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Admins can manage staff reviews" ON staff_reviews;
-DROP POLICY IF EXISTS "Staff can view their own reviews" ON staff_reviews;
-DROP POLICY IF EXISTS staff_reviews_school ON staff_reviews;
-
-CREATE POLICY staff_reviews_school ON staff_reviews
-  FOR ALL
-  USING (school_id = my_school_id())
-  WITH CHECK (school_id = my_school_id());
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'staff_reviews'
+  ) THEN
+    EXECUTE 'ALTER TABLE staff_reviews ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'DROP POLICY IF EXISTS "Admins can manage staff reviews" ON staff_reviews';
+    EXECUTE 'DROP POLICY IF EXISTS "Staff can view their own reviews" ON staff_reviews';
+    EXECUTE 'DROP POLICY IF EXISTS staff_reviews_school ON staff_reviews';
+    EXECUTE 'CREATE POLICY staff_reviews_school ON staff_reviews
+      FOR ALL
+      USING (school_id = my_school_id())
+      WITH CHECK (school_id = my_school_id())';
+  END IF;
+END $$;
 
 -- ─── leave_requests: ensure school-level access ───────────────────────────────
 ALTER TABLE leave_requests ENABLE ROW LEVEL SECURITY;

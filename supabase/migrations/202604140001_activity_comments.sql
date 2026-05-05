@@ -26,7 +26,17 @@ CREATE INDEX IF NOT EXISTS idx_activity_comments_parent
 CREATE INDEX IF NOT EXISTS idx_activity_comments_type 
     ON activity_comments(comment_type);
 
+-- Ensure trigger helper exists in environments where earlier migrations were skipped
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Trigger for updated_at
+DROP TRIGGER IF EXISTS set_activity_comments_updated ON activity_comments;
 CREATE TRIGGER set_activity_comments_updated
     BEFORE UPDATE ON activity_comments
     FOR EACH ROW
@@ -35,18 +45,21 @@ CREATE TRIGGER set_activity_comments_updated
 -- RLS
 ALTER TABLE activity_comments ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS activity_comments_select ON activity_comments;
 CREATE POLICY activity_comments_select ON activity_comments
     FOR SELECT USING (
         is_internal = false 
         OR auth.role() IN ('authenticated', 'service_role')
     );
 
+DROP POLICY IF EXISTS activity_comments_insert ON activity_comments;
 CREATE POLICY activity_comments_insert ON activity_comments
     FOR INSERT WITH CHECK (
         author_id IS NOT NULL 
         OR auth.role() = 'service_role'
     );
 
+DROP POLICY IF EXISTS activity_comments_update ON activity_comments;
 CREATE POLICY activity_comments_update ON activity_comments
     FOR UPDATE USING (
         author_id = auth.uid() 

@@ -112,8 +112,6 @@ export function useDashboardExtraData(
           attendanceRes,
           gradesRes,
           messagesRes,
-          expensesRes,
-          leaveRes,
           paymentsRes,
           staffAttRes,
           dropoutAttRes,
@@ -137,16 +135,6 @@ export function useDashboardExtraData(
             .eq("school_id", schoolId)
             .gte("created_at", today),
           supabase
-            .from("expenses")
-            .select("*", { count: "exact", head: true })
-            .eq("school_id", schoolId)
-            .eq("status", "pending"),
-          supabase
-            .from("leave_requests")
-            .select("*", { count: "exact", head: true })
-            .eq("school_id", schoolId)
-            .eq("status", "pending"),
-          supabase
             .from("fee_payments")
             .select("amount_paid, payment_date"),
           supabase
@@ -160,6 +148,35 @@ export function useDashboardExtraData(
             .gte("date", dropoutStartDate)
             .lte("date", today)
             .order("date", { ascending: false }),
+        ]);
+
+        // expenses and leave_requests are optional tables — query separately
+        // so a missing table / RLS block doesn't abort the entire Promise.all
+        const [expensesRes, leaveRes] = await Promise.all([
+          supabase
+            .from("expenses")
+            .select("*", { count: "exact", head: true })
+            .eq("school_id", schoolId)
+            .eq("status", "pending")
+            .then((r) => {
+              if (r.error) {
+                logger.warn("expenses query skipped:", r.error.message);
+                return { count: 0, error: null };
+              }
+              return r;
+            }),
+          supabase
+            .from("leave_requests")
+            .select("*", { count: "exact", head: true })
+            .eq("school_id", schoolId)
+            .eq("status", "pending")
+            .then((r) => {
+              if (r.error) {
+                logger.warn("leave_requests query skipped:", r.error.message);
+                return { count: 0, error: null };
+              }
+              return r;
+            }),
         ]);
 
         if (cancelled) return;

@@ -21,34 +21,38 @@ CREATE POLICY  "behavior_logs_delete" ON public.behavior_logs
   FOR DELETE USING (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()));
 
 -- ─── timetable_slots ─────────────────────────────────────────────────────────
-ALTER TABLE IF EXISTS public.timetable_slots ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "timetable_slots_select" ON public.timetable_slots;
-CREATE POLICY  "timetable_slots_select" ON public.timetable_slots
-  FOR SELECT USING (school_id = my_school_id());
-
-DROP POLICY IF EXISTS "timetable_slots_insert" ON public.timetable_slots;
-CREATE POLICY  "timetable_slots_insert" ON public.timetable_slots
-  FOR INSERT WITH CHECK (school_id = my_school_id());
-
-DROP POLICY IF EXISTS "timetable_slots_update" ON public.timetable_slots;
-CREATE POLICY  "timetable_slots_update" ON public.timetable_slots
-  FOR UPDATE USING (school_id = my_school_id());
-
-DROP POLICY IF EXISTS "timetable_slots_delete" ON public.timetable_slots;
-CREATE POLICY  "timetable_slots_delete" ON public.timetable_slots
-  FOR DELETE USING (school_id = my_school_id());
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'timetable_slots'
+  ) THEN
+    EXECUTE 'ALTER TABLE public.timetable_slots ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'DROP POLICY IF EXISTS "timetable_slots_select" ON public.timetable_slots';
+    EXECUTE 'CREATE POLICY "timetable_slots_select" ON public.timetable_slots FOR SELECT USING (school_id = my_school_id())';
+    EXECUTE 'DROP POLICY IF EXISTS "timetable_slots_insert" ON public.timetable_slots';
+    EXECUTE 'CREATE POLICY "timetable_slots_insert" ON public.timetable_slots FOR INSERT WITH CHECK (school_id = my_school_id())';
+    EXECUTE 'DROP POLICY IF EXISTS "timetable_slots_update" ON public.timetable_slots';
+    EXECUTE 'CREATE POLICY "timetable_slots_update" ON public.timetable_slots FOR UPDATE USING (school_id = my_school_id())';
+    EXECUTE 'DROP POLICY IF EXISTS "timetable_slots_delete" ON public.timetable_slots';
+    EXECUTE 'CREATE POLICY "timetable_slots_delete" ON public.timetable_slots FOR DELETE USING (school_id = my_school_id())';
+  END IF;
+END $$;
 
 -- ─── timetable_constraints ───────────────────────────────────────────────────
-ALTER TABLE IF EXISTS public.timetable_constraints ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "timetable_constraints_select" ON public.timetable_constraints;
-CREATE POLICY  "timetable_constraints_select" ON public.timetable_constraints
-  FOR SELECT USING (school_id = my_school_id());
-
-DROP POLICY IF EXISTS "timetable_constraints_insert" ON public.timetable_constraints;
-CREATE POLICY  "timetable_constraints_insert" ON public.timetable_constraints
-  FOR INSERT WITH CHECK (school_id = my_school_id());
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'timetable_constraints'
+  ) THEN
+    EXECUTE 'ALTER TABLE IF EXISTS public.timetable_constraints ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'DROP POLICY IF EXISTS "timetable_constraints_select" ON public.timetable_constraints';
+    EXECUTE 'CREATE POLICY "timetable_constraints_select" ON public.timetable_constraints FOR SELECT USING (school_id = my_school_id())';
+    EXECUTE 'DROP POLICY IF EXISTS "timetable_constraints_insert" ON public.timetable_constraints';
+    EXECUTE 'CREATE POLICY "timetable_constraints_insert" ON public.timetable_constraints FOR INSERT WITH CHECK (school_id = my_school_id())';
+  END IF;
+END $$;
 
 -- ─── teacher_timetable ───────────────────────────────────────────────────────
 ALTER TABLE IF EXISTS public.teacher_timetable ENABLE ROW LEVEL SECURITY;
@@ -98,15 +102,19 @@ CREATE POLICY  "leave_approvals_insert" ON public.leave_approvals
   FOR INSERT WITH CHECK (school_id = my_school_id());
 
 -- ─── staff_reviews ───────────────────────────────────────────────────────────
-ALTER TABLE IF EXISTS public.staff_reviews ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "staff_reviews_select" ON public.staff_reviews;
-CREATE POLICY  "staff_reviews_select" ON public.staff_reviews
-  FOR SELECT USING (school_id = my_school_id());
-
-DROP POLICY IF EXISTS "staff_reviews_insert" ON public.staff_reviews;
-CREATE POLICY  "staff_reviews_insert" ON public.staff_reviews
-  FOR INSERT WITH CHECK (school_id = my_school_id());
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'staff_reviews'
+  ) THEN
+    EXECUTE 'ALTER TABLE public.staff_reviews ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'DROP POLICY IF EXISTS "staff_reviews_select" ON public.staff_reviews';
+    EXECUTE 'CREATE POLICY "staff_reviews_select" ON public.staff_reviews FOR SELECT USING (school_id = my_school_id())';
+    EXECUTE 'DROP POLICY IF EXISTS "staff_reviews_insert" ON public.staff_reviews';
+    EXECUTE 'CREATE POLICY "staff_reviews_insert" ON public.staff_reviews FOR INSERT WITH CHECK (school_id = my_school_id())';
+  END IF;
+END $$;
 
 -- ─── student_enrollments ─────────────────────────────────────────────────────
 ALTER TABLE IF EXISTS public.student_enrollments ENABLE ROW LEVEL SECURITY;

@@ -23,6 +23,76 @@ import {
   validatePaymentInput,
 } from "@/lib/validation";
 
+let feePaymentsDeletedAtSupported: boolean | null = null;
+
+function isMissingFeePaymentsColumnError(error: unknown, columnName: string) {
+  if (!error || typeof error !== "object") return false;
+
+  const code =
+    "code" in error ? String((error as { code?: unknown }).code || "") : "";
+  const message =
+    "message" in error
+      ? String((error as { message?: unknown }).message || "")
+      : "";
+
+  return code === "42703" && message.includes(`fee_payments.${columnName}`);
+}
+
+async function fetchFeePaymentsWithFallback(options: {
+  schoolId: string;
+  page: number;
+  limit: number;
+}) {
+  const selectWithClass = `
+    id, student_id, fee_id, amount_paid, payment_method, payment_reference,
+    paid_by, notes, payment_date, created_at,
+    students!inner (id, first_name, last_name, school_id, classes (name))
+  `;
+
+  const selectWithoutClass = `
+    id, student_id, fee_id, amount_paid, payment_method, payment_reference,
+    paid_by, notes, payment_date, created_at,
+    students!inner (id, first_name, last_name, school_id)
+  `;
+
+  const joins = [selectWithClass, selectWithoutClass];
+
+  let lastError: unknown = null;
+
+  for (const fields of joins) {
+    const includeDeletedAtFilter = feePaymentsDeletedAtSupported !== false;
+
+    let query = supabase
+      .from("fee_payments")
+      .select(fields, { count: "exact" })
+      .eq("students.school_id", options.schoolId)
+      .order("payment_date", { ascending: false })
+      .range(
+        (options.page - 1) * options.limit,
+        options.page * options.limit - 1,
+      );
+
+    if (includeDeletedAtFilter) {
+      query = query.is("deleted_at", null);
+    }
+
+    const result = await query;
+
+    if (!result.error) {
+      return { data: result.data || [], count: result.count || 0 };
+    }
+
+    if (isMissingFeePaymentsColumnError(result.error, "deleted_at")) {
+      feePaymentsDeletedAtSupported = false;
+      continue;
+    }
+
+    lastError = result.error;
+  }
+
+  throw lastError;
+}
+
 export function useFeePayments(
   schoolId?: string,
   page: number = 1,
@@ -69,6 +139,7 @@ export function useFeePayments(
     }
 
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
+    if (!querySchoolId) { setLoading(false); return; }
     try {
       setLoading(true);
       if (!isOnline) {
@@ -80,48 +151,13 @@ export function useFeePayments(
         return;
       }
       const data = await withTimeout(
-        supabase
-          .from("fee_payments")
-          .select(
-            `
-            id, student_id, fee_id, amount_paid, payment_method, payment_reference, 
-            paid_by, notes, payment_date, created_at, deleted_at,
-            students!inner (id, first_name, last_name, school_id, classes (name))
-          `,
-            { count: "exact" },
-          )
-          .eq("students.school_id", querySchoolId)
-          .is("deleted_at", null)
-          .order("payment_date", { ascending: false })
-          .range((page - 1) * limit, page * limit - 1)
-          .then((r) => {
-            if (r.error) throw r.error;
-            return { data: r.data, count: r.count };
-          }),
+        fetchFeePaymentsWithFallback({
+          schoolId: querySchoolId,
+          page,
+          limit,
+        }),
         8000,
-        {
-          data: [] as unknown as {
-            id: string;
-            student_id: string;
-            fee_id: string;
-            amount_paid: number;
-            payment_method: string;
-            payment_reference: string | null;
-            paid_by: string;
-            notes: string | null;
-            payment_date: string;
-            created_at: string;
-            deleted_at: string | null;
-            students: {
-              id: string;
-              first_name: string;
-              last_name: string;
-              school_id: string;
-              classes: { name: string }[];
-            }[];
-          }[],
-          count: 0,
-        },
+        { data: [], count: 0 } as unknown as Awaited<ReturnType<typeof fetchFeePaymentsWithFallback>>,
       );
       const result = (data.data as unknown as FeePayment[]) || [];
       setPayments(result);

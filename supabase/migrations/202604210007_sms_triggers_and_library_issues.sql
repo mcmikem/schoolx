@@ -168,12 +168,16 @@ CREATE POLICY  "assets_all" ON public.assets
   WITH CHECK (school_id = my_school_id());
 
 -- push_subscriptions (scoped by user_id via auth.uid())
-ALTER TABLE IF EXISTS public.push_subscriptions ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "push_subscriptions_own" ON public.push_subscriptions;
-CREATE POLICY  "push_subscriptions_own" ON public.push_subscriptions
-  FOR ALL
-  USING (user_id IN (SELECT id FROM public.users WHERE auth_id = auth.uid()))
-  WITH CHECK (user_id IN (SELECT id FROM public.users WHERE auth_id = auth.uid()));
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'push_subscriptions') THEN
+    EXECUTE 'ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'DROP POLICY IF EXISTS "push_subscriptions_own" ON public.push_subscriptions';
+    EXECUTE $p$CREATE POLICY "push_subscriptions_own" ON public.push_subscriptions
+      FOR ALL
+      USING (user_id IN (SELECT id FROM public.users WHERE auth_id = auth.uid()))
+      WITH CHECK (user_id IN (SELECT id FROM public.users WHERE auth_id = auth.uid()))$p$;
+  END IF;
+END $$;
 
 -- sms_logs
 ALTER TABLE IF EXISTS public.sms_logs ENABLE ROW LEVEL SECURITY;

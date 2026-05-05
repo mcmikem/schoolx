@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
-import type { Student, CreateStudentInput, Class, School } from "@/types";
+import type { Student, CreateStudentInput, Class } from "@/types";
 import { getQuerySchoolId, withTimeout } from "./utils";
 import { getCachedData, setCachedData, invalidateCache } from "./queryCache";
 import {
@@ -20,7 +20,6 @@ import {
   PlanType,
   normalizePlanType,
 } from "@/lib/payments/subscription-client";
-import { buildDefaultClasses, type SchoolSetupType } from "@/lib/school-setup";
 
 export type StudentWithClass = Student & {
   classes?: { id: string; name: string; level: string } | Class;
@@ -121,6 +120,22 @@ function isMissingStudentColumnError(error: unknown, columnName: string) {
   return code === "42703" && message.includes(`students.${columnName}`);
 }
 
+function isAnyMissingStudentsColumnError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+
+  const code =
+    "code" in error ? String((error as { code?: unknown }).code || "") : "";
+  const message =
+    "message" in error
+      ? String((error as { message?: unknown }).message || "")
+      : "";
+
+  return (
+    code === "42703" &&
+    /column students\."?[a-zA-Z0-9_]+"? does not exist/.test(message)
+  );
+}
+
 function buildStudentSelectAttempts(fetchLabel: "select" | "fetch") {
   const suffix = fetchLabel === "fetch" ? "fetch" : "select";
 
@@ -201,10 +216,7 @@ async function fetchStudentsWithFallback(options: {
       return result.data as unknown as StudentWithClass[];
     }
 
-    if (
-      isMissingStudentColumnError(result.error, "photo_url") ||
-      isMissingStudentColumnError(result.error, "nationality")
-    ) {
+    if (isAnyMissingStudentsColumnError(result.error)) {
       studentPhotoColumnSupported = false;
       return fetchStudentsWithFallback(options);
     }
@@ -243,7 +255,7 @@ async function fetchStudentByIdWithFallback(
       return result.data as unknown as StudentWithClass;
     }
 
-    if (isMissingStudentColumnError(result.error, "photo_url")) {
+    if (isAnyMissingStudentsColumnError(result.error)) {
       studentPhotoColumnSupported = false;
       return fetchStudentByIdWithFallback(studentId, schoolId);
     }
@@ -757,47 +769,15 @@ export function useStudent(id: string) {
 export function useClasses(schoolId?: string) {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
-  const { isDemo, school } = useAuth();
-  const autoProvisionAttempted = useRef(false);
+  const { isDemo } = useAuth();
   const prevIsDemo = useRef(isDemo);
 
   useEffect(() => {
     if (prevIsDemo.current && !isDemo) {
       setClasses([]);
-      autoProvisionAttempted.current = false;
     }
     prevIsDemo.current = isDemo;
   }, [isDemo]);
-
-  const autoProvisionDefaultClasses = useCallback(
-    async (resolvedSchoolId: string) => {
-      const schoolType = ((school as School | null)?.school_type ??
-        "primary") as SchoolSetupType;
-      const currentYear = new Date().getFullYear().toString();
-      const defaultClasses = buildDefaultClasses(
-        resolvedSchoolId,
-        schoolType,
-        currentYear,
-      );
-
-      const { error } = await supabase.from("classes").upsert(defaultClasses, {
-        onConflict: "school_id,name,academic_year",
-      });
-
-      if (error) throw error;
-
-      const { data, error: refetchError } = await supabase
-        .from("classes")
-        .select("id, name, level, school_id, created_at, stream, academic_year")
-        .eq("school_id", resolvedSchoolId)
-        .order("name");
-
-      if (refetchError) throw refetchError;
-
-      return (data as unknown as Class[]) || [];
-    },
-    [school],
-  );
 
   const fetchClasses = useCallback(async () => {
     // Demo mode - check for demo school UUID
@@ -827,14 +807,6 @@ export function useClasses(schoolId?: string) {
 
       if (error) throw error;
 
-      if ((data?.length || 0) === 0 && !autoProvisionAttempted.current) {
-        autoProvisionAttempted.current = true;
-        const provisionedClasses =
-          await autoProvisionDefaultClasses(querySchoolId);
-        setClasses(provisionedClasses);
-        return;
-      }
-
       setClasses((data as unknown as Class[]) || []);
     } catch (err) {
       logger.warn("Classes fetch error:", err);
@@ -842,7 +814,7 @@ export function useClasses(schoolId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [schoolId, isDemo, autoProvisionDefaultClasses]);
+  }, [schoolId, isDemo]);
 
   const createClass = async (newClass: Partial<Class>) => {
     if (isDemo || isDemoSchool(schoolId)) {
