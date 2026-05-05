@@ -38,8 +38,10 @@ interface StepConfig {
 
 export default function OnboardingFlow({
   onComplete,
+  onDismiss,
 }: {
   onComplete: () => void;
+  onDismiss?: () => void;
 }) {
   const { school, refreshSchool } = useAuth();
   const toast = useToast();
@@ -445,6 +447,58 @@ export default function OnboardingFlow({
 
       if (error) throw error;
 
+      // Save per-step data that might have been skipped via the "Next" button
+      await Promise.all([
+        // Fees (step 6) — only if not already saved
+        !completedSteps.has(6) ? (async () => {
+          try {
+            const year = new Date().getFullYear().toString();
+            const feeRows = fees
+              .filter((fee) => fee.name && parseFloat(fee.amount) > 0)
+              .map((fee) => ({
+                school_id: school!.id,
+                name: fee.name,
+                amount: parseFloat(fee.amount),
+                category: fee.category,
+                class_id: null,
+                term: 1,
+                academic_year: year,
+              }));
+            if (feeRows.length > 0) {
+              const { error: fErr } = await supabase.from("fee_structure").insert(feeRows);
+              if (fErr) logger.warn("Auto-save fees failed:", fErr);
+            }
+          } catch (e) { logger.warn("Auto-save fees error:", e); }
+        })() : Promise.resolve(),
+        // Grading (step 7) — only if not already saved
+        !completedSteps.has(7) ? (async () => {
+          try {
+            await supabase.from("school_settings").upsert(
+              { school_id: school!.id, key: "passing_mark", value: String(gradingPrefs.passing_mark) },
+              { onConflict: "school_id,key" },
+            );
+            await supabase.from("school_settings").upsert(
+              { school_id: school!.id, key: "grade_labels", value: JSON.stringify(gradingPrefs.grades) },
+              { onConflict: "school_id,key" },
+            );
+          } catch (e) { logger.warn("Auto-save grading error:", e); }
+        })() : Promise.resolve(),
+        // Report branding (step 8) — only if not already saved
+        !completedSteps.has(8) ? (async () => {
+          try {
+            await supabase.from("schools").update({
+              report_header_text: reportBrand.header || null,
+              report_footer_text: reportBrand.footer || null,
+              receipt_footer_text: reportBrand.receipt_footer || null,
+              show_position_in_report: reportBrand.show_position,
+              show_conduct_in_report: reportBrand.show_conduct,
+              show_attendance_in_report: reportBrand.show_attendance,
+              show_remarks_in_report: reportBrand.show_remarks,
+            }).eq("id", school!.id);
+          } catch (e) { logger.warn("Auto-save report branding error:", e); }
+        })() : Promise.resolve(),
+      ]);
+
       const checklistItems = [
         { item_key: "academic_calendar", item_label: "Academic Calendar" },
         { item_key: "class_structure", item_label: "Class & Stream Setup" },
@@ -667,6 +721,15 @@ export default function OnboardingFlow({
     setStep(prevStep);
   };
 
+  // Generic next that triggers per-step saves for steps that need it
+  const handleGenericNext = async () => {
+    if (step === 5) { await saveTerms(); handleNext(6); }
+    else if (step === 6) { await saveFees(); handleNext(7); }
+    else if (step === 7) { await saveGradingPrefs(); handleNext(8); }
+    else if (step === 8) { await saveReportBranding(); handleNext(9); }
+    else { handleNext(step + 1); }
+  };
+
   if (!school) return null;
 
   const progressPercent = Math.round((step / TOTAL_STEPS) * 100);
@@ -678,7 +741,7 @@ export default function OnboardingFlow({
         <button
           onClick={() => {
             if (step > 1) handleBack(step - 1);
-            else onComplete();
+            else (onDismiss ?? onComplete)();
           }}
           className="p-2 -ml-2 rounded-full hover:bg-slate-100 active:bg-slate-200"
           aria-label="Go back"
@@ -702,7 +765,7 @@ export default function OnboardingFlow({
           </div>
         </div>
         <button
-          onClick={onComplete}
+          onClick={onDismiss ?? onComplete}
           className="p-2 -mr-2 rounded-full hover:bg-slate-100 active:bg-slate-200"
           aria-label="Close onboarding"
         >
@@ -1916,7 +1979,8 @@ export default function OnboardingFlow({
                 </Button>
                 <Button
                   variant="primary"
-                  onClick={() => handleNext(step + 1)}
+                  loading={saving}
+                  onClick={handleGenericNext}
                   className="flex-1"
                 >
                   {step === TOTAL_STEPS - 1 ? "Review & Launch" : "Next"}
@@ -1931,7 +1995,7 @@ export default function OnboardingFlow({
               <Button variant="secondary" onClick={() => handleBack(step - 1)}>
                 Back
               </Button>
-              <Button variant="primary" onClick={() => handleNext(step + 1)}>
+              <Button variant="primary" loading={saving} onClick={handleGenericNext}>
                 {step === TOTAL_STEPS - 1 ? "Review & Launch" : "Next Step"}
               </Button>
             </div>

@@ -196,6 +196,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const [showGoLive, setShowGoLive] = useState(false);
 
   const onboardingCompleted = (school as unknown as Record<string, unknown>)?.onboarding_completed;
+  const onboardingDismissKey = user?.id && school?.id
+    ? `onboarding_dismissed_${school.id}_${user.id}`
+    : null;
 
   useEffect(() => {
     if (
@@ -203,7 +206,13 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       !onboardingCompleted &&
       user?.role === "school_admin"
     ) {
-      setShowOnboarding(true);
+      // Don't re-show if user already dismissed it this browser session
+      const dismissed = onboardingDismissKey && typeof window !== "undefined"
+        ? sessionStorage.getItem(onboardingDismissKey)
+        : null;
+      if (!dismissed) {
+        setShowOnboarding(true);
+      }
     } else if (
       school &&
       onboardingCompleted &&
@@ -276,8 +285,16 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       {showOnboarding && (
         <OnboardingFlow
           onComplete={() => {
+            // Called only after full completion (DB onboarding_completed = true)
             setShowOnboarding(false);
             setShowPostSetup(true);
+          }}
+          onDismiss={() => {
+            // User closed without completing — suppress reopening for this session
+            if (onboardingDismissKey && typeof window !== "undefined") {
+              sessionStorage.setItem(onboardingDismissKey, "1");
+            }
+            setShowOnboarding(false);
           }}
         />
       )}
