@@ -136,7 +136,7 @@ export default function ReportsPage() {
         setLoadingReport(false);
       }
     },
-    [students, currentTerm, academicYear, school],
+    [students, currentTerm, academicYear, school, toast],
   );
 
   const handleBulkPrint = useCallback(async () => {
@@ -277,7 +277,7 @@ export default function ReportsPage() {
     } finally {
       setLoadingReport(false);
     }
-  }, [filteredStudents, school, currentTerm, academicYear]);
+  }, [filteredStudents, school, currentTerm, academicYear, toast]);
 
   const handleGenerateReport = useCallback(
     async (studentId: string) => {
@@ -452,7 +452,7 @@ export default function ReportsPage() {
         toast.error(err instanceof Error ? err.message : "Failed to generate report PDF");
       }
     },
-    [school, currentTerm, academicYear],
+    [school, currentTerm, academicYear, toast],
   );
 
   return (
