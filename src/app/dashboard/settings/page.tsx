@@ -1903,6 +1903,11 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-3">
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+                <span className="mt-0.5">⚠️</span>
+                <span>Mobile money auto-payment is coming soon. Select MTN or Airtel then follow up with our team on <strong>+256 700 000 000</strong> to confirm your payment manually.</span>
+              </div>
+
               <button
                 onClick={() => initiatePayment("mtn")}
                 disabled={upgradingPlan}
@@ -1914,7 +1919,7 @@ export default function SettingsPage() {
                     MTN Mobile Money
                   </div>
                   <div className="text-xs text-[var(--t3)]">
-                    Instant payment via MoMo
+                    Manual confirmation required
                   </div>
                 </div>
               </button>
@@ -1930,7 +1935,7 @@ export default function SettingsPage() {
                     Airtel Money
                   </div>
                   <div className="text-xs text-[var(--t3)]">
-                    Instant payment via Airtel
+                    Manual confirmation required
                   </div>
                 </div>
               </button>
