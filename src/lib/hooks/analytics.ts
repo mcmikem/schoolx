@@ -134,8 +134,8 @@ export function useAnalytics(schoolId?: string) {
         const [{ data: students }, { data: feeStructure }, { data: attendance }, { data: grades }] = await Promise.all([
           supabase.from('students').select('id, first_name, last_name, gender, class_id, classes(name)').eq('school_id', schoolId).eq('status', 'active'),
           supabase.from('fee_structure').select('id, amount').eq('school_id', schoolId),
-          supabase.from('attendance').select('student_id, status, students!inner(school_id)').eq('students.school_id', schoolId).order('date', { ascending: false }).limit(2000),
-          supabase.from('grades').select('student_id, score, students!inner(school_id)').eq('students.school_id', schoolId)
+          supabase.from('attendance').select('student_id, status, date, students!inner(school_id)').eq('students.school_id', schoolId).order('date', { ascending: false }).limit(2000),
+          supabase.from('grades').select('student_id, score, class_id, students!inner(school_id), classes(name)').eq('students.school_id', schoolId)
         ])
 
         const genderLevels = { M: 0, F: 0 }
@@ -188,7 +188,37 @@ export function useAnalytics(schoolId?: string) {
         const feeRate = totalExpected > 0 ? (totalCollected / totalExpected) * 100 : 0
         const healthScore = Math.round((realAvgAttendance * 0.5) + (feeRate * 0.3) + (realAvgGrade * 0.2))
 
-        setData({ genderDistribution, revenueProjections, atRiskStudents: atRiskStudents || [], attendanceTrends: [], classPerformance: [], subjectPerformance: [], feeCollection: [], stats: { totalStudents: students?.length || 0, avgAttendance: realAvgAttendance, avgGrade: realAvgGrade, feeCollectionRate: feeRate, projectedRevenue: totalExpected, healthScore } })
+        // Compute weekly attendance trends from the last 4 weeks
+        const weeklyAttendance: Record<string, { present: number; total: number }> = {}
+        attendance?.forEach((a: any) => {
+          if (!a.date) return
+          const d = new Date(a.date)
+          // ISO week: number of weeks since a fixed reference Monday
+          const startOfYear = new Date(d.getFullYear(), 0, 1)
+          const weekNum = Math.ceil(((d.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7)
+          const key = `W${weekNum}`
+          if (!weeklyAttendance[key]) weeklyAttendance[key] = { present: 0, total: 0 }
+          weeklyAttendance[key].total++
+          if (a.status === 'present') weeklyAttendance[key].present++
+        })
+        const attendanceTrends = Object.entries(weeklyAttendance)
+          .slice(-4)
+          .map(([name, v]) => ({ name, value: v.total > 0 ? Math.round((v.present / v.total) * 100) : 0 }))
+
+        // Compute class performance from grades grouped by class
+        const classGradesMap: Record<string, { name: string; sum: number; count: number }> = {}
+        grades?.forEach((g: any) => {
+          const className = (g.classes as any)?.name || g.class_id || 'Unknown'
+          if (!classGradesMap[className]) classGradesMap[className] = { name: className, sum: 0, count: 0 }
+          classGradesMap[className].sum += g.score
+          classGradesMap[className].count++
+        })
+        const classPerformance = Object.values(classGradesMap)
+          .map(c => ({ name: c.name, value: c.count > 0 ? Math.round(c.sum / c.count) : 0 }))
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .slice(0, 8)
+
+        setData({ genderDistribution, revenueProjections, atRiskStudents: atRiskStudents || [], attendanceTrends, classPerformance, subjectPerformance: [], feeCollection: [], stats: { totalStudents: students?.length || 0, avgAttendance: realAvgAttendance, avgGrade: realAvgGrade, feeCollectionRate: feeRate, projectedRevenue: totalExpected, healthScore } })
       } catch (err) { logger.error('Analytics Error:', err) }
       finally { setLoading(false) }
     }

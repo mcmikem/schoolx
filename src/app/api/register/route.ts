@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     }
     logger.debug("[Register] Step 2: Parsing request body");
 
-    const body: RegisterRequest = await request.json();
+    const body: RegisterRequest & { _gotcha?: string } = await request.json();
     const {
       schoolName,
       district,
@@ -119,7 +119,14 @@ export async function POST(request: NextRequest) {
       adminName,
       adminPhone,
       password,
+      _gotcha,
     } = body;
+
+    // Honeypot: bots fill hidden fields; humans leave them blank
+    if (_gotcha) {
+      // Silently reject with a 200 so bots don't know they were blocked
+      return apiSuccess({ message: "Registration received." });
+    }
 
     // Validate required fields
     if (
@@ -132,6 +139,16 @@ export async function POST(request: NextRequest) {
     ) {
       return apiError("All required fields must be filled", 400);
     }
+
+    // Input length limits to prevent oversized payloads
+    if (schoolName.trim().length > 200) return apiError("School name is too long", 400);
+    if (district.trim().length > 100) return apiError("District name is too long", 400);
+    if (subcounty.trim().length > 100) return apiError("Sub-county is too long", 400);
+    if (adminName.trim().length > 200) return apiError("Admin name is too long", 400);
+    if (parish && parish.trim().length > 100) return apiError("Parish is too long", 400);
+    if (village && village.trim().length > 100) return apiError("Village is too long", 400);
+    if (password.length > 128) return apiError("Password is too long", 400);
+    if (email && email.length > 254) return apiError("Email is too long", 400);
 
     const subscriptionPlan = normalizePlanType(selectedPackage || "basic");
 

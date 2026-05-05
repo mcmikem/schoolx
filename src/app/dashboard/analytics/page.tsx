@@ -300,7 +300,7 @@ export default function AnalyticsPage() {
             <CardBody>
               <h2 className="text-lg font-bold text-[var(--on-surface)] mb-6 flex items-center gap-2">
                 <div className="w-1.5 h-6 bg-[var(--primary)] rounded-full" />
-                Gender Distribution per Class
+                Gender Distribution
               </h2>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
@@ -350,18 +350,108 @@ export default function AnalyticsPage() {
             <CardBody>
               <h2 className="text-lg font-bold text-[var(--on-surface)] mb-6 flex items-center gap-2">
                 <div className="w-1.5 h-6 bg-amber rounded-full" />
-                Academic Alerts
+                Attendance Trends
               </h2>
-              <div className="flex flex-col items-center justify-center py-10 text-center gap-3">
-                <MaterialIcon icon="notifications_none" className="text-4xl text-[var(--t4)]" />
-                <p className="text-sm font-semibold text-[var(--t2)]">No alerts right now</p>
-                <p className="text-xs text-[var(--t4)] max-w-[200px] leading-relaxed">
-                  Alerts will appear here when grades, attendance or fees need your attention.
-                </p>
-              </div>
+              {displayData.attendanceTrends?.length > 0 ? (
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={displayData.attendanceTrends}>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="var(--outline-variant)"
+                        opacity={0.1}
+                      />
+                      <XAxis
+                        dataKey="name"
+                        stroke="var(--on-surface-variant)"
+                        fontSize={11}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        domain={[0, 100]}
+                        stroke="var(--on-surface-variant)"
+                        fontSize={11}
+                        axisLine={false}
+                        tickLine={false}
+                        unit="%"
+                      />
+                      <Tooltip
+                        cursor={{ fill: "var(--surface-container-highest)", opacity: 0.1 }}
+                        contentStyle={{
+                          background: "var(--surface-container-highest)",
+                          border: "none",
+                          borderRadius: "12px",
+                          fontSize: "12px",
+                        }}
+                        itemStyle={{ color: "var(--on-surface)" }}
+                        formatter={(v) => [`${String(v)}%`, "Attendance"]}
+                      />
+                      <Bar dataKey="value" fill="var(--amber)" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-10 text-center gap-3">
+                  <MaterialIcon icon="trending_up" className="text-4xl text-[var(--t4)]" />
+                  <p className="text-sm font-semibold text-[var(--t2)]">No attendance data yet</p>
+                  <p className="text-xs text-[var(--t4)] max-w-[200px] leading-relaxed">
+                    Record attendance to see weekly trends here.
+                  </p>
+                </div>
+              )}
             </CardBody>
           </Card>
         </div>
+
+        {displayData.classPerformance?.length > 0 && (
+          <Card className="!bg-surface-container-low/40 mt-8">
+            <CardBody>
+              <h2 className="text-lg font-bold text-[var(--on-surface)] mb-6 flex items-center gap-2">
+                <div className="w-1.5 h-6 bg-[var(--primary)] rounded-full" />
+                Class Performance (Avg Grade %)
+              </h2>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={displayData.classPerformance}>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="var(--outline-variant)"
+                      opacity={0.1}
+                    />
+                    <XAxis
+                      dataKey="name"
+                      stroke="var(--on-surface-variant)"
+                      fontSize={11}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      domain={[0, 100]}
+                      stroke="var(--on-surface-variant)"
+                      fontSize={11}
+                      axisLine={false}
+                      tickLine={false}
+                      unit="%"
+                    />
+                    <Tooltip
+                      cursor={{ fill: "var(--surface-container-highest)", opacity: 0.1 }}
+                      contentStyle={{
+                        background: "var(--surface-container-highest)",
+                        border: "none",
+                        borderRadius: "12px",
+                        fontSize: "12px",
+                      }}
+                      itemStyle={{ color: "var(--on-surface)" }}
+                      formatter={(v) => [`${String(v)}%`, "Avg Grade"]}
+                    />
+                    <Bar dataKey="value" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardBody>
+          </Card>
+        )}
       </TabPanel>
 
       <TabPanel activeTab={activeTab} tabId="students">
