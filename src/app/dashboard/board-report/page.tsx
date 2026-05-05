@@ -19,7 +19,7 @@ export default function BoardReportPage() {
   const { school } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
-  const { students } = useStudents(school?.id);
+  const { students } = useStudents(school?.id, { limit: 2000 });
   const { payments } = useFeePayments(school?.id);
   const { feeStructure } = useFeeStructure(school?.id);
   const { classes } = useClasses(school?.id);

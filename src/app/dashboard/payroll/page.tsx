@@ -20,10 +20,17 @@ const GRADE_VALUES: Record<string, number> = {
   "Scale 5 – UGX 1.4M": 1400000,
 };
 
+interface PayrollStaff {
+  id: string;
+  full_name: string;
+  role: string;
+  bank_account: string | null;
+}
+
 export default function PayrollPage() {
   const { school, user } = useAuth();
   const toast = useToast();
-  const [staff, setStaff] = useState<any[]>([]);
+  const [staff, setStaff] = useState<PayrollStaff[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -42,7 +49,7 @@ export default function PayrollPage() {
         setStaff(data || []);
         // Init default payroll grades
         const init: Record<string, { grade: string; customGross: number; deductions: number }> = {};
-        (data || []).forEach((s: any) => {
+        (data || []).forEach((s: PayrollStaff) => {
           init[s.id] = { grade: GRADES[1], customGross: 0, deductions: 0 };
         });
         setPayroll(init);

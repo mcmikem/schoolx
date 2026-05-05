@@ -779,6 +779,7 @@ function DirectoryTab({
                   }
                   className="input"
                   required
+                  maxLength={200}
                 />
               </div>
 
@@ -795,6 +796,7 @@ function DirectoryTab({
                   }
                   className="input"
                   required
+                  maxLength={15}
                 />
               </div>
 
@@ -862,6 +864,7 @@ function DirectoryTab({
                     setNewStaff({ ...newStaff, email: e.target.value })
                   }
                   className="input"
+                  maxLength={254}
                 />
               </div>
 
@@ -938,6 +941,7 @@ function DirectoryTab({
                   }
                   className="input"
                   required
+                  maxLength={200}
                 />
               </div>
 
@@ -954,6 +958,7 @@ function DirectoryTab({
                   }
                   className="input"
                   required
+                  maxLength={15}
                 />
               </div>
 

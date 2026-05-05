@@ -39,7 +39,7 @@ export const FEATURE_STAGES: Record<FeatureStage, FeatureStageDefinition> = deep
   finance: {
     label: 'Finance & operations',
     description: 'Everything in Academic plus invoicing, payments, payroll, budgeting and operations modules.',
-    modules: ['dashboard', 'attendance', 'communications', 'marks', 'exam', 'reports', 'finance', 'operations', 'staff', 'exports', 'settings'],
+    modules: ['dashboard', 'attendance', 'communications', 'marks', 'exam', 'reports', 'finance', 'operations', 'health', 'staff', 'exports', 'settings'],
   },
   full: {
     label: 'Full suite',

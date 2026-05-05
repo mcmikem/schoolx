@@ -973,6 +973,7 @@ export default function StudentHubPage() {
                             }
                             className="input"
                             required
+                            maxLength={100}
                           />
                         </div>
                         <div>
@@ -999,6 +1000,7 @@ export default function StudentHubPage() {
                             }
                             className="input"
                             required
+                            maxLength={100}
                           />
                         </div>
                       </div>
@@ -1188,6 +1190,7 @@ export default function StudentHubPage() {
                           }
                           className="input"
                           placeholder="e.g., 2026-001 or leave blank for auto"
+                          maxLength={20}
                         />
                       </div>
                       {/* PLE Index Number — show for all, required for P.7 */}
@@ -1229,6 +1232,7 @@ export default function StudentHubPage() {
                               }
                               className="input"
                               placeholder="U0001/2026"
+                              maxLength={20}
                             />
                           </div>
                         )}
@@ -1256,6 +1260,7 @@ export default function StudentHubPage() {
                           }
                           className="input"
                           required
+                          maxLength={200}
                         />
                       </div>
                       <div
@@ -1291,6 +1296,7 @@ export default function StudentHubPage() {
                             }
                             className="input"
                             required
+                            maxLength={15}
                           />
                         </div>
                         <div>
@@ -1317,6 +1323,7 @@ export default function StudentHubPage() {
                               })
                             }
                             className="input"
+                            maxLength={15}
                           />
                         </div>
                       </div>
@@ -1561,6 +1568,7 @@ export default function StudentHubPage() {
                               }
                               className="input"
                               placeholder="e.g., Kampala"
+                              maxLength={100}
                             />
                           </div>
                           <div>
@@ -1586,6 +1594,7 @@ export default function StudentHubPage() {
                                 })
                               }
                               className="input"
+                              maxLength={100}
                             />
                           </div>
                         </div>
@@ -1620,6 +1629,7 @@ export default function StudentHubPage() {
                                 })
                               }
                               className="input"
+                              maxLength={100}
                             />
                           </div>
                           <div>
@@ -1645,6 +1655,7 @@ export default function StudentHubPage() {
                                 })
                               }
                               className="input"
+                              maxLength={100}
                             />
                           </div>
                         </div>
@@ -1897,6 +1908,7 @@ export default function StudentHubPage() {
                             }
                             className="input"
                             required
+                            maxLength={100}
                           />
                         </div>
                         <div>
@@ -1924,6 +1936,7 @@ export default function StudentHubPage() {
                             }
                             className="input"
                             required
+                            maxLength={100}
                           />
                         </div>
                       </div>
@@ -2084,6 +2097,7 @@ export default function StudentHubPage() {
                             }
                             className="input"
                             required
+                            maxLength={15}
                           />
                         </div>
                         <div>
@@ -2111,6 +2125,7 @@ export default function StudentHubPage() {
                               })
                             }
                             className="input"
+                            maxLength={15}
                           />
                         </div>
                       </div>
