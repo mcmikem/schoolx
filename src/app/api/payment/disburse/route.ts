@@ -27,6 +27,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
     }
 
+    if (process.env.ENABLE_MOMO_DISBURSEMENTS !== "true") {
+      return NextResponse.json(
+        {
+          error:
+            "Mobile money disbursement is not enabled yet. Use manual bank/mobile workflows for now.",
+        },
+        { status: 503 },
+      );
+    }
+
     const body: DisbursementRequest = await request.json();
     const { student_id, parent_phone, provider, amount, reason } = body;
 
@@ -66,8 +76,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to create disbursement" }, { status: 500 });
     }
 
-    // TODO: Integrate with MTN/Airtel API for actual disbursement
-    // For now, simulate the API call
     logger.info(`Disbursement created: ${reference} - ${provider} ${amount} to ${parent_phone}`);
 
     // In production, you would call the MOMO API here:

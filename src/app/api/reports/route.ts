@@ -43,6 +43,24 @@ function getUNEBDivision(avg: number): string {
   return "Ungraded";
 }
 
+async function resolveAcademicYear(
+  supabase: ReturnType<typeof createServiceRoleClientOrThrow>,
+  schoolId: string,
+  requestedYear?: string | null,
+): Promise<string> {
+  if (requestedYear && requestedYear.trim()) return requestedYear;
+
+  const { data } = await supabase
+    .from("school_settings")
+    .select("value")
+    .eq("school_id", schoolId)
+    .eq("key", "academic_year")
+    .maybeSingle();
+
+  const value = typeof data?.value === "string" ? data.value.trim() : "";
+  return value || new Date().getFullYear().toString();
+}
+
 export async function GET(request: NextRequest) {
   try {
     const auth = await requireUserWithSchool(request);
@@ -58,8 +76,7 @@ export async function GET(request: NextRequest) {
     const schoolId = searchParams.get("schoolId") || auth.context.schoolId;
     const studentId = searchParams.get("studentId");
     const term = searchParams.get("term") || "1";
-    const academicYear =
-      searchParams.get("academicYear") || new Date().getFullYear().toString();
+    const requestedAcademicYear = searchParams.get("academicYear");
     const limit = parseInt(searchParams.get("limit") || "20");
 
     const scope = assertSchoolScopeOrDeny({
@@ -75,6 +92,12 @@ export async function GET(request: NextRequest) {
     });
     if (!subCheck.ok) return subCheck.response;
 
+    const academicYear = await resolveAcademicYear(
+      supabase,
+      scope.schoolId,
+      requestedAcademicYear,
+    );
+
     if (studentId) {
       const { data: student, error: studentError } = await supabase
         .from("students")
@@ -86,7 +109,7 @@ export async function GET(request: NextRequest) {
         return apiError("Student not found", 404);
       }
 
-      if (student.school_id !== schoolId) {
+      if (student.school_id !== scope.schoolId) {
         return apiError("Student does not belong to the requested school", 403);
       }
 
@@ -103,7 +126,7 @@ export async function GET(request: NextRequest) {
     const { data: students, error: studentsError } = await supabase
       .from("students")
       .select("id, full_name, classes (id, name, level)")
-      .eq("school_id", schoolId)
+      .eq("school_id", scope.schoolId)
       .limit(limit);
 
     if (studentsError) {
@@ -151,6 +174,12 @@ export async function POST(request: NextRequest) {
     });
     if (!subCheck.ok) return subCheck.response;
 
+    const resolvedAcademicYear = await resolveAcademicYear(
+      supabase,
+      scope.schoolId,
+      academicYear,
+    );
+
     // Fetch student with class info
     const { data: student, error: studentError } = await supabase
       .from("students")
@@ -164,7 +193,7 @@ export async function POST(request: NextRequest) {
 
 
     // Enforce strict role/relationship checks
-    if (student.school_id !== schoolId) {
+    if (student.school_id !== scope.schoolId) {
       return apiError("Student does not belong to the requested school", 403);
     }
     // Only allow admin, teacher, or parent of student
@@ -200,7 +229,7 @@ export async function POST(request: NextRequest) {
       .select("*, subjects (name, code)")
       .eq("student_id", studentId)
       .eq("term", term || 1)
-      .eq("academic_year", academicYear || new Date().getFullYear().toString());
+      .eq("academic_year", resolvedAcademicYear);
 
     // Fetch attendance summary
     const { data: attendanceRecords } = await supabase
@@ -275,7 +304,7 @@ export async function POST(request: NextRequest) {
       student,
       school,
       term: term || 1,
-      academicYear: academicYear || new Date().getFullYear().toString(),
+      academicYear: resolvedAcademicYear,
       subjects: reportData,
       attendance: attendanceSummary,
       overall: {

@@ -57,10 +57,14 @@ export function useGrades(
   subjectId?: string,
   term?: number,
   academicYear?: string,
+  options?: { page?: number; limit?: number },
 ) {
+  const page = options?.page || 1;
+  const limit = options?.limit || 200;
   const [grades, setGrades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
   const { isDemo, user, school } = useAuth();
   const isOnline = useOnlineStatus();
 
@@ -244,15 +248,19 @@ export function useGrades(
           students (id, first_name, last_name), 
           subjects (id, name, code)
         `,
+          { count: "exact" },
         )
         .eq("class_id", classId)
-        .is("deleted_at", null);
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .range((page - 1) * limit, page * limit - 1);
       if (subjectId) query = query.eq("subject_id", subjectId);
       if (term) query = query.eq("term", term);
       if (academicYear) query = query.eq("academic_year", academicYear);
-      const { data, error } = await query;
+      const { data, error, count } = await query;
       if (error) throw error;
       setGrades(data || []);
+      setTotalCount(count || 0);
       await offlineDB.cacheFromServer(
         "grades",
         (data || []) as unknown as Record<string, unknown>[],
@@ -263,12 +271,12 @@ export function useGrades(
     } finally {
       setLoading(false);
     }
-  }, [classId, subjectId, term, academicYear, isDemo, isOnline]);
+  }, [classId, subjectId, term, academicYear, isDemo, isOnline, page, limit]);
 
   useEffect(() => {
     fetchGrades();
   }, [fetchGrades]);
-  return { grades, loading, error, saveGrade };
+  return { grades, loading, error, saveGrade, totalCount };
 }
 
 export function useExamScores(

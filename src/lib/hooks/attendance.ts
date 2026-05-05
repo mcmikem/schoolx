@@ -215,7 +215,12 @@ export function useAttendance(classId?: string, date?: string) {
   return { attendance, loading, error, markAttendance };
 }
 
-export function useAttendanceHistory(schoolId?: string, academicYear?: string) {
+export function useAttendanceHistory(
+  schoolId?: string,
+  academicYear?: string,
+  options?: { limit?: number },
+) {
+  const limit = options?.limit || 5000;
   const [loading, setLoading] = useState(false);
 
   const getConsecutiveAbsentStudents = useCallback(async () => {
@@ -242,7 +247,8 @@ export function useAttendanceHistory(schoolId?: string, academicYear?: string) {
         .eq("students.school_id", schoolId)
         .gte("date", startDate)
         .lte("date", endDate)
-        .order("date", { ascending: false });
+        .order("date", { ascending: false })
+        .limit(limit);
 
       if (error) throw error;
 
@@ -300,7 +306,7 @@ export function useAttendanceHistory(schoolId?: string, academicYear?: string) {
     } finally {
       setLoading(false);
     }
-  }, [schoolId, academicYear]);
+  }, [schoolId, academicYear, limit]);
 
   return { getConsecutiveAbsentStudents, loading };
 }
