@@ -227,7 +227,7 @@ test.describe("Auth – login form", () => {
     await page.getByRole("button", { name: /sign in/i }).click();
 
     await expect(
-      page.getByText(/too many|locked|try again|attempt/i),
+      page.getByText(/too many|locked|try again|attempt/i).first(),
     ).toBeVisible({ timeout: 15_000 });
   });
 });
@@ -254,7 +254,7 @@ test.describe("Auth – register validation (no backend)", () => {
     await page.goto("/register", { waitUntil: "networkidle" });
     await stableFill(page.getByRole("textbox", { name: /school name/i }), "Test School");
     await page.getByRole("button", { name: /next.*where/i }).click();
-    await stableFill(page.getByRole("textbox", { name: /^district$/i }), "Kampala");
+    await page.getByRole("combobox", { name: /district/i }).selectOption("Kampala");
     await stableFill(
       page.getByRole("textbox", { name: /sub-county \/ division/i }),
       "Central Division",
@@ -281,7 +281,7 @@ test.describe("Auth – register validation (no backend)", () => {
     await page.goto("/register", { waitUntil: "networkidle" });
     await stableFill(page.getByRole("textbox", { name: /school name/i }), "Test School");
     await page.getByRole("button", { name: /next.*where/i }).click();
-    await stableFill(page.getByRole("textbox", { name: /^district$/i }), "Kampala");
+    await page.getByRole("combobox", { name: /district/i }).selectOption("Kampala");
     await stableFill(
       page.getByRole("textbox", { name: /sub-county \/ division/i }),
       "Central Division",
