@@ -336,14 +336,13 @@ export function useStaffAttendance(schoolId?: string, date?: string) {
         .upsert(
           {
             staff_id: staffId,
-            school_id: querySchoolId,
             date: currentDate,
             status,
             remarks,
           },
           { onConflict: "staff_id,date" },
         )
-        .select("id, staff_id, school_id, date, status, remarks, created_at")
+        .select("id, staff_id, date, status, remarks, created_at")
         .single();
       if (error) throw error;
       return data;
@@ -364,9 +363,9 @@ export function useStaffAttendance(schoolId?: string, date?: string) {
         const { data, error } = await supabase
           .from("staff_attendance")
           .select(
-            "id, staff_id, school_id, date, status, remarks, created_at, users!staff_id(id, full_name, phone)",
+            "id, staff_id, date, status, remarks, created_at, users!staff_id(id, full_name, phone, school_id)",
           )
-          .eq("school_id", querySchoolId)
+          .eq("users.school_id", querySchoolId)
           .eq("date", date);
         if (error) throw error;
         setAttendance(data || []);

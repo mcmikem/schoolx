@@ -84,13 +84,11 @@ export function useHeadmasterDashboardData(
             .eq("status", "pending"),
           supabase
             .from("fee_payments")
-            .select("amount_paid, payment_date, students!inner(school_id)")
-            .eq("students.school_id", schoolId)
+            .select("amount_paid, payment_date")
             .limit(10000),
           supabase
             .from("staff_attendance")
-            .select("status")
-            .eq("school_id", schoolId)
+            .select("status, staff_id, users(school_id)")
             .eq("date", today)
             .in("status", ["present", "late"])
             .limit(500),
