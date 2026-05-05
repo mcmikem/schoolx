@@ -415,6 +415,24 @@ describe("Production Hardening Regression Tests", () => {
       expect(loginPage).toContain("Connection error");
       expect(loginPage).toContain("email not confirmed");
     });
+
+    it("should try multiple email formats including raw phone format for legacy accounts", () => {
+      const fs = require("fs");
+      const path = require("path");
+      const authLogin = fs.readFileSync(
+        path.join(process.cwd(), "src/lib/auth-login.ts"),
+        "utf8",
+      );
+      // Should have logic to try raw phone format (e.g., 0777777777) alongside normalized (256777777777)
+      expect(authLogin).toContain("rawWithCountry");
+      // Should NOT fast-fail on generic 'invalid credentials' - must try all formats
+      const authContext = fs.readFileSync(
+        path.join(process.cwd(), "src/lib/auth-context.tsx"),
+        "utf8",
+      );
+      // When receiving 'invalid credentials' (not explicit 'wrong password'), should try next format
+      expect(authContext).toContain("isUserNotFound");
+    });
   });
 
   describe("Auth – OTP optional and working", () => {
