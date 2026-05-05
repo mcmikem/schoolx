@@ -582,23 +582,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           if (error) {
             lastError = error;
-            // FAST-FAIL: If the credentials are explicitly rejected, don't
-            // try other formats — wrong password means wrong password regardless
-            // of which email format we used. Only retry on "user not found" or
-            // transient errors (network, lock contention).
             const errMsg = (error.message || "").toLowerCase();
             const isInvalidCredentials =
               errMsg.includes("invalid login credentials") ||
               errMsg.includes("invalid login") ||
               errMsg.includes("wrong password") ||
               errMsg.includes("incorrect password");
+            const isUserNotFound =
+              errMsg.includes("user not found") ||
+              errMsg.includes("no user") ||
+              errMsg.includes("email not found");
 
-            if (isInvalidCredentials) {
-              // The user exists but password is wrong. No point trying other formats.
+            // Only fast-fail on explicit "wrong password" - we can't distinguish
+            // "user doesn't exist" from "wrong password" when Supabase returns
+            // "invalid credentials". Try all formats to be safe.
+            const isExplicitWrongPassword =
+              isInvalidCredentials &&
+              (errMsg.includes("wrong password") ||
+                errMsg.includes("incorrect password"));
+
+            if (isExplicitWrongPassword && attempts.length === 1) {
+              // Only fail fast if there's exactly one attempt and we got explicit
+              // "wrong password" - otherwise try all formats
               break;
             }
-            // Otherwise it's a transient error or "user not found" — try next format.
-            continue;
+            // Try next format on "user not found", generic "invalid credentials",
+            // or any transient error
+            if (isUserNotFound || !isExplicitWrongPassword) {
+              continue;
+            }
+            break;
           }
 
           if (!data.user) {

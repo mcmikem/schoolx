@@ -55,10 +55,22 @@ export function buildAuthLoginAttempts(input: string): AuthLoginAttempt[] {
   // Primary: normalized@omuto.org (covers 99%+ of accounts)
   addAttempt(attempts, seen, "email", `${normalized}@omuto.org`);
 
-  // Secondary: legacy @omuto.sms domain (for old accounts created before migration)
+  // Secondary: raw input format (for accounts created before phone normalization)
+  const rawDigits = trimmed.replace(/\D/g, "");
+  let rawWithCountry = rawDigits;
+  if (!rawDigits.startsWith("256") && !rawDigits.startsWith("0")) {
+    rawWithCountry = "0" + rawDigits;
+  } else if (rawDigits.startsWith("256") && rawDigits.length === 12) {
+    rawWithCountry = "0" + rawDigits.slice(3);
+  }
+  if (rawWithCountry !== normalized && rawWithCountry !== trimmed) {
+    addAttempt(attempts, seen, "email", `${rawWithCountry}@omuto.org`);
+  }
+
+  // Tertiary: legacy @omuto.sms domain (for old accounts created before migration)
   addAttempt(attempts, seen, "email", `${normalized}@omuto.sms`);
 
-  // Tertiary: phone format fallback (rare, only for very old accounts)
+  // Quaternary: phone format fallback (rare, only for very old accounts)
   addAttempt(attempts, seen, "phone", `+${normalized}`);
 
   return attempts;
