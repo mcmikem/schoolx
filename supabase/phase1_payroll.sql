@@ -2,7 +2,7 @@
 -- STAFF SALARIES TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS staff_salaries (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     staff_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     base_salary NUMERIC(12, 2) NOT NULL DEFAULT 0,
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS staff_salaries (
 -- SALARY PAYMENTS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS salary_payments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     staff_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     academic_year_id UUID REFERENCES academic_years(id) ON DELETE CASCADE,
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS salary_payments (
 -- STAFF PERFORMANCE REVIEWS
 -- ============================================
 CREATE TABLE IF NOT EXISTS staff_reviews (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     staff_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     reviewer_id UUID REFERENCES users(id) ON DELETE SET NULL,

@@ -1,7 +1,7 @@
 -- Student Transfers Table
 -- ============================================
 CREATE TABLE IF NOT EXISTS student_transfers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     transfer_type TEXT CHECK (transfer_type IN ('in', 'out')) NOT NULL,
@@ -21,7 +21,7 @@ ALTER TABLE student_transfers ENABLE ROW LEVEL SECURITY;
 -- Schools can manage their own transfers
 DROP POLICY IF EXISTS "Schools manage transfers" ON student_transfers;
 
-CREATE POLICY "Schools manage transfers" ON student_transfers
+CREATE POLICY  "Schools manage transfers" ON student_transfers
     FOR ALL TO authenticated
     USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()))
     WITH CHECK (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
@@ -29,7 +29,7 @@ CREATE POLICY "Schools manage transfers" ON student_transfers
 -- Suggestions Table
 -- ============================================
 CREATE TABLE IF NOT EXISTS suggestions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
@@ -47,7 +47,7 @@ ALTER TABLE suggestions ENABLE ROW LEVEL SECURITY;
 -- Schools can manage their own suggestions
 DROP POLICY IF EXISTS "Schools manage suggestions" ON suggestions;
 
-CREATE POLICY "Schools manage suggestions" ON suggestions
+CREATE POLICY  "Schools manage suggestions" ON suggestions
     FOR ALL TO authenticated
     USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()))
     WITH CHECK (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
@@ -66,7 +66,7 @@ WHERE bg.student_id = s.id AND bg.school_id IS NULL;
 -- Add RLS for behavior_logs if missing
 DROP POLICY IF EXISTS "Schools view behavior logs" ON behavior_logs;
 
-CREATE POLICY "Schools view behavior logs" ON behavior_logs
+CREATE POLICY  "Schools view behavior logs" ON behavior_logs
     FOR ALL TO authenticated
     USING (
         student_id IN (SELECT id FROM students WHERE school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()))

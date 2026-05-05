@@ -11,7 +11,7 @@ ALTER TABLE assets RENAME COLUMN quantity TO current_stock;
 -- INVENTORY TRANSACTIONS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS inventory_transactions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     asset_id UUID REFERENCES assets(id) ON DELETE CASCADE,
     transaction_type TEXT CHECK (transaction_type IN ('in', 'out', 'adjustment', 'return')) NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS inventory_transactions (
 -- TIMETABLE SLOTS (Defining the school day)
 -- ============================================
 CREATE TABLE IF NOT EXISTS timetable_slots (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     name TEXT NOT NULL, -- e.g., "Period 1", "Break", "Lunch"
     start_time TIME NOT NULL,
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS timetable_slots (
 -- TIMETABLE CONSTRAINTS (For conflict detection)
 -- ============================================
 CREATE TABLE IF NOT EXISTS timetable_constraints (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     teacher_id UUID REFERENCES users(id) ON DELETE CASCADE,
     day_of_week INTEGER CHECK (day_of_week BETWEEN 1 AND 7),

@@ -20,11 +20,11 @@ CREATE INDEX idx_parent_notifications_unread ON parent_notifications(parent_id, 
 ALTER TABLE parent_notifications ENABLE ROW LEVEL SECURITY;
 
 -- Policy: parents can view their own notifications
-CREATE POLICY "Parents can view own notifications" ON parent_notifications
+CREATE POLICY  "Parents can view own notifications" ON parent_notifications
   FOR SELECT USING (parent_id = auth.uid());
 
 -- Policy: school admins can manage notifications
-CREATE POLICY "School admins can manage notifications" ON parent_notifications
+CREATE POLICY  "School admins can manage notifications" ON parent_notifications
   FOR ALL USING (
     EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('school_admin', 'admin', 'headmaster'))
   );

@@ -36,20 +36,20 @@ ALTER TABLE syllabus ENABLE ROW LEVEL SECURITY;
 ALTER TABLE grades ENABLE ROW LEVEL SECURITY;
 
 -- Classes policies
-CREATE POLICY "Users can view classes" ON classes FOR SELECT USING (true);
-CREATE POLICY "Admins can manage classes" ON classes FOR ALL USING (
+CREATE POLICY  "Users can view classes" ON classes FOR SELECT USING (true);
+CREATE POLICY  "Admins can manage classes" ON classes FOR ALL USING (
   EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('headmaster', 'school_admin', 'super_admin'))
 );
 
 -- Syllabus policies  
-CREATE POLICY "Users can view syllabus" ON syllabus FOR SELECT USING (true);
-CREATE POLICY "Teachers can manage syllabus" ON syllabus FOR ALL USING (
+CREATE POLICY  "Users can view syllabus" ON syllabus FOR SELECT USING (true);
+CREATE POLICY  "Teachers can manage syllabus" ON syllabus FOR ALL USING (
   EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('headmaster', 'teacher', 'dean_of_studies'))
 );
 
 -- Grades policies
-CREATE POLICY "Users can view grades" ON grades FOR SELECT USING (true);
-CREATE POLICY "Teachers can manage grades" ON grades FOR ALL USING (
+CREATE POLICY  "Users can view grades" ON grades FOR SELECT USING (true);
+CREATE POLICY  "Teachers can manage grades" ON grades FOR ALL USING (
   EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('headmaster', 'teacher', 'dean_of_studies', 'bursar'))
 );
 

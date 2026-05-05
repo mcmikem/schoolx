@@ -24,4 +24,4 @@ END $$;
 -- No RLS needed — this table is only accessed via service role key in API routes.
 -- Ensure service role access only:
 ALTER TABLE rate_limit_log ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "No direct user access" ON rate_limit_log AS RESTRICTIVE TO authenticated USING (false);
+CREATE POLICY  "No direct user access" ON rate_limit_log AS RESTRICTIVE TO authenticated USING (false);

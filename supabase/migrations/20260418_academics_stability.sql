@@ -2,7 +2,7 @@
 -- Aligns lesson planning, syllabus coverage, and course management tables
 
 CREATE TABLE IF NOT EXISTS courses (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     code TEXT NOT NULL,

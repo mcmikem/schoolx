@@ -9,7 +9,7 @@ CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
 
 -- 2. Create password_reset_tokens table
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     token_hash TEXT NOT NULL UNIQUE,
     expires_at TIMESTAMPTZ NOT NULL,
@@ -24,7 +24,7 @@ CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_expires ON password_reset_t
 
 -- 3. Create security_events table
 CREATE TABLE IF NOT EXISTS security_events (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id),
     event_type TEXT NOT NULL CHECK (event_type IN (
         'login_failed', 'login_success', 'logout', 
@@ -47,21 +47,21 @@ ALTER TABLE security_events ENABLE ROW LEVEL SECURITY;
 
 -- Policies for password_reset_tokens (read by owner, insert by authenticated)
 DROP POLICY IF EXISTS "password_reset_tokens_owner" ON password_reset_tokens;
-CREATE POLICY "password_reset_tokens_owner" ON password_reset_tokens
+CREATE POLICY  "password_reset_tokens_owner" ON password_reset_tokens
     FOR SELECT TO authenticated
     USING (user_id IN (SELECT id FROM users WHERE auth_id = auth.uid()));
 
 DROP POLICY IF EXISTS "password_reset_tokens_insert" ON password_reset_tokens;
-CREATE POLICY "password_reset_tokens_insert" ON password_reset_tokens
+CREATE POLICY  "password_reset_tokens_insert" ON password_reset_tokens
     FOR INSERT TO authenticated WITH CHECK (true);
 
 -- Policies for security_events (super_admin sees all, users see own)
 DROP POLICY IF EXISTS "security_events_all" ON security_events;
-CREATE POLICY "security_events_all" ON security_events
+CREATE POLICY  "security_events_all" ON security_events
     FOR SELECT TO authenticated
     USING (auth.uid() IN (SELECT auth_id FROM users WHERE role = 'super_admin')
         OR user_id IN (SELECT id FROM users WHERE auth_id = auth.uid()));
 
 DROP POLICY IF EXISTS "security_events_insert" ON security_events;
-CREATE POLICY "security_events_insert" ON security_events
+CREATE POLICY  "security_events_insert" ON security_events
     FOR INSERT TO authenticated WITH CHECK (true);

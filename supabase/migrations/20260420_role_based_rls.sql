@@ -61,26 +61,26 @@ $$;
 
 -- SELECT: any same-school user (unchanged)
 DROP POLICY IF EXISTS "School users students select" ON students;
-CREATE POLICY "School users students select"
+CREATE POLICY  "School users students select"
 ON students FOR SELECT TO authenticated
 USING (school_id = my_school_id());
 
 -- INSERT: admin roles only (admissions desk)
 DROP POLICY IF EXISTS "School users students insert" ON students;
-CREATE POLICY "School users students insert"
+CREATE POLICY  "School users students insert"
 ON students FOR INSERT TO authenticated
 WITH CHECK (is_school_admin(school_id));
 
 -- UPDATE: admin roles only
 DROP POLICY IF EXISTS "School users students update" ON students;
-CREATE POLICY "School users students update"
+CREATE POLICY  "School users students update"
 ON students FOR UPDATE TO authenticated
 USING (is_school_admin(school_id))
 WITH CHECK (is_school_admin(school_id));
 
 -- DELETE: admin roles only
 DROP POLICY IF EXISTS "School users students delete" ON students;
-CREATE POLICY "School users students delete"
+CREATE POLICY  "School users students delete"
 ON students FOR DELETE TO authenticated
 USING (is_school_admin(school_id));
 
@@ -90,13 +90,13 @@ USING (is_school_admin(school_id));
 
 -- SELECT: any same-school user
 DROP POLICY IF EXISTS "School users classes select" ON classes;
-CREATE POLICY "School users classes select"
+CREATE POLICY  "School users classes select"
 ON classes FOR SELECT TO authenticated
 USING (school_id = my_school_id());
 
 -- WRITE: admin only
 DROP POLICY IF EXISTS "School users classes write" ON classes;
-CREATE POLICY "School users classes write"
+CREATE POLICY  "School users classes write"
 ON classes FOR ALL TO authenticated
 USING (is_school_admin(school_id))
 WITH CHECK (is_school_admin(school_id));
@@ -107,7 +107,7 @@ WITH CHECK (is_school_admin(school_id));
 
 -- SELECT: any same-school user
 DROP POLICY IF EXISTS "School users attendance select" ON attendance;
-CREATE POLICY "School users attendance select"
+CREATE POLICY  "School users attendance select"
 ON attendance FOR SELECT TO authenticated
 USING (
   class_id IN (
@@ -117,7 +117,7 @@ USING (
 
 -- WRITE: teachers and admins (teachers mark attendance)
 DROP POLICY IF EXISTS "School users attendance write" ON attendance;
-CREATE POLICY "School users attendance write"
+CREATE POLICY  "School users attendance write"
 ON attendance FOR ALL TO authenticated
 USING (
   class_id IN (
@@ -138,7 +138,7 @@ WITH CHECK (
 
 -- SELECT: any same-school user
 DROP POLICY IF EXISTS "School users grades select" ON grades;
-CREATE POLICY "School users grades select"
+CREATE POLICY  "School users grades select"
 ON grades FOR SELECT TO authenticated
 USING (
   class_id IN (
@@ -148,7 +148,7 @@ USING (
 
 -- WRITE: teachers and admins (teachers enter marks)
 DROP POLICY IF EXISTS "School users grades write" ON grades;
-CREATE POLICY "School users grades write"
+CREATE POLICY  "School users grades write"
 ON grades FOR ALL TO authenticated
 USING (
   class_id IN (
@@ -175,7 +175,7 @@ BEGIN
     ALTER TABLE fee_payments ENABLE ROW LEVEL SECURITY;
 
     DROP POLICY IF EXISTS "School users fee_payments select" ON fee_payments;
-    CREATE POLICY "School users fee_payments select"
+    CREATE POLICY  "School users fee_payments select"
     ON fee_payments FOR SELECT TO authenticated
     USING (EXISTS (
       SELECT 1 FROM student_fee_terms sft
@@ -185,7 +185,7 @@ BEGIN
     ));
 
     DROP POLICY IF EXISTS "School users fee_payments insert" ON fee_payments;
-    CREATE POLICY "School users fee_payments insert"
+    CREATE POLICY  "School users fee_payments insert"
     ON fee_payments FOR INSERT TO authenticated
     WITH CHECK (EXISTS (
       SELECT 1 FROM student_fee_terms sft
@@ -197,7 +197,7 @@ BEGIN
 
     -- Only admins/bursars can update or delete payment records
     DROP POLICY IF EXISTS "School users fee_payments update" ON fee_payments;
-    CREATE POLICY "School users fee_payments update"
+    CREATE POLICY  "School users fee_payments update"
     ON fee_payments FOR UPDATE TO authenticated
     USING (EXISTS (
       SELECT 1 FROM student_fee_terms sft
@@ -213,7 +213,7 @@ BEGIN
     ));
 
     DROP POLICY IF EXISTS "School users fee_payments delete" ON fee_payments;
-    CREATE POLICY "School users fee_payments delete"
+    CREATE POLICY  "School users fee_payments delete"
     ON fee_payments FOR DELETE TO authenticated
     USING (EXISTS (
       SELECT 1 FROM student_fee_terms sft
@@ -236,12 +236,12 @@ BEGIN
     ALTER TABLE fee_structure ENABLE ROW LEVEL SECURITY;
 
     DROP POLICY IF EXISTS "School users fee_structure select" ON fee_structure;
-    CREATE POLICY "School users fee_structure select"
+    CREATE POLICY  "School users fee_structure select"
     ON fee_structure FOR SELECT TO authenticated
     USING (school_id = my_school_id());
 
     DROP POLICY IF EXISTS "School users fee_structure write" ON fee_structure;
-    CREATE POLICY "School users fee_structure write"
+    CREATE POLICY  "School users fee_structure write"
     ON fee_structure FOR ALL TO authenticated
     USING (is_school_admin(school_id))
     WITH CHECK (is_school_admin(school_id));
@@ -260,12 +260,12 @@ BEGIN
     ALTER TABLE subjects ENABLE ROW LEVEL SECURITY;
 
     DROP POLICY IF EXISTS "Global subjects readable" ON subjects;
-    CREATE POLICY "Global subjects readable"
+    CREATE POLICY  "Global subjects readable"
     ON subjects FOR SELECT TO authenticated
     USING (school_id IS NULL OR school_id = my_school_id());
 
     DROP POLICY IF EXISTS "School subjects write" ON subjects;
-    CREATE POLICY "School subjects write"
+    CREATE POLICY  "School subjects write"
     ON subjects FOR ALL TO authenticated
     USING (school_id IS NOT NULL AND is_school_admin(school_id))
     WITH CHECK (school_id IS NOT NULL AND is_school_admin(school_id));

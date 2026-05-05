@@ -29,12 +29,12 @@ ALTER TABLE suggestions ENABLE ROW LEVEL SECURITY;
 
 -- 6. Create RLS policy for viewing
 DROP POLICY IF EXISTS "suggestions_select_policy" ON suggestions;
-CREATE POLICY "suggestions_select_policy" ON suggestions
+CREATE POLICY  "suggestions_select_policy" ON suggestions
   FOR SELECT USING (school_id IN (SELECT school_id FROM auth.users WHERE id = auth.uid()));
 
 -- 7. Create RLS policy for inserting
 DROP POLICY IF EXISTS "suggestions_insert_policy" ON suggestions;
-CREATE POLICY "suggestions_insert_policy" ON suggestions
+CREATE POLICY  "suggestions_insert_policy" ON suggestions
   FOR INSERT WITH CHECK (school_id IN (SELECT school_id FROM auth.users WHERE id = auth.uid()));
 
 -- 8. Create index

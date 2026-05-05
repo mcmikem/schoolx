@@ -21,7 +21,7 @@ ALTER TABLE schools ADD COLUMN IF NOT EXISTS on_premise BOOLEAN DEFAULT FALSE;
 
 -- 2. Create feature flags table to track what's enabled per plan
 CREATE TABLE IF NOT EXISTS plan_features (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     plan TEXT NOT NULL CHECK (plan IN ('starter', 'growth', 'enterprise', 'lifetime')),
     feature_key TEXT NOT NULL,
     feature_name TEXT NOT NULL,
@@ -125,7 +125,7 @@ INSERT INTO plan_features (plan, feature_key, feature_name, included, limit_valu
 
 -- 3. Create subscription payments history table
 CREATE TABLE IF NOT EXISTS subscription_history (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     plan TEXT NOT NULL CHECK (plan IN ('starter', 'growth', 'enterprise', 'lifetime')),
     amount_paid INTEGER NOT NULL,
@@ -216,10 +216,10 @@ CREATE INDEX IF NOT EXISTS idx_subscription_history_status ON subscription_histo
 ALTER TABLE plan_features ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscription_history ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Schools can view own plan features" ON plan_features
+CREATE POLICY  "Schools can view own plan features" ON plan_features
     FOR SELECT USING (TRUE);
     
-CREATE POLICY "Schools can view own subscription history" ON subscription_history
+CREATE POLICY  "Schools can view own subscription history" ON subscription_history
     FOR SELECT USING (school_id = (SELECT school_id FROM users WHERE auth_id = auth.uid()) OR role = 'super_admin');
 
 -- ============================================

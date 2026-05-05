@@ -4,12 +4,12 @@
 -- and manual topic adds to silently fail for all authenticated users.
 
 DROP POLICY IF EXISTS "syllabus_insert" ON public.syllabus;
-CREATE POLICY "syllabus_insert" ON public.syllabus
+CREATE POLICY  "syllabus_insert" ON public.syllabus
   FOR INSERT
   WITH CHECK (school_id = my_school_id());
 
 DROP POLICY IF EXISTS "topic_coverage_insert" ON public.topic_coverage;
-CREATE POLICY "topic_coverage_insert" ON public.topic_coverage
+CREATE POLICY  "topic_coverage_insert" ON public.topic_coverage
   FOR INSERT
   WITH CHECK (
     class_id IN (

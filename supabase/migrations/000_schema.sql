@@ -11,7 +11,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- 1. SCHOOLS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS schools (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     school_code TEXT UNIQUE NOT NULL,
     district TEXT NOT NULL,
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS schools (
 -- 2. USERS TABLE (All user types)
 -- ============================================
 CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     auth_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     full_name TEXT NOT NULL,
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- 3. ACADEMIC YEARS
 -- ============================================
 CREATE TABLE IF NOT EXISTS academic_years (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     year TEXT NOT NULL, -- e.g. "2026"
     is_current BOOLEAN DEFAULT false,
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS academic_years (
 -- 4. TERMS
 -- ============================================
 CREATE TABLE IF NOT EXISTS terms (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     academic_year_id UUID REFERENCES academic_years(id) ON DELETE CASCADE,
     term_number INTEGER CHECK (term_number IN (1, 2, 3)) NOT NULL,
@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS terms (
 -- 5. CLASSES (e.g. P.5A, S.2B)
 -- ============================================
 CREATE TABLE IF NOT EXISTS classes (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     name TEXT NOT NULL, -- e.g. "P.5A", "S.2B"
     level TEXT NOT NULL, -- e.g. "P.5", "S.2"
@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS classes (
 -- 6. SUBJECTS
 -- ============================================
 CREATE TABLE IF NOT EXISTS subjects (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     code TEXT NOT NULL,
@@ -136,7 +136,7 @@ INSERT INTO subjects (school_id, name, code, level, is_compulsory) VALUES
 -- 7. STUDENTS
 -- ============================================
 CREATE TABLE IF NOT EXISTS students (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id),
     student_number TEXT NOT NULL,
@@ -162,7 +162,7 @@ CREATE TABLE IF NOT EXISTS students (
 -- 8. TEACHER SUBJECTS (Teacher-Subject assignments)
 -- ============================================
 CREATE TABLE IF NOT EXISTS teacher_subjects (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     teacher_id UUID REFERENCES users(id) ON DELETE CASCADE,
     subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
     class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
@@ -173,7 +173,7 @@ CREATE TABLE IF NOT EXISTS teacher_subjects (
 -- 9. ATTENDANCE
 -- ============================================
 CREATE TABLE IF NOT EXISTS attendance (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
     class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
     date DATE NOT NULL,
@@ -188,7 +188,7 @@ CREATE TABLE IF NOT EXISTS attendance (
 -- 10. GRADES (Continuous Assessment & Exams)
 -- ============================================
 CREATE TABLE IF NOT EXISTS grades (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
     subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
     class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
@@ -210,7 +210,7 @@ CREATE TABLE IF NOT EXISTS grades (
 -- 11. FEE STRUCTURE
 -- ============================================
 CREATE TABLE IF NOT EXISTS fee_structure (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
     name TEXT NOT NULL, -- e.g. "Tuition", "Development", "Exam Fee"
@@ -226,7 +226,7 @@ CREATE TABLE IF NOT EXISTS fee_structure (
 -- 12. FEE PAYMENTS
 -- ============================================
 CREATE TABLE IF NOT EXISTS fee_payments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
     fee_id UUID REFERENCES fee_structure(id) ON DELETE CASCADE,
     amount_paid NUMERIC(12,2) NOT NULL,
@@ -243,7 +243,7 @@ CREATE TABLE IF NOT EXISTS fee_payments (
 -- 13. EVENTS / CALENDAR
 -- ============================================
 CREATE TABLE IF NOT EXISTS events (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     description TEXT,
@@ -258,7 +258,7 @@ CREATE TABLE IF NOT EXISTS events (
 -- 14. MESSAGES (SMS Log)
 -- ============================================
 CREATE TABLE IF NOT EXISTS messages (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     recipient_type TEXT CHECK (recipient_type IN ('individual', 'class', 'all')) NOT NULL,
     recipient_id UUID, -- student_id or class_id
@@ -274,7 +274,7 @@ CREATE TABLE IF NOT EXISTS messages (
 -- 16. SCHOOL SETTINGS
 -- ============================================
 CREATE TABLE IF NOT EXISTS school_settings (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     key TEXT NOT NULL,
     value TEXT,
@@ -286,7 +286,7 @@ CREATE TABLE IF NOT EXISTS school_settings (
 -- 18. AUDIT LOG
 -- ============================================
 CREATE TABLE IF NOT EXISTS audit_log (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id),
     user_name TEXT,
@@ -309,7 +309,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at DESC);
 -- 17. PARENT-STUDENT LINK
 -- ============================================
 CREATE TABLE IF NOT EXISTS parent_students (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     parent_id UUID REFERENCES users(id) ON DELETE CASCADE,
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
     relationship TEXT DEFAULT 'parent',
@@ -339,7 +339,7 @@ ALTER TABLE "parent_students" ENABLE ROW LEVEL SECURITY;
 
 -- Super Admin can see everything
 DROP POLICY IF EXISTS "Super admin full access" ON "schools";
-CREATE POLICY "Super admin full access"
+CREATE POLICY  "Super admin full access"
 ON "schools"
 FOR ALL
 TO authenticated
@@ -358,7 +358,7 @@ USING (
 
 -- SELECT
 DROP POLICY IF EXISTS "School users students select" ON "students";
-CREATE POLICY "School users students select"
+CREATE POLICY  "School users students select"
 ON "students"
 FOR SELECT
 TO authenticated
@@ -372,7 +372,7 @@ USING (
 
 -- INSERT (create students too)
 DROP POLICY IF EXISTS "School users students insert" ON "students";
-CREATE POLICY "School users students insert"
+CREATE POLICY  "School users students insert"
 ON "students"
 FOR INSERT
 TO authenticated
@@ -386,7 +386,7 @@ WITH CHECK (
 
 -- UPDATE
 DROP POLICY IF EXISTS "School users students update" ON "students";
-CREATE POLICY "School users students update"
+CREATE POLICY  "School users students update"
 ON "students"
 FOR UPDATE
 TO authenticated
@@ -407,7 +407,7 @@ WITH CHECK (
 
 -- DELETE
 DROP POLICY IF EXISTS "School users students delete" ON "students";
-CREATE POLICY "School users students delete"
+CREATE POLICY  "School users students delete"
 ON "students"
 FOR DELETE
 TO authenticated
@@ -424,7 +424,7 @@ USING (
 -- =========================
 
 DROP POLICY IF EXISTS "School users classes select" ON "classes";
-CREATE POLICY "School users classes select"
+CREATE POLICY  "School users classes select"
 ON "classes"
 FOR SELECT
 TO authenticated
@@ -437,7 +437,7 @@ USING (
 );
 
 DROP POLICY IF EXISTS "School users classes write" ON "classes";
-CREATE POLICY "School users classes write"
+CREATE POLICY  "School users classes write"
 ON "classes"
 FOR ALL
 TO authenticated
@@ -461,7 +461,7 @@ WITH CHECK (
 -- =========================
 
 DROP POLICY IF EXISTS "School users attendance select" ON "attendance";
-CREATE POLICY "School users attendance select"
+CREATE POLICY  "School users attendance select"
 ON "attendance"
 FOR SELECT
 TO authenticated
@@ -478,7 +478,7 @@ USING (
 );
 
 DROP POLICY IF EXISTS "School users attendance write" ON "attendance";
-CREATE POLICY "School users attendance write"
+CREATE POLICY  "School users attendance write"
 ON "attendance"
 FOR ALL
 TO authenticated
@@ -510,7 +510,7 @@ WITH CHECK (
 -- =========================
 
 DROP POLICY IF EXISTS "School users grades select" ON "grades";
-CREATE POLICY "School users grades select"
+CREATE POLICY  "School users grades select"
 ON "grades"
 FOR SELECT
 TO authenticated
@@ -527,7 +527,7 @@ USING (
 );
 
 DROP POLICY IF EXISTS "School users grades write" ON "grades";
-CREATE POLICY "School users grades write"
+CREATE POLICY  "School users grades write"
 ON "grades"
 FOR ALL
 TO authenticated
@@ -638,28 +638,28 @@ VALUES (
 
 -- Create policy for authenticated users to upload school logos
 DROP POLICY IF EXISTS "Allow authenticated users to upload school logos" ON storage.objects;
-CREATE POLICY "Allow authenticated users to upload school logos"
+CREATE POLICY  "Allow authenticated users to upload school logos"
 ON storage.objects FOR INSERT
 TO authenticated
 WITH CHECK (bucket_id = 'school-logos');
 
 -- Create policy for authenticated users to update school logos
 DROP POLICY IF EXISTS "Allow authenticated users to update school logos" ON storage.objects;
-CREATE POLICY "Allow authenticated users to update school logos"
+CREATE POLICY  "Allow authenticated users to update school logos"
 ON storage.objects FOR UPDATE
 TO authenticated
 USING (bucket_id = 'school-logos');
 
 -- Create policy for anyone to view school logos (for receipt printing)
 DROP POLICY IF EXISTS "Allow public to view school logos" ON storage.objects;
-CREATE POLICY "Allow public to view school logos"
+CREATE POLICY  "Allow public to view school logos"
 ON storage.objects FOR SELECT
 TO public
 USING (bucket_id = 'school-logos');
 
 -- Create policy for authenticated users to delete school logos
 DROP POLICY IF EXISTS "Authenticated can delete school logos" ON storage.objects;
-CREATE POLICY "Authenticated can delete school logos"
+CREATE POLICY  "Authenticated can delete school logos"
 ON storage.objects FOR DELETE
 TO authenticated
 USING (bucket_id = 'school-logos');
@@ -669,7 +669,7 @@ USING (bucket_id = 'school-logos');
 -- ============================================
 
 CREATE TABLE IF NOT EXISTS dorms (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     type TEXT CHECK (type IN ('boys', 'girls')) NOT NULL,
@@ -679,7 +679,7 @@ CREATE TABLE IF NOT EXISTS dorms (
 );
 
 CREATE TABLE IF NOT EXISTS dorm_students (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     dorm_id UUID NOT NULL REFERENCES dorms(id) ON DELETE CASCADE,
     student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     bed_number TEXT,
@@ -691,7 +691,7 @@ CREATE TABLE IF NOT EXISTS dorm_students (
 -- HOMEWORK TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS homework (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     description TEXT,
@@ -707,7 +707,7 @@ CREATE TABLE IF NOT EXISTS homework (
 
 -- Homework submissions
 CREATE TABLE IF NOT EXISTS homework_submissions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     homework_id UUID NOT NULL REFERENCES homework(id) ON DELETE CASCADE,
     student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     submitted_at TIMESTAMPTZ DEFAULT NOW(),
@@ -720,7 +720,7 @@ CREATE TABLE IF NOT EXISTS homework_submissions (
 -- SYLLABUS / SCHEME OF WORK
 -- ============================================
 CREATE TABLE IF NOT EXISTS syllabus (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
     subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
     class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
@@ -737,7 +737,7 @@ CREATE TABLE IF NOT EXISTS syllabus (
 
 -- Topic coverage tracking
 CREATE TABLE IF NOT EXISTS topic_coverage (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     syllabus_id UUID NOT NULL REFERENCES syllabus(id) ON DELETE CASCADE,
     class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
     teacher_id UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -749,7 +749,7 @@ CREATE TABLE IF NOT EXISTS topic_coverage (
 
 -- Lesson Plans
 CREATE TABLE IF NOT EXISTS lesson_plans (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
     subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
     class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
@@ -770,7 +770,7 @@ CREATE TABLE IF NOT EXISTS lesson_plans (
 -- NOTICES TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS notices (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     content TEXT,
@@ -787,7 +787,7 @@ CREATE TABLE IF NOT EXISTS notices (
 -- RLS for notices
 ALTER TABLE notices ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users notices all" ON notices;
-CREATE POLICY "School users notices all" ON notices FOR ALL TO authenticated USING (
+CREATE POLICY  "School users notices all" ON notices FOR ALL TO authenticated USING (
   EXISTS (
     SELECT 1 FROM users
     WHERE users.auth_id = auth.uid()
@@ -802,7 +802,7 @@ ALTER TABLE notices ADD COLUMN IF NOT EXISTS image_url TEXT;
 -- EXAMS TABLE (For Secondary Schools)
 -- ============================================
 CREATE TABLE IF NOT EXISTS exams (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     exam_type TEXT CHECK (exam_type IN ('class_test', 'bot', 'mid_term', 'saturday', 'eot', 'mock')) NOT NULL,
@@ -821,7 +821,7 @@ CREATE TABLE IF NOT EXISTS exams (
 -- EXAM SCORES TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS exam_scores (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
     class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
@@ -840,7 +840,7 @@ CREATE TABLE IF NOT EXISTS exam_scores (
 -- DORMS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS dorms (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     type TEXT CHECK (type IN ('boys', 'girls')) NOT NULL,
@@ -854,7 +854,7 @@ CREATE TABLE IF NOT EXISTS dorms (
 -- DORM STUDENTS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS dorm_students (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     dorm_id UUID NOT NULL REFERENCES dorms(id) ON DELETE CASCADE,
     student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     bed_number TEXT,
@@ -867,7 +867,7 @@ CREATE TABLE IF NOT EXISTS dorm_students (
 -- LIBRARY BOOKS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS library_books (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
     isbn TEXT,
     title TEXT NOT NULL,
@@ -886,7 +886,7 @@ CREATE TABLE IF NOT EXISTS library_books (
 -- ============================================
 DROP TABLE IF EXISTS library_checkouts;
 CREATE TABLE library_checkouts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     book_id UUID NOT NULL REFERENCES library_books(id) ON DELETE CASCADE,
     student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
@@ -901,7 +901,7 @@ CREATE TABLE library_checkouts (
 -- STAFF ATTENDANCE TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS staff_attendance (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     staff_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     date DATE NOT NULL,
     status TEXT CHECK (status IN ('present', 'absent', 'late', 'leave')) DEFAULT 'present',
@@ -916,7 +916,7 @@ CREATE TABLE IF NOT EXISTS staff_attendance (
 -- RLS for staff_attendance
 ALTER TABLE staff_attendance ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users staff_attendance all" ON staff_attendance;
-CREATE POLICY "School users staff_attendance all" ON staff_attendance FOR ALL TO authenticated USING (
+CREATE POLICY  "School users staff_attendance all" ON staff_attendance FOR ALL TO authenticated USING (
   EXISTS (
     SELECT 1 FROM users
     WHERE users.auth_id = auth.uid()
@@ -928,7 +928,7 @@ CREATE POLICY "School users staff_attendance all" ON staff_attendance FOR ALL TO
 -- LEAVE REQUESTS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS leave_requests (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     staff_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     leave_type TEXT CHECK (leave_type IN ('sick', 'personal', 'bereavement', 'maternity', 'paternity', 'study', 'annual', 'unpaid', 'other')) NOT NULL,
@@ -947,7 +947,7 @@ CREATE TABLE IF NOT EXISTS leave_requests (
 -- SUBJECT ALLOCATIONS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS subject_allocations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     teacher_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
     class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
@@ -962,7 +962,7 @@ CREATE TABLE IF NOT EXISTS subject_allocations (
 -- STUDENT HEALTH RECORDS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS health_records (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     blood_type TEXT,
     allergies TEXT,
@@ -979,7 +979,7 @@ CREATE TABLE IF NOT EXISTS health_records (
 -- HEALTH VISITS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS health_visits (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     visit_date DATE NOT NULL,
     complaint TEXT,
@@ -993,7 +993,7 @@ CREATE TABLE IF NOT EXISTS health_visits (
 -- INVENTORY/ASSETS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS assets (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     category TEXT CHECK (category IN ('furniture', 'electronics', 'textbooks', 'equipment', 'vehicle', 'building', 'other')) NOT NULL,
@@ -1013,7 +1013,7 @@ CREATE TABLE IF NOT EXISTS assets (
 -- ASSET ASSIGNMENTS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS asset_assignments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     asset_id UUID NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
     assigned_to_type TEXT CHECK (assigned_to_type IN ('class', 'staff', 'student')) NOT NULL,
     assigned_to_id UUID NOT NULL,
@@ -1028,7 +1028,7 @@ CREATE TABLE IF NOT EXISTS asset_assignments (
 -- TRANSPORT/BUSES TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS transport_routes (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
     route_name TEXT NOT NULL,
     vehicle_number TEXT,
@@ -1043,7 +1043,7 @@ CREATE TABLE IF NOT EXISTS transport_routes (
 -- TRANSPORT STUDENTS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS transport_students (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     route_id UUID NOT NULL REFERENCES transport_routes(id) ON DELETE CASCADE,
     pickup_point TEXT,
@@ -1057,7 +1057,7 @@ CREATE TABLE IF NOT EXISTS transport_students (
 -- BUDGET & EXPENSES TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS budgets (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
     name TEXT NOT NULL, -- e.g., "Term 1 2026"
     academic_year TEXT NOT NULL,
@@ -1069,7 +1069,7 @@ CREATE TABLE IF NOT EXISTS budgets (
 );
 
 CREATE TABLE IF NOT EXISTS expenses (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
     budget_id UUID REFERENCES budgets(id) ON DELETE SET NULL,
     category TEXT CHECK (category IN ('salaries', 'utilities', 'maintenance', 'supplies', 'transport', 'events', 'other')) NOT NULL,
@@ -1088,7 +1088,7 @@ CREATE TABLE IF NOT EXISTS expenses (
 -- STUDENT BEHAVIOR LOG TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS behavior_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     date DATE NOT NULL,
     incident_type TEXT CHECK (incident_type IN ('positive', 'negative', 'neutral')) NOT NULL,
@@ -1104,7 +1104,7 @@ CREATE TABLE IF NOT EXISTS behavior_logs (
 -- LESSON PLANS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS lesson_plans (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
     teacher_id UUID REFERENCES users(id) ON DELETE SET NULL,
     subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
@@ -1129,7 +1129,7 @@ CREATE TABLE IF NOT EXISTS lesson_plans (
 -- SCHEME OF WORK TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS scheme_of_work (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
     subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
     class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
@@ -1150,7 +1150,7 @@ CREATE TABLE IF NOT EXISTS scheme_of_work (
 -- TEACHER TIMETABLE TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS teacher_timetable (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     teacher_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
     subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
@@ -1167,7 +1167,7 @@ CREATE TABLE IF NOT EXISTS teacher_timetable (
 -- DORM ATTENDANCE TABLE (Nightly Attendance)
 -- ============================================
 CREATE TABLE IF NOT EXISTS dorm_attendance (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     dorm_id UUID REFERENCES dorms(id) ON DELETE CASCADE,
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
@@ -1184,7 +1184,7 @@ CREATE TABLE IF NOT EXISTS dorm_attendance (
 -- HOMEWORK SUBMISSIONS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS homework_submissions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     homework_id UUID REFERENCES homework(id) ON DELETE CASCADE,
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
@@ -1200,7 +1200,7 @@ CREATE TABLE IF NOT EXISTS homework_submissions (
 -- UNEB CANDIDATES TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS uneb_candidates (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
     exam_type TEXT CHECK (exam_type IN ('PLE', 'UCE', 'UACE')) NOT NULL,
@@ -1217,7 +1217,7 @@ CREATE TABLE IF NOT EXISTS uneb_candidates (
 -- STUDENT PROMOTIONS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS student_promotions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
     from_class_id UUID REFERENCES classes(id) ON DELETE SET NULL,
@@ -1233,7 +1233,7 @@ CREATE TABLE IF NOT EXISTS student_promotions (
 -- PAYMENT PLANS TABLE (EMI)
 -- ============================================
 CREATE TABLE IF NOT EXISTS payment_plans (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
     total_amount INTEGER NOT NULL,
@@ -1248,7 +1248,7 @@ CREATE TABLE IF NOT EXISTS payment_plans (
 -- PAYMENT PLAN INSTALLMENTS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS payment_plan_installments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     plan_id UUID REFERENCES payment_plans(id) ON DELETE CASCADE,
     due_date DATE NOT NULL,
     amount INTEGER NOT NULL,
@@ -1261,7 +1261,7 @@ CREATE TABLE IF NOT EXISTS payment_plan_installments (
 -- SMS TEMPLATES TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS sms_templates (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     category TEXT NOT NULL, -- fee_reminder, attendance, exam, general
@@ -1275,7 +1275,7 @@ CREATE TABLE IF NOT EXISTS sms_templates (
 -- LEAVE APPROVAL WORKFLOW TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS leave_approvals (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     leave_request_id UUID REFERENCES leave_requests(id) ON DELETE CASCADE,
     approver_id UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -1289,7 +1289,7 @@ CREATE TABLE IF NOT EXISTS leave_approvals (
 -- EXPENSE APPROVAL TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS expense_approvals (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     expense_id UUID REFERENCES expenses(id) ON DELETE CASCADE,
     approver_id UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -1303,7 +1303,7 @@ CREATE TABLE IF NOT EXISTS expense_approvals (
 -- SUBSCRIPTION PAYMENTS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS subscription_payments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE NOT NULL,
     plan TEXT CHECK (plan IN ('free_trial', 'starter', 'growth', 'enterprise', 'lifetime')) NOT NULL,
     amount NUMERIC(12,2) NOT NULL,
@@ -1329,7 +1329,7 @@ CREATE INDEX IF NOT EXISTS idx_subscription_payments_transaction ON subscription
 -- PAYMENT HISTORY TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS payment_history (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE NOT NULL,
     payment_id UUID REFERENCES subscription_payments(id) ON DELETE SET NULL,
     action TEXT NOT NULL,
@@ -1345,7 +1345,7 @@ CREATE INDEX IF NOT EXISTS idx_payment_history_payment ON payment_history(paymen
 -- MOBILE MONEY PENDING PAYMENTS
 -- ============================================
 CREATE TABLE IF NOT EXISTS pending_mobile_payments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE NOT NULL,
     plan TEXT NOT NULL,
     amount NUMERIC(12,2) NOT NULL,
@@ -1366,17 +1366,17 @@ ALTER TABLE payment_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pending_mobile_payments ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "School users subscription payments all" ON subscription_payments;
-CREATE POLICY "School users subscription payments all" ON subscription_payments FOR ALL TO authenticated USING (
+CREATE POLICY  "School users subscription payments all" ON subscription_payments FOR ALL TO authenticated USING (
   school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid())
 );
 
 DROP POLICY IF EXISTS "School users payment history all" ON payment_history;
-CREATE POLICY "School users payment history all" ON payment_history FOR ALL TO authenticated USING (
+CREATE POLICY  "School users payment history all" ON payment_history FOR ALL TO authenticated USING (
   school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid())
 );
 
 DROP POLICY IF EXISTS "School users pending mobile payments all" ON pending_mobile_payments;
-CREATE POLICY "School users pending mobile payments all" ON pending_mobile_payments FOR ALL TO authenticated USING (
+CREATE POLICY  "School users pending mobile payments all" ON pending_mobile_payments FOR ALL TO authenticated USING (
   school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid())
 );
 
@@ -1386,7 +1386,7 @@ CREATE POLICY "School users pending mobile payments all" ON pending_mobile_payme
 
 -- 1. BUDGET ITEMS (Persistence for Budgeting Module)
 CREATE TABLE IF NOT EXISTS budget_items (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     category TEXT NOT NULL,
     type TEXT CHECK (type IN ('income', 'expense')) NOT NULL,
@@ -1400,7 +1400,7 @@ CREATE TABLE IF NOT EXISTS budget_items (
 
 -- 2. PAYROLL HISTORY (Tracking processed salaries)
 CREATE TABLE IF NOT EXISTS payroll_history (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     staff_id UUID REFERENCES users(id) ON DELETE CASCADE,
     month TEXT NOT NULL, -- e.g. "April 2026"
@@ -1419,7 +1419,7 @@ CREATE TABLE IF NOT EXISTS payroll_history (
 -- 3. LIBRARY BOOKS (Real persistence for Library)
 -- Note: Re-stating or fixing based on previous verification
 CREATE TABLE IF NOT EXISTS library_books (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     isbn TEXT,
     title TEXT NOT NULL,
@@ -1439,7 +1439,7 @@ ALTER TABLE payroll_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE library_books ENABLE ROW LEVEL SECURITY;
 ALTER TABLE library_checkouts ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "School users budget_items all" ON budget_items FOR ALL TO authenticated USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
-CREATE POLICY "School users payroll_history all" ON payroll_history FOR ALL TO authenticated USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
-CREATE POLICY "School users library_books all" ON library_books FOR ALL TO authenticated USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
--- CREATE POLICY "School users library_checkouts all" ON library_checkouts FOR ALL TO authenticated USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
+CREATE POLICY  "School users budget_items all" ON budget_items FOR ALL TO authenticated USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
+CREATE POLICY  "School users payroll_history all" ON payroll_history FOR ALL TO authenticated USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
+CREATE POLICY  "School users library_books all" ON library_books FOR ALL TO authenticated USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));
+-- CREATE POLICY  "School users library_checkouts all" ON library_checkouts FOR ALL TO authenticated USING (school_id IN (SELECT school_id FROM users WHERE auth_id = auth.uid()));

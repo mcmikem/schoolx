@@ -6,7 +6,7 @@
 -- SMS TRIGGERS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS sms_triggers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     name TEXT NOT NULL, -- e.g. "Fee Reminder", "Absentee Alert"
     event_type TEXT CHECK (event_type IN ('fee_overdue', 'student_absent', 'staff_absent', 'exam_results')) NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS sms_triggers (
 -- AUTOMATED MESSAGE LOGS
 -- ============================================
 CREATE TABLE IF NOT EXISTS automated_message_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     trigger_id UUID REFERENCES sms_triggers(id) ON DELETE CASCADE,
     recipient_id UUID REFERENCES users(id),

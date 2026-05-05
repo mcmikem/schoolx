@@ -6,7 +6,7 @@
 -- DORM ROOMS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS dorm_rooms (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     dorm_id UUID REFERENCES dorms(id) ON DELETE CASCADE,
     room_number TEXT NOT NULL,
     capacity INTEGER DEFAULT 4,
@@ -21,7 +21,7 @@ ALTER TABLE dorm_students ADD COLUMN IF NOT EXISTS room_id UUID REFERENCES dorm_
 -- DORM INCIDENTS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS dorm_incidents (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
     dorm_id UUID REFERENCES dorms(id) ON DELETE CASCADE,
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS dorm_incidents (
 -- TRANSPORT VEHICLE LOGS
 -- ============================================
 CREATE TABLE IF NOT EXISTS transport_vehicle_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     route_id UUID REFERENCES transport_routes(id) ON DELETE CASCADE,
     log_type TEXT CHECK (log_type IN ('fuel', 'maintenance', 'incident', 'mileage')) NOT NULL,
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS transport_vehicle_logs (
 -- TRANSPORT ROUTE STOPS
 -- ============================================
 CREATE TABLE IF NOT EXISTS transport_stops (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     route_id UUID REFERENCES transport_routes(id) ON DELETE CASCADE,
     stop_name TEXT NOT NULL,
     pickup_time TIME,

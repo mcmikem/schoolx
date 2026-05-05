@@ -18,11 +18,11 @@ CREATE INDEX IF NOT EXISTS idx_otps_expires ON public.otps (expires_at);
 -- RLS: anyone can insert (request OTP), but only service role can read
 ALTER TABLE public.otps ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Anyone can request OTP"
+CREATE POLICY  "Anyone can request OTP"
   ON public.otps FOR INSERT
   WITH CHECK (true);
 
-CREATE POLICY "Service role can manage OTPs"
+CREATE POLICY  "Service role can manage OTPs"
   ON public.otps FOR ALL
   USING (auth.role() = 'service_role');
 

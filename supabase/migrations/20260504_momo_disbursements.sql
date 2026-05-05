@@ -20,7 +20,7 @@ CREATE INDEX idx_momo_disbursements_status ON momo_disbursements(status);
 
 ALTER TABLE momo_disbursements ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "School admins can manage disbursements" ON momo_disbursements
+CREATE POLICY  "School admins can manage disbursements" ON momo_disbursements
   FOR ALL USING (
     EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('school_admin', 'admin', 'headmaster', 'bursar'))
   );

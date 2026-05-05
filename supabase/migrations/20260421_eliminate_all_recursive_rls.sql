@@ -20,19 +20,19 @@
 --        (SELECT users.school_id FROM users WHERE users.auth_id = auth.uid()))
 -- New: class_id IN (SELECT id FROM classes WHERE school_id = my_school_id())
 DROP POLICY IF EXISTS "School users access own school attendance" ON public.attendance;
-CREATE POLICY "School users access own school attendance" ON public.attendance
+CREATE POLICY  "School users access own school attendance" ON public.attendance
   FOR ALL
   USING (class_id IN (SELECT id FROM classes WHERE school_id = my_school_id()));
 
 -- ─── classes ──────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "School users access own school classes" ON public.classes;
-CREATE POLICY "School users access own school classes" ON public.classes
+CREATE POLICY  "School users access own school classes" ON public.classes
   FOR ALL
   USING (school_id = my_school_id());
 
 -- ─── fee_payments ─────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "fee_payments_select" ON public.fee_payments;
-CREATE POLICY "fee_payments_select" ON public.fee_payments
+CREATE POLICY  "fee_payments_select" ON public.fee_payments
   FOR SELECT
   USING (
     auth.role() = 'service_role'
@@ -45,7 +45,7 @@ CREATE POLICY "fee_payments_select" ON public.fee_payments
   );
 
 DROP POLICY IF EXISTS "fee_payments_update" ON public.fee_payments;
-CREATE POLICY "fee_payments_update" ON public.fee_payments
+CREATE POLICY  "fee_payments_update" ON public.fee_payments
   FOR UPDATE
   USING (
     auth.role() = 'service_role'
@@ -59,7 +59,7 @@ CREATE POLICY "fee_payments_update" ON public.fee_payments
 
 -- ─── fee_term_lines ───────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "fee_term_lines_select" ON public.fee_term_lines;
-CREATE POLICY "fee_term_lines_select" ON public.fee_term_lines
+CREATE POLICY  "fee_term_lines_select" ON public.fee_term_lines
   FOR SELECT
   USING (
     auth.role() = 'service_role'
@@ -67,7 +67,7 @@ CREATE POLICY "fee_term_lines_select" ON public.fee_term_lines
   );
 
 DROP POLICY IF EXISTS "fee_term_lines_update" ON public.fee_term_lines;
-CREATE POLICY "fee_term_lines_update" ON public.fee_term_lines
+CREATE POLICY  "fee_term_lines_update" ON public.fee_term_lines
   FOR UPDATE
   USING (
     auth.role() = 'service_role'
@@ -76,35 +76,35 @@ CREATE POLICY "fee_term_lines_update" ON public.fee_term_lines
 
 -- ─── fee_terms ────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "fee_terms_select" ON public.fee_terms;
-CREATE POLICY "fee_terms_select" ON public.fee_terms
+CREATE POLICY  "fee_terms_select" ON public.fee_terms
   FOR SELECT
   USING (auth.role() = 'service_role' OR school_id = my_school_id());
 
 DROP POLICY IF EXISTS "fee_terms_update" ON public.fee_terms;
-CREATE POLICY "fee_terms_update" ON public.fee_terms
+CREATE POLICY  "fee_terms_update" ON public.fee_terms
   FOR UPDATE
   USING (auth.role() = 'service_role' OR school_id = my_school_id());
 
 -- ─── grades ───────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "School users access own school grades" ON public.grades;
-CREATE POLICY "School users access own school grades" ON public.grades
+CREATE POLICY  "School users access own school grades" ON public.grades
   FOR ALL
   USING (class_id IN (SELECT id FROM classes WHERE school_id = my_school_id()));
 
 -- ─── notices ──────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "School users notices all" ON public.notices;
-CREATE POLICY "School users notices all" ON public.notices
+CREATE POLICY  "School users notices all" ON public.notices
   FOR ALL
   USING (school_id = my_school_id());
 
 -- ─── school_settings ──────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "School users view school settings" ON public.school_settings;
-CREATE POLICY "School users view school settings" ON public.school_settings
+CREATE POLICY  "School users view school settings" ON public.school_settings
   FOR SELECT
   USING (school_id = my_school_id());
 
 DROP POLICY IF EXISTS "School users manage school settings" ON public.school_settings;
-CREATE POLICY "School users manage school settings" ON public.school_settings
+CREATE POLICY  "School users manage school settings" ON public.school_settings
   FOR ALL
   USING (school_id = my_school_id());
 
@@ -113,17 +113,17 @@ CREATE POLICY "School users manage school settings" ON public.school_settings
 -- (public.users.id vs auth.uid() which matches public.users.auth_id).
 -- This meant no user could ever match — effectively blocking all access.
 DROP POLICY IF EXISTS "school_workflows_select" ON public.school_workflows;
-CREATE POLICY "school_workflows_select" ON public.school_workflows
+CREATE POLICY  "school_workflows_select" ON public.school_workflows
   FOR SELECT
   USING (school_id = my_school_id());
 
 DROP POLICY IF EXISTS "school_workflows_update" ON public.school_workflows;
-CREATE POLICY "school_workflows_update" ON public.school_workflows
+CREATE POLICY  "school_workflows_update" ON public.school_workflows
   FOR UPDATE
   USING (school_id = my_school_id() AND is_school_admin(my_school_id()));
 
 DROP POLICY IF EXISTS "school_workflows_delete" ON public.school_workflows;
-CREATE POLICY "school_workflows_delete" ON public.school_workflows
+CREATE POLICY  "school_workflows_delete" ON public.school_workflows
   FOR DELETE
   USING (school_id = my_school_id() AND is_school_admin(my_school_id()));
 
@@ -132,13 +132,13 @@ CREATE POLICY "school_workflows_delete" ON public.school_workflows
 -- Consolidated into one using is_super_admin() SECURITY DEFINER function.
 DROP POLICY IF EXISTS "Super admin schools write" ON public.schools;
 DROP POLICY IF EXISTS "Super admin full access" ON public.schools;
-CREATE POLICY "Super admin full access" ON public.schools
+CREATE POLICY  "Super admin full access" ON public.schools
   FOR ALL
   USING (is_super_admin());
 
 -- ─── setup_checklist ──────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "School admins manage checklist" ON public.setup_checklist;
-CREATE POLICY "School admins manage checklist" ON public.setup_checklist
+CREATE POLICY  "School admins manage checklist" ON public.setup_checklist
   FOR ALL
   USING (school_id = my_school_id() AND is_school_admin(my_school_id()));
 
@@ -148,7 +148,7 @@ CREATE POLICY "School admins manage checklist" ON public.setup_checklist
 --          WHERE users_1.id = staff_attendance.staff_id))
 -- New: staff member's school_id = my_school_id()
 DROP POLICY IF EXISTS "School users staff_attendance all" ON public.staff_attendance;
-CREATE POLICY "School users staff_attendance all" ON public.staff_attendance
+CREATE POLICY  "School users staff_attendance all" ON public.staff_attendance
   FOR ALL
   USING (
     EXISTS (
@@ -160,7 +160,7 @@ CREATE POLICY "School users staff_attendance all" ON public.staff_attendance
 
 -- ─── student_fee_terms ────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "student_fee_terms_select" ON public.student_fee_terms;
-CREATE POLICY "student_fee_terms_select" ON public.student_fee_terms
+CREATE POLICY  "student_fee_terms_select" ON public.student_fee_terms
   FOR SELECT
   USING (
     auth.role() = 'service_role'
@@ -168,7 +168,7 @@ CREATE POLICY "student_fee_terms_select" ON public.student_fee_terms
   );
 
 DROP POLICY IF EXISTS "student_fee_terms_update" ON public.student_fee_terms;
-CREATE POLICY "student_fee_terms_update" ON public.student_fee_terms
+CREATE POLICY  "student_fee_terms_update" ON public.student_fee_terms
   FOR UPDATE
   USING (
     auth.role() = 'service_role'
@@ -177,39 +177,39 @@ CREATE POLICY "student_fee_terms_update" ON public.student_fee_terms
 
 -- ─── students ─────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "School users access own school" ON public.students;
-CREATE POLICY "School users access own school" ON public.students
+CREATE POLICY  "School users access own school" ON public.students
   FOR ALL
   USING (school_id = my_school_id());
 
 -- ─── syllabus ─────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "syllabus_select" ON public.syllabus;
-CREATE POLICY "syllabus_select" ON public.syllabus
+CREATE POLICY  "syllabus_select" ON public.syllabus
   FOR SELECT
   USING (school_id = my_school_id());
 
 DROP POLICY IF EXISTS "syllabus_update" ON public.syllabus;
-CREATE POLICY "syllabus_update" ON public.syllabus
+CREATE POLICY  "syllabus_update" ON public.syllabus
   FOR UPDATE
   USING (school_id = my_school_id());
 
 DROP POLICY IF EXISTS "syllabus_delete" ON public.syllabus;
-CREATE POLICY "syllabus_delete" ON public.syllabus
+CREATE POLICY  "syllabus_delete" ON public.syllabus
   FOR DELETE
   USING (school_id = my_school_id());
 
 -- ─── topic_coverage ───────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "topic_coverage_select" ON public.topic_coverage;
-CREATE POLICY "topic_coverage_select" ON public.topic_coverage
+CREATE POLICY  "topic_coverage_select" ON public.topic_coverage
   FOR SELECT
   USING (class_id IN (SELECT id FROM classes WHERE school_id = my_school_id()));
 
 DROP POLICY IF EXISTS "topic_coverage_update" ON public.topic_coverage;
-CREATE POLICY "topic_coverage_update" ON public.topic_coverage
+CREATE POLICY  "topic_coverage_update" ON public.topic_coverage
   FOR UPDATE
   USING (class_id IN (SELECT id FROM classes WHERE school_id = my_school_id()));
 
 DROP POLICY IF EXISTS "topic_coverage_delete" ON public.topic_coverage;
-CREATE POLICY "topic_coverage_delete" ON public.topic_coverage
+CREATE POLICY  "topic_coverage_delete" ON public.topic_coverage
   FOR DELETE
   USING (class_id IN (SELECT id FROM classes WHERE school_id = my_school_id()));
 

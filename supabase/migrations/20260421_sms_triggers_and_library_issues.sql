@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS public.sms_triggers (
 ALTER TABLE public.sms_triggers ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "sms_triggers_all" ON public.sms_triggers;
-CREATE POLICY "sms_triggers_all" ON public.sms_triggers
+CREATE POLICY  "sms_triggers_all" ON public.sms_triggers
   FOR ALL
   USING (school_id = my_school_id())
   WITH CHECK (school_id = my_school_id());
@@ -36,11 +36,11 @@ CREATE TABLE IF NOT EXISTS public.automated_message_logs (
 ALTER TABLE public.automated_message_logs ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "automated_message_logs_select" ON public.automated_message_logs;
-CREATE POLICY "automated_message_logs_select" ON public.automated_message_logs
+CREATE POLICY  "automated_message_logs_select" ON public.automated_message_logs
   FOR SELECT USING (school_id = my_school_id());
 
 DROP POLICY IF EXISTS "automated_message_logs_insert" ON public.automated_message_logs;
-CREATE POLICY "automated_message_logs_insert" ON public.automated_message_logs
+CREATE POLICY  "automated_message_logs_insert" ON public.automated_message_logs
   FOR INSERT WITH CHECK (school_id = my_school_id());
 
 -- ─── library_issues ──────────────────────────────────────────────────────────
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS public.library_issues (
 ALTER TABLE public.library_issues ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "library_issues_all" ON public.library_issues;
-CREATE POLICY "library_issues_all" ON public.library_issues
+CREATE POLICY  "library_issues_all" ON public.library_issues
   FOR ALL
   USING (school_id = my_school_id())
   WITH CHECK (school_id = my_school_id());
@@ -71,7 +71,7 @@ CREATE POLICY "library_issues_all" ON public.library_issues
 ALTER TABLE IF EXISTS public.library_books ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "library_books_all" ON public.library_books;
-CREATE POLICY "library_books_all" ON public.library_books
+CREATE POLICY  "library_books_all" ON public.library_books
   FOR ALL
   USING (school_id = my_school_id())
   WITH CHECK (school_id = my_school_id());
@@ -81,7 +81,7 @@ CREATE POLICY "library_books_all" ON public.library_books
 -- staff_attendance
 ALTER TABLE IF EXISTS public.staff_attendance ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "staff_attendance_all" ON public.staff_attendance;
-CREATE POLICY "staff_attendance_all" ON public.staff_attendance
+CREATE POLICY  "staff_attendance_all" ON public.staff_attendance
   FOR ALL
   USING (staff_id IN (SELECT id FROM users WHERE school_id = my_school_id()))
   WITH CHECK (staff_id IN (SELECT id FROM users WHERE school_id = my_school_id()));
@@ -89,7 +89,7 @@ CREATE POLICY "staff_attendance_all" ON public.staff_attendance
 -- exams
 ALTER TABLE IF EXISTS public.exams ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "exams_all" ON public.exams;
-CREATE POLICY "exams_all" ON public.exams
+CREATE POLICY  "exams_all" ON public.exams
   FOR ALL
   USING (school_id = my_school_id())
   WITH CHECK (school_id = my_school_id());
@@ -97,7 +97,7 @@ CREATE POLICY "exams_all" ON public.exams
 -- exam_scores
 ALTER TABLE IF EXISTS public.exam_scores ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "exam_scores_all" ON public.exam_scores;
-CREATE POLICY "exam_scores_all" ON public.exam_scores
+CREATE POLICY  "exam_scores_all" ON public.exam_scores
   FOR ALL
   USING (class_id IN (SELECT id FROM classes WHERE school_id = my_school_id()))
   WITH CHECK (class_id IN (SELECT id FROM classes WHERE school_id = my_school_id()));
@@ -105,7 +105,7 @@ CREATE POLICY "exam_scores_all" ON public.exam_scores
 -- budgets
 ALTER TABLE IF EXISTS public.budgets ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "budgets_all" ON public.budgets;
-CREATE POLICY "budgets_all" ON public.budgets
+CREATE POLICY  "budgets_all" ON public.budgets
   FOR ALL
   USING (school_id = my_school_id())
   WITH CHECK (school_id = my_school_id());
@@ -113,7 +113,7 @@ CREATE POLICY "budgets_all" ON public.budgets
 -- expenses
 ALTER TABLE IF EXISTS public.expenses ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "expenses_all" ON public.expenses;
-CREATE POLICY "expenses_all" ON public.expenses
+CREATE POLICY  "expenses_all" ON public.expenses
   FOR ALL
   USING (school_id = my_school_id())
   WITH CHECK (school_id = my_school_id());
@@ -123,7 +123,7 @@ DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'fee_adjustments') THEN
     EXECUTE 'ALTER TABLE public.fee_adjustments ENABLE ROW LEVEL SECURITY';
     EXECUTE 'DROP POLICY IF EXISTS "fee_adjustments_all" ON public.fee_adjustments';
-    EXECUTE $p$CREATE POLICY "fee_adjustments_all" ON public.fee_adjustments
+    EXECUTE $p$CREATE POLICY  "fee_adjustments_all" ON public.fee_adjustments
       FOR ALL
       USING (school_id = my_school_id())
       WITH CHECK (school_id = my_school_id())$p$;
@@ -133,7 +133,7 @@ END $$;
 -- payment_plans
 ALTER TABLE IF EXISTS public.payment_plans ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "payment_plans_all" ON public.payment_plans;
-CREATE POLICY "payment_plans_all" ON public.payment_plans
+CREATE POLICY  "payment_plans_all" ON public.payment_plans
   FOR ALL
   USING (school_id = my_school_id())
   WITH CHECK (school_id = my_school_id());
@@ -141,12 +141,12 @@ CREATE POLICY "payment_plans_all" ON public.payment_plans
 -- payment_plan_installments
 ALTER TABLE IF EXISTS public.payment_plan_installments ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "payment_plan_installments_select" ON public.payment_plan_installments;
-CREATE POLICY "payment_plan_installments_select" ON public.payment_plan_installments
+CREATE POLICY  "payment_plan_installments_select" ON public.payment_plan_installments
   FOR SELECT USING (
     plan_id IN (SELECT id FROM public.payment_plans WHERE school_id = my_school_id())
   );
 DROP POLICY IF EXISTS "payment_plan_installments_insert" ON public.payment_plan_installments;
-CREATE POLICY "payment_plan_installments_insert" ON public.payment_plan_installments
+CREATE POLICY  "payment_plan_installments_insert" ON public.payment_plan_installments
   FOR INSERT WITH CHECK (
     plan_id IN (SELECT id FROM public.payment_plans WHERE school_id = my_school_id())
   );
@@ -154,7 +154,7 @@ CREATE POLICY "payment_plan_installments_insert" ON public.payment_plan_installm
 -- student_promotions
 ALTER TABLE IF EXISTS public.student_promotions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "student_promotions_all" ON public.student_promotions;
-CREATE POLICY "student_promotions_all" ON public.student_promotions
+CREATE POLICY  "student_promotions_all" ON public.student_promotions
   FOR ALL
   USING (school_id = my_school_id())
   WITH CHECK (school_id = my_school_id());
@@ -162,7 +162,7 @@ CREATE POLICY "student_promotions_all" ON public.student_promotions
 -- assets
 ALTER TABLE IF EXISTS public.assets ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "assets_all" ON public.assets;
-CREATE POLICY "assets_all" ON public.assets
+CREATE POLICY  "assets_all" ON public.assets
   FOR ALL
   USING (school_id = my_school_id())
   WITH CHECK (school_id = my_school_id());
@@ -170,7 +170,7 @@ CREATE POLICY "assets_all" ON public.assets
 -- push_subscriptions (scoped by user_id via auth.uid())
 ALTER TABLE IF EXISTS public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "push_subscriptions_own" ON public.push_subscriptions;
-CREATE POLICY "push_subscriptions_own" ON public.push_subscriptions
+CREATE POLICY  "push_subscriptions_own" ON public.push_subscriptions
   FOR ALL
   USING (user_id IN (SELECT id FROM public.users WHERE auth_id = auth.uid()))
   WITH CHECK (user_id IN (SELECT id FROM public.users WHERE auth_id = auth.uid()));
@@ -178,7 +178,7 @@ CREATE POLICY "push_subscriptions_own" ON public.push_subscriptions
 -- sms_logs
 ALTER TABLE IF EXISTS public.sms_logs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "sms_logs_all" ON public.sms_logs;
-CREATE POLICY "sms_logs_all" ON public.sms_logs
+CREATE POLICY  "sms_logs_all" ON public.sms_logs
   FOR ALL
   USING (school_id = my_school_id())
   WITH CHECK (school_id = my_school_id());
@@ -186,7 +186,7 @@ CREATE POLICY "sms_logs_all" ON public.sms_logs
 -- sms_automations
 ALTER TABLE IF EXISTS public.sms_automations ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "sms_automations_all" ON public.sms_automations;
-CREATE POLICY "sms_automations_all" ON public.sms_automations
+CREATE POLICY  "sms_automations_all" ON public.sms_automations
   FOR ALL
   USING (school_id = my_school_id())
   WITH CHECK (school_id = my_school_id());
@@ -194,7 +194,7 @@ CREATE POLICY "sms_automations_all" ON public.sms_automations
 -- sms_templates
 ALTER TABLE IF EXISTS public.sms_templates ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "sms_templates_all" ON public.sms_templates;
-CREATE POLICY "sms_templates_all" ON public.sms_templates
+CREATE POLICY  "sms_templates_all" ON public.sms_templates
   FOR ALL
   USING (school_id = my_school_id())
   WITH CHECK (school_id = my_school_id());

@@ -15,7 +15,7 @@ CREATE INDEX IF NOT EXISTS idx_school_workflows_school_id ON school_workflows(sc
 ALTER TABLE school_workflows ENABLE ROW LEVEL SECURITY;
 
 -- School staff can read their own workflows
-CREATE POLICY "school_workflows_select" ON school_workflows
+CREATE POLICY  "school_workflows_select" ON school_workflows
   FOR SELECT USING (
     school_id IN (
       SELECT school_id FROM users WHERE id = auth.uid()
@@ -23,7 +23,7 @@ CREATE POLICY "school_workflows_select" ON school_workflows
   );
 
 -- Only admin/headteacher can write workflows
-CREATE POLICY "school_workflows_insert" ON school_workflows
+CREATE POLICY  "school_workflows_insert" ON school_workflows
   FOR INSERT WITH CHECK (
     school_id IN (
       SELECT school_id FROM users WHERE id = auth.uid()
@@ -31,7 +31,7 @@ CREATE POLICY "school_workflows_insert" ON school_workflows
     )
   );
 
-CREATE POLICY "school_workflows_update" ON school_workflows
+CREATE POLICY  "school_workflows_update" ON school_workflows
   FOR UPDATE USING (
     school_id IN (
       SELECT school_id FROM users WHERE id = auth.uid()
@@ -39,7 +39,7 @@ CREATE POLICY "school_workflows_update" ON school_workflows
     )
   );
 
-CREATE POLICY "school_workflows_delete" ON school_workflows
+CREATE POLICY  "school_workflows_delete" ON school_workflows
   FOR DELETE USING (
     school_id IN (
       SELECT school_id FROM users WHERE id = auth.uid()

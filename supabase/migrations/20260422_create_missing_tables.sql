@@ -3,7 +3,7 @@
 
 -- ─── timetable_slots ─────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS timetable_slots (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     start_time TIME NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS timetable_slots (
 );
 
 CREATE TABLE IF NOT EXISTS timetable_constraints (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     teacher_id UUID REFERENCES users(id) ON DELETE CASCADE,
     day_of_week INTEGER CHECK (day_of_week BETWEEN 1 AND 7),
@@ -46,7 +46,7 @@ CREATE POLICY timetable_constraints_school ON timetable_constraints
 -- ─── staff_salaries & staff_reviews ──────────────────────────────────────────
 -- Note: academic_years table must exist
 CREATE TABLE IF NOT EXISTS staff_salaries (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     staff_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     base_salary NUMERIC(12, 2) NOT NULL DEFAULT 0,
@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS staff_salaries (
 );
 
 CREATE TABLE IF NOT EXISTS salary_payments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     staff_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     month INTEGER CHECK (month BETWEEN 1 AND 12) NOT NULL,
@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS salary_payments (
 );
 
 CREATE TABLE IF NOT EXISTS staff_reviews (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     staff_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     reviewer_id UUID REFERENCES users(id) ON DELETE SET NULL,

@@ -15,6 +15,6 @@
 DROP POLICY IF EXISTS users_select ON public.users;
 
 DROP POLICY IF EXISTS "Admin users write" ON public.users;
-CREATE POLICY "Admin users write" ON public.users
+CREATE POLICY  "Admin users write" ON public.users
   FOR ALL
   USING (is_school_admin(my_school_id()) OR is_super_admin());

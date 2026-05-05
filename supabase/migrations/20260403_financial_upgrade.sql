@@ -6,7 +6,7 @@ ALTER TABLE students ADD COLUMN IF NOT EXISTS opening_balance NUMERIC(12,2) DEFA
 
 -- 2. Create fee adjustments table
 CREATE TABLE IF NOT EXISTS fee_adjustments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
     student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     amount NUMERIC(12,2) NOT NULL,
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS fee_adjustments (
 -- RLS Policies for fee_adjustments
 ALTER TABLE fee_adjustments ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "School users adjustments select"
+CREATE POLICY  "School users adjustments select"
 ON fee_adjustments FOR SELECT
 TO authenticated
 USING (
@@ -28,7 +28,7 @@ USING (
   )
 );
 
-CREATE POLICY "School users adjustments insert"
+CREATE POLICY  "School users adjustments insert"
 ON fee_adjustments FOR INSERT
 TO authenticated
 WITH CHECK (

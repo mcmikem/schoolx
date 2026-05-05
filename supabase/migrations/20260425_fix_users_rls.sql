@@ -10,6 +10,6 @@
 DROP POLICY IF EXISTS "Users can read own profile" ON public.users;
 
 -- Create secure policy: user can only read their own profile
-CREATE POLICY "Users can read own profile" ON public.users
+CREATE POLICY  "Users can read own profile" ON public.users
   FOR SELECT TO authenticated
   USING (auth_id = auth.uid());
