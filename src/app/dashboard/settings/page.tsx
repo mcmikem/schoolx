@@ -85,6 +85,7 @@ const MODULE_LABELS: Record<ModuleKey, string> = {
 import MaterialIcon from "@/components/MaterialIcon";
 import GeneralSettings from "@/components/settings/GeneralSettings";
 import AcademicSettings from "@/components/settings/AcademicSettings";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface SchoolSettings {
   sms_notifications: boolean;
@@ -165,6 +166,7 @@ export default function SettingsPage() {
   const [houses, setHouses] = useState<{ id: string; name: string; color: string; motto?: string | null }[]>([]);
   const [loadingHouses, setLoadingHouses] = useState(false);
   const [showAddHouse, setShowAddHouse] = useState(false);
+  const [pendingDeleteHouseId, setPendingDeleteHouseId] = useState<string | null>(null);
   const [showAddClass, setShowAddClass] = useState(false);
   const [newHouse, setNewHouse] = useState({
     name: "",
@@ -550,6 +552,13 @@ export default function SettingsPage() {
   };
 
   const deleteHouse = async (id: string) => {
+    setPendingDeleteHouseId(id);
+  };
+
+  const confirmDeleteHouse = async () => {
+    if (!pendingDeleteHouseId) return;
+    const id = pendingDeleteHouseId;
+    setPendingDeleteHouseId(null);
     try {
       const { error } = await supabase.from("houses").delete().eq("id", id);
       if (error) throw error;
@@ -1945,6 +1954,15 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        isOpen={!!pendingDeleteHouseId}
+        onClose={() => setPendingDeleteHouseId(null)}
+        onConfirm={confirmDeleteHouse}
+        title="Remove House"
+        message="Remove this house? Students assigned to it will be unassigned."
+        confirmLabel="Remove"
+        variant="danger"
+      />
     </div>
     </PageErrorBoundary>
   );

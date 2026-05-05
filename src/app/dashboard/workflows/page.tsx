@@ -5,6 +5,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface Workflow {
   id: string;
@@ -40,6 +41,7 @@ export default function WorkflowsBuilder() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<Workflow | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [selectedTrigger, setSelectedTrigger] = useState("");
   const [selectedAction, setSelectedAction] = useState("");
@@ -119,6 +121,13 @@ export default function WorkflowsBuilder() {
 
   const deleteWorkflow = async (wf: Workflow) => {
     if (isDemo) { toast.error("Demo mode — read only"); return; }
+    setPendingDelete(wf);
+  };
+
+  const confirmDeleteWorkflow = async () => {
+    if (!pendingDelete) return;
+    const wf = pendingDelete;
+    setPendingDelete(null);
     setWorkflows((prev) => prev.filter((w) => w.id !== wf.id));
     try {
       const { error } = await supabase.from("school_workflows").delete().eq("id", wf.id).eq("school_id", school!.id);
@@ -284,6 +293,15 @@ export default function WorkflowsBuilder() {
           })}
         </div>
       )}
+      <ConfirmDialog
+        isOpen={!!pendingDelete}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={confirmDeleteWorkflow}
+        title="Delete Workflow"
+        message={`Delete "${pendingDelete?.name}"? This automation rule will stop running immediately.`}
+        confirmLabel="Delete"
+        variant="danger"
+      />
     </div>
     </PageErrorBoundary>
   );

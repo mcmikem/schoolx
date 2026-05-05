@@ -28,18 +28,18 @@ interface FeatureStageDefinition {
 export const FEATURE_STAGES: Record<FeatureStage, FeatureStageDefinition> = deepFreeze({
   core: {
     label: 'Core controls',
-    description: 'Attendance, student records, basic communication and the dashboards you first need.',
-    modules: ['dashboard', 'attendance', 'communications', 'staff', 'settings'],
+    description: 'Attendance, student records, marks, reports and basic communication.',
+    modules: ['dashboard', 'attendance', 'marks', 'exam', 'reports', 'exports', 'communications', 'staff', 'settings'],
   },
   academic: {
     label: 'Academic focus',
-    description: 'Everything in Core plus marks, exams, reports, and UNEB support when available.',
+    description: 'Everything in Core plus UNEB support and advanced academic tools.',
     modules: ['dashboard', 'attendance', 'communications', 'marks', 'exam', 'reports', 'exports', 'staff', 'settings'],
   },
   finance: {
     label: 'Finance & operations',
-    description: 'Adds invoicing, payments, payroll, budgeting, and health/operations modules.',
-    modules: ['dashboard', 'attendance', 'communications', 'finance', 'operations', 'staff', 'exports', 'settings'],
+    description: 'Adds invoicing, payments, payroll, budgeting, health and operations modules.',
+    modules: ['dashboard', 'attendance', 'communications', 'marks', 'exam', 'reports', 'finance', 'operations', 'staff', 'exports', 'settings'],
   },
   full: {
     label: 'Full suite',
