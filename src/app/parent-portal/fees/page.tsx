@@ -8,7 +8,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
-import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
+import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
 import {
   calculateFeeStats,
   mapParentStudentLinks,
@@ -44,7 +44,6 @@ const QUICK_TOPUP_AMOUNTS = [5000, 10000, 20000, 50000] as const;
 
 export default function ParentFeesPage() {
   const { user, isDemo } = useAuth();
-  const { isAuthorized, isChecking } = useParentPortalGuard();
   const toast = useToast();
   const [children, setChildren] = useState<ParentPortalChild[]>([]);
   const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(
@@ -271,16 +270,12 @@ export default function ParentFeesPage() {
     }
   };
 
-  if (isChecking || !isAuthorized) {
-    return null;
-  }
-
   return (
-    <PageErrorBoundary>
+    <ParentPortalShell pageTitle="Fees & Receipts">
       <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
         <PageHeader
           title="Fees & Receipts"
-          subtitle="Track fee obligations, receipts, and student wallet activity"
+          subtitle="See what fees are due, what you have paid, and top up your child’s canteen wallet"
           variant="premium"
         />
 
@@ -623,6 +618,6 @@ export default function ParentFeesPage() {
           </div>
         )}
       </div>
-    </PageErrorBoundary>
+    </ParentPortalShell>
   );
 }

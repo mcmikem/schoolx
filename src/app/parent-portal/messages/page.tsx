@@ -8,7 +8,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
-import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
+import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
 import {
   mapParentStudentLinks,
   ParentPortalChild,
@@ -23,7 +23,6 @@ const MAX_PARENT_MESSAGE_BODY = 5000;
 
 export default function ParentMessagesPage() {
   const { user, isDemo } = useAuth();
-  const { isAuthorized, isChecking } = useParentPortalGuard();
   const toast = useToast();
   const [children, setChildren] = useState<ParentPortalChild[]>([]);
   const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(
@@ -165,17 +164,13 @@ export default function ParentMessagesPage() {
     }
   };
 
-  if (isChecking || !isAuthorized) {
-    return null;
-  }
-
   return (
-    <PageErrorBoundary>
+    <ParentPortalShell pageTitle="Message School">
       <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
           <PageHeader
             title="Message School"
-            subtitle="Keep a written thread with administration and class support staff"
+            subtitle="Send a message directly to your child’s teachers or the school office"
           />
           <Button onClick={() => setShowCompose(true)}>
             <MaterialIcon icon="edit" /> Compose
@@ -326,6 +321,6 @@ export default function ParentMessagesPage() {
           </div>
         )}
       </div>
-    </PageErrorBoundary>
+    </ParentPortalShell>
   );
 }

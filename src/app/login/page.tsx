@@ -8,6 +8,7 @@ import OwlMascot from "@/components/brand/OwlMascot";
 import { t, tWithParams } from "@/i18n";
 import { Button, Input } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
 import { normalizeAuthPhone } from "@/lib/validation";
 import { logger } from "@/lib/logger";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -42,6 +43,7 @@ export default function LoginPage() {
   const [otpSent, setOtpSent] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [otp, setOtp] = useState("");
+  const [showSlowMessage, setShowSlowMessage] = useState(false);
 
   // Redirect already-logged-in users away from the login page.
   // Respect the ?redirect= param set by proxy.ts middleware so users
@@ -79,7 +81,7 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, [loading, user, authInitialized, router]);
 
-  // Show a helpful toast when arriving from registration
+  // Show helpful toasts when arriving from registration or session expiry
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
@@ -87,7 +89,10 @@ export default function LoginPage() {
       const prefilledPhone = params.get("phone");
       if (prefilledPhone) setPhone(prefilledPhone);
       toast.success("Account created! Sign in to continue to your dashboard.");
-      // Clean the URL so refresh doesn't re-toast
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    if (params.get("reason") === "session_expired") {
+      toast.info("Your session expired. Please sign in again to continue.");
       window.history.replaceState({}, "", window.location.pathname);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,6 +107,7 @@ export default function LoginPage() {
     e.preventDefault();
     setPhoneError("");
     setPasswordError("");
+    setShowSlowMessage(false);
 
     if (!phone.trim()) {
       setPhoneError("Phone number is required");
@@ -122,6 +128,7 @@ export default function LoginPage() {
 
       setLoading(true);
       const loginTimeout = setTimeout(() => setLoading((prev) => prev ? false : prev), 15000);
+      const slowMsgTimeout = setTimeout(() => setShowSlowMessage(true), 5000);
       localStorage.removeItem(DEMO_KEY);
 
       try {
@@ -132,9 +139,17 @@ export default function LoginPage() {
         });
         const data = await res.json();
 
-        if (data.success && data.user) {
-          const { session } = data;
-          await signIn(session.access_token, session.refresh_token);
+        if (data.success && data.token) {
+          // Verify the magic link token to establish a Supabase session
+          const { error: verifyError } = await supabase.auth.verifyOtp({
+            token_hash: data.token,
+            type: "email",
+          });
+          if (verifyError) {
+            toast.error(verifyError.message || "OTP verification failed");
+            setOtp("");
+          }
+          // Session is now created — onAuthStateChange will handle the rest
         } else {
           toast.error(data.error || "Invalid OTP");
           setOtp("");
@@ -143,6 +158,8 @@ export default function LoginPage() {
         toast.error("Login failed");
       } finally {
         clearTimeout(loginTimeout);
+        clearTimeout(slowMsgTimeout);
+        setShowSlowMessage(false);
         setLoading(false);
       }
       return;
@@ -168,6 +185,12 @@ export default function LoginPage() {
     const loginTimeout = setTimeout(() => {
       setLoading((prev) => prev ? false : prev);
     }, 15000);
+
+    // Show a friendly message after 5s so users on slow networks know
+    // the app is still working and they should not refresh or re-tap.
+    const slowMsgTimeout = setTimeout(() => {
+      setShowSlowMessage(true);
+    }, 5000);
 
     const cleanPhone = normalizeAuthPhone(phone);
 
@@ -205,42 +228,79 @@ export default function LoginPage() {
 
             router.replace(redirectPath);
             clearTimeout(loginTimeout);
+            clearTimeout(slowMsgTimeout);
             return;
           }
         } else {
           const errorData = await demoResponse.json().catch(() => null);
           toast.error(errorData?.error || "Demo login failed. Check DEMO_ADMIN_PASSWORD in .env.local");
           clearTimeout(loginTimeout);
+          clearTimeout(slowMsgTimeout);
           setLoading(false);
+          setShowSlowMessage(false);
           return;
         }
       }
 
-      const { error: authError, role } = await signIn(cleanPhone, password);
+      const { error: authError } = await signIn(cleanPhone, password);
       clearTimeout(loginTimeout);
+      clearTimeout(slowMsgTimeout);
       if (authError) {
         const newAttempts = failedAttempts + 1;
         setFailedAttempts(newAttempts);
+        const rawMsg =
+          typeof authError === "string"
+            ? authError
+            : authError?.message || "";
+        const msgLower = rawMsg.toLowerCase();
+        const isRateLimit =
+          msgLower.includes("rate limit") ||
+          msgLower.includes("too many requests") ||
+          msgLower.includes("request has expired");
+        const isNetwork =
+          msgLower.includes("network") || msgLower.includes("fetch");
+
         if (newAttempts >= 5) {
-          const lockDuration = Math.min(30_000 * Math.pow(2, newAttempts - 5), 300_000);
+          const lockDuration = Math.min(
+            30_000 * Math.pow(2, newAttempts - 5),
+            300_000,
+          );
           setLockoutUntil(Date.now() + lockDuration);
-          toast.error(`Too many failed attempts. Locked for ${Math.ceil(lockDuration / 1000)}s`);
+          toast.error(
+            `Too many failed attempts. Locked for ${Math.ceil(lockDuration / 1000)}s`,
+          );
+        } else if (isRateLimit) {
+          toast.error(
+            "Too many login attempts. Please wait a moment and try again.",
+          );
+        } else if (isNetwork) {
+          toast.error(
+            "Connection error. Please check your internet and try again.",
+          );
+        } else if (msgLower.includes("email not confirmed")) {
+          toast.error(
+            "Your account is not confirmed. Please contact school administration.",
+          );
         } else {
           toast.error("Invalid phone number or password");
         }
+        setShowSlowMessage(false);
         setLoading(false);
         return;
       }
       setFailedAttempts(0);
       setLockoutUntil(null);
+      setShowSlowMessage(false);
       setLoading(false);
       return;
     } catch (err: unknown) {
       clearTimeout(loginTimeout);
+      clearTimeout(slowMsgTimeout);
       logger.error("Login exception:", err);
       const errorMessage =
         err instanceof Error ? err.message : "An error occurred";
       toast.error(errorMessage);
+      setShowSlowMessage(false);
       setLoading(false);
     }
   };
@@ -439,6 +499,7 @@ export default function LoginPage() {
                     onClick={() => {
                       setOtpMode(true);
                       setPassword("");
+                      setShowSlowMessage(false);
                     }}
                   >
                     Login with OTP instead
@@ -451,6 +512,7 @@ export default function LoginPage() {
                       setOtpMode(false);
                       setOtpSent(false);
                       setOtp("");
+                      setShowSlowMessage(false);
                     }}
                   >
                     Login with password
@@ -472,6 +534,18 @@ export default function LoginPage() {
                 >
                   {loading ? t("auth.signingIn") : t("auth.signIn")}
                 </Button>
+              )}
+
+              {showSlowMessage && (
+                <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800 flex items-start gap-2">
+                  <MaterialIcon icon="wifi_tethering_error" className="text-amber-600 mt-0.5" />
+                  <div>
+                    <p className="font-semibold">Connection seems slow</p>
+                    <p className="text-xs text-amber-700 mt-0.5">
+                      Please wait a moment. Do not refresh or tap again — your login is still processing.
+                    </p>
+                  </div>
+                </div>
               )}
 
               <div className="text-center">

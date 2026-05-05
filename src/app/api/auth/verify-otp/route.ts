@@ -49,10 +49,10 @@ export async function POST(request: NextRequest) {
       .update({ used: true })
       .eq("id", otpRecord.id);
 
-    // Find the parent user
+    // Find the parent user (include email for magic link generation)
     const { data: parentUser, error: userError } = await supabaseAdmin
       .from("users")
-      .select("auth_id, id, phone, full_name, role, school_id")
+      .select("auth_id, id, phone, email, full_name, role, school_id")
       .eq("phone", normalizedPhone)
       .eq("is_active", true)
       .limit(1)
@@ -62,13 +62,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Parent account not found" }, { status: 404 });
     }
 
-    // Return success — the parent can now use the regular login flow
-    // with their phone number (the OTP verified their identity).
-    // For now, we return user info and the client will handle session
-    // creation via the normal signIn flow.
+    // Generate a magic link so the client can establish a session without
+    // knowing the user's password. The magic link token is single-use and
+    // time-limited, making this secure.
+    const authEmail = parentUser.email || `${normalizedPhone}@omuto.org`;
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: "magiclink",
+      email: authEmail,
+      options: { redirectTo: `${request.nextUrl.origin}/parent-portal` },
+    });
+
+    if (linkError || !linkData?.properties?.action_link) {
+      logger.error("[verify-otp] Failed to generate magic link:", linkError);
+      return NextResponse.json({ error: "Unable to create login session. Please try password login." }, { status: 500 });
+    }
+
+    // Extract the token from the action link URL
+    const actionLink = linkData.properties.action_link;
+    const tokenMatch = actionLink.match(/[?&]token=([^&]+)/);
+    const token = tokenMatch ? tokenMatch[1] : null;
+
+    if (!token) {
+      return NextResponse.json({ error: "Unable to create login session. Please try password login." }, { status: 500 });
+    }
+
     return NextResponse.json({
       success: true,
       verified: true,
+      token,
+      tokenType: "magiclink",
       user: {
         id: parentUser.id,
         auth_id: parentUser.auth_id,

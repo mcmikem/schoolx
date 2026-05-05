@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
-import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
+import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
 
 const CATEGORY_ICONS: Record<string, string> = {
   academic: "menu_book",
@@ -18,7 +18,6 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 export default function ParentNoticesPage() {
   const { user, school, isDemo } = useAuth();
-  const { isAuthorized, isChecking } = useParentPortalGuard();
   const [notices, setNotices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedNotice, setSelectedNotice] = useState<any>(null);
@@ -61,14 +60,10 @@ export default function ParentNoticesPage() {
 
   useEffect(() => { fetchNotices(); }, [fetchNotices]);
 
-  if (isChecking || !isAuthorized) {
-    return null;
-  }
-
   return (
-    <PageErrorBoundary>
+    <ParentPortalShell pageTitle="Notice Board">
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <PageHeader title="Notice Board" subtitle="Stay up to date with school announcements" />
+      <PageHeader title="Notice Board" subtitle="Important news and updates from your child’s school" />
 
       {loading ? (
         <div className="space-y-4">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 bg-[var(--surface-container)] rounded-3xl animate-pulse" />)}</div>
@@ -121,6 +116,6 @@ export default function ParentNoticesPage() {
         </div>
       )}
     </div>
-    </PageErrorBoundary>
+    </ParentPortalShell>
   );
 }

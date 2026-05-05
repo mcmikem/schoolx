@@ -317,7 +317,7 @@ function ParentDashboardContent() {
                     </p>
                   )}
                   <p className="mt-2 max-w-2xl text-base text-gray-600">
-                    Keep track of attendance, fee status, reports, and school updates.
+                    Follow your child&apos;s attendance, fees, grades, and school news — all in one place.
                   </p>
                 </div>
                 <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-right">
@@ -603,7 +603,10 @@ function ParentDashboardContent() {
                   />
                 </div>
                 <p className="text-base text-gray-600 font-medium">
-                  No students linked to your account.
+                  No learners are linked to your account yet.
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  Please contact the school office to connect your child.
                 </p>
               </div>
             )}

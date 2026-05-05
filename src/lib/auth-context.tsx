@@ -38,6 +38,46 @@ import {
 import { FeatureStage, DEFAULT_FEATURE_STAGE } from "./featureStages";
 import type { PlanType } from "./payments/subscription-client";
 
+// ---------------------------------------------------------------------------
+// Network error detection — critical for poor internet (e.g. Uganda 3G)
+// We must NOT log users out just because a network request timed out.
+// ---------------------------------------------------------------------------
+function isNetworkError(error: unknown): boolean {
+  if (error === null || error === undefined) return false;
+  const msg = getErrorMessage(error, "").toLowerCase();
+  const status =
+    typeof error === "object" && error !== null && "status" in error
+      ? (error as { status?: number }).status
+      : undefined;
+
+  // Status 0 = network failure (fetch aborted, no connection, CORS blocked)
+  if (status === 0) return true;
+
+  // Common network error messages across browsers and Supabase
+  const networkKeywords = [
+    "fetch",
+    "network",
+    "timeout",
+    "timed out",
+    "abort",
+    "failed to fetch",
+    "networkerror",
+    "net::err",
+    "err_connection",
+    "ns_error",
+    "unable to connect",
+  ];
+  return networkKeywords.some((kw) => msg.includes(kw));
+}
+
+function isAuthSessionMissingError(error: unknown): boolean {
+  const msg = getErrorMessage(error, "").toLowerCase();
+  return (
+    msg.includes("session") &&
+    (msg.includes("missing") || msg.includes("not found"))
+  );
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -51,7 +91,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const authFetchAborted = useRef(false);
   const authCheckedRef = useRef(false);
-  const signInInProgress = useRef(false);
 
   const isSubscriptionActive = useCallback(() => {
     return isSubscriptionActiveCheck(school);
@@ -218,6 +257,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           }
 
+          // If offline, restore from cache immediately so the user isn't
+          // locked out during network outages (common in rural Uganda).
           if (!navigator.onLine) {
             try {
               const cachedUser = localStorage.getItem(OFFLINE_USER_KEY);
@@ -235,24 +276,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
 
-          const {
-            data: { user: authUser },
-          } = await withSupabaseLockRetry(
-            async () => await supabase!.auth.getUser(),
-          );
+          let authUserError: unknown = null;
+          let authUser = null;
+          try {
+            const result = await withSupabaseLockRetry(
+              async () => await supabase!.auth.getUser(),
+            );
+            authUser = result.data.user;
+          } catch (err) {
+            authUserError = err;
+          }
+
           if (authUser) {
-            // fetchUserData has its own in-progress guard, so safe to call.
             await fetchUserData(authUser.id);
             setIsDemo(false);
             setLoading(false);
             setAuthInitialized(true);
-          } else {
-            setUser(null);
-            setSchool(null);
+            return;
+          }
+
+          // If getUser() failed because of a network error, do NOT log the
+          // user out. They may have a valid session but poor connectivity.
+          // Keep the cached user data so they can continue working offline.
+          if (authUserError && isNetworkError(authUserError)) {
+            logger.warn(
+              "[Auth] getUser() failed due to network error — keeping cached user:",
+              getErrorMessage(authUserError),
+            );
+            try {
+              const cachedUser = localStorage.getItem(OFFLINE_USER_KEY);
+              const cachedSchool = localStorage.getItem(OFFLINE_SCHOOL_KEY);
+              if (cachedUser) {
+                setUser(JSON.parse(cachedUser) as User);
+                setSchool(cachedSchool ? JSON.parse(cachedSchool) : null);
+              }
+            } catch {
+              /* ignore cache parse errors */
+            }
             setIsDemo(false);
             setLoading(false);
             setAuthInitialized(true);
+            return;
           }
+
+          // Only clear user state if we are confident the session is gone.
+          setUser(null);
+          setSchool(null);
+          setIsDemo(false);
+          setLoading(false);
+          setAuthInitialized(true);
         } catch {
           setUser(null);
           setSchool(null);
@@ -332,21 +404,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (verifiedUser) {
               authCheckedRef.current = true;
-              // Skip fetchUserData if signIn() is already handling it —
-              // prevents duplicate /api/auth/me/ calls and loading flicker
-              if (!signInInProgress.current) {
-                try {
-                  await fetchUserData(verifiedUser.id);
-                } catch {
-                  logger.warn(
-                    "[Auth] fetchUserData failed in state change handler",
-                  );
-                }
+              // Always fetch user data here — this is the single source of truth
+              // for populating the user after auth. signIn() no longer calls
+              // fetchUserData to avoid race conditions and timeouts.
+              try {
+                await fetchUserData(verifiedUser.id);
+              } catch {
+                logger.warn(
+                  "[Auth] fetchUserData failed in state change handler",
+                );
               }
               setIsDemo(false);
               setLoading(false);
               setAuthInitialized(true);
             } else {
+              // If getUser() returned null without a network error, the session
+              // is genuinely invalid. Only then do we clear user state.
               setUser(null);
               setSchool(null);
               setIsDemo(false);
@@ -402,14 +475,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const {
             data: { user: freshUser },
+            error: freshError,
           } = await supabase!.auth.getUser();
+          // Only log out if we are CERTAIN the session is gone.
+          // Network errors or temporary blips must not kick the user out.
           if (!freshUser && userRef.current) {
+            if (freshError && isNetworkError(freshError)) {
+              logger.warn(
+                "[Auth] getUser() failed on visibility change due to network — staying logged in",
+              );
+              return;
+            }
             setUser(null);
             setSchool(null);
             router.push("/login");
           }
-        } catch {
-          // Silently ignore — network errors on visibility change are common
+        } catch (err) {
+          // Never log out on network errors — poor internet is common.
+          if (!isNetworkError(err)) {
+            logger.error(
+              "[Auth] Unexpected error on visibility change:",
+              getErrorMessage(err),
+            );
+          }
         }
       }
     };
@@ -422,6 +510,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const CHECK_INTERVAL_MS_REF = useRef(60 * 1000);
 
   const signInLock = useRef(false);
+  const signInLockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function releaseSignInLock() {
+    signInLock.current = false;
+    if (signInLockTimer.current) {
+      clearTimeout(signInLockTimer.current);
+      signInLockTimer.current = null;
+    }
+  }
 
   async function signIn(phone: string, password: string) {
     try {
@@ -430,81 +527,105 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: { message: "Login already in progress" } };
       }
       signInLock.current = true;
-      signInInProgress.current = true;
+      // Safety: if a request hangs forever (poor internet), auto-release the
+      // lock after 25s so the user can retry without refreshing the page.
+      signInLockTimer.current = setTimeout(() => {
+        logger.warn("[Auth] signInLock auto-released after timeout");
+        signInLock.current = false;
+      }, 25000);
 
       const attempts = buildAuthLoginAttempts(phone);
       let lastError: unknown = null;
 
-      for (const attempt of attempts) {
-        const { data, error } = await withSupabaseLockRetry(async () =>
-          attempt.type === "email"
-            ? await supabase!.auth.signInWithPassword({
-                email: attempt.value,
-                password,
-              })
-            : await supabase!.auth.signInWithPassword({
-                phone: attempt.value,
-                password,
-              }),
-        );
-
-        if (error) {
-          lastError = error;
-          continue;
+      for (let i = 0; i < attempts.length; i++) {
+        const attempt = attempts[i];
+        // Short delay between attempts to avoid hammering Supabase and
+        // triggering rate limits on poor networks.
+        if (i > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 300));
         }
 
-        if (!data.user) {
-          lastError = { message: "No user returned from Supabase" };
-          continue;
-        }
-
-        // Try fetching user profile, but don't block login on failure.
-        // The onAuthStateChange handler will also call fetchUserData as a fallback.
-        let userData: { role: string } | null = null;
         try {
-          userData = await Promise.race([
-            fetchUserData(data.user.id),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+          const { data, error } = await Promise.race([
+            withSupabaseLockRetry(async () =>
+              attempt.type === "email"
+                ? await supabase!.auth.signInWithPassword({
+                    email: attempt.value,
+                    password,
+                  })
+                : await supabase!.auth.signInWithPassword({
+                    phone: attempt.value,
+                    password,
+                  }),
+            ),
+            new Promise<never>((_, reject) =>
+              setTimeout(
+                () => reject(new Error("Login attempt timed out")),
+                15000,
+              ),
+            ),
           ]);
-        } catch {
-          logger.warn("[Auth] fetchUserData timed out or failed in signIn — relying on onAuthStateChange fallback");
+
+          if (error) {
+            lastError = error;
+            continue;
+          }
+
+          if (!data.user) {
+            lastError = { message: "No user returned from Supabase" };
+            continue;
+          }
+
+          // Refresh offline cache in the background — don't await
+          import("@/lib/offline")
+            .then(({ offlineDB }) => {
+              offlineDB
+                .refreshAll([
+                  "students",
+                  "classes",
+                  "subjects",
+                  "attendance",
+                  "grades",
+                  "fee_payments",
+                  "fee_structure",
+                  "fee_adjustments",
+                  "messages",
+                  "events",
+                  "timetable",
+                ])
+                .catch(() => {});
+            })
+            .catch(() => {});
+
+          releaseSignInLock();
+          // Return success — onAuthStateChange handler is the single source of
+          // truth for fetching user profile. This avoids race conditions where
+          // fetchUserData times out and leaves the user stranded on the login page.
+          return {
+            error: null,
+            role: data.user.user_metadata?.role || "admin",
+          };
+        } catch (attemptError) {
+          if (
+            attemptError instanceof Error &&
+            attemptError.message === "Login attempt timed out"
+          ) {
+            lastError = {
+              message:
+                "Connection timed out. Please check your internet and try again.",
+            };
+          } else {
+            lastError = attemptError;
+          }
         }
-
-        import("@/lib/offline")
-          .then(({ offlineDB }) => {
-            offlineDB
-              .refreshAll([
-                "students",
-                "classes",
-                "subjects",
-                "attendance",
-                "grades",
-                "fee_payments",
-                "fee_structure",
-                "fee_adjustments",
-                "messages",
-                "events",
-                "timetable",
-              ])
-              .catch(() => {});
-          })
-          .catch(() => {});
-
-        signInInProgress.current = false;
-        signInLock.current = false;
-        // Return success even if fetchUserData failed — the onAuthStateChange
-        // handler and the login redirect effect will handle user data population.
-        return { error: null, role: userData?.role || data.user.user_metadata?.role || "admin" };
       }
 
-      signInInProgress.current = false;
-      signInLock.current = false;
+      releaseSignInLock();
       return {
         error: lastError || { message: "Invalid phone number or password" },
       };
     } catch (error) {
-      signInInProgress.current = false;
-      signInLock.current = false;
+      releaseSignInLock();
       return { error };
     }
   }

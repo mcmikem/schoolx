@@ -250,6 +250,9 @@ export async function proxy(request: NextRequest) {
   if (!authUser) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
+    // Distinguish session expiry from other redirects so the login page can
+    // show a helpful message instead of silently presenting the form.
+    loginUrl.searchParams.set("reason", "session_expired");
     return NextResponse.redirect(loginUrl);
   }
 

@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
-import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
+import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
 import {
   calculateAttendanceStats,
   mapParentStudentLinks,
@@ -25,7 +25,6 @@ const STATUS_STYLES: Record<string, string> = {
 
 export default function ParentAttendancePage() {
   const { user, isDemo } = useAuth();
-  const { isAuthorized, isChecking } = useParentPortalGuard();
   const [children, setChildren] = useState<ParentPortalChild[]>([]);
   const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(
     null,
@@ -87,16 +86,12 @@ export default function ParentAttendancePage() {
   useEffect(() => { fetchChildren(); }, [fetchChildren]);
   useEffect(() => { if (selectedChild) fetchAttendance(selectedChild); }, [selectedChild, fetchAttendance]);
 
-  if (isChecking || !isAuthorized) {
-    return null;
-  }
-
   const attendanceRate = stats.total > 0 ? Math.round(((stats.present + stats.late) / stats.total) * 100) : 0;
 
   return (
-    <PageErrorBoundary>
+    <ParentPortalShell pageTitle="Attendance">
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <PageHeader title="Attendance" subtitle="Track your child's daily attendance record" variant="premium" />
+      <PageHeader title="Attendance" subtitle="See how often your child is present, absent, or late" variant="premium" />
 
       {children.length > 1 && (
         <div className="flex gap-3 overflow-x-auto pb-1">
@@ -159,6 +154,6 @@ export default function ParentAttendancePage() {
         </CardBody>
       </Card>
     </div>
-    </PageErrorBoundary>
+    </ParentPortalShell>
   );
 }

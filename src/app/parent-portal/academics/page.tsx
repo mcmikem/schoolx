@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
-import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
+import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
 import {
   buildReportCardSummaries,
   getUniqueTerms,
@@ -27,7 +27,6 @@ const PERFORMANCE_STYLES = {
 
 export default function ParentAcademicsPage() {
   const { user, isDemo } = useAuth();
-  const { isAuthorized, isChecking } = useParentPortalGuard();
   const [children, setChildren] = useState<ParentPortalChild[]>([]);
   const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(
     null,
@@ -124,16 +123,12 @@ export default function ParentAcademicsPage() {
     return "text-red-600";
   };
 
-  if (isChecking || !isAuthorized) {
-    return null;
-  }
-
   return (
-    <PageErrorBoundary>
+    <ParentPortalShell pageTitle="Academics">
       <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
         <PageHeader
           title="Academics"
-          subtitle="View grades, teacher feedback, and term-by-term report snapshots"
+          subtitle="Your child’s grades, teacher comments, and report card summaries"
           variant="premium"
         />
 
@@ -347,6 +342,6 @@ export default function ParentAcademicsPage() {
           </CardBody>
         </Card>
       </div>
-    </PageErrorBoundary>
+    </ParentPortalShell>
   );
 }

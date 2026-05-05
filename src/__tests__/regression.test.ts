@@ -376,4 +376,139 @@ describe("Production Hardening Regression Tests", () => {
       expect(authContext).not.toMatch(/if\s*\([^)]*inProgress[^)]*\)\s*return\s+null/);
     });
   });
+
+  describe("Auth – signIn robustness", () => {
+    it("should NOT call fetchUserData inside signIn() to avoid race conditions", () => {
+      const fs = require("fs");
+      const path = require("path");
+      const authContext = fs.readFileSync(
+        path.join(process.cwd(), "src/lib/auth-context.tsx"),
+        "utf8",
+      );
+      // signIn() should not call fetchUserData — onAuthStateChange is the
+      // single source of truth for populating user after auth.
+      const signInMatch = authContext.match(/async function signIn[\s\S]*?^  }/m);
+      expect(signInMatch).toBeTruthy();
+      const signInBody = signInMatch![0];
+      expect(signInBody).not.toContain("fetchUserData(");
+    });
+
+    it("should NOT have signInInProgress ref that blocks onAuthStateChange", () => {
+      const fs = require("fs");
+      const path = require("path");
+      const authContext = fs.readFileSync(
+        path.join(process.cwd(), "src/lib/auth-context.tsx"),
+        "utf8",
+      );
+      expect(authContext).not.toContain("signInInProgress");
+      expect(authContext).not.toContain("signInInProgress.current");
+    });
+
+    it("should show specific error messages for rate limit and network errors in login page", () => {
+      const fs = require("fs");
+      const path = require("path");
+      const loginPage = fs.readFileSync(
+        path.join(process.cwd(), "src/app/login/page.tsx"),
+        "utf8",
+      );
+      expect(loginPage).toContain("rate limit");
+      expect(loginPage).toContain("Connection error");
+      expect(loginPage).toContain("email not confirmed");
+    });
+  });
+
+  describe("Auth – OTP optional and working", () => {
+    it("should generate magic link token in verify-otp API", () => {
+      const fs = require("fs");
+      const path = require("path");
+      const verifyOtp = fs.readFileSync(
+        path.join(process.cwd(), "src/app/api/auth/verify-otp/route.ts"),
+        "utf8",
+      );
+      expect(verifyOtp).toContain('type: "magiclink"');
+      expect(verifyOtp).toContain("generateLink");
+      expect(verifyOtp).toContain("token");
+    });
+
+    it("should verify magic link token in login page OTP handler", () => {
+      const fs = require("fs");
+      const path = require("path");
+      const loginPage = fs.readFileSync(
+        path.join(process.cwd(), "src/app/login/page.tsx"),
+        "utf8",
+      );
+      expect(loginPage).toContain("verifyOtp");
+      expect(loginPage).toContain("token_hash");
+      expect(loginPage).toContain('type: "email"');
+    });
+
+    it("should have OTP toggle in login page (optional, not forced)", () => {
+      const fs = require("fs");
+      const path = require("path");
+      const loginPage = fs.readFileSync(
+        path.join(process.cwd(), "src/app/login/page.tsx"),
+        "utf8",
+      );
+      expect(loginPage).toContain("otpMode");
+      expect(loginPage).toContain("Login with password");
+      expect(loginPage).toContain("Login with OTP instead");
+    });
+  });
+
+  describe("Parent Portal – Navigation", () => {
+    it("should wrap fees page in ParentPortalShell", () => {
+      const fs = require("fs");
+      const path = require("path");
+      const feesPage = fs.readFileSync(
+        path.join(process.cwd(), "src/app/parent-portal/fees/page.tsx"),
+        "utf8",
+      );
+      expect(feesPage).toContain("ParentPortalShell");
+      expect(feesPage).not.toContain("useParentPortalGuard");
+    });
+
+    it("should wrap messages page in ParentPortalShell", () => {
+      const fs = require("fs");
+      const path = require("path");
+      const messagesPage = fs.readFileSync(
+        path.join(process.cwd(), "src/app/parent-portal/messages/page.tsx"),
+        "utf8",
+      );
+      expect(messagesPage).toContain("ParentPortalShell");
+      expect(messagesPage).not.toContain("useParentPortalGuard");
+    });
+
+    it("should wrap notices page in ParentPortalShell", () => {
+      const fs = require("fs");
+      const path = require("path");
+      const noticesPage = fs.readFileSync(
+        path.join(process.cwd(), "src/app/parent-portal/notices/page.tsx"),
+        "utf8",
+      );
+      expect(noticesPage).toContain("ParentPortalShell");
+      expect(noticesPage).not.toContain("useParentPortalGuard");
+    });
+
+    it("should wrap attendance page in ParentPortalShell", () => {
+      const fs = require("fs");
+      const path = require("path");
+      const attendancePage = fs.readFileSync(
+        path.join(process.cwd(), "src/app/parent-portal/attendance/page.tsx"),
+        "utf8",
+      );
+      expect(attendancePage).toContain("ParentPortalShell");
+      expect(attendancePage).not.toContain("useParentPortalGuard");
+    });
+
+    it("should wrap academics page in ParentPortalShell", () => {
+      const fs = require("fs");
+      const path = require("path");
+      const academicsPage = fs.readFileSync(
+        path.join(process.cwd(), "src/app/parent-portal/academics/page.tsx"),
+        "utf8",
+      );
+      expect(academicsPage).toContain("ParentPortalShell");
+      expect(academicsPage).not.toContain("useParentPortalGuard");
+    });
+  });
 });
