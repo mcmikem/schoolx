@@ -9,7 +9,7 @@ import { t, tWithParams } from "@/i18n";
 import { Button, Input } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
-import { normalizeAuthPhone } from "@/lib/validation";
+import { isValidEmail, normalizeAuthPhone } from "@/lib/validation";
 import { logger } from "@/lib/logger";
 import MaterialIcon from "@/components/MaterialIcon";
 
@@ -45,6 +45,7 @@ export default function LoginPage() {
   const [otp, setOtp] = useState("");
   const [showSlowMessage, setShowSlowMessage] = useState(false);
   const [rememberSession, setRememberSession] = useState(true);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -105,9 +106,35 @@ export default function LoginPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const validatePhone = (phone: string): boolean => {
-    const clean = normalizeAuthPhone(phone);
+  const validateIdentifier = (identifier: string): boolean => {
+    const trimmed = identifier.trim();
+    if (!trimmed) return false;
+    if (trimmed.includes("@")) return isValidEmail(trimmed.toLowerCase());
+    const clean = normalizeAuthPhone(trimmed);
     return clean.length >= 10 && clean.length <= 12;
+  };
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    try {
+      const redirectTo =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/login`
+          : undefined;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: redirectTo ? { redirectTo } : undefined,
+      });
+      if (error) throw error;
+    } catch (err) {
+      logger.error("Google sign-in error:", err);
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Google sign-in failed. Please try again.",
+      );
+      setGoogleLoading(false);
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -116,18 +143,26 @@ export default function LoginPage() {
     setPasswordError("");
     setShowSlowMessage(false);
 
-    if (!phone.trim()) {
-      setPhoneError("Phone number is required");
+    const rawIdentifier = phone.trim();
+    const isEmailLogin = rawIdentifier.includes("@");
+
+    if (!rawIdentifier) {
+      setPhoneError("Phone number or email is required");
       return;
     }
 
-    if (!validatePhone(phone)) {
-      setPhoneError("Please enter a valid phone number");
+    if (!validateIdentifier(rawIdentifier)) {
+      setPhoneError("Please enter a valid phone number or email");
       return;
     }
 
     // OTP mode - verify OTP
     if (otpMode && otpSent) {
+      if (isEmailLogin) {
+        setPhoneError("OTP login currently supports phone numbers only");
+        return;
+      }
+
       if (!otp || otp.length !== 6) {
         setPasswordError("Enter the 6-digit OTP");
         return;
@@ -142,7 +177,7 @@ export default function LoginPage() {
         const res = await fetch("/api/auth/verify-otp/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone: normalizeAuthPhone(phone), otp }),
+          body: JSON.stringify({ phone: normalizeAuthPhone(rawIdentifier), otp }),
         });
         const data = await res.json();
 
@@ -199,7 +234,9 @@ export default function LoginPage() {
       setShowSlowMessage(true);
     }, 5000);
 
-    const cleanPhone = normalizeAuthPhone(phone);
+    const normalizedIdentifier = isEmailLogin
+      ? rawIdentifier.toLowerCase()
+      : normalizeAuthPhone(rawIdentifier);
 
     if (typeof window !== "undefined") {
       localStorage.setItem("remember_session", rememberSession ? "true" : "false");
@@ -211,14 +248,14 @@ export default function LoginPage() {
     // DEMO_PHONE_NUMBERS: only try demo login for known demo phone numbers
     // to avoid wasting a network round-trip for every real user
     const DEMO_PHONE_NUMBERS = ["25670000001", "25670000002", "25670000003", "25670000004"];
-    const isDemoPhone = DEMO_PHONE_NUMBERS.includes(cleanPhone);
+    const isDemoPhone = !isEmailLogin && DEMO_PHONE_NUMBERS.includes(normalizedIdentifier);
 
     try {
       if (DEMO_MODE_ENABLED && isDemoPhone) {
         const demoResponse = await fetch("/api/demo-login/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone: cleanPhone, password }),
+          body: JSON.stringify({ phone: normalizedIdentifier, password }),
         });
 
         if (demoResponse.ok) {
@@ -258,7 +295,7 @@ export default function LoginPage() {
         }
       }
 
-      const { error: authError } = await signIn(cleanPhone, password);
+      const { error: authError } = await signIn(normalizedIdentifier, password);
       clearTimeout(loginTimeout);
       clearTimeout(slowMsgTimeout);
       if (authError) {
@@ -311,7 +348,7 @@ export default function LoginPage() {
             "Your account is not confirmed. Please contact school administration.",
           );
         } else {
-          toast.error("Invalid phone number or password");
+          toast.error("Invalid login details");
         }
         setShowSlowMessage(false);
         setLoading(false);
@@ -403,10 +440,10 @@ export default function LoginPage() {
             <form onSubmit={handleLogin} className="space-y-5">
               <div>
                 <Input
-                  label={t("auth.phoneNumber")}
+                  label="Phone Number or Email"
                   id="phone"
-                  type="tel"
-                  placeholder="0700000000"
+                  type="text"
+                  placeholder="0700000000 or you@school.com"
                   value={phone}
                   onChange={(e) => {
                     setPhone(e.target.value);
@@ -414,7 +451,7 @@ export default function LoginPage() {
                   }}
                   error={phoneError}
                   required
-                  autoComplete="tel"
+                  autoComplete="username"
                 />
               </div>
 
@@ -575,6 +612,19 @@ export default function LoginPage() {
                   }
                 >
                   {loading ? t("auth.signingIn") : t("auth.signIn")}
+                </Button>
+              )}
+
+              {!otpMode && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full"
+                  loading={googleLoading}
+                  onClick={handleGoogleSignIn}
+                  icon={<MaterialIcon icon="account_circle" className="text-lg" />}
+                >
+                  Continue with Google
                 </Button>
               )}
 

@@ -242,7 +242,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Create auth user using admin client
-    const emailForAuth = `${normalizedPhone}@omuto.org`;
+    const normalizedEmail = email?.trim().toLowerCase();
+    const hasValidProvidedEmail =
+      !!normalizedEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail);
+    const emailForAuth = hasValidProvidedEmail
+      ? normalizedEmail
+      : `${normalizedPhone}@omuto.org`;
     const { data: authData, error: authError } =
       await supabaseAdmin.auth.admin.createUser({
         email: emailForAuth,
@@ -311,7 +316,7 @@ export async function POST(request: NextRequest) {
       school_id: schoolData.id,
       full_name: adminName,
       phone: normalizedPhone,
-      email: email || null,
+      email: normalizedEmail || null,
       role: "school_admin",
       is_active: true,
     });
