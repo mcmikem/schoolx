@@ -189,7 +189,13 @@ export default function CoursesPage() {
       toast.success(editingCourse ? "Course updated" : "Course created");
       setShowModal(false);
       fetchCourses();
-    } catch {
+    } catch (caughtError: any) {
+      const shouldFallback = caughtError?.message === "use_subjects" || caughtError?.code === "42P01";
+      if (!shouldFallback) {
+        toast.error(editingCourse ? "Failed to update course" : "Failed to create course");
+        return;
+      }
+
       const subjectPayload = {
         school_id: school.id,
         name: formData.name,
@@ -244,8 +250,7 @@ export default function CoursesPage() {
       if (error) throw error;
       fetchCourses();
     } catch {
-      toast.success("Subject list refreshed");
-      fetchCourses();
+      toast.error("Failed to update course status");
     }
   };
 

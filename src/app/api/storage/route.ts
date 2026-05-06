@@ -20,11 +20,61 @@ const ALLOWED_MIME_TYPES = new Set([
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ])
 
+const STORAGE_BUCKETS = {
+  'school-logos': {
+    public: true,
+    fileSizeLimit: 5242880,
+    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as string[],
+  },
+  'school-files': {
+    public: false,
+    fileSizeLimit: MAX_FILE_SIZE,
+    allowedMimeTypes: Array.from(ALLOWED_MIME_TYPES),
+  },
+} as const
+
 function sanitizeFileName(name: string): string {
   return name
     .replace(/[^a-zA-Z0-9._-]/g, '_')
     .replace(/_{2,}/g, '_')
     .slice(0, 255)
+}
+
+function sanitizePathSegment(segment: string): string {
+  return sanitizeFileName(segment).replace(/^_+|_+$/g, '')
+}
+
+function sanitizeRelativePath(path: string): string {
+  return path
+    .split('/')
+    .map((segment) => sanitizePathSegment(segment))
+    .filter(Boolean)
+    .join('/')
+}
+
+function getBucketName(path: string): keyof typeof STORAGE_BUCKETS {
+  return path.startsWith('logos') ? 'school-logos' : 'school-files'
+}
+
+function buildScopedPath(schoolId: string, rawPath: string, fileName: string): string {
+  const bucketName = getBucketName(rawPath)
+  const relativePath = sanitizeRelativePath(
+    rawPath.replace(/^logos\/?/, '').replace(/^files\/?/, '')
+  )
+  const basePath = bucketName === 'school-logos'
+    ? `schools/${schoolId}/logos`
+    : `schools/${schoolId}/files`
+
+  return [basePath, relativePath, sanitizeFileName(fileName)].filter(Boolean).join('/')
+}
+
+async function ensureBucketExists(supabaseAdmin: any, bucketName: keyof typeof STORAGE_BUCKETS) {
+  const bucketConfig = STORAGE_BUCKETS[bucketName]
+  const { error } = await supabaseAdmin.storage.createBucket(bucketName, bucketConfig)
+
+  if (error && !error.message.includes('already exists')) {
+    throw error
+  }
 }
 
 function validateFile(file: File): string | null {
@@ -50,8 +100,19 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File | null
     const path = (formData.get('path') as string) || ''
 
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
+
     if (!file) {
-      return apiError('No file provided', 400)
+      await ensureBucketExists(supabaseAdmin, 'school-logos')
+      await ensureBucketExists(supabaseAdmin, 'school-files')
+
+      return NextResponse.json({
+        success: true,
+        exists: true,
+        buckets: Object.keys(STORAGE_BUCKETS),
+      })
     }
 
     const validationError = validateFile(file)
@@ -59,31 +120,21 @@ export async function POST(request: NextRequest) {
       return apiError(validationError, 400)
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false }
-    })
-
-    const bucketName = path.startsWith('logos') ? 'school-logos' : 'school-files'
-    const sanitizedPath = path ? `${sanitizeFileName(path)}/${sanitizeFileName(file.name)}` : sanitizeFileName(file.name)
+    const bucketName = getBucketName(path)
+    const sanitizedPath = buildScopedPath(auth.context.schoolId || 'unknown-school', path, file.name)
 
     const { data, error } = await supabaseAdmin.storage
       .from(bucketName)
       .upload(sanitizedPath, file, {
-        upsert: true,
+        upsert: false,
         contentType: file.type,
       })
 
     if (error) {
       if (error.message.includes('Bucket') && error.message.includes('not found')) {
-        const { error: bucketError } = await supabaseAdmin.storage.createBucket(bucketName, {
-          public: bucketName === 'school-logos',
-          fileSizeLimit: bucketName === 'school-logos' ? 5242880 : MAX_FILE_SIZE,
-          allowedMimeTypes: bucketName === 'school-logos'
-            ? ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-            : Array.from(ALLOWED_MIME_TYPES),
-        })
-
-        if (bucketError && !bucketError.message.includes('already exists')) {
+        try {
+          await ensureBucketExists(supabaseAdmin, bucketName)
+        } catch (bucketError) {
           logger.error('Create bucket error:', bucketError)
           return apiError('Failed to create storage bucket', 500)
         }
@@ -91,7 +142,7 @@ export async function POST(request: NextRequest) {
         const retryUpload = await supabaseAdmin.storage
           .from(bucketName)
           .upload(sanitizedPath, file, {
-            upsert: true,
+            upsert: false,
             contentType: file.type,
           })
 
@@ -144,9 +195,11 @@ export async function GET(request: NextRequest) {
     })
 
     const { data: buckets } = await supabaseAdmin.storage.listBuckets()
+    const bucketNames = new Set((buckets || []).map((bucket) => bucket.name))
 
     return NextResponse.json({
       success: true,
+      exists: bucketNames.has('school-logos') && bucketNames.has('school-files'),
       buckets: buckets?.map(b => ({ id: b.id, name: b.name, public: b.public }))
     })
   } catch (error) {

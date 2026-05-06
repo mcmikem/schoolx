@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useOfflineData } from '@/lib/offline-hooks';
+import { withTimeout } from "@/lib/hooks/utils";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -77,14 +78,18 @@ export default function TransportPage() {
         throw new Error("Monthly fee must be a valid positive number");
       }
 
-      const { error } = await supabase.from("transport_routes").insert({
-        school_id: school.id,
-        route_name: form.route_name.trim(),
-        vehicle_number: form.vehicle_number.trim() || null,
-        driver_name: form.driver_name.trim() || null,
-        driver_phone: form.driver_phone.trim() || null,
-        monthly_fee: monthlyFee,
-      });
+      const error = await withTimeout(
+        supabase.from("transport_routes").insert({
+          school_id: school.id,
+          route_name: form.route_name.trim(),
+          vehicle_number: form.vehicle_number.trim() || null,
+          driver_name: form.driver_name.trim() || null,
+          driver_phone: form.driver_phone.trim() || null,
+          monthly_fee: monthlyFee,
+        }).then((response) => response.error),
+        8000,
+        new Error("Route save timed out")
+      );
       if (error) throw error;
 
       toast.success("Route added successfully");
@@ -106,7 +111,11 @@ export default function TransportPage() {
     setPendingAction(() => async () => {
       setDeletingId(id);
       try {
-        const { error } = await supabase.from("transport_routes").delete().eq("id", id);
+        const error = await withTimeout(
+          supabase.from("transport_routes").delete().eq("id", id).then((response) => response.error),
+          8000,
+          new Error("Route delete timed out")
+        );
         if (error) throw error;
         refetchRoutes();
         toast.success("Route deleted");

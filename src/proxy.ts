@@ -67,6 +67,10 @@ const SETUP_PATHS = ["/setup", "/setup-admin"];
 
 const PUBLIC_FILE_PATTERN = /\.(?:svg|png|jpg|jpeg|webp|gif|ico|css|js|map|txt|xml|json|woff|woff2|ttf|eot)$/i;
 
+function matchesPathPrefix(pathname: string, basePath: string) {
+  return pathname === basePath || pathname.startsWith(`${basePath}/`);
+}
+
 function hasAuthSessionCookie(request: NextRequest): boolean {
   const cookies = request.cookies.getAll();
   for (let i = 0; i < cookies.length; i++) {
@@ -155,9 +159,9 @@ export async function proxy(request: NextRequest) {
 
   const isPublicPath =
     pathname === "/" ||
-    alwaysPublicPaths.some((path) => pathname.startsWith(path));
+    alwaysPublicPaths.some((path) => matchesPathPrefix(pathname, path));
 
-  const isSetupPath = SETUP_PATHS.some((path) => pathname.startsWith(path));
+  const isSetupPath = SETUP_PATHS.some((path) => matchesPathPrefix(pathname, path));
 
   if (isPublicPath) {
     const response = NextResponse.next({ request });

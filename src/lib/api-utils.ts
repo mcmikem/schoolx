@@ -263,20 +263,52 @@ export function withRateLimit(
 }
 
 // CSRF Protection — session-backed for API routes.
-// The middleware (src/middleware.ts) issues a csrf-token cookie on GET requests.
-// For non-GET API requests we require the x-csrf-token header to match the cookie.
-// If no csrf-token cookie exists the request has never received one (e.g. curl /
-// scripted client); in that case we let the call through because Supabase SSR
-// cookies already provide same-origin CSRF protection.
+// The proxy (src/proxy.ts) issues a csrf-token cookie on GET requests.
+// For non-GET API requests we accept either:
+// 1) a same-origin browser request (`Origin` / `Sec-Fetch-Site`), or
+// 2) an explicit x-csrf-token header matching the csrf-token cookie.
+// This protects cookie-authenticated APIs without forcing every existing
+// same-origin fetch call to manually copy the token header.
 export function validateCSRFToken(request: NextRequest): boolean {
   const cookie = request.cookies.get("csrf-token")?.value;
+  const origin = request.headers.get("origin");
+  const secFetchSite = request.headers.get("sec-fetch-site");
+  const requestOrigin = request.nextUrl.origin;
+
+  if (origin && origin === requestOrigin) {
+    return true;
+  }
+
+  if (secFetchSite && ["same-origin", "same-site", "none"].includes(secFetchSite)) {
+    return true;
+  }
 
   if (!cookie) {
-    return true;
+    return false;
   }
 
   const token = request.headers.get("x-csrf-token");
   return token === cookie;
+}
+
+function requireSameOriginWriteOrDeny(
+  request: NextRequest,
+): { ok: true } | { ok: false; response: NextResponse } {
+  if (request.method === "GET" || request.method === "HEAD" || request.method === "OPTIONS") {
+    return { ok: true };
+  }
+
+  if (!validateCSRFToken(request)) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, error: "Invalid CSRF token" },
+        { status: 403 },
+      ),
+    };
+  }
+
+  return { ok: true };
 }
 
 export function withCSRFProtection(
@@ -328,6 +360,9 @@ export async function requireAuthenticatedUser(
   | { ok: true; context: AuthenticatedUserContext }
   | { ok: false; response: NextResponse }
 > {
+  const csrfCheck = requireSameOriginWriteOrDeny(request);
+  if (!csrfCheck.ok) return csrfCheck;
+
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.getUser();
 

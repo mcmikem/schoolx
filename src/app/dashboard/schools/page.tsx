@@ -346,7 +346,7 @@ export default function SchoolsPage() {
 
       const result = await response.json()
       if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed')
+        throw new Error(result.error || 'Failed to create user')
       }
 
       toast.success(`User ${newUserForm.name} created`)
@@ -354,7 +354,7 @@ export default function SchoolsPage() {
       setNewUserForm({ name: '', phone: '', role: 'teacher', password: '' })
       await fetchSchoolUsers(selectedSchool.id)
     } catch (err: unknown) {
-      toast.error(getErrorMessage(err, 'Failed'))
+      toast.error(getErrorMessage(err, 'Failed to create user'))
     }
   }
 
