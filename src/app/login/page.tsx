@@ -267,6 +267,12 @@ export default function LoginPage() {
           msgLower.includes("timed out") || msgLower.includes("timeout") ||
           msgLower.includes("abort") || msgLower.includes("lock") ||
           msgLower.includes("failed to fetch") || msgLower.includes("networkerror");
+        const isProfileOrDbIssue =
+          msgLower.includes("profile") ||
+          msgLower.includes("database") ||
+          msgLower.includes("server configuration") ||
+          msgLower.includes("token") ||
+          msgLower.includes("server error");
 
         if (newAttempts >= 5) {
           const lockDuration = Math.min(
@@ -284,6 +290,10 @@ export default function LoginPage() {
         } else if (isNetwork) {
           toast.error(
             "Connection error. Please check your internet and try again.",
+          );
+        } else if (isProfileOrDbIssue) {
+          toast.error(
+            "Your account exists, but your profile could not be loaded. Please contact support.",
           );
         } else if (msgLower.includes("email not confirmed")) {
           toast.error(

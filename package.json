@@ -18,6 +18,7 @@
     "health": "node scripts/health-check.mjs",
     "check:ci": "node scripts/check-ci.mjs",
     "check:ci:watch": "node scripts/check-ci.mjs --watch",
+    "repair:missing-user-profiles": "node scripts/repair-missing-user-profiles.mjs",
     "audit:uiux": "node scripts/audit-uiux.mjs",
     "audit:uiux:strict": "node scripts/audit-uiux.mjs --strict",
     "cap:init": "cap init \"SkoolMate OS\" com.skoolmate.os --web-dir=out",

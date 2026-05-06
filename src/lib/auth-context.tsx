@@ -127,9 +127,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return fetchUserData(authId, retryCount + 1);
           }
           if (res.status === 404) {
-            logger.warn("[Auth] No user profile found for auth_id:", authId);
+            logger.error("[Auth] User profile not found in database for auth_id:", authId);
+            // This is a genuine error - profile doesn't exist even though auth succeeded
+            // Sign the user out to prevent them seeing confusing "invalid credentials" messages
+            await supabase.auth.signOut();
+            return null;
+          } else if (res.status === 401) {
+            logger.warn("[Auth] Profile fetch auth token rejected");
+            await supabase.auth.signOut();
+            return null;
           } else {
-            logger.warn("[Auth] Profile fetch failed:", res.status);
+            logger.error("[Auth] Profile fetch failed with status:", res.status);
           }
           setLoading(false);
           return null;
