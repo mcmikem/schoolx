@@ -15,13 +15,32 @@
  */
 
 import { execSync } from "child_process";
+import { readFileSync, existsSync } from "fs";
 
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
 const REPO_OWNER = "mcmikem";
 const REPO_NAME = "schoolx";
-const VERCEL_PROJECT_NAME = process.env.VERCEL_PROJECT_NAME || "schoolx";
+function getLinkedVercelProjectInfo() {
+  try {
+    const filePath = ".vercel/project.json";
+    if (!existsSync(filePath)) return null;
+    const raw = readFileSync(filePath, "utf8");
+    const parsed = JSON.parse(raw);
+    return {
+      projectId: parsed?.projectId || null,
+      orgId: parsed?.orgId || null,
+      projectName: parsed?.projectName || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+const LINKED_VERCEL = getLinkedVercelProjectInfo();
+const VERCEL_PROJECT_NAME =
+  process.env.VERCEL_PROJECT_NAME || LINKED_VERCEL?.projectName || "schoolx";
 const POLL_INTERVAL_MS = 15_000;
 
 // ---------------------------------------------------------------------------
@@ -182,9 +201,11 @@ async function checkGitHub(gitInfo) {
 async function resolveVercelProjectId(token) {
   const explicitProjectId = process.env.VERCEL_PROJECT_ID;
   if (explicitProjectId) return explicitProjectId;
+  if (LINKED_VERCEL?.projectId) return LINKED_VERCEL.projectId;
 
-  const scope = process.env.VERCEL_TEAM_ID
-    ? `?teamId=${encodeURIComponent(process.env.VERCEL_TEAM_ID)}`
+  const teamId = process.env.VERCEL_TEAM_ID || LINKED_VERCEL?.orgId;
+  const scope = teamId
+    ? `?teamId=${encodeURIComponent(teamId)}`
     : "";
   const projectUrl =
     `https://api.vercel.com/v9/projects/${encodeURIComponent(VERCEL_PROJECT_NAME)}` +
@@ -214,8 +235,9 @@ async function fetchVercelDeployments(gitInfo) {
     throw new Error("Vercel project ID could not be resolved");
   }
 
-  const scope = process.env.VERCEL_TEAM_ID
-    ? `&teamId=${encodeURIComponent(process.env.VERCEL_TEAM_ID)}`
+  const teamId = process.env.VERCEL_TEAM_ID || LINKED_VERCEL?.orgId;
+  const scope = teamId
+    ? `&teamId=${encodeURIComponent(teamId)}`
     : "";
 
   const url =
