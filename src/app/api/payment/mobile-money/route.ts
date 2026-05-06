@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createMobileMoneyPaymentLink } from "@/lib/payments/mobile-money";
-import { PlanType } from "@/lib/subscription";
+import { PLAN_TYPES, PlanType } from "@/lib/subscription";
 import {
   getPlanPrice,
   recordPayment,
@@ -18,6 +18,8 @@ const BILLING_ROLES = [
   "headmaster",
   "bursar",
 ];
+
+const VALID_PLAN_TYPES = new Set<string>(PLAN_TYPES);
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,6 +51,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!VALID_PLAN_TYPES.has(plan)) {
+      return NextResponse.json(
+        { error: "Invalid plan selected" },
+        { status: 400 },
+      );
+    }
+
     if (provider !== "mtn" && provider !== "airtel") {
       return NextResponse.json(
         { error: 'Invalid provider. Use "mtn" or "airtel"' },
@@ -76,6 +85,13 @@ export async function POST(request: NextRequest) {
     }
 
     const amount = getPlanPrice(plan);
+
+    if (amount <= 0) {
+      return NextResponse.json(
+        { error: "Selected plan is not billable" },
+        { status: 400 },
+      );
+    }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 

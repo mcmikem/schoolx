@@ -77,12 +77,15 @@ export const FEATURE_TIERS = {
   ],
 };
 
-export type PlanType =
-  | "starter"
-  | "growth"
-  | "enterprise"
-  | "lifetime"
-  | "free_trial";
+export const PLAN_TYPES = [
+  "starter",
+  "growth",
+  "enterprise",
+  "lifetime",
+  "free_trial",
+] as const;
+
+export type PlanType = (typeof PLAN_TYPES)[number];
 
 export interface PlanFeatures {
   name: string;

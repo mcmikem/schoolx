@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPayPalOrder } from "@/lib/payments/paypal";
 import { createMobileMoneyPaymentLink } from "@/lib/payments/mobile-money";
-import { PlanType } from "@/lib/subscription";
+import { PLAN_TYPES, PlanType } from "@/lib/subscription";
 import {
   getPlanPrice,
   recordPayment,
@@ -21,6 +21,8 @@ const BILLING_ROLES = [
   "headmaster",
   "bursar",
 ];
+
+const VALID_PLAN_TYPES = new Set<string>(PLAN_TYPES);
 
 function validateReturnUrl(url: string | undefined, baseUrl: string): string {
   if (!url) return `${baseUrl}/dashboard/pricing`;
@@ -83,6 +85,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!VALID_PLAN_TYPES.has(plan)) {
+      return NextResponse.json(
+        { error: "Invalid plan selected" },
+        { status: 400 },
+      );
+    }
+
     const supabase = await createSupabaseServerClient();
     const { data: school } = await supabase
       .from("schools")
@@ -95,6 +104,13 @@ export async function POST(request: NextRequest) {
     }
 
     const amount = getPlanPrice(plan);
+
+    if (amount <= 0) {
+      return NextResponse.json(
+        { error: "Selected plan is not billable" },
+        { status: 400 },
+      );
+    }
 
     if (provider === "paypal") {
       const baseUrl =
