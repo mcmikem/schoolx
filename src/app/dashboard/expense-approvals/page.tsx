@@ -42,7 +42,7 @@ export default function ExpenseApprovalsPage() {
     } finally {
       setLoading(false);
     }
-  }, [school?.id, statusFilter]);
+  }, [school?.id, statusFilter, toast]);
 
   useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
 
