@@ -21,7 +21,7 @@ import { execSync } from "child_process";
 // ---------------------------------------------------------------------------
 const REPO_OWNER = "mcmikem";
 const REPO_NAME = "schoolx";
-const VERCEL_PROJECT_NAME = "schoolx"; // adjust if different
+const VERCEL_PROJECT_NAME = process.env.VERCEL_PROJECT_NAME || "schoolx";
 const POLL_INTERVAL_MS = 15_000;
 
 // ---------------------------------------------------------------------------
@@ -179,15 +179,50 @@ async function checkGitHub(gitInfo) {
 // ---------------------------------------------------------------------------
 // Vercel
 // ---------------------------------------------------------------------------
+async function resolveVercelProjectId(token) {
+  const explicitProjectId = process.env.VERCEL_PROJECT_ID;
+  if (explicitProjectId) return explicitProjectId;
+
+  const scope = process.env.VERCEL_TEAM_ID
+    ? `?teamId=${encodeURIComponent(process.env.VERCEL_TEAM_ID)}`
+    : "";
+  const projectUrl =
+    `https://api.vercel.com/v9/projects/${encodeURIComponent(VERCEL_PROJECT_NAME)}` +
+    scope;
+
+  const projectRes = await fetch(projectUrl, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!projectRes.ok) {
+    const body = await projectRes.text();
+    throw new Error(
+      `Vercel project lookup ${projectRes.status}: ${body.slice(0, 200)}`,
+    );
+  }
+
+  const project = await projectRes.json();
+  return project?.id || null;
+}
+
 async function fetchVercelDeployments(gitInfo) {
   const token = process.env.VERCEL_TOKEN;
   if (!token) return null;
 
+  const projectId = await resolveVercelProjectId(token);
+  if (!projectId) {
+    throw new Error("Vercel project ID could not be resolved");
+  }
+
+  const scope = process.env.VERCEL_TEAM_ID
+    ? `&teamId=${encodeURIComponent(process.env.VERCEL_TEAM_ID)}`
+    : "";
+
   const url =
     `https://api.vercel.com/v6/deployments?` +
-    `projectId=${encodeURIComponent(VERCEL_PROJECT_NAME)}&` +
+    `projectId=${encodeURIComponent(projectId)}&` +
     `meta-githubCommitSha=${gitInfo.sha}&` +
-    `limit=5`;
+    `limit=5${scope}`;
 
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
@@ -205,6 +240,7 @@ async function checkVercel(gitInfo) {
   if (!process.env.VERCEL_TOKEN) {
     print(`  ${C.yellow}⚠ Skipped${C.reset} — set VERCEL_TOKEN env var to check builds.`);
     print(`      ${C.dim}Get token: https://vercel.com/account/tokens${C.reset}`);
+    print(`      ${C.dim}Optional: set VERCEL_PROJECT_ID / VERCEL_PROJECT_NAME / VERCEL_TEAM_ID${C.reset}`);
     return "unknown";
   }
 
@@ -233,6 +269,7 @@ async function checkVercel(gitInfo) {
     return overall;
   } catch (err) {
     print(`  ${C.red}✗ Failed to fetch Vercel status:${C.reset} ${err.message}`);
+    print(`      ${C.dim}Tip: set VERCEL_PROJECT_ID explicitly to avoid project-name lookup issues.${C.reset}`);
     return "unknown";
   }
 }
