@@ -110,29 +110,6 @@ export default function RootLayout({
         <Providers>{children}</Providers>
         {process.env.NODE_ENV === "development" && <DebugPing />}
         <MobileInit />
-        <Script id="sw-register" strategy="afterInteractive">{`
-          (function() {
-            if ('serviceWorker' in navigator) {
-              window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js').then(function(reg) {
-                  reg.addEventListener('updatefound', function() {
-                    var newWorker = reg.installing;
-                    if (newWorker) {
-                      newWorker.addEventListener('statechange', function() {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                          var evt = new CustomEvent('sw-update-available', { detail: { registration: reg } });
-                          window.dispatchEvent(evt);
-                        }
-                      });
-                    }
-                  });
-                }).catch(function(err) {
-                  console.warn('[SW] Registration failed:', err);
-                });
-              });
-            }
-          })();
-        `}</Script>
       </body>
     </html>
   );

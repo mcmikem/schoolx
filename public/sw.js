@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'skoolmate-v8';
+const CACHE_VERSION = 'skoolmate-v9';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;

@@ -15,15 +15,38 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
   useEffect(() => {
     setupErrorLogging()
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      const authRoutePattern = /^\/(login|register|forgot-password)(\/|$)/
+      const shouldForceAuthRouteUpdate = authRoutePattern.test(window.location.pathname)
+      let hasReloadedForUpdate = false
+
+      const reloadForActivatedUpdate = () => {
+        if (!shouldForceAuthRouteUpdate || hasReloadedForUpdate) return
+        hasReloadedForUpdate = true
+        window.location.reload()
+      }
+
+      navigator.serviceWorker.addEventListener('controllerchange', reloadForActivatedUpdate)
+
       navigator.serviceWorker.register('/sw.js')
-        .then((registration) => {
+        .then(async (registration) => {
           logger.log('Service Worker registered:', registration.scope)
+          await registration.update().catch(() => {})
+
+          if (registration.waiting && shouldForceAuthRouteUpdate) {
+            registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+          }
+
           // Check for updates and activate immediately
           registration.addEventListener('updatefound', () => {
             const newWorker = registration.installing
             if (newWorker) {
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  if (shouldForceAuthRouteUpdate) {
+                    newWorker.postMessage({ type: 'SKIP_WAITING' })
+                    return
+                  }
+
                   // Notify the UI that an update is available — let the user
                   // decide when to reload rather than forcing it mid-session,
                   // which can steal Supabase auth Web Locks.
@@ -36,6 +59,10 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
         .catch((error) => {
           logger.error('Service Worker registration failed:', error)
         })
+
+      return () => {
+        navigator.serviceWorker.removeEventListener('controllerchange', reloadForActivatedUpdate)
+      }
     }
   }, [])
   return <>{children}</>
