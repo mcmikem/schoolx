@@ -92,6 +92,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const authFetchAborted = useRef(false);
   const authCheckedRef = useRef(false);
 
+  const clearAuthState = useCallback(() => {
+    setUser(null);
+    setSchool(null);
+    setIsDemo(false);
+    setIsTrialExpired(false);
+    try {
+      localStorage.removeItem(OFFLINE_USER_KEY);
+      localStorage.removeItem(OFFLINE_SCHOOL_KEY);
+    } catch {
+      // Ignore storage errors while clearing invalid cached auth data.
+    }
+  }, []);
+
   const isSubscriptionActive = useCallback(() => {
     return isSubscriptionActiveCheck(school);
   }, [school]);
@@ -108,9 +121,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (authFetchAborted.current || !supabase) return null;
 
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        // getSession() can return a stale access_token if it hasn't refreshed yet.
+        // Prefer refreshSession() so we always send a current token to /api/auth/me/.
+        let session = (await supabase.auth.getSession()).data.session;
+        if (session && session.expires_at && session.expires_at * 1000 < Date.now() + 10000) {
+          const { data: refreshed } = await supabase.auth.refreshSession();
+          if (refreshed.session) session = refreshed.session;
+        }
         const token = session?.access_token;
         if (!token) {
+          if (typeof navigator !== "undefined" && navigator.onLine) {
+            clearAuthState();
+          }
           setLoading(false);
           return null;
         }
@@ -128,13 +150,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           if (res.status === 404) {
             logger.error("[Auth] User profile not found in database for auth_id:", authId);
-            // This is a genuine error - profile doesn't exist even though auth succeeded
-            // Sign the user out to prevent them seeing confusing "invalid credentials" messages
+            // Profile doesn't exist even though auth succeeded — sign out fully.
             await supabase.auth.signOut();
+            clearAuthState();
             return null;
           } else if (res.status === 401) {
-            logger.warn("[Auth] Profile fetch auth token rejected");
-            await supabase.auth.signOut();
+            // Token might be stale; retry once with a refreshed session.
+            if (retryCount < 1) {
+              logger.warn("[Auth] Profile fetch 401 — refreshing session and retrying");
+              await supabase.auth.refreshSession();
+              await new Promise(r => setTimeout(r, 500));
+              return fetchUserData(authId, retryCount + 1);
+            }
+            logger.warn("[Auth] Profile fetch auth token rejected after refresh — clearing state");
+            clearAuthState();
             return null;
           } else {
             logger.error("[Auth] Profile fetch failed with status:", res.status);
@@ -177,10 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               (schoolData.feature_stage as FeatureStage) ||
               DEFAULT_FEATURE_STAGE,
           };
-          setSchool((prev) => {
-            if (prev && prev.id === schoolObj.id) return prev;
-            return schoolObj;
-          });
+          setSchool(schoolObj);
           try {
             localStorage.setItem(
               OFFLINE_SCHOOL_KEY,
@@ -202,12 +228,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await new Promise(r => setTimeout(r, 1500));
           return fetchUserData(authId, retryCount + 1);
         }
+        if (typeof navigator !== "undefined" && navigator.onLine) {
+          clearAuthState();
+        }
         logger.error("Error fetching user data:", errMsg);
         setLoading(false);
         return null;
       }
     },
-    [],
+    [clearAuthState],
   );
 
   const checkUser = useCallback(async () => {
@@ -310,7 +339,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           if (authUser) {
-            await fetchUserData(authUser.id);
+            const profile = await fetchUserData(authUser.id);
+            if (!profile && navigator.onLine) {
+              clearAuthState();
+            }
             setIsDemo(false);
             setLoading(false);
             setAuthInitialized(true);
@@ -418,35 +450,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // because they can fire during normal navigation and cause
             // loading flickers / infinite loading loops.
             if (event === "SIGNED_IN") setLoading(true);
-            const {
-              data: { user: verifiedUser },
-            } = await withSupabaseLockRetry(
-              async () => await supabase!.auth.getUser(),
-            );
 
-            if (verifiedUser) {
-              authCheckedRef.current = true;
-              // Always fetch user data here — this is the single source of truth
-              // for populating the user after auth. signIn() no longer calls
-              // fetchUserData to avoid race conditions and timeouts.
-              try {
-                await fetchUserData(verifiedUser.id);
-              } catch {
-                logger.warn(
-                  "[Auth] fetchUserData failed in state change handler",
-                );
+            // Safety timer: if getUser+fetchUserData take too long, unblock UI.
+            // 10s covers: 6s fetch + 1.5s wait + 6s retry.
+            let handlerSafetyFired = false;
+            const handlerSafetyTimer = setTimeout(() => {
+              handlerSafetyFired = true;
+              logger.warn("[Auth] onAuthStateChange handler safety timer — forcing authInitialized");
+              setLoading(false);
+              setAuthInitialized(true);
+            }, 10000);
+
+            try {
+              const {
+                data: { user: verifiedUser },
+              } = await withSupabaseLockRetry(
+                async () => await supabase!.auth.getUser(),
+              );
+
+              if (verifiedUser) {
+                authCheckedRef.current = true;
+                // Always fetch user data here — this is the single source of truth
+                // for populating the user after auth. signIn() no longer calls
+                // fetchUserData to avoid race conditions and timeouts.
+                try {
+                  const profile = await fetchUserData(verifiedUser.id);
+                  if (!profile && navigator.onLine) {
+                    clearAuthState();
+                  }
+                } catch {
+                  logger.warn(
+                    "[Auth] fetchUserData failed in state change handler",
+                  );
+                }
+                if (!handlerSafetyFired) {
+                  setIsDemo(false);
+                  setLoading(false);
+                  setAuthInitialized(true);
+                }
+              } else if (!handlerSafetyFired) {
+                // If getUser() returned null without a network error, the session
+                // is genuinely invalid. Only then do we clear user state.
+                setUser(null);
+                setSchool(null);
+                setIsDemo(false);
+                setLoading(false);
+                setAuthInitialized(true);
               }
-              setIsDemo(false);
-              setLoading(false);
-              setAuthInitialized(true);
-            } else {
-              // If getUser() returned null without a network error, the session
-              // is genuinely invalid. Only then do we clear user state.
-              setUser(null);
-              setSchool(null);
-              setIsDemo(false);
-              setLoading(false);
-              setAuthInitialized(true);
+            } finally {
+              clearTimeout(handlerSafetyTimer);
             }
           } else if (event === "SIGNED_OUT") {
             setUser(null);
@@ -485,7 +537,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(timer);
       authFetchAborted.current = true;
     };
-  }, [checkUser, fetchUserData]);
+  }, [checkUser, clearAuthState, fetchUserData]);
 
   const userRef = useRef(user);
   userRef.current = user;

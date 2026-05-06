@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
-      const status = await verifyMobileMoneyPayment(reference);
+      const status = await verifyMobileMoneyPayment(reference, provider as "mtn" | "airtel");
 
       if (status.status === "completed") {
         await updatePendingMobilePayment(reference, "completed");

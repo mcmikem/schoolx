@@ -558,18 +558,38 @@ export default function StudentProfilePage() {
     if (!student) return;
     setEditSaving(true);
     try {
-      const { error: updateError } = await supabase
+      const updatePayload = {
+        first_name: editForm.first_name.trim(),
+        last_name: editForm.last_name.trim(),
+        class_id: editForm.class_id || null,
+        blood_type: editForm.blood_type || null,
+        boarding_status: editForm.boarding_status,
+        parent_name: editForm.parent_name.trim(),
+        parent_phone: editForm.parent_phone.trim(),
+      };
+
+      let { error: updateError } = await supabase
         .from("students")
-        .update({
-          first_name: editForm.first_name.trim(),
-          last_name: editForm.last_name.trim(),
-          class_id: editForm.class_id || null,
-          blood_type: editForm.blood_type || null,
-          boarding_status: editForm.boarding_status,
-          parent_name: editForm.parent_name.trim(),
-          parent_phone: editForm.parent_phone.trim(),
-        })
+        .update(updatePayload)
         .eq("id", student.id);
+
+      if (
+        updateError &&
+        typeof updateError === "object" &&
+        ["42703", "PGRST204", "PGRST301"].includes(
+          String((updateError as { code?: string }).code || ""),
+        ) &&
+        String((updateError as { message?: string }).message || "")
+          .toLowerCase()
+          .includes("boarding_status")
+      ) {
+        const { boarding_status: _omit, ...legacyPayload } = updatePayload;
+        ({ error: updateError } = await supabase
+          .from("students")
+          .update(legacyPayload)
+          .eq("id", student.id));
+      }
+
       if (updateError) throw updateError;
       setShowEdit(false);
       toast.success("Student updated successfully");

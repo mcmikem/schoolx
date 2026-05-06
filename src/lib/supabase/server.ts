@@ -1,6 +1,8 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+const SESSION_COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+
 const isValidHttpUrl = (value?: string | null) => {
   if (!value || value.includes("your-supabase-url")) return false;
   try {
@@ -109,7 +111,12 @@ export async function createSupabaseServerClient() {
         return cookieStore.get(name)?.value;
       },
       set(name: string, value: string, options: CookieOptions) {
-        cookieStore.set({ name, value, ...options });
+        cookieStore.set({
+          name,
+          value,
+          ...options,
+          maxAge: options.maxAge ?? SESSION_COOKIE_MAX_AGE,
+        });
       },
       remove(name: string, options: CookieOptions) {
         cookieStore.set({ name, value: "", ...options });

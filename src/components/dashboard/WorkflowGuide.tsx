@@ -36,9 +36,15 @@ export default function WorkflowGuide() {
   const pathname = usePathname()
   const { school, isDemo } = useAuth()
   const [dismissed, setDismissed] = useState(false)
+  const schoolData = (school as any) || null
+  const onboardingCompleted = Boolean(
+    schoolData?.onboarding_complete ||
+    schoolData?.onboarding_completed ||
+    Number(schoolData?.student_count || 0) > 0,
+  )
 
   // Hide if dismissed, demo mode, or school is already set up
-  if (dismissed || isDemo || (school as any)?.onboarding_complete) return null
+  if (dismissed || isDemo || onboardingCompleted) return null
 
   const activeStep = resolveActiveStep(pathname)
   const nextStep = STEPS[Math.min(activeStep + 1, STEPS.length - 1)]

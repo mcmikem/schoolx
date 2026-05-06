@@ -187,6 +187,25 @@ export default function SettingsPage() {
     (module) => MODULE_LABELS[module],
   );
 
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (!tab) return;
+
+    const validTabs = new Set([
+      "general",
+      "config",
+      "users",
+      "notifications",
+      "checklist",
+      "backup",
+      "subscription",
+    ]);
+
+    if (validTabs.has(tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
   const fetchSettings = useCallback(async () => {
     if (!school?.id) return;
     try {
@@ -353,9 +372,12 @@ export default function SettingsPage() {
         paymentData = result;
 
         if (result.paymentLink) {
-          openPaymentUrl(result.paymentLink, provider.toUpperCase());
+          // Push-based USSD — show confirmation, no redirect needed.
+          toast.success(result.instructions || "A payment prompt has been sent to your phone. Enter your PIN to complete.");
+          setShowPaymentModal(false);
+          setPaymentPhone("");
         } else {
-          throw new Error("Payment link was not returned. Please try again.");
+          throw new Error("Payment request failed. Please try again.");
         }
       } else {
         // PayPal
@@ -1946,7 +1968,7 @@ export default function SettingsPage() {
             <div className="space-y-3">
               <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
                 <label className="block text-xs font-semibold text-[var(--t2)] mb-1">
-                  Mobile Money Phone (for MTN/Airtel)
+                  Mobile Money Phone Number
                 </label>
                 <input
                   type="tel"
@@ -1956,7 +1978,7 @@ export default function SettingsPage() {
                   className="input w-full"
                 />
                 <p className="mt-1 text-[11px] text-[var(--t3)]">
-                  Enter one phone number and choose MTN or Airtel below.
+                  Enter your MTN MoMo or Airtel Money registered number.
                 </p>
               </div>
 

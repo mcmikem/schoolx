@@ -16,14 +16,14 @@ const BILLING_ROLES = [
 ];
 
 function validateReturnUrl(url: string | undefined, baseUrl: string): string {
-  if (!url) return `${baseUrl}/dashboard/pricing`;
+  if (!url) return `${baseUrl}/dashboard/billing`;
   try {
     const parsed = new URL(url);
     const base = new URL(baseUrl);
-    if (parsed.origin !== base.origin) return `${baseUrl}/dashboard/pricing`;
+    if (parsed.origin !== base.origin) return `${baseUrl}/dashboard/billing`;
     return url;
   } catch {
-    return `${baseUrl}/dashboard/pricing`;
+    return `${baseUrl}/dashboard/billing`;
   }
 }
 

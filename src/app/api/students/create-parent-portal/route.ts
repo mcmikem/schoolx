@@ -60,6 +60,9 @@ export async function POST(request: NextRequest) {
   const parentName = student.parent_name?.trim() || `Parent of ${student.first_name}`;
   const generatedPassword = `parent${parentPhone.slice(-4)}`;
   const authEmail = buildAuthEmailFromPhone(phoneNormalized);
+  const e164Phone = phoneNormalized.startsWith("+")
+    ? phoneNormalized
+    : `+${phoneNormalized}`;
 
   // Fetch school name for WhatsApp message
   let schoolName = "SkoolMate";
@@ -117,13 +120,24 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+  // Some deployments have phone auth disabled; attempt with phone first, then retry with email-only.
+  let { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email: authEmail,
-    phone: phoneNormalized,
+    phone: e164Phone,
     password: generatedPassword,
     email_confirm: true,
     user_metadata: { full_name: parentName, phone: phoneNormalized, role: "parent" },
   });
+
+  if (authError) {
+    logger.warn("[create-parent-portal] Auth create with phone failed, retrying email-only:", authError);
+    ({ data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: authEmail,
+      password: generatedPassword,
+      email_confirm: true,
+      user_metadata: { full_name: parentName, phone: phoneNormalized, role: "parent" },
+    }));
+  }
 
   if (authError) {
     logger.error("[create-parent-portal] Auth creation failed:", authError);
@@ -134,16 +148,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Auth user not returned" }, { status: 500 });
   }
 
-  // Insert into users table
-  const { error: userError } = await supabaseAdmin.from("users").insert({
-    auth_id: authData.user.id,
-    school_id: schoolId,
-    full_name: parentName,
-    phone: phoneNormalized,
-    email: authEmail,
-    role: "parent",
-    is_active: true,
-  });
+  // Insert into users table and capture primary key for parent_students linkage.
+  const { data: insertedUser, error: userError } = await supabaseAdmin
+    .from("users")
+    .insert({
+      auth_id: authData.user.id,
+      school_id: schoolId,
+      full_name: parentName,
+      phone: phoneNormalized,
+      email: authEmail,
+      role: "parent",
+      is_active: true,
+    })
+    .select("id")
+    .single();
 
   if (userError) {
     logger.error("[create-parent-portal] Users insert failed:", userError);
@@ -152,8 +170,15 @@ export async function POST(request: NextRequest) {
   }
 
   // Link parent to student
+  const parentUserId = insertedUser?.id;
+  if (!parentUserId) {
+    logger.error("[create-parent-portal] Inserted user id missing after users insert");
+    await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+    return NextResponse.json({ error: "Failed to create parent profile" }, { status: 500 });
+  }
+
   const { error: linkError } = await supabaseAdmin.from("parent_students").insert({
-    parent_id: authData.user.id,
+    parent_id: parentUserId,
     student_id: student.id,
     relationship: "parent",
   });

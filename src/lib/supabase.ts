@@ -26,6 +26,7 @@ const isValidAnonKey = (key?: string) => {
 
 const hasUsableSupabaseConfig =
   isValidHttpUrl(supabaseUrl) && isValidAnonKey(supabaseAnonKey);
+const SESSION_COOKIE_LIFETIME = 60 * 60 * 24 * 30; // 30 days
 
 const createMockQueryBuilder = () => {
   const listResult = { data: [], error: null, count: 0 };
@@ -184,7 +185,11 @@ if (!hasUsableSupabaseConfig && process.env.NODE_ENV === "production") {
 }
 
 const realClient = hasUsableSupabaseConfig
-  ? createBrowserClient(supabaseUrl as string, supabaseAnonKey as string)
+  ? createBrowserClient(supabaseUrl as string, supabaseAnonKey as string, {
+      cookieOptions: {
+        maxAge: SESSION_COOKIE_LIFETIME,
+      },
+    })
   : null;
 
 // Debug output

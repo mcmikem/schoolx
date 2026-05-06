@@ -80,7 +80,7 @@ const KNOWLEDGE: { keywords: string[]; answer: string }[] = [
   {
     keywords: ["mtn", "airtel", "mobile money", "subscription", "plan", "billing", "upgrade"],
     answer:
-      "💳 **Subscription & Billing**:\n\n• Plans available: Starter, Growth, Enterprise\n• Pay via MTN MoMo or Airtel Money\n• Go to your school's billing section to upgrade\n• MTN: You'll receive a USSD prompt on your phone\n• Airtel: You'll receive an Airtel Money prompt\n\nPowered by Flutterwave — Uganda's leading mobile payment gateway. Contact the team if payment isn't processing.",
+      "💳 **Subscription & Billing**:\n\n• Plans available: Starter, Growth, Enterprise\n• Pay via MTN MoMo or Airtel Money\n• Go to your school's billing section to upgrade\n• MTN MoMo: You'll receive a USSD prompt on your phone — enter your PIN to confirm\n• Airtel Money: You'll receive an Airtel prompt on your phone — enter your PIN to confirm\n\nContact the team if payment isn't processing.",
   },
   {
     keywords: ["holiday", "public", "midterm", "term", "academic calendar", "eot", "end of term"],

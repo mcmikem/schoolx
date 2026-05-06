@@ -409,8 +409,8 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
       items: [
         { href: "/dashboard/students", label: "Student List", icon: "group" },
         {
-          href: "/dashboard/fees?tab=payment-plans",
-          label: "Payment Plans",
+          href: "/dashboard/billing",
+          label: "Billing Plans",
           icon: "calendar_month",
         },
       ],

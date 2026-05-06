@@ -1,283 +1,279 @@
 import { logger } from "@/lib/logger";
-import crypto from "crypto";
+import { randomUUID } from "crypto";
 
-const FLUTTERWAVE_BASE_URL = "https://api.flutterwave.com/v3";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://omuto.org";
-const BRAND_LOGO_URL = `${APP_URL}/SkoolMate%20logos/SchoolMate%20icon.svg`;
+// ─── MoneyUnify API ───────────────────────────────────────────────────────────
+// Docs: https://owk7kqf8sn.apidog.io/
+// Supports MTN, Airtel, and Zamtel (auto-detected from phone number).
+const MONEY_UNIFY_BASE_URL = "https://api.moneyunify.one";
 
-interface MobileMoneyConfig {
-  publicKey: string;
-  secretKey: string;
-}
-
-interface MobileMoneyRequest {
-  amount: number;
-  currency: string;
-  tx_ref: string;
-  orderRef?: string;
-  accountbank?: string;
-  accountnumber?: string;
-  payment_type?: string;
-  redirect_url?: string;
-  customer: {
-    email: string;
-    phonenumber: string;
-    name: string;
-  };
-  customizations?: {
-    title: string;
-    logo: string;
-  };
-  meta?: Record<string, string>;
-}
-
-interface MobileMoneyStatusResponse {
-  status: string;
-  message: string;
-  data: {
-    id: number;
-    tx_ref: string;
-    flw_ref: string;
-    amount: number;
-    currency: string;
-    charged_amount: number;
-    status: string;
-    payment_type: string;
-    customer: {
-      email: string;
-      name: string;
-      phone: string;
-    };
-    meta?: Record<string, string>;
-  };
-}
-
-export class FlutterwaveMobileMoney {
-  private config: MobileMoneyConfig;
+export class MoneyUnifyClient {
+  private authId: string;
 
   constructor() {
-    this.config = {
-      publicKey: process.env.FLUTTERWAVE_PUBLIC_KEY || "",
-      secretKey: process.env.FLUTTERWAVE_SECRET_KEY || "",
-    };
+    this.authId = process.env.MONEY_UNIFY_AUTH_ID || "";
   }
 
-  private async makeRequest(
-    endpoint: string,
-    method: "GET" | "POST" = "POST",
-    body?: Record<string, unknown>,
-  ): Promise<unknown> {
-    if (!this.config.publicKey || !this.config.secretKey) {
+  private assertConfigured(): void {
+    if (!this.authId) {
       throw new Error(
-        "Mobile money payments are not yet configured. Please add FLUTTERWAVE_PUBLIC_KEY and FLUTTERWAVE_SECRET_KEY to your environment variables.",
+        "MoneyUnify is not configured. Set MONEY_UNIFY_AUTH_ID in your environment variables.",
       );
     }
+  }
 
-    const url = `${FLUTTERWAVE_BASE_URL}${endpoint}`;
+  /**
+   * Request a payment from a mobile money number.
+   * MoneyUnify auto-detects the network (MTN/Airtel/Zamtel) from the phone.
+   * @returns transaction_id to use for status checks
+   */
+  async requestPayment(params: {
+    phone: string; // e.g. "256701234567"
+    amount: number;
+  }): Promise<string> {
+    this.assertConfigured();
 
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${this.config.secretKey}`,
+    const body = new URLSearchParams({
+      from_payer: params.phone,
+      amount: String(params.amount),
+      auth_id: this.authId,
+    });
+
+    const response = await fetch(`${MONEY_UNIFY_BASE_URL}/payments/request`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
+      },
+      body: body.toString(),
+    });
+
+    const data = (await response.json()) as {
+      message: string;
+      isError: boolean;
+      data?: { transaction_id: string; status: string; amount: number };
     };
 
-    try {
-      const response = await fetch(url, {
-        method,
-        headers,
-        body: body ? JSON.stringify(body) : undefined,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        logger.error("Flutterwave API error:", data);
-        throw new Error(data.message || "Flutterwave API request failed");
-      }
-
-      return data;
-    } catch (error) {
-      logger.error("Flutterwave request error:", error);
-      throw error;
+    if (data.isError || !data.data?.transaction_id) {
+      logger.error("MoneyUnify request error:", data);
+      throw new Error(data.message || "MoneyUnify payment request failed");
     }
+
+    return data.data.transaction_id;
   }
 
-  async initiateMTNPayment(request: {
-    amount: number;
-    phone: string;
-    email: string;
-    name: string;
-    schoolId: string;
-    plan: string;
-    returnUrl: string;
-  }): Promise<{ link: string; txRef: string }> {
-    const txRef = `MM_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-
-    const payload: Record<string, unknown> = {
-      amount: request.amount,
-      currency: "UGX",
-      tx_ref: txRef,
-      payment_type: "mobilemoneyug",
-      accountbank: "MTN",
-      accountnumber: request.phone.replace(/^256/, ""),
-      redirect_url: request.returnUrl,
-      customer: {
-        email: request.email,
-        phonenumber: request.phone,
-        name: request.name,
-      },
-      customizations: {
-        title: "SkoolMate OS",
-        logo: BRAND_LOGO_URL,
-      },
-      meta: {
-        schoolId: request.schoolId,
-        plan: request.plan,
-      },
-    };
-
-    const response = (await this.makeRequest("/payments", "POST", payload)) as {
-      status: string;
-      data: { link: string; tx_ref: string };
-    };
-
-    return {
-      link: response.data.link,
-      txRef: response.data.tx_ref,
-    };
-  }
-
-  async initiateAirtelPayment(request: {
-    amount: number;
-    phone: string;
-    email: string;
-    name: string;
-    schoolId: string;
-    plan: string;
-    returnUrl: string;
-  }): Promise<{ link: string; txRef: string }> {
-    const txRef = `AM_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-
-    const payload: Record<string, unknown> = {
-      amount: request.amount,
-      currency: "UGX",
-      tx_ref: txRef,
-      payment_type: "mobilemoneyug",
-      accountbank: "AIRTEL",
-      accountnumber: request.phone.replace(/^256/, ""),
-      redirect_url: request.returnUrl,
-      customer: {
-        email: request.email,
-        phonenumber: request.phone,
-        name: request.name,
-      },
-      customizations: {
-        title: "SkoolMate OS",
-        logo: BRAND_LOGO_URL,
-      },
-      meta: {
-        schoolId: request.schoolId,
-        plan: request.plan,
-      },
-    };
-
-    const response = (await this.makeRequest("/payments", "POST", payload)) as {
-      status: string;
-      data: { link: string; tx_ref: string };
-    };
-
-    return {
-      link: response.data.link,
-      txRef: response.data.tx_ref,
-    };
-  }
-
-  async verifyTransaction(txRef: string): Promise<MobileMoneyStatusResponse> {
-    const response = (await this.makeRequest(
-      `/transactions/${txRef}/verify`,
-      "GET",
-    )) as MobileMoneyStatusResponse;
-
-    return response;
-  }
-
-  async getTransactionStatus(txRef: string): Promise<{
+  async verifyPayment(transactionId: string): Promise<{
     status: "pending" | "completed" | "failed";
     amount?: number;
     message?: string;
   }> {
-    try {
-      const verification = await this.verifyTransaction(txRef);
+    this.assertConfigured();
 
-      if (verification.data.status === "successful") {
-        return {
-          status: "completed",
-          amount: verification.data.amount,
-          message: "Payment successful",
-        };
-      } else if (verification.data.status === "pending") {
-        return {
-          status: "pending",
-          message: "Payment pending",
-        };
-      } else {
-        return {
-          status: "failed",
-          message: verification.data.status,
-        };
-      }
-    } catch (error) {
-      logger.error("Error checking transaction status:", error);
-      return {
-        status: "pending",
-        message: "Unable to verify payment",
-      };
-    }
-  }
+    const body = new URLSearchParams({
+      transaction_id: transactionId,
+      auth_id: this.authId,
+    });
 
-  verifyWebhookSignature(payload: string, signature: string): boolean {
-    const hash = crypto
-      .createHash("sha256")
-      .update(payload + process.env.FLUTTERWAVE_WEBHOOK_SECRET)
-      .digest("hex");
-
-    return hash === signature;
-  }
-
-  parseWebhookEvent(payload: Record<string, unknown>): {
-    event: string;
-    data: {
-      txRef: string;
-      status: string;
-      amount: number;
-      customer: { email: string; phone: string; name: string };
-      meta?: Record<string, string>;
-    };
-  } | null {
-    const event = payload.event as string;
-    const data = payload.data as Record<string, unknown>;
-
-    if (!event || !data) {
-      return null;
-    }
-
-    return {
-      event,
-      data: {
-        txRef: data.tx_ref as string,
-        status: data.status as string,
-        amount: data.amount as number,
-        customer: data.customer as {
-          email: string;
-          phone: string;
-          name: string;
-        },
-        meta: data.meta as Record<string, string> | undefined,
+    const response = await fetch(`${MONEY_UNIFY_BASE_URL}/payments/verify`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
       },
+      body: body.toString(),
+    });
+
+    const data = (await response.json()) as {
+      message: string;
+      isError: boolean;
+      data?: { transaction_id: string; status: string; amount: string };
     };
+
+    if (data.isError) {
+      logger.error("MoneyUnify verify error:", data);
+      return { status: "failed", message: data.message };
+    }
+
+    const status = data.data?.status?.toLowerCase() || "";
+
+    if (status === "successful" || status === "success") {
+      return {
+        status: "completed",
+        amount: parseFloat(data.data?.amount || "0"),
+        message: "Payment successful",
+      };
+    } else if (status === "initiated" || status === "pending") {
+      return { status: "pending", message: "Awaiting payment confirmation" };
+    } else {
+      return { status: "failed", message: data.message || "Payment failed" };
+    }
   }
 }
 
-export function createMobileMoneyPaymentLink(request: {
+// ─── MTN MoMo REST API ────────────────────────────────────────────────────────
+// Docs: https://momodeveloper.mtn.com/api-documentation
+const MOMO_SANDBOX_BASE_URL = "https://sandbox.momodeveloper.mtn.com";
+const MOMO_PROD_BASE_URL = "https://proxy.momoapi.mtn.com";
+
+function getBaseUrl(): string {
+  const env = (process.env.MTN_MOMO_ENVIRONMENT || "sandbox").toLowerCase();
+  return env === "sandbox" ? MOMO_SANDBOX_BASE_URL : MOMO_PROD_BASE_URL;
+}
+
+function getTargetEnvironment(): string {
+  return process.env.MTN_MOMO_ENVIRONMENT || "sandbox";
+}
+
+interface MomoTokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
+interface MomoPaymentStatusResponse {
+  financialTransactionId?: string;
+  externalId: string;
+  amount: string;
+  currency: string;
+  payer: { partyIdType: string; partyId: string };
+  payerMessage?: string;
+  payeeNote?: string;
+  status: "PENDING" | "SUCCESSFUL" | "FAILED";
+  reason?: { code?: string; message?: string };
+}
+
+export class MtnMomoClient {
+  private subscriptionKey: string;
+  private apiUser: string;
+  private apiKey: string;
+
+  constructor() {
+    this.subscriptionKey = process.env.MTN_MOMO_COLLECTION_SUBSCRIPTION_KEY || "";
+    this.apiUser = process.env.MTN_MOMO_API_USER || "";
+    this.apiKey = process.env.MTN_MOMO_API_KEY || "";
+  }
+
+  private assertConfigured(): void {
+    if (!this.subscriptionKey || !this.apiUser || !this.apiKey) {
+      throw new Error(
+        "MTN MoMo payments are not configured. Set MTN_MOMO_COLLECTION_SUBSCRIPTION_KEY, MTN_MOMO_API_USER, and MTN_MOMO_API_KEY in your environment variables.",
+      );
+    }
+  }
+
+  async getAccessToken(): Promise<string> {
+    this.assertConfigured();
+
+    const credentials = Buffer.from(`${this.apiUser}:${this.apiKey}`).toString("base64");
+    const url = `${getBaseUrl()}/collection/token/`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        "Ocp-Apim-Subscription-Key": this.subscriptionKey,
+      },
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      logger.error("MTN MoMo token error:", text);
+      throw new Error(`MTN MoMo auth failed (${response.status}): ${text}`);
+    }
+
+    const data = (await response.json()) as MomoTokenResponse;
+    return data.access_token;
+  }
+
+  /**
+   * Initiate a Request-to-Pay (USSD push to customer phone).
+   * Returns the referenceId (UUID) used to track the payment.
+   */
+  async requestToPay(params: {
+    amount: number;
+    phone: string; // MSISDN format, e.g. "256701234567"
+    externalId: string;
+    payerMessage?: string;
+    payeeNote?: string;
+    callbackUrl?: string;
+  }): Promise<string> {
+    this.assertConfigured();
+
+    const referenceId = randomUUID();
+    const token = await this.getAccessToken();
+    const url = `${getBaseUrl()}/collection/v1_0/requesttopay`;
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+      "X-Reference-Id": referenceId,
+      "X-Target-Environment": getTargetEnvironment(),
+      "Ocp-Apim-Subscription-Key": this.subscriptionKey,
+      "Content-Type": "application/json",
+    };
+
+    const callbackUrl = params.callbackUrl || process.env.MTN_MOMO_CALLBACK_URL;
+    if (callbackUrl) {
+      headers["X-Callback-Url"] = callbackUrl;
+    }
+
+    const body = {
+      amount: String(params.amount),
+      currency: "UGX",
+      externalId: params.externalId,
+      payer: {
+        partyIdType: "MSISDN",
+        partyId: params.phone,
+      },
+      payerMessage: params.payerMessage || "SkoolMate OS Subscription",
+      payeeNote: params.payeeNote || "SkoolMate OS Subscription Payment",
+    };
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+
+    if (response.status !== 202) {
+      const text = await response.text();
+      logger.error("MTN MoMo requesttopay error:", text);
+      throw new Error(`MTN MoMo request-to-pay failed (${response.status}): ${text}`);
+    }
+
+    return referenceId;
+  }
+
+  async getPaymentStatus(referenceId: string): Promise<MomoPaymentStatusResponse> {
+    this.assertConfigured();
+
+    const token = await this.getAccessToken();
+    const url = `${getBaseUrl()}/collection/v1_0/requesttopay/${referenceId}`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "X-Target-Environment": getTargetEnvironment(),
+        "Ocp-Apim-Subscription-Key": this.subscriptionKey,
+      },
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      logger.error("MTN MoMo status check error:", text);
+      throw new Error(`MTN MoMo status check failed (${response.status}): ${text}`);
+    }
+
+    return (await response.json()) as MomoPaymentStatusResponse;
+  }
+}
+
+/**
+ * Initiate a mobile money payment.
+ * - MTN → Direct MTN MoMo API (USSD push)
+ * - Airtel → MoneyUnify API (covers MTN/Airtel/Zamtel, auto-detected by phone)
+ * Returns `link` — a status-page URL to direct the user to while waiting.
+ */
+export async function createMobileMoneyPaymentLink(request: {
   provider: "mtn" | "airtel";
   amount: number;
   phone: string;
@@ -287,29 +283,68 @@ export function createMobileMoneyPaymentLink(request: {
   plan: string;
   returnUrl: string;
 }): Promise<{ link: string; txRef: string }> {
-  const flutterwave = new FlutterwaveMobileMoney();
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://omuto.org";
 
   if (request.provider === "mtn") {
-    return flutterwave.initiateMTNPayment(request);
-  } else {
-    return flutterwave.initiateAirtelPayment(request);
+    const client = new MtnMomoClient();
+    const txRef = await client.requestToPay({
+      amount: request.amount,
+      phone: request.phone,
+      externalId: `${request.schoolId}_${request.plan}_${Date.now()}`,
+      payerMessage: `SkoolMate ${request.plan} plan`,
+      payeeNote: `School: ${request.name} — Plan: ${request.plan}`,
+    });
+    const statusUrl = `${baseUrl}/dashboard/settings?tab=subscription&pending=true&provider=mtn&plan=${encodeURIComponent(request.plan)}&reference=${txRef}`;
+    return { link: statusUrl, txRef };
   }
+
+  // Airtel (and any other future provider) → MoneyUnify
+  const client = new MoneyUnifyClient();
+  const txRef = await client.requestPayment({
+    phone: request.phone,
+    amount: request.amount,
+  });
+  const statusUrl = `${baseUrl}/dashboard/settings?tab=subscription&pending=true&provider=airtel&plan=${encodeURIComponent(request.plan)}&reference=${txRef}`;
+  return { link: statusUrl, txRef };
 }
 
 export async function verifyMobileMoneyPayment(
   txRef: string,
+  provider?: "mtn" | "airtel",
 ): Promise<{
   status: "pending" | "completed" | "failed";
   amount?: number;
   message?: string;
 }> {
-  const flutterwave = new FlutterwaveMobileMoney();
-  const result = await flutterwave.getTransactionStatus(txRef);
-  return result;
+  // Use provider hint if available; fall back to MTN MoMo for backward compat
+  const resolvedProvider = provider ?? "mtn";
+
+  try {
+    if (resolvedProvider === "airtel") {
+      const client = new MoneyUnifyClient();
+      return await client.verifyPayment(txRef);
+    }
+
+    // MTN MoMo direct
+    const client = new MtnMomoClient();
+    const result = await client.getPaymentStatus(txRef);
+
+    if (result.status === "SUCCESSFUL") {
+      return { status: "completed", amount: parseFloat(result.amount), message: "Payment successful" };
+    } else if (result.status === "PENDING") {
+      return { status: "pending", message: "Awaiting payment confirmation on your phone" };
+    } else {
+      return { status: "failed", message: result.reason?.message || "Payment failed or was declined" };
+    }
+  } catch (error) {
+    logger.error("Error checking mobile money payment status:", error);
+    return { status: "pending", message: "Unable to verify payment at this time" };
+  }
 }
 
 const mobileMoneyApi = {
-  FlutterwaveMobileMoney,
+  MtnMomoClient,
+  MoneyUnifyClient,
   createMobileMoneyPaymentLink,
   verifyMobileMoneyPayment,
 };

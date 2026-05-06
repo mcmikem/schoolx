@@ -75,7 +75,7 @@ export default function TrialBanner() {
             Shop Omuto Essentials
           </a>
           <a
-            href="/dashboard/fees?tab=payment-plans"
+            href="/dashboard/billing"
             className="inline-flex items-center gap-1 text-xs font-bold text-slate-900 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 transition-all shadow-lg shadow-amber-500/20"
           >
             <MaterialIcon icon="rocket_launch" style={{ fontSize: 14 }} />

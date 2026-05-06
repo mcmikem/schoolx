@@ -110,6 +110,30 @@ export default function CoursesPage() {
     if (!school?.id) return;
     setLoading(true);
 
+    const loadSubjects = async () => {
+      const { data: subjectsData, error: subjectsError } = await supabase
+        .from("subjects")
+        .select("*")
+        .eq("school_id", school.id)
+        .order("name");
+
+      if (subjectsError) {
+        if (!courseTableExists.current) toast.error("Failed to load subjects");
+        return false;
+      }
+
+      const mapped = (subjectsData || []).map(mapSubjectToCourse);
+      if (mapped.length > 0) {
+        courseTableExists.current = false;
+      }
+      setCourses(
+        filterCategory
+          ? mapped.filter((course) => course.category === filterCategory)
+          : mapped,
+      );
+      return mapped.length > 0;
+    };
+
     try {
       // If we already know courses table doesn't exist, skip directly to subjects
       if (courseTableExists.current === false) throw new Error("courses_table_missing");
@@ -129,25 +153,20 @@ export default function CoursesPage() {
         if (error.code === "42P01") courseTableExists.current = false;
         throw error;
       }
+
+      if ((data || []).length === 0) {
+        const loadedSubjects = await loadSubjects();
+        if (!loadedSubjects) {
+          courseTableExists.current = true;
+          setCourses([]);
+        }
+        return;
+      }
+
       courseTableExists.current = true;
       setCourses(data || []);
     } catch {
-      const { data: subjectsData, error: subjectsError } = await supabase
-        .from("subjects")
-        .select("*")
-        .eq("school_id", school.id)
-        .order("name");
-
-      if (subjectsError) {
-        if (!courseTableExists.current) toast.error("Failed to load subjects");
-      } else {
-        const mapped = (subjectsData || []).map(mapSubjectToCourse);
-        setCourses(
-          filterCategory
-            ? mapped.filter((course) => course.category === filterCategory)
-            : mapped,
-        );
-      }
+      await loadSubjects();
     } finally {
       setLoading(false);
     }

@@ -25,6 +25,21 @@ import MaterialIcon from "@/components/MaterialIcon";
 import OwlAssistant from "@/components/OwlAssistant";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 
+function hasCompletedSetupProgress(value: unknown): boolean {
+  if (!value) return false;
+  try {
+    const parsed =
+      typeof value === "string" ? JSON.parse(value) : value;
+    const completed =
+      typeof parsed === "object" && parsed !== null && "completed" in parsed
+        ? (parsed as { completed?: unknown }).completed
+        : null;
+    return Array.isArray(completed) && completed.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 const SECTION_LABELS: Record<string, { label: string; icon: string }> = {
   students: { label: "Students", icon: "group" },
   attendance: { label: "Attendance", icon: "how_to_reg" },
@@ -183,14 +198,32 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   const pageTitle = getPageTitle(pathname || "/dashboard");
   const breadcrumbItems = buildBreadcrumbs(pathname || "/dashboard", pageTitle);
+  const currentPath =
+    pathname ||
+    (typeof window !== "undefined" ? window.location.pathname : "");
 
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showPostSetup, setShowPostSetup] = useState(false);
   const [showGoLive, setShowGoLive] = useState(false);
   const [rememberSession, setRememberSession] = useState(true);
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
+  const isBillingPath = Boolean(
+    currentPath.startsWith("/dashboard/settings") ||
+      currentPath.startsWith("/dashboard/billing") ||
+      currentPath.startsWith("/dashboard/pricing") ||
+      currentPath.startsWith("/dashboard/fees") ||
+      currentPath.startsWith("/dashboard/payment-plans"),
+  );
 
-  const onboardingCompleted = (school as unknown as Record<string, unknown>)?.onboarding_completed;
+  const schoolData = (school as unknown as Record<string, unknown>) || null;
+  const hasOperationalStudentData =
+    Number(schoolData?.student_count || 0) > 0;
+  const onboardingCompleted = Boolean(
+    schoolData?.onboarding_completed ||
+      schoolData?.onboarding_complete ||
+      hasCompletedSetupProgress(schoolData?.setup_progress) ||
+      hasOperationalStudentData,
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -218,7 +251,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   }, [loading]);
 
   useEffect(() => {
-    if (school && !onboardingCompleted && user?.role === "school_admin") {
+    if (
+      school &&
+      !onboardingCompleted &&
+      user?.role === "school_admin" &&
+      !isBillingPath
+    ) {
       // Required setup cannot be dismissed.
       setShowOnboarding(true);
       setShowPostSetup(false);
@@ -263,38 +301,13 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onboardingCompleted, school?.id, user?.role, user?.id]);
+  }, [currentPath, onboardingCompleted, user?.role, user?.id]);
 
-  if (loading) {
-    if (loadingTimedOut) {
-      return (
-        <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center px-4">
-          <div className="max-w-md w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center space-y-3">
-            <h2 className="text-lg font-semibold text-[var(--t1)]">Still loading your dashboard</h2>
-            <p className="text-sm text-[var(--t3)]">
-              This is taking longer than expected. You can retry safely.
-            </p>
-            <div className="flex gap-2 justify-center">
-              <button
-                type="button"
-                onClick={() => window.location.reload()}
-                className="px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-sm font-semibold"
-              >
-                Retry
-              </button>
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm font-semibold text-[var(--t2)]"
-              >
-                Sign out
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
+  if (authInitialized && !user && !isDemo) {
+    return null;
+  }
 
+  if (loading && !loadingTimedOut) {
     return (
       <div className="min-h-screen bg-[var(--bg)]">
         <DashboardSkeleton />
@@ -302,7 +315,10 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user) return null;
+  // Auth timed out or not resolved — redirect to login.
+  if (!user && !isDemo) {
+    return null; // redirect guard above will fire
+  }
 
   return (
     <ErrorBoundary>
@@ -315,7 +331,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       <OfflineIndicator />
       {isTrialExpired && <ExpiredNotice />}
 
-      {showOnboarding && (
+      {showOnboarding && !isBillingPath && (
         <OnboardingFlow
           onComplete={() => {
             setShowOnboarding(false);

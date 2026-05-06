@@ -26,6 +26,11 @@ export function Modal({
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   const sizes = {
     sm: "max-w-sm",
@@ -38,7 +43,7 @@ export function Modal({
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -60,7 +65,7 @@ export function Modal({
         }
       }
     },
-    [onClose],
+    [],
   );
 
   useEffect(() => {
@@ -102,18 +107,13 @@ export function Modal({
         ref={modalRef}
         className={cn(
           "relative w-full bg-[var(--surface)] shadow-2xl border border-[var(--border)] overflow-hidden",
-          "sm:rounded-2xl",
-          "rounded-t-3xl rounded-b-none max-h-[90vh] sm:max-h-[90vh]",
-          "fixed bottom-0 left-0 right-0 sm:relative sm:max-w-none",
-          "sm:bottom-auto sm:left-auto sm:right-auto sm:mx-auto",
+          "rounded-2xl max-h-[90vh]",
+          "sm:mx-auto",
           sizes[size],
           "animate-slideUpBottomSheet sm:animate-none",
           className,
         )}
       >
-        <div className="sm:hidden flex justify-center pt-2 pb-1">
-          <div className="w-10 h-1 rounded-full bg-[var(--t4)]" />
-        </div>
         {(title || showClose) && (
           <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
             {title && (

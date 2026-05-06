@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     if (provider !== "mtn" && provider !== "airtel") {
       return NextResponse.json(
-        { error: 'Invalid provider. Use "mtn" or "airtel"' },
+        { error: 'Invalid provider. Use "mtn" or "airtel".' },
         { status: 400 },
       );
     }
@@ -133,8 +133,8 @@ export async function POST(request: NextRequest) {
         provider: provider.toUpperCase(),
         instructions:
           provider === "mtn"
-            ? "You will receive an MTN Momo prompt on your phone. Enter your PIN to confirm payment."
-            : "You will receive an Airtel Money prompt on your phone. Enter your PIN to confirm payment.",
+            ? "A payment request has been sent to your phone. Check for the MTN MoMo prompt and enter your PIN to confirm."
+            : "A payment request has been sent to your phone. Check for the Airtel Money prompt and enter your PIN to confirm.",
       },
       { status: 200 },
     );

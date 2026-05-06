@@ -53,6 +53,19 @@ export default function LoginPage() {
     setRememberSession(saved !== "false");
   }, []);
 
+  // Reset google loading spinner if user navigates back from the OAuth tab
+  useEffect(() => {
+    if (!googleLoading) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        // Give the OAuth redirect a moment — if we're still on this page, reset the spinner
+        setTimeout(() => setGoogleLoading(false), 1500);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [googleLoading]);
+
   // Redirect already-logged-in users away from the login page.
   // Respect the ?redirect= param set by proxy.ts middleware so users
   // land on the page they originally tried to visit.
@@ -103,6 +116,16 @@ export default function LoginPage() {
       toast.info("Your session expired. Please sign in again to continue.");
       window.history.replaceState({}, "", window.location.pathname);
     }
+    const errorParam = params.get("error");
+    if (errorParam) {
+      const errorMessages: Record<string, string> = {
+        google_auth_failed: "Google sign-in failed. Please try again or use your phone/email.",
+        no_profile: "Your account exists but profile data is missing. Contact support.",
+        oauth_error: "Social sign-in failed. Please try again.",
+      };
+      toast.error(errorMessages[errorParam] || "Sign-in failed. Please try again.");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -119,11 +142,24 @@ export default function LoginPage() {
     try {
       const redirectTo =
         typeof window !== "undefined"
-          ? `${window.location.origin}/login`
+          ? (() => {
+              const redirectParam = new URLSearchParams(window.location.search).get("redirect");
+              const next = redirectParam && redirectParam.startsWith("/")
+                ? redirectParam
+                : "/dashboard";
+              return `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+            })()
           : undefined;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: redirectTo ? { redirectTo } : undefined,
+        options: redirectTo
+          ? {
+              redirectTo,
+              queryParams: {
+                prompt: "select_account",
+              },
+            }
+          : undefined,
       });
       if (error) throw error;
     } catch (err) {

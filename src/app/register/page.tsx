@@ -1,7 +1,7 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 
@@ -37,10 +37,26 @@ const DISTRICT_OPTIONS = [
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [manualLocationEntry, setManualLocationEntry] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const googleRegisterMode = searchParams?.get("oauth") === "1";
+
+  // Reset spinner if user navigates back from Google OAuth tab
+  useEffect(() => {
+    if (!googleLoading) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        setTimeout(() => setGoogleLoading(false), 1500);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [googleLoading]);
 
   const [form, setForm] = useState({
     schoolName: "",
@@ -133,25 +149,67 @@ export default function RegisterPage() {
       );
       return false;
     }
-    if (form.password.length < 8) {
-      setError("Password must be at least 8 characters");
-      return false;
-    }
-    if (!/[A-Z]/.test(form.password) || !/[0-9]/.test(form.password)) {
-      setError(
-        "Password must contain at least one uppercase letter and one number",
-      );
-      return false;
-    }
-    if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match");
-      return false;
+    if (!googleRegisterMode) {
+      if (form.password.length < 8) {
+        setError("Password must be at least 8 characters");
+        return false;
+      }
+      if (!/[A-Z]/.test(form.password) || !/[0-9]/.test(form.password)) {
+        setError(
+          "Password must contain at least one uppercase letter and one number",
+        );
+        return false;
+      }
+      if (form.password !== form.confirmPassword) {
+        setError("Passwords do not match");
+        return false;
+      }
     }
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       setError("Please enter a valid email address");
       return false;
     }
     return true;
+  };
+
+  useEffect(() => {
+    if (!googleRegisterMode) return;
+    const emailParam = searchParams?.get("email");
+    if (emailParam) {
+      updateForm("email", emailParam);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [googleRegisterMode, searchParams]);
+
+  const handleGoogleRegister = async () => {
+    setGoogleLoading(true);
+    try {
+      const redirectTo =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/auth/callback?next=${encodeURIComponent("/register")}`
+          : undefined;
+
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: redirectTo
+          ? {
+              redirectTo,
+              queryParams: {
+                prompt: "select_account",
+              },
+            }
+          : undefined,
+      });
+
+      if (oauthError) throw oauthError;
+    } catch (oauthError: unknown) {
+      setError(
+        oauthError instanceof Error
+          ? oauthError.message
+          : "Google sign-up failed. Please try again.",
+      );
+      setGoogleLoading(false);
+    }
   };
 
   const goToStep = (newStep: number) => {
@@ -179,7 +237,9 @@ export default function RegisterPage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-      const response = await fetch("/api/register/", {
+      const endpoint = googleRegisterMode ? "/api/register/oauth/" : "/api/register/";
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -195,7 +255,7 @@ export default function RegisterPage() {
           village: form.village || null,
           adminName: form.adminName,
           adminPhone: form.adminPhone,
-          password: form.password,
+          password: googleRegisterMode ? undefined : form.password,
         }),
         signal: controller.signal,
       });
@@ -215,6 +275,12 @@ export default function RegisterPage() {
       if (!response.ok) {
         setError((data.error as string) || `Registration failed (${response.status})`);
         setLoading(false);
+        return;
+      }
+
+      if (googleRegisterMode) {
+        setLoading(false);
+        router.push("/dashboard/");
         return;
       }
 
@@ -310,6 +376,20 @@ export default function RegisterPage() {
                 Sign in
               </Link>
             </p>
+            {!googleRegisterMode && (
+              <div className="mt-4">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full"
+                  loading={googleLoading}
+                  onClick={handleGoogleRegister}
+                  icon={<MaterialIcon icon="account_circle" className="text-lg" />}
+                >
+                  Continue with Google
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="mb-6">
@@ -577,6 +657,12 @@ export default function RegisterPage() {
 
               {step === 3 && (
                 <div className="space-y-5">
+                  {googleRegisterMode && (
+                    <div className="rounded-xl border border-[var(--navy)]/15 bg-[var(--navy-soft)] p-3 text-sm text-[var(--navy)]">
+                      Google account linked. Complete these details to create your school workspace.
+                    </div>
+                  )}
+
                   <Input
                     label="Your Full Name"
                     type="text"
@@ -597,28 +683,32 @@ export default function RegisterPage() {
                     autoComplete="tel"
                   />
 
-                  <Input
-                    label="Password"
-                    type="password"
-                    placeholder="Min 8 characters"
-                    value={form.password}
-                    onChange={(e) => updateForm("password", e.target.value)}
-                    required
-                    minLength={8}
-                    autoComplete="new-password"
-                  />
+                  {!googleRegisterMode && (
+                    <>
+                      <Input
+                        label="Password"
+                        type="password"
+                        placeholder="Min 8 characters"
+                        value={form.password}
+                        onChange={(e) => updateForm("password", e.target.value)}
+                        required
+                        minLength={8}
+                        autoComplete="new-password"
+                      />
 
-                  <Input
-                    label="Confirm Password"
-                    type="password"
-                    placeholder="Enter password again"
-                    value={form.confirmPassword}
-                    onChange={(e) =>
-                      updateForm("confirmPassword", e.target.value)
-                    }
-                    required
-                    autoComplete="new-password"
-                  />
+                      <Input
+                        label="Confirm Password"
+                        type="password"
+                        placeholder="Enter password again"
+                        value={form.confirmPassword}
+                        onChange={(e) =>
+                          updateForm("confirmPassword", e.target.value)
+                        }
+                        required
+                        autoComplete="new-password"
+                      />
+                    </>
+                  )}
 
                   <div className="flex gap-3">
                     <Button

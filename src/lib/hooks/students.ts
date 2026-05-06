@@ -117,7 +117,13 @@ function isMissingStudentColumnError(error: unknown, columnName: string) {
       ? String((error as { message?: unknown }).message || "")
       : "";
 
-  return code === "42703" && message.includes(`students.${columnName}`);
+  return (
+    (code === "42703" && message.includes(`students.${columnName}`)) ||
+    ((code === "PGRST204" || code === "PGRST301") &&
+      message.includes(`'${columnName}'`) &&
+      message.toLowerCase().includes("students") &&
+      message.toLowerCase().includes("schema cache"))
+  );
 }
 
 function isAnyMissingStudentsColumnError(error: unknown) {
@@ -131,8 +137,12 @@ function isAnyMissingStudentsColumnError(error: unknown) {
       : "";
 
   return (
-    code === "42703" &&
-    /column students\."?[a-zA-Z0-9_]+"? does not exist/.test(message)
+    (code === "42703" &&
+      /column students\."?[a-zA-Z0-9_]+"? does not exist/.test(message)) ||
+    ((code === "PGRST204" || code === "PGRST301") &&
+      /could not find the '.+' column of 'students' in the schema cache/i.test(
+        message,
+      ))
   );
 }
 

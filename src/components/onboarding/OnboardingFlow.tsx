@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Button, Input, Select } from "@/components/ui";
@@ -44,6 +45,10 @@ export default function OnboardingFlow({
   onDismiss?: () => void;
 }) {
   const { school, refreshSchool } = useAuth();
+  const pathname = usePathname();
+  const currentPath =
+    pathname ||
+    (typeof window !== "undefined" ? window.location.pathname : "");
   const toast = useToast();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -435,7 +440,8 @@ export default function OnboardingFlow({
     setLoading(true);
     const failedSeeding: string[] = [];
     try {
-      const updateData: Record<string, unknown> = {
+      const completionTimestamp = new Date().toISOString();
+      const baseUpdateData: Record<string, unknown> = {
         school_type: localSchoolType,
         name: schoolDetails.name || school?.name || "",
         district: schoolDetails.district,
@@ -451,8 +457,6 @@ export default function OnboardingFlow({
         uneb_center_number: schoolDetails.uneb_center_number || null,
         ownership: schoolDetails.ownership,
         feature_stage: featureStage,
-        onboarding_completed: true,
-        onboarding_completed_at: new Date().toISOString(),
         selected_subjects: JSON.stringify(selectedSubjects),
         setup_progress: JSON.stringify({
           completed: ["branding", "features", "activation"],
@@ -460,12 +464,42 @@ export default function OnboardingFlow({
         }),
       };
 
-      const { error } = await supabase
-        .from("schools")
-        .update(updateData)
-        .eq("id", school!.id);
+      const completionVariants: Record<string, unknown>[] = [
+        {
+          onboarding_completed: true,
+          onboarding_completed_at: completionTimestamp,
+        },
+        {
+          onboarding_complete: true,
+          onboarding_completed_at: completionTimestamp,
+        },
+        {
+          onboarding_complete: true,
+        },
+        {},
+      ];
 
-      if (error) throw error;
+      let updateError: { code?: string } | null = null;
+      for (const completionData of completionVariants) {
+        const { error } = await supabase
+          .from("schools")
+          .update({ ...baseUpdateData, ...completionData })
+          .eq("id", school!.id);
+
+        if (!error) {
+          updateError = null;
+          break;
+        }
+
+        updateError = error;
+        if (error.code !== "42703") {
+          throw error;
+        }
+      }
+
+      if (updateError) {
+        throw updateError;
+      }
 
       // Save per-step data that might have been skipped via the "Next" button
       await Promise.all([
@@ -821,6 +855,16 @@ export default function OnboardingFlow({
   if (!school) return null;
 
   const progressPercent = Math.round((step / TOTAL_STEPS) * 100);
+
+  if (
+    currentPath.startsWith("/dashboard/fees") ||
+    currentPath.startsWith("/dashboard/billing") ||
+    currentPath.startsWith("/dashboard/pricing") ||
+    currentPath.startsWith("/dashboard/settings") ||
+    currentPath.startsWith("/dashboard/payment-plans")
+  ) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-white md:overflow-hidden md:bg-[var(--bg)]/90 md:backdrop-blur-xl md:items-center md:justify-center">

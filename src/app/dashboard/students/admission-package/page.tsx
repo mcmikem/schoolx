@@ -27,9 +27,41 @@ export default function AdmissionPackagePage() {
   const printRef = useRef<HTMLDivElement>(null);
   const [letterConfig, setLetterConfig] = useState({ admissionFee: "150,000", termStart: "Term 1, May 2026", requirements: "2 reams of paper, mathematical sets, and the prescribed school uniform" });
 
-  const handlePrint = useReactToPrint({
+  const reactPrint = useReactToPrint({
     contentRef: printRef,
   });
+
+  const handlePrint = useCallback(() => {
+    if (reactPrint) {
+      reactPrint();
+      return;
+    }
+
+    if (!printRef.current || typeof window === "undefined") {
+      return;
+    }
+
+    const printWindow = window.open("", "_blank", "width=900,height=700");
+    if (!printWindow) {
+      return;
+    }
+
+    printWindow.document.open();
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Admission Letter</title>
+        </head>
+        <body>
+          ${printRef.current.innerHTML}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  }, [reactPrint]);
 
   const loadStudent = useCallback(async (id: string) => {
     setLoading(true);
