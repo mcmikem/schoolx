@@ -308,6 +308,18 @@ export default function SettingsPage() {
 
     setUpgradingPlan(true);
     try {
+      const openPaymentUrl = (url: string, providerLabel: string) => {
+        const target = url?.trim();
+        if (!target || target === "about:blank") {
+          throw new Error(`${providerLabel} returned an invalid payment link. Please try again.`);
+        }
+
+        const newTab = window.open(target, "_blank", "noopener,noreferrer");
+        if (!newTab) {
+          window.location.assign(target);
+        }
+      };
+
       let paymentData: {
         url?: string;
         link?: string;
@@ -341,7 +353,9 @@ export default function SettingsPage() {
         paymentData = result;
 
         if (result.paymentLink) {
-          window.location.href = result.paymentLink;
+          openPaymentUrl(result.paymentLink, provider.toUpperCase());
+        } else {
+          throw new Error("Payment link was not returned. Please try again.");
         }
       } else {
         // PayPal
@@ -362,7 +376,9 @@ export default function SettingsPage() {
         paymentData = result;
 
         if (result.url) {
-          window.location.href = result.url;
+          openPaymentUrl(result.url, "PayPal");
+        } else {
+          throw new Error("PayPal approval link missing. Please try again.");
         }
       }
 

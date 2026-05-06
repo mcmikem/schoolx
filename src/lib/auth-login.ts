@@ -63,7 +63,10 @@ export function buildAuthLoginAttempts(input: string): AuthLoginAttempt[] {
   } else if (rawDigits.startsWith("256") && rawDigits.length === 12) {
     rawWithCountry = "0" + rawDigits.slice(3);
   }
-  if (rawWithCountry !== normalized && rawWithCountry !== trimmed) {
+  // Keep legacy support for accounts created as 0XXXXXXXXX@omuto.org.
+  // `trimmed` can itself be the raw local format (e.g. 0777777777), so
+  // comparing against trimmed here incorrectly drops a valid fallback.
+  if (rawWithCountry !== normalized) {
     addAttempt(attempts, seen, "email", `${rawWithCountry}@omuto.org`);
   }
 
