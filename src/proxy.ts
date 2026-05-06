@@ -152,6 +152,18 @@ function issueCSRFToken(response: NextResponse) {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const normalizedPath = pathname.endsWith("/") && pathname.length > 1
+    ? pathname.slice(0, -1)
+    : pathname;
+
+  // Backward compatibility for stale cached clients that still use old
+  // upgrade/payment-plan fee tab URLs.
+  if (normalizedPath === "/dashboard/fees") {
+    const tab = request.nextUrl.searchParams.get("tab");
+    if (tab === "payment-plans" || tab === "payments") {
+      return NextResponse.redirect(new URL("/dashboard/billing", request.url));
+    }
+  }
 
   if (PUBLIC_FILE_PATTERN.test(pathname)) {
     return NextResponse.next({ request });
