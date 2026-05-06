@@ -56,30 +56,40 @@ export async function POST(request: NextRequest) {
     let insertedSupplementary = 0;
 
     for (const tx of regularTransactions) {
-      const { error } = await supabase.from("fee_payments").insert({
-        student_id: tx.studentPaymentCode,
-        amount: tx.amount,
-        payment_date: tx.paymentDate.toISOString(),
-        payment_method: tx.channel,
-        reference_number: tx.receiptNumber,
-        transaction_id: tx.transactionId,
-        status: "completed",
-      });
+      const { withTimeout } = await import('@/lib/hooks/utils');
+      const error = await withTimeout(
+        supabase.from("fee_payments").insert({
+          student_id: tx.studentPaymentCode,
+          amount: tx.amount,
+          payment_date: tx.paymentDate.toISOString(),
+          payment_method: tx.channel,
+          reference_number: tx.receiptNumber,
+          transaction_id: tx.transactionId,
+          status: "completed",
+        }).then(r => r.error),
+        8000,
+        new Error('Insert timed out')
+      );
 
       if (!error) insertedRegular++;
     }
 
     for (const tx of supplementaryPayments) {
-      const { error } = await supabase.from("fee_payments").insert({
-        student_id: tx.studentPaymentCode,
-        amount: tx.amount,
-        payment_date: tx.paymentDate.toISOString(),
-        payment_method: tx.channel,
-        reference_number: tx.receiptNumber,
-        transaction_id: tx.transactionId,
-        description: tx.feeDescription,
-        status: "completed",
-      });
+      const { withTimeout } = await import('@/lib/hooks/utils');
+      const error = await withTimeout(
+        supabase.from("fee_payments").insert({
+          student_id: tx.studentPaymentCode,
+          amount: tx.amount,
+          payment_date: tx.paymentDate.toISOString(),
+          payment_method: tx.channel,
+          reference_number: tx.receiptNumber,
+          transaction_id: tx.transactionId,
+          description: tx.feeDescription,
+          status: "completed",
+        }).then(r => r.error),
+        8000,
+        new Error('Insert timed out')
+      );
 
       if (!error) insertedSupplementary++;
     }

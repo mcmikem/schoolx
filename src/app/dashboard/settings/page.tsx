@@ -538,9 +538,12 @@ export default function SettingsPage() {
         motto: newHouse.motto.trim() || null,
       };
 
-      const { error } = await supabase.from("houses").insert({
-        ...payload,
-      });
+      const { withTimeout } = await import('@/lib/hooks/utils');
+      const error = await withTimeout(
+        supabase.from("houses").insert({ ...payload }).then(r => r.error),
+        8000,
+        new Error('Insert timed out')
+      );
       if (error) throw error;
       toast.success("House added");
       setShowAddHouse(false);
@@ -560,7 +563,12 @@ export default function SettingsPage() {
     const id = pendingDeleteHouseId;
     setPendingDeleteHouseId(null);
     try {
-      const { error } = await supabase.from("houses").delete().eq("id", id);
+      const { withTimeout } = await import('@/lib/hooks/utils');
+      const error = await withTimeout(
+        supabase.from("houses").delete().eq("id", id).then(r => r.error),
+        8000,
+        new Error('Delete timed out')
+      );
       if (error) throw error;
       toast.success("House deleted");
       await fetchHouses();
@@ -576,15 +584,20 @@ export default function SettingsPage() {
     }
 
     try {
-      const { error } = await supabase.from("classes").upsert(
-        {
-          school_id: school.id,
-          name: newClass.name.trim(),
-          stream: newClass.stream.trim() || null,
-          level: inferClassLevel(newClass.name, schoolType),
-          academic_year: new Date().getFullYear().toString(),
-        },
-        { onConflict: "school_id,name,academic_year" },
+      const { withTimeout } = await import('@/lib/hooks/utils');
+      const error = await withTimeout(
+        supabase.from("classes").upsert(
+          {
+            school_id: school.id,
+            name: newClass.name.trim(),
+            stream: newClass.stream.trim() || null,
+            level: inferClassLevel(newClass.name, schoolType),
+            academic_year: new Date().getFullYear().toString(),
+          },
+          { onConflict: "school_id,name,academic_year" },
+        ).then(r => r.error),
+        8000,
+        new Error('Upsert timed out')
       );
       if (error) throw error;
       await refetchClasses();

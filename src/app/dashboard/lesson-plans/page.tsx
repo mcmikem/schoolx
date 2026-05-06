@@ -179,11 +179,16 @@ export default function LessonPlansPage() {
         term: currentTerm || 1,
       }
       
+      const { withTimeout } = await import('@/lib/hooks/utils');
       const query = selectedPlan
         ? supabase.from('lesson_plans').update(payload).eq('id', selectedPlan.id)
         : supabase.from('lesson_plans').insert(payload)
 
-      const { error } = await query
+      const error = await withTimeout(
+        query.then(r => r.error),
+        8000,
+        new Error('Save timed out')
+      );
       if (error) throw error
       
       toast.success(selectedPlan ? 'Lesson plan updated!' : 'Lesson plan saved!')
@@ -238,7 +243,12 @@ export default function LessonPlansPage() {
     if (!confirm('Delete this lesson plan?')) return
 
     try {
-      const { error } = await supabase.from('lesson_plans').delete().eq('id', selectedPlan.id)
+      const { withTimeout } = await import('@/lib/hooks/utils');
+      const error = await withTimeout(
+        supabase.from('lesson_plans').delete().eq('id', selectedPlan.id).then(r => r.error),
+        8000,
+        new Error('Delete timed out')
+      );
       if (error) throw error
       toast.success('Lesson plan deleted')
       setShowForm(false)

@@ -149,27 +149,36 @@ export async function POST(request: NextRequest) {
         );
 
         if (smsResult.success) {
+          const { withTimeout } = await import('@/lib/hooks/utils');
           // Log the message
-          await supabase.from("messages").insert({
-            school_id: school.schoolId,
-            recipient_type: "individual",
-            recipient_id: alert.studentId,
-            phone: alert.parentPhone,
-            message: alert.smsMessage,
-            status: "sent",
-            sent_at: sentAt,
-            type: "attendance_followup",
-          } as any);
+          await withTimeout(
+            supabase.from("messages").insert({
+              school_id: school.schoolId,
+              recipient_type: "individual",
+              recipient_id: alert.studentId,
+              phone: alert.parentPhone,
+              message: alert.smsMessage,
+              status: "sent",
+              sent_at: sentAt,
+              type: "attendance_followup",
+            } as any).then(r => r.error),
+            8000,
+            new Error('Insert timed out')
+          );
 
           // Log the automated message
-          await supabase.from("automated_message_logs").insert({
-            school_id: school.schoolId,
-            trigger_id: "auto-attendance-followup",
-            recipient_id: alert.parentPhone,
-            record_id: alert.studentId,
-            status: "sent",
-            sent_at: sentAt,
-          } as any);
+          await withTimeout(
+            supabase.from("automated_message_logs").insert({
+              school_id: school.schoolId,
+              trigger_id: "auto-attendance-followup",
+              recipient_id: alert.parentPhone,
+              record_id: alert.studentId,
+              status: "sent",
+              sent_at: sentAt,
+            } as any).then(r => r.error),
+            8000,
+            new Error('Insert timed out')
+          );
 
           smsResults.push({
             studentId: alert.studentId,

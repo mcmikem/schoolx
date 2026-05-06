@@ -314,16 +314,21 @@ export default function SubstitutionsPage() {
         return;
       }
 
-      const { error } = await supabase.from("teacher_substitutions").insert({
-        school_id: school.id,
-        absent_teacher_id: form.absent_teacher_id,
-        substitute_teacher_id: form.substitute_teacher_id,
-        class_id: form.class_id,
-        date: form.date,
-        period: form.period,
-        reason: form.reason,
-        status: "completed",
-      });
+      const { withTimeout } = await import('@/lib/hooks/utils');
+      const error = await withTimeout(
+        supabase.from("teacher_substitutions").insert({
+          school_id: school.id,
+          absent_teacher_id: form.absent_teacher_id,
+          substitute_teacher_id: form.substitute_teacher_id,
+          class_id: form.class_id,
+          date: form.date,
+          period: form.period,
+          reason: form.reason,
+          status: "completed",
+        }).then(r => r.error),
+        8000,
+        new Error('Insert timed out')
+      );
 
       if (error) throw error;
 

@@ -47,7 +47,12 @@ export default function DormitoryPage() {
       reported_by: user!.id
     }
 
-    const { error } = await supabase.from('dorm_incidents').insert([incident])
+    const { withTimeout } = await import('@/lib/hooks/utils');
+    const error = await withTimeout(
+      supabase.from('dorm_incidents').insert([incident]).then(r => r.error),
+      8000,
+      new Error('Insert timed out')
+    );
     if (error) {
       toast.error('Failed to record incident')
     } else {

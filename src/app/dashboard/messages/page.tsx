@@ -539,16 +539,21 @@ export default function CommunicationHubPage() {
       });
       const result = await response.json();
       if (result.success) {
-        const { error: messageError } = await supabase.from("messages").insert({
-          school_id: user.school_id,
-          recipient_type: messageType,
-          recipient_id: messageType === "class" ? selectedClass : null,
-          phone: messageType === "individual" ? phone : null,
-          message: message.trim(),
-          status: "sent",
-          sent_by: user.id,
-          sent_at: new Date().toISOString(),
-        });
+        const { withTimeout } = await import('@/lib/hooks/utils');
+        const messageError = await withTimeout(
+          supabase.from("messages").insert({
+            school_id: user.school_id,
+            recipient_type: messageType,
+            recipient_id: messageType === "class" ? selectedClass : null,
+            phone: messageType === "individual" ? phone : null,
+            message: message.trim(),
+            status: "sent",
+            sent_by: user.id,
+            sent_at: new Date().toISOString(),
+          }).then(r => r.error),
+          8000,
+          new Error('Insert timed out')
+        );
 
         if (messageError) throw messageError;
 

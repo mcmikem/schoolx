@@ -103,16 +103,21 @@ export default function HealthPage() {
         if (!studentRecord) throw new Error("Selected student was not found in this school");
       }
 
-      const { error } = await supabase.from("health_records").insert({
-        school_id: school.id,
-        student_id: form.student_id || null,
-        student_name: form.student_name.trim() || studentSearch.trim(),
-        condition: form.condition.trim(),
-        severity: form.severity,
-        treatment: form.treatment.trim(),
-        status: "admitted",
-        admitted_at: new Date().toISOString(),
-      });
+      const { withTimeout } = await import('@/lib/hooks/utils');
+      const error = await withTimeout(
+        supabase.from("health_records").insert({
+          school_id: school.id,
+          student_id: form.student_id || null,
+          student_name: form.student_name.trim() || studentSearch.trim(),
+          condition: form.condition.trim(),
+          severity: form.severity,
+          treatment: form.treatment.trim(),
+          status: "admitted",
+          admitted_at: new Date().toISOString(),
+        }).then(r => r.error),
+        8000,
+        new Error('Insert timed out')
+      );
       if (error) throw error;
 
       toast.success("Student admitted to sick bay");
@@ -129,13 +134,19 @@ export default function HealthPage() {
 
   const dischargeStudent = async (id: string, referred = false) => {
     setDischarging(id);
-    const { error } = await supabase
-      .from("health_records")
-      .update({
-        status: referred ? "referred" : "discharged",
-        discharged_at: new Date().toISOString(),
-      })
-      .eq("id", id);
+    const { withTimeout } = await import('@/lib/hooks/utils');
+    const error = await withTimeout(
+      supabase
+        .from("health_records")
+        .update({
+          status: referred ? "referred" : "discharged",
+          discharged_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .then(r => r.error),
+      8000,
+      new Error('Update timed out')
+    );
     if (error) {
       toast.error(getErrorMessage(error, "Failed to update record"));
     } else {

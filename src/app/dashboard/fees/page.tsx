@@ -1039,9 +1039,15 @@ export default function FinanceHubPage() {
         });
       }
 
-      const { error: installmentError } = await supabase
-        .from("payment_plan_installments")
-        .insert(installmentData);
+      const { withTimeout } = await import('@/lib/hooks/utils');
+      const installmentError = await withTimeout(
+        supabase
+          .from("payment_plan_installments")
+          .insert(installmentData)
+          .then(r => r.error),
+        8000,
+        new Error('Insert timed out')
+      );
 
       if (installmentError) {
         await supabase.from("payment_plans").delete().eq("id", plan.id);
@@ -1064,10 +1070,16 @@ export default function FinanceHubPage() {
 
   const markInstallmentPaid = async (installmentId: string) => {
     try {
-      const { error: paymentError } = await supabase
-        .from("payment_plan_installments")
-        .update({ paid: true, paid_date: new Date().toISOString() })
-        .eq("id", installmentId);
+      const { withTimeout } = await import('@/lib/hooks/utils');
+      const paymentError = await withTimeout(
+        supabase
+          .from("payment_plan_installments")
+          .update({ paid: true, paid_date: new Date().toISOString() })
+          .eq("id", installmentId)
+          .then(r => r.error),
+        8000,
+        new Error('Update timed out')
+      );
       if (paymentError) throw paymentError;
 
       const updated = installments.map((i) =>

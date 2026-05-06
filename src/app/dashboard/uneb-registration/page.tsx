@@ -98,7 +98,12 @@ export default function UNEBRegistrationPage() {
         academic_year: new Date().getFullYear().toString(),
       }));
 
-      const { error } = await supabase.from("uneb_candidates").insert(records);
+      const { withTimeout } = await import('@/lib/hooks/utils');
+      const error = await withTimeout(
+        supabase.from("uneb_candidates").insert(records).then(r => r.error),
+        8000,
+        new Error('Insert timed out')
+      );
       if (error) throw error;
 
       toast.success(
@@ -117,12 +122,20 @@ export default function UNEBRegistrationPage() {
     id: string,
     status: "registered" | "confirmed",
   ) => {
-    await supabase
-      .from("uneb_candidates")
-      .update({ registration_status: status })
-      .eq("id", id);
-    fetchCandidates();
-    toast.success(`Candidate ${status}`);
+    const { withTimeout } = await import('@/lib/hooks/utils');
+    const error = await withTimeout(
+      supabase
+        .from("uneb_candidates")
+        .update({ registration_status: status })
+        .eq("id", id)
+        .then(r => r.error),
+      8000,
+      new Error('Update timed out')
+    );
+    if (!error) {
+      fetchCandidates();
+      toast.success(`Candidate ${status}`);
+    }
   };
 
   const filteredCandidates = candidates.filter((c) => {
