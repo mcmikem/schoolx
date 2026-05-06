@@ -267,6 +267,7 @@ export function useDashboardExtraData(
         setAtRiskStudents(atRisk);
 
         // Dropout risk - using pre-fetched data from Promise.all
+        let computedDropoutCount = 0;
         if (!cancelled) {
           try {
             const dropoutAttData = dropoutAttRes?.data || [];
@@ -295,10 +296,10 @@ export function useDashboardExtraData(
               }
             });
 
-            const dropoutCount = Object.values(studentAbsenceMap).filter(
+            computedDropoutCount = Object.values(studentAbsenceMap).filter(
               (v) => v.allAbsent && v.count >= 14,
             ).length;
-            setDropoutRiskCount(dropoutCount);
+            setDropoutRiskCount(computedDropoutCount);
           } catch (err) {
             logger.error("Dropout risk calculation error:", err);
             if (!cancelled) setDropoutRiskCount(0);
@@ -371,17 +372,17 @@ export function useDashboardExtraData(
 
         const cacheData = {
           classAttendance: attendanceByClass,
-          atRiskStudents,
+          atRiskStudents: atRisk,
           smsStats: { sentToday, deliveryRate: rate },
           pendingExpenses: expensesRes.count || 0,
           pendingLeave: leaveRes.count || 0,
-          feesToday,
-          feesThisWeek,
-          feesThisTerm,
+          feesToday: todayTotal,
+          feesThisWeek: weekTotal,
+          feesThisTerm: termTotal,
           staffOnDuty: staffAttRes.data?.length || 0,
           overdueFeeCount: overdueCount,
           lowAttendanceClasses: lowAtt,
-          dropoutRiskCount,
+          dropoutRiskCount: computedDropoutCount,
         };
         await cacheResponse(cacheKey, cacheData, undefined, 2 * 60 * 1000);
       } catch (err) {

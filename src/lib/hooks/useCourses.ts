@@ -58,10 +58,12 @@ export function useCourses(options: UseCoursesOptions = {}) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isStale, setIsStale] = useState(false);
 
+  const { category, isActive } = options;
+
   const fetchCourses = useCallback(async () => {
     if (!school?.id) return;
 
-    const cacheKey = generateCacheKey(`/api/courses/${school.id}`, options as Record<string, unknown>);
+    const cacheKey = generateCacheKey(`/api/courses/${school.id}`, { category, isActive } as Record<string, unknown>);
 
     if (!isOnline()) {
       const cached = await getCachedResponse<Course[]>(cacheKey);
@@ -80,11 +82,11 @@ export function useCourses(options: UseCoursesOptions = {}) {
         .select("*")
         .eq("school_id", school.id);
 
-      if (options.category) {
-        query = query.eq("category", options.category);
+      if (category) {
+        query = query.eq("category", category);
       }
-      if (options.isActive !== undefined) {
-        query = query.eq("is_active", options.isActive);
+      if (isActive !== undefined) {
+        query = query.eq("is_active", isActive);
       }
 
       const { data, error } = await query.order("name");
@@ -104,7 +106,7 @@ export function useCourses(options: UseCoursesOptions = {}) {
     } finally {
       setLoading(false);
     }
-  }, [school?.id, options.category, options.isActive, toast]);
+  }, [school?.id, category, isActive, toast]);
 
   useEffect(() => {
     const handleOnline = () => {
