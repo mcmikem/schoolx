@@ -2,9 +2,15 @@ export interface ParentPortalChild {
   id: string;
   first_name: string;
   last_name: string;
+  student_number?: string | null;
   class_name: string;
   school_id?: string;
   class_id?: string;
+  parent_name?: string | null;
+  parent_phone?: string | null;
+  parent_phone2?: string | null;
+  district_origin?: string | null;
+  village?: string | null;
   attendance?: string;
   fees_balance?: string;
   next_exam?: string;
@@ -173,8 +179,14 @@ interface ParentStudentLinkRecord {
         id: string;
         first_name: string;
         last_name: string;
+        student_number?: string | null;
         school_id?: string;
         class_id?: string;
+        parent_name?: string | null;
+        parent_phone?: string | null;
+        parent_phone2?: string | null;
+        district_origin?: string | null;
+        village?: string | null;
         class?:
           | { name?: string | null }
           | Array<{ name?: string | null }>
@@ -184,8 +196,14 @@ interface ParentStudentLinkRecord {
         id: string;
         first_name: string;
         last_name: string;
+        student_number?: string | null;
         school_id?: string;
         class_id?: string;
+        parent_name?: string | null;
+        parent_phone?: string | null;
+        parent_phone2?: string | null;
+        district_origin?: string | null;
+        village?: string | null;
         class?:
           | { name?: string | null }
           | Array<{ name?: string | null }>
@@ -212,9 +230,15 @@ export function mapParentStudentLinks(
         id: student.id,
         first_name: student.first_name,
         last_name: student.last_name,
+        student_number: student.student_number,
         school_id: student.school_id,
         class_id: student.class_id,
         class_name: resolveRelationName(student.class),
+        parent_name: student.parent_name,
+        parent_phone: student.parent_phone,
+        parent_phone2: student.parent_phone2,
+        district_origin: student.district_origin,
+        village: student.village,
       },
     ];
   });

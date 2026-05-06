@@ -23,6 +23,7 @@ import { useSessionTimeout } from "@/lib/useSessionTimeout";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import MaterialIcon from "@/components/MaterialIcon";
 import OwlAssistant from "@/components/OwlAssistant";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 
 const SECTION_LABELS: Record<string, { label: string; icon: string }> = {
   students: { label: "Students", icon: "group" },
@@ -183,43 +184,48 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const pageTitle = getPageTitle(pathname || "/dashboard");
   const breadcrumbItems = buildBreadcrumbs(pathname || "/dashboard", pageTitle);
 
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showPostSetup, setShowPostSetup] = useState(false);
+  const [showGoLive, setShowGoLive] = useState(false);
+  const [rememberSession, setRememberSession] = useState(true);
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
+
+  const onboardingCompleted = (school as unknown as Record<string, unknown>)?.onboarding_completed;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const remember = localStorage.getItem("remember_session");
+    setRememberSession(remember !== "false");
+  }, []);
+
   // Session timeout – only active for real authenticated users (not demo)
   const { showWarning, remainingTime, extendSession } = useSessionTimeout({
-    enabled: !!user && !isDemo && !loading,
+    enabled: !!user && !isDemo && !loading && !rememberSession,
     onTimeout: async () => {
       await signOut();
     },
   });
 
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showPostSetup, setShowPostSetup] = useState(false);
-  const [showGoLive, setShowGoLive] = useState(false);
-
-  const onboardingCompleted = (school as unknown as Record<string, unknown>)?.onboarding_completed;
-  const onboardingDismissKey = user?.id && school?.id
-    ? `onboarding_dismissed_${school.id}_${user.id}`
-    : null;
+  useEffect(() => {
+    if (!loading) {
+      setLoadingTimedOut(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setLoadingTimedOut(true);
+    }, 15000);
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   useEffect(() => {
-    if (
-      school &&
-      !onboardingCompleted &&
-      user?.role === "school_admin"
-    ) {
-      // Don't re-show if user already dismissed it this browser session
-      const dismissed = onboardingDismissKey && typeof window !== "undefined"
-        ? sessionStorage.getItem(onboardingDismissKey)
-        : null;
-      if (!dismissed) {
-        setShowOnboarding(true);
-      }
-    } else if (
-      school &&
-      onboardingCompleted &&
-      user?.role === "school_admin"
-    ) {
-      // Only auto-open the post-setup panel once per browser session so that
-      // it doesn't interrupt the user on every page refresh.
+    if (school && !onboardingCompleted && user?.role === "school_admin") {
+      // Required setup cannot be dismissed.
+      setShowOnboarding(true);
+      setShowPostSetup(false);
+    } else if (school && onboardingCompleted && user?.role === "school_admin") {
+      setShowOnboarding(false);
+
+      // Only auto-open the post-setup panel once per browser session.
       const sessionKey = user?.id
         ? `post_setup_shown_${school.id}|${user.id}`
         : null;
@@ -237,7 +243,6 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     }
 
     // Show go-live gate once per session for school_admins who completed onboarding
-    // but haven't set up minimum required data yet
     if (school && onboardingCompleted && user?.role === "school_admin") {
       const goLiveKey = user?.id
         ? `golive_shown_${school.id}|${user.id}`
@@ -248,13 +253,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         !sessionStorage.getItem(goLiveKey) &&
         !sessionStorage.getItem(`post_setup_shown_${school.id}|${user.id}`)
       ) {
-        // Defer go-live check until after post-setup panel
         const checkGoLive = () => {
           if (goLiveKey && !sessionStorage.getItem(goLiveKey)) {
             setShowGoLive(true);
           }
         };
-        // Show after a short delay so the dashboard loads first
         const timer = setTimeout(checkGoLive, 2000);
         return () => clearTimeout(timer);
       }
@@ -263,6 +266,35 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   }, [onboardingCompleted, school?.id, user?.role, user?.id]);
 
   if (loading) {
+    if (loadingTimedOut) {
+      return (
+        <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center px-4">
+          <div className="max-w-md w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center space-y-3">
+            <h2 className="text-lg font-semibold text-[var(--t1)]">Still loading your dashboard</h2>
+            <p className="text-sm text-[var(--t3)]">
+              This is taking longer than expected. You can retry safely.
+            </p>
+            <div className="flex gap-2 justify-center">
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-sm font-semibold"
+              >
+                Retry
+              </button>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm font-semibold text-[var(--t2)]"
+              >
+                Sign out
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-[var(--bg)]">
         <DashboardSkeleton />
@@ -282,33 +314,34 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       )}
       <OfflineIndicator />
       {isTrialExpired && <ExpiredNotice />}
+
       {showOnboarding && (
         <OnboardingFlow
           onComplete={() => {
-            // Called only after full completion (DB onboarding_completed = true)
             setShowOnboarding(false);
             setShowPostSetup(true);
           }}
           onDismiss={() => {
-            // User closed without completing — suppress reopening for this session
-            if (onboardingDismissKey && typeof window !== "undefined") {
-              sessionStorage.setItem(onboardingDismissKey, "1");
-            }
-            setShowOnboarding(false);
+            toast.info("Complete setup to continue. Required setup appears once and is saved to your account.");
           }}
         />
       )}
+
       {showPostSetup && !showOnboarding && (
         <PostOnboardingSetup onComplete={() => setShowPostSetup(false)} />
       )}
+
       {showGoLive && !showOnboarding && !showPostSetup && (
-        <GoLiveGate onDismiss={() => {
-          setShowGoLive(false);
-          if (typeof window !== "undefined" && school?.id && user?.id) {
-            sessionStorage.setItem(`golive_shown_${school.id}|${user.id}`, "1");
-          }
-        }} />
+        <GoLiveGate
+          onDismiss={() => {
+            setShowGoLive(false);
+            if (typeof window !== "undefined" && school?.id && user?.id) {
+              sessionStorage.setItem(`golive_shown_${school.id}|${user.id}`, "1");
+            }
+          }}
+        />
       )}
+
       <div className="bg-motif dashboard-shell flex min-h-screen bg-[var(--bg)]">
         <SidebarShell onNavigate={handleNavigate} />
         <SidebarOverlay />
@@ -338,6 +371,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
       <MobileBottomNav />
       <OwlAssistant />
+      <PWAInstallPrompt />
     </ErrorBoundary>
   );
 }

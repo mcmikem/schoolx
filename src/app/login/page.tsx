@@ -44,6 +44,13 @@ export default function LoginPage() {
   const [otpLoading, setOtpLoading] = useState(false);
   const [otp, setOtp] = useState("");
   const [showSlowMessage, setShowSlowMessage] = useState(false);
+  const [rememberSession, setRememberSession] = useState(true);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = localStorage.getItem("remember_session");
+    setRememberSession(saved !== "false");
+  }, []);
 
   // Redirect already-logged-in users away from the login page.
   // Respect the ?redirect= param set by proxy.ts middleware so users
@@ -193,6 +200,10 @@ export default function LoginPage() {
     }, 5000);
 
     const cleanPhone = normalizeAuthPhone(phone);
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem("remember_session", rememberSession ? "true" : "false");
+    }
 
     // Clear any previous demo data before login
     localStorage.removeItem(DEMO_KEY);
@@ -538,6 +549,18 @@ export default function LoginPage() {
                   </button>
                 )}
               </div>
+
+              {!otpMode && (
+                <label className="flex items-center gap-2 text-sm text-[var(--t2)]">
+                  <input
+                    type="checkbox"
+                    checked={rememberSession}
+                    onChange={(e) => setRememberSession(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-[var(--primary)] focus:ring-[var(--primary)]"
+                  />
+                  Keep me signed in on this device
+                </label>
+              )}
 
               {!otpMode && (
                 <Button

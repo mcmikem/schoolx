@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: "/SkoolMate logos/SchoolMate icon.svg",
-    apple: "/assemble-icon.png",
+    apple: "/SkoolMate logos/SchoolMate icon.svg",
   },
   appleWebApp: {
     capable: true,
@@ -33,12 +33,21 @@ export const metadata: Metadata = {
     url: "https://omuto.org",
     locale: "en_UG",
     siteName: "SkoolMate OS",
+    images: [
+      {
+        url: "/SkoolMate logos/SchoolMate icon.svg",
+        width: 512,
+        height: 512,
+        alt: "SkoolMate OS",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "SkoolMate OS | Your Digital School Partner",
     description:
       "Run your entire school from one dashboard. Attendance, grades, fees, and parent SMS.",
+    images: ["/SkoolMate logos/SchoolMate icon.svg"],
   },
 };
 
@@ -77,7 +86,7 @@ export default function RootLayout({
           content="black-translucent"
         />
         <meta name="apple-mobile-web-app-title" content="SkoolMate OS" />
-        <link rel="apple-touch-icon" href="/assemble-icon.png" />
+        <link rel="apple-touch-icon" href="/SkoolMate logos/SchoolMate icon.svg" />
         <link
           rel="icon"
           href="/SkoolMate logos/SchoolMate icon.svg"

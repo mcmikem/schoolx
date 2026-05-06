@@ -2,6 +2,8 @@ import { logger } from "@/lib/logger";
 import crypto from "crypto";
 
 const FLUTTERWAVE_BASE_URL = "https://api.flutterwave.com/v3";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://omuto.org";
+const BRAND_LOGO_URL = `${APP_URL}/SkoolMate%20logos/SchoolMate%20icon.svg`;
 
 interface MobileMoneyConfig {
   publicKey: string;
@@ -125,7 +127,7 @@ export class FlutterwaveMobileMoney {
       },
       customizations: {
         title: "SkoolMate OS",
-        logo: `${process.env.NEXT_PUBLIC_APP_URL}/logo.png`,
+        logo: BRAND_LOGO_URL,
       },
       meta: {
         schoolId: request.schoolId,
@@ -170,7 +172,7 @@ export class FlutterwaveMobileMoney {
       },
       customizations: {
         title: "SkoolMate OS",
-        logo: `${process.env.NEXT_PUBLIC_APP_URL}/logo.png`,
+        logo: BRAND_LOGO_URL,
       },
       meta: {
         schoolId: request.schoolId,

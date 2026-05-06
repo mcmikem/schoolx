@@ -29,6 +29,7 @@ import { uploadStudentPhoto } from "@/lib/student-photos";
 import { useStudentTransfers } from "@/hooks/useStudentTransfers";
 import { useStudentDropouts } from "@/hooks/useStudentDropouts";
 import { useStudentPromotion } from "@/hooks/useStudentPromotion";
+import { UGANDA_DISTRICT_DIRECTORY } from "@/lib/uganda-admin";
 
 /* ── FieldHint: small ? button that reveals a help tip ── */
 function FieldHint({ tip }: { tip: string }) {
@@ -424,6 +425,27 @@ export default function StudentHubPage() {
     open: boolean;
     studentId: string | null;
   }>({ open: false, studentId: null });
+
+  const districtOptions = useMemo(
+    () => UGANDA_DISTRICT_DIRECTORY.map((entry) => entry.district),
+    [],
+  );
+  const selectedDistrictEntry = useMemo(
+    () =>
+      UGANDA_DISTRICT_DIRECTORY.find(
+        (entry) =>
+          entry.district.toLowerCase() ===
+          newStudent.district_origin.trim().toLowerCase(),
+      ),
+    [newStudent.district_origin],
+  );
+  const subcountyOptions = selectedDistrictEntry?.subcounties || [];
+  const parishOptions = useMemo(() => {
+    if (!selectedDistrictEntry) return [];
+    const subcounty = newStudent.sub_county.trim();
+    if (!subcounty) return [];
+    return selectedDistrictEntry.parishes[subcounty] || [];
+  }, [selectedDistrictEntry, newStudent.sub_county]);
 
   // ===== EFFECTS =====
   useEffect(() => {
@@ -1561,9 +1583,12 @@ export default function StudentHubPage() {
                             <input
                               type="text"
                               value={newStudent.district_origin}
+                              list="district-origin-options"
                               onChange={(e) =>
                                 handleNewStudentChange({
                                   district_origin: e.target.value,
+                                  sub_county: "",
+                                  parish: "",
                                 })
                               }
                               className="input"
@@ -1588,12 +1613,19 @@ export default function StudentHubPage() {
                             <input
                               type="text"
                               value={newStudent.sub_county}
+                              list="sub-county-options"
                               onChange={(e) =>
                                 handleNewStudentChange({
                                   sub_county: e.target.value,
+                                  parish: "",
                                 })
                               }
                               className="input"
+                              placeholder={
+                                subcountyOptions.length > 0
+                                  ? "Pick or type your sub-county"
+                                  : "Type sub-county"
+                              }
                               maxLength={100}
                             />
                           </div>
@@ -1623,12 +1655,18 @@ export default function StudentHubPage() {
                             <input
                               type="text"
                               value={newStudent.parish}
+                              list="parish-options"
                               onChange={(e) =>
                                 handleNewStudentChange({
                                   parish: e.target.value,
                                 })
                               }
                               className="input"
+                              placeholder={
+                                parishOptions.length > 0
+                                  ? "Pick or type your parish"
+                                  : "Type parish"
+                              }
                               maxLength={100}
                             />
                           </div>
@@ -1659,6 +1697,24 @@ export default function StudentHubPage() {
                             />
                           </div>
                         </div>
+                        <datalist id="district-origin-options">
+                          {districtOptions.map((district) => (
+                            <option key={district} value={district} />
+                          ))}
+                        </datalist>
+                        <datalist id="sub-county-options">
+                          {subcountyOptions.map((subcounty) => (
+                            <option key={subcounty} value={subcounty} />
+                          ))}
+                        </datalist>
+                        <datalist id="parish-options">
+                          {parishOptions.map((parish) => (
+                            <option key={parish} value={parish} />
+                          ))}
+                        </datalist>
+                        <p className="text-[11px] text-[var(--t3)] mb-3">
+                          Suggestions come from Uganda district data. You can still type any value manually.
+                        </p>
                         <div
                           style={{
                             display: "grid",

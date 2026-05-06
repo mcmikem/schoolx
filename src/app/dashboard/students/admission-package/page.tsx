@@ -10,6 +10,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { useReactToPrint } from "react-to-print";
 import { useSearchParams } from "next/navigation";
 import { DEMO_STUDENTS } from "@/lib/demo-data";
+import { logger } from "@/lib/logger";
 
 export default function AdmissionPackagePage() {
   const { school, isDemo } = useAuth();
@@ -22,6 +23,7 @@ export default function AdmissionPackagePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const [letterConfig, setLetterConfig] = useState({ admissionFee: "150,000", termStart: "Term 1, May 2026", requirements: "2 reams of paper, mathematical sets, and the prescribed school uniform" });
 
@@ -43,6 +45,10 @@ export default function AdmissionPackagePage() {
       .eq("id", id)
       .single();
 
+    if (error) {
+      logger.error("Failed to load student for admission letter", error);
+      setStudent(null);
+    }
     if (data) setStudent(data);
     setLoading(false);
   }, [isDemo]);
@@ -66,15 +72,55 @@ export default function AdmissionPackagePage() {
     }
     if (!school?.id) return;
     setSearchLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("students")
       .select("id, first_name, last_name, student_number, classes(name, stream)")
       .eq("school_id", school.id)
       .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,student_number.ilike.%${term}%`)
       .limit(5);
+    if (error) {
+      logger.error("Admission search failed", error);
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
     setSearchResults(data || []);
     setSearchLoading(false);
   }, [isDemo, school?.id]);
+
+  const handleDownloadPdf = async () => {
+    if (!student) return;
+    setDownloadingPdf(true);
+    try {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ unit: "mm", format: "a4" });
+
+      const lines = [
+        school?.name || "SkoolMate School",
+        `Admission Letter - ${new Date().toLocaleDateString("en-UG")}`,
+        "",
+        `Student: ${student.first_name} ${student.last_name}`,
+        `Student Number: ${student.student_number || "Pending"}`,
+        `Class: ${student.classes?.name || "Unassigned"}`,
+        `Parent/Guardian: ${student.parent_name || "Parent/Guardian"}`,
+        `Academic Year: ${academicYear}`,
+        "",
+        `Term Start: ${letterConfig.termStart}`,
+        `Admission Fee: UGX ${letterConfig.admissionFee}`,
+        "",
+        "Requirements:",
+        letterConfig.requirements,
+      ];
+
+      doc.setFontSize(12);
+      doc.text(lines, 14, 20);
+      doc.save(`admission-letter-${student.student_number || student.id}.pdf`);
+    } catch (error) {
+      logger.error("Admission PDF download failed", error);
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
 
   return (
     <PageErrorBoundary>
@@ -95,6 +141,14 @@ export default function AdmissionPackagePage() {
         </div>
 
         <div className="flex gap-4">
+          <button
+            onClick={handleDownloadPdf}
+            disabled={!student || downloadingPdf}
+            className="flex items-center gap-2 px-6 py-3 bg-white text-primary-800 border border-primary-200 rounded-2xl font-bold hover:bg-primary-50 transition-all disabled:opacity-50"
+          >
+            <MaterialIcon icon="download" />
+            {downloadingPdf ? "Generating..." : "Download PDF"}
+          </button>
           <button
             onClick={handlePrint}
             disabled={!student}

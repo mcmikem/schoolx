@@ -458,6 +458,21 @@ function ParentDashboardContent() {
                       {selectedChild.class_name}
                     </p>
 
+                    <div className="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-3 text-left space-y-1">
+                      <p className="text-xs text-gray-500">Student Number</p>
+                      <p className="text-sm font-semibold text-gray-800">
+                        {selectedChild.student_number || "Not assigned yet"}
+                      </p>
+                      <p className="text-xs text-gray-500 pt-1">Guardian Contact</p>
+                      <p className="text-sm text-gray-800">
+                        {selectedChild.parent_name || "Parent/Guardian"}
+                        {selectedChild.parent_phone ? ` · ${selectedChild.parent_phone}` : ""}
+                      </p>
+                      {selectedChild.parent_phone2 && (
+                        <p className="text-xs text-gray-600">Alt: {selectedChild.parent_phone2}</p>
+                      )}
+                    </div>
+
                     <div className="space-y-3 text-left">
                       <div className="p-4 rounded-xl bg-gray-50 flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center">

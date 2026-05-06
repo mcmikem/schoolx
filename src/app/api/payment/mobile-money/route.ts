@@ -9,6 +9,7 @@ import {
 import { requireUserWithSchool, assertUserRoleOrDeny, rateLimit } from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
+import { normalizeAuthPhone } from "@/lib/validation";
 
 const BILLING_ROLES = [
   "super_admin",
@@ -55,11 +56,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate phone number format
-    const cleanPhone = phoneNumber.replace(/[^0-9]/g, "");
-    if (cleanPhone.length < 10 || cleanPhone.length > 12) {
+    const normalizedPhone = normalizeAuthPhone(phoneNumber);
+    if (normalizedPhone.length !== 12 || !normalizedPhone.startsWith("256")) {
       return NextResponse.json(
-        { error: "Invalid phone number format" },
+        { error: "Invalid phone number format. Use a valid Ugandan number." },
         { status: 400 },
       );
     }
@@ -82,12 +82,12 @@ export async function POST(request: NextRequest) {
     const paymentLink = await createMobileMoneyPaymentLink({
       provider,
       amount,
-      phone: phoneNumber,
+      phone: normalizedPhone,
       email: school.email || auth.context.user.email || "pay@omuto.org",
       name: school.name,
       schoolId: school.id,
       plan,
-      returnUrl: `${baseUrl}/dashboard/pricing?success=true&provider=${provider}&reference={reference}`,
+      returnUrl: `${baseUrl}/dashboard/settings?tab=subscription&success=true&provider=${provider}&plan=${plan}&reference={reference}`,
     });
 
     await savePendingMobilePayment({
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
       plan,
       amount,
       provider,
-      phone: phoneNumber,
+      phone: normalizedPhone,
       reference: paymentLink.txRef,
     });
 

@@ -24,7 +24,16 @@ export default function AdmissionLetter({ student, school, academicYear, admissi
       {/* Header */}
       <div className="flex justify-between items-start border-b-2 border-primary-800 pb-6 mb-8">
         <div className="flex gap-4">
-          <SkoolMateLogo size="lg" variant="default" showText={false} />
+          {school?.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={school.logo_url}
+              alt={`${school.name || "School"} logo`}
+              className="h-16 w-16 rounded-xl object-contain border border-slate-200 bg-white p-1"
+            />
+          ) : (
+            <SkoolMateLogo size="lg" variant="default" showText={false} />
+          )}
           <div>
             <h1 className="text-2xl font-black text-primary-900 uppercase leading-none">{school.name}</h1>
             <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-widest">{school.address || "P.O Box 123, Kampala, Uganda"}</p>

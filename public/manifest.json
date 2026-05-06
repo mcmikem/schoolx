@@ -11,22 +11,10 @@
   "categories": ["education", "productivity"],
   "icons": [
     {
-      "src": "/assemble-icon.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/assemble-icon.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
       "src": "/SkoolMate%20logos/SchoolMate%20icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ],
   "shortcuts": [
@@ -34,31 +22,31 @@
       "name": "Dashboard",
       "short_name": "Dashboard",
       "url": "/dashboard",
-      "icons": [{ "src": "/assemble-icon.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/SkoolMate%20logos/SchoolMate%20icon.svg", "sizes": "any" }]
     },
     {
       "name": "Attendance",
       "short_name": "Attendance",
       "url": "/dashboard/attendance",
-      "icons": [{ "src": "/assemble-icon.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/SkoolMate%20logos/SchoolMate%20icon.svg", "sizes": "any" }]
     },
     {
       "name": "Students",
       "short_name": "Students",
       "url": "/dashboard/students",
-      "icons": [{ "src": "/assemble-icon.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/SkoolMate%20logos/SchoolMate%20icon.svg", "sizes": "any" }]
     },
     {
       "name": "Fees",
       "short_name": "Fees",
       "url": "/dashboard/fees",
-      "icons": [{ "src": "/assemble-icon.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/SkoolMate%20logos/SchoolMate%20icon.svg", "sizes": "any" }]
     },
     {
       "name": "Messages",
       "short_name": "Messages",
       "url": "/dashboard/messages",
-      "icons": [{ "src": "/assemble-icon.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/SkoolMate%20logos/SchoolMate%20icon.svg", "sizes": "any" }]
     }
   ],
   "screenshots": [],

@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'skoolmate-v6';
+const CACHE_VERSION = 'skoolmate-v7';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -111,7 +111,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets (JS, CSS, fonts) - stale while revalidate
+  // Static assets (JS, CSS, fonts) - network first to avoid stale app versions
   if (
     request.destination === 'script' ||
     request.destination === 'style' ||
@@ -119,17 +119,15 @@ self.addEventListener('fetch', (event) => {
     /\.(js|css|woff2?|ttf|eot)$/i.test(url.pathname)
   ) {
     event.respondWith(
-      caches.match(request).then((cached) => {
-        const fetchPromise = fetch(request).then((response) => {
+      fetch(request)
+        .then((response) => {
           if (response.ok) {
             const clone = response.clone();
             caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone));
           }
           return response;
-        }).catch(() => cached);
-
-        return cached || fetchPromise;
-      })
+        })
+        .catch(() => caches.match(request))
     );
     return;
   }
@@ -176,15 +174,15 @@ self.addEventListener('push', (event) => {
   const data = event.data.json();
   const options = {
     body: data.body || 'You have a new notification',
-    icon: '/assemble-icon.png',
-    badge: '/assemble-icon.png',
+    icon: '/SkoolMate logos/SchoolMate icon.svg',
+    badge: '/SkoolMate logos/SchoolMate icon.svg',
     vibrate: [100, 50, 100],
     data: data.url || '/',
     actions: data.actions || [],
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'SchoolX', options)
+    self.registration.showNotification(data.title || 'SkoolMate OS', options)
   );
 });
 

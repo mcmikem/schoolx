@@ -8,6 +8,7 @@ import OwlMascot from "@/components/brand/OwlMascot";
 import { Button } from "@/components/ui";
 import { logger } from "@/lib/logger";
 import { getErrorMessage } from "@/lib/validation";
+import { loadSchoolSetting, saveSchoolSetting } from "@/lib/school-settings";
 import Image from "next/image";
 
 interface Props {
@@ -20,12 +21,16 @@ const OPTIONAL_STEPS = [
   { key: "signatures", title: "Signatures", icon: "signature", desc: "Upload headteacher & class teacher signatures" },
 ];
 
+const OPTIONAL_SETUP_STATUS_KEY = "optional_setup_status";
+type OptionalStatusMap = Record<string, "completed" | "skipped">;
+
 export default function PostOnboardingSetup({ onComplete }: Props) {
   const { school, refreshSchool } = useAuth();
   const toast = useToast();
   const [isOpen, setIsOpen] = useState(true);
   const [expandedKey, setExpandedKey] = useState<string | null>(OPTIONAL_STEPS[0]?.key ?? null);
   const [completed, setCompleted] = useState<string[]>([]);
+  const [optionalStatus, setOptionalStatus] = useState<OptionalStatusMap>({});
   const [loading, setLoading] = useState(false);
   const [uploadingSignature, setUploadingSignature] = useState(false);
 
@@ -116,14 +121,21 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
   const checkCompletedItems = useCallback(async () => {
     if (!school?.id) return;
     try {
-      const { data } = await supabase
+      const [{ data }, statusMap] = await Promise.all([
+        supabase
         .from("setup_checklist")
         .select("item_key, is_completed")
-        .eq("school_id", school.id);
+          .eq("school_id", school.id),
+        loadSchoolSetting<OptionalStatusMap>(school.id, OPTIONAL_SETUP_STATUS_KEY, {}),
+      ]);
 
-      if (data) {
-        setCompleted(data.filter((i) => i.is_completed).map((i) => i.item_key));
-      }
+      const checklistCompleted = (data || []).filter((i) => i.is_completed).map((i) => i.item_key);
+      const persistedDone = Object.keys(statusMap || {}).filter(
+        (k) => statusMap[k] === "completed" || statusMap[k] === "skipped",
+      );
+
+      setOptionalStatus(statusMap || {});
+      setCompleted(Array.from(new Set([...checklistCompleted, ...persistedDone])));
     } catch {
       logger.warn("Failed to load completed checklist items");
     }
@@ -148,12 +160,28 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
           { onConflict: "school_id,item_key" },
         );
       if (error) throw error;
-      setCompleted((prev) => [...prev, key]);
+      const nextStatus: OptionalStatusMap = { ...optionalStatus, [key]: "completed" };
+      await saveSchoolSetting(school.id, OPTIONAL_SETUP_STATUS_KEY, nextStatus);
+      setOptionalStatus(nextStatus);
+      setCompleted((prev) => Array.from(new Set([...prev, key])));
       toast.success(`${OPTIONAL_STEPS.find((s) => s.key === key)?.title} marked complete!`);
     } catch (err) {
       logger.warn("markComplete failed:", getErrorMessage(err));
     }
-  }, [school?.id, toast]);
+  }, [optionalStatus, school?.id, toast]);
+
+  const markSkipped = useCallback(async (key: string) => {
+    if (!school?.id) return;
+    try {
+      const nextStatus: OptionalStatusMap = { ...optionalStatus, [key]: "skipped" };
+      await saveSchoolSetting(school.id, OPTIONAL_SETUP_STATUS_KEY, nextStatus);
+      setOptionalStatus(nextStatus);
+      setCompleted((prev) => Array.from(new Set([...prev, key])));
+      toast.info(`${OPTIONAL_STEPS.find((s) => s.key === key)?.title} skipped for now.`);
+    } catch (err) {
+      logger.warn("markSkipped failed:", getErrorMessage(err));
+    }
+  }, [optionalStatus, school?.id, toast]);
 
   const saveSmsAutomations = async () => {
     if (!school?.id) return;
@@ -526,8 +554,8 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                         {/* Skip for now */}
                         <button
                           type="button"
-                          onClick={() => {
-                            markComplete(item.key);
+                          onClick={async () => {
+                            await markSkipped(item.key);
                             const remaining = incompleteSteps.filter((s) => s.key !== item.key);
                             setExpandedKey(remaining[0]?.key ?? null);
                           }}
@@ -548,7 +576,27 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
             <div className="flex-shrink-0 border-t border-slate-100 px-4 py-3">
               <button
                 type="button"
-                onClick={() => { setIsOpen(false); onComplete?.(); }}
+                onClick={async () => {
+                  if (!school?.id) {
+                    setIsOpen(false);
+                    onComplete?.();
+                    return;
+                  }
+
+                  const toSkip = incompleteSteps.map((s) => s.key);
+                  if (toSkip.length > 0) {
+                    const nextStatus: OptionalStatusMap = { ...optionalStatus };
+                    toSkip.forEach((key) => {
+                      nextStatus[key] = "skipped";
+                    });
+                    await saveSchoolSetting(school.id, OPTIONAL_SETUP_STATUS_KEY, nextStatus);
+                    setOptionalStatus(nextStatus);
+                    setCompleted((prev) => Array.from(new Set([...prev, ...toSkip])));
+                  }
+
+                  setIsOpen(false);
+                  onComplete?.();
+                }}
                 className="w-full text-center text-xs text-[var(--t3)] underline-offset-2 hover:underline hover:text-[var(--t1)]"
               >
                 Skip all optional setup →

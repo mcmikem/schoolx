@@ -27,7 +27,7 @@ import {
   type SchoolSetupType,
 } from "@/lib/school-setup";
 import { saveSchoolSetting } from "@/lib/school-settings";
-import { PRIMARY_TEMPLATE, SECONDARY_TEMPLATE } from "@/lib/curriculum-templates";
+import { PRIMARY_TEMPLATE, SECONDARY_TEMPLATE, type TemplateSubject } from "@/lib/curriculum-templates";
 import { logger } from "@/lib/logger";
 import { getErrorMessage } from "@/lib/validation";
 
@@ -87,6 +87,8 @@ export default function OnboardingFlow({
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>(() =>
     getTemplateForType(localSchoolType).subjects.map((s) => s.name),
   );
+  const [customSubjectInput, setCustomSubjectInput] = useState("");
+  const [customSubjects, setCustomSubjects] = useState<string[]>([]);
   const ADDITIONAL_OPTIONAL_SUBJECTS: { name: string; code: string }[] = [
     { name: "Music", code: "MUS" },
     { name: "Physical Education", code: "PE" },
@@ -178,8 +180,26 @@ export default function OnboardingFlow({
 
   // Sync subjects when school type changes
   useEffect(() => {
-    setSelectedSubjects(getTemplateForType(localSchoolType).subjects.map((s) => s.name));
-  }, [localSchoolType]);
+    const defaults = getTemplateForType(localSchoolType).subjects.map((s) => s.name);
+    setSelectedSubjects(Array.from(new Set([...defaults, ...customSubjects])));
+  }, [localSchoolType, customSubjects]);
+
+  const addCustomSubject = () => {
+    const name = customSubjectInput.trim();
+    if (!name) return;
+
+    const alreadyExists = selectedSubjects.some(
+      (s) => s.toLowerCase() === name.toLowerCase(),
+    );
+    if (alreadyExists) {
+      setCustomSubjectInput("");
+      return;
+    }
+
+    setCustomSubjects((prev) => [...prev, name]);
+    setSelectedSubjects((prev) => [...prev, name]);
+    setCustomSubjectInput("");
+  };
 
   // Sync terms when school ID changes
   useEffect(() => {
@@ -640,6 +660,74 @@ export default function OnboardingFlow({
           }
         })(),
       ]);
+
+      // Insert selected subjects if none exist yet.
+      try {
+        const { count } = await supabase
+          .from("subjects")
+          .select("id", { count: "exact", head: true })
+          .eq("school_id", school!.id);
+
+        if (!count) {
+          const templateSubjects = getTemplateForType(localSchoolType).subjects;
+          const additionalMap = new Map(
+            ADDITIONAL_OPTIONAL_SUBJECTS.map((s) => [s.name.toLowerCase(), s]),
+          );
+          const templateMap = new Map(
+            templateSubjects.map((s) => [s.name.toLowerCase(), s]),
+          );
+
+          const selectedRows: TemplateSubject[] = selectedSubjects.map((name) => {
+            const key = name.toLowerCase();
+            const fromTemplate = templateMap.get(key);
+            if (fromTemplate) return fromTemplate;
+
+            const fromAdditional = additionalMap.get(key);
+            if (fromAdditional) {
+              return {
+                name: fromAdditional.name,
+                code: fromAdditional.code,
+                level: localSchoolType === "combined" ? "both" : localSchoolType,
+                is_compulsory: false,
+              };
+            }
+
+            const compact = name.replace(/[^a-zA-Z]/g, "").toUpperCase();
+            const code = (compact.slice(0, 4) || "SUBJ").padEnd(3, "X");
+            return {
+              name,
+              code,
+              level: localSchoolType === "combined" ? "both" : localSchoolType,
+              is_compulsory: false,
+            };
+          });
+
+          const uniqueRows = Array.from(
+            new Map(selectedRows.map((row) => [row.name.toLowerCase(), row])).values(),
+          );
+
+          if (uniqueRows.length > 0) {
+            const { error: subjectsError } = await supabase
+              .from("subjects")
+              .insert(
+                uniqueRows.map((row) => ({
+                  school_id: school!.id,
+                  name: row.name,
+                  code: row.code,
+                  level: row.level,
+                  is_compulsory: row.is_compulsory,
+                })),
+              );
+            if (subjectsError) {
+              logger.warn("Subjects insert failed:", subjectsError);
+              failedSeeding.push("Subjects");
+            }
+          }
+        }
+      } catch (err) {
+        logger.warn("Subjects seeding failed:", err);
+        failedSeeding.push("Subjects");
+      }
 
       // Insert dorms if boarding was configured
       if (boardingConfig.hasBoarding) {
@@ -1300,6 +1388,48 @@ export default function OnboardingFlow({
                         </div>
                       </div>
                     )}
+
+                    <div className="mt-4 border-t border-slate-200 pt-4">
+                      <h4 className="text-sm font-semibold text-slate-700 mb-2">
+                        Custom Subject
+                      </h4>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={customSubjectInput}
+                          onChange={(e) => setCustomSubjectInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              addCustomSubject();
+                            }
+                          }}
+                          placeholder="e.g. Luganda"
+                          className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
+                        />
+                        <Button type="button" size="sm" onClick={addCustomSubject}>
+                          Add
+                        </Button>
+                      </div>
+                      {customSubjects.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {customSubjects.map((subject) => (
+                            <button
+                              key={subject}
+                              type="button"
+                              onClick={() => {
+                                setCustomSubjects((prev) => prev.filter((s) => s !== subject));
+                                setSelectedSubjects((prev) => prev.filter((s) => s !== subject));
+                              }}
+                              className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-2.5 py-1 text-xs text-slate-700"
+                            >
+                              {subject}
+                              <MaterialIcon icon="close" className="text-[14px]" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -1496,9 +1626,74 @@ export default function OnboardingFlow({
                     )}
 
                     {!boardingConfig.hasBoarding && (
-                      <p className="text-sm text-slate-500">
-                        No boarding? That&apos;s fine. You can add dorms later in settings.
-                      </p>
+                      <div className="space-y-3">
+                        <p className="text-sm text-slate-500">
+                          No boarding? That&apos;s fine. You can still set competition houses now.
+                        </p>
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={boardingConfig.hasHouses}
+                            onChange={() =>
+                              setBoardingConfig((prev) => ({
+                                ...prev,
+                                hasHouses: !prev.hasHouses,
+                              }))
+                            }
+                            className="h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                          />
+                          <span className="text-sm font-semibold text-slate-700">
+                            Sports/competition houses?
+                          </span>
+                        </label>
+
+                        {boardingConfig.hasHouses && (
+                          <>
+                            <div className="flex items-center gap-3 mb-2">
+                              <input
+                                type="range"
+                                min={1}
+                                max={8}
+                                value={boardingConfig.houseCount}
+                                onChange={(e) => {
+                                  const count = Number(e.target.value);
+                                  setBoardingConfig((prev) => ({
+                                    ...prev,
+                                    houseCount: count,
+                                    houses: Array.from(
+                                      { length: count },
+                                      (_, i) => prev.houses[i] || "",
+                                    ),
+                                  }));
+                                }}
+                                className="flex-1 accent-teal-600"
+                              />
+                              <span className="text-sm font-semibold text-slate-700 w-6 text-center">
+                                {boardingConfig.houseCount}
+                              </span>
+                            </div>
+                            <div className="space-y-2">
+                              {boardingConfig.houses
+                                .slice(0, boardingConfig.houseCount)
+                                .map((house, i) => (
+                                  <input
+                                    key={i}
+                                    placeholder={`House ${i + 1} name`}
+                                    value={house}
+                                    onChange={(e) =>
+                                      setBoardingConfig((prev) => {
+                                        const updated = [...prev.houses];
+                                        updated[i] = e.target.value;
+                                        return { ...prev, houses: updated };
+                                      })
+                                    }
+                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
+                                  />
+                                ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     )}
                   </div>
                 </motion.div>

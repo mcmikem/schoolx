@@ -149,6 +149,7 @@ export default function SettingsPage() {
   const [upgradingPlan, setUpgradingPlan] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPaymentPlan, setSelectedPaymentPlan] = useState<string>("");
+  const [paymentPhone, setPaymentPhone] = useState("");
   const searchParams = useSearchParams();
   const [selectedStage, setSelectedStage] = useState<FeatureStage>(
     (school?.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
@@ -232,9 +233,20 @@ export default function SettingsPage() {
   useEffect(() => {
     const plan = searchParams?.get("plan");
     const error = searchParams?.get("error");
+    const success = searchParams?.get("success");
+    const provider = searchParams?.get("provider");
     if (plan) {
       setSelectedPaymentPlan(plan);
       setShowPaymentModal(true);
+    }
+    if (success === "true") {
+      toast.success(
+        provider
+          ? `Payment flow returned from ${provider.toUpperCase()}. We are confirming your upgrade.`
+          : "Payment flow returned. We are confirming your upgrade.",
+      );
+      setShowPaymentModal(false);
+      setPaymentPhone("");
     }
     if (error === "no_plan") {
       toast.error("Please select a plan to upgrade");
@@ -304,15 +316,14 @@ export default function SettingsPage() {
       };
 
       if (provider === "mtn" || provider === "airtel") {
-        const phone = prompt(
-          `Enter your ${provider === "mtn" ? "MTN" : "Airtel"} phone number (e.g., 0772000000):`,
-        );
+        const phone = paymentPhone.trim();
         if (!phone) {
+          toast.error("Enter your mobile money phone number");
           setUpgradingPlan(false);
           return;
         }
 
-        const response = await fetch("/api/payment/mobile-money", {
+        const response = await fetch("/api/payment/mobile-money/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -334,7 +345,7 @@ export default function SettingsPage() {
         }
       } else {
         // PayPal
-        const response = await fetch("/api/payment/checkout", {
+        const response = await fetch("/api/payment/checkout/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -356,6 +367,7 @@ export default function SettingsPage() {
       }
 
       setShowPaymentModal(false);
+      setPaymentPhone("");
       toast.success("Redirecting to payment...");
     } catch (err: unknown) {
       logger.error("Payment error:", err);
@@ -1916,9 +1928,20 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-3">
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs">
-                <span className="mt-0.5">⚠️</span>
-                <span>Mobile money auto-payment is coming soon. Select MTN or Airtel then follow up with our team on <strong>+256 700 000 000</strong> to confirm your payment manually.</span>
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
+                <label className="block text-xs font-semibold text-[var(--t2)] mb-1">
+                  Mobile Money Phone (for MTN/Airtel)
+                </label>
+                <input
+                  type="tel"
+                  value={paymentPhone}
+                  onChange={(e) => setPaymentPhone(e.target.value)}
+                  placeholder="e.g. 0772000000"
+                  className="input w-full"
+                />
+                <p className="mt-1 text-[11px] text-[var(--t3)]">
+                  Enter one phone number and choose MTN or Airtel below.
+                </p>
               </div>
 
               <button
@@ -1932,7 +1955,7 @@ export default function SettingsPage() {
                     MTN Mobile Money
                   </div>
                   <div className="text-xs text-[var(--t3)]">
-                    Manual confirmation required
+                    Instant prompt on your phone
                   </div>
                 </div>
               </button>
@@ -1948,7 +1971,7 @@ export default function SettingsPage() {
                     Airtel Money
                   </div>
                   <div className="text-xs text-[var(--t3)]">
-                    Manual confirmation required
+                    Instant prompt on your phone
                   </div>
                 </div>
               </button>
