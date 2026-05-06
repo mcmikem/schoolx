@@ -1049,14 +1049,37 @@ export default function StudentProfilePage() {
                 </span>
               </div>
               {student.parent_phone2 && (
-                 <div className="flex items-center gap-2">
-                   <Phone className="w-4 h-4 text-gray-400" />
-                   <span className="text-gray-700 dark:text-gray-300">
-                     {student.parent_phone2}
-                   </span>
-                 </div>
-               )}
-{student.parent_phone && (
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-gray-400" />
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {student.parent_phone2}
+                  </span>
+                </div>
+              )}
+              {student.parent_email && (
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-gray-400" />
+                  <span className="text-gray-700 dark:text-gray-300 break-all">
+                    {student.parent_email}
+                  </span>
+                </div>
+              )}
+              {(student.district_origin || student.sub_county || student.parish || student.village) && (
+                <div className="flex items-start gap-2 pt-1">
+                  <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {[student.village, student.parish, student.sub_county, student.district_origin]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </span>
+                </div>
+              )}
+              {!student.parent_phone && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-200">
+                  Add a guardian phone number before creating parent portal access or sending SMS updates.
+                </div>
+              )}
+              {student.parent_phone && (
                   <button
                     type="button"
                     onClick={async () => {
@@ -1101,7 +1124,7 @@ export default function StudentProfilePage() {
                     }}
                     className="mt-2 w-full rounded-xl bg-[var(--navy)] px-3 py-2 text-xs font-semibold text-white hover:opacity-90"
                   >
-                    Create Parent Portal
+                    Create or Refresh Parent Portal
                   </button>
                 )}
                 {portalCreds && (

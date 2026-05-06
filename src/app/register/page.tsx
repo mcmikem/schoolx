@@ -40,6 +40,7 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [manualLocationEntry, setManualLocationEntry] = useState(false);
 
   const [form, setForm] = useState({
     schoolName: "",
@@ -392,87 +393,130 @@ export default function RegisterPage() {
 
               {step === 2 && (
                 <div className="space-y-5">
-                  {/* District: dropdown only */}
-                  <Select
-                    label="District"
-                    options={[
-                      { value: "", label: "Browse common districts..." },
-                      ...getDistrictOptions(),
-                    ]}
-                    value={
-                      DISTRICT_OPTIONS.some(
-                        (o) => o.value === form.district && o.value !== "",
-                      )
-                        ? form.district
-                        : ""
-                    }
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        updateForm("district", e.target.value);
-                        updateForm("subcounty", "");
-                        updateForm("parish", "");
+                  {!manualLocationEntry ? (
+                    <Select
+                      label="District"
+                      options={[
+                        { value: "", label: "Browse common districts..." },
+                        ...getDistrictOptions(),
+                      ]}
+                      value={
+                        DISTRICT_OPTIONS.some(
+                          (o) => o.value === form.district && o.value !== "",
+                        )
+                          ? form.district
+                          : ""
                       }
-                    }}
-                    required
-                    autoComplete="address-level1"
-                  />
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          updateForm("district", e.target.value);
+                          updateForm("subcounty", "");
+                          updateForm("parish", "");
+                        }
+                      }}
+                      required
+                      autoComplete="address-level1"
+                    />
+                  ) : (
+                    <Input
+                      label="District"
+                      type="text"
+                      placeholder="Type your district"
+                      value={form.district}
+                      onChange={(e) => updateForm("district", e.target.value)}
+                      required
+                      autoComplete="address-level1"
+                    />
+                  )}
                   <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
                     <MaterialIcon icon="help" className="text-xs align-middle" />
                     We preload Uganda district, division, and parish options to
-                    reduce typing. If your area is missing, contact support.
+                    reduce typing. If your area is missing, switch to manual entry.
                   </div>
-
-                  {/* Sub-county: dropdown only */}
-                  <Select
-                    label="Sub-county / Division"
-                    options={[
-                      { value: "", label: "Browse sub-counties..." },
-                      ...(form.district
-                        ? getSubcountyOptions(form.district)
-                        : []),
-                    ]}
-                    value={
-                      form.district &&
-                      getSubcountyOptions(form.district).some(
-                        (o) => o.value === form.subcounty,
-                      )
-                        ? form.subcounty
-                        : ""
-                    }
-                    onChange={(e) => {
-                      if (e.target.value)
-                        updateForm("subcounty", e.target.value);
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setManualLocationEntry((prev) => !prev);
+                      setError("");
                     }}
-                    required
-                    autoComplete="address-level2"
-                    disabled={!form.district}
-                  />
+                    className="text-sm font-medium text-[var(--primary)] hover:underline"
+                  >
+                    {manualLocationEntry ? "Use district suggestions instead" : "My area is not listed, enter location manually"}
+                  </button>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {!manualLocationEntry ? (
                     <Select
-                      label="Parish / Ward (Optional)"
+                      label="Sub-county / Division"
                       options={[
-                        {
-                          value: "",
-                          label: "Browse common parishes (optional)...",
-                        },
-                        ...(form.district && form.subcounty
-                          ? getParishOptions(form.district, form.subcounty)
+                        { value: "", label: "Browse sub-counties..." },
+                        ...(form.district
+                          ? getSubcountyOptions(form.district)
                           : []),
                       ]}
                       value={
                         form.district &&
-                        form.subcounty &&
-                        getParishOptions(form.district, form.subcounty).some(
-                          (option) => option.value === form.parish,
+                        getSubcountyOptions(form.district).some(
+                          (o) => o.value === form.subcounty,
                         )
-                          ? form.parish
+                          ? form.subcounty
                           : ""
                       }
-                      onChange={(e) => updateForm("parish", e.target.value)}
-                      autoComplete="address-level3"
-                      disabled={!form.district || !form.subcounty}
+                      onChange={(e) => {
+                        if (e.target.value)
+                          updateForm("subcounty", e.target.value);
+                      }}
+                      required
+                      autoComplete="address-level2"
+                      disabled={!form.district}
                     />
+                  ) : (
+                    <Input
+                      label="Sub-county / Division"
+                      type="text"
+                      placeholder="Type your sub-county or division"
+                      value={form.subcounty}
+                      onChange={(e) => updateForm("subcounty", e.target.value)}
+                      required
+                      autoComplete="address-level2"
+                    />
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {!manualLocationEntry ? (
+                      <Select
+                        label="Parish / Ward (Optional)"
+                        options={[
+                          {
+                            value: "",
+                            label: "Browse common parishes (optional)...",
+                          },
+                          ...(form.district && form.subcounty
+                            ? getParishOptions(form.district, form.subcounty)
+                            : []),
+                        ]}
+                        value={
+                          form.district &&
+                          form.subcounty &&
+                          getParishOptions(form.district, form.subcounty).some(
+                            (option) => option.value === form.parish,
+                          )
+                            ? form.parish
+                            : ""
+                        }
+                        onChange={(e) => updateForm("parish", e.target.value)}
+                        autoComplete="address-level3"
+                        disabled={!form.district || !form.subcounty}
+                      />
+                    ) : (
+                      <Input
+                        label="Parish / Ward (Optional)"
+                        type="text"
+                        placeholder="Type your parish or ward"
+                        value={form.parish}
+                        onChange={(e) => updateForm("parish", e.target.value)}
+                        autoComplete="address-level3"
+                      />
+                    )}
                     <Input
                       label="Village / Zone (Optional)"
                       type="text"
