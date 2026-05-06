@@ -1,8 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { logger } from "@/lib/logger";
+import { getCachedResponse, cacheResponse, queueMutation, isOnline, generateCacheKey } from "@/lib/offline-db";
 
 interface AcademicTerm {
   id: string;
@@ -30,9 +31,23 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
   const [loading, setLoading] = useState(false);
   const [terms, setTerms] = useState<AcademicTerm[]>([]);
   const [currentTerm, setCurrentTerm] = useState<AcademicTerm | null>(null);
+  const [isStale, setIsStale] = useState(false);
 
   const fetchTerms = useCallback(async () => {
     if (!school?.id) return;
+
+    const cacheKey = generateCacheKey(`/api/academic-terms/${school.id}`, options as Record<string, unknown>);
+
+    if (!isOnline()) {
+      const cached = await getCachedResponse<AcademicTerm[]>(cacheKey);
+      if (cached) {
+        setTerms(cached);
+        setCurrentTerm(cached.find((t) => t.is_current) || null);
+        setIsStale(true);
+        setLoading(false);
+        return;
+      }
+    }
 
     setLoading(true);
     try {
@@ -53,20 +68,63 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
 
       if (error) throw error;
       setTerms(data || []);
+      await cacheResponse(cacheKey, data || [], undefined, 60 * 60 * 1000);
 
       const current = data?.find((t) => t.is_current);
       setCurrentTerm(current || null);
     } catch (err) {
       logger.error("Error fetching academic terms:", err);
-      toast.error("Failed to load academic terms");
+      const cached = await getCachedResponse<AcademicTerm[]>(cacheKey);
+      if (cached) {
+        setTerms(cached);
+        setCurrentTerm(cached.find((t) => t.is_current) || null);
+        setIsStale(true);
+      } else {
+        toast.error("Failed to load academic terms");
+      }
     } finally {
       setLoading(false);
     }
   }, [school?.id, options, toast]);
 
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsStale(true);
+      fetchTerms();
+    };
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [fetchTerms]);
+
   const createTerm = useCallback(
     async (term: Partial<AcademicTerm>) => {
       if (!school?.id) return null;
+
+      if (!isOnline()) {
+        const tempId = `temp-${Date.now()}`;
+        const offlineTerm: AcademicTerm = {
+          id: tempId,
+          school_id: school.id,
+          name: term.name || "",
+          code: term.code || "",
+          start_date: term.start_date || "",
+          end_date: term.end_date || "",
+          term_number: term.term_number || 1,
+          academic_year: term.academic_year || "",
+          is_active: term.is_active ?? true,
+          is_current: term.is_current ?? false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        setTerms((prev) => [...prev, offlineTerm]);
+        await queueMutation({
+          endpoint: "academic_terms",
+          method: "POST",
+          body: { term, schoolId: school.id },
+        });
+        toast.success("Term saved (offline)");
+        return offlineTerm;
+      }
 
       try {
         const { data, error } = await supabase
@@ -170,6 +228,7 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
     terms,
     currentTerm,
     loading,
+    isStale,
     fetchTerms,
     createTerm,
     updateTerm,

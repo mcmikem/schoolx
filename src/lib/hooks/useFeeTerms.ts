@@ -1,8 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { logger } from "@/lib/logger";
+import { getCachedResponse, cacheResponse, queueMutation, isOnline, generateCacheKey } from "@/lib/offline-db";
 
 interface FeeTerm {
   id: string;
@@ -72,10 +73,23 @@ export function useFeeTerms() {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [feeTerms, setFeeTerms] = useState<FeeTerm[]>([]);
+  const [isStale, setIsStale] = useState(false);
 
   const fetchFeeTerms = useCallback(
     async (academicYear?: string) => {
       if (!school?.id) return;
+
+      const cacheKey = generateCacheKey(`/api/fee-terms/${school.id}`, { academicYear } as Record<string, unknown>);
+
+      if (!isOnline()) {
+        const cached = await getCachedResponse<FeeTerm[]>(cacheKey);
+        if (cached) {
+          setFeeTerms(cached);
+          setIsStale(true);
+          setLoading(false);
+          return;
+        }
+      }
 
       setLoading(true);
       try {
@@ -93,9 +107,16 @@ export function useFeeTerms() {
 
         if (error) throw error;
         setFeeTerms(data || []);
+        await cacheResponse(cacheKey, data || [], undefined, 5 * 60 * 1000);
       } catch (err) {
         logger.error("Error fetching fee terms:", err);
-        toast.error("Failed to load fee terms");
+        const cached = await getCachedResponse<FeeTerm[]>(cacheKey);
+        if (cached) {
+          setFeeTerms(cached);
+          setIsStale(true);
+        } else {
+          toast.error("Failed to load fee terms");
+        }
       } finally {
         setLoading(false);
       }
@@ -106,6 +127,44 @@ export function useFeeTerms() {
   const createFeeTerm = useCallback(
     async (term: Partial<FeeTerm>, lines: Partial<FeeTermLine>[]) => {
       if (!school?.id) return null;
+
+      if (!isOnline()) {
+        const tempId = `temp-${Date.now()}`;
+        const offlineTerm: FeeTerm = {
+          id: tempId,
+          school_id: school.id,
+          name: term.name || "",
+          code: term.code || "",
+          description: term.description || null,
+          term_type: term.term_type || "installments",
+          total_amount: term.total_amount || 0,
+          discount_percentage: term.discount_percentage || 0,
+          no_of_days: term.no_of_days || null,
+          day_type: term.day_type || null,
+          is_active: term.is_active ?? true,
+          academic_year: term.academic_year || "",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          lines: lines.map((l, i) => ({
+            id: `temp-line-${i}`,
+            term_id: tempId,
+            installment_number: l.installment_number || i + 1,
+            due_days: l.due_days || null,
+            due_date: l.due_date || null,
+            amount_percentage: l.amount_percentage || 0,
+            amount: l.amount_percentage ? (term.total_amount || 0) * (l.amount_percentage / 100) : 0,
+            is_optional: l.is_optional || false,
+          })),
+        };
+        setFeeTerms((prev) => [...prev, offlineTerm]);
+        await queueMutation({
+          endpoint: "fee_terms",
+          method: "POST",
+          body: { term, lines, schoolId: school.id },
+        });
+        toast.success("Fee term saved (offline)");
+        return offlineTerm;
+      }
 
       try {
         const { data: newTerm, error: termError } = await supabase
@@ -157,9 +216,19 @@ export function useFeeTerms() {
     [school?.id, toast, fetchFeeTerms],
   );
 
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsStale(true);
+      fetchFeeTerms();
+    };
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [fetchFeeTerms]);
+
   return {
     feeTerms,
     loading,
+    isStale,
     fetchFeeTerms,
     createFeeTerm,
   };

@@ -85,6 +85,7 @@
         will sync when you're back online.
       </p>
       <button
+        id="retry-btn"
         onclick="window.location.reload()"
         onkeydown="
           if (event.key === 'Enter' || event.key === ' ') {
@@ -96,5 +97,46 @@
         Try Again
       </button>
     </div>
+    <script>
+      (function() {
+        var btn = document.getElementById('retry-btn');
+        var h1 = document.querySelector('h1');
+        var p = document.querySelector('.container p');
+        var icon = document.querySelector('.icon span');
+
+        function updateStatus(online) {
+          if (online) {
+            h1.textContent = 'Back Online!';
+            p.textContent = 'Your connection is restored. Reloading...';
+            icon.textContent = '✓';
+            btn.style.display = 'none';
+            setTimeout(function() {
+              window.location.reload();
+            }, 1500);
+          } else {
+            h1.textContent = "You're Offline";
+            p.textContent = 'Please check your internet connection. Your data is saved locally and will sync when you\'re back online.';
+            icon.textContent = 'SX';
+            btn.style.display = 'inline-block';
+          }
+        }
+
+        updateStatus(navigator.onLine);
+
+        window.addEventListener('online', function() {
+          updateStatus(true);
+        });
+
+        window.addEventListener('offline', function() {
+          updateStatus(false);
+        });
+
+        setInterval(function() {
+          if (navigator.onLine) {
+            updateStatus(true);
+          }
+        }, 3000);
+      })();
+    </script>
   </body>
 </html>

@@ -1,8 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { logger } from "@/lib/logger";
+import { getCachedResponse, cacheResponse, queueMutation, isOnline, generateCacheKey } from "@/lib/offline-db";
 
 interface Course {
   id: string;
@@ -55,9 +56,22 @@ export function useCourses(options: UseCoursesOptions = {}) {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [isStale, setIsStale] = useState(false);
 
   const fetchCourses = useCallback(async () => {
     if (!school?.id) return;
+
+    const cacheKey = generateCacheKey(`/api/courses/${school.id}`, options as Record<string, unknown>);
+
+    if (!isOnline()) {
+      const cached = await getCachedResponse<Course[]>(cacheKey);
+      if (cached) {
+        setCourses(cached);
+        setIsStale(true);
+        setLoading(false);
+        return;
+      }
+    }
 
     setLoading(true);
     try {
@@ -77,17 +91,65 @@ export function useCourses(options: UseCoursesOptions = {}) {
 
       if (error) throw error;
       setCourses(data || []);
+      await cacheResponse(cacheKey, data || [], undefined, 5 * 60 * 1000);
     } catch (err) {
       logger.error("Error fetching courses:", err);
-      toast.error("Failed to load courses");
+      const cached = await getCachedResponse<Course[]>(cacheKey);
+      if (cached) {
+        setCourses(cached);
+        setIsStale(true);
+      } else {
+        toast.error("Failed to load courses");
+      }
     } finally {
       setLoading(false);
     }
   }, [school?.id, options.category, options.isActive, toast]);
 
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsStale(true);
+      fetchCourses();
+    };
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [fetchCourses]);
+
   const createCourse = useCallback(
     async (course: Partial<Course>) => {
       if (!school?.id) return null;
+
+      if (!isOnline()) {
+        const tempId = `temp-${Date.now()}`;
+        const offlineCourse: Course = {
+          id: tempId,
+          school_id: school.id,
+          name: course.name || "",
+          code: course.code || "",
+          description: course.description || "",
+          category: course.category || "",
+          department_id: course.department_id || "",
+          is_active: course.is_active ?? true,
+          is_elective: course.is_elective ?? false,
+          is_laboratory: course.is_laboratory ?? false,
+          credit_hours: course.credit_hours ?? 0,
+          max_score: course.max_score ?? 100,
+          passing_score: course.passing_score ?? 40,
+          color: course.color || "#17325f",
+          icon: course.icon || "book",
+          metadata: course.metadata || {},
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        setCourses((prev) => [...prev, offlineCourse]);
+        await queueMutation({
+          endpoint: "courses",
+          method: "POST",
+          body: { course, schoolId: school.id },
+        });
+        toast.success("Course saved (offline)");
+        return offlineCourse;
+      }
 
       try {
         const { data, error } = await supabase
@@ -154,6 +216,7 @@ export function useCourses(options: UseCoursesOptions = {}) {
   return {
     courses,
     loading,
+    isStale,
     fetchCourses,
     createCourse,
     updateCourse,

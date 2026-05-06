@@ -1,11 +1,13 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { logger } from "@/lib/logger";
+import { getCachedResponse, cacheResponse, queueMutation, isOnline, generateCacheKey } from "@/lib/offline-db";
 
 interface Enrollment {
   id: string;
+  school_id: string;
   student_id: string;
   class_id: string;
   academic_year: string;
@@ -41,9 +43,22 @@ export function useStudentEnrollments(
   const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [isStale, setIsStale] = useState(false);
 
   const fetchEnrollments = useCallback(async () => {
     if (!school?.id) return;
+
+    const cacheKey = generateCacheKey(`/api/enrollments/${school.id}`, options as Record<string, unknown>);
+
+    if (!isOnline()) {
+      const cached = await getCachedResponse<Enrollment[]>(cacheKey);
+      if (cached) {
+        setEnrollments(cached);
+        setIsStale(true);
+        setLoading(false);
+        return;
+      }
+    }
 
     setLoading(true);
     try {
@@ -71,17 +86,59 @@ export function useStudentEnrollments(
 
       if (error) throw error;
       setEnrollments(data || []);
+      await cacheResponse(cacheKey, data || [], undefined, 5 * 60 * 1000);
     } catch (err) {
       logger.error("Error fetching enrollments:", err);
-      toast.error("Failed to load enrollments");
+      const cached = await getCachedResponse<Enrollment[]>(cacheKey);
+      if (cached) {
+        setEnrollments(cached);
+        setIsStale(true);
+      } else {
+        toast.error("Failed to load enrollments");
+      }
     } finally {
       setLoading(false);
     }
   }, [school?.id, options, toast]);
 
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsStale(true);
+      fetchEnrollments();
+    };
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [fetchEnrollments]);
+
   const createEnrollment = useCallback(
     async (enrollment: Partial<Enrollment>) => {
       if (!school?.id) return null;
+
+      if (!isOnline()) {
+        const tempId = `temp-${Date.now()}`;
+        const offlineEnrollment: Enrollment = {
+          id: tempId,
+          school_id: school.id,
+          student_id: enrollment.student_id || "",
+          class_id: enrollment.class_id || "",
+          academic_year: enrollment.academic_year || "",
+          roll_number: enrollment.roll_number || null,
+          enrollment_date: enrollment.enrollment_date || new Date().toISOString(),
+          state: enrollment.state || "draft",
+          completion_date: null,
+          notes: enrollment.notes || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        setEnrollments((prev) => [...prev, offlineEnrollment]);
+        await queueMutation({
+          endpoint: "enrollments",
+          method: "POST",
+          body: { enrollment, schoolId: school.id },
+        });
+        toast.success("Enrollment saved (offline)");
+        return offlineEnrollment;
+      }
 
       try {
         const { data, error } = await supabase
@@ -179,6 +236,7 @@ export function useStudentEnrollments(
   return {
     enrollments,
     loading,
+    isStale,
     fetchEnrollments,
     createEnrollment,
     updateEnrollment,

@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { logger } from "@/lib/logger";
+import { getCachedResponse, cacheResponse, isOnline, generateCacheKey } from "@/lib/offline-db";
 
 interface ClassAttendance {
   present: number;
@@ -24,6 +25,7 @@ interface DashboardExtraData {
   lowAttendanceClasses: number;
   dropoutRiskCount: number;
   loading: boolean;
+  isStale: boolean;
 }
 
 export function useDashboardExtraData(
@@ -48,11 +50,38 @@ export function useDashboardExtraData(
   const [overdueFeeCount, setOverdueFeeCount] = useState(0);
   const [lowAttendanceClasses, setLowAttendanceClasses] = useState(0);
   const [dropoutRiskCount, setDropoutRiskCount] = useState(0);
+  const [isStale, setIsStale] = useState(false);
   const { isDemo } = useAuth();
 
   useEffect(() => {
     if (!schoolId) {
       setLoading(false);
+      return;
+    }
+
+    const cacheKey = generateCacheKey(`/api/dashboard-extra/${schoolId}`, { currentTerm, academicYear });
+
+    if (!isOnline()) {
+      getCachedResponse<any>(cacheKey).then((cached) => {
+        if (cached) {
+          setClassAttendance(cached.classAttendance || {});
+          setAtRiskStudents(cached.atRiskStudents || []);
+          setSmsStats(cached.smsStats || { sentToday: 0, deliveryRate: 0 });
+          setPendingExpenses(cached.pendingExpenses || 0);
+          setPendingLeave(cached.pendingLeave || 0);
+          setFeesToday(cached.feesToday || 0);
+          setFeesThisWeek(cached.feesThisWeek || 0);
+          setFeesThisTerm(cached.feesThisTerm || 0);
+          setStaffOnDuty(cached.staffOnDuty || 0);
+          setOverdueFeeCount(cached.overdueFeeCount || 0);
+          setLowAttendanceClasses(cached.lowAttendanceClasses || 0);
+          setDropoutRiskCount(cached.dropoutRiskCount || 0);
+          setIsStale(true);
+          setLoading(false);
+          return;
+        }
+        setLoading(false);
+      });
       return;
     }
 
@@ -310,7 +339,7 @@ export function useDashboardExtraData(
         // Staff on duty
         setStaffOnDuty(staffAttRes.data?.length || 0);
 
-        // Overdue fees
+        let overdueCount = 0;
         if (feeStructure.length > 0) {
           const paidByStudent: Record<string, number> = {};
           allPayments?.forEach((p: any) => {
@@ -320,7 +349,7 @@ export function useDashboardExtraData(
                 (paidByStudent[sid] || 0) + Number(p.amount_paid);
           });
 
-          const overdue = students.filter(
+          overdueCount = students.filter(
             (student) => {
               const expectedForStudent = feeStructure
                 .filter(
@@ -335,14 +364,49 @@ export function useDashboardExtraData(
               return (paidByStudent[student.id] || 0) < expectedForStudent * 0.5;
             },
           ).length;
-          setOverdueFeeCount(overdue);
+          setOverdueFeeCount(overdueCount);
         } else {
           setOverdueFeeCount(0);
         }
+
+        const cacheData = {
+          classAttendance: attendanceByClass,
+          atRiskStudents,
+          smsStats: { sentToday, deliveryRate: rate },
+          pendingExpenses: expensesRes.count || 0,
+          pendingLeave: leaveRes.count || 0,
+          feesToday,
+          feesThisWeek,
+          feesThisTerm,
+          staffOnDuty: staffAttRes.data?.length || 0,
+          overdueFeeCount: overdueCount,
+          lowAttendanceClasses: lowAtt,
+          dropoutRiskCount,
+        };
+        await cacheResponse(cacheKey, cacheData, undefined, 2 * 60 * 1000);
       } catch (err) {
         logger.error("Error fetching dashboard extra data:", err);
+        const cached = await getCachedResponse<any>(cacheKey);
+        if (cached && !cancelled) {
+          setClassAttendance(cached.classAttendance || {});
+          setAtRiskStudents(cached.atRiskStudents || []);
+          setSmsStats(cached.smsStats || { sentToday: 0, deliveryRate: 0 });
+          setPendingExpenses(cached.pendingExpenses || 0);
+          setPendingLeave(cached.pendingLeave || 0);
+          setFeesToday(cached.feesToday || 0);
+          setFeesThisWeek(cached.feesThisWeek || 0);
+          setFeesThisTerm(cached.feesThisTerm || 0);
+          setStaffOnDuty(cached.staffOnDuty || 0);
+          setOverdueFeeCount(cached.overdueFeeCount || 0);
+          setLowAttendanceClasses(cached.lowAttendanceClasses || 0);
+          setDropoutRiskCount(cached.dropoutRiskCount || 0);
+          setIsStale(true);
+        }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setIsStale(false);
+        }
       }
     }
 
@@ -352,6 +416,14 @@ export function useDashboardExtraData(
       cancelled = true;
     };
   }, [schoolId, currentTerm, academicYear, students, feeStructure, isDemo]);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsStale(true);
+    };
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, []);
 
   return {
     classAttendance,
@@ -367,5 +439,6 @@ export function useDashboardExtraData(
     lowAttendanceClasses,
     dropoutRiskCount,
     loading,
+    isStale,
   };
 }

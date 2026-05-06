@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'skoolmate-v7';
+const CACHE_VERSION = 'skoolmate-v8';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -11,10 +11,25 @@ const PAGES_TO_CACHE = [
   '/forgot-password',
   '/manifest.json',
   '/offline.html',
-  // Auth-gated dashboard routes are intentionally NOT pre-cached.
-  // Caching them offline would produce blank shells with no session or data.
-  // They are served network-first with an offline fallback instead.
+  '/sw.js',
 ];
+
+const STATIC_ASSETS = [
+  '/_next/static/chunks/main-',
+  '/_next/static/chunks/webpack-',
+  '/_next/static/css/',
+];
+
+function isNavigationRequest(request) {
+  return request.mode === 'navigate' || (request.destination === 'document');
+}
+
+function isStaticAsset(url) {
+  return (
+    url.pathname.startsWith('/_next/static/') ||
+    url.pathname.match(/\.(js|css|woff2?|ttf|eot)$/i)
+  );
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -49,35 +64,58 @@ self.addEventListener('fetch', (event) => {
 
   if (request.method !== 'GET') return;
 
-  // Supabase API calls - network only, don't cache
+  if (url.hostname === location.hostname && url.pathname.startsWith('/api/')) {
+    return;
+  }
+
   if (url.hostname.includes('supabase')) {
     return;
   }
 
-  // Internal API calls - network only
-  if (url.pathname.startsWith('/api/')) {
-    return;
-  }
-
-  // External resources we don't cache
   if (url.hostname.includes('googleapis') || url.hostname.includes('gstatic')) {
     return;
   }
 
-  // HTML navigation requests - network first, offline fallback
-  if (request.mode === 'navigate') {
+  if (isStaticAsset(url)) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        }).catch(() => new Response('', { status: 408 }));
+      })
+    );
+    return;
+  }
+
+  if (isNavigationRequest(request)) {
+    const isDashboardRoute = url.pathname.startsWith('/dashboard') || url.pathname.startsWith('/onboarding');
+
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const clone = response.clone();
-          caches.open(PAGE_CACHE).then((cache) => cache.put(request, clone));
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(PAGE_CACHE).then((cache) => cache.put(request, clone));
+          }
           return response;
         })
         .catch(async () => {
-          const cached = await caches.match(request);
-          if (cached) return cached;
+          const cachedPage = await caches.match(request);
+          if (cachedPage) return cachedPage;
+
+          if (isDashboardRoute) {
+            const dashboardCached = await caches.match('/');
+            if (dashboardCached) return dashboardCached;
+          }
+
           const offlinePage = await caches.match(OFFLINE_FALLBACK);
           if (offlinePage) return offlinePage;
+
           return new Response(
             '<html><body><h1>You are offline</h1><p>Please check your internet connection.</p></body></html>',
             { headers: { 'Content-Type': 'text/html' } }
@@ -155,17 +193,51 @@ self.addEventListener('message', (event) => {
 // Background sync
 self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-queue') {
-    event.waitUntil(syncOfflineData());
+    event.waitUntil(processSyncQueue());
   }
 });
 
-async function syncOfflineData() {
-  const clients = await self.clients.matchAll();
-  const client = clients[0];
-  if (client) {
-    client.postMessage({ type: 'SYNC_REQUESTED' });
+async function processSyncQueue() {
+  try {
+    const clients = await self.clients.matchAll();
+    const syncClient = clients.find((c) => c.url.includes('dashboard'));
+
+    if (syncClient) {
+      syncClient.postMessage({ type: 'SYNC_STARTED' });
+    }
+
+    const registration = await self.registration;
+    const notification = await registration.showNotification('Syncing data...', {
+      body: 'Your offline changes will be synced now.',
+      icon: '/SkoolMate logos/SchoolMate icon.svg',
+      tag: 'sync-status',
+    });
+
+    await self.clients.matchAll().forEach((client) => {
+      client.postMessage({ type: 'SYNC_STARTED' });
+    });
+
+    if (notification) notification.close();
+  } catch (err) {
+    console.error('Sync queue error:', err);
   }
 }
+
+// Listen for messages from the main app
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+
+  if (event.data && event.data.type === 'CACHE_DATA') {
+    const { key, data } = event.data;
+    caches.open(PAGE_CACHE).then((cache) => {
+      cache.put(key, new Response(JSON.stringify(data), {
+        headers: { 'Content-Type': 'application/json' }
+      }));
+    });
+  }
+});
 
 // Push notification support
 self.addEventListener('push', (event) => {
