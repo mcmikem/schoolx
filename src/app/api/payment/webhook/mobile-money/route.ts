@@ -15,12 +15,20 @@ import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   try {
+    const allowInsecure =
+      process.env.NODE_ENV === "development" &&
+      process.env.ALLOW_INSECURE_WEBHOOKS === "true";
+
     const body = await request.text();
     let payload: Record<string, unknown>;
 
     try {
       payload = JSON.parse(body) as Record<string, unknown>;
     } catch {
+      if (allowInsecure) {
+        logger.warn("Mobile money webhook: invalid JSON allowed in development mode");
+        return NextResponse.json({ received: true });
+      }
       logger.error("Mobile money webhook: invalid JSON body");
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
@@ -36,6 +44,10 @@ export async function POST(request: NextRequest) {
     const referenceId = mtnReferenceId || moneyUnifyTxId;
 
     if (!referenceId) {
+      if (allowInsecure) {
+        logger.warn("Mobile money webhook: missing referenceId allowed in development mode");
+        return NextResponse.json({ received: true });
+      }
       logger.error("Mobile money webhook: missing referenceId");
       return NextResponse.json({ error: "Missing referenceId" }, { status: 400 });
     }
