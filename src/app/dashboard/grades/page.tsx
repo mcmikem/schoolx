@@ -196,6 +196,7 @@ export default function GradesPage() {
     type: string;
     value: string;
   }>({ open: false, type: "", value: "" });
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>(
     {},
   );
@@ -1347,6 +1348,13 @@ export default function GradesPage() {
                       <MaterialIcon icon="playlist_add" className="text-base" />
                       Quick Fill
                     </button>
+                    <button
+                      className="px-3 py-2 rounded-xl text-sm font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all flex items-center gap-1.5"
+                      onClick={() => setBulkImportOpen(true)}
+                    >
+                      <MaterialIcon icon="upload" className="text-base" />
+                      Import
+                    </button>
                     <div className="absolute right-0 top-full mt-1 w-64 bg-surface-container-lowest rounded-2xl shadow-xl border border-outline-variant/10 p-4 hidden group-hover:block z-30">
                       <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
                         Set All Students
@@ -1950,6 +1958,91 @@ export default function GradesPage() {
         message="Are you sure you want to proceed with this action?"
         variant="danger"
       />
+      <Modal
+        isOpen={bulkImportOpen}
+        onClose={() => setBulkImportOpen(false)}
+        title="Import Grades from Spreadsheet"
+      >
+        <div className="space-y-4">
+          <div className="bg-surface-container-low rounded-xl p-4">
+            <p className="text-sm font-medium mb-2">Upload spreadsheet</p>
+            <input
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              className="w-full text-sm"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                toast.info("Processing spreadsheet...");
+                try {
+                  const text = await file.text();
+                  const lines = text.trim().split("\n");
+                  if (lines.length < 2) {
+                    toast.error("File appears empty");
+                    return;
+                  }
+                  const header = lines[0].toLowerCase().split(",").map(s => s.trim());
+                  const admIndex = header.findIndex(h => h.includes("adm") || h.includes("number"));
+                  const ca1Index = header.findIndex(h => h.includes("ca1") || h.includes("test"));
+                  const ca2Index = header.findIndex(h => h.includes("ca2"));
+                  const ca3Index = header.findIndex(h => h.includes("ca3"));
+                  const examIndex = header.findIndex(h => h.includes("exam") || h.includes("final"));
+                  if (admIndex === -1) {
+                    toast.error("Column 'admission_number' required");
+                    return;
+                  }
+                  let imported = 0;
+                  for (let i = 1; i < lines.length; i++) {
+                    const cols = lines[i].split(",").map(s => s.trim());
+                    const adm = cols[admIndex];
+                    const student = filteredStudents.find(s => s.student_number === adm);
+                    if (student) {
+                      if (ca1Index !== -1 && cols[ca1Index]) {
+                        const val = parseFloat(cols[ca1Index]);
+                        if (!isNaN(val) && val >= 0 && val <= 10) {
+                          setMarks(prev => ({ ...prev, [`${student.id}_ca1`]: val }));
+                          imported++;
+                        }
+                      }
+                      if (ca2Index !== -1 && cols[ca2Index]) {
+                        const val = parseFloat(cols[ca2Index]);
+                        if (!isNaN(val) && val >= 0 && val <= 10) {
+                          setMarks(prev => ({ ...prev, [`${student.id}_ca2`]: val }));
+                        }
+                      }
+                      if (ca3Index !== -1 && cols[ca3Index]) {
+                        const val = parseFloat(cols[ca3Index]);
+                        if (!isNaN(val) && val >= 0 && val <= 10) {
+                          setMarks(prev => ({ ...prev, [`${student.id}_ca3`]: val }));
+                        }
+                      }
+                      if (examIndex !== -1 && cols[examIndex]) {
+                        const val = parseFloat(cols[examIndex]);
+                        if (!isNaN(val) && val >= 0 && val <= 70) {
+                          setMarks(prev => ({ ...prev, [`${student.id}_exam`]: val }));
+                        }
+                      }
+                    }
+                  }
+                  toast.success(`Imported ${imported} student grades`);
+                  setBulkImportOpen(false);
+                } catch (err) {
+                  logger.error("Import error:", err);
+                  toast.error("Failed to import: Check file format");
+                }
+              }}
+            />
+            <p className="text-xs text-[var(--t3)] mt-2">
+              Format: admission_number,ca1,ca2,ca3,exam
+            </p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setBulkImportOpen(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </PageErrorBoundary>
   );
 }

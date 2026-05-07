@@ -15,6 +15,7 @@ export interface NavGroup {
   icon?: string;
   items: readonly NavItem[];
   defaultOpen?: boolean;
+  priority?: number;
 }
 
 type NavigationRole = Extract<
@@ -90,7 +91,6 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
       defaultOpen: true,
       items: [
         { href: "/dashboard", label: "Dashboard Home", icon: "dashboard" },
-        // Hide unfinished or demo features in production
         ...(process.env.NODE_ENV !== "production"
           ? [{
               href: "/dashboard/analytics/dna",
@@ -229,10 +229,10 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
       ],
     },
     {
-      label: "Canteen & Shop",
-      icon: "shopping_cart",
-
+      label: "More",
+      icon: "more_horiz",
       defaultOpen: false,
+      priority: 1,
       items: [
         ...(process.env.NODE_ENV !== "production"
           ? [{
@@ -251,13 +251,6 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           label: "Student Wallets",
           icon: "account_balance_wallet",
         },
-      ],
-    },
-    {
-      label: "Services",
-      icon: "extension",
-      defaultOpen: false,
-      items: [
         {
           href: "/dashboard/health",
           label: "Health/Sick Bay",
@@ -274,13 +267,6 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           label: "Boarding",
           icon: "bed",
         },
-      ],
-    },
-    {
-      label: "System",
-      icon: "settings",
-      defaultOpen: false,
-      items: [
         {
           href: "/dashboard/settings",
           label: "Settings",

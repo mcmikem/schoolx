@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { format, differenceInDays, startOfMonth, addMonths, isWithinInterval } from "date-fns";
+import { toLocalDateString } from "@/lib/date-utils";
 
 interface Event {
   id: string;
@@ -42,7 +43,7 @@ export default function TermTimeline({ events }: { events: Event[] }) {
       {/* Current Day Indicator */}
       <div 
         className="absolute top-[40%] bottom-[40%] w-0.5 bg-primary-500 z-10 before:content-['TODAY'] before:absolute before:-top-6 before:-left-4 before:text-[9px] before:font-black before:text-primary-600"
-        style={{ left: `${getPosition(new Date().toISOString())}%` }}
+        style={{ left: `${getPosition(toLocalDateString())}%` }}
       />
 
       {/* Month Markers */}

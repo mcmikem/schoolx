@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useAuth } from "@/lib/auth-context";
+import { useStudents } from "@/lib/hooks";
 
 interface SearchResult {
   id: string;
@@ -147,21 +148,48 @@ const NAVIGATION_ITEMS: SearchResult[] = [
 
 export function useCommandPalette() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, school } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const filteredResults = useMemo(() => {
+  const { students } = useStudents(school?.id, { limit: 500 });
+
+  const allResults = useMemo((): SearchResult[] => {
     if (!query.trim()) return NAVIGATION_ITEMS.slice(0, 8);
 
     const lowerQuery = query.toLowerCase();
-    return NAVIGATION_ITEMS.filter(
+    const navResults = NAVIGATION_ITEMS.filter(
       (item) =>
         item.title.toLowerCase().includes(lowerQuery) ||
         item.description.toLowerCase().includes(lowerQuery),
-    ).slice(0, 10);
-  }, [query]);
+    );
+
+    if (!students || students.length === 0) return navResults.slice(0, 10);
+
+    const studentResults: SearchResult[] = students
+      .filter(
+        (s) => {
+          const fullName = `${s.first_name || ""} ${s.last_name || ""}`.toLowerCase();
+          const admNumber = s.student_number || "";
+          const phone = s.parent_phone || "";
+          return fullName.includes(lowerQuery) || admNumber.includes(lowerQuery) || phone.includes(lowerQuery);
+        }
+      )
+      .slice(0, 5)
+      .map((s) => ({
+        id: `student-${s.id}`,
+        title: `${s.first_name || ""} ${s.last_name || ""}`.trim() || "Unknown",
+        description: s.student_number ? `Adm: ${s.student_number}` : "Student",
+        icon: "person",
+        path: `/dashboard/students/${s.id}`,
+        category: "students" as const,
+      }));
+
+    return [...navResults.slice(0, 8), ...studentResults];
+  }, [query, students]);
+
+  const filteredResults = allResults;
 
   const openPalette = useCallback(() => setIsOpen(true), []);
   const closePalette = useCallback(() => {

@@ -24,6 +24,7 @@ import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import MaterialIcon from "@/components/MaterialIcon";
 import OwlAssistant from "@/components/OwlAssistant";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import CommandPalette from "@/components/CommandPalette";
 
 function hasCompletedSetupProgress(value: unknown): boolean {
   if (!value) return false;
@@ -388,6 +389,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       <MobileBottomNav />
       <OwlAssistant />
       <PWAInstallPrompt />
+      <CommandPalette />
     </ErrorBoundary>
   );
 }

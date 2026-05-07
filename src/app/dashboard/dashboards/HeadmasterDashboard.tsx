@@ -18,6 +18,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import DashboardInsights from "@/components/dashboard/DashboardInsights";
 import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
+import { toLocalDateString } from "@/lib/date-utils";
 
 function toLocalDate(year: number, month: number, day: number): string {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -398,7 +399,7 @@ function HeadmasterDashboardContent() {
 
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDueDate, setTaskDueDate] = useState(
-    new Date().toISOString().split("T")[0],
+    toLocalDateString(),
   );
   const [taskPriority, setTaskPriority] = useState<"low" | "medium" | "high">(
     "medium",
