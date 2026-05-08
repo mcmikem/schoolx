@@ -1277,36 +1277,20 @@ export default function StudentHubPage() {
         user_id = user?.id || user_id;
       }
 
-      let promoted = 0,
-        repeating = 0,
-        demoted = 0;
+      const now = new Date().toISOString();
+      const promotionLogs = [];
+      const promoteIds = [];
+      const repeatIds = [];
+      const demoteGroups: Record<string, string[]> = {};
 
       for (const studentId of selectedArray) {
         const actionData = studentActions[studentId];
         if (!actionData) continue;
         const action = actionData.action;
 
-        if (isDemo) {
-          if (action === "promote") {
-            await updateStudent(studentId, { class_id: toClass });
-            promoted++;
-          } else if (action === "repeat") {
-            await updateStudent(studentId, { repeating: true });
-            repeating++;
-          } else if (action === "demote") {
-            const targetClass = actionData.targetClassId || fromClass;
-            await updateStudent(studentId, { class_id: targetClass });
-            demoted++;
-          }
-          continue;
-        }
-
         if (action === "promote") {
-          await supabase
-            .from("students")
-            .update({ class_id: toClass, repeating: false })
-            .eq("id", studentId);
-          await supabase.from("student_promotions").insert({
+          promoteIds.push(studentId);
+          promotionLogs.push({
             school_id: school?.id,
             student_id: studentId,
             from_class_id: fromClass,
@@ -1314,15 +1298,11 @@ export default function StudentHubPage() {
             academic_year: academicYear,
             promotion_type: "promoted",
             promoted_by: user_id,
-            promoted_at: new Date().toISOString(),
+            promoted_at: now,
           });
-          promoted++;
         } else if (action === "repeat") {
-          await supabase
-            .from("students")
-            .update({ repeating: true })
-            .eq("id", studentId);
-          await supabase.from("student_promotions").insert({
+          repeatIds.push(studentId);
+          promotionLogs.push({
             school_id: school?.id,
             student_id: studentId,
             from_class_id: fromClass,
@@ -1331,29 +1311,57 @@ export default function StudentHubPage() {
             promotion_type: "repeating",
             notes: "Repeating class",
             promoted_by: user_id,
-            promoted_at: new Date().toISOString(),
+            promoted_at: now,
           });
-          repeating++;
         } else if (action === "demote") {
-          const targetClass = actionData.targetClassId || fromClass;
-          await supabase
-            .from("students")
-            .update({ class_id: targetClass, repeating: false })
-            .eq("id", studentId);
-          await supabase.from("student_promotions").insert({
+          const tClass = actionData.targetClassId || fromClass;
+          if (!demoteGroups[tClass]) demoteGroups[tClass] = [];
+          demoteGroups[tClass].push(studentId);
+          promotionLogs.push({
             school_id: school?.id,
             student_id: studentId,
             from_class_id: fromClass,
-            to_class_id: targetClass,
+            to_class_id: tClass,
             academic_year: academicYear,
             promotion_type: "demoted",
             notes: actionData.reason || "Demoted",
             promoted_by: user_id,
-            promoted_at: new Date().toISOString(),
+            promoted_at: now,
           });
-          demoted++;
         }
       }
+
+      if (isDemo) {
+        // Parallelize demo updates
+        await Promise.all([
+          ...promoteIds.map(id => updateStudent(id, { class_id: toClass })),
+          ...repeatIds.map(id => updateStudent(id, { repeating: true })),
+          ...Object.entries(demoteGroups).flatMap(([tc, ids]) => ids.map(id => updateStudent(id, { class_id: tc })))
+        ]);
+      } else {
+        // Batch DB updates
+        const tasks = [];
+        if (promoteIds.length > 0) {
+          tasks.push(supabase.from("students").update({ class_id: toClass, repeating: false }).in("id", promoteIds));
+        }
+        if (repeatIds.length > 0) {
+          tasks.push(supabase.from("students").update({ repeating: true }).in("id", repeatIds));
+        }
+        for (const [tcId, ids] of Object.entries(demoteGroups)) {
+          tasks.push(supabase.from("students").update({ class_id: tcId, repeating: false }).in("id", ids));
+        }
+        if (promotionLogs.length > 0) {
+          tasks.push(supabase.from("student_promotions").insert(promotionLogs));
+        }
+        
+        const results = await Promise.all(tasks);
+        const error = results.find(r => r.error);
+        if (error) throw error.error;
+      }
+
+      promoted = promoteIds.length;
+      repeating = repeatIds.length;
+      demoted = Object.values(demoteGroups).reduce((sum, ids) => sum + ids.length, 0);
       const summaryParts: string[] = [];
       if (promoted > 0) summaryParts.push(`${promoted} promoted`);
       if (repeating > 0) summaryParts.push(`${repeating} repeating`);

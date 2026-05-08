@@ -15,102 +15,7 @@ import type { User, School } from "@/types";
 import { logger } from "./logger";
 import { getErrorMessage, normalizeAuthPhone } from "./validation";
 import { buildAuthEmailFromPhone, buildAuthLoginAttempts } from "./auth-login";
-
-// Roles that demo sessions are allowed to assume.
-// super_admin / school_admin are intentionally excluded to prevent privilege injection.
-export type UserRoleValue =
-  | "headmaster"
-  | "dean_of_studies"
-  | "bursar"
-  | "teacher"
-  | "student"
-  | "parent"
-  | "secretary"
-  | "dorm_master"
-  | "admin"
-  | "school_admin"
-  | "board"
-  | "super_admin";
-
-// Demo sessions must never be able to assume elevated roles.
-const DEMO_ALLOWED_ROLES: string[] = [
-  "headmaster",
-  "dean_of_studies",
-  "bursar",
-  "teacher",
-  "secretary",
-  "dorm_master",
-];
-
-function sanitizeDemoRole(raw: unknown): User["role"] {
-  if (typeof raw === "string" && DEMO_ALLOWED_ROLES.includes(raw)) {
-    return raw as User["role"];
-  }
-  // Default to headmaster for any other/unknown role
-  return "headmaster";
-}
-
-const DEMO_KEY = "skoolmate_demo_v1";
-const DEMO_MODE_ENABLED =
-  process.env.NODE_ENV === "development" &&
-  process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
-
-function buildPhoneLookupCandidates(rawPhone: unknown): string[] {
-  if (typeof rawPhone !== "string" || !rawPhone.trim()) return [];
-
-  const normalized = normalizeAuthPhone(rawPhone);
-  const digits = normalized.replace(/\D/g, "");
-  const candidates = new Set<string>();
-
-  if (normalized) candidates.add(normalized);
-  if (digits.length === 9) {
-    candidates.add(`0${digits}`);
-    candidates.add(`256${digits}`);
-  }
-  if (digits.startsWith("0") && digits.length === 10) {
-    candidates.add(`256${digits.slice(1)}`);
-  }
-  if (digits.startsWith("256") && digits.length === 12) {
-    candidates.add(`0${digits.slice(3)}`);
-  }
-
-  return Array.from(candidates);
-}
-
-function decryptDemoData(encrypted: string): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    return atob(encrypted);
-  } catch {
-    return null;
-  }
-}
-
-function readDemoStorage(): string | null {
-  if (typeof window === "undefined") return null;
-  if (!DEMO_MODE_ENABLED) {
-    clearDemoStorage();
-    return null;
-  }
-
-  const sessionValue = sessionStorage.getItem(DEMO_KEY);
-  if (sessionValue) return sessionValue;
-
-  const legacyValue = localStorage.getItem(DEMO_KEY);
-  if (legacyValue) {
-    sessionStorage.setItem(DEMO_KEY, legacyValue);
-    localStorage.removeItem(DEMO_KEY);
-    return legacyValue;
-  }
-
-  return null;
-}
-
-function clearDemoStorage() {
-  if (typeof window === "undefined") return;
-  sessionStorage.removeItem(DEMO_KEY);
-  localStorage.removeItem(DEMO_KEY);
-}
+import * as demoService from "./demo-service";
 
 // Local extensions for Auth context if needed, otherwise use imported types.
 // We keep the AuthContextType interfaces using the imported User/School.
@@ -120,7 +25,7 @@ interface AuthContextType {
   school: School | null;
   loading: boolean;
   isDemo: boolean;
-  isTrialExpired: boolean;
+  isAccessBlocked: boolean;
   signIn: (phone: string, password: string) => Promise<{ error: any }>;
   signUp: (
     phone: string,
@@ -141,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [school, setSchool] = useState<School | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDemo, setIsDemo] = useState(false);
-  const [isTrialExpired, setIsTrialExpired] = useState(false);
+  const [isAccessBlocked, setIsAccessBlocked] = useState(false);
   const router = useRouter();
 
   // Subscription status checking methods
@@ -309,48 +214,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Don't use timeout - only set loading false after actual check completes
 
     try {
-      const demoUserStr = readDemoStorage();
+      const demoData = demoService.getDemoData();
 
-      if (demoUserStr) {
-        try {
-          const decrypted = decryptDemoData(demoUserStr);
-          if (decrypted) {
-            const { demoUser, demoSchool } = JSON.parse(decrypted);
-
-            setUser({
-              id: "demo-user",
-              auth_id: "demo",
-              school_id: demoSchool.id,
-              full_name: demoUser.name,
-              phone: "0700000000",
-              role: sanitizeDemoRole(demoUser.role),
-              avatar_url: undefined,
-              is_active: true,
-              created_at: new Date().toISOString(),
-            } as User);
-            setSchool({
-              id: demoSchool.id,
-              name: demoSchool.name,
-              school_code: demoSchool.school_code || "DEMO001",
-              district: demoSchool.district || "Kampala",
-              school_type: demoSchool.school_type || "primary",
-              ownership: demoSchool.ownership || "private",
-              primary_color: demoSchool.primary_color || "#001F3F",
-              subscription_plan: demoSchool.subscription_plan || "growth",
-              subscription_status: demoSchool.subscription_status || "active",
-              feature_stage:
-                (demoSchool.feature_stage as FeatureStage) || "full",
-              created_at: new Date().toISOString(),
-            });
-            setIsDemo(true);
-            setIsTrialExpired(false);
-            setLoading(false);
-            return;
-          }
-        } catch (e) {
-          logger.error("[Auth] Error parsing demo data:", e);
-          clearDemoStorage();
-        }
+      if (demoData) {
+        setUser(demoData.user);
+        setSchool(demoData.school);
+        setIsDemo(true);
+        setIsTrialExpired(false);
+        setLoading(false);
+        return;
       }
 
       // Check for real auth session
@@ -399,7 +271,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // If we are in demo mode, auth state changes should be ignored
         // unless it's a sign out that clears the demo.
         // Note: we don't depend on isDemo here to avoid re-running the effect
-        const isCurrentlyDemo = readDemoStorage() !== null;
+        const isCurrentlyDemo = demoService.isDemoSession();
 
         if (isCurrentlyDemo && event !== "SIGNED_OUT") return;
 
@@ -459,7 +331,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           continue;
         }
 
-        const userData = await fetchUserData(data.user.id);
+        const userData: any = await fetchUserData(data.user.id);
 
         if (!userData) {
           await supabase!.auth.signOut();
@@ -467,6 +339,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             error: {
               message:
                 "No user profile found. Please contact your school administrator.",
+            },
+          };
+        }
+
+        if (userData.is_active === false) {
+          await supabase!.auth.signOut();
+          return {
+            error: {
+              message:
+                "Your account has been deactivated. Please contact your school administrator.",
             },
           };
         }
@@ -518,15 +400,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           feature_stage:
             (schoolData.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
         });
-        if (
+        const blockedStatuses = ["expired", "suspended", "unpaid", "past_due"];
+        if (blockedStatuses.includes(schoolData.subscription_status)) {
+          setIsAccessBlocked(true);
+        } else if (
           schoolData.subscription_status === "trial" &&
           schoolData.trial_ends_at
         ) {
-          setIsTrialExpired(new Date(schoolData.trial_ends_at) < new Date());
-        } else if (schoolData.subscription_status === "expired") {
-          setIsTrialExpired(true);
+          setIsAccessBlocked(new Date(schoolData.trial_ends_at) < new Date());
         } else {
-          setIsTrialExpired(false);
+          setIsAccessBlocked(false);
         }
       }
     } catch (error) {
@@ -536,7 +419,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     // Clear demo data if present
-    clearDemoStorage();
+    demoService.clearDemoData();
 
     try {
       await supabase!.auth.signOut();
@@ -557,7 +440,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         school,
         loading,
         isDemo,
-        isTrialExpired,
+        isAccessBlocked,
         signIn,
         signUp,
         signOut,

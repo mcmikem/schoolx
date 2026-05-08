@@ -36,29 +36,30 @@ interface StudentReport {
   average: number;
   position: number;
   division: string;
+  aggregates: number;
   classTeacherComment: string;
   hmComment: string;
   feeBalance: number;
 }
 
-function getGradeLabel(score: number): { grade: string; color: string } {
-  if (score >= 80) return { grade: "D1", color: "text-green-600" };
-  if (score >= 70) return { grade: "D2", color: "text-green-500" };
-  if (score >= 65) return { grade: "C3", color: "text-blue-600" };
-  if (score >= 60) return { grade: "C4", color: "text-blue-500" };
-  if (score >= 55) return { grade: "C5", color: "text-indigo-500" };
-  if (score >= 50) return { grade: "C6", color: "text-indigo-400" };
-  if (score >= 45) return { grade: "P7", color: "text-yellow-600" };
-  if (score >= 40) return { grade: "P8", color: "text-yellow-500" };
-  return { grade: "F9", color: "text-red-500" };
+function getGradeLabel(score: number): { grade: string; color: string; points: number } {
+  if (score >= 80) return { grade: "D1", color: "text-emerald-600", points: 1 };
+  if (score >= 75) return { grade: "D2", color: "text-emerald-500", points: 2 };
+  if (score >= 66) return { grade: "C3", color: "text-blue-600", points: 3 };
+  if (score >= 60) return { grade: "C4", color: "text-blue-500", points: 4 };
+  if (score >= 55) return { grade: "C5", color: "text-indigo-500", points: 5 };
+  if (score >= 50) return { grade: "C6", color: "text-indigo-400", points: 6 };
+  if (score >= 45) return { grade: "P7", color: "text-amber-600", points: 7 };
+  if (score >= 40) return { grade: "P8", color: "text-amber-500", points: 8 };
+  return { grade: "F9", color: "text-rose-500", points: 9 };
 }
 
-function getDivision(total: number, maxTotal: number): string {
-  const pct = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
-  if (pct >= 80) return "Division 1";
-  if (pct >= 60) return "Division 2";
-  if (pct >= 40) return "Division 3";
-  if (pct >= 20) return "Division 4";
+function getDivision(aggregates: number, numSubjects: number): string {
+  if (numSubjects < 4) return "Division U";
+  if (aggregates <= 12) return "Division 1";
+  if (aggregates <= 24) return "Division 2";
+  if (aggregates <= 32) return "Division 3";
+  if (aggregates <= 34) return "Division 4";
   return "Division U";
 }
 
@@ -221,6 +222,15 @@ export default function ReportCardsPage() {
           (sum, s) => sum + s.score,
           0,
         );
+        
+        // Ugandan Aggregates: Best 8 (or all if < 8)
+        const sortedPoints = [...allSubjectDetails].map(s => {
+          const info = getGradeLabel(s.score);
+          return info.points;
+        }).sort((a, b) => a - b);
+        
+        const aggregates = sortedPoints.slice(0, 8).reduce((sum, p) => sum + p, 0);
+
         const maxMarks = numSubjects * 100;
         const average =
           numSubjects > 0
@@ -239,16 +249,17 @@ export default function ReportCardsPage() {
           average,
           position: 0,
           division: "",
+          aggregates,
           classTeacherComment: "",
           hmComment: "",
           feeBalance: getStudentFeeBalance(student.id),
         };
       });
 
-      reportList.sort((a, b) => b.totalMarks - a.totalMarks);
+      reportList.sort((a, b) => a.aggregates - b.aggregates || b.totalMarks - a.totalMarks);
       reportList.forEach((r, i) => {
         r.position = i + 1;
-        r.division = getDivision(r.totalMarks, r.maxMarks);
+        r.division = getDivision(r.aggregates, r.subjects.length);
         r.classTeacherComment = getAutoComment(r.position);
         r.hmComment = getAutoComment(r.position);
       });
@@ -699,6 +710,9 @@ export default function ReportCardsPage() {
                       Average
                     </th>
                     <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">
+                      Aggregates
+                    </th>
+                    <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">
                       Position
                     </th>
                     <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">
@@ -765,13 +779,18 @@ export default function ReportCardsPage() {
                           {report.average}%
                         </td>
                         <td className="px-4 py-4 text-center">
+                          <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--surface-container-high)] text-[var(--primary)] font-black text-lg border border-[var(--border)]">
+                            {report.aggregates}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-center">
                           <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--primary)] text-white font-bold text-sm">
                             {report.position}
                           </span>
                         </td>
                         <td className="px-4 py-4 text-center">
                           <span
-                            className={`px-3 py-1 rounded-full text-xs font-semibold ${report.division === "Division 1" ? "bg-green-100 text-green-700" : report.division === "Division 2" ? "bg-blue-100 text-blue-700" : report.division === "Division 3" ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}
+                            className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${report.division === "Division 1" ? "bg-emerald-100 text-emerald-700" : report.division === "Division 2" ? "bg-blue-100 text-blue-700" : report.division === "Division 3" ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700"}`}
                           >
                             {report.division}
                           </span>

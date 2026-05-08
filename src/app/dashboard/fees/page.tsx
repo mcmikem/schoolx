@@ -23,6 +23,7 @@ import FeeFormModal from "@/components/fees/FeeFormModal";
 import ReceiptModal from "@/components/fees/ReceiptModal";
 import InvoiceModal from "@/components/fees/InvoiceModal";
 import AdjustmentModal from "@/components/fees/AdjustmentModal";
+import StudentStatement from "@/components/fees/StudentStatement";
 import { PageHeader, PageSection } from "@/components/ui/PageHeader";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -88,6 +89,10 @@ export default function FinanceHubPage() {
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [showFeeModal, setShowFeeModal] = useState(false);
   const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
+  const [showStatement, setShowStatement] = useState<string | null>(null);
+  const [showTopUp, setShowTopUp] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState("");
+  const [topUpNotes, setTopUpNotes] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<{
     type: "payment" | "fee" | "adjustment";
     id: string;
@@ -401,27 +406,37 @@ export default function FinanceHubPage() {
       const studentFeeItems = feeStructure.filter(
         (f) => !f.class_id || f.class_id === student.class_id,
       );
-      const feeItems = studentFeeItems.map((f) => ({
-        name: f.name,
-        amount: Number(f.amount),
-      }));
-      const totalAmount = feeItems.reduce((sum, f) => sum + f.amount, 0);
-      const amountPaid = payments
-        .filter((p) => p.student_id === student.id)
-        .reduce((sum, p) => sum + Number(p.amount_paid), 0);
+      const feeTotal = studentFeeItems.reduce((sum, f) => sum + Number(f.amount), 0);
+      
+      const studentPayments = payments.filter((p) => p.student_id === student.id);
+      const studentAdjustments = (adjustments || []).filter(
+        (a) => a.student_id === student.id,
+      );
+
+      const feePosition = calculateStudentFeePosition({
+        feeTotal,
+        payments: studentPayments,
+        adjustments: studentAdjustments,
+        openingBalance: Number(student.opening_balance || 0),
+      });
+
       return {
         student_id: student.id,
         student_name: `${student.first_name} ${student.last_name}`,
         student_number: student.student_number || "",
         class_name: student.classes?.name || "",
-        fee_items: feeItems,
-        total_amount: totalAmount,
-        amount_paid: amountPaid,
-        balance: Math.max(0, totalAmount - amountPaid),
+        fee_items: studentFeeItems.map((f) => ({
+          name: f.name,
+          amount: Number(f.amount),
+        })),
+        total_amount: feePosition.totalExpected,
+        amount_paid: feePosition.totalPaid,
+        balance: feePosition.balance,
+        status: feePosition.status,
         class_id: student.class_id,
       };
     });
-  }, [students, feeStructure, payments]);
+  }, [students, feeStructure, payments, adjustments]);
 
   const filteredInvoices = useMemo(() => {
     if (invoiceClassFilter === "all") return invoices;
@@ -580,6 +595,76 @@ export default function FinanceHubPage() {
   const handleDeletePayment = async (paymentId: string) => {
     setConfirmDelete({ type: "payment", id: paymentId });
   };
+
+  const selectedStatementData = useMemo(() => {
+    if (!showStatement) return null;
+    const student = students.find((s) => s.id === showStatement);
+    if (!student) return null;
+
+    const studentFeeItems = feeStructure.filter(
+      (f) => !f.class_id || f.class_id === student.class_id,
+    );
+    
+    const studentPayments = payments.filter((p) => p.student_id === student.id);
+    const studentAdjustments = (adjustments || []).filter(
+      (a) => a.student_id === student.id,
+    );
+
+    const txs: any[] = [];
+    
+    // Add Fees as Debits
+    studentFeeItems.forEach(f => {
+      txs.push({
+        date: f.due_date || f.created_at?.split('T')[0] || academicYear,
+        description: `Fee: ${f.name}`,
+        debit: Number(f.amount),
+        timestamp: new Date(f.due_date || f.created_at || academicYear).getTime()
+      });
+    });
+
+    // Add Payments as Credits
+    studentPayments.forEach(p => {
+      txs.push({
+        date: p.payment_date,
+        description: `Payment: ${p.payment_method}`,
+        reference: p.payment_reference,
+        credit: Number(p.amount_paid),
+        timestamp: new Date(p.payment_date).getTime()
+      });
+    });
+
+    // Add Adjustments
+    studentAdjustments.forEach(a => {
+      const isNegative = ['penalty', 'manual_debit'].includes(a.adjustment_type);
+      txs.push({
+        date: a.created_at?.split('T')[0] || academicYear,
+        description: `Adjustment: ${a.adjustment_type} (${a.notes || ''})`,
+        debit: isNegative ? Number(a.amount) : undefined,
+        credit: !isNegative ? Number(a.amount) : undefined,
+        timestamp: new Date(a.created_at || academicYear).getTime()
+      });
+    });
+
+    // Sort by timestamp
+    txs.sort((a, b) => a.timestamp - b.timestamp);
+
+    // Calculate running balance
+    let runningBalance = Number(student.opening_balance || 0);
+    const transactionsWithBalance = txs.map(t => {
+      runningBalance += (t.debit || 0) - (t.credit || 0);
+      return { ...t, balance: runningBalance };
+    });
+
+    return {
+      student: {
+        name: `${student.first_name} ${student.last_name}`,
+        number: student.student_number || "",
+        class_name: student.classes?.name || "",
+        opening_balance: Number(student.opening_balance || 0),
+      },
+      transactions: transactionsWithBalance,
+    };
+  }, [showStatement, students, feeStructure, payments, adjustments, academicYear]);
 
   const executeDeletePayment = async (paymentId: string) => {
     setDeleting(true);
@@ -1231,6 +1316,7 @@ export default function FinanceHubPage() {
         {[
           { id: "balances" as const, label: "Student Balances" },
           { id: "payment-plans" as const, label: "Paying in Bits" },
+          { id: "wallets" as const, label: "Canteen Wallets" },
           { id: "invoices" as const, label: "Invoices" },
           { id: "cashbook" as const, label: "Daily Money Log" },
         ].map((t) => (
@@ -1328,6 +1414,11 @@ export default function FinanceHubPage() {
             <FeeTable
               balances={filteredBalances}
               onViewReceipt={handleViewReceipt}
+              onViewStatement={(s) => setShowStatement(s.id)}
+              onRecordPayment={(s) => {
+                setNewPayment((prev) => ({ ...prev, student_id: s.id }));
+                setShowPaymentModal(true);
+              }}
             />
           )}
 
@@ -1918,6 +2009,63 @@ export default function FinanceHubPage() {
         </>
       )}
 
+      {tab === "wallets" && (
+        <div className="space-y-6">
+          <PageSection>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="font-bold text-lg">Canteen Wallets</h3>
+                <p className="text-sm text-on-surface-variant">Pre-paid funds for student cashless spending</p>
+              </div>
+            </div>
+
+            <div className="bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/10">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-surface-container-low text-left">
+                      <th className="px-6 py-4 text-xs uppercase font-bold text-on-surface-variant">Student</th>
+                      <th className="px-6 py-4 text-xs uppercase font-bold text-on-surface-variant">Class</th>
+                      <th className="px-6 py-4 text-xs uppercase font-bold text-on-surface-variant text-right">Balance</th>
+                      <th className="px-6 py-4 text-xs uppercase font-bold text-on-surface-variant text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/10">
+                    {students.filter(s => s.status === 'active').map(student => (
+                      <tr key={student.id} className="hover:bg-surface-bright">
+                        <td className="px-6 py-4">
+                          <div className="font-bold text-primary">{student.first_name} {student.last_name}</div>
+                          <div className="text-[11px] text-on-surface-variant">{student.student_number}</div>
+                        </td>
+                        <td className="px-6 py-4 text-sm">{student.classes?.name || '-'}</td>
+                        <td className="px-6 py-4 text-right">
+                          <span className="font-black text-secondary">
+                            {formatCurrency(student.wallet_balance || 0)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <Button 
+                            variant="secondary" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedStudent(student);
+                              setShowTopUp(true);
+                            }}
+                          >
+                            <MaterialIcon icon="add_card" className="mr-2" />
+                            Top Up
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </PageSection>
+        </div>
+      )}
+
       {tab === "invoices" && (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
@@ -2304,6 +2452,95 @@ export default function FinanceHubPage() {
         onPrintInvoice={handlePrintInvoice}
       />
 
+      {showTopUp && selectedStudent && (
+        <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm p-4 flex items-center justify-center">
+          <div className="bg-surface-container-lowest rounded-3xl p-8 w-full max-w-md shadow-2xl">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-secondary/10 flex items-center justify-center text-secondary">
+                <MaterialIcon icon="account_balance_wallet" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">Wallet Top-Up</h3>
+                <p className="text-sm text-on-surface-variant">{selectedStudent.first_name} {selectedStudent.last_name}</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 mb-8">
+              <div>
+                <label className="block text-[11px] font-black uppercase tracking-widest text-on-surface-variant mb-2">Amount (UGX)</label>
+                <input 
+                  type="number"
+                  placeholder="Enter amount..."
+                  value={topUpAmount}
+                  onChange={(e) => setTopUpAmount(e.target.value)}
+                  className="w-full bg-surface-container border-none rounded-2xl py-4 px-6 text-xl font-black text-secondary focus:ring-2 focus:ring-secondary/20 transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-black uppercase tracking-widest text-on-surface-variant mb-2">Description</label>
+                <input 
+                  type="text"
+                  placeholder="e.g. Cash Deposit"
+                  value={topUpNotes}
+                  onChange={(e) => setTopUpNotes(e.target.value)}
+                  className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button 
+                variant="secondary" 
+                className="flex-1" 
+                onClick={() => {
+                  setShowTopUp(false);
+                  setTopUpAmount("");
+                  setTopUpNotes("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                className="flex-1" 
+                disabled={!topUpAmount || deleting}
+                onClick={async () => {
+                  setDeleting(true);
+                  try {
+                    const amount = parseFloat(topUpAmount);
+                    const { error } = await supabase
+                      .from('students')
+                      .update({ wallet_balance: (selectedStudent.wallet_balance || 0) + amount })
+                      .eq('id', selectedStudent.id);
+                    
+                    if (error) throw error;
+                    
+                    await supabase.from('fee_adjustments').insert({
+                      school_id: school?.id,
+                      student_id: selectedStudent.id,
+                      amount: amount,
+                      adjustment_type: 'wallet_deposit',
+                      notes: topUpNotes || 'Wallet Top-Up'
+                    });
+
+                    toast.success("Wallet topped up successfully");
+                    setShowTopUp(false);
+                    setTopUpAmount("");
+                    setTopUpNotes("");
+                    // refetch from hook - we need to make sure we have access to it
+                  } catch (err) {
+                    toast.error("Failed to top up wallet");
+                  } finally {
+                    setDeleting(false);
+                  }
+                }}
+              >
+                {deleting ? <MaterialIcon icon="sync" className="animate-spin" /> : "Confirm Top-Up"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {feeDraft.showRestoreDialog && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-surface-container-lowest rounded-2xl w-full max-w-sm p-6">
@@ -2387,6 +2624,25 @@ export default function FinanceHubPage() {
           if (action) action.undo();
         }}
       />
+
+      {showStatement && selectedStatementData && (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center py-8">
+            <div className="w-full max-w-4xl">
+              <StudentStatement
+                student={selectedStatementData.student}
+                transactions={selectedStatementData.transactions}
+                school={{
+                  name: school?.name || "School",
+                  address: school?.address,
+                  phone: school?.phone,
+                }}
+                onClose={() => setShowStatement(null)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     </PageErrorBoundary>
   );

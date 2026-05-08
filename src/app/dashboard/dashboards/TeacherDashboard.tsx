@@ -248,12 +248,55 @@ function TeacherDashboardContent() {
         </Link>
       </div>
 
-      <SmartAdvisor
-        stats={stats || {}}
-        attendanceRate={attendanceRate}
-        collectionRate={collectionRate}
-        role="teacher"
-      />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+        <div className="lg:col-span-8">
+          <SmartAdvisor
+            stats={stats || {}}
+            attendanceRate={attendanceRate}
+            collectionRate={collectionRate}
+            role="teacher"
+          />
+        </div>
+        <div className="lg:col-span-4">
+          <div className="card h-full overflow-hidden border-none shadow-[var(--sh3)] bg-[linear-gradient(135deg,var(--navy),#1e40af)] text-white">
+            <div className="p-5 relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-[10px] font-black uppercase tracking-widest opacity-70">Daily Duty Roster</div>
+                <div className="px-2 py-0.5 rounded-md bg-white/20 text-[9px] font-black">LIVE</div>
+              </div>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-md border border-white/20">
+                  <MaterialIcon icon="shield_person" style={{ fontSize: 24 }} />
+                </div>
+                <div>
+                  <div className="text-sm font-bold opacity-60">Staff on Duty</div>
+                  <div className="text-xl font-black">Are you on Duty?</div>
+                </div>
+              </div>
+              <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-md border border-white/10">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold opacity-70">Current TOD:</span>
+                  <span className="text-[11px] font-black uppercase text-emerald-300">Active</span>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <span className="text-sm font-bold">Mr. Mukasa John</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-400" />
+                    <span className="text-sm font-bold">Mrs. Nakato Sarah</span>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center justify-between">
+                <div className="text-[10px] font-bold opacity-50 italic">Last updated: Today, 08:00 AM</div>
+                <Link href="/dashboard/timetable" className="text-[10px] font-black uppercase tracking-wider text-emerald-300 hover:underline">View Roster</Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Analytics Section - hidden on mobile */}
       <div className="hidden xl:block grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8 mt-8">

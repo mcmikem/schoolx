@@ -153,6 +153,79 @@ export function useAttendance(classId?: string, date?: string) {
     }
   };
 
+  const saveAttendanceBatch = async (
+    records: Array<{
+      student_id: string;
+      class_id: string;
+      date: string;
+      status: string;
+      recorded_by: string;
+    }>,
+  ) => {
+    if (records.length === 0) return;
+
+    if (isDemo) {
+      setAttendance((prev) => {
+        const next = [...prev];
+        records.forEach((r) => {
+          const idx = next.findIndex((a) => a.student_id === r.student_id);
+          const recordWithId = {
+            ...r,
+            id: `demo-att-${Date.now()}-${Math.random()}`,
+            created_at: new Date().toISOString(),
+          };
+          if (idx >= 0) next[idx] = recordWithId;
+          else next.push(recordWithId);
+        });
+        return next;
+      });
+      return;
+    }
+
+    if (!isOnline) {
+      for (const r of records) {
+        await offlineDB.save("attendance", r as unknown as Record<string, unknown>);
+      }
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("attendance")
+        .upsert(records, { onConflict: "student_id,date" })
+        .select("id, student_id, class_id, date, status, recorded_by, created_at");
+
+      if (error) throw error;
+
+      setAttendance((prev) => {
+        const next = [...prev];
+        data.forEach((newRec) => {
+          const idx = next.findIndex((a) => a.student_id === newRec.student_id);
+          if (idx >= 0) next[idx] = newRec;
+          else next.push(newRec);
+        });
+        return next;
+      });
+
+      if (school?.id && user?.id) {
+        await logAuditEventWithOfflineSupport(
+          true,
+          school.id,
+          user.id,
+          user.full_name,
+          "update",
+          "attendance",
+          `Saved batch attendance for ${records.length} students`,
+          `${records[0].class_id}:${records[0].date}`,
+          undefined,
+          { count: records.length },
+        );
+      }
+    } catch (err: any) {
+      throw new Error(err.message);
+    }
+  };
+
   useEffect(() => {
     async function fetchAttendance() {
       if (isDemo) {
@@ -197,7 +270,7 @@ export function useAttendance(classId?: string, date?: string) {
     fetchAttendance();
   }, [classId, date, isDemo, isOnline]);
 
-  return { attendance, loading, markAttendance };
+  return { attendance, loading, markAttendance, saveAttendanceBatch };
 }
 
 export function useAttendanceHistory(schoolId?: string) {

@@ -23,16 +23,16 @@ export function useSessionTimeout({
   const warningRef = useRef<NodeJS.Timeout | null>(null);
   const lastActivityRef = useRef(Date.now());
 
+  const clearAllTimers = useCallback(() => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (warningRef.current) clearTimeout(warningRef.current);
+  }, []);
+
   const resetTimer = useCallback(() => {
     lastActivityRef.current = Date.now();
     setShowWarning(false);
     setRemainingTime(timeoutMs);
   }, [timeoutMs]);
-
-  const clearAllTimers = useCallback(() => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    if (warningRef.current) clearTimeout(warningRef.current);
-  }, []);
 
   const handleTimeout = useCallback(() => {
     clearAllTimers();

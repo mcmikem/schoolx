@@ -8,19 +8,10 @@ import { t, tWithParams } from "@/i18n";
 import { Button, Input } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { normalizeAuthPhone } from "@/lib/validation";
+import * as demoService from "@/lib/demo-service";
+import { useRouter } from "next/navigation";
 
-const DEMO_KEY = "skoolmate_demo_v1";
-const DEMO_MODE_ENABLED =
-  process.env.NODE_ENV === "development" &&
-  process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
-
-function serializeDemoData(data: object): string {
-  try {
-    return btoa(JSON.stringify(data));
-  } catch {
-    return "";
-  }
-}
+// Demo logic centralized in demo-service.ts
 
 function MaterialIcon({
   icon,
@@ -44,6 +35,7 @@ function MaterialIcon({
 }
 
 export default function LoginPage() {
+  const router = useRouter();
   const toast = useToast();
   const { signIn, user, loading: authLoading } = useAuth();
   const [phone, setPhone] = useState("");
@@ -56,11 +48,11 @@ export default function LoginPage() {
   useEffect(() => {
     if (!authLoading && user) {
       if (user.role === "super_admin") {
-        window.location.href = "/super-admin";
+        router.push("/super-admin");
       } else if (user.role === "parent") {
-        window.location.href = "/parent-portal";
+        router.push("/parent-portal");
       } else {
-        window.location.href = "/dashboard";
+        router.push("/dashboard");
       }
     }
   }, [user, authLoading]);
@@ -109,7 +101,7 @@ export default function LoginPage() {
     localStorage.removeItem(DEMO_KEY);
 
     try {
-      if (DEMO_MODE_ENABLED) {
+      if (demoService.isDemoModeEnabled()) {
         const demoResponse = await fetch("/api/demo-login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -119,12 +111,7 @@ export default function LoginPage() {
         if (demoResponse.ok) {
           const demoData = await demoResponse.json();
           if (demoData.success && demoData.demo) {
-            const encoded = serializeDemoData({
-              demoUser: demoData.user,
-              demoSchool: demoData.school,
-            });
-            sessionStorage.setItem(DEMO_KEY, encoded);
-            localStorage.removeItem(DEMO_KEY);
+            demoService.setDemoData(demoData.user, demoData.school);
             toast.success(
               tWithParams("auth.welcomeDemo", { name: demoData.user.name }),
             );
@@ -136,7 +123,7 @@ export default function LoginPage() {
                   ? "/parent-portal"
                   : "/dashboard";
 
-            window.location.href = redirectPath;
+            router.push(redirectPath);
             return;
           }
         }

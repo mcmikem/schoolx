@@ -18,6 +18,11 @@ ALTER TABLE fee_payments DISABLE ROW LEVEL SECURITY;
 ALTER TABLE events DISABLE ROW LEVEL SECURITY;
 ALTER TABLE messages DISABLE ROW LEVEL SECURITY;
 ALTER TABLE parent_students DISABLE ROW LEVEL SECURITY;
+ALTER TABLE academic_years DISABLE ROW LEVEL SECURITY;
+ALTER TABLE academic_terms DISABLE ROW LEVEL SECURITY;
+ALTER TABLE timetable_slots DISABLE ROW LEVEL SECURITY;
+ALTER TABLE school_settings DISABLE ROW LEVEL SECURITY;
+ALTER TABLE setup_checklist DISABLE ROW LEVEL SECURITY;
 
 -- Drop ALL old policies
 DROP POLICY IF EXISTS "Users can read own profile" ON users;
@@ -96,6 +101,11 @@ ALTER TABLE fee_payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE parent_students ENABLE ROW LEVEL SECURITY;
+ALTER TABLE academic_years ENABLE ROW LEVEL SECURITY;
+ALTER TABLE academic_terms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE timetable_slots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE school_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE setup_checklist ENABLE ROW LEVEL SECURITY;
 
 -- Helper function: check if current user is super_admin
 -- SECURITY DEFINER runs with owner privileges so it can read the users table
@@ -128,7 +138,7 @@ CREATE POLICY "schools_select" ON schools FOR SELECT
   );
 
 CREATE POLICY "schools_insert" ON schools FOR INSERT
-  WITH CHECK (true);
+  WITH CHECK (public.is_super_admin());
 
 CREATE POLICY "schools_update" ON schools FOR UPDATE
   USING (
@@ -152,7 +162,7 @@ CREATE POLICY "users_select" ON users FOR SELECT
   );
 
 CREATE POLICY "users_insert" ON users FOR INSERT
-  WITH CHECK (true);
+  WITH CHECK (public.is_super_admin());
 
 CREATE POLICY "users_update" ON users FOR UPDATE
   USING (
@@ -407,4 +417,35 @@ CREATE POLICY "parent_students_select" ON parent_students FOR SELECT
   );
 
 CREATE POLICY "parent_students_insert" ON parent_students FOR INSERT
-  WITH CHECK (true);
+  WITH CHECK (public.is_super_admin());
+
+-- ============================================
+-- ACADEMIC STRUCTURE
+-- ============================================
+CREATE POLICY "academic_years_select" ON academic_years FOR SELECT
+  USING (public.is_super_admin() OR school_id = public.current_user_school_id());
+CREATE POLICY "academic_years_all" ON academic_years FOR ALL
+  USING (public.is_super_admin() OR school_id = public.current_user_school_id());
+
+CREATE POLICY "academic_terms_select" ON academic_terms FOR SELECT
+  USING (public.is_super_admin() OR school_id = public.current_user_school_id());
+CREATE POLICY "academic_terms_all" ON academic_terms FOR ALL
+  USING (public.is_super_admin() OR school_id = public.current_user_school_id());
+
+CREATE POLICY "timetable_slots_select" ON timetable_slots FOR SELECT
+  USING (public.is_super_admin() OR school_id = public.current_user_school_id());
+CREATE POLICY "timetable_slots_all" ON timetable_slots FOR ALL
+  USING (public.is_super_admin() OR school_id = public.current_user_school_id());
+
+-- ============================================
+-- SETTINGS & CHECKLIST
+-- ============================================
+CREATE POLICY "school_settings_select" ON school_settings FOR SELECT
+  USING (public.is_super_admin() OR school_id = public.current_user_school_id());
+CREATE POLICY "school_settings_all" ON school_settings FOR ALL
+  USING (public.is_super_admin() OR school_id = public.current_user_school_id());
+
+CREATE POLICY "setup_checklist_select" ON setup_checklist FOR SELECT
+  USING (public.is_super_admin() OR school_id = public.current_user_school_id());
+CREATE POLICY "setup_checklist_all" ON setup_checklist FOR ALL
+  USING (public.is_super_admin() OR school_id = public.current_user_school_id());

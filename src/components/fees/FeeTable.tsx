@@ -32,6 +32,7 @@ type SortDir = "asc" | "desc";
 interface EnhancedFeeTableProps {
   balances: StudentBalance[];
   onViewReceipt: (student: StudentBalance) => void;
+  onViewStatement: (student: StudentBalance) => void;
   onRecordPayment?: (student: StudentBalance) => void;
   onSendSMS?: (students: StudentBalance[]) => void;
   onExport?: (students: StudentBalance[]) => void;
@@ -132,6 +133,7 @@ const ITEMS_PER_PAGE = 20;
 export default function FeeTable({
   balances,
   onViewReceipt,
+  onViewStatement,
   onRecordPayment,
   onSendSMS,
   onExport,
@@ -401,7 +403,14 @@ export default function FeeTable({
                           className="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg"
                           title="View receipt"
                         >
-                          <MaterialIcon icon="visibility" className="text-lg" />
+                          <MaterialIcon icon="receipt" className="text-lg" />
+                        </button>
+                        <button
+                          onClick={() => onViewStatement(student)}
+                          className="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg"
+                          title="View statement"
+                        >
+                          <MaterialIcon icon="account_balance_wallet" className="text-lg" />
                         </button>
                       </div>
                     </td>
@@ -554,9 +563,18 @@ export default function FeeTable({
                   className="flex-1 py-2 bg-surface-container text-on-surface-variant text-xs font-bold rounded-lg"
                 >
                   <MaterialIcon className="text-sm align-text-bottom mr-1">
-                    visibility
+                    receipt
                   </MaterialIcon>
                   Receipt
+                </button>
+                <button
+                  onClick={() => onViewStatement(student)}
+                  className="flex-1 py-2 bg-surface-container text-on-surface-variant text-xs font-bold rounded-lg"
+                >
+                  <MaterialIcon className="text-sm align-text-bottom mr-1">
+                    account_balance_wallet
+                  </MaterialIcon>
+                  Statement
                 </button>
               </div>
             </div>

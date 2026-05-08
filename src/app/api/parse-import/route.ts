@@ -39,7 +39,7 @@ async function handlePost(request: NextRequest) {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: promptTemplate + rawText,
       config: {
         responseMimeType: 'application/json',

@@ -59,6 +59,7 @@ export default function AttendancePage() {
   const toast = useToast();
   const isOnline = useOnlineStatus();
   const { classes, loading: classesLoading } = useClasses(school?.id);
+  const { saveAttendanceBatch } = useAttendance(selectedClass || undefined, date);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [date, setDate] = useState(() => {
     const now = new Date();
@@ -73,7 +74,9 @@ export default function AttendancePage() {
     }>
   >([]);
   const [attendance, setAttendance] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [activeHealthRecords, setActiveHealthRecords] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [offlineCount, setOfflineCount] = useState(0);
   const [allMarked, setAllMarked] = useState(false);
@@ -109,6 +112,24 @@ export default function AttendancePage() {
       setOfflineCount(0);
     }
   }, []);
+
+  const fetchActiveHealth = useCallback(async () => {
+    if (!school?.id || isDemo) return;
+    try {
+      const { data } = await supabase
+        .from("health_records")
+        .select("student_id")
+        .eq("school_id", school.id)
+        .eq("status", "admitted");
+      if (data) setActiveHealthRecords(data.map((r: any) => r.student_id));
+    } catch (err) {
+      console.warn("Failed to fetch active health records", err);
+    }
+  }, [school?.id, isDemo]);
+
+  useEffect(() => {
+    fetchActiveHealth();
+  }, [fetchActiveHealth]);
 
   useEffect(() => {
     loadOfflineCount();
@@ -322,40 +343,22 @@ export default function AttendancePage() {
 
     setSaving(true);
 
-    if (isOnline) {
-      try {
-        const { error } = await supabase
-          .from("attendance")
-          .upsert(records, { onConflict: "student_id,date" });
-
-        if (error) throw error;
-        await offlineDB.cacheFromServer(
-          "attendance",
-          records as unknown as Record<string, unknown>[],
-        );
-        if (school?.id && user?.id) {
-          await logAuditEventWithOfflineSupport(
-            true,
-            school.id,
-            user.id,
-            user.full_name,
-            "update",
-            "attendance",
-            `Saved attendance batch for ${records.length} student(s)`,
-            `${selectedClass}:${date}`,
-            undefined,
-            { count: records.length, class_id: selectedClass, date },
-          );
-        }
+    try {
+      if (isOnline) {
+        // Use optimized batch saving
+        await (saveAttendanceBatch as any)(records);
         toast.success("Attendance saved");
         await loadOfflineCount();
-      } catch {
+      } else {
         await saveOffline(records);
-      } finally {
-        setSaving(false);
       }
-    } else {
-      await saveOffline(records);
+    } catch (err) {
+      console.error("Save failed:", err);
+      // Fallback to offline if online save fails
+      if (isOnline) {
+        await saveOffline(records);
+      }
+    } finally {
       setSaving(false);
     }
   };
@@ -835,6 +838,11 @@ export default function AttendancePage() {
                                       {(student as any).boarding_status}
                                     </span>
                                   )}
+                                {activeHealthRecords.includes(student.id) && (
+                                  <span className="ml-2 px-1.5 py-0.5 bg-red-100 text-red-700 text-[10px] font-bold rounded uppercase animate-pulse">
+                                    In Sick Bay
+                                  </span>
+                                )}
                               </div>
                               <div className="text-xs text-on-surface-variant">
                                 {student.student_number}

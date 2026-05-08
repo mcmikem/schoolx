@@ -151,6 +151,12 @@ function HeadmasterDashboardContent() {
 
   const totalPendingApprovals = pendingExpenses + pendingLeave;
 
+  // Mock Duty Teacher for now
+  const dutyTeacher = useMemo(() => {
+    if (staff.length === 0) return null;
+    return staff[0]; // Just picking the first one for demo
+  }, [staff]);
+
   const alertCount = loadingExtra
     ? 0
     : classesNotMarked +
@@ -398,10 +404,10 @@ function HeadmasterDashboardContent() {
           loading={loadingExtra}
         />
         <StatCard
-          label="Staff"
-          value={staff.length}
-          subValue={`${staff.filter((s: any) => s.role === "teacher").length} teachers`}
-          icon="school"
+          label="Staff on Duty"
+          value={staffOnDuty}
+          subValue={`${dutyTeacher?.full_name || "None"} (Lead)`}
+          icon="supervisor_account"
           accentColor="purple"
           variant="premium-navy"
           loading={loadingExtra}
@@ -438,6 +444,7 @@ function HeadmasterDashboardContent() {
             payments={payments}
             loading={loadingExtra}
             isDemo={isDemo}
+            classes={classes}
           />
         </div>
         <div className="xl:col-span-1">

@@ -39,6 +39,8 @@ export interface School {
   on_premise?: boolean;
   trial_ends_at?: string;
   feature_stage?: "core" | "academic" | "finance" | "full";
+  onboarding_completed?: boolean;
+  onboarding_completed_at?: string;
   created_at: string;
 }
 

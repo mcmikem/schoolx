@@ -127,7 +127,7 @@ export default function GradesPage() {
   const { students: classStudents, loading: studentsLoading } = useStudents(
     school?.id,
   );
-  const { grades: existingGrades, saveGrade } = useGrades(
+  const { grades: existingGrades, saveGrade, saveGradesBatch } = useGrades(
     selectedClass,
     selectedSubject,
     currentTerm,
@@ -542,12 +542,15 @@ export default function GradesPage() {
     if (!selectedClass || !selectedSubject) return;
     try {
       setSaving(true);
+      const recordsToSave = [];
+      
       for (const [key, score] of Object.entries(marks)) {
         if (score === null || score === undefined) continue;
         const parts = key.split("_");
         const assessmentType = parts.pop()!;
         const studentId = parts.join("_");
-        await saveGrade({
+        
+        recordsToSave.push({
           student_id: studentId,
           subject_id: selectedSubject,
           class_id: selectedClass,
@@ -558,6 +561,10 @@ export default function GradesPage() {
           recorded_by: user?.id,
           status,
         });
+      }
+
+      if (recordsToSave.length > 0) {
+        await saveGradesBatch(recordsToSave);
       }
       setSubmissionStatus(status);
       const successMessage =

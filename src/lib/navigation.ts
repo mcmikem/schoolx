@@ -111,6 +111,18 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           label: "Suggestions",
           icon: "lightbulb",
         },
+        {
+          href: "/dashboard/leave-approvals",
+          label: "Leave Approvals",
+          icon: "event_busy",
+          badge: "New",
+        },
+        {
+          href: "/dashboard/expense-approvals",
+          label: "Expense Approvals",
+          icon: "account_balance_wallet",
+          badge: "New",
+        },
       ],
     },
     {
@@ -190,6 +202,12 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           icon: "assignment",
         },
         { href: "/dashboard/bulk-sms", label: "SMS Centre", icon: "sms" },
+        {
+          href: "/dashboard/lesson-plans/record-of-work",
+          label: "Record of Work",
+          icon: "history_edu",
+          badge: "Admin",
+        },
       ],
     },
     {
@@ -382,6 +400,11 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           label: "Lesson Plans",
           icon: "menu_book",
         },
+        {
+          href: "/dashboard/lesson-plans/record-of-work",
+          label: "Record of Work",
+          icon: "history_edu",
+        },
       ],
     },
     {
@@ -427,6 +450,12 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           href: "/dashboard/fees?tab=cashbook",
           label: "Cashbook",
           icon: "book",
+        },
+        {
+          href: "/dashboard/fees/reconciliation",
+          label: "Bank Reconciliation",
+          icon: "account_balance",
+          badge: "Smart",
         },
         {
           href: "/dashboard/budget",
@@ -520,6 +549,11 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           href: "/dashboard/lesson-plans",
           label: "Lesson Plans",
           icon: "menu_book",
+        },
+        {
+          href: "/dashboard/lesson-plans/record-of-work",
+          label: "Record of Work",
+          icon: "history_edu",
         },
       ],
     },

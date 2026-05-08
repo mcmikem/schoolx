@@ -215,33 +215,44 @@ export default function RegisterPage() {
         return;
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Wait for Auth service to catch up
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
       const normalizedPhone = normalizeAuthPhone(form.adminPhone);
       const email = `${normalizedPhone}@omuto.org`;
 
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password: form.password,
-      });
+      // Try sign-in with backoff retry
+      let signInSuccess = false;
+      let lastSignInError = null;
 
-      if (signInError) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-
-        const { error: retryError } = await supabase.auth.signInWithPassword({
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password: form.password,
         });
 
-        if (retryError) {
-          setError("Account created! Please go to login page and sign in.");
-          setLoading(false);
-          return;
+        if (!signInError) {
+          signInSuccess = true;
+          break;
         }
+
+        lastSignInError = signInError;
+        logger.warn(`Sign-in attempt ${attempt} failed:`, signInError.message);
+        // Exponential backoff
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1000 * Math.pow(2, attempt)),
+        );
+      }
+
+      if (!signInSuccess) {
+        logger.error("All sign-in attempts failed:", lastSignInError);
+        setError("Account created! Please use the login page to sign in.");
+        setLoading(false);
+        return;
       }
 
       setLoading(false);
-      router.push("/dashboard");
+      router.replace("/dashboard");
     } catch (err: unknown) {
       setLoading(false);
       if (err instanceof Error && err.name === "AbortError") {

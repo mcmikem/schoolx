@@ -33,6 +33,7 @@ interface DashboardInsightsProps {
   payments: unknown[];
   loading?: boolean;
   isDemo?: boolean;
+  classes?: any[];
 }
 
 export default function DashboardInsights({
@@ -43,11 +44,29 @@ export default function DashboardInsights({
   payments,
   loading,
   isDemo,
+  classes = [],
 }: DashboardInsightsProps) {
   // Filter to active students only - match student hub
   const activeStudents = students.filter(
     (s) => s.status === "active" || !s.status,
   );
+
+  // Capacity Data
+  const capacityData = useMemo(() => {
+    if (!classes.length) return [];
+    return classes.map(c => {
+      const enrolled = activeStudents.filter(s => (s as any).class_id === c.id).length;
+      const capacity = c.max_students || 50;
+      const percent = Math.min(100, Math.round((enrolled / capacity) * 100));
+      return {
+        name: c.name,
+        enrolled,
+        capacity,
+        percent,
+        color: percent > 95 ? 'var(--red)' : percent > 80 ? 'var(--amber)' : 'var(--green)'
+      };
+    }).sort((a, b) => b.percent - a.percent).slice(0, 5);
+  }, [classes, activeStudents]);
 
   const trendData = useMemo(
     () =>
@@ -338,6 +357,44 @@ export default function DashboardInsights({
                 {collectionRate}%
               </span>
             </div>
+          </div>
+        </div>
+
+        {/* Class Capacity Widget */}
+        <div className="glass-premium rounded-[var(--r2)] p-5 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs font-bold text-[var(--t3)] uppercase tracking-widest">
+              Class Occupancy
+            </h3>
+            <MaterialIcon
+              icon="meeting_room"
+              style={{ fontSize: 18, color: "var(--navy)" }}
+            />
+          </div>
+          <div className="space-y-3">
+            {capacityData.length === 0 ? (
+              <div className="text-center py-4 text-[10px] text-[var(--t4)] font-medium italic">
+                No class data available
+              </div>
+            ) : (
+              capacityData.map(c => (
+                <div key={c.name} className="space-y-1">
+                  <div className="flex justify-between text-[10px] font-bold">
+                    <span className="text-[var(--t2)]">{c.name}</span>
+                    <span className="text-[var(--t3)]">{c.enrolled}/{c.capacity}</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-[var(--border)] rounded-full overflow-hidden">
+                    <div 
+                      className="h-full rounded-full transition-all duration-1000"
+                      style={{ 
+                        width: `${c.percent}%`,
+                        backgroundColor: c.color 
+                      }}
+                    />
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 

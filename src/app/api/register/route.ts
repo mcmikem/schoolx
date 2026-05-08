@@ -13,6 +13,7 @@ import {
 import { normalizeAuthPhone } from "@/lib/validation";
 import {
   buildDefaultClasses,
+  buildDefaultTimetableSlots,
   type SchoolSetupType,
 } from "@/lib/school-setup";
 
@@ -127,8 +128,8 @@ export async function POST(request: NextRequest) {
       return apiError("Admin name must be at least 2 characters", 400);
     }
 
-    if (password.length < 6) {
-      return apiError("Password must be at least 6 characters", 400);
+    if (password.length < 8) {
+      return apiError("Password must be at least 8 characters for better security", 400);
     }
 
     // Validate email if provided
@@ -196,33 +197,7 @@ export async function POST(request: NextRequest) {
 
     // 3. Create auth user using admin client
     const emailForAuth = `${normalizedPhone}@omuto.org`;
-    const { data: authData, error: authError } =
-      await supabaseAdmin.auth.admin.createUser({
-        email: emailForAuth,
-        password: password,
-        email_confirm: true, // Auto-confirm email
-        user_metadata: {
-          full_name: adminName,
-          phone: normalizedPhone,
-          role: "school_admin",
-        },
-      });
-
-    if (authError) {
-      // Check if it's a duplicate email error
-      if (
-        authError.message.includes("already registered") ||
-        authError.message.includes("duplicate")
-      ) {
-        return apiError(
-          "This phone number is already registered. Please sign in.",
-          400,
-        );
-      }
-      throw authError;
-    }
-
-    // 4. Create school record
+    // 4. Create school record FIRST
     const { data: schoolData, error: schoolError } = await supabaseAdmin
       .from("schools")
       .insert({
@@ -242,17 +217,44 @@ export async function POST(request: NextRequest) {
           Date.now() + 30 * 24 * 60 * 60 * 1000,
         ).toISOString(),
         primary_color: "#1e3a5f",
+        onboarding_completed: false,
       })
       .select()
       .single();
 
     if (schoolError) {
-      // Cleanup: delete auth user if school creation fails
-      if (authData?.user) {
-        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-      }
       throw schoolError;
     }
+
+    // 5. Create Auth user
+    const { data: authData, error: authError } =
+      await supabaseAdmin.auth.admin.createUser({
+        email: emailForAuth,
+        password: password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: adminName,
+          phone: normalizedPhone,
+          role: "school_admin",
+        },
+      });
+
+    if (authError) {
+      // CLEANUP: Delete school if auth fails
+      await supabaseAdmin.from("schools").delete().eq("id", schoolData.id);
+
+      if (
+        authError.message.includes("already registered") ||
+        authError.message.includes("duplicate")
+      ) {
+        return apiError(
+          "This phone number is already registered. Please sign in.",
+          400,
+        );
+      }
+      throw authError;
+    }
+
 
     // 5. Create user record
     const { error: userError } = await supabaseAdmin.from("users").insert({
@@ -337,6 +339,27 @@ export async function POST(request: NextRequest) {
 
       await supabaseAdmin.from("events").insert(
         buildUgandaCalendarEvents(schoolData.id, currentYear),
+      );
+
+      // Create timetable slots
+      await supabaseAdmin.from("timetable_slots").insert(
+        buildDefaultTimetableSlots(schoolData.id),
+      );
+
+      // Sync checklist - mark pre-seeded items as completed
+      const initialChecklist = [
+        { item_key: "academic_calendar", item_label: "Academic Calendar", is_completed: true },
+        { item_key: "class_structure", item_label: "Class & Stream Setup", is_completed: true },
+        { item_key: "grading_config", item_label: "Grading System", is_completed: true },
+        { item_key: "fee_structure", item_label: "Fee Structure", is_completed: false },
+        { item_key: "staff_accounts", item_label: "Staff Accounts", is_completed: false },
+        { item_key: "student_import", item_label: "Import Students", is_completed: false },
+        { item_key: "sms_templates", item_label: "SMS Templates", is_completed: false },
+        { item_key: "payment_methods", item_label: "Payment Methods", is_completed: false },
+      ];
+
+      await supabaseAdmin.from("setup_checklist").insert(
+        initialChecklist.map(item => ({ ...item, school_id: schoolData.id }))
       );
 
       console.log("[Setup] Auto-setup completed for school:", schoolData.id);

@@ -16,13 +16,24 @@ interface OfflineRecord {
   attempts: number;
 }
 
-const MAX_RETRY_ATTEMPTS = 3;
-const SOFT_DELETE_TABLES = new Set([
-  "grades",
-  "fee_payments",
-  "fee_structure",
-  "fee_adjustments",
-]);
+interface SyncConfig {
+  onConflict?: string;
+  isSoftDelete?: boolean;
+}
+
+const SYNC_REGISTRY: Record<string, SyncConfig> = {
+  attendance: { onConflict: "student_id,date" },
+  grades: {
+    onConflict: "student_id,subject_id,assessment_type,term,academic_year",
+    isSoftDelete: true,
+  },
+  fee_payments: { isSoftDelete: true },
+  fee_structure: { isSoftDelete: true },
+  fee_adjustments: { isSoftDelete: true },
+  exam_scores: {
+    onConflict: "student_id,subject_id,exam_type,term,academic_year",
+  },
+};
 
 class OfflineDB {
   private db: IDBDatabase | null = null;
@@ -441,44 +452,42 @@ class OfflineDB {
   private async syncSingleItem(item: OfflineRecord): Promise<boolean> {
     try {
       const { supabase } = await import("@/lib/supabase");
+      const config = SYNC_REGISTRY[item.table] || {};
 
       if (item.action === "delete") {
         const deleteId = (item.data as Record<string, unknown>).id as string;
         const query = supabase.from(item.table);
-        const { error } = SOFT_DELETE_TABLES.has(item.table)
+        const { error } = config.isSoftDelete
           ? await query
               .update({ deleted_at: new Date().toISOString() })
               .eq("id", deleteId)
           : await query.delete().eq("id", deleteId);
         if (error) throw error;
-      } else if (item.table === "attendance") {
-        const { error } = await supabase
-          .from("attendance")
-          .upsert(item.data, { onConflict: "student_id,date" });
-        if (error) throw error;
-      } else if (item.table === "grades") {
-        const { error } = await supabase
-          .from("grades")
-          .upsert(item.data, {
-            onConflict:
-              "student_id,subject_id,assessment_type,term,academic_year",
-          });
+        return true;
+      }
+
+      // Handle insert/update (upsert)
+      const query = supabase.from(item.table);
+
+      if (config.onConflict) {
+        const { error } = await query.upsert(item.data, {
+          onConflict: config.onConflict,
+        });
         if (error) throw error;
       } else if (item.action === "update") {
         const { id, ...updateData } = item.data as Record<string, unknown> & {
           id: string;
         };
-        const { error } = await supabase
-          .from(item.table)
-          .update(updateData)
-          .eq("id", id);
+        const { error } = await query.update(updateData).eq("id", id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from(item.table).insert(item.data);
+        const { error } = await query.insert(item.data);
         if (error) throw error;
       }
+
       return true;
-    } catch {
+    } catch (error) {
+      console.error(`[OfflineDB] Sync failed for ${item.table}:`, error);
       return false;
     }
   }

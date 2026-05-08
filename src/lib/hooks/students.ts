@@ -36,7 +36,9 @@ type StudentWithClass = Student & {
   village?: string;
   boarding_status?: string;
   games_house?: string;
-  is_class_monitor?: boolean;
+  wallet_balance?: number;
+  uneb_index_number?: string;
+  uneb_center_number?: string;
 };
 
 const STUDENT_SELECT_FIELDS = `
@@ -47,7 +49,7 @@ const STUDENT_SELECT_FIELDS = `
   dropout_reason, dropout_date, repeating, last_attendance_date,
   consecutive_absent_days, created_at, house_id, previous_school, district_origin,
   sub_county, parish, village, boarding_status, games_house, is_class_monitor,
-  prefect_role, student_council_role,
+  prefect_role, student_council_role, wallet_balance, uneb_index_number, uneb_center_number,
   classes(id, name, level, stream), houses(id, name, color)
 `;
 
@@ -74,13 +76,13 @@ const STUDENT_SELECT_FIELDS_FALLBACK = `
   id, school_id, student_number, first_name, last_name, gender,
   date_of_birth, parent_name, parent_phone, parent_phone2,
   class_id, admission_date, ple_index_number, status, opening_balance,
-  created_at, classes(id, name, level, stream)
+  wallet_balance, created_at, classes(id, name, level, stream)
 `;
 
 const STUDENT_SELECT_FIELDS_CORE = `
   id, school_id, student_number, first_name, last_name, gender,
   date_of_birth, parent_name, parent_phone, parent_phone2,
-  class_id, admission_date, ple_index_number, status,
+  class_id, admission_date, ple_index_number, status, wallet_balance,
   created_at, classes(id, name, level)
 `;
 

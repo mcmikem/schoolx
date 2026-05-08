@@ -17,14 +17,20 @@ interface CanteenItem {
   stock: number;
   unit: string;
   active: boolean;
+  image_url?: string;
+}
+
+interface CartItem extends CanteenItem {
+  quantity: number;
 }
 
 interface Order {
   id: string;
-  student_id: string;
-  items: { item_id: string; quantity: number; price: number }[];
+  student_id?: string;
+  items: { item_id: string; quantity: number; price: number; name: string }[];
   total: number;
   status: "pending" | "preparing" | "ready" | "completed";
+  payment_method: "cash" | "wallet";
   created_at: string;
   student_name?: string;
 }
@@ -36,7 +42,16 @@ export default function CanteenPage() {
   const [items, setItems] = useState<CanteenItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"orders" | "inventory">("orders");
+  const [activeTab, setActiveTab] = useState<"pos" | "orders" | "inventory">("pos");
+  
+  // POS States
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [studentSearchTerm, setStudentSearchTerm] = useState("");
+  const [students, setStudents] = useState<any[]>([]);
+  const [processingOrder, setProcessingOrder] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "wallet">("cash");
+
   const [showAddItem, setShowAddItem] = useState(false);
   const [newItem, setNewItem] = useState({
     name: "",
@@ -183,6 +198,118 @@ export default function CanteenPage() {
     }
   };
 
+  const searchStudents = useCallback(async (term: string) => {
+    if (!school?.id || term.length < 2) {
+      setStudents([]);
+      return;
+    }
+    const { data, error } = await supabase
+      .from("students")
+      .select("id, first_name, last_name, student_number, wallet_balance, classes(name)")
+      .eq("school_id", school.id)
+      .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,student_number.ilike.%${term}%`)
+      .limit(5);
+    if (!error) setStudents(data || []);
+  }, [school]);
+
+  const addToCart = (item: CanteenItem) => {
+    if (item.stock <= 0) {
+      toast.error("Item out of stock");
+      return;
+    }
+    setCart((prev) => {
+      const existing = prev.find((i) => i.id === item.id);
+      if (existing) {
+        if (existing.quantity >= item.stock) {
+          toast.error("Not enough stock");
+          return prev;
+        }
+        return prev.map((i) =>
+          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+        );
+      }
+      return [...prev, { ...item, quantity: 1 }];
+    });
+  };
+
+  const removeFromCart = (itemId: string) => {
+    setCart((prev) => prev.filter((i) => i.id !== itemId));
+  };
+
+  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  const handleCheckout = async () => {
+    if (cart.length === 0) return;
+    if (paymentMethod === "wallet" && !selectedStudent) {
+      toast.error("Please select a student for wallet payment");
+      return;
+    }
+
+    if (paymentMethod === "wallet" && selectedStudent) {
+      const balance = selectedStudent.wallet_balance || 0;
+      if (balance < cartTotal) {
+        toast.error(`Insufficient wallet balance. Available: ${balance.toLocaleString()} UGX`);
+        return;
+      }
+    }
+
+    setProcessingOrder(true);
+    try {
+      if (isDemo) {
+        toast.success("Order placed successfully (Demo)");
+        setCart([]);
+        setSelectedStudent(null);
+        setStudentSearchTerm("");
+        setProcessingOrder(false);
+        return;
+      }
+
+      // 1. Create Order
+      const { data: orderData, error: orderError } = await supabase
+        .from("canteen_orders")
+        .insert({
+          school_id: school?.id,
+          student_id: selectedStudent?.id,
+          total: cartTotal,
+          payment_method: paymentMethod,
+          status: "completed",
+          items: cart.map(i => ({ item_id: i.id, quantity: i.quantity, price: i.price, name: i.name }))
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // 2. Update Inventory (Deduct stock)
+      for (const item of cart) {
+        await supabase
+          .from("canteen_items")
+          .update({ stock: item.stock - item.quantity })
+          .eq("id", item.id);
+      }
+
+      // 3. If Wallet, Deduct from Student
+      if (paymentMethod === "wallet" && selectedStudent) {
+        const { error: walletError } = await supabase
+          .from("students")
+          .update({ wallet_balance: (selectedStudent.wallet_balance || 0) - cartTotal })
+          .eq("id", selectedStudent.id);
+        if (walletError) throw walletError;
+      }
+
+      toast.success("Order processed successfully");
+      setCart([]);
+      setSelectedStudent(null);
+      setStudentSearchTerm("");
+      loadData();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to process order");
+    } finally {
+      setProcessingOrder(false);
+    }
+  };
+
   const updateStock = async (itemId: string, newStock: number) => {
     try {
       await supabase
@@ -278,10 +405,21 @@ export default function CanteenPage() {
 
       <div className="flex gap-2 mb-6">
         <button
+          onClick={() => setActiveTab("pos")}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            activeTab === "pos"
+              ? "bg-[var(--primary)] text-white shadow-md shadow-primary/20"
+              : "bg-surface-container text-on-surface-variant hover:bg-surface-bright"
+          }`}
+        >
+          <MaterialIcon icon="shopping_cart" className="inline mr-2" />
+          POS
+        </button>
+        <button
           onClick={() => setActiveTab("orders")}
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
             activeTab === "orders"
-              ? "bg-[var(--primary)] text-white"
+              ? "bg-[var(--primary)] text-white shadow-md shadow-primary/20"
               : "bg-surface-container text-on-surface-variant hover:bg-surface-bright"
           }`}
         >
@@ -292,7 +430,7 @@ export default function CanteenPage() {
           onClick={() => setActiveTab("inventory")}
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
             activeTab === "inventory"
-              ? "bg-[var(--primary)] text-white"
+              ? "bg-[var(--primary)] text-white shadow-md shadow-primary/20"
               : "bg-surface-container text-on-surface-variant hover:bg-surface-bright"
           }`}
         >
@@ -301,7 +439,183 @@ export default function CanteenPage() {
         </button>
       </div>
 
-      {activeTab === "orders" && (
+      {activeTab === "pos" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left: Items Grid */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="dashboard-toolbar">
+              <div className="flex flex-wrap gap-2">
+                {['all', 'food', 'drink', 'snack'].map(cat => (
+                  <button 
+                    key={cat}
+                    className="dashboard-pill bg-surface-container text-on-surface-variant hover:bg-surface-bright capitalize"
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+              {items.filter(i => i.active).map(item => (
+                <div 
+                  key={item.id}
+                  onClick={() => addToCart(item)}
+                  className={`group relative bg-surface-container-lowest rounded-2xl p-4 border border-outline-variant/10 hover:border-primary/50 transition-all cursor-pointer select-none active:scale-95 ${item.stock <= 0 ? 'opacity-50 grayscale pointer-events-none' : ''}`}
+                >
+                  <div className="aspect-square rounded-xl bg-surface-container flex items-center justify-center mb-3 overflow-hidden">
+                    <MaterialIcon icon={item.category === 'drink' ? 'local_drink' : item.category === 'food' ? 'lunch_dining' : 'cookie'} className="text-3xl text-on-surface-variant/40" />
+                  </div>
+                  <div className="font-bold text-on-surface text-sm truncate">{item.name}</div>
+                  <div className="flex justify-between items-center mt-1">
+                    <div className="text-primary font-black">{item.price.toLocaleString()}</div>
+                    <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${item.stock < 10 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                      {item.stock} {item.unit[0]}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right: Cart & Checkout */}
+          <div className="space-y-6">
+            <Card className="sticky top-6">
+              <CardHeader className="flex justify-between items-center pb-2">
+                <h3 className="font-bold">Current Order</h3>
+                <button onClick={() => setCart([])} className="text-xs text-error font-bold hover:underline">Clear</button>
+              </CardHeader>
+              <CardBody>
+                {/* Cart Items */}
+                <div className="space-y-3 mb-6 max-h-[300px] overflow-y-auto pr-2 no-scrollbar">
+                  {cart.length === 0 ? (
+                    <div className="py-8 text-center text-on-surface-variant opacity-40 italic text-sm">
+                      Cart is empty
+                    </div>
+                  ) : (
+                    cart.map(item => (
+                      <div key={item.id} className="flex items-center gap-3 bg-surface-bright p-2 rounded-xl border border-outline-variant/5">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-bold truncate">{item.name}</div>
+                          <div className="text-[10px] text-on-surface-variant">
+                            {item.quantity} x {item.price.toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="text-xs font-black text-primary">
+                          {(item.quantity * item.price).toLocaleString()}
+                        </div>
+                        <button 
+                          onClick={() => removeFromCart(item.id)}
+                          className="w-6 h-6 rounded-full hover:bg-red-50 text-error flex items-center justify-center"
+                        >
+                          <MaterialIcon icon="close" className="text-xs" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Total */}
+                <div className="pt-4 border-t border-outline-variant/10 mb-6">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm text-on-surface-variant">Subtotal</span>
+                    <span className="text-sm font-medium">{cartTotal.toLocaleString()} UGX</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-base font-bold">Total</span>
+                    <span className="text-xl font-black text-primary">{cartTotal.toLocaleString()} UGX</span>
+                  </div>
+                </div>
+
+                {/* Student Selection */}
+                <div className="space-y-4 mb-6">
+                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Payment Detail</div>
+                  
+                  <div className="flex gap-2 p-1 bg-surface-container rounded-xl">
+                    <button 
+                      onClick={() => setPaymentMethod("cash")}
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${paymentMethod === 'cash' ? 'bg-surface text-primary shadow-sm' : 'text-on-surface-variant'}`}
+                    >
+                      <MaterialIcon icon="payments" className="text-sm align-middle mr-1" />
+                      Cash
+                    </button>
+                    <button 
+                      onClick={() => setPaymentMethod("wallet")}
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${paymentMethod === 'wallet' ? 'bg-surface text-primary shadow-sm' : 'text-on-surface-variant'}`}
+                    >
+                      <MaterialIcon icon="account_balance_wallet" className="text-sm align-middle mr-1" />
+                      Wallet
+                    </button>
+                  </div>
+
+                  {paymentMethod === 'wallet' && (
+                    <div className="relative">
+                      {selectedStudent ? (
+                        <div className="p-3 bg-primary/5 border border-primary/20 rounded-xl flex items-center justify-between">
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-primary truncate">{selectedStudent.first_name} {selectedStudent.last_name}</div>
+                            <div className="text-[10px] text-on-surface-variant">Bal: {selectedStudent.wallet_balance?.toLocaleString() || 0} UGX</div>
+                          </div>
+                          <button onClick={() => setSelectedStudent(null)} className="p-1 hover:bg-primary/10 rounded-full text-primary">
+                            <MaterialIcon icon="edit" className="text-xs" />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <input 
+                            type="text"
+                            placeholder="Search Student..."
+                            value={studentSearchTerm}
+                            onChange={(e) => {
+                              setStudentSearchTerm(e.target.value);
+                              searchStudents(e.target.value);
+                            }}
+                            className="w-full bg-surface-container border-none rounded-xl py-2 px-3 text-xs"
+                          />
+                          {students.length > 0 && (
+                            <div className="absolute top-full left-0 right-0 mt-1 bg-surface rounded-xl shadow-xl border border-outline-variant/10 z-10 overflow-hidden">
+                              {students.map(s => (
+                                <div 
+                                  key={s.id}
+                                  onClick={() => {
+                                    setSelectedStudent(s);
+                                    setStudents([]);
+                                    setStudentSearchTerm("");
+                                  }}
+                                  className="p-2 hover:bg-surface-bright cursor-pointer flex justify-between items-center border-b border-outline-variant/5 last:border-0"
+                                >
+                                  <div>
+                                    <div className="text-[11px] font-bold">{s.first_name} {s.last_name}</div>
+                                    <div className="text-[9px] text-on-surface-variant">{s.student_number} • {s.classes?.name}</div>
+                                  </div>
+                                  <div className="text-[10px] font-black text-primary">{s.wallet_balance?.toLocaleString() || 0}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <Button 
+                  className="w-full py-4 rounded-2xl shadow-lg shadow-primary/20"
+                  disabled={cart.length === 0 || processingOrder}
+                  onClick={handleCheckout}
+                >
+                  {processingOrder ? (
+                    <MaterialIcon icon="sync" className="animate-spin" />
+                  ) : (
+                    <>Process Order • {cartTotal.toLocaleString()}</>
+                  )}
+                </Button>
+              </CardBody>
+            </Card>
+          </div>
+        </div>
+      )}
+
         <Card>
           <CardHeader className="flex justify-between items-center">
             <h3 className="font-semibold text-on-surface">Recent Orders</h3>

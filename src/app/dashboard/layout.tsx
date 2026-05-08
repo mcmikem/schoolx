@@ -123,7 +123,7 @@ function SessionTimeoutWarning({
 }
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
-  const { user, school, loading, isDemo, isTrialExpired, signOut } = useAuth();
+  const { user, school, loading, isDemo, isAccessBlocked, signOut } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const toast = useToast();
@@ -190,16 +190,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const [showPostSetup, setShowPostSetup] = useState(false);
 
   useEffect(() => {
-    const schoolAny = school as any;
     if (
       school &&
-      !schoolAny?.onboarding_completed &&
+      !school.onboarding_completed &&
       user?.role === "school_admin"
     ) {
       setShowOnboarding(true);
     } else if (
       school &&
-      schoolAny?.onboarding_completed &&
+      school.onboarding_completed &&
       user?.role === "school_admin"
     ) {
       // Only auto-open the post-setup panel once per browser session so that
@@ -240,7 +239,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         />
       )}
       <OfflineIndicator />
-      {isTrialExpired && <ExpiredNotice />}
+      {isAccessBlocked && <ExpiredNotice />}
       {showOnboarding && (
         <OnboardingFlow
           onComplete={() => {

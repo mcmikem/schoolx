@@ -5,15 +5,17 @@ import { loadSchoolSettings, saveSchoolSetting } from './school-settings'
 import { getErrorMessage } from './validation'
 
 const getDefaultAcademicYear = () => new Date().getFullYear().toString()
-const getStoredAcademicYear = () => {
-  if (typeof window === 'undefined') return getDefaultAcademicYear()
-  return localStorage.getItem('academic_year') || getDefaultAcademicYear()
-}
-const getStoredCurrentTerm = (): 1 | 2 | 3 => {
-  if (typeof window === 'undefined') return 1
-  const raw = localStorage.getItem('current_term')
-  return raw === '2' || raw === '3' ? (Number(raw) as 1 | 2 | 3) : 1
-}
+const getStoredAcademicYear = (schoolId?: string) => {
+  if (typeof window === "undefined") return getDefaultAcademicYear();
+  const key = schoolId ? `academic_year_${schoolId}` : "academic_year";
+  return localStorage.getItem(key) || getDefaultAcademicYear();
+};
+const getStoredCurrentTerm = (schoolId?: string): 1 | 2 | 3 => {
+  if (typeof window === "undefined") return 1;
+  const key = schoolId ? `current_term_${schoolId}` : "current_term";
+  const raw = localStorage.getItem(key);
+  return raw === "2" || raw === "3" ? (Number(raw) as 1 | 2 | 3) : 1;
+};
 
 interface AcademicContextType {
   academicYear: string
@@ -29,10 +31,18 @@ const AcademicContext = createContext<AcademicContextType | undefined>(undefined
 
 export function AcademicProvider({ children }: { children: ReactNode }) {
   const { school } = useAuth()
-  const [academicYear, setAcademicYearState] = useState<string>(getStoredAcademicYear)
-  const [currentTerm, setCurrentTermState] = useState<1 | 2 | 3>(getStoredCurrentTerm)
+  const [academicYear, setAcademicYearState] = useState<string>(() => getStoredAcademicYear(school?.id))
+  const [currentTerm, setCurrentTermState] = useState<1 | 2 | 3>(() => getStoredCurrentTerm(school?.id))
   const [lockedTerms, setLockedTerms] = useState<string[]>([])
-  const [loading, setLoading] = useState(true)
+  
+  // Set initial loading to true only if we don't have school context yet, 
+  // or we don't have cached data for this school.
+  const [loading, setLoading] = useState(() => {
+    if (!school?.id) return true;
+    const hasYear = !!localStorage.getItem(`academic_year_${school.id}`);
+    const hasTerm = !!localStorage.getItem(`current_term_${school.id}`);
+    return !(hasYear && hasTerm);
+  })
 
   // Load from school settings on mount or when school changes
   const loadAcademicSettings = useCallback(async () => {
@@ -48,13 +58,13 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
       if (Object.keys(settings).length > 0) {
         if (settings.academic_year) {
           setAcademicYearState(settings.academic_year)
-          localStorage.setItem('academic_year', settings.academic_year)
+          localStorage.setItem(`academic_year_${school.id}`, settings.academic_year)
         }
 
         if (settings.current_term) {
           const newTerm = Number(settings.current_term) as 1 | 2 | 3
           setCurrentTermState(newTerm)
-          localStorage.setItem('current_term', settings.current_term.toString())
+          localStorage.setItem(`current_term_${school.id}`, settings.current_term.toString())
         }
 
         const locked = Object.keys(settings)
@@ -84,8 +94,8 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
   // Save to DB when changed locally
   const setAcademicYear = async (year: string) => {
     setAcademicYearState(year)
-    localStorage.setItem('academic_year', year)
     if (school?.id) {
+      localStorage.setItem(`academic_year_${school.id}`, year)
       try {
         await saveSchoolSetting(school.id, 'academic_year', year)
       } catch (error) {
@@ -96,8 +106,8 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
 
   const setCurrentTerm = async (term: 1 | 2 | 3) => {
     setCurrentTermState(term)
-    localStorage.setItem('current_term', term.toString())
     if (school?.id) {
+      localStorage.setItem(`current_term_${school.id}`, term.toString())
       try {
         await saveSchoolSetting(school.id, 'current_term', term.toString())
       } catch (error) {

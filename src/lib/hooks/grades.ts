@@ -9,6 +9,8 @@ import {
   logAuditEventWithOfflineSupport,
   logRecordChangeWithOfflineSupport,
 } from "@/lib/audit";
+import { useAcademic } from "@/lib/academic-context";
+import { Grade, ExamScore, Exam, Student, Subject } from "@/types";
 
 // NCDC 2025 Competency Levels
 export const COMPETENCY_LEVELS = [
@@ -57,9 +59,10 @@ export function useGrades(
   term?: number,
   academicYear?: string,
 ) {
-  const [grades, setGrades] = useState<any[]>([]);
+  const [grades, setGrades] = useState<(Grade & { students?: Pick<Student, 'id' | 'first_name' | 'last_name'>, subjects?: Pick<Subject, 'id' | 'name' | 'code'> })[]>([]);
   const [loading, setLoading] = useState(true);
   const { isDemo, user, school } = useAuth();
+  const { isTermLocked } = useAcademic();
   const isOnline = useOnlineStatus();
 
   const saveGrade = async (grade: {
@@ -74,6 +77,9 @@ export function useGrades(
     recorded_by?: string;
     status?: string;
   }) => {
+    if (isTermLocked(grade.academic_year, grade.term as any)) {
+      throw new Error(`This term (${grade.academic_year} Term ${grade.term}) is locked for academic changes.`);
+    }
     const maxScore = grade.max_score || 100;
     if (grade.score < 0 || grade.score > maxScore) {
       throw new Error(`Score must be between 0 and ${maxScore}`);
@@ -214,6 +220,89 @@ export function useGrades(
     }
   };
 
+  const saveGradesBatch = async (
+    records: Array<{
+      student_id: string;
+      subject_id: string;
+      class_id: string;
+      assessment_type: string;
+      score: number;
+      max_score?: number;
+      term: number;
+      academic_year: string;
+      recorded_by?: string;
+      status?: string;
+    }>,
+  ) => {
+    if (records.length === 0) return;
+
+    // Check locking for the batch (assuming same term/year for batch)
+    if (isTermLocked(records[0].academic_year, records[0].term as any)) {
+      throw new Error(
+        `This term (${records[0].academic_year} Term ${records[0].term}) is locked.`,
+      );
+    }
+
+    const payload = records.map((r) => ({
+      ...r,
+      max_score: r.max_score || 100,
+    }));
+
+    if (isDemo) {
+      setGrades((prev) => {
+        const next = [...prev];
+        payload.forEach((newGrade) => {
+          const idx = next.findIndex(
+            (g) =>
+              g.student_id === newGrade.student_id &&
+              g.subject_id === newGrade.subject_id &&
+              g.assessment_type === newGrade.assessment_type,
+          );
+          const gradeWithId = {
+            ...newGrade,
+            id: `demo-${Date.now()}-${Math.random()}`,
+            created_at: new Date().toISOString(),
+          };
+          if (idx >= 0) next[idx] = gradeWithId as any;
+          else next.push(gradeWithId as any);
+        });
+        return next;
+      });
+      return;
+    }
+
+    if (!isOnline) {
+      for (const p of payload) {
+        await offlineDB.save("grades", p as unknown as Record<string, unknown>);
+      }
+      toast.info(`Queued ${payload.length} grades for offline sync`);
+      return;
+    }
+
+    const { error } = await supabase.from("grades").upsert(payload, {
+      onConflict: "student_id,subject_id,assessment_type,term,academic_year",
+    });
+
+    if (error) throw error;
+
+    if (school?.id && user?.id) {
+      await logAuditEventWithOfflineSupport(
+        true,
+        school.id,
+        user.id,
+        user.full_name,
+        "update",
+        "grades",
+        `Saved batch of ${payload.length} grades`,
+        `${records[0].class_id}:${records[0].subject_id}`,
+        undefined,
+        { count: payload.length },
+      );
+    }
+
+    fetchGrades();
+  };
+
   const fetchGrades = useCallback(async () => {
     if (isDemo) {
       setGrades(DEMO_GRADES as unknown as DemoGrade[]);
@@ -265,7 +354,7 @@ export function useGrades(
   useEffect(() => {
     fetchGrades();
   }, [fetchGrades]);
-  return { grades, loading, saveGrade };
+  return { grades, loading, saveGrade, saveGradesBatch };
 }
 
 export function useExamScores(
@@ -274,9 +363,10 @@ export function useExamScores(
   term?: number,
   academicYear?: string,
 ) {
-  const [examScores, setExamScores] = useState<any[]>([]);
+  const [examScores, setExamScores] = useState<(ExamScore & { students?: Pick<Student, 'id' | 'first_name' | 'last_name'>, subjects?: Pick<Subject, 'id' | 'name' | 'code'> })[]>([]);
   const [loading, setLoading] = useState(true);
   const { isDemo } = useAuth();
+  const { isTermLocked } = useAcademic();
 
   const saveExamScore = async (score: {
     student_id: string;
@@ -289,6 +379,9 @@ export function useExamScores(
     academic_year: string;
     recorded_by?: string;
   }) => {
+    if (isTermLocked(score.academic_year, score.term as any)) {
+      throw new Error(`This term (${score.academic_year} Term ${score.term}) is locked for academic changes.`);
+    }
     const maxScore = score.max_score || 100;
     if (score.score < 0 || score.score > maxScore) {
       throw new Error(`Score must be between 0 and ${maxScore}`);
@@ -416,9 +509,10 @@ export function useExamScores(
 }
 
 export function useExams(schoolId?: string) {
-  const [exams, setExams] = useState<any[]>([]);
+  const [exams, setExams] = useState<(Exam & { classes?: { id: string, name: string }, subjects?: { id: string, name: string } })[]>([]);
   const [loading, setLoading] = useState(true);
   const { isDemo } = useAuth();
+  const { isTermLocked } = useAcademic();
 
   const createExam = async (exam: {
     name: string;
@@ -431,6 +525,9 @@ export function useExams(schoolId?: string) {
     max_score: number;
     weight: number;
   }) => {
+    if (isTermLocked(exam.academic_year, exam.term as any)) {
+      throw new Error(`This term (${exam.academic_year} Term ${exam.term}) is locked for academic changes.`);
+    }
     if (isDemo || isDemoSchool(schoolId)) {
       const newExam = {
         ...exam,
