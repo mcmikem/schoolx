@@ -194,7 +194,7 @@ export default function GradesPage() {
         setLockedByName("");
       }
 
-      setSubmissionStatus(deriveGradeWorkflowStatus(existingGrades));
+      setSubmissionStatus(deriveGradeWorkflowStatus(existingGrades as { status?: string | null }[]));
     } else {
       setMarks({});
       setMarksBy({});

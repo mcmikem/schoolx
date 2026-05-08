@@ -14,6 +14,7 @@ import {
 import {
   normalizeAttendanceInput,
   validateAttendanceInput,
+  getErrorMessage,
 } from "@/lib/validation";
 
 export function useAttendance(classId?: string, date?: string) {
@@ -148,8 +149,8 @@ export function useAttendance(classId?: string, date?: string) {
         data as unknown as Record<string, unknown>,
       ]);
       return data;
-    } catch (err: any) {
-      throw new Error(err.message);
+    } catch (err: unknown) {
+      throw new Error(getErrorMessage(err, "Failed to save attendance record"));
     }
   };
 

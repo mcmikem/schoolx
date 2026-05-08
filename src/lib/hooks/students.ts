@@ -44,7 +44,7 @@ type StudentWithClass = Student & {
 const STUDENT_SELECT_FIELDS = `
   id, school_id, student_number, first_name, last_name, gender,
   date_of_birth, parent_name, parent_phone, parent_phone2, parent_email, address,
-  class_id, admission_date, ple_index_number, blood_type, religion, nationality,
+  class_id, admission_date, ple_index_number, religion, nationality,
   photo_url, status, opening_balance, transfer_from, transfer_to, transfer_reason,
   dropout_reason, dropout_date, repeating, last_attendance_date,
   consecutive_absent_days, created_at, house_id, previous_school, district_origin,
@@ -249,8 +249,12 @@ export function useStudents(
       return;
     }
 
+    // Mark as initialized immediately so cache is used on all subsequent calls
+    const isFirstLoad = !hasInitialized.current;
+    hasInitialized.current = true;
+
     const cached = getCachedData<StudentWithClass[]>(cacheKey);
-    if (cached && hasInitialized.current) {
+    if (cached && !isFirstLoad) {
       setStudents(cached);
       setLoading(false);
       return;
@@ -482,7 +486,6 @@ export function useStudents(
 
   useEffect(() => {
     fetchStudents();
-    hasInitialized.current = true;
   }, [fetchStudents]);
   return {
     students,

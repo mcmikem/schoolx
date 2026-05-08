@@ -12,6 +12,7 @@ import { TableSkeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
 import { Tabs, TabPanel } from '@/components/ui/Tabs'
 import { Asset } from '@/types'
+import { getErrorMessage } from '@/lib/validation'
 
 export default function InventoryPage() {
   const { school, user } = useAuth()
@@ -45,7 +46,7 @@ export default function InventoryPage() {
       toast.success(`Inventory updated: ${selectedAsset.name}`)
       setShowTransactionModal(false)
     } else {
-      toast.error('Transaction failed')
+      toast.error(getErrorMessage(result.error, 'Transaction failed'))
     }
   }
 

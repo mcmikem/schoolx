@@ -10,6 +10,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { getErrorMessage } from "@/lib/validation";
 
 export default function ExpenseApprovalsPage() {
   const { school } = useAuth();
@@ -27,7 +28,7 @@ export default function ExpenseApprovalsPage() {
       await updateExpenseStatus(id, status);
       toast.success(`Expense ${status} successfully`);
     } catch (err: any) {
-      toast.error(err.message || `Failed to ${status} expense`);
+      toast.error(getErrorMessage(err, `Failed to ${status} expense`));
     } finally {
       setProcessingId(null);
     }

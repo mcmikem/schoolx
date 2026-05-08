@@ -10,6 +10,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { getErrorMessage } from "@/lib/validation";
 
 export default function LeaveApprovalsPage() {
   const { school } = useAuth();
@@ -25,7 +26,7 @@ export default function LeaveApprovalsPage() {
       await updateRequestStatus(id, status);
       toast.success(`Leave request ${status} successfully`);
     } catch (err: any) {
-      toast.error(err.message || `Failed to ${status} leave request`);
+      toast.error(getErrorMessage(err, `Failed to ${status} leave request`));
     } finally {
       setProcessingId(null);
     }

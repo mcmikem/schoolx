@@ -2,7 +2,7 @@
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { useClasses } from "@/lib/hooks";
+import { useClasses, useAttendance } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
@@ -59,12 +59,12 @@ export default function AttendancePage() {
   const toast = useToast();
   const isOnline = useOnlineStatus();
   const { classes, loading: classesLoading } = useClasses(school?.id);
-  const { saveAttendanceBatch } = useAttendance(selectedClass || undefined, date);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [date, setDate] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   });
+  const { saveAttendanceBatch } = useAttendance(selectedClass || undefined, date);
   const [students, setStudents] = useState<
     Array<{
       id: string;
@@ -316,6 +316,19 @@ export default function AttendancePage() {
 
   const saveAttendance = async () => {
     if (!selectedClass || !user?.id) return;
+
+    const unmarkedCount = students.length - Object.keys(attendance).length;
+    if (unmarkedCount > 0) {
+      if (!confirm(`${unmarkedCount} students have not been marked. They will be saved as "In School" (Present) by default. Continue?`)) {
+        return;
+      }
+      // Fill in defaults for the save payload
+      students.forEach(s => {
+        if (!attendance[s.id]) {
+          attendance[s.id] = "present";
+        }
+      });
+    }
 
     const records = Object.entries(attendance).map(([studentId, status]) =>
       normalizeAttendanceInput({

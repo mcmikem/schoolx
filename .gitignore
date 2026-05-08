@@ -19,6 +19,8 @@ build/
 npm-debug.log*
 serveo.log
 ws.log
+.devprobe.log
+".env. production. example"
 antigravity_phone_chat/
 
 # OS

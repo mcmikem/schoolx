@@ -110,6 +110,7 @@ export default function CanteenPage() {
           student_id: "s1",
           total: 4500,
           status: "completed",
+          payment_method: "cash",
           created_at: new Date().toISOString(),
           student_name: "Isaac Mugisha",
           items: [],
@@ -119,6 +120,7 @@ export default function CanteenPage() {
           student_id: "s2",
           total: 1000,
           status: "pending",
+          payment_method: "wallet",
           created_at: new Date().toISOString(),
           student_name: "Sarah Jane",
           items: [],
@@ -128,6 +130,7 @@ export default function CanteenPage() {
           student_id: "s3",
           total: 2000,
           status: "preparing",
+          payment_method: "cash",
           created_at: new Date().toISOString(),
           student_name: "John Doe",
           items: [],
@@ -616,6 +619,7 @@ export default function CanteenPage() {
         </div>
       )}
 
+      {activeTab === "orders" && (
         <Card>
           <CardHeader className="flex justify-between items-center">
             <h3 className="font-semibold text-on-surface">Recent Orders</h3>

@@ -11,6 +11,8 @@ import {
 } from "@/lib/audit";
 import { useAcademic } from "@/lib/academic-context";
 import { Grade, ExamScore, Exam, Student, Subject } from "@/types";
+import { getErrorMessage } from "@/lib/validation";
+
 
 // NCDC 2025 Competency Levels
 export const COMPETENCY_LEVELS = [
@@ -215,8 +217,8 @@ export function useGrades(
         data as unknown as Record<string, unknown>,
       ]);
       return data;
-    } catch (err: any) {
-      throw new Error(err.message);
+    } catch (err: unknown) {
+      throw new Error(getErrorMessage(err, "Failed to save grade"));
     }
   };
 
@@ -275,7 +277,8 @@ export function useGrades(
       for (const p of payload) {
         await offlineDB.save("grades", p as unknown as Record<string, unknown>);
       }
-      toast.info(`Queued ${payload.length} grades for offline sync`);
+      // Caller is responsible for notifying the user (hook cannot call useToast)
+      console.info(`[grades] Queued ${payload.length} grades for offline sync`);
       return;
     }
 
@@ -300,7 +303,24 @@ export function useGrades(
       );
     }
 
-    fetchGrades();
+    // Optimistically merge saved records into local state instead of re-fetching
+    setGrades((prev) => {
+      const next = [...prev];
+      payload.forEach((saved) => {
+        const idx = next.findIndex(
+          (g) =>
+            g.student_id === saved.student_id &&
+            g.subject_id === saved.subject_id &&
+            g.assessment_type === saved.assessment_type &&
+            g.term === saved.term &&
+            g.academic_year === saved.academic_year,
+        );
+        const gradeEntry = { ...saved, id: saved.id || `batch-${Date.now()}-${Math.random()}`, created_at: new Date().toISOString() } as any;
+        if (idx >= 0) next[idx] = gradeEntry;
+        else next.push(gradeEntry);
+      });
+      return next;
+    });
   };
 
   const fetchGrades = useCallback(async () => {
@@ -443,8 +463,8 @@ export function useExamScores(
         return [...prev, data];
       });
       return data;
-    } catch (err: any) {
-      throw new Error(err.message);
+    } catch (err: unknown) {
+      throw new Error(getErrorMessage(err, "Failed to save exam score"));
     }
   };
 
@@ -460,8 +480,8 @@ export function useExamScores(
         .eq("id", id);
       if (error) throw error;
       setExamScores((prev) => prev.filter((s) => s.id !== id));
-    } catch (err: any) {
-      throw new Error(err.message);
+    } catch (err: unknown) {
+      throw new Error(getErrorMessage(err, "Failed to delete exam score"));
     }
   };
 
@@ -556,8 +576,8 @@ export function useExams(schoolId?: string) {
       }
       setExams((prev) => [data, ...prev]);
       return data;
-    } catch (err: any) {
-      throw new Error(err.message);
+    } catch (err: unknown) {
+      throw new Error(getErrorMessage(err, "Failed to create exam"));
     }
   };
 
@@ -570,10 +590,11 @@ export function useExams(schoolId?: string) {
       const { error } = await supabase.from("exams").delete().eq("id", id);
       if (error) throw error;
       setExams((prev) => prev.filter((e) => e.id !== id));
-    } catch (err: any) {
-      throw new Error(err.message);
+    } catch (err: unknown) {
+      throw new Error(getErrorMessage(err, "Failed to delete exam"));
     }
   };
+
 
   useEffect(() => {
     async function fetchExams() {

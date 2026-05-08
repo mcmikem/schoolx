@@ -7,6 +7,7 @@ interface Tab {
   id: string
   label: string
   count?: number
+  icon?: string
 }
 
 interface TabsProps {

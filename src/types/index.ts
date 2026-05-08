@@ -11,6 +11,7 @@ export interface School {
   ownership: "private" | "government" | "government_aided";
   phone?: string;
   email?: string;
+  address?: string;
   logo_url?: string;
   primary_color: string;
   uneab_center_number?: string;

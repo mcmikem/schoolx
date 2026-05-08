@@ -37,6 +37,7 @@ import { useUndo, UndoNotification } from "@/lib/useUndo";
 import { PageGuidance } from "@/components/PageGuidance";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
+import { getErrorMessage } from "@/lib/validation";
 
 interface PaymentPlan {
   id: string;
@@ -61,7 +62,16 @@ interface Installment {
   paid_date?: string;
 }
 
-type FinanceTab = "balances" | "payment-plans" | "invoices" | "cashbook";
+type FinanceTab = "balances" | "payment-plans" | "invoices" | "cashbook" | "wallets";
+
+interface WalletStudent {
+  id: string;
+  first_name: string;
+  last_name: string;
+  student_number: string;
+  class_name?: string;
+  wallet_balance?: number;
+}
 
 // Maximum fee/payment amount (100M UGX) to catch obvious entry mistakes.
 const MAX_FINANCE_AMOUNT = 100_000_000;
@@ -102,6 +112,7 @@ export default function FinanceHubPage() {
   const [selectedStudent, setSelectedStudent] = useState<StudentBalance | null>(
     null,
   );
+  const [walletStudent, setWalletStudent] = useState<WalletStudent | null>(null);
   const [selectedClass, setSelectedClass] = useState("all");
   const [statusFilter, setStatusFilter] = useState<
     "all" | "unpaid" | "partial" | "paid" | "written_off"
@@ -584,9 +595,7 @@ export default function FinanceHubPage() {
         notes: "",
       });
     } catch (err: unknown) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to record payment",
-      );
+      toast.error(getErrorMessage(err, "Failed to record payment"));
     } finally {
       setSaving(false);
     }
@@ -733,7 +742,7 @@ export default function FinanceHubPage() {
         due_date: "",
       });
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to create fee");
+      toast.error(getErrorMessage(err, "Failed to create fee"));
     } finally {
       setSaving(false);
     }
@@ -2048,7 +2057,7 @@ export default function FinanceHubPage() {
                             variant="secondary" 
                             size="sm"
                             onClick={() => {
-                              setSelectedStudent(student);
+                              setWalletStudent(student as WalletStudent);
                               setShowTopUp(true);
                             }}
                           >
@@ -2452,7 +2461,7 @@ export default function FinanceHubPage() {
         onPrintInvoice={handlePrintInvoice}
       />
 
-      {showTopUp && selectedStudent && (
+      {showTopUp && walletStudent && (
         <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm p-4 flex items-center justify-center">
           <div className="bg-surface-container-lowest rounded-3xl p-8 w-full max-w-md shadow-2xl">
             <div className="flex items-center gap-4 mb-6">
@@ -2461,7 +2470,7 @@ export default function FinanceHubPage() {
               </div>
               <div>
                 <h3 className="font-bold text-lg">Wallet Top-Up</h3>
-                <p className="text-sm text-on-surface-variant">{selectedStudent.first_name} {selectedStudent.last_name}</p>
+                <p className="text-sm text-on-surface-variant">{walletStudent.first_name} {walletStudent.last_name}</p>
               </div>
             </div>
 
@@ -2509,14 +2518,14 @@ export default function FinanceHubPage() {
                     const amount = parseFloat(topUpAmount);
                     const { error } = await supabase
                       .from('students')
-                      .update({ wallet_balance: (selectedStudent.wallet_balance || 0) + amount })
-                      .eq('id', selectedStudent.id);
+                      .update({ wallet_balance: (walletStudent.wallet_balance || 0) + amount })
+                      .eq('id', walletStudent.id);
                     
                     if (error) throw error;
                     
                     await supabase.from('fee_adjustments').insert({
                       school_id: school?.id,
-                      student_id: selectedStudent.id,
+                      student_id: walletStudent.id,
                       amount: amount,
                       adjustment_type: 'wallet_deposit',
                       notes: topUpNotes || 'Wallet Top-Up'

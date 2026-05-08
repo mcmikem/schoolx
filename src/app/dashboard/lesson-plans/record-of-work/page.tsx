@@ -10,6 +10,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { getErrorMessage } from "@/lib/validation";
 
 interface LessonRecord {
   id: string;
@@ -106,7 +107,7 @@ export default function RecordOfWorkPage() {
       fetchRecords();
     } catch (err) {
       console.error(err);
-      toast.error("Failed to update record");
+      toast.error(getErrorMessage(err, "Failed to update record"));
       setMarkingId(null);
     }
   };

@@ -179,10 +179,13 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const breadcrumbItems = buildBreadcrumbs(pathname || "/dashboard", pageTitle);
 
   // Session timeout – only active for real authenticated users (not demo)
+  // onTimeout: only signOut — the auth listener above handles the /login redirect
   const { showWarning, remainingTime, extendSession } = useSessionTimeout({
     enabled: !!user && !isDemo && !loading,
     onTimeout: async () => {
       await signOut();
+      // Do NOT call router.push here — the useEffect above already redirects
+      // when user becomes null, preventing a double-redirect race condition
     },
   });
 
