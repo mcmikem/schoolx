@@ -1898,11 +1898,11 @@ export default function GradesPage() {
           </div>
         )}
 
-        {!selectedClass && (
+        {(!selectedClass || !selectedSubject) && (
           <EmptyState
-            icon="menu_book"
-            title="Select a class"
-            description="Choose a class to view curriculum data"
+            icon="edit_note"
+            title="Select a class and subject"
+            description="Choose a class and subject from the filters above to start entering grades."
           />
         )}
 

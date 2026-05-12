@@ -87,16 +87,20 @@ function HeadmasterDashboardContent() {
     if (!school?.id) return;
     const fetchEvents = async () => {
       setEventsLoading(true);
+      const monthStart = localISODate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
+      const monthEnd = localISODate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 2, 0));
       const { data, error } = await supabase
         .from("events")
         .select("id, title, start_date, event_type")
         .eq("school_id", school.id)
+        .gte("start_date", monthStart)
+        .lte("start_date", monthEnd)
         .order("start_date");
       if (!error && data) setCalendarEvents(data as any);
       setEventsLoading(false);
     };
     fetchEvents();
-  }, [school?.id]);
+  }, [school?.id, viewDate]);
 
   // Seed academic calendar events if none exist
   useEffect(() => {
@@ -114,10 +118,14 @@ function HeadmasterDashboardContent() {
       );
       const { error } = await supabase.from("events").insert(defaultEvents);
       if (!error) {
+        const monthStart = localISODate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
+        const monthEnd = localISODate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 2, 0));
         const { data } = await supabase
           .from("events")
           .select("id, title, start_date, event_type")
           .eq("school_id", school.id)
+          .gte("start_date", monthStart)
+          .lte("start_date", monthEnd)
           .order("start_date");
         if (data) setCalendarEvents(data as any);
       }
@@ -136,10 +144,14 @@ function HeadmasterDashboardContent() {
       created_by: user?.id,
     });
     if (!error) {
+      const monthStart = localISODate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
+      const monthEnd = localISODate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 2, 0));
       const { data } = await supabase
         .from("events")
         .select("id, title, start_date, event_type")
         .eq("school_id", school.id)
+        .gte("start_date", monthStart)
+        .lte("start_date", monthEnd)
         .order("start_date");
       if (data) setCalendarEvents(data as any);
       setNewEventTitle("");

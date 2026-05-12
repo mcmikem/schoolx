@@ -96,8 +96,32 @@ interface SchoolSettings {
   fee_threshold: number;
 }
 
+const ALL_SETTINGS_TABS = [
+  { id: "general", label: "School Details" },
+  { id: "config", label: "School Config", badge: "New" },
+  { id: "users", label: "Staff & Users" },
+  { id: "notifications", label: "Notifications" },
+  { id: "checklist", label: "Setup Checklist", badge: "Important" },
+  { id: "backup", label: "Backup & Export" },
+  { id: "subscription", label: "Billing & Plans", badge: "Active" },
+];
+
+const ROLE_TAB_ACCESS: Record<string, string[]> = {
+  school_admin: ["general", "config", "users", "notifications", "checklist", "backup", "subscription"],
+  admin: ["general", "config", "users", "notifications", "checklist", "backup", "subscription"],
+  headmaster: ["general", "config", "users", "notifications", "checklist", "backup", "subscription"],
+  super_admin: ["general", "config", "users", "notifications", "checklist", "backup", "subscription"],
+  bursar: ["general", "notifications", "subscription"],
+  dean_of_studies: ["general", "config", "notifications"],
+  teacher: ["general", "notifications"],
+  secretary: ["general", "notifications"],
+  dorm_master: ["general", "notifications"],
+};
+
 export default function SettingsPage() {
   const { school, user, refreshSchool } = useAuth();
+  const allowedTabIds = ROLE_TAB_ACCESS[user?.role || "teacher"] || ROLE_TAB_ACCESS.teacher;
+  const tabs = ALL_SETTINGS_TABS.filter((t) => allowedTabIds.includes(t.id));
   const toast = useToast();
   const {
     classes,
@@ -191,20 +215,10 @@ export default function SettingsPage() {
     const tab = searchParams.get("tab");
     if (!tab) return;
 
-    const validTabs = new Set([
-      "general",
-      "config",
-      "users",
-      "notifications",
-      "checklist",
-      "backup",
-      "subscription",
-    ]);
-
-    if (validTabs.has(tab)) {
+    if (allowedTabIds.includes(tab)) {
       setActiveTab(tab);
     }
-  }, [searchParams]);
+  }, [searchParams, allowedTabIds]);
 
   const fetchSettings = useCallback(async () => {
     if (!school?.id) return;
@@ -773,15 +787,11 @@ export default function SettingsPage() {
     }
   };
 
-  const tabs = [
-    { id: "general", label: "School Details" },
-    { id: "config", label: "School Config", badge: "New" },
-    { id: "users", label: "Staff & Users" },
-    { id: "notifications", label: "Notifications" },
-    { id: "checklist", label: "Setup Checklist", badge: "Important" },
-    { id: "backup", label: "Backup & Export" },
-    { id: "subscription", label: "Billing & Plans", badge: "Active" },
-  ];
+  useEffect(() => {
+    if (tabs.length > 0 && !tabs.some((t) => t.id === activeTab)) {
+      setActiveTab(tabs[0].id);
+    }
+  }, [tabs, activeTab]);
 
   return (
     <PageErrorBoundary>

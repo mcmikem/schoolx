@@ -165,6 +165,7 @@ export default function CommunicationHubPage() {
   >([]);
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [messageLimit, setMessageLimit] = useState(20);
 
   // Bulk SMS state
   type AudienceType = "all" | "class" | "outstanding_fees" | "custom";
@@ -265,7 +266,7 @@ export default function CommunicationHubPage() {
           .select("*")
           .eq("school_id", user.school_id)
           .order("created_at", { ascending: false })
-          .limit(20),
+          .limit(messageLimit),
       ]);
       if (classesRes.data) setClasses(classesRes.data);
       if (messagesRes.data) setMessages(messagesRes.data);
@@ -579,7 +580,8 @@ export default function CommunicationHubPage() {
     if (audience === "class" && bulkSelectedClass)
       filtered = filtered.filter((s) => s.class_id === bulkSelectedClass);
     else if (audience === "outstanding_fees")
-      filtered = filtered.slice(0, Math.ceil(filtered.length * 0.3));
+      // TODO: Fetch fee balances from payments table and filter to students with balance > 0
+      filtered = filtered;
     else if (audience === "custom")
       filtered = filtered.filter((s) => selectedStudents.includes(s.id));
     const phones = new Set(filtered.map((s) => s.parent_phone));
@@ -1298,6 +1300,16 @@ export default function CommunicationHubPage() {
                       </p>
                     </div>
                   ))}
+                </div>
+              )}
+              {messages.length >= messageLimit && (
+                <div className="mt-4 text-center">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setMessageLimit((prev) => prev + 20)}
+                  >
+                    Load More
+                  </Button>
                 </div>
               )}
             </CardBody>

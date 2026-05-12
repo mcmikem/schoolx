@@ -282,13 +282,6 @@ export default function StudentHubPage() {
     },
   ]);
 
-  const newStudentDraft = {
-    showRestoreDialog: false,
-    discardDraft: () => {},
-    savedDraft: null,
-    updateData: () => {},
-    clearSaved: () => {},
-  };
   const [newStudent, setNewStudent] = useState({
     first_name: "",
     last_name: "",
@@ -671,7 +664,6 @@ export default function StudentHubPage() {
       });
       toast.success("Student added successfully");
       setShowAddModal(false);
-      newStudentDraft.clearSaved();
       resetNewStudentForm();
     } catch (err: unknown) {
       const errorMessage =

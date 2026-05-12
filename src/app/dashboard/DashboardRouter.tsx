@@ -91,26 +91,6 @@ function SecretaryDashboard() {
             </div>
           </div>
         </Link>
-        <Link
-          href="/dashboard/messages"
-          className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]"
-        >
-          <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center"
-            style={{ background: "var(--green-soft)", color: "var(--green)" }}
-          >
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 18 }}
-            >
-              chat
-            </span>
-          </div>
-          <div>
-            <div className="text-xs font-bold text-[var(--t1)]">Messages</div>
-            <div className="text-[10px] text-[var(--t3)]">Communication</div>
-          </div>
-        </Link>
       </div>
     </div>
   );
@@ -259,7 +239,14 @@ export default function DashboardRouter() {
 
   // Centralized setup check: ensure school is initialized
   if (requiresSetup) {
-    return <DashboardSkeleton />;
+    return (
+      <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[var(--primary)] mx-auto mb-4" />
+          <p className="text-[var(--t2)] text-sm">Setting up your school...</p>
+        </div>
+      </div>
+    );
   }
 
   const role = user.role as string;

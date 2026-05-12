@@ -208,13 +208,6 @@ export function useCommandPalette() {
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      // Open with Cmd/Ctrl + K
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        openPalette();
-        return;
-      }
-
       if (!isOpen) return;
 
       switch (e.key) {

@@ -24,6 +24,7 @@ import {
   normalizeAttendanceInput,
   validateAttendanceInput,
 } from "@/lib/validation";
+import type { Student } from "@/types";
 
 const STATUS_CYCLE = ["absent", "present", "late"] as const;
 type AttendanceStatus = (typeof STATUS_CYCLE)[number];
@@ -69,7 +70,7 @@ export default function AttendancePage() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   });
   const [attendance, setAttendance] = useState<Record<string, string>>({});
-  const [students, setStudents] = useState<any[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [offlineCount, setOfflineCount] = useState(0);
@@ -157,7 +158,7 @@ export default function AttendancePage() {
     setLoading(studentsLoading || attendanceLoading);
     setStudents(
       (offlineStudents || []).filter(
-        (student: any) =>
+        (student) =>
           student.class_id === selectedClass && student.status === "active",
       ),
     );
@@ -167,7 +168,7 @@ export default function AttendancePage() {
     });
     if (rollCallMode) {
       const defaulted: Record<string, string> = {};
-      (offlineStudents || []).forEach((s: any) => {
+      (offlineStudents || []).forEach((s) => {
         defaulted[s.id] = attendanceMap[s.id] || "present";
       });
       setAttendance(defaulted);
@@ -411,7 +412,7 @@ export default function AttendancePage() {
                       const { supabase: sb } = await import("@/lib/supabase");
 
                       for (const student of absentees) {
-                        const phone = (student as any).parent_phone;
+                        const phone = student.parent_phone;
                         if (!phone) continue;
 
                         const { error: msgError } = await sb.from("messages").insert({
@@ -818,11 +819,11 @@ export default function AttendancePage() {
                               <div>
                                 <div className="font-bold text-primary">
                                   {student.first_name} {student.last_name}
-                                  {(student as any).boarding_status &&
-                                    (student as any).boarding_status !==
-                                      "day" && (
-                                      <span className="ml-2 px-1.5 py-0.5 bg-teal-100 text-teal-700 text-[10px] font-bold rounded uppercase">
-                                        {(student as any).boarding_status}
+{student.boarding_status &&
+                                  student.boarding_status !==
+                                    "day" && (
+                                  <span className="ml-2 px-1.5 py-0.5 bg-teal-100 text-teal-700 text-[10px] font-bold rounded uppercase">
+                                    {student.boarding_status}
                                       </span>
                                     )}
                                 </div>
