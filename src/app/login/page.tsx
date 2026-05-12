@@ -1,3 +1,21 @@
+// ============================================================================
+// 🔒 LOCKED DOWN — LOGIN PAGE (DO NOT MODIFY WITHOUT APPROVAL)
+// ============================================================================
+// Critical user-facing login flow. Changes can break password login, OTP login,
+// Google OAuth, demo mode, rate limiting, and redirect logic.
+//
+// Last audited: 2026-05-12 | Bugs fixed: 4
+// Known pitfalls:
+//   - Demo phone numbers MUST be 12 digits (256700000001 format)
+//   - OTP verifyOtp must use { email, token, type: "magiclink" } NOT token_hash/email
+//   - Google OAuth redirectTo must include /auth/callback?next= param
+//   - Client-side rate limiting uses exponential backoff (30s → 5min max)
+//   - All identifiers must be normalized (email lowercase, phone via normalizeAuthPhone)
+//   - router.replace() not router.push() for post-login redirects
+//   - Demo mode requires BOTH ENABLE_DEV_TEST_ROUTES and NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES
+//
+// To modify: Run full test suite (lint + typecheck + regression + e2e)
+// ============================================================================
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect } from "react";
@@ -220,8 +238,9 @@ export default function LoginPage() {
         if (data.success && data.token) {
           // Verify the magic link token to establish a Supabase session
           const { error: verifyError } = await supabase.auth.verifyOtp({
-            token_hash: data.token,
-            type: "email",
+            email: data.email,
+            token: data.token,
+            type: "magiclink",
           });
           if (verifyError) {
             toast.error(verifyError.message || "OTP verification failed");
@@ -283,7 +302,7 @@ export default function LoginPage() {
 
     // DEMO_PHONE_NUMBERS: only try demo login for known demo phone numbers
     // to avoid wasting a network round-trip for every real user
-    const DEMO_PHONE_NUMBERS = ["25670000001", "25670000002", "25670000003", "25670000004"];
+    const DEMO_PHONE_NUMBERS = ["256700000001", "256700000002", "256700000003", "256700000004"];
     const isDemoPhone = !isEmailLogin && DEMO_PHONE_NUMBERS.includes(normalizedIdentifier);
 
     try {

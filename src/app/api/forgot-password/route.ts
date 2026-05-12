@@ -1,3 +1,10 @@
+// ============================================================================
+// 🔒 LOCKED DOWN — FORGOT PASSWORD API (DO NOT MODIFY WITHOUT APPROVAL)
+// ============================================================================
+// Sends password reset email via Supabase. Rate limited to prevent abuse.
+//
+// To modify: Run full test suite (lint + typecheck + regression + e2e)
+// ============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";

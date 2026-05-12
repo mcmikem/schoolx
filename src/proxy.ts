@@ -1,3 +1,19 @@
+// ============================================================================
+// 🔒 LOCKED DOWN — ROUTING MIDDLEWARE (DO NOT MODIFY WITHOUT APPROVAL)
+// ============================================================================
+// This file IS the middleware. Next.js 16 + Turbopack picks up src/proxy.ts.
+// Deleting or badly defining it breaks ALL routing (every page returns 404).
+//
+// Last audited: 2026-05-12 | Bugs fixed: 3
+// Known pitfalls:
+//   - Do NOT create src/middleware.ts — it conflicts with src/proxy.ts
+//   - All public paths must be in alwaysPublicPaths (login, register, auth/callback, etc.)
+//   - Demo session validation must check DEMO_ALLOWED_ROLES allowlist
+//   - Security headers (CSP) must allow local Supabase in dev mode
+//   - CSRF tokens must be issued on every response
+//
+// To modify: Run full test suite (lint + typecheck + regression + e2e)
+// ============================================================================
 import { logger } from "@/lib/logger";
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
@@ -45,6 +61,9 @@ const alwaysPublicPaths = [
   "/register",
   "/demo-login",
   "/privacy",
+  "/auth/callback",
+  "/forgot-password",
+  "/reset-password",
   "/api/auth",
   "/api/demo-login",
   "/api/register",

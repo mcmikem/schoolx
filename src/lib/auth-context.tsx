@@ -1,3 +1,20 @@
+// ============================================================================
+// 🔒 LOCKED DOWN — AUTH CORE (DO NOT MODIFY WITHOUT APPROVAL)
+// ============================================================================
+// This file is part of the critical auth flow. Changes here can break login,
+// registration, session management, and offline mode for ALL users.
+//
+// Last audited: 2026-05-12 | Bugs fixed: 50+
+// Known pitfalls:
+//   - signIn() must NOT call fetchUserData (onAuthStateChange is single source)
+//   - loading=true ONLY on SIGNED_IN event, never on INITIAL_SESSION/TOKEN_REFRESHED
+//   - Network errors must NEVER clear user state (offline mode)
+//   - router.replace() not router.push() for all redirects
+//   - All Supabase calls in signIn() must use withSupabaseLockRetry()
+//   - authFetchAborted ref must be reset on mount (StrictMode compat)
+//
+// To modify: Run full test suite (lint + typecheck + regression + e2e)
+// ============================================================================
 "use client";
 import {
   createContext,
@@ -562,7 +579,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
             setUser(null);
             setSchool(null);
-            router.push("/login");
+router.replace("/login");
           }
         } catch (err) {
           // Never log out on network errors — poor internet is common.
@@ -790,7 +807,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsDemo(false);
     setIsTrialExpired(false);
     clearDemoStorage();
-    router.push("/login");
+    router.replace("/login");
   }, [router]);
 
   return (

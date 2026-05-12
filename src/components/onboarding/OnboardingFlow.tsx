@@ -132,7 +132,6 @@ export default function OnboardingFlow({
     { name: "Tuition", amount: "150000", category: "Tuition" },
     { name: "Development", amount: "50000", category: "Development" },
   ]);
-  const [applyFeeToAllClasses, setApplyFeeToAllClasses] = useState(true);
 
   // Step 7: Grading
   const [gradingPrefs, setGradingPrefs] = useState({
@@ -311,8 +310,8 @@ export default function OnboardingFlow({
   };
 
   // Save terms (Step 5)
-  const saveTerms = async () => {
-    if (!school?.id) return;
+  const saveTerms = async (): Promise<boolean> => {
+    if (!school?.id) return false;
     setSaving(true);
     try {
       const termRows = terms
@@ -337,16 +336,18 @@ export default function OnboardingFlow({
 
       toast.success("Academic calendar saved");
       markStepComplete(5);
+      return true;
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to save terms"));
+      return false;
     } finally {
       setSaving(false);
     }
   };
 
   // Save fees (Step 6)
-  const saveFees = async () => {
-    if (!school?.id) return;
+  const saveFees = async (): Promise<boolean> => {
+    if (!school?.id) return false;
     setSaving(true);
     try {
       const year = new Date().getFullYear().toString();
@@ -357,7 +358,7 @@ export default function OnboardingFlow({
           name: fee.name,
           amount: parseFloat(fee.amount),
           category: fee.category,
-          class_id: applyFeeToAllClasses ? null : null,
+          class_id: null,
           term: 1,
           academic_year: year,
         }));
@@ -371,16 +372,18 @@ export default function OnboardingFlow({
 
       toast.success("Fee structure saved");
       markStepComplete(6);
+      return true;
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to save fees"));
+      return false;
     } finally {
       setSaving(false);
     }
   };
 
   // Save grading (Step 7)
-  const saveGradingPrefs = async () => {
-    if (!school?.id) return;
+  const saveGradingPrefs = async (): Promise<boolean> => {
+    if (!school?.id) return false;
     setSaving(true);
     try {
       const { error: pmError } = await supabase
@@ -401,16 +404,18 @@ export default function OnboardingFlow({
 
       toast.success("Grading system saved");
       markStepComplete(7);
+      return true;
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to save grading preferences"));
+      return false;
     } finally {
       setSaving(false);
     }
   };
 
   // Save report branding (Step 8)
-  const saveReportBranding = async () => {
-    if (!school?.id) return;
+  const saveReportBranding = async (): Promise<boolean> => {
+    if (!school?.id) return false;
     setSaving(true);
     try {
       const { error } = await supabase
@@ -428,8 +433,10 @@ export default function OnboardingFlow({
       if (error) throw error;
       toast.success("Report card settings saved");
       markStepComplete(8);
+      return true;
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to save report card settings"));
+      return false;
     } finally {
       setSaving(false);
     }
@@ -845,10 +852,10 @@ export default function OnboardingFlow({
 
   // Generic next that triggers per-step saves for steps that need it
   const handleGenericNext = async () => {
-    if (step === 5) { await saveTerms(); handleNext(6); }
-    else if (step === 6) { await saveFees(); handleNext(7); }
-    else if (step === 7) { await saveGradingPrefs(); handleNext(8); }
-    else if (step === 8) { await saveReportBranding(); handleNext(9); }
+    if (step === 5) { if (await saveTerms()) handleNext(6); }
+    else if (step === 6) { if (await saveFees()) handleNext(7); }
+    else if (step === 7) { if (await saveGradingPrefs()) handleNext(8); }
+    else if (step === 8) { if (await saveReportBranding()) handleNext(9); }
     else { handleNext(step + 1); }
   };
 
@@ -1830,15 +1837,7 @@ export default function OnboardingFlow({
                   />
 
                   <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm space-y-3">
-                    <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-50">
-                      <input
-                        type="checkbox"
-                        checked={applyFeeToAllClasses}
-                        onChange={() => setApplyFeeToAllClasses(!applyFeeToAllClasses)}
-                        className="rounded"
-                      />
-                      Apply fees to all classes
-                    </label>
+                    <p className="text-xs font-medium text-slate-500">Fees apply to all classes — customize per class later in Settings.</p>
 
                     {fees.map((fee, i) => (
                       <div key={i} className="space-y-2 rounded-xl border border-slate-200 bg-white p-3">

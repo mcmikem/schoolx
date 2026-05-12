@@ -1,3 +1,11 @@
+// ============================================================================
+// 🔒 LOCKED DOWN — SUPABASE LOCK RETRY (DO NOT MODIFY WITHOUT APPROVAL)
+// ============================================================================
+// withSupabaseLockRetry() — retries Supabase calls on lock/timeout errors.
+// Critical for handling Supabase connection contention on poor networks.
+//
+// To modify: Run full test suite (lint + typecheck + regression + e2e)
+// ============================================================================
 import { getErrorMessage } from "@/lib/validation";
 
 const LOCK_BROKEN_MESSAGE =

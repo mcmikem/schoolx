@@ -1,3 +1,19 @@
+// ============================================================================
+// 🔒 LOCKED DOWN — REGISTER API (DO NOT MODIFY WITHOUT APPROVAL)
+// ============================================================================
+// Server-side registration with Supabase admin client. Creates auth user,
+// school record, user profile, and seeds curriculum data.
+//
+// Last audited: 2026-05-12 | Known pitfalls:
+//   - Uses supabaseAdmin (service role) — bypasses RLS
+//   - Manual rollback on failure (delete auth user + school)
+//   - School code generation must include timestamp to avoid race conditions
+//   - Honeypot field (_gotcha) for bot protection
+//   - Rate limit: 5 registrations per IP per 10 minutes
+//   - Auth email: user-provided email OR ${phone}@omuto.org fallback
+//
+// To modify: Run full test suite (lint + typecheck + regression + e2e)
+// ============================================================================
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import {

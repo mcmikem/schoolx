@@ -1,3 +1,16 @@
+// ============================================================================
+// 🔒 LOCKED DOWN — OTP VERIFY API (DO NOT MODIFY WITHOUT APPROVAL)
+// ============================================================================
+// Verifies OTP code and generates magic link token for session establishment.
+//
+// Last audited: 2026-05-12 | Known pitfalls:
+//   - Returns { token, email } — client must use verifyOtp({ email, token, type: "magiclink" })
+//   - Uses generateLink (NOT signInWithOtp) to create session without password
+//   - Token extracted from action_link URL via regex
+//   - Marks OTP as used after verification
+//
+// To modify: Run full test suite (lint + typecheck + regression + e2e)
+// ============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
@@ -91,6 +104,7 @@ export async function POST(request: NextRequest) {
       verified: true,
       token,
       tokenType: "magiclink",
+      email: authEmail,
       user: {
         id: parentUser.id,
         auth_id: parentUser.auth_id,

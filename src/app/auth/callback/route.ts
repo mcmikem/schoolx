@@ -1,3 +1,16 @@
+// ============================================================================
+// 🔒 LOCKED DOWN — OAUTH CALLBACK (DO NOT MODIFY WITHOUT APPROVAL)
+// ============================================================================
+// Handles Google OAuth redirect callback. Exchanges code for session,
+// checks for existing profile, redirects to register if new user.
+//
+// Last audited: 2026-05-12 | Known pitfalls:
+//   - Must be in proxy.ts alwaysPublicPaths or OAuth redirect fails
+//   - sanitizeNext() prevents open redirect attacks
+//   - Redirects to /register?oauth=1 if no profile found
+//
+// To modify: Run full test suite (lint + typecheck + regression + e2e)
+// ============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/server/user-provisioning";

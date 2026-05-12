@@ -1,3 +1,15 @@
+// ============================================================================
+// 🔒 LOCKED DOWN — VALIDATION UTILITIES (DO NOT MODIFY WITHOUT APPROVAL)
+// ============================================================================
+// Core validation functions: normalizeAuthPhone, normalizeStudentInput,
+// sanitizeString, getErrorMessage, and Zod schemas.
+//
+// Known pitfalls:
+//   - normalizeAuthPhone() must produce 12-digit format (256XXXXXXXXX)
+//   - normalizeStudentInput() MUST include gender field or inserts fail (NOT NULL)
+//
+// To modify: Run full test suite (lint + typecheck + regression + e2e)
+// ============================================================================
 import { z } from 'zod';
 
 export const phoneSchema = z.string()

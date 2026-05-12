@@ -1,6 +1,79 @@
 #!/usr/bin/env sh
 echo "🔒 Running pre-commit checks..."
 
+# ============================================================================
+# LOCKDOWN CHECK — Block unapproved changes to critical auth files
+# ============================================================================
+# To bypass: set ALLOW_AUTH_CHANGES=1 environment variable
+#   ALLOW_AUTH_CHANGES=1 git commit -m "fix: auth changes"
+# ============================================================================
+
+LOCKED_FILES=(
+  "src/lib/auth-context.tsx"
+  "src/lib/auth-context-types.ts"
+  "src/lib/auth-login.ts"
+  "src/lib/auth-phone.ts"
+  "src/lib/auth-demo.ts"
+  "src/lib/supabase-lock.ts"
+  "src/lib/useSessionTimeout.ts"
+  "src/lib/validation.ts"
+  "src/proxy.ts"
+  "src/app/login/page.tsx"
+  "src/app/register/page.tsx"
+  "src/app/auth/callback/route.ts"
+  "src/app/api/auth/me/route.ts"
+  "src/app/api/auth/otp/route.ts"
+  "src/app/api/auth/verify-otp/route.ts"
+  "src/app/api/register/route.ts"
+  "src/app/api/register/oauth/route.ts"
+  "src/app/api/demo-login/route.ts"
+  "src/app/api/forgot-password/route.ts"
+  "src/app/api/reset-password/route.ts"
+  "src/components/onboarding/OnboardingFlow.tsx"
+  "src/components/onboarding/PostOnboardingSetup.tsx"
+  "src/__tests__/lockdown.test.ts"
+  "src/__tests__/regression.test.ts"
+)
+
+LOCKED_PATTERN=""
+for f in "${LOCKED_FILES[@]}"; do
+  if [ -z "$LOCKED_PATTERN" ]; then
+    LOCKED_PATTERN="$f"
+  else
+    LOCKED_PATTERN="$LOCKED_PATTERN|$f"
+  fi
+done
+
+STAGED_LOCKED=$(git diff --cached --name-only | grep -E "^($LOCKED_PATTERN)$" || true)
+
+if [ -n "$STAGED_LOCKED" ]; then
+  if [ "$ALLOW_AUTH_CHANGES" != "1" ]; then
+    echo ""
+    echo "🔒 LOCKED FILES MODIFIED — Changes blocked!"
+    echo ""
+    echo "The following critical auth files were modified:"
+    echo "$STAGED_LOCKED" | while read -r file; do
+      echo "  • $file"
+    done
+    echo ""
+    echo "These files are locked to prevent accidental breakage."
+    echo "To proceed, you MUST:"
+    echo "  1. Run: npm test -- --testPathPatterns=lockdown"
+    echo "  2. Run: npm run test:regression"
+    echo "  3. Verify all tests pass"
+    echo "  4. Commit with: ALLOW_AUTH_CHANGES=1 git commit -m \"your message\""
+    echo ""
+    echo "If you did not intend to modify these files, revert them:"
+    echo "  git restore --staged $STAGED_LOCKED"
+    echo ""
+    exit 1
+  else
+    echo "  ⚠️  ALLOW_AUTH_CHANGES=1 — Skipping lockdown check"
+  fi
+fi
+
+echo "🔒 Running pre-commit checks..."
+
 echo "  [1/3] Linting staged files..."
 npx lint-staged --config lint-staged.config.json 2>&1
 if [ $? -ne 0 ]; then

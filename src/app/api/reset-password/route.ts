@@ -1,3 +1,10 @@
+// ============================================================================
+// 🔒 LOCKED DOWN — RESET PASSWORD API (DO NOT MODIFY WITHOUT APPROVAL)
+// ============================================================================
+// Handles password reset with token validation and rate limiting.
+//
+// To modify: Run full test suite (lint + typecheck + regression + e2e)
+// ============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { randomBytes } from "crypto";

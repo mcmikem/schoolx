@@ -1,3 +1,10 @@
+// ============================================================================
+// 🔒 LOCKED DOWN — AUTH CONTEXT TYPES (DO NOT MODIFY WITHOUT APPROVAL)
+// ============================================================================
+// Type definitions, sanitizers, and trial/subscription checks for auth context.
+//
+// To modify: Run full test suite (lint + typecheck + regression + e2e)
+// ============================================================================
 "use client";
 import { FeatureStage, DEFAULT_FEATURE_STAGE } from "./featureStages";
 import type { User, School } from "@/types";

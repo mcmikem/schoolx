@@ -1,3 +1,11 @@
+// ============================================================================
+// 🔒 LOCKED DOWN — AUTH DEMO HELPERS (DO NOT MODIFY WITHOUT APPROVAL)
+// ============================================================================
+// encryptDemoData(), decryptDemoData(), readDemoStorage(), clearDemoStorage()
+// Handles demo user/school data persistence with base64 encoding.
+//
+// To modify: Run full test suite (lint + typecheck + regression + e2e)
+// ============================================================================
 "use client";
 import { DEMO_KEY, DEMO_MODE_ENABLED } from "./auth-context-types";
 

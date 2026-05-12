@@ -1,3 +1,20 @@
+// ============================================================================
+// 🔒 LOCKED DOWN — REGISTER PAGE (DO NOT MODIFY WITHOUT APPROVAL)
+// ============================================================================
+// Critical user-facing registration flow. Changes can break school creation,
+// Google OAuth registration, auto sign-in, and location-based district selection.
+//
+// Last audited: 2026-05-12 | Bugs fixed: 3
+// Known pitfalls:
+//   - Auto sign-in must try BOTH user-provided email AND @omuto.org fallback
+//   - Google OAuth mode redirects to /auth/callback?next=/register
+//   - Registration API uses /api/register/ (password) or /api/register/oauth/ (Google)
+//   - All redirects must use router.replace() not router.push()
+//   - Uganda phone validation: /^(0|256|\+256)[7][0-9]{8}$/
+//   - Password requirements: 8+ chars, 1 uppercase, 1 number
+//
+// To modify: Run full test suite (lint + typecheck + regression + e2e)
+// ============================================================================
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect } from "react";
@@ -280,14 +297,17 @@ export default function RegisterPage() {
 
       if (googleRegisterMode) {
         setLoading(false);
-        router.push("/dashboard/");
+router.replace("/dashboard/");
         return;
       }
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const normalizedPhone = normalizeAuthPhone(form.adminPhone);
-      const email = `${normalizedPhone}@omuto.org`;
+      const hasValidEmail = form.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email);
+      const emailCandidates = hasValidEmail
+        ? [form.email.toLowerCase(), `${normalizedPhone}@omuto.org`]
+        : [`${normalizedPhone}@omuto.org`];
 
       // Try auto sign-in up to 4 times with progressive back-off.
       // Supabase sometimes needs a few seconds to propagate the new auth user.
@@ -296,10 +316,11 @@ export default function RegisterPage() {
         if (attempt > 0) {
           await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
         }
+        const emailToTry = emailCandidates[attempt % emailCandidates.length];
         const { error: attemptError } = await withSupabaseLockRetry(
           async () =>
             await supabase.auth.signInWithPassword({
-              email,
+              email: emailToTry,
               password: form.password,
             }),
         );
@@ -312,7 +333,7 @@ export default function RegisterPage() {
       if (!signedIn) {
         // Registration succeeded but auto sign-in failed after retries.
         // Send to login with a pre-filled phone so the user just enters password.
-        router.push(
+        router.replace(
           "/login?registered=1&phone=" + encodeURIComponent(form.adminPhone),
         );
         setLoading(false);
@@ -320,7 +341,7 @@ export default function RegisterPage() {
       }
 
       setLoading(false);
-      router.push("/dashboard/");
+      router.replace("/dashboard/");
     } catch (err: unknown) {
       setLoading(false);
       if (err instanceof Error && err.name === "AbortError") {

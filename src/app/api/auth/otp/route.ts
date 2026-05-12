@@ -1,3 +1,16 @@
+// ============================================================================
+// 🔒 LOCKED DOWN — OTP SEND API (DO NOT MODIFY WITHOUT APPROVAL)
+// ============================================================================
+// Generates and sends OTP via Africa's Talking SMS for parent login.
+//
+// Last audited: 2026-05-12 | Known pitfalls:
+//   - Stores OTP in "otps" table with phone as unique key (upsert)
+//   - 5-minute expiry, 6-digit code
+//   - Returns success even if phone not found (security: don't leak user existence)
+//   - Demo mode: returns OTP in response if AFRICAS_TALKING_API_KEY not set
+//
+// To modify: Run full test suite (lint + typecheck + regression + e2e)
+// ============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";

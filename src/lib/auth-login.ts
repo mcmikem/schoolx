@@ -1,3 +1,11 @@
+// ============================================================================
+// 🔒 LOCKED DOWN — AUTH LOGIN HELPERS (DO NOT MODIFY WITHOUT APPROVAL)
+// ============================================================================
+// buildAuthLoginAttempts() — generates email/phone login attempt combinations.
+// buildAuthEmailFromPhone() — converts phone to @omuto.org email format.
+//
+// To modify: Run full test suite (lint + typecheck + regression + e2e)
+// ============================================================================
 import { normalizeAuthPhone, sanitizePhone } from "./validation";
 
 export type AuthLoginAttempt = {

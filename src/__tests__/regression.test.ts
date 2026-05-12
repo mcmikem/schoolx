@@ -456,8 +456,9 @@ describe("Production Hardening Regression Tests", () => {
         "utf8",
       );
       expect(loginPage).toContain("verifyOtp");
-      expect(loginPage).toContain("token_hash");
-      expect(loginPage).toContain('type: "email"');
+      expect(loginPage).toContain("token: data.token");
+      expect(loginPage).toContain('type: "magiclink"');
+      expect(loginPage).toContain("email: data.email");
     });
 
     it("should have OTP toggle in login page (optional, not forced)", () => {

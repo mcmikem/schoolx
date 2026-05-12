@@ -1,3 +1,16 @@
+// ============================================================================
+// 🔒 LOCKED DOWN — DEMO LOGIN API (DO NOT MODIFY WITHOUT APPROVAL)
+// ============================================================================
+// Development-only demo login. Requires DEMO_ADMIN_PASSWORD env var.
+//
+// Last audited: 2026-05-12 | Known pitfalls:
+//   - requireDevelopmentRouteOrDeny() blocks in production
+//   - Validates against hardcoded demo phone numbers
+//   - Returns { user, school } for client-side demo session creation
+//   - Rate limited: 10 attempts per IP per 5 minutes
+//
+// To modify: Run full test suite (lint + typecheck + regression + e2e)
+// ============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import { requireDevelopmentRouteOrDeny, rateLimit } from "@/lib/api-utils";
 

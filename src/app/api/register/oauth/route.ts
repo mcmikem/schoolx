@@ -1,3 +1,16 @@
+// ============================================================================
+// 🔒 LOCKED DOWN — OAUTH REGISTER API (DO NOT MODIFY WITHOUT APPROVAL)
+// ============================================================================
+// Google OAuth registration flow. Links Google auth to school account.
+//
+// Last audited: 2026-05-12 | Known pitfalls:
+//   - Requires authenticated Google session (checks supabase.auth.getUser())
+//   - Uses school-provisioning helpers (reserveUniqueSchoolCode, seedSchoolDefaults)
+//   - Checks for existing auth_id AND phone to prevent duplicates
+//   - Updates auth user metadata after registration
+//
+// To modify: Run full test suite (lint + typecheck + regression + e2e)
+// ============================================================================
 import { NextRequest } from "next/server";
 import { apiError, apiSuccess, handleApiError, rateLimit } from "@/lib/api-utils";
 import { normalizePlanType } from "@/lib/payments/subscription-client";

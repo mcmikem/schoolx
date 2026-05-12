@@ -1,3 +1,16 @@
+// ============================================================================
+// 🔒 LOCKED DOWN — AUTH ME API (DO NOT MODIFY WITHOUT APPROVAL)
+// ============================================================================
+// Returns user profile + school data for authenticated requests.
+// Bypasses RLS via supabaseAdmin (service role).
+//
+// Last audited: 2026-05-12 | Known pitfalls:
+//   - Uses supabaseAdmin — bypasses RLS, must validate auth token manually
+//   - Returns 404 if profile not found (triggers sign-out in client)
+//   - Response shape: { user: {...}, school: {...} }
+//
+// To modify: Run full test suite (lint + typecheck + regression + e2e)
+// ============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";

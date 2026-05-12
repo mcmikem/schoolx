@@ -1,3 +1,10 @@
+// ============================================================================
+// 🔒 LOCKED DOWN — AUTH PHONE HELPERS (DO NOT MODIFY WITHOUT APPROVAL)
+// ============================================================================
+// buildPhoneLookupCandidates() — generates phone format variants for lookup.
+//
+// To modify: Run full test suite (lint + typecheck + regression + e2e)
+// ============================================================================
 import { normalizeAuthPhone } from "./validation";
 
 export function buildPhoneLookupCandidates(rawPhone: unknown): string[] {

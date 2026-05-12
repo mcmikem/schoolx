@@ -1,3 +1,11 @@
+// ============================================================================
+// 🔒 LOCKED DOWN — SESSION TIMEOUT (DO NOT MODIFY WITHOUT APPROVAL)
+// ============================================================================
+// useSessionTimeout() — 30-min inactivity timeout with 5-min warning.
+// Only active for real authenticated users (not demo mode).
+//
+// To modify: Run full test suite (lint + typecheck + regression + e2e)
+// ============================================================================
 "use client";
 
 import { useEffect, useRef, useCallback, useState } from "react";
