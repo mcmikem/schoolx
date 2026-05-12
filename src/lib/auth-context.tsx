@@ -364,7 +364,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           let authUserError: unknown = null;
-          let authUser = null;
+          let authUser: User | null = null;
           try {
             const result = await Promise.race([
               withSupabaseLockRetry(
@@ -373,7 +373,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               new Promise<never>((_, reject) =>
                 setTimeout(() => reject(new Error("getUser timed out in checkUser")), 10000),
               ),
-            ]) as { data: { user: typeof authUser } };
+            ]) as { data: { user: User | null } };
             authUser = result.data.user;
           } catch (err) {
             authUserError = err;
@@ -505,7 +505,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try {
               const {
                 data: { user: verifiedUser },
-              } = await Promise.race([
+              }: { data: { user: User | null } } = await Promise.race([
                 withSupabaseLockRetry(
                   async () => await supabase!.auth.getUser(),
                 ),
@@ -515,7 +515,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     10000,
                   ),
                 ),
-              ]) as { data: { user: typeof verifiedUser } };
+              ]) as { data: { user: User | null } };
 
               if (verifiedUser) {
                 authCheckedRef.current = true;
