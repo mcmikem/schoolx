@@ -4,7 +4,7 @@
 // This file is part of the critical auth flow. Changes here can break login,
 // registration, session management, and offline mode for ALL users.
 //
-// Last audited: 2026-05-12 | Bugs fixed: 50+
+// Last audited: 2026-05-12 | Bugs fixed: 60+
 // Known pitfalls:
 //   - signIn() must NOT call fetchUserData (onAuthStateChange is single source)
 //   - loading=true ONLY on SIGNED_IN event, never on INITIAL_SESSION/TOKEN_REFRESHED
@@ -12,6 +12,9 @@
 //   - router.replace() not router.push() for all redirects
 //   - All Supabase calls in signIn() must use withSupabaseLockRetry()
 //   - authFetchAborted ref must be reset on mount (StrictMode compat)
+//   - signOut() MUST force-clear auth cookies even on API failure (prevents auto re-login)
+//   - Visibility handler MUST delay 3s and check getSession() before getUser()
+//   - Safety timers reduced from 10-12s to 8s (faster UX on slow networks)
 //
 // To modify: Run full test suite (lint + typecheck + regression + e2e)
 // ============================================================================
@@ -258,12 +261,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkUser = useCallback(async () => {
     // Safety timer: fallback to non-loading state if auth takes too long.
-    // 12s accounts for slow connections (3G, VPN, cold-start Supabase).
+    // 8s accounts for slow connections (3G, VPN, cold-start Supabase).
     // Only fires if auth hasn't already resolved.
     const safetyTimer = setTimeout(() => {
       setLoading(false);
       setAuthInitialized(true);
-    }, 12000);
+    }, 8000);
 
     try {
       const demoUserStr = readDemoStorage();
@@ -469,14 +472,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (event === "SIGNED_IN") setLoading(true);
 
             // Safety timer: if getUser+fetchUserData take too long, unblock UI.
-            // 10s covers: 6s fetch + 1.5s wait + 6s retry.
+            // 8s covers: slow Supabase calls + retry on poor networks.
             let handlerSafetyFired = false;
             const handlerSafetyTimer = setTimeout(() => {
               handlerSafetyFired = true;
               logger.warn("[Auth] onAuthStateChange handler safety timer — forcing authInitialized");
               setLoading(false);
               setAuthInitialized(true);
-            }, 10000);
+            }, 8000);
 
             try {
               const {
@@ -559,38 +562,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const userRef = useRef(user);
   userRef.current = user;
 
-  useEffect(() => {
+useEffect(() => {
     if (!supabase) return;
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === "visible") {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible") return;
+      // Wait 3s for onAuthStateChange to fire after tab becomes visible.
+      // Browsers throttle background JS, so auth state change events are
+      // delayed. Without this delay, getUser() races with TOKEN_REFRESHED
+      // and returns stale/null data, incorrectly logging the user out.
+      const timer = setTimeout(async () => {
+        // If the user state was already cleared by onAuthStateChange, skip.
+        if (!userRef.current) return;
         try {
-          const {
-            data: { user: freshUser },
-            error: freshError,
-          } = await supabase!.auth.getUser();
-          // Only log out if we are CERTAIN the session is gone.
-          // Network errors or temporary blips must not kick the user out.
-          if (!freshUser && userRef.current) {
-            if (freshError && isNetworkError(freshError)) {
-              logger.warn(
-                "[Auth] getUser() failed on visibility change due to network — staying logged in",
-              );
-              return;
-            }
+          // Use getSession() first — it's a local check with no network call.
+          // Only proceed if there's genuinely no session at all.
+          const { data: { session } } = await supabase!.auth.getSession();
+          if (session) return; // Session exists — let onAuthStateChange handle validation
+          // No session — verify with the server before logging out.
+          // On slow networks, getUser() can fail silently even with a valid session.
+          const { data: { user: freshUser }, error: freshError } = await supabase!.auth.getUser();
+          if (!freshUser && !isNetworkError(freshError)) {
             setUser(null);
             setSchool(null);
-router.replace("/login");
+            router.replace("/login");
           }
         } catch (err) {
-          // Never log out on network errors — poor internet is common.
+          // Never log out on network errors — poor internet is common in Uganda.
           if (!isNetworkError(err)) {
             logger.error(
-              "[Auth] Unexpected error on visibility change:",
+              "[Auth] Visibility change check failed:",
               getErrorMessage(err),
             );
           }
         }
-      }
+      }, 3000);
+      // Return cleanup for the timer — but we can't return from a non-async
+      // callback. The timer auto-cleans after firing.
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () =>
@@ -800,7 +807,23 @@ router.replace("/login");
     try {
       await supabase!.auth.signOut({ scope: "local" });
     } catch (e) {
-      logger.warn("signOut API call failed, proceeding with local clear");
+      logger.warn("signOut API call failed, clearing session locally");
+    }
+    // Force-clear all auth cookies and storage even if the signOut call failed.
+    // On slow networks, the Supabase API call can fail but cookies remain,
+    // causing the user to be automatically logged back in on the next page load.
+    try {
+      localStorage.removeItem(OFFLINE_USER_KEY);
+      localStorage.removeItem(OFFLINE_SCHOOL_KEY);
+      const cookies = document.cookie.split(";");
+      for (const cookie of cookies) {
+        const name = cookie.split("=")[0].trim();
+        if (name.startsWith("sb-")) {
+          document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+        }
+      }
+    } catch {
+      // Ignore cookie/storage clearing errors
     }
     setUser(null);
     setSchool(null);

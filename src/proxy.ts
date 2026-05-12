@@ -281,7 +281,20 @@ export async function proxy(request: NextRequest) {
     logger.error("Auth user error:", userError);
   }
 
-  if (!authUser) {
+  // If getUser() failed, the JWT might be expired but the refresh token
+  // is still valid. Try refreshing before redirecting to login — this
+  // prevents kicking users out on slow networks where token refresh is delayed.
+  let verifiedUser = authUser;
+  if (!verifiedUser) {
+    try {
+      const { data: refreshData } = await supabase.auth.refreshSession();
+      verifiedUser = refreshData.user;
+    } catch {
+      // Refresh failed — no valid session. Will redirect to login below.
+    }
+  }
+
+  if (!verifiedUser) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     // Distinguish session expiry from other redirects so the login page can
@@ -293,7 +306,7 @@ export async function proxy(request: NextRequest) {
   const { data: user } = await supabase
     .from("users")
     .select("is_active, role")
-    .eq("auth_id", authUser.id)
+    .eq("auth_id", verifiedUser.id)
     .single();
 
   if (user && !user.is_active) {
@@ -303,7 +316,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(inactiveUrl);
   }
 
-  supabaseResponse.headers.set("x-user-id", authUser.id);
+  supabaseResponse.headers.set("x-user-id", verifiedUser.id);
   supabaseResponse.headers.set("x-user-role", user?.role || "");
 
   return supabaseResponse;

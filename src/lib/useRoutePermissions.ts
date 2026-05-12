@@ -35,12 +35,12 @@ export function useRoutePermissions() {
     if (!authInitialized) return
 
     if (!user && !publicRoutes.includes(path)) {
-      router.push('/login')
+      router.replace('/login')
       return
     }
 
     if (path === '/login' && user) {
-      router.push('/dashboard')
+      router.replace('/dashboard')
       return
     }
 
@@ -53,7 +53,7 @@ export function useRoutePermissions() {
     if (routeKey) {
       const permission = roleBasedRoutes[routeKey]
       if (user.role && !canAccess(user.role as UserRole, permission)) {
-        router.push('/dashboard')
+        router.replace('/dashboard')
       }
     }
   }, [user, authInitialized, path, router])

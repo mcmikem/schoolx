@@ -185,12 +185,12 @@ describe("🔒 LOCKDOWN: Auth Context", () => {
   it("must have network error detection that preserves user state", () => {
     expect(authContext).toContain("isNetworkError");
     expect(authContext).toContain("keeping cached user");
-    expect(authContext).toContain("staying logged in");
+    expect(authContext).toContain("visibilitychange");
   });
 
   it("must have safety timer for auth initialization", () => {
     expect(authContext).toContain("safetyTimer");
-    expect(authContext).toContain("12000");
+    expect(authContext).toContain("8000");
   });
 
   it("must have signIn lock to prevent double-click", () => {

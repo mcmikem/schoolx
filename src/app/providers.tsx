@@ -72,14 +72,20 @@ function LoadingChecker({ children }: { children: ReactNode }) {
   const { authInitialized } = useAuth()
   const [showLoader, setShowLoader] = useState(true)
 
-  // Show loader for at most 2 seconds, then render content anyway.
-  // This prevents infinite blank screens if auth init hangs (e.g. Supabase down).
+  // Show loader until auth initializes, with a 5-second maximum.
+  // Previously 2s was too short on slow 3G networks where auth init
+  // takes 5-10s. After 5s, render content anyway to prevent infinite
+  // blank screens (dashboard will show its own skeleton if needed).
   useEffect(() => {
+    if (authInitialized) {
+      setShowLoader(false)
+      return
+    }
     const timer = setTimeout(() => {
       setShowLoader(false)
-    }, 2000)
+    }, 5000)
     return () => clearTimeout(timer)
-  }, [])
+  }, [authInitialized])
 
   if (!authInitialized && showLoader) return <AppLoader />
   return <>{children}</>

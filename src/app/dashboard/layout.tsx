@@ -247,7 +247,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     }
     const timer = setTimeout(() => {
       setLoadingTimedOut(true);
-    }, 15000);
+    }, 10000);
     return () => clearTimeout(timer);
   }, [loading]);
 
@@ -304,7 +304,18 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPath, onboardingCompleted, user?.role, user?.id]);
 
-  if (authInitialized && !user && !isDemo) {
+// Show skeleton while auth is initializing OR while loading dashboard data.
+  // Previously, returning null when !authInitialized caused blank screens on slow networks.
+  if (!authInitialized || (loading && !loadingTimedOut)) {
+    return (
+      <div className="min-h-screen bg-[var(--bg)]">
+        <DashboardSkeleton />
+      </div>
+    );
+  }
+
+  // Auth initialized and no user — redirect guard above will fire.
+  if (!user && !isDemo) {
     return null;
   }
 
