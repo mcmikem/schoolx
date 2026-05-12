@@ -205,7 +205,7 @@ export default function CanteenPOSPage() {
       await scanner.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 250, height: 250 } },
-        async (decodedText) => {
+        async (decodedText: string) => {
           // Stop scanner on successful scan
           await stopScanner();
           await lookupStudent(decodedText.trim());

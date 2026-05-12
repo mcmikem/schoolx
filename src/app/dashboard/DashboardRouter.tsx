@@ -1,15 +1,17 @@
 "use client";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import HeadmasterDashboard from "./dashboards/HeadmasterDashboard";
-import DeanDashboard from "./dashboards/DeanDashboard";
-import BursarDashboard from "./dashboards/BursarDashboard";
-import TeacherDashboard from "./dashboards/TeacherDashboard";
-import SuperAdminDashboard from "./dashboards/SuperAdminDashboard";
 import { DashboardSkeleton } from "@/components/Skeletons";
 import { logger } from "@/lib/logger";
+
+const HeadmasterDashboard = dynamic(() => import("./dashboards/HeadmasterDashboard"), { loading: () => <DashboardSkeleton /> });
+const DeanDashboard = dynamic(() => import("./dashboards/DeanDashboard"), { loading: () => <DashboardSkeleton /> });
+const BursarDashboard = dynamic(() => import("./dashboards/BursarDashboard"), { loading: () => <DashboardSkeleton /> });
+const TeacherDashboard = dynamic(() => import("./dashboards/TeacherDashboard"), { loading: () => <DashboardSkeleton /> });
+const SuperAdminDashboard = dynamic(() => import("./dashboards/SuperAdminDashboard"), { loading: () => <DashboardSkeleton /> });
 
 function getFirstName(fullName?: string | null) {
   return fullName?.trim().split(" ").filter(Boolean)[0] || "User";

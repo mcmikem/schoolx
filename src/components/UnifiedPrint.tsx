@@ -9,8 +9,7 @@ import {
 import MaterialIcon from "@/components/MaterialIcon";
 import { useToast } from "@/components/Toast";
 import { t } from "@/i18n";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+
 
 export interface PrintHandle {
   open: (content: React.ReactNode, options?: PrintOptions) => void;
@@ -171,10 +170,13 @@ export const UnifiedPrint = forwardRef<PrintHandle>(
       iframe.srcdoc = html;
     };
 
-    const handleDownloadPDF = () => {
+    const handleDownloadPDF = async () => {
       if (!printRef.current) return;
       const opts = content?.options || defaultOptions;
       const isReceipt = opts.format === "receipt";
+
+      const { default: jsPDF } = await import("jspdf");
+      const { default: autoTable } = await import("jspdf-autotable");
 
       const doc = new jsPDF({
         orientation:

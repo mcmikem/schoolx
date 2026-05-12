@@ -194,7 +194,9 @@ const realClient = hasUsableSupabaseConfig
       // stale or corrupted access_token (e.g., from a failed OAuth redirect or
       // a bookmarked URL), it overwrites the valid session, causing "invalid
       // credentials" and infinite loading.
-      detectSessionInUrl: false,
+      // detectSessionInUrl is removed - not a valid option in this Supabase version.
+      // Browser-side fragment-based session detection is handled by the client by default.
+      // We rely on cookie-based auth to avoid the stale-token overwrite issue.
     })
   : null;
 

@@ -28,6 +28,16 @@ function localISODate(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+function formatCurrency(amount: number) {
+  if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
+  if (amount >= 1000) return `${(amount / 1000).toFixed(0)}K`;
+  return `${amount}`;
+}
+
+const DAY_MAP = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
+const DAYS_HEADER = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 type HeadmasterTask = {
   id: string;
   title: string;
@@ -160,12 +170,6 @@ function HeadmasterDashboardContent() {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
-    if (amount >= 1000) return `${(amount / 1000).toFixed(0)}K`;
-    return `${amount}`;
-  };
-
   const currentDate = useMemo(() => new Date(), []);
   const greeting =
     currentDate.getHours() < 12
@@ -174,10 +178,10 @@ function HeadmasterDashboardContent() {
         ? "Good Afternoon"
         : "Good Evening";
 
-  const boysCount = students.filter((s) => s.gender === "M").length;
-  const girlsCount = students.filter((s) => s.gender === "F").length;
+  const boysCount = useMemo(() => students.filter((s) => s.gender === "M").length, [students]);
+  const girlsCount = useMemo(() => students.filter((s) => s.gender === "F").length, [students]);
 
-  const totalFeesExpected = students.reduce((total, student) => {
+  const totalFeesExpected = useMemo(() => students.reduce((total, student) => {
     const classFees = feeStructure.filter(
       (f) => !f.class_id || f.class_id === student.class_id,
     );
@@ -186,32 +190,38 @@ function HeadmasterDashboardContent() {
       0,
     );
     return total + studentExpected;
-  }, 0);
+  }, 0), [students, feeStructure]);
 
-  const totalFeesCollected = payments.reduce(
-    (sum, p) => sum + Number(p.amount_paid || 0),
-    0,
+  const totalFeesCollected = useMemo(
+    () => payments.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0),
+    [payments],
   );
-  const collectionRate =
-    totalFeesExpected > 0
+
+  const collectionRate = useMemo(
+    () => totalFeesExpected > 0
       ? Math.round((totalFeesCollected / totalFeesExpected) * 100)
-      : 0;
+      : 0,
+    [totalFeesExpected, totalFeesCollected],
+  );
 
-  const totalPresent = Object.values(classAttendance).reduce(
-    (sum, c) => sum + c.present,
-    0,
-  );
-  const totalInClass = Object.values(classAttendance).reduce(
-    (sum, c) => sum + c.total,
-    0,
-  );
-  const attendanceRate =
-    totalInClass > 0
-      ? Math.round((totalPresent / totalInClass) * 100)
-      : stats.presentToday > 0 && stats.totalStudents > 0
-        ? Math.round((stats.presentToday / stats.totalStudents) * 100)
-        : 0;
-  const absentCount = students.length - stats.presentToday;
+  const { totalPresent, totalInClass, attendanceRate, absentCount } = useMemo(() => {
+    const totalPresent = Object.values(classAttendance).reduce(
+      (sum, c) => sum + c.present,
+      0,
+    );
+    const totalInClass = Object.values(classAttendance).reduce(
+      (sum, c) => sum + c.total,
+      0,
+    );
+    const attendanceRate =
+      totalInClass > 0
+        ? Math.round((totalPresent / totalInClass) * 100)
+        : stats.presentToday > 0 && stats.totalStudents > 0
+          ? Math.round((stats.presentToday / stats.totalStudents) * 100)
+          : 0;
+    const absentCount = students.length - stats.presentToday;
+    return { totalPresent, totalInClass, attendanceRate, absentCount };
+  }, [classAttendance, stats.presentToday, stats.totalStudents, students.length]);
 
   const hasAttendanceSignals = Object.keys(classAttendance).length > 0;
   const classesNotMarked = hasAttendanceSignals
@@ -278,16 +288,7 @@ function HeadmasterDashboardContent() {
     year: "numeric",
   });
   const dayOfWeekNum = currentDate.getDay();
-  const dayMap = [
-    "sunday",
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday",
-  ];
-  const todayDayKey = dayMap[dayOfWeekNum];
+  const todayDayKey = DAY_MAP[dayOfWeekNum];
 
   const classesToday = useMemo(() => {
     if (!classes.length) return [];
@@ -1017,7 +1018,7 @@ function HeadmasterDashboardContent() {
               </div>
 
               <div className="mt-4 grid grid-cols-7 text-center text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.1em] text-[#8ba0bc]">
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+                {DAYS_HEADER.map((d) => (
                   <div key={d}>{d}</div>
                 ))}
               </div>

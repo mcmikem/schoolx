@@ -6,6 +6,7 @@ import { DEMO_GRADES, DemoGrade } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { logger } from "@/lib/logger";
+import { withTimeout } from "@/lib/hooks/utils";
 import {
   logAuditEventWithOfflineSupport,
   logRecordChangeWithOfflineSupport,
@@ -158,16 +159,20 @@ export function useGrades(
           g.term === grade.term &&
           g.academic_year === grade.academic_year,
       );
-      const { data, error } = await supabase
-        .from("grades")
-        .upsert(payload, {
-          onConflict:
-            "student_id,subject_id,assessment_type,term,academic_year",
-        })
-        .select(
-          "id, student_id, subject_id, class_id, assessment_type, score, max_score, term, academic_year, status, recorded_by, created_at, deleted_at",
-        )
-        .single();
+const { data, error } = await withTimeout(
+         supabase
+           .from("grades")
+           .upsert(payload, {
+             onConflict:
+               "student_id,subject_id,assessment_type,term,academic_year",
+           })
+           .select(
+             "id, student_id, subject_id, class_id, assessment_type, score, max_score, term, academic_year, status, recorded_by, created_at, deleted_at",
+           )
+           .single(),
+         15000,
+         { data: null, error: { message: "Grade save timed out", name: "TimeoutError" } } as any,
+       );
       if (error) throw error;
       setGrades((prev) => {
         const existing = prev.findIndex(
@@ -328,16 +333,20 @@ export function useExamScores(
       return newScore;
     }
     try {
-      const { data, error } = await supabase
-        .from("exam_scores")
-        .upsert(
-          { ...score, max_score: maxScore },
-          { onConflict: "student_id,subject_id,exam_type,term,academic_year" },
-        )
-        .select(
-          "id, student_id, subject_id, class_id, exam_type, score, max_score, term, academic_year, recorded_by, created_at",
-        )
-        .single();
+const { data, error } = await withTimeout(
+         supabase
+           .from("exam_scores")
+           .upsert(
+             { ...score, max_score: maxScore },
+             { onConflict: "student_id,subject_id,exam_type,term,academic_year" },
+           )
+           .select(
+             "id, student_id, subject_id, class_id, exam_type, score, max_score, term, academic_year, recorded_by, created_at",
+           )
+           .single(),
+         15000,
+         { data: null, error: { message: "Exam score save timed out", name: "TimeoutError" } } as any,
+       );
       if (error) {
         if (error.code === "42P01") {
           throw new Error(
@@ -372,10 +381,11 @@ export function useExamScores(
       return;
     }
     try {
-      const { error } = await supabase
-        .from("exam_scores")
-        .delete()
-        .eq("id", id);
+const { error } = await withTimeout(
+          supabase.from("exam_scores").delete().eq("id", id),
+          15000,
+          { error: { message: "Exam score delete timed out", name: "TimeoutError" } } as any,
+        );
       if (error) throw error;
       setExamScores((prev) => prev.filter((s) => s.id !== id));
     } catch (err: any) {
@@ -453,13 +463,17 @@ export function useExams(schoolId?: string) {
       return newExam;
     }
     try {
-      const { data, error } = await supabase
-        .from("exams")
-        .insert({ ...exam, school_id: schoolId })
-        .select(
-          "id, school_id, name, exam_type, class_id, subject_id, term, academic_year, exam_date, max_score, weight, created_at",
-        )
-        .single();
+const { data, error } = await withTimeout(
+         supabase
+           .from("exams")
+           .insert({ ...exam, school_id: schoolId })
+           .select(
+             "id, school_id, name, exam_type, class_id, subject_id, term, academic_year, exam_date, max_score, weight, created_at",
+           )
+           .single(),
+         15000,
+         { data: null, error: { message: "Exam save timed out", name: "TimeoutError" } } as any,
+       );
       if (error) {
         if (error.code === "42P01") {
           throw new Error(
@@ -481,7 +495,11 @@ export function useExams(schoolId?: string) {
       return;
     }
     try {
-      const { error } = await supabase.from("exams").delete().eq("id", id);
+      const { error } = await withTimeout(
+          supabase.from("exams").delete().eq("id", id),
+          15000,
+          { error: { message: "Exam delete timed out", name: "TimeoutError" } } as any,
+        );
       if (error) throw error;
       setExams((prev) => prev.filter((e) => e.id !== id));
     } catch (err: any) {

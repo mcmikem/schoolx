@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import { getQuerySchoolId } from "./utils";
+import { getQuerySchoolId, withTimeout } from "./utils";
 import { triggerAutomationEvent } from "../automation-engine";
 import { DEMO_ATTENDANCE, DemoAttendance } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
@@ -112,13 +112,17 @@ export function useAttendance(classId?: string, date?: string) {
       return newRecord;
     }
     try {
-      const { data, error } = await supabase
-        .from("attendance")
-        .upsert(payload, { onConflict: "student_id,date" })
-        .select(
-          "id, student_id, class_id, date, status, remarks, recorded_by, created_at",
-        )
-        .single();
+      const { data, error } = await withTimeout(
+        supabase
+          .from("attendance")
+          .upsert(payload, { onConflict: "student_id,date" })
+          .select(
+            "id, student_id, class_id, date, status, remarks, recorded_by, created_at",
+          )
+          .single(),
+        15000,
+        { data: null, error: { message: "Attendance save timed out", name: "TimeoutError" } } as any,
+      );
       if (error) throw error;
       setAttendance((prev) => {
         const existing = prev.findIndex((a) => a.student_id === studentId);
@@ -337,19 +341,23 @@ export function useStaffAttendance(schoolId?: string, date?: string) {
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
-      const { data, error } = await supabase
-        .from("staff_attendance")
-        .upsert(
-          {
-            staff_id: staffId,
-            date: currentDate,
-            status,
-            remarks,
-          },
-          { onConflict: "staff_id,date" },
-        )
-        .select("id, staff_id, date, status, remarks, created_at")
-        .single();
+const { data, error } = await withTimeout(
+         supabase
+           .from("staff_attendance")
+           .upsert(
+             {
+               staff_id: staffId,
+               date: currentDate,
+               status,
+               remarks,
+             },
+             { onConflict: "staff_id,date" },
+           )
+           .select("id, staff_id, date, status, remarks, created_at")
+           .single(),
+         15000,
+         { data: null, error: { message: "Staff attendance save timed out", name: "TimeoutError" } } as any,
+       );
       if (error) throw error;
       return data;
     } catch (err: any) {

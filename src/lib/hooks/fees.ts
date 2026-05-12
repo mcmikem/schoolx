@@ -254,17 +254,21 @@ export function useFeePayments(
       return offlinePayment as unknown as FeePayment;
     }
     try {
-      const { data, error: insertError } = await supabase
-        .from("fee_payments")
-        .insert(payload)
-        .select(
-          `
-          id, student_id, fee_id, amount_paid, payment_method, payment_reference, 
-          paid_by, notes, payment_date, created_at,
-          students (id, first_name, last_name, classes (name))
-        `,
-        )
-        .single();
+      const { data, error: insertError } = await withTimeout(
+        supabase
+          .from("fee_payments")
+          .insert(payload)
+          .select(
+            `
+            id, student_id, fee_id, amount_paid, payment_method, payment_reference,
+            paid_by, notes, payment_date, created_at,
+            students (id, first_name, last_name, classes (name))
+          `,
+          )
+          .single(),
+        15000,
+        { data: null, error: { message: "Payment save timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+      );
       if (insertError) throw insertError;
       setPayments((prev) => [data as unknown as FeePayment, ...prev]);
       await offlineDB.cacheFromServer("fee_payments", [
@@ -302,10 +306,11 @@ export function useFeePayments(
         deleted_at: new Date().toISOString(),
         deleted_by: user?.id || null,
       };
-      const { error: deleteError } = await supabase
-        .from("fee_payments")
-        .update(payload)
-        .eq("id", id);
+const { error: deleteError } = await withTimeout(
+          supabase.from("fee_payments").update(payload).eq("id", id),
+          15000,
+          { error: { message: "Payment delete timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+        );
       if (deleteError) throw deleteError;
       setPayments((prev) => prev.filter((p) => p.id !== id));
       invalidateCache(cacheKey);
@@ -478,16 +483,20 @@ export function useFeeStructure(schoolId?: string) {
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
-      const { data, error } = await supabase
-        .from("fee_structure")
-        .insert({
-          school_id: querySchoolId,
-          ...normalizedFee,
-          class_id: normalizedFee.class_id || null,
-          due_date: normalizedFee.due_date || null,
-        })
-        .select()
-        .single();
+const { data, error } = await withTimeout(
+         supabase
+           .from("fee_structure")
+           .insert({
+             school_id: querySchoolId,
+             ...normalizedFee,
+             class_id: normalizedFee.class_id || null,
+             due_date: normalizedFee.due_date || null,
+           })
+           .select()
+           .single(),
+         15000,
+         { data: null, error: { message: "Fee structure save timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+       );
       if (error) throw error;
       setFeeStructure((prev) => [...prev, data]);
       invalidateCache(cacheKey);
@@ -679,11 +688,11 @@ export function useFeeAdjustments(schoolId?: string) {
       return offlineAdjustment;
     }
     try {
-      const { data, error } = await supabase
-        .from("fee_adjustments")
-        .insert(payload)
-        .select()
-        .single();
+const { data, error } = await withTimeout(
+          supabase.from("fee_adjustments").insert(payload).select().single(),
+          15000,
+          { data: null, error: { message: "Adjustment save timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+        );
       if (error) throw error;
       setAdjustments((prev) => [data, ...prev]);
       invalidateCache(cacheKey);
@@ -718,17 +727,19 @@ export function useFeeAdjustments(schoolId?: string) {
         deleted_at: new Date().toISOString(),
         deleted_by: user?.id || null,
       };
-      const { error: deleteError } = await supabase
-        .from("fee_adjustments")
-        .update(payload)
-        .eq("id", id);
-      if (deleteError) {
-        // deleted_at may not exist yet — fall back to hard delete
-        if (deleteError.code === "42703" && deleteError.message?.includes("deleted_at")) {
-          const { error: hardDeleteError } = await supabase
-            .from("fee_adjustments")
-            .delete()
-            .eq("id", id);
+const { error: deleteError } = await withTimeout(
+          supabase.from("fee_adjustments").update(payload).eq("id", id),
+          15000,
+          { error: { message: "Adjustment delete timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+        );
+        if (deleteError) {
+          // deleted_at may not exist yet — fall back to hard delete
+          if (deleteError.code === "42703" && deleteError.message?.includes("deleted_at")) {
+            const { error: hardDeleteError } = await withTimeout(
+              supabase.from("fee_adjustments").delete().eq("id", id),
+              15000,
+              { error: { message: "Hard delete timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+            );
           if (hardDeleteError) throw hardDeleteError;
         } else {
           throw deleteError;
@@ -796,11 +807,11 @@ export function useBudget(schoolId?: string) {
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
-      const { data, error } = await supabase
-        .from("budgets")
-        .insert({ ...budget, school_id: querySchoolId })
-        .select()
-        .single();
+const { data, error } = await withTimeout(
+          supabase.from("budgets").insert({ ...budget, school_id: querySchoolId }).select().single(),
+          15000,
+          { data: null, error: { message: "Budget save timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+        );
       if (error) throw error;
       setBudgets((prev) => [data, ...prev]);
       return data;
@@ -823,11 +834,11 @@ export function useBudget(schoolId?: string) {
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
-      const { data, error } = await supabase
-        .from("expenses")
-        .insert({ ...expense, school_id: querySchoolId })
-        .select()
-        .single();
+const { data, error } = await withTimeout(
+          supabase.from("expenses").insert({ ...expense, school_id: querySchoolId }).select().single(),
+          15000,
+          { data: null, error: { message: "Expense save timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+        );
       if (error) throw error;
       setExpenses((prev) => [data, ...prev]);
       return data;
@@ -844,12 +855,11 @@ export function useBudget(schoolId?: string) {
       return { id, status };
     }
     try {
-      const { data, error } = await supabase
-        .from("expenses")
-        .update({ status })
-        .eq("id", id)
-        .select()
-        .single();
+const { data, error } = await withTimeout(
+          supabase.from("expenses").update({ status }).eq("id", id).select().single(),
+          15000,
+          { data: null, error: { message: "Expense update timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+        );
       if (error) throw error;
       setExpenses((prev) => prev.map((e) => (e.id === id ? data : e)));
       return data;
