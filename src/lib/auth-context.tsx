@@ -143,9 +143,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         // getSession() can return a stale access_token if it hasn't refreshed yet.
         // Prefer refreshSession() so we always send a current token to /api/auth/me/.
-        let session = (await supabase.auth.getSession()).data.session;
+        // Both calls have 10s timeouts to prevent infinite loading when Supabase hangs.
+        let session = (await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("getSession timed out")), 10000),
+          ),
+        ]) as Awaited<ReturnType<typeof supabase.auth.getSession>>).data.session;
         if (session && session.expires_at && session.expires_at * 1000 < Date.now() + 10000) {
-          const { data: refreshed } = await supabase.auth.refreshSession();
+          const { data: refreshed } = await Promise.race([
+            supabase.auth.refreshSession(),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("refreshSession timed out")), 10000),
+            ),
+          ]) as Awaited<ReturnType<typeof supabase.auth.refreshSession>>;
           if (refreshed.session) session = refreshed.session;
         }
         const token = session?.access_token;
@@ -318,7 +329,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const {
             data: { session },
-          } = await supabase!.auth.getSession();
+          } = await Promise.race([
+            supabase!.auth.getSession(),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("getSession timed out")), 10000),
+            ),
+          ]) as Awaited<ReturnType<typeof supabase.auth.getSession>>;
           if (!session) {
             setUser(null);
             setSchool(null);
@@ -350,9 +366,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           let authUserError: unknown = null;
           let authUser = null;
           try {
-            const result = await withSupabaseLockRetry(
-              async () => await supabase!.auth.getUser(),
-            );
+            const result = await Promise.race([
+              withSupabaseLockRetry(
+                async () => await supabase!.auth.getUser(),
+              ),
+              new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error("getUser timed out in checkUser")), 10000),
+              ),
+            ]) as { data: { user: typeof authUser } };
             authUser = result.data.user;
           } catch (err) {
             authUserError = err;
@@ -484,9 +505,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try {
               const {
                 data: { user: verifiedUser },
-              } = await withSupabaseLockRetry(
-                async () => await supabase!.auth.getUser(),
-              );
+              } = await Promise.race([
+                withSupabaseLockRetry(
+                  async () => await supabase!.auth.getUser(),
+                ),
+                new Promise<never>((_, reject) =>
+                  setTimeout(
+                    () => reject(new Error("getUser() timed out in auth state handler")),
+                    10000,
+                  ),
+                ),
+              ]) as { data: { user: typeof verifiedUser } };
 
               if (verifiedUser) {
                 authCheckedRef.current = true;
@@ -627,10 +656,11 @@ useEffect(() => {
       signInLock.current = true;
       // Safety: if a request hangs forever (poor internet), auto-release the
       // lock after 25s so the user can retry without refreshing the page.
-      signInLockTimer.current = setTimeout(() => {
+signInLockTimer.current = setTimeout(() => {
         logger.warn("[Auth] signInLock auto-released after timeout");
         signInLock.current = false;
-      }, 25000);
+        signInLockTimer.current = null;
+      }, 45000);
 
       const attempts = buildAuthLoginAttempts(phone);
       let lastError: unknown = null;

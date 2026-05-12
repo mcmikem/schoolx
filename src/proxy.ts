@@ -73,7 +73,6 @@ const alwaysPublicPaths = [
   "/api/payment/paypal/webhook",
   "/api/sms",
   "/api/schoolpay",
-  "/api/reports",
   "/_next",
   "/downloads",
   "/sw.js",
@@ -120,6 +119,9 @@ function applySecurityHeaders(response: NextResponse) {
   const connectSrcParts = [
     "'self'",
     "https://*.supabase.co",
+    "wss://*.supabase.co",
+    "https://*.supabase.in",
+    "wss://*.supabase.in",
     "https://api.resend.com",
     "https://api.africastalking.com",
     "https://graph.facebook.com",

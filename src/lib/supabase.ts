@@ -189,6 +189,12 @@ const realClient = hasUsableSupabaseConfig
       cookieOptions: {
         maxAge: SESSION_COOKIE_LIFETIME,
       },
+      // CRITICAL: Must be false. When true (default), Supabase extracts auth
+      // tokens from URL fragments on every page load. If the URL contains a
+      // stale or corrupted access_token (e.g., from a failed OAuth redirect or
+      // a bookmarked URL), it overwrites the valid session, causing "invalid
+      // credentials" and infinite loading.
+      detectSessionInUrl: false,
     })
   : null;
 

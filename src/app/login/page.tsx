@@ -369,7 +369,8 @@ export default function LoginPage() {
           msgLower.includes("network") || msgLower.includes("fetch") ||
           msgLower.includes("timed out") || msgLower.includes("timeout") ||
           msgLower.includes("abort") || msgLower.includes("lock") ||
-          msgLower.includes("failed to fetch") || msgLower.includes("networkerror");
+          msgLower.includes("failed to fetch") || msgLower.includes("networkerror") ||
+          msgLower.includes("login already in progress");
         const isProfileOrDbIssue =
           msgLower.includes("profile") ||
           msgLower.includes("database") ||
@@ -391,8 +392,11 @@ export default function LoginPage() {
             "Too many login attempts. Please wait a moment and try again.",
           );
         } else if (isNetwork) {
+          const isLockInProgress = msgLower.includes("login already in progress");
           toast.error(
-            "Connection error. Please check your internet and try again.",
+            isLockInProgress
+              ? "Please wait — your previous login is still processing. Try again in a few seconds."
+              : "Connection error. Please check your internet and try again.",
           );
         } else if (isProfileOrDbIssue) {
           toast.error(
