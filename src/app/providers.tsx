@@ -7,6 +7,7 @@ import { NotificationsProvider } from '@/lib/notifications'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { ToastProvider } from '@/components/Toast'
 import AppLoader from '@/components/Loader'
+import { StuckLoadingOverlay } from '@/components/ui/Skeleton'
 import { logger } from '@/lib/logger'
 import { setupErrorLogging } from '@/lib/error-logger'
 import BrandProvider from '@/components/BrandProvider'
@@ -87,7 +88,12 @@ function LoadingChecker({ children }: { children: ReactNode }) {
     return () => clearTimeout(timer)
   }, [authInitialized])
 
-  if (!authInitialized && showLoader) return <AppLoader />
+  if (!authInitialized && showLoader) return (
+    <>
+      <AppLoader />
+      <StuckLoadingOverlay delay={8000} />
+    </>
+  );
   return <>{children}</>
 }
 

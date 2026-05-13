@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import OwlMascot from "@/components/brand/OwlMascot";
+import MaterialIcon from "@/components/MaterialIcon";
 
 interface SkeletonProps {
   className?: string;
@@ -103,6 +105,57 @@ export function FullPageLoader({
   );
 }
 
+export function StuckLoadingOverlay({
+  delay = 10000,
+  onRefresh,
+}: {
+  delay?: number;
+  onRefresh?: () => void;
+}) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), delay);
+    return () => clearTimeout(timer);
+  }, [delay]);
+
+  if (!visible) return null;
+
+  return (
+    <div
+      className="fixed bottom-6 right-6 z-50 max-w-sm animate-in slide-in-from-bottom-4 fade-in duration-300"
+      role="alert"
+    >
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-2xl p-4">
+        <div className="flex items-start gap-3">
+          <MaterialIcon
+            icon="hourglass_empty"
+            className="text-2xl text-[var(--warning)] shrink-0 mt-0.5"
+          />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-[var(--t1)]">
+              Taking longer than usual?
+            </p>
+            <p className="text-xs text-[var(--t3)] mt-1 leading-relaxed">
+              The app might still be loading. Try refreshing if this persists.
+            </p>
+            <button
+              onClick={() => {
+                if (onRefresh) onRefresh();
+                else window.location.reload();
+              }}
+              className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-[var(--primary)] text-white rounded-lg text-sm font-medium hover:bg-[var(--primary-hover)] transition-colors"
+            >
+              <MaterialIcon icon="refresh" className="text-base" />
+              Refresh
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function DashboardSkeleton() {
   return (
     <div className="flex min-h-screen bg-[var(--bg)]">
@@ -137,6 +190,7 @@ export function DashboardSkeleton() {
           </div>
         </div>
       </div>
+      <StuckLoadingOverlay />
     </div>
   );
 }
