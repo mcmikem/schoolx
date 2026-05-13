@@ -105,6 +105,45 @@ export function FullPageLoader({
   );
 }
 
+export function TopLoadingBar() {
+  return (
+    <div className="fixed top-0 left-0 right-0 z-[9999] h-1 overflow-hidden">
+      <div className="h-full w-full bg-[var(--primary)]/20">
+        <div className="h-full w-1/3 bg-[var(--primary)] rounded-full animate-loading-bar" />
+      </div>
+      <style jsx>{`
+        @keyframes loading-bar {
+          0% { transform: translateX(-100%); }
+          50% { transform: translateX(300%); }
+          100% { transform: translateX(500%); }
+        }
+        .animate-loading-bar {
+          animation: loading-bar 1.8s ease-in-out infinite;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+export function MinimalLoadingScreen({
+  message = "Verifying your session...",
+}: {
+  message?: string;
+}) {
+  return (
+    <div className="min-h-screen bg-[var(--bg)] flex flex-col">
+      <TopLoadingBar />
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <OwlMascot size={52} premium ring glow animated />
+          <p className="mt-4 text-sm text-[var(--t3)]">{message}</p>
+        </div>
+      </div>
+      <StuckLoadingOverlay />
+    </div>
+  );
+}
+
 export function StuckLoadingOverlay({
   delay = 10000,
   onRefresh,

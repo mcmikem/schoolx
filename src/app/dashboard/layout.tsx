@@ -18,10 +18,11 @@ import {
 } from "@/components/dashboard/AccessControlGuard";
 import { usePathname, useRouter } from "next/navigation";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
-import { DashboardSkeleton } from "@/components/ui/Skeleton";
+import { MinimalLoadingScreen, TopLoadingBar, StuckLoadingOverlay, DashboardSkeleton } from "@/components/ui/Skeleton";
 import { useSessionTimeout } from "@/lib/useSessionTimeout";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import MaterialIcon from "@/components/MaterialIcon";
+import OwlMascot from "@/components/brand/OwlMascot";
 import OwlAssistant from "@/components/OwlAssistant";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import CommandPalette from "@/components/CommandPalette";
@@ -304,14 +305,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPath, onboardingCompleted, user?.role, user?.id]);
 
-// Show skeleton while auth is initializing OR while loading dashboard data.
-  // Previously, returning null when !authInitialized caused blank screens on slow networks.
-  if (!authInitialized || (loading && !loadingTimedOut)) {
-    return (
-      <div className="min-h-screen bg-[var(--bg)]">
-        <DashboardSkeleton />
-      </div>
-    );
+// Show minimal loading bar while auth is initializing.
+  if (!authInitialized) {
+    return <MinimalLoadingScreen message="Verifying your session..." />;
   }
 
   // Auth initialized and no user — redirect guard above will fire.
@@ -319,10 +315,18 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     return null;
   }
 
+  // Loading after SIGNED_IN: show thin bar on top of the actual content.
   if (loading && !loadingTimedOut) {
     return (
-      <div className="min-h-screen bg-[var(--bg)]">
-        <DashboardSkeleton />
+      <div className="min-h-screen bg-[var(--bg)] flex flex-col">
+        <TopLoadingBar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <OwlMascot size={52} premium ring glow animated />
+            <p className="mt-4 text-sm text-[var(--t3)]">Loading your dashboard...</p>
+          </div>
+        </div>
+        <StuckLoadingOverlay />
       </div>
     );
   }
