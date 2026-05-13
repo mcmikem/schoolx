@@ -19,6 +19,8 @@ import {
 import MaterialIcon from "@/components/MaterialIcon";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useToast } from "@/components/Toast";
+import { TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
+import OwlMascot from "@/components/brand/OwlMascot";
 
 import StatCard from "@/components/dashboard/StatCard";
 
@@ -27,11 +29,12 @@ function TeacherDashboardContent() {
   const toast = useToast();
   const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
-  const { students } = useStudents(school?.id);
-  const { classes } = useClasses(school?.id);
-  const { subjects } = useSubjects(school?.id);
-  const { stats } = useDashboardStats(school?.id);
+  const { students, loading: studentsLoading } = useStudents(school?.id);
+  const { classes, loading: classesLoading } = useClasses(school?.id);
+  const { subjects, loading: subjectsLoading } = useSubjects(school?.id);
+  const { stats, loading: statsLoading } = useDashboardStats(school?.id);
   const [settingUp, setSettingUp] = useState(false);
+  const dataLoading = studentsLoading || classesLoading || subjectsLoading || statsLoading;
 
   const currentDate = new Date();
   const greeting =
@@ -138,6 +141,21 @@ function TeacherDashboardContent() {
       setSettingUp(false);
     }
   };
+
+  if (dataLoading) {
+    return (
+      <div className="min-h-screen bg-[var(--bg)] flex flex-col">
+        <TopLoadingBar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <OwlMascot size={52} premium ring glow animated />
+            <p className="mt-4 text-sm text-[var(--t3)]">Loading your dashboard...</p>
+          </div>
+        </div>
+        <StuckLoadingOverlay />
+      </div>
+    );
+  }
 
   return (
     <div className="content">

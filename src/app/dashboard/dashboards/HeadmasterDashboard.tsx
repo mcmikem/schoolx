@@ -18,6 +18,8 @@ import MaterialIcon from "@/components/MaterialIcon";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import DashboardInsights from "@/components/dashboard/DashboardInsights";
 import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
+import { TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
+import OwlMascot from "@/components/brand/OwlMascot";
 import { toLocalDateString } from "@/lib/date-utils";
 
 function toLocalDate(year: number, month: number, day: number): string {
@@ -519,34 +521,15 @@ function HeadmasterDashboardContent() {
 
   if (isDataLoading) {
     return (
-      <div className="content overflow-x-hidden">
-        <section className="relative mb-6 overflow-hidden rounded-[36px] border border-white/65 bg-[linear-gradient(135deg,#f6fbff_0%,#eef4ff_44%,#f7f9fc_100%)] p-4 shadow-[0_28px_70px_rgba(15,23,42,0.08)] sm:p-6 animate-pulse">
-          {/* Chip row */}
-          <div className="flex flex-wrap gap-2 mb-5">
-            <div className="h-8 w-36 rounded-full bg-white/70" />
-            <div className="h-8 w-28 rounded-full bg-white/60" />
-            <div className="h-8 w-32 rounded-full bg-white/60" />
+      <div className="min-h-screen bg-[var(--bg)] flex flex-col">
+        <TopLoadingBar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <OwlMascot size={52} premium ring glow animated />
+            <p className="mt-4 text-sm text-[var(--t3)]">Loading your dashboard...</p>
           </div>
-          {/* Main 2-col grid skeleton */}
-          <div className="grid gap-4 xl:grid-cols-[1.35fr_0.95fr]">
-            <div className="space-y-4">
-              <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-                <div className="h-56 rounded-[30px] bg-white/65" />
-                <div className="h-56 rounded-[30px] bg-[#17325f]/10" />
-              </div>
-              <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-                {[0, 1, 2, 3].map((i) => (
-                  <div key={i} className="h-[110px] rounded-[28px] bg-white/65" />
-                ))}
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div className="h-52 rounded-[30px] bg-white/65" />
-              <div className="h-44 rounded-[30px] bg-white/65" />
-              <div className="h-36 rounded-[30px] bg-white/65" />
-            </div>
-          </div>
-        </section>
+        </div>
+        <StuckLoadingOverlay />
       </div>
     );
   }
