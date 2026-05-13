@@ -57,6 +57,14 @@ function TeacherDashboardContent() {
     month: "short",
   });
 
+  const todayDayName = currentDate.toLocaleDateString("en-UG", { weekday: "long" });
+  const todayDayKey = todayDayName?.toLowerCase() || "monday";
+  const classesToday = classes.filter((c: any) => {
+    const entries = (c as any).timetable_entries || [];
+    return entries.some((e: any) => e.day_of_week === todayDayKey);
+  }).slice(0, 5);
+  const nextClass = classesToday[0];
+
   const runSetup = async () => {
     if (!school?.id) return;
     setSettingUp(true);
@@ -242,17 +250,48 @@ function TeacherDashboardContent() {
       </section>
 
       {needsSetup && (
-        <div className="rounded-xl border border-[var(--amber)] bg-[var(--amber-soft)] p-4 mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <MaterialIcon icon="warning" className="text-[var(--amber)]" style={{ fontSize: 20 }} />
-            <div className="text-sm font-bold text-[var(--t1)]">Setup Required</div>
+        <div className="rounded-xl border border-[var(--primary)]/20 bg-[linear-gradient(135deg,var(--primary-50),#f0f7ff)] p-5 mb-6">
+          <div className="flex items-start gap-4">
+            <OwlMascot size={40} premium ring glow />
+            <div className="flex-1">
+              <div className="text-sm font-bold text-[var(--t1)]">Let&apos;s get your classroom ready!</div>
+              <p className="text-xs text-[var(--t2)] mt-1">
+                Your school needs initial classes and subjects set up. This only takes a second.
+              </p>
+              <button onClick={runSetup} disabled={settingUp} className="mt-3 px-4 py-2 bg-[var(--primary)] text-white rounded-xl text-xs font-semibold hover:opacity-90 transition-colors disabled:opacity-50">
+                {settingUp ? "Setting up..." : "Quick Setup"}
+              </button>
+            </div>
           </div>
-          <p className="text-xs text-[var(--t2)] mb-3">
-            Your school needs initial classes and subjects. Click below to set up automatically.
-          </p>
-          <button onClick={runSetup} disabled={settingUp} className="btn btn-primary text-xs">
-            {settingUp ? "Setting up..." : "Run Setup"}
-          </button>
+        </div>
+      )}
+
+      {/* Today's Schedule */}
+      {classesToday.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <MaterialIcon icon="today" className="text-[var(--primary)] text-lg" />
+            <h2 className="text-sm font-bold text-[var(--t1)]">Today&apos;s Schedule</h2>
+            <span className="text-[11px] text-[var(--t3)]">{todayDayName} · {classesToday.length} classes</span>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {classesToday.map((cls: any, idx: number) => {
+              const count = students.filter((s) => s.class_id === cls.id).length;
+              return (
+                <Link
+                  key={cls.id}
+                  href={`/dashboard/attendance?class=${cls.id}`}
+                  className={`shrink-0 rounded-xl border p-3 min-w-[140px] transition-colors hover:bg-[var(--surface-container)] ${
+                    idx === 0 ? "border-[var(--primary)] bg-[var(--primary-50)]" : "border-[var(--border)] bg-[var(--surface)]"
+                  }`}
+                >
+                  <div className="text-[13px] font-bold text-[var(--t1)]">{cls.name}</div>
+                  <div className="text-[11px] text-[var(--t3)] mt-0.5">{count} students</div>
+                  {idx === 0 && <div className="text-[10px] font-semibold text-[var(--primary)] mt-1">Next class</div>}
+                </Link>
+              );
+            })}
+          </div>
         </div>
       )}
 
