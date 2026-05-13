@@ -146,6 +146,7 @@ function applySecurityHeaders(response: NextResponse) {
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
+    "frame-ancestors 'none'",
   ];
   if (isProduction) {
     cspDirectives.push("upgrade-insecure-requests");

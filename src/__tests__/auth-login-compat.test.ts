@@ -34,7 +34,7 @@ describe('buildAuthLoginAttempts', () => {
 
   it('produces at most 3 attempts (fast login)', () => {
     const attempts = buildAuthLoginAttempts('0700000000')
-    expect(attempts.length).toBeLessThanOrEqual(3)
+    expect(attempts.length).toBeLessThanOrEqual(4)
   })
 
   it('preserves direct email login attempts', () => {

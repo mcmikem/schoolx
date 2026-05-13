@@ -41,6 +41,9 @@ jest.mock("next/navigation", () => ({
   usePathname() {
     return "";
   },
+  useSearchParams() {
+    return new URLSearchParams();
+  },
 }));
 
 // Mock supabase

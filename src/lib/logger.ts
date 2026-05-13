@@ -1,4 +1,3 @@
-// Structured logging utility for client and server
 const isDev = process.env["NODE_ENV"] === "development";
 function fmt(args: unknown[]): string[] {
   return args.map((a) => {
@@ -11,7 +10,7 @@ function fmt(args: unknown[]): string[] {
 }
 export const logger = {
   debug(...a: unknown[]) { if (isDev) console.debug("[DEBUG]", ...fmt(a)); },
-  info(...a: unknown[]) { if (isDev) console.info("[INFO]", ...fmt(a)); },
+  info(...a: unknown[]) { console.info("[INFO]", ...fmt(a)); },
   warn(...a: unknown[]) { console.warn("[WARN]", ...fmt(a)); },
   log(...a: unknown[]) { if (isDev) console.info("[LOG]", ...fmt(a)); },
   error(...a: unknown[]) {
