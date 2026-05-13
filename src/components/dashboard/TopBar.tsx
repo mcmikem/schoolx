@@ -283,44 +283,6 @@ export default function TopBar({
     year: "numeric",
   });
 
-  const routeLabels: Record<string, string> = {
-    dashboard: "Home",
-    students: "Student Hub",
-    fees: "Payments",
-    grades: "Record Marks",
-    staff: "Staff List",
-    attendance: "Attendance",
-    messages: "Phone & SMS",
-    settings: "Settings",
-    reports: "Report Cards",
-    notices: "Notice Board",
-    timetable: "Timetable",
-    warnings: "At Risk",
-    "bulk-sms": "Send SMS",
-    "expense-approvals": "Approve Expenses",
-    "leave-approvals": "Approve Leave",
-    "dropout-tracking": "Dropout Tracker",
-    rollover: "Promote & Transitions",
-  };
-
-  const buildBreadcrumbs = () => {
-    if (!path) return [{ label: "Dashboard", href: "/dashboard" }];
-    const segments = path.split("/").filter(Boolean);
-    const crumbs: { label: string; href: string }[] = [];
-    let href = "";
-    for (const segment of segments) {
-      href += `/${segment}`;
-      const label = routeLabels[segment] || segment.replace(/-/g, " ");
-      crumbs.push({ label, href });
-    }
-    if (crumbs.length === 0)
-      return [{ label: "Dashboard", href: "/dashboard" }];
-    return crumbs;
-  };
-
-  const breadcrumbs = buildBreadcrumbs();
-  const nextStep = getNextStep(path || "/dashboard");
-
   return (
     <header
       data-testid="dashboard-header"

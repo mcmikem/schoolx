@@ -735,45 +735,44 @@ export function useStudent(id: string) {
   const [error, setError] = useState<string | null>(null);
   const { isDemo, school } = useAuth();
 
-  useEffect(() => {
-    async function fetchStudent() {
-      if (!id) {
-        setStudent(null);
-        setError(null);
-        setLoading(false);
-        return;
-      }
-
-      // Demo mode - use demo data
-      if (isDemo) {
-        const demoStudent =
-          DEMO_STUDENTS.find((s) => s.id === id) || DEMO_STUDENTS[0];
-        setStudent({
-          ...demoStudent,
-          classes: { id: "demo-class", name: "P.5", level: "P.5" },
-        } as unknown as StudentWithClass);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        const querySchoolId = getQuerySchoolId(school?.id, isDemo);
-        const data = await fetchStudentByIdWithFallback(id, querySchoolId);
-        setStudent(data as StudentWithClass);
-      } catch (err: unknown) {
-        setStudent(null);
-        setError(err instanceof Error ? err.message : "Unknown error");
-      } finally {
-        setLoading(false);
-      }
+  const fetchStudent = useCallback(async () => {
+    if (!id) {
+      setStudent(null);
+      setError(null);
+      setLoading(false);
+      return;
     }
-    fetchStudent();
+
+    if (isDemo) {
+      const demoStudent =
+        DEMO_STUDENTS.find((s) => s.id === id) || DEMO_STUDENTS[0];
+      setStudent({
+        ...demoStudent,
+        classes: { id: "demo-class", name: "P.5", level: "P.5" },
+      } as unknown as StudentWithClass);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      const querySchoolId = getQuerySchoolId(school?.id, isDemo);
+      const data = await fetchStudentByIdWithFallback(id, querySchoolId);
+      setStudent(data as StudentWithClass);
+    } catch (err: unknown) {
+      setStudent(null);
+      setError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setLoading(false);
+    }
   }, [id, isDemo, school?.id]);
 
-  return { student, loading, error };
+  useEffect(() => {
+    fetchStudent();
+  }, [fetchStudent]);
+
+  return { student, loading, error, refetch: fetchStudent };
 }
 
 export function useClasses(schoolId?: string) {

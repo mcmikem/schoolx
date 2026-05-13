@@ -50,9 +50,10 @@ import {
 import { useStudent } from "@/lib/hooks";
 import { useClasses } from "@/lib/hooks";
 import { SendSMSModal } from "@/components/SendSMSModal";
+import { useToast } from "@/components/Toast";
+import { withTimeout } from "@/lib/hooks/utils";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import { useToast } from "@/components/Toast";
 
 type AttendanceRecord = {
   status: "present" | "absent" | "late";
@@ -492,7 +493,7 @@ export default function StudentProfilePage() {
   const { isDemo, school } = useAuth();
   const toast = useToast();
   const router = useRouter();
-  const { student, loading: studentLoading, error } = useStudent(studentId);
+  const { student, loading: studentLoading, error, refetch } = useStudent(studentId);
   const { classes } = useClasses(school?.id);
   const studentProfile = useMemo(
     () =>
@@ -568,10 +569,11 @@ export default function StudentProfilePage() {
         parent_phone: editForm.parent_phone.trim(),
       };
 
-      let { error: updateError } = await supabase
-        .from("students")
-        .update(updatePayload)
-        .eq("id", student.id);
+      const { error: updateError } = await withTimeout(
+        supabase.from("students").update(updatePayload).eq("id", student.id),
+        15000,
+        { data: null, error: { message: "Save timed out", name: "TimeoutError" } } as any,
+      );
 
       if (
         updateError &&
@@ -584,22 +586,25 @@ export default function StudentProfilePage() {
           .includes("boarding_status")
       ) {
         const { boarding_status: _omit, ...legacyPayload } = updatePayload;
-        ({ error: updateError } = await supabase
-          .from("students")
-          .update(legacyPayload)
-          .eq("id", student.id));
+        const { error: fallbackError } = await withTimeout(
+          supabase.from("students").update(legacyPayload).eq("id", student.id),
+          15000,
+          { data: null, error: { message: "Save timed out", name: "TimeoutError" } } as any,
+        );
+        if (fallbackError) throw fallbackError;
+      } else if (updateError) {
+        throw updateError;
       }
 
-      if (updateError) throw updateError;
       setShowEdit(false);
       toast.success("Student updated successfully");
-      window.location.reload();
+      refetch();
     } catch (err: any) {
       toast.error(err?.message || "Failed to save changes");
     } finally {
       setEditSaving(false);
     }
-  }, [student, editForm, toast]);
+  }, [student, editForm, toast, refetch]);
 
   if (studentLoading)
     return (
