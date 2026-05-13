@@ -543,74 +543,61 @@ function HeadmasterDashboardContent() {
           <div className="absolute right-10 top-10 h-24 w-24 rounded-full border border-white/70 bg-white/35" />
         </div>
 
-        <div className="relative z-10 mb-5 flex flex-wrap items-center gap-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#cad7ea] bg-white/80 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#27456f] shadow-sm">
-            <MaterialIcon icon="dashboard" className="text-[15px]" />
+        <div className="relative z-10 mb-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#cad7ea] bg-white/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-[#27456f] shadow-sm">
+            <MaterialIcon icon="dashboard" className="text-[13px]" />
             Command Deck
+            {alertCount > 0 && (
+              <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-[#fff4f3] px-2 py-0.5 text-[9px] font-semibold text-[#b04343]">
+                <MaterialIcon icon="notification_important" className="text-[11px]" />
+                {alertCount}
+              </span>
+            )}
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#cad7ea] bg-white/70 px-4 py-2 text-xs font-semibold text-[#49627f]">
-            <MaterialIcon icon="calendar_today" className="text-[14px]" />
-            {todayDayName}, {todayFormatted}
-          </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#cad7ea] bg-white/70 px-4 py-2 text-xs font-semibold text-[#49627f]">
-            <MaterialIcon icon="event_note" className="text-[14px]" />
-            {academicYear} · Term {currentTerm}
-          </div>
-          {alertCount > 0 && (
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#f3c4c4] bg-[#fff4f3] px-4 py-2 text-xs font-semibold text-[#b04343]">
-              <MaterialIcon
-                icon="notification_important"
-                className="text-[15px]"
-              />
-              {alertCount} items need attention
-            </div>
-          )}
         </div>
 
         <div className="relative z-10 grid gap-4 xl:grid-cols-[1.35fr_0.95fr]">
           <div className="grid gap-4">
             <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
               <div className="overflow-hidden rounded-[30px] border border-white/80 bg-white/78 p-5 shadow-[0_18px_48px_rgba(15,23,42,0.08)] backdrop-blur">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    {school?.logo_url ? (
-                      <Image
-                        src={school.logo_url}
-                        alt={school.name || "School Badge"}
-                        width={88}
-                        height={88}
-                        className="h-20 w-20 rounded-[28px] border border-white/80 object-cover shadow-[0_14px_30px_rgba(23,50,95,0.16)]"
-                      />
-                    ) : (
-                      <div className="flex h-20 w-20 items-center justify-center rounded-[28px] bg-[linear-gradient(145deg,#17325f_0%,#2d69a4_100%)] text-white shadow-[0_18px_34px_rgba(23,50,95,0.22)]">
-                        <MaterialIcon icon="school" className="text-[40px]" />
-                      </div>
-                    )}
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#7a8aa4]">
-                        {greeting}
+                <div className="flex items-center gap-3">
+                  {school?.logo_url ? (
+                    <Image
+                      src={school.logo_url}
+                      alt={school.name || "School Badge"}
+                      width={44}
+                      height={44}
+                      className="h-11 w-11 rounded-xl border border-white/80 object-cover shadow-[0_8px_16px_rgba(23,50,95,0.12)]"
+                    />
+                  ) : (
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[linear-gradient(145deg,#17325f_0%,#2d69a4_100%)] text-white shadow-[0_8px_16px_rgba(23,50,95,0.12)]">
+                      <MaterialIcon icon="school" className="text-[22px]" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#7a8aa4]">
+                        {greeting}, {user?.full_name?.split(" ")[0]}
                       </p>
-                      <h1 className="mt-2 font-['Sora'] text-3xl font-semibold tracking-[-0.05em] text-[#17325f] sm:text-4xl">
-                        Welcome back, {user?.full_name?.split(" ")[0]}
-                      </h1>
-                      <p className="mt-3 max-w-xl text-sm leading-6 text-[#5d708d] sm:text-[15px]">
-                        Your school workspace is live. Monitor attendance, fee
-                        collection, staffing, and approvals from one calm
-                        control surface.
+                      <span className="text-[#cad7ea]">·</span>
+                      <p className="text-[11px] font-semibold text-[#5d708d]">
+                        {school?.name}
                       </p>
                     </div>
-                  </div>
-                  <div className="hidden rounded-[24px] bg-[linear-gradient(180deg,#17325f_0%,#224878_100%)] px-4 py-3 text-white shadow-[0_14px_34px_rgba(23,50,95,0.24)] sm:block">
-                    <p className="text-[10px] uppercase tracking-[0.24em] text-white/65">
-                      Active school
-                    </p>
-                    <p className="mt-1 text-lg font-semibold leading-none">
-                      {school?.name}
-                    </p>
+                    <div className="flex items-center gap-3 mt-1 flex-wrap">
+                      <span className="text-[11px] text-[#7f91aa]">{todayDayName}, {todayFormatted}</span>
+                      <span className="text-[11px] text-[#7f91aa]">{academicYear} · Term {currentTerm}</span>
+                      {alertCount > 0 && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#b04343]">
+                          <MaterialIcon icon="notification_important" className="text-[13px]" />
+                          {alertCount} items
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                <div className="mt-4 grid gap-2 sm:grid-cols-3">
                   {[
                     {
                       label: "Students",
@@ -621,9 +608,25 @@ function HeadmasterDashboardContent() {
                       bg: "#edf4ff",
                     },
                     {
-                      label: "On duty",
-                      value: staffOnDuty || staff.length,
-                      detail: `${staff.filter((s: any) => s.role === "teacher").length} teaching staff`,
+                      label: "Attendance",
+                      value: `${attendanceRate}%`,
+                      detail: `${stats.presentToday || 0} present today`,
+                      icon: "how_to_reg",
+                      tone: attendanceRate >= 80 ? "#1f8a70" : "#b45309",
+                      bg: attendanceRate >= 80 ? "#eafaf5" : "#fff5e8",
+                    },
+                    {
+                      label: "Fee Collection",
+                      value: `${collectionRate}%`,
+                      detail: `UGX ${formatCurrency(totalFeesCollected)} collected`,
+                      icon: "payments",
+                      tone: collectionRate >= 70 ? "#1f8a70" : "#b45309",
+                      bg: collectionRate >= 70 ? "#eafaf5" : "#fff5e8",
+                    },
+                    {
+                      label: "Staff on duty",
+                      value: staffOnDuty || staff.length || 0,
+                      detail: `${staff.filter((s: any) => s.role === "teacher").length} teachers`,
                       icon: "badge",
                       tone: "#1f8a70",
                       bg: "#eafaf5",
@@ -631,41 +634,43 @@ function HeadmasterDashboardContent() {
                     {
                       label: "Alerts",
                       value: loadingExtra ? "--" : alertCount,
-                      detail:
-                        alertCount > 0
-                          ? "Needs a decision"
-                          : "Quiet day so far",
+                      detail: alertCount > 0 ? "Needs decision" : "All clear",
                       icon: "notifications_active",
                       tone: alertCount > 0 ? "#b45309" : "#3f5d7d",
                       bg: alertCount > 0 ? "#fff5e8" : "#eef4fb",
                     },
+                    {
+                      label: "Pending approvals",
+                      value: totalPendingApprovals,
+                      detail: `${pendingExpenses} expenses · ${pendingLeave} leave`,
+                      icon: "approval",
+                      tone: totalPendingApprovals > 0 ? "#b45309" : "#3f5d7d",
+                      bg: totalPendingApprovals > 0 ? "#fff5e8" : "#eef4fb",
+                    },
                   ].map((item) => (
                     <div
                       key={item.label}
-                      className="rounded-[24px] border border-[#e4ebf4] p-4"
+                      className="rounded-[16px] border border-[#e4ebf4] p-3"
                       style={{ background: item.bg }}
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#71839d]">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#71839d]">
                           {item.label}
                         </p>
                         <div
-                          className="flex h-10 w-10 items-center justify-center rounded-2xl"
+                          className="flex h-7 w-7 items-center justify-center rounded-lg"
                           style={{
                             background: "rgba(255,255,255,0.9)",
                             color: item.tone,
                           }}
                         >
-                          <MaterialIcon
-                            icon={item.icon}
-                            className="text-[20px]"
-                          />
+                          <MaterialIcon icon={item.icon} className="text-[15px]" />
                         </div>
                       </div>
-                      <p className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-[#17325f]">
+                      <p className="mt-2 text-xl font-semibold tracking-[-0.03em] text-[#17325f]">
                         {item.value}
                       </p>
-                      <p className="mt-1 text-xs font-medium text-[#6b7f99]">
+                      <p className="mt-0.5 text-[10px] font-medium text-[#6b7f99]">
                         {item.detail}
                       </p>
                     </div>
