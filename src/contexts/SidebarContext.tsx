@@ -27,26 +27,16 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const handleResize = () => {
-      if (window.innerWidth >= 1280) {
-        setIsOpen(false);
-        document.body.style.overflow = "";
-      }
-    };
-
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setIsOpen(false);
       }
     };
 
-    window.addEventListener("resize", handleResize);
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
       window.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "";
     };
   }, []);
 

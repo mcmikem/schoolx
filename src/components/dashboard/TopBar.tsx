@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -288,13 +289,13 @@ export default function TopBar({
       data-testid="dashboard-header"
       className="topbar h-[56px] flex items-center px-3 sm:px-5 lg:px-6 gap-2 sm:gap-3 sticky top-0 z-50 flex-shrink-0 border-b border-[var(--border)]"
     >
-      {/* Hamburger — mobile only */}
+      {/* Hamburger — all screen sizes (collapsible sidebar) */}
       <button
         onClick={() => {
           if (isOpen) closeSidebar();
           else openSidebar();
         }}
-        className="mobile-menu-btn bg-transparent border-none cursor-pointer p-1.5 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[var(--bg)] transition-colors"
+        className="bg-transparent border-none cursor-pointer p-1.5 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[var(--bg)] transition-colors shrink-0"
         aria-label="Toggle sidebar"
         aria-expanded={isOpen}
         aria-controls="dashboard-sidebar"
@@ -305,14 +306,29 @@ export default function TopBar({
         />
       </button>
 
-      {/* Page title + date */}
-      <div className="flex-1 min-w-0">
-        <div className="font-['Sora'] text-[15px] sm:text-[17px] font-bold text-[var(--t1)] tracking-[-.2px] truncate leading-tight">
-          {pageTitle}
-        </div>
-        <div className="text-[11px] text-[var(--t3)] truncate leading-tight mt-0.5 hidden sm:block">
-          {formattedDate}
-          {currentTerm ? ` · Term ${currentTerm}` : ""}
+      {/* School logo + Page title */}
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        {school?.logo_url ? (
+          <Image
+            src={school.logo_url}
+            alt={school?.name || "School"}
+            width={28}
+            height={28}
+            className="w-7 h-7 rounded-lg object-cover shrink-0"
+          />
+        ) : (
+          <div className="w-7 h-7 rounded-lg bg-[var(--primary)] flex items-center justify-center text-white text-[11px] font-bold shrink-0">
+            {school?.name?.charAt(0) || "S"}
+          </div>
+        )}
+        <div className="min-w-0">
+          <div className="font-['Sora'] text-[15px] sm:text-[17px] font-bold text-[var(--t1)] tracking-[-.2px] truncate leading-tight">
+            {pageTitle}
+          </div>
+          <div className="text-[11px] text-[var(--t3)] truncate leading-tight mt-0.5 hidden sm:block">
+            {formattedDate}
+            {currentTerm ? ` · Term ${currentTerm}` : ""}
+          </div>
         </div>
       </div>
 

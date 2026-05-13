@@ -105,7 +105,7 @@ export default function SidebarShell({
           </div>
           <button
             onClick={() => close()}
-            className="sidebar-close-btn hidden w-8 h-8 rounded-lg border-none bg-white/10 hover:bg-white/20 cursor-pointer items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-lg border-none bg-white/10 hover:bg-white/20 cursor-pointer items-center justify-center transition-colors flex"
             aria-label="Close sidebar"
           >
             <MaterialIcon
