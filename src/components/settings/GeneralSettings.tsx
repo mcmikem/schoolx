@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
@@ -11,6 +12,7 @@ import {
   DEFAULT_FEATURE_STAGE,
 } from "@/lib/featureStages";
 import MaterialIcon from "@/components/MaterialIcon";
+import SchoolColorPicker from "@/components/SchoolColorPicker";
 
 interface GeneralSettingsProps {
   schoolData: {
@@ -64,6 +66,13 @@ export default function GeneralSettings({
   refreshSchool,
 }: GeneralSettingsProps) {
   const { school } = useAuth();
+  const [primaryColor, setPrimaryColor] = useState(school?.primary_color || "#005ce6");
+  const [accentColor, setAccentColor] = useState(school?.accent_color || "#f97316");
+
+  useEffect(() => {
+    if (school?.primary_color) setPrimaryColor(school.primary_color);
+    if (school?.accent_color) setAccentColor(school.accent_color);
+  }, [school?.primary_color, school?.accent_color]);
   const toast = useToast();
 
   const compressImage = async (
@@ -340,9 +349,12 @@ export default function GeneralSettings({
           district: schoolData.district,
           phone: schoolData.phone || null,
           email: schoolData.email || null,
+          primary_color: primaryColor,
+          accent_color: accentColor,
         })
         .eq("id", school.id);
       if (error) throw error;
+      await refreshSchool();
       toast.success("Settings saved");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to save");
@@ -544,6 +556,30 @@ export default function GeneralSettings({
               />
             </div>
           </div>
+
+          {/* School Colors */}
+          <div className="border-t border-[#e8eaed] pt-6 mt-6">
+            <h3 className="text-sm font-semibold text-[#191c1d] mb-4">
+              School Colors
+            </h3>
+            <p className="text-xs text-[#6b7280] mb-4">
+              Choose colors that match your school brand. These will be used throughout the app.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <SchoolColorPicker
+                label="Primary Color"
+                value={primaryColor}
+                onChange={setPrimaryColor}
+              />
+              <SchoolColorPicker
+                label="Accent Color"
+                value={accentColor}
+                presets={["#f97316", "#3b82f6", "#8b5cf6", "#ec4899", "#10b981", "#eab308"]}
+                onChange={setAccentColor}
+              />
+            </div>
+          </div>
+
           <div className="pt-4">
             <button
               onClick={saveSchoolSettings}

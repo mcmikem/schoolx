@@ -20,6 +20,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import { MinimalLoadingScreen, TopLoadingBar, StuckLoadingOverlay, DashboardSkeleton } from "@/components/ui/Skeleton";
 import { useSessionTimeout } from "@/lib/useSessionTimeout";
+import { useSchoolColors } from "@/lib/useSchoolColors";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import MaterialIcon from "@/components/MaterialIcon";
 import OwlMascot from "@/components/brand/OwlMascot";
@@ -141,6 +142,7 @@ function SessionTimeoutWarning({
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const { user, school, loading, authInitialized, isDemo, isTrialExpired, signOut } = useAuth();
+  useSchoolColors();
   const pathname = usePathname();
   const router = useRouter();
   const toast = useToast();
