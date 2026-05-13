@@ -40,7 +40,7 @@ export function useAssets(schoolId?: string) {
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
-      const { data, error } = await supabase.from('assets').insert({ ...asset, school_id: querySchoolId }).select().single()
+      const { data, error } = await withTimeout(supabase.from('assets').insert({ ...asset, school_id: querySchoolId }).select().single(), 15000, { data: null, error: { message: "Asset creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any)
       if (error) throw error
       setAssets(prev => [data, ...prev])
       return data
@@ -53,7 +53,7 @@ export function useAssets(schoolId?: string) {
       return { id, ...updates }
     }
     try {
-      const { data, error } = await supabase.from('assets').update(updates).eq('id', id).select().single()
+      const { data, error } = await withTimeout(supabase.from('assets').update(updates).eq('id', id).select().single(), 15000, { data: null, error: { message: "Asset update timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any)
       if (error) throw error
       setAssets(prev => prev.map(a => a.id === id ? data : a))
       return data
@@ -66,7 +66,7 @@ export function useAssets(schoolId?: string) {
       return
     }
     try {
-      const { error } = await supabase.from('assets').delete().eq('id', id)
+      const { error } = await withTimeout(supabase.from('assets').delete().eq('id', id), 15000, { error: { message: "Asset deletion timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any)
       if (error) throw error
       setAssets(prev => prev.filter(a => a.id !== id))
     } catch (err: any) { throw new Error(err.message) }
@@ -88,7 +88,7 @@ export function useInventory(schoolId?: string) {
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await withTimeout(supabase
         .from('inventory_transactions')
         .insert([{ ...transaction, school_id: querySchoolId }])
         .select(`
@@ -100,7 +100,7 @@ export function useInventory(schoolId?: string) {
           recorded_by,
           created_at
         `)
-        .single()
+        .single(), 15000, { data: null, error: { message: "Transaction creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any)
       if (error) throw error
 
       const stockChange = transaction.transaction_type === 'in' || transaction.transaction_type === 'return' 

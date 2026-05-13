@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import type { TimetableSlot, TimetableConstraint } from '@/types'
-import { getQuerySchoolId } from './utils'
+import { getQuerySchoolId, withTimeout } from './utils'
 import { isDemoSchool } from '@/lib/demo-utils'
 import { DEMO_TIMETABLE, DEMO_SUBJECTS, DEMO_STAFF } from '@/lib/demo-data'
 import { buildDefaultTimetableSlots } from '@/lib/school-setup'
@@ -119,7 +119,7 @@ export function useTimetable(classId?: string) {
       return
     }
     try {
-      const { error } = await supabase.from('teacher_timetable').delete().eq('id', id)
+      const { error } = await withTimeout(supabase.from('teacher_timetable').delete().eq('id', id), 15000, { error: { message: "Timetable entry deletion timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any)
       if (error) throw error
       setTimetable(prev => prev.filter(t => t.id !== id))
     } catch (err: any) {
@@ -182,10 +182,14 @@ export function useTimetableManager(schoolId?: string) {
         let slotRows = (slotsRes.data || []) as Array<Record<string, any>>
         if (slotRows.length === 0) {
           const defaults = buildDefaultTimetableSlots(querySchoolId)
-          const { data: inserted, error: insertError } = await supabase
-            .from('timetable_slots')
-            .insert(defaults)
-            .select('id, school_id, name, start_time, end_time, order_number, is_lesson, created_at')
+          const { data: inserted, error: insertError } = await withTimeout(
+            supabase
+              .from('timetable_slots')
+              .insert(defaults)
+              .select('id, school_id, name, start_time, end_time, order_number, is_lesson, created_at'),
+            15000,
+            { data: null, error: { message: "Timetable slot seeding timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+          )
           if (insertError) {
             logger.warn('Failed to seed timetable slots:', insertError)
           }

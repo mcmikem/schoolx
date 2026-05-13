@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { logger } from "@/lib/logger";
 import { getCachedResponse, cacheResponse, queueMutation, isOnline, generateCacheKey } from "@/lib/offline-db";
+import { withTimeout } from "./utils";
 
 interface FeeTerm {
   id: string;
@@ -167,39 +168,47 @@ export function useFeeTerms() {
       }
 
       try {
-        const { data: newTerm, error: termError } = await supabase
-          .from("fee_terms")
-          .insert({
-            school_id: school.id,
-            name: term.name,
-            code: term.code,
-            description: term.description,
-            term_type: term.term_type || "installments",
-            total_amount: term.total_amount,
-            discount_percentage: term.discount_percentage || 0,
-            no_of_days: term.no_of_days,
-            day_type: term.day_type,
-            is_active: term.is_active ?? true,
-            academic_year: term.academic_year,
-          })
-          .select()
-          .single();
+        const { data: newTerm, error: termError } = await withTimeout(
+          supabase
+            .from("fee_terms")
+            .insert({
+              school_id: school.id,
+              name: term.name,
+              code: term.code,
+              description: term.description,
+              term_type: term.term_type || "installments",
+              total_amount: term.total_amount,
+              discount_percentage: term.discount_percentage || 0,
+              no_of_days: term.no_of_days,
+              day_type: term.day_type,
+              is_active: term.is_active ?? true,
+              academic_year: term.academic_year,
+            })
+            .select()
+            .single(),
+          15000,
+          { data: null, error: { message: "Fee term creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+        );
 
         if (termError) throw termError;
 
         if (lines.length > 0 && newTerm) {
-          const { error: linesError } = await supabase
-            .from("fee_term_lines")
-            .insert(
-              lines.map((line, i) => ({
-                term_id: newTerm.id,
-                installment_number: line.installment_number || i + 1,
-                due_days: line.due_days,
-                due_date: line.due_date,
-                amount_percentage: line.amount_percentage,
-                is_optional: line.is_optional || false,
-              })),
-            );
+          const { error: linesError } = await withTimeout(
+            supabase
+              .from("fee_term_lines")
+              .insert(
+                lines.map((line, i) => ({
+                  term_id: newTerm.id,
+                  installment_number: line.installment_number || i + 1,
+                  due_days: line.due_days,
+                  due_date: line.due_date,
+                  amount_percentage: line.amount_percentage,
+                  is_optional: line.is_optional || false,
+                })),
+              ),
+            15000,
+            { error: { message: "Fee term lines timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+          );
 
           if (linesError) throw linesError;
         }
@@ -291,20 +300,24 @@ export function useStudentFeeTerms(studentId?: string) {
           (ftData.total_amount * (ftData.discount_percentage || 0)) / 100;
         const finalAmount = ftData.total_amount - discountAmount;
 
-        const { data, error } = await supabase
-          .from("student_fee_terms")
-          .insert({
-            school_id: school.id,
-            student_id: assignment.student_id,
-            fee_term_id: assignment.fee_term_id,
-            class_id: assignment.class_id,
-            academic_year: assignment.academic_year,
-            total_amount: ftData.total_amount,
-            discount_amount: discountAmount,
-            final_amount: finalAmount,
-          })
-          .select()
-          .single();
+        const { data, error } = await withTimeout(
+          supabase
+            .from("student_fee_terms")
+            .insert({
+              school_id: school.id,
+              student_id: assignment.student_id,
+              fee_term_id: assignment.fee_term_id,
+              class_id: assignment.class_id,
+              academic_year: assignment.academic_year,
+              total_amount: ftData.total_amount,
+              discount_amount: discountAmount,
+              final_amount: finalAmount,
+            })
+            .select()
+            .single(),
+          15000,
+          { data: null, error: { message: "Fee term assignment timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+        );
 
         if (error) throw error;
         await fetchStudentFeeTerms();
@@ -329,18 +342,22 @@ export function useStudentFeeTerms(studentId?: string) {
       notes?: string;
     }) => {
       try {
-        const { data: paymentData, error: paymentError } = await supabase
-          .from("fee_payments")
-          .insert({
-            student_fee_term_id: payment.student_fee_term_id,
-            amount: payment.amount,
-            payment_date: payment.payment_date,
-            payment_method: payment.payment_method,
-            transaction_reference: payment.transaction_reference,
-            notes: payment.notes,
-          })
-          .select()
-          .single();
+        const { data: paymentData, error: paymentError } = await withTimeout(
+          supabase
+            .from("fee_payments")
+            .insert({
+              student_fee_term_id: payment.student_fee_term_id,
+              amount: payment.amount,
+              payment_date: payment.payment_date,
+              payment_method: payment.payment_method,
+              transaction_reference: payment.transaction_reference,
+              notes: payment.notes,
+            })
+            .select()
+            .single(),
+          15000,
+          { data: null, error: { message: "Payment creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+        );
 
         if (paymentError) throw paymentError;
 
@@ -355,10 +372,14 @@ export function useStudentFeeTerms(studentId?: string) {
           const newStat =
             newPaid >= (sftData.final_amount || 0) ? "completed" : "active";
 
-          await supabase
-            .from("student_fee_terms")
-            .update({ amount_paid: newPaid, status: newStat })
-            .eq("id", payment.student_fee_term_id);
+          await withTimeout(
+            supabase
+              .from("student_fee_terms")
+              .update({ amount_paid: newPaid, status: newStat })
+              .eq("id", payment.student_fee_term_id),
+            15000,
+            { error: { message: "Payment update timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+          );
         }
 
         await fetchStudentFeeTerms();

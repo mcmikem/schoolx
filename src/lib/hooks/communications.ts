@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import { getQuerySchoolId } from "./utils";
+import { getQuerySchoolId, withTimeout } from "./utils";
 import { DEMO_MESSAGES, DEMO_EVENTS, DEMO_NOTICES } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { getErrorMessage } from "@/lib/validation";
@@ -185,10 +185,10 @@ export function useSMSTriggers(schoolId?: string) {
       return { success: true };
     }
     try {
-      const { error } = await supabase
+      const { error } = await withTimeout(supabase
         .from("sms_triggers")
         .update({ is_active: isActive })
-        .eq("id", id);
+        .eq("id", id), 15000, { error: { message: "Trigger toggle timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any);
       if (error) throw error;
       return { success: true };
     } catch (err: any) {
@@ -274,7 +274,7 @@ export function useSMSTriggers(schoolId?: string) {
     }
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await withTimeout(supabase
         .from("sms_triggers")
         .insert({
           school_id: schoolId,
@@ -286,7 +286,7 @@ export function useSMSTriggers(schoolId?: string) {
         .select(
           "id, school_id, name, event_type, threshold_days, template_id, is_active, last_run_at, created_at",
         )
-        .single();
+        .single(), 15000, { data: null, error: { message: "Trigger creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any);
 
       if (error) throw error;
       setTriggers((prev) => [...prev, data]);
@@ -315,14 +315,14 @@ export function useSMSTriggers(schoolId?: string) {
     }
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await withTimeout(supabase
         .from("sms_triggers")
         .update({ ...input, name: input.name.trim() })
         .eq("id", id)
         .select(
           "id, school_id, name, event_type, threshold_days, template_id, is_active, last_run_at, created_at",
         )
-        .single();
+        .single(), 15000, { data: null, error: { message: "Trigger update timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any);
 
       if (error) throw error;
       setTriggers((prev) => prev.map((t) => (t.id === id ? data : t)));

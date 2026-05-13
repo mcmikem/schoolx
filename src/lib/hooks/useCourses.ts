@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { logger } from "@/lib/logger";
 import { getCachedResponse, cacheResponse, queueMutation, isOnline, generateCacheKey } from "@/lib/offline-db";
+import { withTimeout } from "./utils";
 
 interface Course {
   id: string;
@@ -154,14 +155,18 @@ export function useCourses(options: UseCoursesOptions = {}) {
       }
 
       try {
-        const { data, error } = await supabase
-          .from("courses")
-          .insert({
-            school_id: school.id,
-            ...course,
-          })
-          .select()
-          .single();
+        const { data, error } = await withTimeout(
+          supabase
+            .from("courses")
+            .insert({
+              school_id: school.id,
+              ...course,
+            })
+            .select()
+            .single(),
+          15000,
+          { data: null, error: { message: "Course creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+        );
 
         if (error) throw error;
         toast.success("Course created");
@@ -179,12 +184,16 @@ export function useCourses(options: UseCoursesOptions = {}) {
   const updateCourse = useCallback(
     async (id: string, updates: Partial<Course>) => {
       try {
-        const { data, error } = await supabase
-          .from("courses")
-          .update(updates)
-          .eq("id", id)
-          .select()
-          .single();
+        const { data, error } = await withTimeout(
+          supabase
+            .from("courses")
+            .update(updates)
+            .eq("id", id)
+            .select()
+            .single(),
+          15000,
+          { data: null, error: { message: "Course update timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+        );
 
         if (error) throw error;
         toast.success("Course updated");
@@ -202,7 +211,7 @@ export function useCourses(options: UseCoursesOptions = {}) {
   const deleteCourse = useCallback(
     async (id: string) => {
       try {
-        const { error } = await supabase.from("courses").delete().eq("id", id);
+        const { error } = await withTimeout(supabase.from("courses").delete().eq("id", id), 15000, { error: { message: "Course deletion timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any);
 
         if (error) throw error;
         toast.success("Course deleted");

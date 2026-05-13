@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import type { Subject, School } from '@/types'
-import { getQuerySchoolId } from './utils'
+import { getQuerySchoolId, withTimeout } from './utils'
 import { isDemoSchool } from '@/lib/demo-utils'
 import { logger } from "@/lib/logger";
 
@@ -35,7 +35,7 @@ export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
         const { getDefaultSubjects } = await import('@/lib/curriculum')
         const defaultSubjects = getDefaultSubjects(getSchoolType())
         const seeds = defaultSubjects.map(s => ({ name: s.name, code: s.code, level: s.level, is_compulsory: s.is_compulsory, school_id: querySchoolId }))
-        const { data: inserted, error: insertError } = await supabase.from('subjects').insert(seeds).select('id, name, code, level, is_compulsory, school_id, created_at')
+        const { data: inserted, error: insertError } = await withTimeout(supabase.from('subjects').insert(seeds).select('id, name, code, level, is_compulsory, school_id, created_at'), 15000, { data: null, error: { message: "Subject seed timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any)
         if (!insertError && inserted) currentSubjects = inserted.sort((a: any, b: any) => a.name.localeCompare(b.name))
       }
       setSubjects(currentSubjects as Subject[])
@@ -60,10 +60,10 @@ export function useSubjectAllocations(schoolId?: string, academicYear?: string) 
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
-      const { data, error } = await supabase.from('subject_allocations')
+      const { data, error } = await withTimeout(supabase.from('subject_allocations')
         .insert({ ...allocation, school_id: querySchoolId })
         .select('id, school_id, teacher_id, subject_id, class_id, academic_year, term, is_class_teacher, created_at')
-        .single()
+        .single(), 15000, { data: null, error: { message: "Allocation creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any)
       if (error) throw error
       setAllocations(prev => [...prev, data])
       return data
@@ -76,7 +76,7 @@ export function useSubjectAllocations(schoolId?: string, academicYear?: string) 
       return
     }
     try {
-      const { error } = await supabase.from('subject_allocations').delete().eq('id', id)
+      const { error } = await withTimeout(supabase.from('subject_allocations').delete().eq('id', id), 15000, { error: { message: "Allocation deletion timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any)
       if (error) throw error
       setAllocations(prev => prev.filter(a => a.id !== id))
     } catch (err: any) { throw new Error(err.message) }

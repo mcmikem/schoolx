@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { logger } from "@/lib/logger";
 import { getCachedResponse, cacheResponse, queueMutation, isOnline, generateCacheKey } from "@/lib/offline-db";
+import { withTimeout } from "./utils";
 
 interface AcademicTerm {
   id: string;
@@ -127,14 +128,18 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
       }
 
       try {
-        const { data, error } = await supabase
-          .from("academic_terms")
-          .insert({
-            school_id: school.id,
-            ...term,
-          })
-          .select()
-          .single();
+        const { data, error } = await withTimeout(
+          supabase
+            .from("academic_terms")
+            .insert({
+              school_id: school.id,
+              ...term,
+            })
+            .select()
+            .single(),
+          15000,
+          { data: null, error: { message: "Academic term creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+        );
 
         if (error) throw error;
         setTerms((prev) => [...prev, data]);
@@ -152,12 +157,16 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
   const updateTerm = useCallback(
     async (id: string, updates: Partial<AcademicTerm>) => {
       try {
-        const { data, error } = await supabase
-          .from("academic_terms")
-          .update(updates)
-          .eq("id", id)
-          .select()
-          .single();
+        const { data, error } = await withTimeout(
+          supabase
+            .from("academic_terms")
+            .update(updates)
+            .eq("id", id)
+            .select()
+            .single(),
+          15000,
+          { data: null, error: { message: "Academic term update timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+        );
 
         if (error) throw error;
         setTerms((prev) => prev.map((t) => (t.id === id ? data : t)));

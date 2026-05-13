@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { logger } from "@/lib/logger";
+import { withTimeout } from "./utils";
 
 interface ActivityComment {
   id: string;
@@ -64,18 +65,22 @@ export function useActivityComments(options: UseActivityCommentsOptions = {}) {
       if (!options.entityType || !options.entityId) return null;
 
       try {
-        const { data, error } = await supabase
-          .from("activity_comments")
-          .insert({
-            entity_type: options.entityType,
-            entity_id: options.entityId,
-            content,
-            comment_type: commentType,
-            is_internal: isInternal,
-            parent_id: parentId || null,
-          })
-          .select()
-          .single();
+        const { data, error } = await withTimeout(
+          supabase
+            .from("activity_comments")
+            .insert({
+              entity_type: options.entityType,
+              entity_id: options.entityId,
+              content,
+              comment_type: commentType,
+              is_internal: isInternal,
+              parent_id: parentId || null,
+            })
+            .select()
+            .single(),
+          15000,
+          { data: null, error: { message: "Comment creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+        );
 
         if (error) throw error;
         toast.success("Comment added");
@@ -93,10 +98,14 @@ export function useActivityComments(options: UseActivityCommentsOptions = {}) {
   const updateComment = useCallback(
     async (id: string, content: string) => {
       try {
-        const { error } = await supabase
-          .from("activity_comments")
-          .update({ content })
-          .eq("id", id);
+        const { error } = await withTimeout(
+          supabase
+            .from("activity_comments")
+            .update({ content })
+            .eq("id", id),
+          15000,
+          { error: { message: "Comment update timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+        );
 
         if (error) throw error;
         toast.success("Comment updated");
@@ -112,10 +121,14 @@ export function useActivityComments(options: UseActivityCommentsOptions = {}) {
   const deleteComment = useCallback(
     async (id: string) => {
       try {
-        const { error } = await supabase
-          .from("activity_comments")
-          .delete()
-          .eq("id", id);
+        const { error } = await withTimeout(
+          supabase
+            .from("activity_comments")
+            .delete()
+            .eq("id", id),
+          15000,
+          { error: { message: "Comment deletion timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+        );
 
         if (error) throw error;
         toast.success("Comment deleted");
@@ -131,10 +144,14 @@ export function useActivityComments(options: UseActivityCommentsOptions = {}) {
   const resolveAction = useCallback(
     async (id: string) => {
       try {
-        const { error } = await supabase
-          .from("activity_comments")
-          .update({ comment_type: "resolved" })
-          .eq("id", id);
+        const { error } = await withTimeout(
+          supabase
+            .from("activity_comments")
+            .update({ comment_type: "resolved" })
+            .eq("id", id),
+          15000,
+          { error: { message: "Action resolution timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+        );
 
         if (error) throw error;
         toast.success("Action resolved");

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
-import { getQuerySchoolId } from './utils'
+import { getQuerySchoolId, withTimeout } from './utils'
 import { isDemoSchool } from '@/lib/demo-utils'
 import { DEMO_BOOKS, DEMO_BOOK_ISSUES } from '@/lib/demo-data'
 import { logger } from "@/lib/logger";
@@ -55,7 +55,7 @@ export function useLibrary(schoolId?: string) {
       return newBook
     }
     try {
-      const { data, error } = await supabase.from('library_books').insert({ ...book, school_id: schoolId }).select().single()
+      const { data, error } = await withTimeout(supabase.from('library_books').insert({ ...book, school_id: schoolId }).select().single(), 15000, { data: null, error: { message: "Book creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any)
       if (error) throw error
       setBooks(prev => [...prev, data])
       return data
@@ -69,7 +69,7 @@ export function useLibrary(schoolId?: string) {
       return newIssue
     }
     try {
-      const { data, error } = await supabase.from('library_issues').insert({ ...issue, school_id: schoolId }).select().single()
+      const { data, error } = await withTimeout(supabase.from('library_issues').insert({ ...issue, school_id: schoolId }).select().single(), 15000, { data: null, error: { message: "Book issue timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any)
       if (error) throw error
       setIssues(prev => [...prev, data])
       return data
