@@ -10,7 +10,7 @@
 //   - Google OAuth mode redirects to /auth/callback?next=/register
 //   - Registration API uses /api/register/ (password) or /api/register/oauth/ (Google)
 //   - All redirects must use router.replace() not router.push()
-//   - Uganda phone validation: /^(0|256|\+256)[7][0-9]{8}$/
+//   - Uganda phone validation: /^(0|256|\+256)[7][0-9]{8}$/  (e.g. 0700000000, +256700000000)
 //   - Password requirements: 8+ chars, 1 uppercase, 1 number
 //
 // To modify: Run full test suite (lint + typecheck + regression + e2e)

@@ -1,77 +1,31 @@
 "use client";
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { createPortal } from "react-dom";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import Papa from "papaparse";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { useStudents, useClasses } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
-import { supabase } from "@/lib/supabase";
 import { SendSMSModal } from "@/components/SendSMSModal";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Tabs, TabPanel } from "@/components/ui/Tabs";
+import { TabPanel } from "@/components/ui/Tabs";
 import { Modal } from "@/components/ui/Modal";
-import { logger } from "@/lib/logger";
-import BulkImport from "@/components/BulkImport";
 import { Button } from "@/components/ui/index";
-import StudentPhotoField from "@/components/students/StudentPhotoField";
-import StudentRegistryPanel from "@/components/students/StudentRegistryPanel";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import BulkImport from "@/components/BulkImport";
 import StudentWorkspaceShell from "@/components/students/StudentWorkspaceShell";
+import StudentRegistryPanel from "@/components/students/StudentRegistryPanel";
 import StudentTransfersPanel from "@/components/students/StudentTransfersPanel";
 import StudentRetentionPanel from "@/components/students/StudentRetentionPanel";
 import StudentPromotionPanel from "@/components/students/StudentPromotionPanel";
+import StudentDetailPanel from "@/components/students/StudentDetailPanel";
+import { useStudentImport } from "@/components/students/StudentImportModal";
 import { useTablePreferences } from "@/lib/useTablePreferences";
-import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
-import { uploadStudentPhoto } from "@/lib/student-photos";
 import { useStudentTransfers } from "@/hooks/useStudentTransfers";
 import { useStudentDropouts } from "@/hooks/useStudentDropouts";
 import { useStudentPromotion } from "@/hooks/useStudentPromotion";
-import { UGANDA_DISTRICT_DIRECTORY } from "@/lib/uganda-admin";
 
-/* ── FieldHint: small ? button that reveals a help tip ── */
-function FieldHint({ tip }: { tip: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <span className="relative inline-block ml-1.5 align-middle">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-4 h-4 rounded-full bg-[var(--navy-soft)] text-[var(--navy)] flex items-center justify-center text-[9px] font-black leading-none border border-[var(--border)] hover:bg-[var(--navy)] hover:text-white transition-colors"
-        aria-label="Help"
-        title={tip}
-      >
-        ?
-      </button>
-      {open && (
-        <div className="absolute left-6 top-0 z-50 w-56 rounded-xl border border-[var(--border)] bg-white p-3 text-[12px] text-[var(--t2)] leading-5 shadow-lg">
-          {tip}
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="mt-2 block text-[11px] font-semibold text-[var(--primary)] hover:underline"
-          >
-            Got it
-          </button>
-        </div>
-      )}
-    </span>
-  );
-}
-
-const TRANSFER_REASONS = [
-  "Family relocation",
-  "School closure",
-  "Better opportunity",
-  "Fee constraints",
-  "Disciplinary",
-  "Academic reasons",
-  "Other",
-];
-
-type TransferTab = "in" | "out";
 type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "promotion";
 
 interface TransferOutRecord {
@@ -87,48 +41,21 @@ interface TransferOutRecord {
   admission_date: string;
 }
 
-interface AtRiskStudent {
-  id: string;
-  first_name: string;
-  last_name: string;
-  gender: string;
-  student_number: string;
-  class_id: string;
-  class_name: string;
-  parent_name: string;
-  parent_phone: string;
-  consecutive_absent: number;
-  last_attendance_date: string | null;
-  risk_level: "at_risk" | "likely_dropout";
-}
-
-interface PromotionStudent {
-  id: string;
-  first_name: string;
-  last_name: string;
-  gender: string;
-  status: string;
-  class_id: string;
-  repeating?: boolean;
-  classes?: { id: string; name: string; level: string };
-}
-
 interface ClassData {
   id: string;
   name: string;
   level: string;
 }
 
-type StudentAction = "promote" | "repeat" | "demote" | "skip";
-interface StudentActionMap {
-  [studentId: string]: {
-    action: StudentAction;
-    targetClassId?: string;
-    reason?: string;
-  };
+interface SmsTarget {
+  id: string;
+  first_name: string;
+  last_name: string;
+  parent_phone?: string | null;
+  parent_name?: string | null;
 }
 
-type EditableStudent = {
+interface EditingStudent {
   id: string;
   first_name?: string | null;
   last_name?: string | null;
@@ -142,15 +69,7 @@ type EditableStudent = {
   ple_index_number?: string | null;
   opening_balance?: string | number | null;
   photo_url?: string | null;
-};
-
-type SmsTarget = {
-  id: string;
-  first_name: string;
-  last_name: string;
-  parent_phone?: string | null;
-  parent_name?: string | null;
-};
+}
 
 export default function StudentHubPage() {
   const { school, user, isDemo } = useAuth();
@@ -173,89 +92,47 @@ export default function StudentHubPage() {
     deleteStudent,
     totalCount,
   } = useStudents(school?.id, { limit: itemsPerPage, offset });
-  const { classes, loading: classesLoading } = useClasses(school?.id);
+  const { classes } = useClasses(school?.id);
 
   const [activeTab, setActiveTab] = useState<StudentWorkspaceTab>("registry");
 
-  // ===== EXTRACTED HOOKS =====
   const transfers = useStudentTransfers(
-    school?.id,
-    students,
-    isDemo,
-    createStudent,
-    updateStudent,
-    toast,
+    school?.id, students, isDemo, createStudent, updateStudent, toast,
   );
   const dropouts = useStudentDropouts(
-    school?.id,
-    students,
-    isDemo,
-    updateStudent,
-    toast,
-    user,
+    school?.id, students, isDemo, updateStudent, toast, user,
   );
   const promotion = useStudentPromotion(
-    school?.id,
-    students,
-    isDemo,
-    updateStudent,
-    toast,
-    academicYear,
-    user,
+    school?.id, students, isDemo, updateStudent, toast, academicYear, user,
   );
 
-  // ===== REGISTRY STATE =====
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClass, setSelectedClass] = useState("all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
-  const [editingStudent, setEditingStudent] = useState<{
-    id: string;
-    photo_url?: string | null;
-  } | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [houses, setHouses] = useState<{ id: string; name: string }[]>([]);
-
-  useEffect(() => {
-    if (searchParams?.get("action") === "add") {
-      setShowAddModal(true);
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (!showAddModal) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const frame = requestAnimationFrame(() => {
-      if (addStudentModalRef.current) {
-        addStudentModalRef.current.scrollTop = 0;
-      }
-      addStudentFirstInputRef.current?.focus();
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    });
-
-    return () => {
-      cancelAnimationFrame(frame);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [showAddModal]);
-
-  // Filters
+  const [editingStudent, setEditingStudent] = useState<EditingStudent | null>(
+    null,
+  );
   const [filterGender, setFilterGender] = useState<"all" | "M" | "F">("all");
   const [filterPosition, setFilterPosition] = useState<string>("all");
   const [filterDefaulters, setFilterDefaulters] = useState(false);
   const [sortBy, setSortBy] = useState<"name" | "number" | "class">("name");
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
-  // Keyboard shortcut refs
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const addStudentFirstInputRef = useRef<HTMLInputElement>(null);
-  const addStudentModalRef = useRef<HTMLDivElement>(null);
+  const [smsTarget, setSmsTarget] = useState<SmsTarget | null>(null);
 
-  // Keyboard shortcuts: Ctrl+N = add student, Ctrl+F = focus search, Escape = close modals
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    open: boolean;
+    studentId: string | null;
+  }>({ open: false, studentId: null });
+
+  const templateImport = useStudentImport(classes, createStudent, toast);
+
+  useEffect(() => {
+    if (searchParams?.get("action") === "add") setShowAddModal(true);
+  }, [searchParams]);
+
   useKeyboardShortcuts([
     {
       key: "n",
@@ -282,186 +159,6 @@ export default function StudentHubPage() {
     },
   ]);
 
-  const [newStudent, setNewStudent] = useState({
-    first_name: "",
-    last_name: "",
-    gender: "M" as "M" | "F",
-    date_of_birth: "",
-    parent_name: "",
-    parent_phone: "",
-    parent_phone2: "",
-    class_id: "",
-    student_number: "",
-    ple_index_number: "",
-    opening_balance: "0",
-    boarding_status: "day" as "day" | "boarding" | "weekly",
-    house_id: "",
-    previous_school: "",
-    district_origin: "",
-    sub_county: "",
-    parish: "",
-    village: "",
-    is_class_monitor: false,
-    prefect_role: "",
-    student_council_role: "",
-    games_house: "",
-    photo_url: "",
-  });
-
-  const handleNewStudentChange = (updates: Partial<typeof newStudent>) => {
-    setNewStudent((prev) => ({ ...prev, ...updates }));
-  };
-  const resetNewStudentForm = useCallback(() => {
-    setNewStudent({
-      first_name: "",
-      last_name: "",
-      gender: "M",
-      date_of_birth: "",
-      parent_name: "",
-      parent_phone: "",
-      parent_phone2: "",
-      class_id: "",
-      student_number: "",
-      ple_index_number: "",
-      opening_balance: "0",
-      boarding_status: "day",
-      house_id: "",
-      previous_school: "",
-      district_origin: "",
-      sub_county: "",
-      parish: "",
-      village: "",
-      is_class_monitor: false,
-      prefect_role: "",
-      student_council_role: "",
-      games_house: "",
-      photo_url: "",
-    });
-  }, []);
-
-  const handleStudentPhotoUpload = useCallback(
-    async (file: File, mode: "new" | "edit") => {
-      if (isDemo) {
-        await new Promise<void>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const result = String(reader.result || "");
-            if (mode === "new") {
-              setNewStudent((prev) => ({ ...prev, photo_url: result }));
-            } else {
-              setEditForm((prev) => ({ ...prev, photo_url: result }));
-              setEditingStudent((prev) =>
-                prev ? { ...prev, photo_url: result } : prev,
-              );
-            }
-            resolve();
-          };
-          reader.onerror = () => reject(new Error("Failed to read image"));
-          reader.readAsDataURL(file);
-        });
-        return;
-      }
-
-      if (!school?.id) {
-        throw new Error("School context missing. Reload and try again.");
-      }
-
-      const { publicUrl } = await uploadStudentPhoto({
-        file,
-        schoolId: school.id,
-        studentId: mode === "edit" ? editingStudent?.id : undefined,
-      });
-
-      if (mode === "new") {
-        setNewStudent((prev) => ({ ...prev, photo_url: publicUrl }));
-      } else {
-        setEditForm((prev) => ({ ...prev, photo_url: publicUrl }));
-        setEditingStudent((prev) =>
-          prev ? { ...prev, photo_url: publicUrl } : prev,
-        );
-      }
-    },
-    [editingStudent?.id, isDemo, school?.id],
-  );
-  const [editForm, setEditForm] = useState({
-    first_name: "",
-    last_name: "",
-    gender: "M" as "M" | "F",
-    date_of_birth: "",
-    parent_name: "",
-    parent_phone: "",
-    parent_phone2: "",
-    class_id: "",
-    student_number: "",
-    ple_index_number: "",
-    opening_balance: "0",
-    photo_url: "",
-  });
-  const [smsTarget, setSmsTarget] = useState<SmsTarget | null>(null);
-  const [templateRows, setTemplateRows] = useState<Record<string, string>[]>(
-    [],
-  );
-  const [templatePreviewRows, setTemplatePreviewRows] = useState<
-    Record<string, string>[]
-  >([]);
-  const [templateStatus, setTemplateStatus] = useState<
-    "idle" | "parsing" | "ready"
-  >("idle");
-  const [templateErrors, setTemplateErrors] = useState<string | null>(null);
-  const [importingTemplate, setImportingTemplate] = useState(false);
-  const [importSummary, setImportSummary] = useState<{
-    success: number;
-    failed: number;
-    total: number;
-  } | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<{
-    open: boolean;
-    studentId: string | null;
-  }>({ open: false, studentId: null });
-
-  const districtOptions = useMemo(
-    () => UGANDA_DISTRICT_DIRECTORY.map((entry) => entry.district),
-    [],
-  );
-  const selectedDistrictEntry = useMemo(
-    () =>
-      UGANDA_DISTRICT_DIRECTORY.find(
-        (entry) =>
-          entry.district.toLowerCase() ===
-          newStudent.district_origin.trim().toLowerCase(),
-      ),
-    [newStudent.district_origin],
-  );
-  const subcountyOptions = selectedDistrictEntry?.subcounties || [];
-  const parishOptions = useMemo(() => {
-    if (!selectedDistrictEntry) return [];
-    const subcounty = newStudent.sub_county.trim();
-    if (!subcounty) return [];
-    return selectedDistrictEntry.parishes[subcounty] || [];
-  }, [selectedDistrictEntry, newStudent.sub_county]);
-
-  // ===== EFFECTS =====
-  useEffect(() => {
-    if (!school?.id) return;
-    supabase
-      .from("houses")
-      .select("*")
-      .eq("school_id", school.id)
-      .order("name")
-      .then(({ data }) => {
-        setHouses(data || []);
-      });
-  }, [school?.id]);
-
-  const resolveClassId = (row: Record<string, string>) => {
-    if (row.class_id) return row.class_id;
-    if (!row.class_name) return "";
-    const match = classes.find(
-      (c) => c.name.toLowerCase() === row.class_name?.toLowerCase(),
-    );
-    return match?.id || "";
-  };
-
   const filtered = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
     let result = students.filter((s) => {
@@ -473,7 +170,8 @@ export default function StudentHubPage() {
         s.student_number?.toLowerCase().includes(normalizedSearch);
       const matchesClass =
         selectedClass === "all" || s.class_id === selectedClass;
-      const matchesGender = filterGender === "all" || s.gender === filterGender;
+      const matchesGender =
+        filterGender === "all" || s.gender === filterGender;
       const matchesPosition =
         filterPosition === "all" ||
         (filterPosition === "monitor" && s.is_class_monitor) ||
@@ -489,8 +187,6 @@ export default function StudentHubPage() {
         matchesDefaulters
       );
     });
-
-    // Sort
     result.sort((a, b) => {
       if (sortBy === "name") {
         return `${a.first_name} ${a.last_name}`.localeCompare(
@@ -498,11 +194,14 @@ export default function StudentHubPage() {
         );
       }
       if (sortBy === "number") {
-        return (a.student_number || "").localeCompare(b.student_number || "");
+        return (a.student_number || "").localeCompare(
+          b.student_number || "",
+        );
       }
-      return (a.classes?.name || "").localeCompare(b.classes?.name || "");
+      return (a.classes?.name || "").localeCompare(
+        b.classes?.name || "",
+      );
     });
-
     return result;
   }, [
     students,
@@ -514,12 +213,9 @@ export default function StudentHubPage() {
     sortBy,
   ]);
 
-  // Pagination derived from table preferences
   const pageSize = tablePrefs.pageSize || 50;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-  const paginatedStudents = filtered;
 
-  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [
@@ -532,209 +228,6 @@ export default function StudentHubPage() {
     pageSize,
     school?.id,
   ]);
-
-  const handleStudentTemplateUpload = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setTemplateStatus("parsing");
-    setTemplateErrors(null);
-    setTemplateRows([]);
-    setTemplatePreviewRows([]);
-    setImportSummary(null);
-    Papa.parse<Record<string, string>>(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        const normalized: Record<string, string>[] = results.data.map(
-          (row) => ({
-            student_number: row.student_number?.trim() || "",
-            first_name: row.first_name?.trim() || "",
-            last_name: row.last_name?.trim() || "",
-            gender: row.gender?.trim().toUpperCase() === "F" ? "F" : "M",
-            class_name: row.class_name?.trim() || "",
-            class_id: row.class_id?.trim() || "",
-            ple_index_number: row.ple_index_number?.trim() || "",
-            parent_name: row.parent_name?.trim() || "",
-            parent_phone: row.parent_phone?.trim() || "",
-            parent_phone2: row.parent_phone2?.trim() || "",
-            opening_balance: row.opening_balance?.trim() || "0",
-          }),
-        );
-        setTemplateRows(normalized);
-        setTemplatePreviewRows(normalized.slice(0, 5));
-        setTemplateStatus("ready");
-      },
-      error: (error) => {
-        setTemplateErrors(error.message);
-        setTemplateStatus("idle");
-      },
-    });
-  };
-
-  const handleSeedStudentsFromTemplate = async () => {
-    if (!templateRows.length) {
-      setTemplateErrors("Upload a template before seeding.");
-      return;
-    }
-    setImportingTemplate(true);
-    let success = 0;
-    let failed = 0;
-    for (const row of templateRows) {
-      const classId = resolveClassId(row);
-      if (!row.first_name || !row.last_name || !classId) {
-        failed++;
-        continue;
-      }
-      try {
-        await createStudent({
-          first_name: row.first_name,
-          last_name: row.last_name,
-          gender: row.gender === "F" ? "F" : "M",
-          class_id: classId,
-          student_number: row.student_number || undefined,
-          ple_index_number: row.ple_index_number || undefined,
-          parent_name: row.parent_name || "",
-          parent_phone: row.parent_phone || "",
-          parent_phone2: row.parent_phone2 || undefined,
-          opening_balance: parseFloat(row.opening_balance || "0"),
-          status: "active",
-        });
-        success++;
-      } catch (error) {
-        logger.error("Bulk student import error:", error);
-        failed++;
-      }
-    }
-    setImportSummary({ success, failed, total: templateRows.length });
-    setImportingTemplate(false);
-  };
-
-  const handleCreateStudent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!school?.id) return;
-    if (!newStudent.first_name?.trim()) {
-      toast.error("First name is required");
-      return;
-    }
-    if (!newStudent.last_name?.trim()) {
-      toast.error("Last name is required");
-      return;
-    }
-    if (!newStudent.class_id) {
-      toast.error("Please select a class");
-      return;
-    }
-    if (!newStudent.parent_name?.trim()) {
-      toast.error("Parent/Guardian name is required");
-      return;
-    }
-    if (!newStudent.parent_phone?.trim()) {
-      toast.error("Parent phone is required");
-      return;
-    }
-    try {
-      setSaving(true);
-      await createStudent({
-        first_name: newStudent.first_name.trim(),
-        last_name: newStudent.last_name.trim(),
-        gender: newStudent.gender,
-        date_of_birth: newStudent.date_of_birth || undefined,
-        parent_name: newStudent.parent_name.trim(),
-        parent_phone: newStudent.parent_phone.trim(),
-        parent_phone2: newStudent.parent_phone2?.trim() || undefined,
-        class_id: newStudent.class_id,
-        student_number: newStudent.student_number?.trim() || undefined,
-        ple_index_number: newStudent.ple_index_number?.trim() || undefined,
-        opening_balance: parseFloat(newStudent.opening_balance || "0"),
-        boarding_status: newStudent.boarding_status,
-        house_id: newStudent.house_id || undefined,
-        previous_school: newStudent.previous_school?.trim() || undefined,
-        district_origin: newStudent.district_origin?.trim() || undefined,
-        sub_county: newStudent.sub_county?.trim() || undefined,
-        parish: newStudent.parish?.trim() || undefined,
-        village: newStudent.village?.trim() || undefined,
-        prefect_role: newStudent.prefect_role || undefined,
-        student_council_role: newStudent.student_council_role || undefined,
-        games_house: newStudent.games_house || undefined,
-        is_class_monitor: newStudent.is_class_monitor,
-        photo_url: newStudent.photo_url || undefined,
-        status: "active",
-      });
-      toast.success("Student added successfully");
-      setShowAddModal(false);
-      resetNewStudentForm();
-    } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to add student";
-      toast.error(errorMessage);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDeleteStudent = async () => {
-    if (!deleteConfirm.studentId) return;
-    try {
-      await deleteStudent(deleteConfirm.studentId);
-      toast.success("Student removed");
-    } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to remove student";
-      toast.error(errorMessage);
-    } finally {
-      setDeleteConfirm({ open: false, studentId: null });
-    }
-  };
-
-  const confirmDelete = (id: string) => {
-    setDeleteConfirm({ open: true, studentId: id });
-  };
-
-  const openEditModal = (student: EditableStudent) => {
-    setEditingStudent(student);
-    setEditForm({
-      first_name: student.first_name || "",
-      last_name: student.last_name || "",
-      gender: student.gender === "F" ? "F" : "M",
-      date_of_birth: student.date_of_birth || "",
-      parent_name: student.parent_name || "",
-      parent_phone: student.parent_phone || "",
-      parent_phone2: student.parent_phone2 || "",
-      class_id: student.class_id || "",
-      student_number: student.student_number || "",
-      ple_index_number: student.ple_index_number || "",
-      opening_balance: student.opening_balance?.toString() || "0",
-      photo_url: student.photo_url || "",
-    });
-    setShowEditModal(true);
-    window.requestAnimationFrame(() => {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    });
-  };
-
-  const handleUpdateStudent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingStudent) return;
-    try {
-      setSaving(true);
-      const updateData = {
-        ...editForm,
-        opening_balance: parseFloat(editForm.opening_balance || "0"),
-      };
-      await updateStudent(editingStudent.id, updateData);
-      toast.success("Student updated successfully");
-      setShowEditModal(false);
-      setEditingStudent(null);
-    } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to update student";
-      toast.error(errorMessage);
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleExport = () => {
     if (students.length === 0) {
@@ -801,8 +294,20 @@ export default function StudentHubPage() {
         startNum++;
       }
       toast.success(`Generated ${p7Students.length} PLE index numbers`);
-    } catch (err) {
+    } catch {
       toast.error("Failed to generate index numbers");
+    }
+  };
+
+  const handleDeleteStudent = async () => {
+    if (!deleteConfirm.studentId) return;
+    try {
+      await deleteStudent(deleteConfirm.studentId);
+      toast.success("Student removed");
+    } catch {
+      toast.error("Failed to remove student");
+    } finally {
+      setDeleteConfirm({ open: false, studentId: null });
     }
   };
 
@@ -811,7 +316,13 @@ export default function StudentHubPage() {
       <div className="space-y-6 p-4 sm:p-6 lg:p-8">
         <PageHeader
           title="Student Hub"
-          subtitle={loading ? <span className="inline-block w-48 h-4 rounded bg-gray-200 animate-pulse" /> : `${students.length} students enrolled in ${academicYear} (${students.filter((s) => s.gender === "M").length} Boys / ${students.filter((s) => s.gender === "F").length} Girls)`}
+          subtitle={
+            loading ? (
+              <span className="inline-block w-48 h-4 rounded bg-gray-200 animate-pulse" />
+            ) : (
+              `${students.length} students enrolled in ${academicYear} (${boysCount} Boys / ${girlsCount} Girls)`
+            )
+          }
           variant="premium"
         />
 
@@ -837,7 +348,6 @@ export default function StudentHubPage() {
           onExport={handleExport}
         />
 
-        {/* ===== REGISTRY TAB ===== */}
         <TabPanel activeTab={activeTab} tabId="registry">
           <StudentRegistryPanel
             schoolId={school?.id}
@@ -846,14 +356,7 @@ export default function StudentHubPage() {
             girlsCount={girlsCount}
             classesCount={classes.length}
             classes={classes}
-            templateStatus={templateStatus}
-            templateErrors={templateErrors}
-            templateRowsCount={templateRows.length}
-            templatePreviewRows={templatePreviewRows}
-            importingTemplate={importingTemplate}
-            importSummary={importSummary}
-            onTemplateUpload={handleStudentTemplateUpload}
-            onSeedTemplate={handleSeedStudentsFromTemplate}
+            {...templateImport}
             searchInputRef={searchInputRef}
             searchTerm={searchTerm}
             onSearchTermChange={setSearchTerm}
@@ -875,7 +378,7 @@ export default function StudentHubPage() {
             loading={loading}
             filteredCount={filtered.length}
             filteredTotal={totalCount}
-            paginatedStudents={paginatedStudents}
+            paginatedStudents={filtered}
             currentPage={currentPage}
             totalPages={totalPages}
             onPreviousPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
@@ -883,1367 +386,41 @@ export default function StudentHubPage() {
               setCurrentPage((p) => Math.min(totalPages, p + 1))
             }
             onAddStudent={() => setShowAddModal(true)}
-            onSmsParent={(student) => setSmsTarget(student)}
-            onEditStudent={(student) => openEditModal(student)}
-            onDeleteStudent={confirmDelete}
+            onSmsParent={(student) => setSmsTarget(student as SmsTarget)}
+            onEditStudent={(student) => {
+              setEditingStudent(student as EditingStudent);
+              setShowEditModal(true);
+            }}
+            onDeleteStudent={(id) =>
+              setDeleteConfirm({ open: true, studentId: id })
+            }
           />
 
-          {/* Add Modal */}
-          {showAddModal &&
-            typeof document !== "undefined" &&
-            createPortal(
-              <div
-                className="fixed inset-0 z-[140] bg-black/60 backdrop-blur-sm overflow-y-auto"
-                onClick={() => setShowAddModal(false)}
-              >
-                <div className="min-h-full flex items-start sm:items-center justify-center p-4">
-                  <div
-                    ref={addStudentModalRef}
-                    className="bg-[var(--surface)] rounded-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto my-2 shadow-2xl"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="sticky top-0 bg-[var(--surface)] border-b border-[var(--border)] p-4 flex items-center justify-between">
-                      <div
-                        style={{
-                          fontFamily: "Sora",
-                          fontSize: 16,
-                          fontWeight: 700,
-                        }}
-                      >
-                        Add New Student
-                      </div>
-                      <button
-                        onClick={() => setShowAddModal(false)}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          padding: 4,
-                        }}
-                      >
-                        <MaterialIcon
-                          style={{ fontSize: 18, color: "var(--t3)" }}
-                        >
-                          close
-                        </MaterialIcon>
-                      </button>
-                    </div>
-                    <form
-                      onSubmit={handleCreateStudent}
-                      style={{ padding: 20 }}
-                    >
-                      <StudentPhotoField
-                        photoUrl={newStudent.photo_url}
-                        firstName={newStudent.first_name}
-                        lastName={newStudent.last_name}
-                        gender={newStudent.gender}
-                        uploading={uploadingPhoto}
-                        onUpload={async (file) => {
-                          try {
-                            setUploadingPhoto(true);
-                            await handleStudentPhotoUpload(file, "new");
-                            toast.success("Passport photo added");
-                          } catch (error: unknown) {
-                            toast.error(
-                              error instanceof Error
-                                ? error.message
-                                : "Failed to upload passport photo",
-                            );
-                          } finally {
-                            setUploadingPhoto(false);
-                          }
-                        }}
-                      />
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr",
-                          gap: 12,
-                          marginBottom: 16,
-                        }}
-                      >
-                        <div>
-                          <label
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              letterSpacing: ".5px",
-                              textTransform: "uppercase",
-                              color: "var(--t3)",
-                              marginBottom: 6,
-                              display: "block",
-                            }}
-                          >
-                            First Name
-                          </label>
-                          <input
-                            ref={addStudentFirstInputRef}
-                            type="text"
-                            value={newStudent.first_name}
-                            onChange={(e) =>
-                              handleNewStudentChange({
-                                first_name: e.target.value,
-                              })
-                            }
-                            className="input"
-                            required
-                            maxLength={100}
-                          />
-                        </div>
-                        <div>
-                          <label
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              letterSpacing: ".5px",
-                              textTransform: "uppercase",
-                              color: "var(--t3)",
-                              marginBottom: 6,
-                              display: "block",
-                            }}
-                          >
-                            Last Name
-                          </label>
-                          <input
-                            type="text"
-                            value={newStudent.last_name}
-                            onChange={(e) =>
-                              handleNewStudentChange({
-                                last_name: e.target.value,
-                              })
-                            }
-                            className="input"
-                            required
-                            maxLength={100}
-                          />
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr",
-                          gap: 12,
-                          marginBottom: 16,
-                        }}
-                      >
-                        <div>
-                          <label
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              letterSpacing: ".5px",
-                              textTransform: "uppercase",
-                              color: "var(--t3)",
-                              marginBottom: 6,
-                              display: "block",
-                            }}
-                          >
-                            Gender
-                          </label>
-                          <select
-                            value={newStudent.gender}
-                            onChange={(e) =>
-                              handleNewStudentChange({
-                                gender: e.target.value as "M" | "F",
-                              })
-                            }
-                            className="input"
-                          >
-                            <option value="M">Male</option>
-                            <option value="F">Female</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              letterSpacing: ".5px",
-                              textTransform: "uppercase",
-                              color: "var(--t3)",
-                              marginBottom: 6,
-                              display: "block",
-                            }}
-                          >
-                            Date of Birth
-                          </label>
-                          <input
-                            type="date"
-                            value={newStudent.date_of_birth}
-                            onChange={(e) =>
-                              handleNewStudentChange({
-                                date_of_birth: e.target.value,
-                              })
-                            }
-                            className="input"
-                          />
-                        </div>
-                      </div>
-                      <div style={{ marginBottom: 16 }}>
-                        <label
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            letterSpacing: ".5px",
-                            textTransform: "uppercase",
-                            color: "var(--t3)",
-                            marginBottom: 6,
-                            display: "block",
-                          }}
-                        >
-                          Class
-                        </label>
-                        {classesLoading ? (
-                          <div
-                            style={{
-                              background: "var(--navy-soft)",
-                              border: "1px solid rgba(0, 31, 63, 0.12)",
-                              borderRadius: 12,
-                              padding: 16,
-                            }}
-                          >
-                            <p
-                              style={{
-                                color: "var(--t1)",
-                                fontSize: 14,
-                                fontWeight: 600,
-                              }}
-                            >
-                              Loading classes...
-                            </p>
-                            <p
-                              style={{
-                                color: "var(--t3)",
-                                fontSize: 12,
-                                marginTop: 4,
-                              }}
-                            >
-                              The class list is still being fetched for this
-                              school.
-                            </p>
-                          </div>
-                        ) : classes.length === 0 ? (
-                          <div
-                            style={{
-                              background: "var(--amber-soft)",
-                              border: "1px solid var(--amber)",
-                              borderRadius: 12,
-                              padding: 16,
-                            }}
-                          >
-                            <p
-                              style={{
-                                color: "var(--t1)",
-                                fontSize: 14,
-                                fontWeight: 600,
-                              }}
-                            >
-                              No classes found
-                            </p>
-                            <p
-                              style={{
-                                color: "var(--amber)",
-                                fontSize: 12,
-                                marginTop: 4,
-                              }}
-                            >
-                              Contact support if this persists.
-                            </p>
-                          </div>
-                        ) : (
-                          <select
-                            value={newStudent.class_id}
-                            onChange={(e) =>
-                              handleNewStudentChange({
-                                class_id: e.target.value,
-                              })
-                            }
-                            className="input"
-                            required
-                          >
-                            <option value="">Select class</option>
-                            {classes.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {c.name}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                      </div>
-                      {/* Student Number — optional manual entry */}
-                      <div style={{ marginBottom: 16 }}>
-                        <label
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            letterSpacing: ".5px",
-                            textTransform: "uppercase",
-                            color: "var(--t3)",
-                            marginBottom: 6,
-                            display: "block",
-                          }}
-                        >
-                          Admission / Student Number{" "}
-                          <span
-                            style={{
-                              fontWeight: 400,
-                              fontSize: 10,
-                              color: "var(--t4)",
-                            }}
-                          >
-                            (optional — auto-generated if blank)
-                          </span>
-                        </label>
-                        <input
-                          type="text"
-                          value={newStudent.student_number}
-                          onChange={(e) =>
-                            handleNewStudentChange({
-                              student_number: e.target.value,
-                            })
-                          }
-                          className="input"
-                          placeholder="e.g., 2026-001 or leave blank for auto"
-                          maxLength={20}
-                        />
-                      </div>
-                      {/* PLE Index Number — show for all, required for P.7 */}
-                      {newStudent.class_id &&
-                        classes
-                          .find((c) => c.id === newStudent.class_id)
-                          ?.name?.startsWith("P.7") && (
-                          <div style={{ marginBottom: 16 }}>
-                            <label
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                letterSpacing: ".5px",
-                                textTransform: "uppercase",
-                                color: "var(--t3)",
-                                marginBottom: 6,
-                                display: "block",
-                              }}
-                            >
-                              PLE Index Number
-                              <span
-                                style={{
-                                  fontWeight: 400,
-                                  fontSize: 10,
-                                  color: "var(--t4)",
-                                  marginLeft: 4,
-                                }}
-                              >
-                                (Uganda UNEB format e.g. U0001/2026)
-                              </span>
-                            </label>
-                            <input
-                              type="text"
-                              value={newStudent.ple_index_number}
-                              onChange={(e) =>
-                                handleNewStudentChange({
-                                  ple_index_number: e.target.value,
-                                })
-                              }
-                              className="input"
-                              placeholder="U0001/2026"
-                              maxLength={20}
-                            />
-                          </div>
-                        )}
-                      <div style={{ marginBottom: 16 }}>
-                        <label
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            letterSpacing: ".5px",
-                            textTransform: "uppercase",
-                            color: "var(--t3)",
-                            marginBottom: 6,
-                            display: "block",
-                          }}
-                        >
-                          Parent Name
-                        </label>
-                        <input
-                          type="text"
-                          value={newStudent.parent_name}
-                          onChange={(e) =>
-                            handleNewStudentChange({
-                              parent_name: e.target.value,
-                            })
-                          }
-                          className="input"
-                          required
-                          maxLength={200}
-                        />
-                      </div>
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr",
-                          gap: 12,
-                          marginBottom: 20,
-                        }}
-                      >
-                        <div>
-                          <label
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              letterSpacing: ".5px",
-                              textTransform: "uppercase",
-                              color: "var(--t3)",
-                              marginBottom: 6,
-                              display: "block",
-                            }}
-                          >
-                            Parent Phone
-                          </label>
-                          <input
-                            type="tel"
-                            placeholder="0700000000"
-                            value={newStudent.parent_phone}
-                            onChange={(e) =>
-                              handleNewStudentChange({
-                                parent_phone: e.target.value,
-                              })
-                            }
-                            className="input"
-                            required
-                            maxLength={15}
-                          />
-                        </div>
-                        <div>
-                          <label
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              letterSpacing: ".5px",
-                              textTransform: "uppercase",
-                              color: "var(--t3)",
-                              marginBottom: 6,
-                              display: "block",
-                            }}
-                          >
-                            Alt. Phone
-                          </label>
-                          <input
-                            type="tel"
-                            placeholder="0700000000"
-                            value={newStudent.parent_phone2}
-                            onChange={(e) =>
-                              handleNewStudentChange({
-                                parent_phone2: e.target.value,
-                              })
-                            }
-                            className="input"
-                            maxLength={15}
-                          />
-                        </div>
-                      </div>
-                      <div style={{ marginBottom: 20 }}>
-                        <label
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            letterSpacing: ".5px",
-                            textTransform: "uppercase",
-                            color: "var(--t3)",
-                            marginBottom: 6,
-                            display: "block",
-                          }}
-                        >
-                          Opening Balance (Previous Debt/Credit)
-                          <FieldHint tip="Enter fees owed from a previous term. Use 0 if this is a new student with no debt. Positive = owes money, negative = paid in advance." />
-                        </label>
-                        <div style={{ position: "relative" }}>
-                          <span
-                            style={{
-                              position: "absolute",
-                              left: 12,
-                              top: "50%",
-                              transform: "translateY(-50%)",
-                              fontSize: 14,
-                              color: "var(--t3)",
-                            }}
-                          >
-                            UGX
-                          </span>
-                          <input
-                            type="number"
-                            value={newStudent.opening_balance}
-                            onChange={(e) =>
-                              handleNewStudentChange({
-                                opening_balance: e.target.value,
-                              })
-                            }
-                            className="input"
-                            style={{ paddingLeft: 45 }}
-                          />
-                        </div>
-                        <p
-                          style={{
-                            fontSize: 10,
-                            color: "var(--t3)",
-                            marginTop: 4,
-                          }}
-                        >
-                          Positive for debt (arrears), negative for
-                          credit/advance.
-                        </p>
-                      </div>
-                      <div
-                        style={{
-                          borderTop: "1px solid var(--border)",
-                          paddingTop: 16,
-                          marginBottom: 16,
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: "var(--t1)",
-                            marginBottom: 12,
-                          }}
-                        >
-                          Additional Details
-                        </div>
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr",
-                            gap: 12,
-                            marginBottom: 12,
-                          }}
-                        >
-                          <div>
-                            <label
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                letterSpacing: ".5px",
-                                textTransform: "uppercase",
-                                color: "var(--t3)",
-                                marginBottom: 6,
-                                display: "block",
-                              }}
-                            >
-                              Boarding Status
-                              <FieldHint tip="Day Scholar = student goes home daily after school. Boarding = student sleeps in the school dormitory every night. Weekly = boarder who goes home on weekends." />
-                            </label>
-                            <select
-                              value={newStudent.boarding_status}
-                              onChange={(e) =>
-                                handleNewStudentChange({
-                                  boarding_status: e.target.value as
-                                    | "day"
-                                    | "boarding"
-                                    | "weekly",
-                                })
-                              }
-                              className="input"
-                            >
-                              <option value="day">Day Scholar</option>
-                              <option value="boarding">Boarding</option>
-                              <option value="weekly">Weekly Boarder</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                letterSpacing: ".5px",
-                                textTransform: "uppercase",
-                                color: "var(--t3)",
-                                marginBottom: 6,
-                                display: "block",
-                              }}
-                            >
-                              Previous School
-                            </label>
-                            <input
-                              type="text"
-                              value={newStudent.previous_school}
-                              onChange={(e) =>
-                                handleNewStudentChange({
-                                  previous_school: e.target.value,
-                                })
-                              }
-                              className="input"
-                              placeholder="e.g., St. Peter's PS"
-                            />
-                          </div>
-                        </div>
-                        {houses.length > 0 && (
-                          <div
-                            style={{
-                              display: "grid",
-                              gridTemplateColumns: "1fr 1fr",
-                              gap: 12,
-                              marginBottom: 12,
-                            }}
-                          >
-                            <div>
-                              <label
-                                style={{
-                                  fontSize: 11,
-                                  fontWeight: 700,
-                                  letterSpacing: ".5px",
-                                  textTransform: "uppercase",
-                                  color: "var(--t3)",
-                                  marginBottom: 6,
-                                  display: "block",
-                                }}
-                              >
-                                House
-                              </label>
-                              <select
-                                value={newStudent.house_id}
-                                onChange={(e) =>
-                                  handleNewStudentChange({
-                                    house_id: e.target.value,
-                                  })
-                                }
-                                className="input"
-                              >
-                                <option value="">No house</option>
-                                {houses.map((h) => (
-                                  <option key={h.id} value={h.id}>
-                                    {h.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div>
-                              <label
-                                style={{
-                                  fontSize: 11,
-                                  fontWeight: 700,
-                                  letterSpacing: ".5px",
-                                  textTransform: "uppercase",
-                                  color: "var(--t3)",
-                                  marginBottom: 6,
-                                  display: "block",
-                                }}
-                              >
-                                Games House
-                              </label>
-                              <select
-                                value={newStudent.games_house}
-                                onChange={(e) =>
-                                  handleNewStudentChange({
-                                    games_house: e.target.value,
-                                  })
-                                }
-                                className="input"
-                              >
-                                <option value="">Same as house</option>
-                                {houses.map((h) => (
-                                  <option key={h.id} value={h.id}>
-                                    {h.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
-                        )}
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr",
-                            gap: 12,
-                            marginBottom: 12,
-                          }}
-                        >
-                          <div>
-                            <label
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                letterSpacing: ".5px",
-                                textTransform: "uppercase",
-                                color: "var(--t3)",
-                                marginBottom: 6,
-                                display: "block",
-                              }}
-                            >
-                              District of Origin
-                              <FieldHint tip="The student's home district. Used for UNEB registration and government reports. Example: Kampala, Wakiso, Gulu, Mbale." />
-                            </label>
-                            <input
-                              type="text"
-                              value={newStudent.district_origin}
-                              list="district-origin-options"
-                              onChange={(e) =>
-                                handleNewStudentChange({
-                                  district_origin: e.target.value,
-                                  sub_county: "",
-                                  parish: "",
-                                })
-                              }
-                              className="input"
-                              placeholder="e.g., Kampala"
-                              maxLength={100}
-                            />
-                          </div>
-                          <div>
-                            <label
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                letterSpacing: ".5px",
-                                textTransform: "uppercase",
-                                color: "var(--t3)",
-                                marginBottom: 6,
-                                display: "block",
-                              }}
-                            >
-                              Sub-County
-                            </label>
-                            <input
-                              type="text"
-                              value={newStudent.sub_county}
-                              list="sub-county-options"
-                              onChange={(e) =>
-                                handleNewStudentChange({
-                                  sub_county: e.target.value,
-                                  parish: "",
-                                })
-                              }
-                              className="input"
-                              placeholder={
-                                subcountyOptions.length > 0
-                                  ? "Pick or type your sub-county"
-                                  : "Type sub-county"
-                              }
-                              maxLength={100}
-                            />
-                          </div>
-                        </div>
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr",
-                            gap: 12,
-                            marginBottom: 12,
-                          }}
-                        >
-                          <div>
-                            <label
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                letterSpacing: ".5px",
-                                textTransform: "uppercase",
-                                color: "var(--t3)",
-                                marginBottom: 6,
-                                display: "block",
-                              }}
-                            >
-                              Parish
-                            </label>
-                            <input
-                              type="text"
-                              value={newStudent.parish}
-                              list="parish-options"
-                              onChange={(e) =>
-                                handleNewStudentChange({
-                                  parish: e.target.value,
-                                })
-                              }
-                              className="input"
-                              placeholder={
-                                parishOptions.length > 0
-                                  ? "Pick or type your parish"
-                                  : "Type parish"
-                              }
-                              maxLength={100}
-                            />
-                          </div>
-                          <div>
-                            <label
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                letterSpacing: ".5px",
-                                textTransform: "uppercase",
-                                color: "var(--t3)",
-                                marginBottom: 6,
-                                display: "block",
-                              }}
-                            >
-                              Village
-                            </label>
-                            <input
-                              type="text"
-                              value={newStudent.village}
-                              onChange={(e) =>
-                                handleNewStudentChange({
-                                  village: e.target.value,
-                                })
-                              }
-                              className="input"
-                              maxLength={100}
-                            />
-                          </div>
-                        </div>
-                        <datalist id="district-origin-options">
-                          {districtOptions.map((district) => (
-                            <option key={district} value={district} />
-                          ))}
-                        </datalist>
-                        <datalist id="sub-county-options">
-                          {subcountyOptions.map((subcounty) => (
-                            <option key={subcounty} value={subcounty} />
-                          ))}
-                        </datalist>
-                        <datalist id="parish-options">
-                          {parishOptions.map((parish) => (
-                            <option key={parish} value={parish} />
-                          ))}
-                        </datalist>
-                        <p className="text-[11px] text-[var(--t3)] mb-3">
-                          Suggestions come from Uganda district data. You can still type any value manually.
-                        </p>
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr",
-                            gap: 12,
-                          }}
-                        >
-                          <div>
-                            <label
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                letterSpacing: ".5px",
-                                textTransform: "uppercase",
-                                color: "var(--t3)",
-                                marginBottom: 6,
-                                display: "block",
-                              }}
-                            >
-                              Leadership Position
-                            </label>
-                            <select
-                              value={
-                                newStudent.prefect_role ||
-                                newStudent.student_council_role ||
-                                ""
-                              }
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (
-                                  [
-                                    "head_boy",
-                                    "head_girl",
-                                    "sports_prefect",
-                                    "dining_prefect",
-                                    "library_prefect",
-                                    "health_prefect",
-                                  ].includes(val)
-                                ) {
-                                  handleNewStudentChange({
-                                    prefect_role: val,
-                                    student_council_role: "",
-                                  });
-                                } else if (
-                                  [
-                                    "president",
-                                    "vice_president",
-                                    "secretary",
-                                    "treasurer",
-                                  ].includes(val)
-                                ) {
-                                  handleNewStudentChange({
-                                    student_council_role: val,
-                                    prefect_role: "",
-                                  });
-                                } else {
-                                  handleNewStudentChange({
-                                    prefect_role: "",
-                                    student_council_role: "",
-                                  });
-                                }
-                              }}
-                              className="input"
-                            >
-                              <option value="">None</option>
-                              <optgroup label="Prefects">
-                                <option value="head_boy">Head Boy</option>
-                                <option value="head_girl">Head Girl</option>
-                                <option value="sports_prefect">
-                                  Sports Prefect
-                                </option>
-                                <option value="dining_prefect">
-                                  Dining Prefect
-                                </option>
-                                <option value="library_prefect">
-                                  Library Prefect
-                                </option>
-                                <option value="health_prefect">
-                                  Health Prefect
-                                </option>
-                              </optgroup>
-                              <optgroup label="Student Council">
-                                <option value="president">President</option>
-                                <option value="vice_president">
-                                  Vice President
-                                </option>
-                                <option value="secretary">Secretary</option>
-                                <option value="treasurer">Treasurer</option>
-                              </optgroup>
-                            </select>
-                          </div>
-                          <div>
-                            <label
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                letterSpacing: ".5px",
-                                textTransform: "uppercase",
-                                color: "var(--t3)",
-                                marginBottom: 6,
-                                display: "block",
-                              }}
-                            >
-                              Class Monitor
-                            </label>
-                            <div className="flex items-center gap-2 mt-2">
-                              <input
-                                type="checkbox"
-                                checked={newStudent.is_class_monitor}
-                                onChange={(e) =>
-                                  handleNewStudentChange({
-                                    is_class_monitor: e.target.checked,
-                                  })
-                                }
-                                className="w-5 h-5 rounded"
-                              />
-                              <span className="text-sm">
-                                Yes, this student is a class monitor
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", gap: 10 }}>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={() => setShowAddModal(false)}
-                          style={{ flex: 1 }}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="submit"
-                          variant="primary"
-                          disabled={saving}
-                          loading={saving}
-                          style={{ flex: 1 }}
-                        >
-                          {saving ? "Adding..." : "Add Student"}
-                        </Button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              </div>,
-              document.body,
-            )}
+          <StudentDetailPanel
+            mode="add"
+            isOpen={showAddModal}
+            onClose={() => setShowAddModal(false)}
+            schoolId={school?.id}
+            classes={classes}
+            isDemo={!!isDemo}
+            toast={toast}
+            createStudent={createStudent}
+          />
 
-          {/* Edit Modal */}
-          {showEditModal &&
-            editingStudent &&
-            typeof document !== "undefined" &&
-            createPortal(
-              <div
-                className="fixed inset-0 z-[140] bg-black/60 backdrop-blur-sm overflow-y-auto"
-                onClick={() => setShowEditModal(false)}
-              >
-                <div className="min-h-full flex items-start sm:items-center justify-center p-4">
-                  <div
-                    className="bg-[var(--surface)] rounded-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto my-2 shadow-2xl"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="sticky top-0 bg-[var(--surface)] border-b border-[var(--border)] p-4 flex items-center justify-between">
-                      <div
-                        style={{
-                          fontFamily: "Sora",
-                          fontSize: 16,
-                          fontWeight: 700,
-                        }}
-                      >
-                        Edit Student
-                      </div>
-                      <button
-                        onClick={() => setShowEditModal(false)}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          padding: 4,
-                        }}
-                      >
-                        <MaterialIcon
-                          style={{ fontSize: 18, color: "var(--t3)" }}
-                        >
-                          close
-                        </MaterialIcon>
-                      </button>
-                    </div>
-                    <form
-                      onSubmit={handleUpdateStudent}
-                      style={{ padding: 20 }}
-                    >
-                      <StudentPhotoField
-                        photoUrl={editForm.photo_url}
-                        firstName={editForm.first_name}
-                        lastName={editForm.last_name}
-                        gender={editForm.gender}
-                        uploading={uploadingPhoto}
-                        title="Student Photo"
-                        onUpload={async (file) => {
-                          try {
-                            setUploadingPhoto(true);
-                            await handleStudentPhotoUpload(file, "edit");
-                            toast.success("Student photo updated");
-                          } catch (error: unknown) {
-                            toast.error(
-                              error instanceof Error
-                                ? error.message
-                                : "Failed to upload student photo",
-                            );
-                          } finally {
-                            setUploadingPhoto(false);
-                          }
-                        }}
-                        size={80}
-                      />
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr",
-                          gap: 12,
-                          marginBottom: 16,
-                        }}
-                      >
-                        <div>
-                          <label
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              letterSpacing: ".5px",
-                              textTransform: "uppercase",
-                              color: "var(--t3)",
-                              marginBottom: 6,
-                              display: "block",
-                            }}
-                          >
-                            First Name
-                          </label>
-                          <input
-                            type="text"
-                            value={editForm.first_name}
-                            onChange={(e) =>
-                              setEditForm({
-                                ...editForm,
-                                first_name: e.target.value,
-                              })
-                            }
-                            className="input"
-                            required
-                            maxLength={100}
-                          />
-                        </div>
-                        <div>
-                          <label
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              letterSpacing: ".5px",
-                              textTransform: "uppercase",
-                              color: "var(--t3)",
-                              marginBottom: 6,
-                              display: "block",
-                            }}
-                          >
-                            Last Name
-                          </label>
-                          <input
-                            type="text"
-                            value={editForm.last_name}
-                            onChange={(e) =>
-                              setEditForm({
-                                ...editForm,
-                                last_name: e.target.value,
-                              })
-                            }
-                            className="input"
-                            required
-                            maxLength={100}
-                          />
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr",
-                          gap: 12,
-                          marginBottom: 16,
-                        }}
-                      >
-                        <div>
-                          <label
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              letterSpacing: ".5px",
-                              textTransform: "uppercase",
-                              color: "var(--t3)",
-                              marginBottom: 6,
-                              display: "block",
-                            }}
-                          >
-                            Gender
-                          </label>
-                          <select
-                            value={editForm.gender}
-                            onChange={(e) =>
-                              setEditForm({
-                                ...editForm,
-                                gender: e.target.value as "M" | "F",
-                              })
-                            }
-                            className="input"
-                          >
-                            <option value="M">Male</option>
-                            <option value="F">Female</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              letterSpacing: ".5px",
-                              textTransform: "uppercase",
-                              color: "var(--t3)",
-                              marginBottom: 6,
-                              display: "block",
-                            }}
-                          >
-                            Date of Birth
-                          </label>
-                          <input
-                            type="date"
-                            value={editForm.date_of_birth}
-                            onChange={(e) =>
-                              setEditForm({
-                                ...editForm,
-                                date_of_birth: e.target.value,
-                              })
-                            }
-                            className="input"
-                          />
-                        </div>
-                      </div>
-                      <div style={{ marginBottom: 16 }}>
-                        <label
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            letterSpacing: ".5px",
-                            textTransform: "uppercase",
-                            color: "var(--t3)",
-                            marginBottom: 6,
-                            display: "block",
-                          }}
-                        >
-                          Class
-                        </label>
-                        <select
-                          value={editForm.class_id}
-                          onChange={(e) =>
-                            setEditForm({
-                              ...editForm,
-                              class_id: e.target.value,
-                            })
-                          }
-                          className="input"
-                          required
-                        >
-                          <option value="">Select class</option>
-                          {classes.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div style={{ marginBottom: 16 }}>
-                        <label
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            letterSpacing: ".5px",
-                            textTransform: "uppercase",
-                            color: "var(--t3)",
-                            marginBottom: 6,
-                            display: "block",
-                          }}
-                        >
-                          Parent Name
-                        </label>
-                        <input
-                          type="text"
-                          value={editForm.parent_name}
-                          onChange={(e) =>
-                            setEditForm({
-                              ...editForm,
-                              parent_name: e.target.value,
-                            })
-                          }
-                          className="input"
-                          required
-                        />
-                      </div>
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr",
-                          gap: 12,
-                          marginBottom: 20,
-                        }}
-                      >
-                        <div>
-                          <label
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              letterSpacing: ".5px",
-                              textTransform: "uppercase",
-                              color: "var(--t3)",
-                              marginBottom: 6,
-                              display: "block",
-                            }}
-                          >
-                            Parent Phone
-                          </label>
-                          <input
-                            type="tel"
-                            placeholder="0700000000"
-                            value={editForm.parent_phone}
-                            onChange={(e) =>
-                              setEditForm({
-                                ...editForm,
-                                parent_phone: e.target.value,
-                              })
-                            }
-                            className="input"
-                            required
-                            maxLength={15}
-                          />
-                        </div>
-                        <div>
-                          <label
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              letterSpacing: ".5px",
-                              textTransform: "uppercase",
-                              color: "var(--t3)",
-                              marginBottom: 6,
-                              display: "block",
-                            }}
-                          >
-                            Alt. Phone
-                          </label>
-                          <input
-                            type="tel"
-                            placeholder="0700000000"
-                            value={editForm.parent_phone2}
-                            onChange={(e) =>
-                              setEditForm({
-                                ...editForm,
-                                parent_phone2: e.target.value,
-                              })
-                            }
-                            className="input"
-                            maxLength={15}
-                          />
-                        </div>
-                      </div>
-                      <div style={{ marginBottom: 20 }}>
-                        <label
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            letterSpacing: ".5px",
-                            textTransform: "uppercase",
-                            color: "var(--t3)",
-                            marginBottom: 6,
-                            display: "block",
-                          }}
-                        >
-                          Opening Balance
-                        </label>
-                        <div style={{ position: "relative" }}>
-                          <span
-                            style={{
-                              position: "absolute",
-                              left: 12,
-                              top: "50%",
-                              transform: "translateY(-50%)",
-                              fontSize: 14,
-                              color: "var(--t3)",
-                            }}
-                          >
-                            UGX
-                          </span>
-                          <input
-                            type="number"
-                            value={editForm.opening_balance}
-                            onChange={(e) =>
-                              setEditForm({
-                                ...editForm,
-                                opening_balance: e.target.value,
-                              })
-                            }
-                            className="input"
-                            style={{ paddingLeft: 45 }}
-                          />
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", gap: 10 }}>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={() => setShowEditModal(false)}
-                          style={{ flex: 1 }}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="submit"
-                          variant="primary"
-                          disabled={saving}
-                          loading={saving}
-                          style={{ flex: 1 }}
-                        >
-                          {saving ? "Updating..." : "Update Student"}
-                        </Button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              </div>,
-              document.body,
-            )}
+          <StudentDetailPanel
+            mode="edit"
+            isOpen={showEditModal}
+            onClose={() => {
+              setShowEditModal(false);
+              setEditingStudent(null);
+            }}
+            schoolId={school?.id}
+            classes={classes}
+            isDemo={!!isDemo}
+            toast={toast}
+            updateStudent={updateStudent}
+            student={editingStudent}
+          />
 
           {smsTarget && (
             <SendSMSModal
@@ -2254,7 +431,6 @@ export default function StudentHubPage() {
           )}
         </TabPanel>
 
-        {/* ===== TRANSFERS TAB ===== */}
         <TabPanel activeTab={activeTab} tabId="transfers">
           <StudentTransfersPanel
             activeStudents={transfers.activeStudents}
@@ -2288,7 +464,6 @@ export default function StudentHubPage() {
           />
         </TabPanel>
 
-        {/* ===== DROPOUTS TAB ===== */}
         <TabPanel activeTab={activeTab} tabId="dropouts">
           <StudentRetentionPanel
             atRiskCount={dropouts.atRiskCount}
@@ -2315,7 +490,6 @@ export default function StudentHubPage() {
           />
         </TabPanel>
 
-        {/* ===== PROMOTION TAB ===== */}
         <TabPanel activeTab={activeTab} tabId="promotion">
           <StudentPromotionPanel
             onAutoPromote={promotion.handleAutoPromote}
@@ -2359,10 +533,13 @@ export default function StudentHubPage() {
             <BulkImport onComplete={() => setShowBulkImportModal(false)} />
           </Modal>
         )}
+
         {deleteConfirm.open && (
           <div
             className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={() => setDeleteConfirm({ open: false, studentId: null })}
+            onClick={() =>
+              setDeleteConfirm({ open: false, studentId: null })
+            }
           >
             <div
               className="bg-[var(--surface)] rounded-2xl w-full max-w-md p-6"
@@ -2378,7 +555,13 @@ export default function StudentHubPage() {
                 >
                   warning
                 </MaterialIcon>
-                <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
+                <h3
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 700,
+                    marginBottom: 8,
+                  }}
+                >
                   Remove Student?
                 </h3>
                 <p style={{ color: "var(--t3)", fontSize: 14 }}>
