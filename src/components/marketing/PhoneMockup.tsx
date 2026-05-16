@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { smsMessages } from "./landing-data";
+import { APP_NAME } from "@/lib/app-name";
 
 export function PhoneMockup() {
   const [activeMsg, setActiveMsg] = useState(0);
@@ -174,7 +175,7 @@ export function PhoneMockup() {
                   marginBottom: 2,
                 }}
               >
-                SkoolMate OS parent portal
+                {`${APP_NAME} parent portal`}
               </p>
               <p style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>
                 Fee &amp; attendance update

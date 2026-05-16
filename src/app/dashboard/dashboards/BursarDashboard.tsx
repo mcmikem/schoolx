@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import {
@@ -37,7 +38,7 @@ function BursarDashboardContent() {
         ? "Good Afternoon"
         : "Good Evening";
 
-  const totalFeesExpected = students.reduce((total, student) => {
+  const totalFeesExpected = useMemo(() => students.reduce((total, student) => {
     const classFees = feeStructure.filter(
       (f) => !f.class_id || f.class_id === student.class_id,
     );
@@ -46,26 +47,26 @@ function BursarDashboardContent() {
       0,
     );
     return total + studentExpected;
-  }, 0);
+  }, 0), [students, feeStructure]);
 
-  const totalFeesCollected = payments.reduce(
+  const totalFeesCollected = useMemo(() => payments.reduce(
     (sum, p) => sum + Number(p.amount_paid || 0),
     0,
-  );
-  const totalArrears = Math.max(0, totalFeesExpected - totalFeesCollected);
-  const collectionRate =
+  ), [payments]);
+  const totalArrears = useMemo(() => Math.max(0, totalFeesExpected - totalFeesCollected), [totalFeesExpected, totalFeesCollected]);
+  const collectionRate = useMemo(() =>
     totalFeesExpected > 0
       ? Math.round((totalFeesCollected / totalFeesExpected) * 100)
-      : 0;
+      : 0, [totalFeesExpected, totalFeesCollected]);
 
-  const thisMonthPayments = payments.filter((p) => {
+  const thisMonthPayments = useMemo(() => payments.filter((p) => {
     const d = new Date(p.payment_date);
     const now = new Date();
     return (
       d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
     );
-  });
-  const lastMonthPayments = payments.filter((p) => {
+  }), [payments]);
+  const lastMonthPayments = useMemo(() => payments.filter((p) => {
     const d = new Date(p.payment_date);
     const now = new Date();
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -73,19 +74,19 @@ function BursarDashboardContent() {
       d.getMonth() === lastMonth.getMonth() &&
       d.getFullYear() === lastMonth.getFullYear()
     );
-  });
-  const thisMonthTotal = thisMonthPayments.reduce(
+  }), [payments]);
+  const thisMonthTotal = useMemo(() => thisMonthPayments.reduce(
     (s, p) => s + Number(p.amount_paid || 0),
     0,
-  );
-  const lastMonthTotal = lastMonthPayments.reduce(
+  ), [thisMonthPayments]);
+  const lastMonthTotal = useMemo(() => lastMonthPayments.reduce(
     (s, p) => s + Number(p.amount_paid || 0),
     0,
-  );
-  const collectionTrend =
+  ), [lastMonthPayments]);
+  const collectionTrend = useMemo(() =>
     lastMonthTotal > 0
       ? Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100)
-      : 0;
+      : 0, [thisMonthTotal, lastMonthTotal]);
   const attendanceRate =
     stats?.totalStudents > 0
       ? Math.round((stats.presentToday / stats.totalStudents) * 100)

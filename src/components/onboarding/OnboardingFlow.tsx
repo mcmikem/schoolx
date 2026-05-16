@@ -31,6 +31,7 @@ import { saveSchoolSetting } from "@/lib/school-settings";
 import { PRIMARY_TEMPLATE, SECONDARY_TEMPLATE, type TemplateSubject } from "@/lib/curriculum-templates";
 import { logger } from "@/lib/logger";
 import { getErrorMessage } from "@/lib/validation";
+import { APP_NAME } from "@/lib/app-name";
 
 interface StepConfig {
   title: string;
@@ -1010,7 +1011,7 @@ export default function OnboardingFlow({
                 >
                   <OwlStage
                     eyebrow="Launch setup"
-                    title="Welcome to SkoolMate OS"
+                    title={`Welcome to ${APP_NAME}`}
                     description="The owl will walk you through school essentials, curriculum defaults, feature activation, and launch settings in one clear flow."
                     chips={[
                       "School identity",

@@ -1,6 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { APP_NAME } from "@/lib/app-name";
 
 interface SkoolMateLogoProps {
   size?: "sm" | "md" | "lg" | "xl";
@@ -36,7 +37,7 @@ export default function SkoolMateLogo({
       <div className="relative" style={{ width: s.icon, height: s.icon }}>
         <Image
           src={`/SkoolMate logos/${logoFile}`}
-          alt="SkoolMate OS Logo"
+          alt={`${APP_NAME} Logo`}
           width={s.icon}
           height={s.icon}
           className="object-contain"

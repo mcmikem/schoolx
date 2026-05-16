@@ -8,6 +8,7 @@ import { useToast } from "@/components/Toast";
 import Image from "next/image";
 import { OwlLoader } from "@/components/loaders";
 import { logger } from "@/lib/logger";
+import { APP_NAME } from "@/lib/app-name";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1759,7 +1760,7 @@ export default function SuperAdminPage() {
   if (!authInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--bg)]">
-        <OwlLoader size={100} text="SkoolMate OS" subtext="Loading admin panel..." />
+        <OwlLoader size={100} text={APP_NAME} subtext="Loading admin panel..." />
       </div>
     );
   }
@@ -1861,7 +1862,7 @@ export default function SuperAdminPage() {
                 {greeting}, {firstName}
               </h1>
               <p className="text-[12px] text-[var(--t3)] mt-0.5">
-                SkoolMate OS \u00b7 Super Admin \u00b7{" "}
+                {APP_NAME} \u00b7 Super Admin \u00b7{" "}
                 {new Date().toLocaleDateString("en-UG", {
                   weekday: "long",
                   day: "numeric",

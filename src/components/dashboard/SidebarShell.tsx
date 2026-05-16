@@ -9,6 +9,7 @@ import { canUseModule, type FeatureStage, type ModuleKey, DEFAULT_FEATURE_STAGE 
 import { MODULE_FOR_ROUTE } from "@/components/dashboard/AccessControlGuard";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { APP_NAME } from "@/lib/app-name";
 
 const ROUTE_TO_MODULE: Record<string, ModuleKey> = {};
 for (const [route, mod] of Object.entries(MODULE_FOR_ROUTE)) {
@@ -86,7 +87,7 @@ export default function SidebarShell({
             ) : (
               <Image
                 src="/SkoolMate logos/SchoolMate logo official.svg"
-                alt="SkoolMate OS Logo"
+                alt={`${APP_NAME} Logo`}
                 width={26}
                 height={26}
                 className="w-[26px] h-[26px] object-contain brightness-0 invert"

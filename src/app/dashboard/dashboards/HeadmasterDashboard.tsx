@@ -21,6 +21,8 @@ import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
 import { TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
 import OwlMascot from "@/components/brand/OwlMascot";
 import { toLocalDateString } from "@/lib/date-utils";
+import { withTimeout } from "@/lib/hooks/utils";
+import { safeGetItem, safeSetItem } from "@/lib/safe-storage";
 
 function toLocalDate(year: number, month: number, day: number): string {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -128,7 +130,11 @@ function HeadmasterDashboardContent() {
         school.id,
         new Date().getFullYear().toString(),
       );
-      const { error } = await supabase.from("events").insert(defaultEvents);
+      const { error } = await withTimeout(
+        supabase.from("events").insert(defaultEvents),
+        15000,
+        { data: null, error: { message: "Calendar seed timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+      );
       if (!error) {
         const monthStart = localISODate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
         const monthEnd = localISODate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 2, 0));
@@ -147,14 +153,18 @@ function HeadmasterDashboardContent() {
 
   const addCalendarEvent = async () => {
     if (!school?.id || !newEventTitle.trim() || !newEventDate) return;
-    const { error } = await supabase.from("events").insert({
-      school_id: school.id,
-      title: newEventTitle.trim(),
-      start_date: newEventDate,
-      end_date: newEventDate,
-      event_type: "event",
-      created_by: user?.id,
-    });
+    const { error } = await withTimeout(
+      supabase.from("events").insert({
+        school_id: school.id,
+        title: newEventTitle.trim(),
+        start_date: newEventDate,
+        end_date: newEventDate,
+        event_type: "event",
+        created_by: user?.id,
+      }),
+      15000,
+      { data: null, error: { message: "Event creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+    );
     if (!error) {
       const monthStart = localISODate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
       const monthEnd = localISODate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 2, 0));
@@ -426,7 +436,7 @@ function HeadmasterDashboardContent() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const saved = localStorage.getItem(taskStorageKey);
+      const saved = safeGetItem(taskStorageKey);
       if (!saved) return;
       const parsed = JSON.parse(saved) as HeadmasterTask[];
       if (Array.isArray(parsed)) {
@@ -439,7 +449,7 @@ function HeadmasterDashboardContent() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    localStorage.setItem(taskStorageKey, JSON.stringify(tasks));
+    safeSetItem(taskStorageKey, JSON.stringify(tasks));
   }, [taskStorageKey, tasks]);
 
   const addTask = () => {

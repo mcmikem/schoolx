@@ -3,6 +3,7 @@ import "jspdf-autotable";
 import { createSupabaseServerClient } from "../supabase/server";
 import { sendAfricasTalkingSMS } from "@/lib/africas-talking";
 import { logger } from "@/lib/logger";
+import { APP_NAME } from "@/lib/app-name";
 
 export interface ReceiptData {
   schoolName: string;
@@ -28,7 +29,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Buffer> {
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text("SkoolMate OS", 105, 32, { align: "center" });
+  doc.text(APP_NAME, 105, 32, { align: "center" });
   doc.text("www.omuto.org | os@omuto.org", 105, 37, { align: "center" });
 
   doc.setLineWidth(0.5);
@@ -137,7 +138,7 @@ export async function sendEmailReceipt(
         <div class="container">
           <div class="header">
             <h1>Payment Receipt</h1>
-            <p>SkoolMate OS</p>
+            <p>{APP_NAME}</p>
           </div>
           <div class="content">
             <p>Dear ${receiptData.schoolName},</p>
@@ -173,7 +174,7 @@ export async function sendEmailReceipt(
             <p>Your subscription is now active and you can access all features of your plan.</p>
           </div>
           <div class="footer">
-            <p>SkoolMate OS</p>
+            <p>{APP_NAME}</p>
             <p>www.omuto.org | os@omuto.org</p>
             <p>This is an electronically generated receipt.</p>
           </div>
@@ -189,7 +190,7 @@ export async function sendEmailReceipt(
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: process.env.EMAIL_FROM || "SkoolMate OS <pay@omuto.org>",
+        from: process.env.EMAIL_FROM || `${APP_NAME} <pay@omuto.org>`,
         to: receiptData.schoolEmail || "os@omuto.org",
         subject: `Payment Receipt - ${receiptData.schoolName}`,
         html: emailHtml,

@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import { OwlLoader } from "@/components/loaders";
+import { APP_NAME } from "@/lib/app-name";
 
 export default function SetupWizardPage() {
   const router = useRouter();
@@ -12,7 +13,7 @@ export default function SetupWizardPage() {
   if (!authInitialized) {
     return (
       <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
-        <OwlLoader size={100} text="SkoolMate OS" subtext="Loading your school..." />
+        <OwlLoader size={100} text={APP_NAME} subtext="Loading your school..." />
       </div>
     );
   }

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { t, tWithParams } from "@/i18n";
+import { APP_NAME } from "@/lib/app-name";
 
 interface Step {
   id: string;
@@ -14,7 +15,7 @@ interface Step {
 const steps: Step[] = [
   {
     id: "welcome",
-    title: "Welcome to SkoolMate OS",
+    title: `Welcome to ${APP_NAME}`,
     description:
       "Your digital school partner. Let's set up your school in 3 easy steps",
     icon: "waving_hand",

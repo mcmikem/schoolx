@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/index";
 import { Tabs } from "@/components/ui/Tabs";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { APP_NAME } from "@/lib/app-name";
 
 interface Warning {
   student_id: string;
@@ -190,7 +191,7 @@ export default function EarlyWarningsPage() {
 
     toast.success(`Sending SMS to ${filteredWarnings.length} guardians...`);
 
-    const message = `Dear Parent, Your child ${filteredWarnings[0].student_name} has been flagged for academic concerns. Please contact the school to discuss how we can support your child's progress. - SkoolMate OS`;
+    const message = `Dear Parent, Your child ${filteredWarnings[0].student_name} has been flagged for academic concerns. Please contact the school to discuss how we can support your child's progress. - ${APP_NAME}`;
 
     try {
       const { data: studentData } = await supabase

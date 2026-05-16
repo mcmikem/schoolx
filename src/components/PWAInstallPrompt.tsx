@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { APP_NAME } from "@/lib/app-name";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -63,7 +64,7 @@ export function PWAInstallPrompt() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-slate-900">
-              Install SkoolMate OS
+              Install {APP_NAME}
             </p>
             <p className="mt-0.5 text-xs text-slate-500 leading-5">
               Add to your home screen for quick access and offline support.

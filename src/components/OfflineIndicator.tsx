@@ -4,6 +4,7 @@ import Link from "next/link";
 import { offlineDB } from "@/lib/offline";
 import MaterialIcon from "@/components/MaterialIcon";
 import { logger } from "@/lib/logger";
+import { APP_NAME } from "@/lib/app-name";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -225,7 +226,7 @@ export function OfflineIndicator() {
           }}
         >
           <MaterialIcon icon="install_desktop" style={{ fontSize: 18 }} />
-          Install SkoolMate OS app
+          Install {APP_NAME} app
           <button
             onClick={handleInstall}
             style={{

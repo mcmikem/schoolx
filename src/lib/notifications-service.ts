@@ -3,6 +3,7 @@
 
 import { supabase } from "./supabase";
 import { logger } from "@/lib/logger";
+import { APP_NAME } from "@/lib/app-name";
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || "";
 
@@ -208,7 +209,7 @@ export function createNotificationPayload(
 
 // Test notification
 export function sendTestNotification() {
-  showLocalNotification("SkoolMate OS Notifications", {
+  showLocalNotification(`${APP_NAME} Notifications`, {
     body: "Push notifications are working!",
     icon: "/SkoolMate logos/SchoolMate icon.svg",
   });

@@ -3,18 +3,14 @@
 import Image from "next/image";
 import { t } from "@/i18n";
 import { OwlLoader } from "./loaders";
-
-/* ────────────────────────────────────────────────────────────────
-   SkoolMate OS — App Loader (full-screen)
-   Replaced old pulse/spinner with animated OwlLoader.
-   ──────────────────────────────────────────────────────────────── */
+import { APP_NAME } from "@/lib/app-name";
 
 export default function AppLoader() {
   return (
     <OwlLoader
       fullScreen
       size={140}
-      text="SkoolMate OS"
+      text={APP_NAME}
       subtext="Preparing your school dashboard..."
     />
   );
@@ -38,7 +34,7 @@ export function MinimalLoader() {
     >
       <Image
         src="/SkoolMate logos/SchoolMate logo official.svg"
-        alt="SkoolMate OS"
+        alt={APP_NAME}
         width={64}
         height={64}
         priority

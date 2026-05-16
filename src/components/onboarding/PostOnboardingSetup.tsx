@@ -10,6 +10,8 @@ import { logger } from "@/lib/logger";
 import { getErrorMessage } from "@/lib/validation";
 import { loadSchoolSetting, saveSchoolSetting } from "@/lib/school-settings";
 import Image from "next/image";
+import { withTimeout } from "@/lib/hooks/utils";
+import { safeGetItem, safeSetItem } from "@/lib/safe-storage";
 
 interface Props {
   onComplete?: () => void;
@@ -121,13 +123,18 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
   const checkCompletedItems = useCallback(async () => {
     if (!school?.id) return;
     try {
-      const [{ data }, statusMap] = await Promise.all([
-        supabase
-        .from("setup_checklist")
-        .select("item_key, is_completed")
-          .eq("school_id", school.id),
+      const [checklistResponse, statusMap] = await Promise.all([
+        withTimeout(
+          supabase
+            .from("setup_checklist")
+            .select("item_key, is_completed")
+            .eq("school_id", school.id),
+          10000,
+          { data: [], error: null } as any,
+        ),
         loadSchoolSetting<OptionalStatusMap>(school.id, OPTIONAL_SETUP_STATUS_KEY, {}),
       ]);
+      const data: { item_key: string; is_completed: boolean }[] | null = (checklistResponse as any).data;
 
       const checklistCompleted = (data || []).filter((i) => i.is_completed).map((i) => i.item_key);
       const persistedDone = Object.keys(statusMap || {}).filter(
@@ -136,6 +143,13 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
 
       setOptionalStatus(statusMap || {});
       setCompleted(Array.from(new Set([...checklistCompleted, ...persistedDone])));
+      if (school.signature_headteacher_url || school.signature_class_teacher_url) {
+        setSignatures((prev) => ({
+          ...prev,
+          headteacherPreview: school.signature_headteacher_url || prev.headteacherPreview,
+          classTeacherPreview: school.signature_class_teacher_url || prev.classTeacherPreview,
+        }));
+      }
     } catch {
       logger.warn("Failed to load completed checklist items");
     }
@@ -148,17 +162,21 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
   const markComplete = useCallback(async (key: string) => {
     if (!school?.id) return;
     try {
-      const { error } = await supabase
-        .from("setup_checklist")
-        .upsert(
-          {
-            school_id: school.id,
-            item_key: key,
-            is_completed: true,
-            completed_at: new Date().toISOString(),
-          },
-          { onConflict: "school_id,item_key" },
-        );
+      const { error } = await withTimeout(
+        supabase
+          .from("setup_checklist")
+          .upsert(
+            {
+              school_id: school.id,
+              item_key: key,
+              is_completed: true,
+              completed_at: new Date().toISOString(),
+            },
+            { onConflict: "school_id,item_key" },
+          ),
+        15000,
+        { error: { message: "Mark complete timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+      );
       if (error) throw error;
       const nextStatus: OptionalStatusMap = { ...optionalStatus, [key]: "completed" };
       await saveSchoolSetting(school.id, OPTIONAL_SETUP_STATUS_KEY, nextStatus);
@@ -189,10 +207,15 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     try {
       const active = smsAutomations.filter((a) => a.is_active);
       if (active.length > 0) {
-        const { error: delError } = await supabase
-          .from("sms_triggers")
-          .delete()
-          .eq("school_id", school.id);
+        const { error: delError } = await withTimeout(
+          supabase
+            .from("sms_triggers")
+            .delete()
+            .eq("school_id", school.id)
+            .in("event_type", active.map((a) => a.event_type)),
+          15000,
+          { data: null, count: null, error: null } as any,
+        );
         if (delError) logger.warn("SMS trigger cleanup:", delError);
 
         const rows = active.map((a) => ({
@@ -202,7 +225,11 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
           message_template: a.message_template || null,
           is_active: true,
         }));
-        const { error } = await supabase.from("sms_triggers").insert(rows);
+        const { error } = await withTimeout(
+          supabase.from("sms_triggers").insert(rows),
+          15000,
+          { data: null, error: { message: "SMS automation save timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+        );
         if (error) throw error;
       }
       await markComplete("sms_automation");
@@ -239,18 +266,26 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     try {
       const compressed = await compressImage(file);
       const filePath = `signature-${school.id}-${type}.jpg`;
-      let { error: uploadError } = await supabase.storage
-        .from("school-logos")
-        .upload(filePath, compressed, { contentType: "image/jpeg", upsert: true });
+      let { error: uploadError } = await withTimeout(
+        supabase.storage
+          .from("school-logos")
+          .upload(filePath, compressed, { contentType: "image/jpeg", upsert: true }),
+        30000,
+        { data: null, error: { message: "Signature upload timed out", name: "TimeoutError" } } as any,
+      );
       if (uploadError && uploadError.message.includes("bucket")) {
         await supabase.storage.createBucket("school-logos", {
           public: true,
           fileSizeLimit: 5242880,
           allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
         });
-        const retry = await supabase.storage
-          .from("school-logos")
-          .upload(filePath, compressed, { contentType: "image/jpeg", upsert: true });
+        const retry = await withTimeout(
+          supabase.storage
+            .from("school-logos")
+            .upload(filePath, compressed, { contentType: "image/jpeg", upsert: true }),
+          30000,
+          { data: null, error: { message: "Signature upload retry timed out", name: "TimeoutError" } } as any,
+        );
         if (retry.error) throw retry.error;
       } else if (uploadError) {
         throw uploadError;
@@ -284,13 +319,19 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
       if (classTeacherUrl) updateData.signature_class_teacher_url = classTeacherUrl;
 
       if (Object.keys(updateData).length > 0) {
-        const { error } = await supabase
-          .from("schools")
-          .update(updateData)
-          .eq("id", school.id);
+        const { error } = await withTimeout(
+          supabase
+            .from("schools")
+            .update(updateData)
+            .eq("id", school.id),
+          15000,
+          { data: null, error: { message: "Signature save timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+        );
         if (error) throw error;
+        if (refreshSchool) await refreshSchool();
       }
 
+      toast.success("Signatures saved successfully");
       await markComplete("signatures");
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to save signatures"));

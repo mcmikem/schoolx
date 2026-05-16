@@ -7,12 +7,13 @@ import MobileInit from "./mobile-init";
 import DebugPing from "@/components/DebugPing";
 import Script from "next/script";
 import { logger } from "@/lib/logger";
+import { APP_NAME } from "@/lib/app-name";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL || "https://omuto.org",
   ),
-  title: "SkoolMate OS | Your Digital School Partner",
+  title: `${APP_NAME} | Your Digital School Partner`,
   description:
     "The all-in-one school management system built for Ugandan schools. Track attendance, grades, fees, and send parent SMS — all from one dashboard. Start your free 30-day trial today.",
   manifest: "/manifest.json",
@@ -23,28 +24,28 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "SkoolMate OS",
+    title: APP_NAME,
   },
   openGraph: {
-    title: "SkoolMate OS | Your Digital School Partner",
+    title: `${APP_NAME} | Your Digital School Partner`,
     description:
       "Attendance, grades, fees, and parent SMS — all in one system built for Ugandan schools. Start your free 30-day trial.",
     type: "website",
     url: "https://omuto.org",
     locale: "en_UG",
-    siteName: "SkoolMate OS",
+    siteName: APP_NAME,
     images: [
       {
         url: "/SkoolMate logos/SchoolMate icon.svg",
         width: 512,
         height: 512,
-        alt: "SkoolMate OS",
+        alt: APP_NAME,
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "SkoolMate OS | Your Digital School Partner",
+    title: `${APP_NAME} | Your Digital School Partner`,
     description:
       "Run your entire school from one dashboard. Attendance, grades, fees, and parent SMS.",
     images: ["/SkoolMate logos/SchoolMate icon.svg"],
@@ -85,7 +86,7 @@ export default function RootLayout({
           name="apple-mobile-web-app-status-bar-style"
           content="black-translucent"
         />
-        <meta name="apple-mobile-web-app-title" content="SkoolMate OS" />
+        <meta name="apple-mobile-web-app-title" content={APP_NAME} />
         <link rel="apple-touch-icon" href="/SkoolMate logos/SchoolMate icon.svg" />
         <link
           rel="icon"

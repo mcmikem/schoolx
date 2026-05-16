@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import { t } from "@/i18n";
 import { logger } from "@/lib/logger";
+import { APP_NAME } from "@/lib/app-name";
 
 export default function GlobalError({
   error,
@@ -19,12 +20,12 @@ export default function GlobalError({
   return (
     <html lang="en">
       <head>
-        <title>SkoolMate OS - Error</title>
+        <title>{APP_NAME} - Error</title>
         <meta
           name="description"
-          content="An unexpected error occurred in SkoolMate OS. Your Digital School Partner. Please try refreshing the page or contact support."
+          content={`An unexpected error occurred in ${APP_NAME}. Your Digital School Partner. Please try refreshing the page or contact support.`}
         />
-        <meta property="og:title" content="SkoolMate OS - Error" />
+        <meta property="og:title" content={`${APP_NAME} - Error`} />
         <meta
           property="og:description"
           content="An unexpected error occurred. Please try refreshing the page."

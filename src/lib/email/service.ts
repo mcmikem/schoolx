@@ -1,5 +1,6 @@
 import { createTransport, Transporter } from "nodemailer";
 import { logger } from "@/lib/logger";
+import { APP_NAME } from "@/lib/app-name";
 
 const transporter: Transporter = createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
@@ -21,7 +22,7 @@ interface EmailOptions {
 export async function sendEmail({ to, subject, html, text }: EmailOptions) {
   try {
     const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || `"SkoolMate OS" <${process.env.SMTP_USER}>`,
+      from: process.env.SMTP_FROM || `"${APP_NAME}" <${process.env.SMTP_USER}>`,
       to,
       subject,
       html,
@@ -38,10 +39,10 @@ export async function sendEmail({ to, subject, html, text }: EmailOptions) {
 export async function sendWelcomeEmail(to: string, name: string, schoolName: string) {
   return sendEmail({
     to,
-    subject: `Welcome to SkoolMate OS - ${schoolName}`,
+    subject: `Welcome to ${APP_NAME} - ${schoolName}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #0066CC;">Welcome to SkoolMate OS!</h1>
+        <h1 style="color: #0066CC;">Welcome to ${APP_NAME}!</h1>
         <p>Hi ${name},</p>
         <p>Your account has been created for <strong>${schoolName}</strong>.</p>
         <p>You can now log in to:</p>
@@ -53,7 +54,7 @@ export async function sendWelcomeEmail(to: string, name: string, schoolName: str
         <p>Login at: <a href="https://skoolmate.os/parent-portal">Parent Portal</a></p>
         <p>If you have any questions, contact the school directly.</p>
         <hr>
-        <p style="color: #666; font-size: 12px;">Sent by SkoolMate OS - School Management System</p>
+        <p style="color: #666; font-size: 12px;">Sent by ${APP_NAME} - School Management System</p>
       </div>
     `,
   });
@@ -77,7 +78,7 @@ export async function sendPasswordResetEmail(to: string, resetToken: string, sch
         <p>This link expires in 1 hour.</p>
         <p>If you didn't request this, please ignore this email.</p>
         <hr>
-        <p style="color: #666; font-size: 12px;">Sent by SkoolMate OS</p>
+        <p style="color: #666; font-size: 12px;">Sent by ${APP_NAME}</p>
       </div>
     `,
   });
@@ -113,7 +114,7 @@ export async function sendReceiptEmail(to: string, studentName: string, amount: 
         </table>
         <p>Thank you for your payment!</p>
         <hr>
-        <p style="color: #666; font-size: 12px;">Sent by SkoolMate OS</p>
+        <p style="color: #666; font-size: 12px;">Sent by ${APP_NAME}</p>
       </div>
     `,
   });

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { FadeIn } from "./FadeIn";
 import { DAY_STEPS } from "./landing-data";
+import { APP_NAME } from "@/lib/app-name";
 
 export function DayTimeline() {
   const [activeStep, setActiveStep] = useState(0);
@@ -16,7 +17,7 @@ export function DayTimeline() {
               A real school day
             </p>
             <h2 className="mt-3 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
-              See how SkoolMate OS runs through your day
+              See how {APP_NAME} runs through your day
             </h2>
           </div>
 

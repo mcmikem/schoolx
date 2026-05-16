@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
+import { APP_NAME } from "@/lib/app-name";
 
 export default function PrivacyPage() {
   const { user, school, signOut } = useAuth();
@@ -88,7 +89,7 @@ export default function PrivacyPage() {
           <div className="space-y-4 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Data Controller</h3>
-              <p>Your school (&ldquo;{school?.name || "the school"}&rdquo;) is the data controller responsible for your personal data. SkoolMate OS acts as a data processor on behalf of the school.</p>
+              <p>Your school (&ldquo;{school?.name || "the school"}&rdquo;) is the data controller responsible for your personal data. {APP_NAME} acts as a data processor on behalf of the school.</p>
             </div>
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">What We Collect</h3>
@@ -199,7 +200,7 @@ export default function PrivacyPage() {
         </div>
 
         <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-8">
-          SkoolMate OS &mdash; Compliant with Uganda&apos;s Data Protection & Privacy Act, 2019
+          {APP_NAME} &mdash; Compliant with Uganda&apos;s Data Protection & Privacy Act, 2019
         </p>
       </div>
     </div>

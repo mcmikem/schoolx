@@ -1,4 +1,5 @@
 import { logger } from "@/lib/logger";
+import { APP_NAME } from "@/lib/app-name";
 const paypal: any = require("@paypal/checkout-server-sdk");
 
 function getPayPalClientOrThrow() {
@@ -50,7 +51,7 @@ export async function createPayPalOrder(
       },
     ],
     application_context: {
-      brand_name: "SkoolMate OS",
+      brand_name: APP_NAME,
       landing_page: "LOGIN",
       user_action: "PAY_NOW",
       return_url: returnUrl,

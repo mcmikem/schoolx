@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { APP_NAME } from "@/lib/app-name";
 
 interface AnimatedScreenProps {
   isActive: boolean;
@@ -53,7 +54,7 @@ function DashboardScreen({ isActive }: AnimatedScreenProps) {
       {/* Sidebar */}
       <div style={{ width: "22%", background: "#001F3F", display: "flex", flexDirection: "column", padding: "8px 5px", flexShrink: 0 }}>
         <div style={{ padding: "4px 7px 8px", borderBottom: "1px solid rgba(255,255,255,0.1)", marginBottom: 5 }}>
-          <div style={{ color: "white", fontWeight: 800, fontSize: "7px", letterSpacing: "0.06em" }}>SkoolMate OS</div>
+          <div style={{ color: "white", fontWeight: 800, fontSize: "7px", letterSpacing: "0.06em" }}>{APP_NAME}</div>
           <div style={{ color: "rgba(255,255,255,0.45)", fontSize: "5.5px", marginTop: 1 }}>Head Teacher</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 1, marginTop: 4 }}>

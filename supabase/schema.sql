@@ -36,6 +36,8 @@ CREATE TABLE IF NOT EXISTS schools (
     paypal_subscription_id TEXT,
     last_payment_at TIMESTAMPTZ,
     next_payment_date TIMESTAMPTZ,
+    signature_headteacher_url TEXT,
+    signature_class_teacher_url TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

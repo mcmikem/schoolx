@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { getErrorMessage } from "@/lib/validation";
+import { APP_NAME } from "@/lib/app-name";
 
 interface Suggestion {
   id: string;
@@ -214,7 +215,7 @@ export default function SuggestionBoxPage() {
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <PageHeader
         title="Suggestion Box"
-        subtitle="Help us improve SkoolMate OS"
+        subtitle={`Help us improve ${APP_NAME}`}
         actions={
           <Button
             onClick={() => setShowModal(true)}

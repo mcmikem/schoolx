@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useCounter } from "@/hooks/useCounter";
 import { MaterialIcon } from "./MaterialIcon";
 import { tabContent } from "./landing-data";
+import { APP_NAME } from "@/lib/app-name";
 
 export function DesktopMockup() {
   const [activeTab, setActiveTab] = useState(0);
@@ -47,7 +48,7 @@ export function DesktopMockup() {
                 <MaterialIcon icon="school" className="text-[20px]" />
               </div>
               <div>
-                <p className="text-sm font-semibold">SkoolMate OS</p>
+                <p className="text-sm font-semibold">{APP_NAME}</p>
                 <p className="text-xs text-white/65">Head teacher workspace</p>
               </div>
             </div>

@@ -1,9 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { APP_NAME } from "@/lib/app-name";
 
 const WHATSAPP_NUMBER = "25670028703";
-const WHATSAPP_MESSAGE = "Hi, I need help with SkoolMate OS.";
+const WHATSAPP_MESSAGE = `Hi, I need help with ${APP_NAME}.`;
 
 export default function WhatsAppSupport() {
   const [mounted, setMounted] = useState(false);

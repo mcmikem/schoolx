@@ -48,6 +48,8 @@ export interface School {
   has_student_council?: boolean;
   has_prefects?: boolean;
   location_type?: "urban" | "peri_urban" | "rural";
+  signature_headteacher_url?: string;
+  signature_class_teacher_url?: string;
   created_at: string;
 }
 

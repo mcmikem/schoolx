@@ -5,6 +5,7 @@ import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import MaterialIcon from "@/components/MaterialIcon";
+import { APP_NAME } from "@/lib/app-name";
 
 /* ── Types ──────────────────────────────────────────────── */
 interface PlatformStats {
@@ -340,7 +341,7 @@ export default function SuperAdminDashboard() {
             {greeting}, {firstName}
           </h1>
           <p className="text-[13px] text-[var(--t3)] mt-1">
-            SkoolMate OS · Platform Administration ·{" "}
+            {APP_NAME} · Platform Administration ·{" "}
             {new Date().toLocaleDateString("en-UG", {
               weekday: "long",
               day: "numeric",

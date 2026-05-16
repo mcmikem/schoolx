@@ -1,5 +1,6 @@
 import { logger } from "@/lib/logger";
 import { randomUUID } from "crypto";
+import { APP_NAME } from "@/lib/app-name";
 
 // ─── MoneyUnify API ───────────────────────────────────────────────────────────
 // Docs: https://owk7kqf8sn.apidog.io/
@@ -223,8 +224,8 @@ export class MtnMomoClient {
         partyIdType: "MSISDN",
         partyId: params.phone,
       },
-      payerMessage: params.payerMessage || "SkoolMate OS Subscription",
-      payeeNote: params.payeeNote || "SkoolMate OS Subscription Payment",
+      payerMessage: params.payerMessage || `${APP_NAME} Subscription`,
+      payeeNote: params.payeeNote || `${APP_NAME} Subscription Payment`,
     };
 
     const response = await fetch(url, {

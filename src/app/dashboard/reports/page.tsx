@@ -18,6 +18,7 @@ import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { Card } from "@/components/ui/Card";
 import PersonInitials from "@/components/ui/PersonInitials";
+import { APP_NAME } from "@/lib/app-name";
 
 export default function ReportsPage() {
   const { school } = useAuth();
@@ -109,7 +110,7 @@ export default function ReportsPage() {
             classes: data.student?.classes || student.classes,
           },
           school: {
-            name: data.school?.name || school?.name || "SkoolMate OS",
+            name: data.school?.name || school?.name || APP_NAME,
             district: data.school?.district || school?.district || "Uganda",
           },
           term: data.term || currentTerm,
@@ -339,7 +340,7 @@ export default function ReportsPage() {
             classes: data.student?.classes,
           },
           school: {
-            name: data.school?.name || school?.name || "SkoolMate OS",
+            name: data.school?.name || school?.name || APP_NAME,
             district: data.school?.district || school?.district || "Uganda",
             primary_color: data.school?.primary_color,
           },

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import OwlMascot from "@/components/brand/OwlMascot";
 import MaterialIcon from "@/components/MaterialIcon";
+import { APP_NAME } from "@/lib/app-name";
 
 interface SkeletonProps {
   className?: string;
@@ -96,7 +97,7 @@ export function FullPageLoader({
         ring
         glow
         animated
-        label="SkoolMate is preparing your workspace"
+        label={`${APP_NAME} is preparing your workspace`}
         subtitle="Loading your school records, navigation, and recent activity."
         className="mb-4 flex-col"
       />
