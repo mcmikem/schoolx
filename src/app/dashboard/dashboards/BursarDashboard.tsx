@@ -7,7 +7,6 @@ import {
   useStudents,
   useFeePayments,
   useFeeStructure,
-  useDashboardStats,
 } from "@/lib/hooks";
 import MaterialIcon from "@/components/MaterialIcon";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -22,7 +21,6 @@ function BursarDashboardContent() {
   const { students } = useStudents(school?.id);
   const { payments } = useFeePayments(school?.id);
   const { feeStructure } = useFeeStructure(school?.id);
-  const { stats } = useDashboardStats(school?.id);
 
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
@@ -59,6 +57,42 @@ function BursarDashboardContent() {
       ? Math.round((totalFeesCollected / totalFeesExpected) * 100)
       : 0, [totalFeesExpected, totalFeesCollected]);
 
+  const overdueCount = useMemo(() => {
+    const studentExpectedMap: Record<string, number> = {};
+    for (const student of students) {
+      const classFees = feeStructure.filter(
+        (f) => !f.class_id || f.class_id === student.class_id,
+      );
+      studentExpectedMap[student.id] = classFees.reduce(
+        (sum, f) => sum + Number(f.amount || 0),
+        0,
+      );
+    }
+    const studentPaidMap: Record<string, number> = {};
+    for (const p of payments) {
+      const sid = p.student_id;
+      studentPaidMap[sid] = (studentPaidMap[sid] || 0) + Number(p.amount_paid || 0);
+    }
+    return students.filter((s) => {
+      const expected = studentExpectedMap[s.id] || 0;
+      const paid = studentPaidMap[s.id] || 0;
+      return expected > 0 && paid < expected;
+    }).length;
+  }, [students, feeStructure, payments]);
+
+  const recentPayments = useMemo(() => {
+    const studentMap = Object.fromEntries(students.map((s) => [s.id, s]));
+    return [...payments]
+      .sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime())
+      .slice(0, 5)
+      .map((p) => ({
+        ...p,
+        studentName: studentMap[p.student_id]
+          ? `${studentMap[p.student_id].first_name || ""} ${studentMap[p.student_id].last_name || ""}`.trim()
+          : "Unknown",
+      }));
+  }, [payments, students]);
+
   const thisMonthPayments = useMemo(() => payments.filter((p) => {
     const d = new Date(p.payment_date);
     const now = new Date();
@@ -87,10 +121,7 @@ function BursarDashboardContent() {
     lastMonthTotal > 0
       ? Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100)
       : 0, [thisMonthTotal, lastMonthTotal]);
-  const attendanceRate =
-    stats?.totalStudents > 0
-      ? Math.round((stats.presentToday / stats.totalStudents) * 100)
-      : 0;
+
   const todayLabel = currentDate.toLocaleDateString("en-UG", {
     weekday: "long",
     day: "numeric",
@@ -99,6 +130,18 @@ function BursarDashboardContent() {
 
   return (
     <div className="content">
+      {overdueCount > 0 && (
+        <div className="mb-4 rounded-[16px] border border-red-200 bg-red-50 p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="text-red-500"><MaterialIcon icon="warning" /></span>
+            <div>
+              <p className="font-semibold text-red-800">{overdueCount} student{overdueCount !== 1 ? "s" : ""} with overdue accounts</p>
+              <p className="text-sm text-red-600">Payments are below expected fees for this term.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <section className="relative mb-6 overflow-hidden rounded-[34px] border border-white/70 bg-[linear-gradient(130deg,#f8fbff_0%,#eff5ff_42%,#f9f9ff_100%)] p-4 shadow-[0_24px_62px_rgba(15,23,42,0.08)] sm:p-6">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -left-12 top-10 h-40 w-40 rounded-full bg-[#b8e6ef]/30 blur-3xl" />
@@ -126,6 +169,13 @@ function BursarDashboardContent() {
 
             <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
               <StatCard
+                label="Expected"
+                value={`UGX ${formatCurrency(totalFeesExpected)}`}
+                subValue={`Term ${currentTerm}`}
+                icon="calculate"
+                accentColor="navy"
+              />
+              <StatCard
                 label="Collected"
                 value={`UGX ${formatCurrency(totalFeesCollected)}`}
                 subValue={`${collectionRate}% of target`}
@@ -142,21 +192,14 @@ function BursarDashboardContent() {
                 value={`UGX ${formatCurrency(totalArrears)}`}
                 subValue={`${students.length} students`}
                 icon="warning"
-                accentColor="amber"
+                accentColor={totalArrears > 0 ? "red" : "amber"}
               />
               <StatCard
-                label="Target"
-                value={`UGX ${formatCurrency(totalFeesExpected)}`}
-                subValue={`Term ${currentTerm}`}
-                icon="calculate"
-                accentColor="navy"
-              />
-              <StatCard
-                label="Attendance"
-                value={`${attendanceRate}%`}
-                subValue={`${stats?.presentToday || 0} present`}
-                icon="groups"
-                accentColor="purple"
+                label="Collection Rate"
+                value={`${collectionRate}%`}
+                subValue={collectionRate > 70 ? "On track" : "Below target"}
+                icon="trending_up"
+                accentColor={collectionRate > 70 ? "green" : "amber"}
               />
             </div>
           </div>
@@ -215,6 +258,28 @@ function BursarDashboardContent() {
         </div>
       </section>
 
+      {/* Recent Payments */}
+      <div className="mb-6 rounded-[28px] border border-white/70 bg-white/82 p-5 shadow-[0_18px_42px_rgba(15,23,42,0.07)]">
+        <div className="flex items-center gap-2 mb-4">
+          <MaterialIcon icon="payments" />
+          <h3 className="font-['Sora'] text-lg font-semibold text-[#17325f]">Recent Payments</h3>
+        </div>
+        <div className="space-y-3">
+          {recentPayments.map((p) => (
+            <div key={p.id} className="flex items-center justify-between rounded-[16px] border border-gray-100 bg-gray-50/50 px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-[#17325f]">{p.studentName}</p>
+                <p className="text-xs text-[#6c809b]">{new Date(p.payment_date).toLocaleDateString("en-UG", { day: "numeric", month: "short", year: "numeric" })}</p>
+              </div>
+              <p className="text-sm font-semibold text-green-600">UGX {formatCurrency(Number(p.amount_paid))}</p>
+            </div>
+          ))}
+          {recentPayments.length === 0 && (
+            <p className="text-sm text-[#6c809b]">No payments recorded yet.</p>
+          )}
+        </div>
+      </div>
+
       {/* Charts & Activity */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 mb-6">
         <div className="xl:col-span-3">
@@ -223,7 +288,6 @@ function BursarDashboardContent() {
               totalStudents: students.length,
               feesBalance: totalArrears,
             }}
-            attendanceRate={attendanceRate}
             collectionRate={collectionRate}
             students={students}
             payments={payments}

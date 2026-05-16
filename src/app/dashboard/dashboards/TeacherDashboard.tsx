@@ -9,13 +9,15 @@ import {
   useSubjects,
   useDashboardStats,
 } from "@/lib/hooks";
-import { useState } from "react";
+import { withTimeout } from "@/lib/hooks/utils";
+import { useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import {
   buildDefaultClasses,
   buildDefaultTimetableSlots,
   type SchoolSetupType,
 } from "@/lib/school-setup";
+import { getDefaultSubjects } from "@/lib/curriculum";
 import MaterialIcon from "@/components/MaterialIcon";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useToast } from "@/components/Toast";
@@ -44,13 +46,16 @@ function TeacherDashboardContent() {
         ? "Good Afternoon"
         : "Good Evening";
 
-  const myClasses = classes.slice(0, 6);
-  const mySubjects = subjects.slice(0, 6);
-  const needsSetup = classes.length === 0 || subjects.length === 0;
-  const attendanceRate =
-    stats?.totalStudents > 0
-      ? Math.round((stats.presentToday / stats.totalStudents) * 100)
-      : 0;
+  const myClasses = classes;
+  const mySubjects = useMemo(() => subjects, [subjects]);
+  const needsSetup = (classes.length === 0 || subjects.length === 0) && user?.role === "school_admin";
+  const attendanceRate = useMemo(
+    () =>
+      stats?.totalStudents > 0
+        ? Math.round((stats.presentToday / stats.totalStudents) * 100)
+        : 0,
+    [stats?.totalStudents, stats?.presentToday],
+  );
   const todayLabel = currentDate.toLocaleDateString("en-UG", {
     weekday: "long",
     day: "numeric",
@@ -58,12 +63,7 @@ function TeacherDashboardContent() {
   });
 
   const todayDayName = currentDate.toLocaleDateString("en-UG", { weekday: "long" });
-  const todayDayKey = todayDayName?.toLowerCase() || "monday";
-  const classesToday = classes.filter((c: any) => {
-    const entries = (c as any).timetable_entries || [];
-    return entries.some((e: any) => e.day_of_week === todayDayKey);
-  }).slice(0, 5);
-  const nextClass = classesToday[0];
+  const classesToday = useMemo(() => classes.slice(0, 5), [classes]);
 
   const runSetup = async () => {
     if (!school?.id) return;
@@ -78,67 +78,52 @@ function TeacherDashboardContent() {
         schoolType,
         currentYear,
       );
-      await supabase
-        .from("classes")
-        .upsert(defaultClasses, { onConflict: "school_id,name,academic_year" });
+      await withTimeout(
+        supabase
+          .from("classes")
+          .upsert(defaultClasses, { onConflict: "school_id,name,academic_year" }),
+        15000,
+        null as any,
+      );
 
-      const defaultSubjects = [
-        {
-          school_id: school.id,
-          name: "English",
-          code: "ENG",
-          level: "primary",
-        },
-        {
-          school_id: school.id,
-          name: "Mathematics",
-          code: "MTC",
-          level: "primary",
-        },
-        {
-          school_id: school.id,
-          name: "Science",
-          code: "SCI",
-          level: "primary",
-        },
-        {
-          school_id: school.id,
-          name: "Social Studies",
-          code: "SST",
-          level: "primary",
-        },
-        {
-          school_id: school.id,
-          name: "Religious Education",
-          code: "CRE",
-          level: "primary",
-        },
-        {
-          school_id: school.id,
-          name: "Physical Education",
-          code: "PE",
-          level: "primary",
-        },
-      ];
-      await supabase.from("subjects").insert(defaultSubjects);
+      const defaultSubjects = getDefaultSubjects(schoolType).map(
+        ({ id: _id, ...s }) => ({ ...s, school_id: school.id }),
+      );
+      await withTimeout(
+        supabase.from("subjects").insert(defaultSubjects),
+        15000,
+        null as any,
+      );
 
-      await supabase.from("academic_years").insert({
-        school_id: school.id,
-        name: currentYear,
-        start_date: `${currentYear}-01-01`,
-        end_date: `${currentYear}-12-31`,
-        is_current: true,
-      });
+      await withTimeout(
+        supabase.from("academic_years").insert({
+          school_id: school.id,
+          name: currentYear,
+          start_date: `${currentYear}-01-01`,
+          end_date: `${currentYear}-12-31`,
+          is_current: true,
+        }),
+        15000,
+        null as any,
+      );
 
-      const { count: slotCount } = await supabase
-        .from("timetable_slots")
-        .select("id", { count: "exact", head: true })
-        .eq("school_id", school.id);
+      const { count: slotCount } = await withTimeout(
+        supabase
+          .from("timetable_slots")
+          .select("id", { count: "exact", head: true })
+          .eq("school_id", school.id),
+        15000,
+        { count: 0, error: null } as any,
+      );
 
       if (!slotCount) {
-        await supabase
-          .from("timetable_slots")
-          .insert(buildDefaultTimetableSlots(school.id));
+        await withTimeout(
+          supabase
+            .from("timetable_slots")
+            .insert(buildDefaultTimetableSlots(school.id)),
+          15000,
+          null as any,
+        );
       }
 
       toast?.success("School setup complete!");

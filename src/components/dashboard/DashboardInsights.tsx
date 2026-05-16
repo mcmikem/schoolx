@@ -13,7 +13,7 @@ interface DashboardStudent {
 
 interface DashboardInsightsProps {
   stats: DashboardStats | null;
-  attendanceRate: number;
+  attendanceRate?: number;
   collectionRate: number;
   students: DashboardStudent[];
   payments: unknown[];
@@ -28,7 +28,7 @@ const DashboardInsightsCharts = dynamic(
 
 export default function DashboardInsights({
   stats,
-  attendanceRate,
+  attendanceRate = 0,
   collectionRate,
   students,
   payments,

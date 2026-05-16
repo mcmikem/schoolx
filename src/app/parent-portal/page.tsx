@@ -2,7 +2,7 @@
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import SidebarShell from "@/components/dashboard/SidebarShell";
@@ -23,8 +23,10 @@ import {
   pickPreferredSchemaRows,
   ParentPortalAttendanceRecord,
   ParentPortalChild,
+  ParentPortalFeeStructureItem,
   ParentPortalGradeRecord,
   ParentPortalNotice,
+  ParentPortalPayment,
   resolveSelectedChild,
 } from "@/lib/parent-portal";
 
@@ -49,9 +51,16 @@ function ParentDashboardContent() {
     [],
   );
   const [grades, setGrades] = useState<ParentPortalGradeRecord[]>([]);
-  const [feeStats, setFeeStats] = useState({ totalPaid: 0, totalFee: 0, balance: 0, status: 'unknown' });
+  const [feeStructureItems, setFeeStructureItems] = useState<ParentPortalFeeStructureItem[]>([]);
+  const [feePayments, setFeePayments] = useState<ParentPortalPayment[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [childDataLoading, setChildDataLoading] = useState(false);
+
+  const feeStats = useMemo(
+    () => calculateFeeStats(feeStructureItems, feePayments),
+    [feeStructureItems, feePayments],
+  );
 
   useEffect(() => {
     async function fetchChildren() {
@@ -74,12 +83,8 @@ function ParentDashboardContent() {
           { title: "Easter Break", content: "School will be closed from Friday to Monday. Happy Holidays!", created_at: new Date().toISOString() },
           { title: "Visitation Day", content: "Parents are invited to check student progress this Saturday.", created_at: new Date().toISOString() }
         ]);
-        setFeeStats({
-           totalPaid: 1080000,
-           totalFee: 1200000,
-           balance: 120000,
-           status: 'pending'
-        });
+        setFeeStructureItems([{ id: "demo-fee", name: "Tuition", amount: 1200000, term: "Term 1" }]);
+        setFeePayments([{ id: "demo-pay", amount_paid: 1080000, payment_date: new Date().toISOString(), payment_method: "Cash", payment_reference: "DEMO-001" }]);
         setLoading(false);
         return;
       }
@@ -163,38 +168,44 @@ function ParentDashboardContent() {
   useEffect(() => {
     if (!selectedChild || isDemo) return;
     const selectedChildId = selectedChild.id;
+    setChildDataLoading(true);
 
     async function fetchStudentData() {
       const scopedChild = resolveSelectedChild(children, selectedChildId);
-      if (!scopedChild) return;
+      if (!scopedChild) { setChildDataLoading(false); return; }
       try {
-        const attRes = await Promise.resolve(supabase.from("attendance").select("id, date, status, remarks").eq("student_id", scopedChild.id).limit(10)).catch((err: unknown) => { logger.error("Attendance fetch error:", err); return { data: null, error: err }; });
-        const gradesRes = await Promise.resolve(supabase.from("grades").select("id, score, max_score, grade, term, exam_type, teacher_comment, subjects(name)").eq("student_id", scopedChild.id).limit(6)).catch((err: unknown) => { logger.error("Grades fetch error:", err); return { data: null, error: err }; });
+        const timoutFallback = { data: null, error: new Error("Request timed out") };
+        const attRes = await withTimeout(
+          supabase.from("attendance").select("id, date, status, remarks").eq("student_id", scopedChild.id).limit(10),
+          15000,
+          timoutFallback as any,
+        );
+        const gradesRes = await withTimeout(
+          supabase.from("grades").select("id, score, max_score, grade, term, exam_type, teacher_comment, subjects(name)").eq("student_id", scopedChild.id).limit(6),
+          15000,
+          timoutFallback as any,
+        );
 
-        const modernFeeTermsRes = await Promise.resolve(supabase
-          .from("student_fee_terms")
-          .select("id, final_amount, academic_year, fee_terms(name)")
-          .eq("student_id", scopedChild.id)
-          .order("created_at", { ascending: false })).catch((err: unknown) => { logger.error("Fee terms fetch error:", err); return { data: null, error: err }; });
-        const modernPaymentsRes = await Promise.resolve(supabase
-          .from("fee_payments")
-          .select(
-            "id, amount, payment_date, payment_method, transaction_reference, student_fee_terms!inner(student_id, fee_terms(name))",
-          )
-          .eq("student_fee_terms.student_id", scopedChild.id)
-          .order("payment_date", { ascending: false })).catch((err: unknown) => { logger.error("Modern payments fetch error:", err); return { data: null, error: err }; });
-        const legacyPaymentsRes = await Promise.resolve(supabase
-          .from("fee_payments")
-          .select(
-            "id, amount_paid, payment_date, payment_method, payment_reference",
-          )
-          .eq("student_id", scopedChild.id)).catch((err: unknown) => { logger.error("Legacy payments fetch error:", err); return { data: null, error: err }; });
-        const legacyFeeTermsRes = await Promise.resolve(supabase
-          .from("fee_structure")
-          .select("*")
-          .eq("school_id", scopedChild.school_id)
-          .is("deleted_at", null)
-          .or(`class_id.is.null,class_id.eq.${scopedChild.class_id}`)).catch((err: unknown) => { logger.error("Fee structure fetch error:", err); return { data: null, error: err }; });
+        const modernFeeTermsRes = await withTimeout(
+          supabase.from("student_fee_terms").select("id, final_amount, academic_year, fee_terms(name)").eq("student_id", scopedChild.id).order("created_at", { ascending: false }),
+          15000,
+          timoutFallback as any,
+        );
+        const modernPaymentsRes = await withTimeout(
+          supabase.from("fee_payments").select("id, amount, payment_date, payment_method, transaction_reference, student_fee_terms!inner(student_id, fee_terms(name))").eq("student_fee_terms.student_id", scopedChild.id).order("payment_date", { ascending: false }),
+          15000,
+          timoutFallback as any,
+        );
+        const legacyPaymentsRes = await withTimeout(
+          supabase.from("fee_payments").select("id, amount_paid, payment_date, payment_method, payment_reference").eq("student_id", scopedChild.id),
+          15000,
+          timoutFallback as any,
+        );
+        const legacyFeeTermsRes = await withTimeout(
+          supabase.from("fee_structure").select("*").eq("school_id", scopedChild.school_id).is("deleted_at", null).or(`class_id.is.null,class_id.eq.${scopedChild.class_id}`),
+          15000,
+          timoutFallback as any,
+        );
 
         const normalizedFeeStructure = pickPreferredSchemaRows({
           modernRows: normalizeFeeTermItems(
@@ -221,9 +232,12 @@ function ParentDashboardContent() {
           })),
         );
         setGrades(normalizeGrades(gradesRes.data || []));
-        setFeeStats(calculateFeeStats(normalizedFeeStructure, normalizedPayments));
+        setFeeStructureItems(normalizedFeeStructure);
+        setFeePayments(normalizedPayments);
       } catch (err) {
         logger.error("Fetch student data error:", err);
+      } finally {
+        setChildDataLoading(false);
       }
     }
     fetchStudentData();
@@ -468,7 +482,15 @@ function ParentDashboardContent() {
             )}
 
             {selectedChild ? (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="relative grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {childDataLoading && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 rounded-2xl">
+                    <div className="flex items-center gap-3">
+                      <span className="w-6 h-6 border-2 border-blue-900/30 border-t-blue-900 rounded-full animate-spin" />
+                      <span className="text-sm font-semibold text-gray-600">Loading...</span>
+                    </div>
+                  </div>
+                )}
                 {/* Child Profile Card */}
                 <div className="lg:col-span-1">
                   <div className="h-full rounded-2xl border border-gray-200 bg-white p-6 text-center">
@@ -656,8 +678,17 @@ function ParentDashboardContent() {
                   No learners are linked to your account yet.
                 </p>
                 <p className="text-sm text-gray-500 mt-2">
-                  Please contact the school office to connect your child.
+                  Your phone number on file is: {user?.phone || "N/A"}
                 </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Ask the school office to register this phone number ({user?.phone || "N/A"}) in your child&apos;s student record.
+                </p>
+                <button
+                  onClick={() => router.push("/contact")}
+                  className="mt-6 px-6 py-3 rounded-xl bg-blue-900 text-white font-bold text-sm uppercase tracking-wide hover:bg-blue-800 transition-colors"
+                >
+                  Contact School
+                </button>
               </div>
             )}
           </div>

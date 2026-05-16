@@ -6,6 +6,7 @@ const ACCENT_STYLES: Record<string, { solid: string; soft: string }> = {
   green: { solid: "var(--green)", soft: "var(--green-soft)" },
   amber: { solid: "var(--amber)", soft: "var(--amber-soft)" },
   purple: { solid: "#7c3aed", soft: "#f3e8ff" },
+  red: { solid: "#dc2626", soft: "#fef2f2" },
 };
 
 // Accent shadow RGB for colored box-shadows
@@ -14,6 +15,7 @@ const ACCENT_SHADOW: Record<string, string> = {
   green: "13,148,136",
   amber: "180,83,9",
   purple: "124,58,237",
+  red: "220,38,38",
 };
 
 interface StatCardProps {
