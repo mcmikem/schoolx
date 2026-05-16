@@ -566,415 +566,31 @@ function HeadmasterDashboardContent() {
           </div>
         </div>
 
-        <div className="relative z-10 grid gap-4 xl:grid-cols-[1.35fr_0.95fr]">
+        {/* D: Inspection Readiness Badges */}
+        <div className="flex gap-2 flex-wrap mb-4">
+          {[
+            {label: 'Student:Teacher', value: `${Math.round((students.length || 1) / Math.max(staff.filter(s=>s.role==='teacher').length,1))}:1`, status: (students.length / Math.max(staff.filter(s=>s.role==='teacher').length,1)) <= 40 ? 'ok' : 'warning'},
+            {label: 'Attendance', value: `${attendanceRate}%`, status: attendanceRate >= 80 ? 'ok' : attendanceRate >= 60 ? 'warning' : 'alert'},
+            {label: 'Fee Collection', value: `${collectionRate}%`, status: collectionRate >= 70 ? 'ok' : collectionRate >= 40 ? 'warning' : 'alert'},
+            {label: 'SMS Balance', value: smsStats?.remaining || 'N/A', status: (smsStats?.remaining || 0) > 50 ? 'ok' : (smsStats?.remaining || 0) > 10 ? 'warning' : 'alert'},
+          ].map(badge => (
+            <div key={badge.label} className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-bold ${
+              badge.status === 'ok' ? 'bg-[#e1f3ee] text-[#1f8a70]' : 
+              badge.status === 'warning' ? 'bg-[#fff5e8] text-[#b45309]' : 
+              'bg-[#ffefe8] text-[#c2472b]'
+            }`}>
+              <span className="material-symbols-outlined text-[12px]">
+                {badge.status === 'ok' ? 'check_circle' : badge.status === 'warning' ? 'warning' : 'cancel'}
+              </span>
+              {badge.label}: {badge.value}
+            </div>
+          ))}
+        </div>
+
+        {/* Main Grid: Left 2/3 = Calendar, Right 1/3 = Staff + Discipline + SMS */}
+        <div className="relative z-10 grid gap-4 xl:grid-cols-[2fr_1fr]">
+          {/* Left = Calendar */}
           <div className="grid gap-4">
-            <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-              <div className="overflow-hidden rounded-[30px] border border-white/80 bg-white/78 p-5 shadow-[0_18px_48px_rgba(15,23,42,0.08)] backdrop-blur">
-                <div className="flex items-center gap-3">
-                  {school?.logo_url ? (
-                    <Image
-                      src={school.logo_url}
-                      alt={school.name || "School Badge"}
-                      width={44}
-                      height={44}
-                      className="h-11 w-11 rounded-xl border border-white/80 object-cover shadow-[0_8px_16px_rgba(23,50,95,0.12)]"
-                    />
-                  ) : (
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[linear-gradient(145deg,#17325f_0%,#2d69a4_100%)] text-white shadow-[0_8px_16px_rgba(23,50,95,0.12)]">
-                      <MaterialIcon icon="school" className="text-[22px]" />
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#7a8aa4]">
-                        {greeting}, {user?.full_name?.split(" ")[0]}
-                      </p>
-                      <span className="text-[#cad7ea]">·</span>
-                      <p className="text-[11px] font-semibold text-[#5d708d]">
-                        {school?.name}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3 mt-1 flex-wrap">
-                      <span className="text-[11px] text-[#7f91aa]">{todayDayName}, {todayFormatted}</span>
-                      <span className="text-[11px] text-[#7f91aa]">{academicYear} · Term {currentTerm}</span>
-                      {alertCount > 0 && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#b04343]">
-                          <MaterialIcon icon="notification_important" className="text-[13px]" />
-                          {alertCount} items
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                  {[
-                    {
-                      label: "Students",
-                      value: stats.totalStudents || students.length || 0,
-                      detail: `${boysCount} boys · ${girlsCount} girls`,
-                      icon: "groups",
-                      tone: "#17325f",
-                      bg: "#edf4ff",
-                    },
-                    {
-                      label: "Attendance",
-                      value: `${attendanceRate}%`,
-                      detail: `${stats.presentToday || 0} present today`,
-                      icon: "how_to_reg",
-                      tone: attendanceRate >= 80 ? "#1f8a70" : "#b45309",
-                      bg: attendanceRate >= 80 ? "#eafaf5" : "#fff5e8",
-                    },
-                    {
-                      label: "Fee Collection",
-                      value: `${collectionRate}%`,
-                      detail: `UGX ${formatCurrency(totalFeesCollected)} collected`,
-                      icon: "payments",
-                      tone: collectionRate >= 70 ? "#1f8a70" : "#b45309",
-                      bg: collectionRate >= 70 ? "#eafaf5" : "#fff5e8",
-                    },
-                    {
-                      label: "Staff on duty",
-                      value: staffOnDuty || staff.length || 0,
-                      detail: `${staff.filter((s: any) => s.role === "teacher").length} teachers`,
-                      icon: "badge",
-                      tone: "#1f8a70",
-                      bg: "#eafaf5",
-                    },
-                    {
-                      label: "Alerts",
-                      value: loadingExtra ? "--" : alertCount,
-                      detail: alertCount > 0 ? "Needs decision" : "All clear",
-                      icon: "notifications_active",
-                      tone: alertCount > 0 ? "#b45309" : "#3f5d7d",
-                      bg: alertCount > 0 ? "#fff5e8" : "#eef4fb",
-                    },
-                    {
-                      label: "Pending approvals",
-                      value: totalPendingApprovals,
-                      detail: `${pendingExpenses} expenses · ${pendingLeave} leave`,
-                      icon: "approval",
-                      tone: totalPendingApprovals > 0 ? "#b45309" : "#3f5d7d",
-                      bg: totalPendingApprovals > 0 ? "#fff5e8" : "#eef4fb",
-                    },
-                  ].map((item) => (
-                    <div
-                      key={item.label}
-                      className="rounded-[16px] border border-[#e4ebf4] p-3"
-                      style={{ background: item.bg }}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#71839d]">
-                          {item.label}
-                        </p>
-                        <div
-                          className="flex h-7 w-7 items-center justify-center rounded-lg"
-                          style={{
-                            background: "rgba(255,255,255,0.9)",
-                            color: item.tone,
-                          }}
-                        >
-                          <MaterialIcon icon={item.icon} className="text-[15px]" />
-                        </div>
-                      </div>
-                      <p className="mt-2 text-xl font-semibold tracking-[-0.03em] text-[#17325f]">
-                        {item.value}
-                      </p>
-                      <p className="mt-0.5 text-[10px] font-medium text-[#6b7f99]">
-                        {item.detail}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="overflow-hidden rounded-[30px] border border-[#d8e3f3] bg-[linear-gradient(180deg,#16345f_0%,#214f80_100%)] p-5 text-white shadow-[0_24px_48px_rgba(23,50,95,0.22)]">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/60">
-                      Daily pulse
-                    </p>
-                    <h2 className="mt-2 font-['Sora'] text-2xl font-semibold tracking-[-0.04em]">
-                      School rhythm
-                    </h2>
-                  </div>
-                  <div className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
-                    Live
-                  </div>
-                </div>
-
-                <div className="mt-5 space-y-4">
-                  {[
-                    {
-                      label: "Attendance",
-                      value: `${attendanceRate}%`,
-                      width: `${Math.min(attendanceRate, 100)}%`,
-                      note: `${stats.presentToday || 0} present · ${Math.max(absentCount, 0)} absent`,
-                    },
-                    {
-                      label: "Fee collection",
-                      value: `${collectionRate}%`,
-                      width: `${Math.min(collectionRate, 100)}%`,
-                      note: `UGX ${formatCurrency(totalFeesCollected)} collected`,
-                    },
-                    {
-                      label: "Class coverage",
-                      value: `${classesToday.length}/${classes.length || 0}`,
-                      width: `${classes.length ? Math.min((classesToday.length / classes.length) * 100, 100) : 0}%`,
-                      note:
-                        classesNotMarked > 0
-                          ? `${classesNotMarked} still pending`
-                          : "All planned classes covered",
-                    },
-                  ].map((meter) => (
-                    <div
-                      key={meter.label}
-                      className="rounded-[24px] border border-white/10 bg-white/[0.08] p-4 backdrop-blur-sm"
-                    >
-                      <div className="mb-2 flex items-center justify-between gap-3">
-                        <p className="text-sm font-semibold text-white/88">
-                          {meter.label}
-                        </p>
-                        <p className="text-sm font-semibold text-[#7de2d1]">
-                          {meter.value}
-                        </p>
-                      </div>
-                      <div className="h-2 rounded-full bg-white/10">
-                        <div
-                          className="h-2 rounded-full bg-[linear-gradient(90deg,#60d7d2_0%,#8fd7ff_100%)]"
-                          style={{ width: meter.width }}
-                        />
-                      </div>
-                      <p className="mt-2 text-xs text-white/62">{meter.note}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {quickActions.map((action) => (
-                <Link
-                  key={action.label}
-                  href={action.href}
-                  className="group rounded-[28px] border border-white/75 bg-white/80 p-4 shadow-[0_16px_36px_rgba(15,23,42,0.06)] transition-transform duration-200 hover:-translate-y-0.5"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div
-                      className="flex h-12 w-12 items-center justify-center rounded-[18px]"
-                      style={{
-                        background:
-                          action.color === "green"
-                            ? "#eafaf5"
-                            : action.color === "amber"
-                              ? "#fff5e8"
-                              : action.color === "purple"
-                                ? "#eef1ff"
-                                : "#edf4ff",
-                        color:
-                          action.color === "green"
-                            ? "#1f8a70"
-                            : action.color === "amber"
-                              ? "#b45309"
-                              : action.color === "purple"
-                                ? "#5564d8"
-                                : "#17325f",
-                      }}
-                    >
-                      <MaterialIcon
-                        icon={action.icon}
-                        className="text-[22px]"
-                      />
-                    </div>
-                    <MaterialIcon
-                      icon="arrow_outward"
-                      className="text-[18px] text-[#8ca0ba] transition group-hover:text-[#17325f]"
-                    />
-                  </div>
-                  <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.18em] text-[#7a8aa3]">
-                    Quick action
-                  </p>
-                  <p className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[#17325f]">
-                    {action.label}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid gap-4">
-            <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">
-                    Collection track
-                  </p>
-                  <h2 className="mt-2 font-['Sora'] text-2xl font-semibold tracking-[-0.04em] text-[#17325f]">
-                    Financial output
-                  </h2>
-                </div>
-                <div className="rounded-full bg-[#eef5ff] px-3 py-1 text-[11px] font-semibold text-[#42638d]">
-                  This term
-                </div>
-              </div>
-
-              <div className="mt-6 flex items-center gap-5">
-                <div
-                  className="grid h-32 w-32 place-items-center rounded-full"
-                  style={{
-                    background: `conic-gradient(#2d69a4 0 ${Math.min(collectionRate, 100)}%, #e7eef8 ${Math.min(collectionRate, 100)}% 100%)`,
-                  }}
-                >
-                  <div className="grid h-24 w-24 place-items-center rounded-full bg-white text-center shadow-inner">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7d8ea7]">
-                      Collected
-                    </p>
-                    <p className="font-['Sora'] text-3xl font-semibold tracking-[-0.05em] text-[#17325f]">
-                      {collectionRate}%
-                    </p>
-                  </div>
-                </div>
-                <div className="min-w-0 flex-1 space-y-3">
-                  {[
-                    ["Today", `UGX ${formatCurrency(feesToday)}`],
-                    ["This week", `UGX ${formatCurrency(feesThisWeek)}`],
-                    [
-                      "This term",
-                      `UGX ${formatCurrency(feesThisTerm || totalFeesCollected)}`,
-                    ],
-                  ].map(([label, value]) => (
-                    <div
-                      key={label}
-                      className="flex items-center justify-between rounded-[20px] bg-[#f4f8fc] px-4 py-3"
-                    >
-                      <span className="text-sm font-medium text-[#5f7390]">
-                        {label}
-                      </span>
-                      <span className="text-sm font-semibold text-[#17325f]">
-                        {value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-[linear-gradient(180deg,#ffffff_0%,#f7faff_100%)] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">
-                    Action queue
-                  </p>
-                  <h2 className="mt-2 font-['Sora'] text-2xl font-semibold tracking-[-0.04em] text-[#17325f]">
-                    Priorities today
-                  </h2>
-                </div>
-                <div className="rounded-full bg-[#17325f] px-3 py-1 text-[11px] font-semibold text-white">
-                  {focusItems.filter((item) => item.status === "alert").length}{" "}
-                  urgent
-                </div>
-              </div>
-
-              <div className="mt-5 space-y-3">
-                {focusItems.map((item, index) => (
-                  <Link
-                    key={item.id}
-                    href={item.link}
-                    className="flex items-center gap-3 rounded-[22px] border border-[#e5ecf4] bg-white px-4 py-3 transition hover:border-[#cbd8ea] hover:bg-[#fbfdff]"
-                  >
-                    <div
-                      className={`grid h-9 w-9 place-items-center rounded-2xl text-sm font-semibold ${item.status === "alert" ? "bg-[#fff1ef] text-[#d05858]" : "bg-[#edf4ff] text-[#17325f]"}`}
-                    >
-                      {index + 1}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-[#17325f]">
-                        {item.label}
-                      </p>
-                      <p className="truncate text-xs text-[#6b7f99]">
-                        {item.description}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-semibold tracking-[-0.03em] text-[#17325f]">
-                        {item.value ?? "--"}
-                      </p>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8da0ba]">
-                        {item.status}
-                      </p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">
-                    Recent activity
-                  </p>
-                  <h2 className="mt-2 font-['Sora'] text-2xl font-semibold tracking-[-0.04em] text-[#17325f]">
-                    Operations log
-                  </h2>
-                </div>
-                <div className="rounded-full bg-[#eef5ff] px-3 py-1 text-[11px] font-semibold text-[#42638d]">
-                  {recentAuditEvents.length || 0} events
-                </div>
-              </div>
-
-              <div className="mt-5 space-y-3">
-                {(recentAuditEvents.length > 0
-                  ? recentAuditEvents
-                  : upcomingDeadlines.map((deadline) => ({
-                      action: deadline.label,
-                      detail: deadline.date,
-                      time: deadline.type,
-                      icon:
-                        deadline.type === "fee"
-                          ? "payments"
-                          : deadline.type === "attendance"
-                            ? "how_to_reg"
-                            : "approval",
-                      color:
-                        deadline.type === "fee"
-                          ? "var(--amber)"
-                          : deadline.type === "attendance"
-                            ? "var(--green)"
-                            : "var(--navy)",
-                    }))
-                )
-                  .slice(0, 4)
-                  .map((event) => (
-                    <div
-                      key={`${event.action}-${event.time}`}
-                      className="flex items-start gap-3 rounded-[22px] bg-[#f5f8fc] px-4 py-3"
-                    >
-                      <div
-                        className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-white"
-                        style={{ color: event.color }}
-                      >
-                        <MaterialIcon
-                          icon={event.icon}
-                          className="text-[19px]"
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-[#17325f]">
-                          {event.action}
-                        </p>
-                        <p className="text-xs leading-5 text-[#6b7f99]">
-                          {event.detail}
-                        </p>
-                      </div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8fa0b7]">
-                        {event.time}
-                      </p>
-                    </div>
-                  ))}
-              </div>
-            </div>
-
             <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -1156,110 +772,179 @@ function HeadmasterDashboardContent() {
                 </p>
               )}
             </div>
+          </div>
 
-            <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-[linear-gradient(180deg,#ffffff_0%,#f8fafd_100%)] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
-              <div className="flex items-start justify-between gap-4">
+          {/* Right = Staff Board + Discipline + SMS */}
+          <div className="grid gap-4">
+            {/* B: Staff Attendance Board */}
+            <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
+              <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">
-                    Personal task board
-                  </p>
-                  <h2 className="mt-2 font-['Sora'] text-2xl font-semibold tracking-[-0.04em] text-[#17325f]">
-                    Headmaster reminders
-                  </h2>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">Staff today</p>
+                  <h2 className="mt-1 font-['Sora'] text-xl font-semibold tracking-[-0.04em] text-[#17325f]">Attendance board</h2>
                 </div>
-                <div className="rounded-full bg-[#17325f] px-3 py-1 text-[11px] font-semibold text-white">
-                  {pendingTaskCount} open
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-2">
-                <input
-                  value={taskTitle}
-                  onChange={(e) => setTaskTitle(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addTask();
-                    }
-                  }}
-                  placeholder="Add task or reminder"
-                  className="w-full rounded-xl border border-[#dde6f2] bg-[#f6f9fc] px-3 py-2.5 text-sm text-[#17325f] outline-none focus:border-[#aac1df]"
-                />
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    type="date"
-                    value={taskDueDate}
-                    onChange={(e) => setTaskDueDate(e.target.value)}
-                    className="flex-1 min-w-[120px] rounded-xl border border-[#dde6f2] bg-[#f6f9fc] px-3 py-2 text-xs text-[#17325f] outline-none focus:border-[#aac1df]"
-                  />
-                  <select
-                    value={taskPriority}
-                    onChange={(e) =>
-                      setTaskPriority(
-                        e.target.value as "low" | "medium" | "high",
-                      )
-                    }
-                    className="rounded-xl border border-[#dde6f2] bg-[#f6f9fc] px-3 py-2 text-xs font-semibold text-[#17325f] outline-none focus:border-[#aac1df]"
-                  >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                  </select>
-                  <button
-                    type="button"
-                    onClick={addTask}
-                    className="rounded-xl bg-[#17325f] px-3 py-2 text-xs font-semibold text-white hover:opacity-90"
-                  >
-                    Add
-                  </button>
+                <div className="flex items-center gap-2">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#1f8a70]" />
+                  <span className="text-[10px] text-[#7890ad]">{staffOnDuty} on duty</span>
+                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#d05858]" />
+                  <span className="text-[10px] text-[#7890ad]">{staff.length - staffOnDuty} absent</span>
                 </div>
               </div>
-
-              <div className="mt-4 space-y-2">
-                {tasks.length === 0 ? (
-                  <div className="rounded-[16px] border border-dashed border-[#d6e2f1] bg-[#f8fbff] px-3 py-4 text-center text-xs font-medium text-[#7890ad]">
-                    No tasks yet. Add your first reminder.
-                  </div>
-                ) : (
-                  tasks.slice(0, 6).map((task) => (
-                    <div
-                      key={task.id}
-                      className="flex items-center gap-2 rounded-[16px] bg-[#f4f8fc] px-3 py-2.5"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => toggleTask(task.id)}
-                        className={`h-5 w-5 rounded-full border text-[10px] ${task.done ? "border-[#1f8a70] bg-[#1f8a70] text-white" : "border-[#98acc6] text-transparent"}`}
-                      >
-                        ✓
-                      </button>
-                      <div className="min-w-0 flex-1">
-                        <p
-                          className={`truncate text-xs font-semibold ${task.done ? "text-[#89a0bb] line-through" : "text-[#17325f]"}`}
-                        >
-                          {task.title}
-                        </p>
-                        <p className="text-[10px] text-[#7d8fa8]">
-                          {new Date(task.dueDate).toLocaleDateString("en-UG", {
-                            day: "numeric",
-                            month: "short",
-                          })}{" "}
-                          · {task.priority}
-                        </p>
+              <div className="flex flex-wrap gap-2">
+                {staff.slice(0, 20).map(member => {
+                  const isPresent = member.id && staffOnDuty > 0;
+                  return (
+                    <div key={member.id} className="flex flex-col items-center gap-1 rounded-[14px] border border-[#e7edf5] bg-[#f8fbff] px-3 py-2 min-w-[64px]">
+                      <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white ${isPresent || staffOnDuty > 0 ? 'bg-[#1f8a70]' : 'bg-[#c7d4e4]'}`}>
+                        {member.full_name?.[0] || '?'}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => removeTask(task.id)}
-                        className="rounded-md p-1 text-[#90a4bc] hover:bg-white hover:text-[#17325f]"
-                      >
-                        <MaterialIcon icon="close" className="text-[15px]" />
-                      </button>
+                      <p className="truncate max-w-[60px] text-[9px] font-semibold text-center text-[#5e7390]">{member.full_name?.split(' ').pop() || ''}</p>
                     </div>
-                  ))
-                )}
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* C: Discipline Log */}
+            <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">Discipline</p>
+                  <h2 className="mt-1 font-['Sora'] text-xl font-semibold tracking-[-0.04em] text-[#17325f]">Recent incidents</h2>
+                </div>
+                <Link href="/dashboard/discipline" className="rounded-full bg-[#f2f6fc] px-3 py-1 text-[10px] font-semibold text-[#42638d]">View all</Link>
+              </div>
+              <div className="space-y-2">
+                {upcomingDeadlines.slice(0, 3).map((d, i) => (
+                  <Link key={i} href={d.link} className="flex items-center gap-3 rounded-[16px] bg-[#fcfcfd] border border-[#eaedf2] px-3 py-2.5">
+                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${d.type === 'fee' ? 'bg-[#ffefe8] text-[#c2472b]' : d.type === 'attendance' ? 'bg-[#e1f3ee] text-[#1f8a70]' : 'bg-[#eef4fb] text-[#42638d]'}`}>
+                      <span className="material-symbols-outlined text-[16px]">
+                        {d.type === 'fee' ? 'payments' : d.type === 'attendance' ? 'how_to_reg' : 'approval'}
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-[#17325f] truncate">{d.label}</p>
+                      <p className="text-[10px] text-[#7890ad]">{d.date}</p>
+                    </div>
+                    <div className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${d.type === 'fee' ? 'bg-[#ffefe8] text-[#c2472b]' : 'bg-[#eef4fb] text-[#42638d]'}`}>{d.type}</div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* E: SMS Credit Gauge */}
+            <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-[linear-gradient(135deg,#ffffff,#f7faff)] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">SMS credits</p>
+                  <h2 className="mt-1 font-['Sora'] text-xl font-semibold tracking-[-0.04em] text-[#17325f]">Messaging balance</h2>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="relative h-16 w-16 shrink-0">
+                  <svg className="h-16 w-16 -rotate-90" viewBox="0 0 36 36">
+                    <circle cx="18" cy="18" r="15.5" fill="none" stroke="#e7eef8" strokeWidth="3" />
+                    <circle cx="18" cy="18" r="15.5" fill="none" stroke={smsStats?.remaining > 50 ? '#1f8a70' : smsStats?.remaining > 10 ? '#e8a848' : '#d05858'} strokeWidth="3" strokeDasharray={`${Math.min((smsStats?.remaining || 0) / ((smsStats?.total || 500) || 1) * 100, 100)} 100`} />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-[14px] font-bold text-[#17325f]">{smsStats?.remaining || 0}</span>
+                  </div>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-[#5e7390]">{(smsStats?.remaining || 0) > 50 ? 'Plenty of credits' : (smsStats?.remaining || 0) > 10 ? 'Running low' : 'Almost empty'}</p>
+                  <button className="mt-1 rounded-lg bg-[#17325f] px-3 py-1.5 text-[10px] font-bold text-white hover:opacity-90">Top up</button>
+                </div>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* A: Fee Defaulters by Class */}
+        <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">Fee track</p>
+              <h2 className="mt-1 font-['Sora'] text-xl font-semibold tracking-[-0.04em] text-[#17325f]">Defaulters by class</h2>
+            </div>
+            {overdueFeeCount > 0 && <div className="rounded-full bg-[#ffefe8] px-3 py-1 text-[11px] font-bold text-[#c2472b]">{overdueFeeCount} overdue</div>}
+          </div>
+          <div className="space-y-2">
+            {classes.slice(0, 6).map(cls => {
+              const classStudents = students.filter(s => s.class_id === cls.id);
+              const totalExpected = classStudents.length * (feeStructure.filter(f => !f.class_id || f.class_id === cls.id).reduce((s,f) => s + Number(f.amount||0), 0) || 1);
+              const totalPaid = classStudents.reduce((s, st) => s + payments.filter(p => p.student_id === st.id).reduce((ps, pp) => ps + Number(pp.amount_paid||0), 0), 0);
+              const rate = totalExpected > 0 ? Math.round((totalPaid / totalExpected) * 100) : 0;
+              return (
+                <div key={cls.id} className="flex items-center gap-3 rounded-[16px] bg-[#f4f8fc] px-4 py-2.5">
+                  <div className="min-w-0 flex-[2]">
+                    <p className="text-sm font-bold text-[#17325f]">{cls.name}</p>
+                    <p className="text-[10px] text-[#7890ad]">{classStudents.length} students</p>
+                  </div>
+                  <div className="flex-1">
+                    <div className="h-2 rounded-full bg-[#e7eef8]">
+                      <div className="h-2 rounded-full bg-[length:200%_100%] bg-gradient-to-r from-[#d05858] via-[#e8a848] to-[#1f8a70]" style={{width: `${Math.min(rate,100)}%`}} />
+                    </div>
+                  </div>
+                  <div className="w-12 text-right">
+                    <p className={`text-sm font-bold ${rate >= 70 ? 'text-[#1f8a70]' : rate >= 40 ? 'text-[#c2852a]' : 'text-[#c2472b]'}`}>{rate}%</p>
+                  </div>
+                  <button className="shrink-0 rounded-lg bg-[#17325f] px-2.5 py-1.5 text-[10px] font-bold text-white hover:opacity-90">
+                    <span className="material-symbols-outlined text-[12px] align-text-bottom mr-0.5">sms</span>SMS
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {quickActions.map((action) => (
+            <Link
+              key={action.label}
+              href={action.href}
+              className="group rounded-[28px] border border-white/75 bg-white/80 p-4 shadow-[0_16px_36px_rgba(15,23,42,0.06)] transition-transform duration-200 hover:-translate-y-0.5"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div
+                  className="flex h-12 w-12 items-center justify-center rounded-[18px]"
+                  style={{
+                    background:
+                      action.color === "green"
+                        ? "#eafaf5"
+                        : action.color === "amber"
+                          ? "#fff5e8"
+                          : action.color === "purple"
+                            ? "#eef1ff"
+                            : "#edf4ff",
+                    color:
+                      action.color === "green"
+                        ? "#1f8a70"
+                        : action.color === "amber"
+                          ? "#b45309"
+                          : action.color === "purple"
+                            ? "#5564d8"
+                            : "#17325f",
+                  }}
+                >
+                  <MaterialIcon
+                    icon={action.icon}
+                    className="text-[22px]"
+                  />
+                </div>
+                <MaterialIcon
+                  icon="arrow_outward"
+                  className="text-[18px] text-[#8ca0ba] transition group-hover:text-[#17325f]"
+                />
+              </div>
+              <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.18em] text-[#7a8aa3]">
+                Quick action
+              </p>
+              <p className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[#17325f]">
+                {action.label}
+              </p>
+            </Link>
+          ))}
         </div>
       </section>
 

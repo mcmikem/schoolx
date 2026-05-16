@@ -14,7 +14,7 @@ interface ClassAttendance {
 interface DashboardExtraData {
   classAttendance: Record<string, ClassAttendance>;
   atRiskStudents: any[];
-  smsStats: { sentToday: number; deliveryRate: number };
+  smsStats: { sentToday: number; deliveryRate: number; remaining: number; total: number };
   pendingExpenses: number;
   pendingLeave: number;
   feesToday: number;
@@ -39,7 +39,7 @@ export function useDashboardExtraData(
     Record<string, ClassAttendance>
   >({});
   const [atRiskStudents, setAtRiskStudents] = useState<any[]>([]);
-  const [smsStats, setSmsStats] = useState({ sentToday: 0, deliveryRate: 0 });
+  const [smsStats, setSmsStats] = useState({ sentToday: 0, deliveryRate: 0, remaining: 0, total: 0 });
   const [loading, setLoading] = useState(true);
   const [pendingExpenses, setPendingExpenses] = useState(0);
   const [pendingLeave, setPendingLeave] = useState(0);
@@ -66,7 +66,7 @@ export function useDashboardExtraData(
         if (cached) {
           setClassAttendance(cached.classAttendance || {});
           setAtRiskStudents(cached.atRiskStudents || []);
-          setSmsStats(cached.smsStats || { sentToday: 0, deliveryRate: 0 });
+          setSmsStats(cached.smsStats || { sentToday: 0, deliveryRate: 0, remaining: 0, total: 0 });
           setPendingExpenses(cached.pendingExpenses || 0);
           setPendingLeave(cached.pendingLeave || 0);
           setFeesToday(cached.feesToday || 0);
@@ -106,7 +106,7 @@ export function useDashboardExtraData(
           classes: { name: "Primary 5" },
         },
       ]);
-      setSmsStats({ sentToday: 12, deliveryRate: 92 });
+      setSmsStats({ sentToday: 12, deliveryRate: 92, remaining: 0, total: 0 });
       setPendingExpenses(2);
       setPendingLeave(1);
       setFeesToday(850000);
@@ -313,7 +313,7 @@ export function useDashboardExtraData(
             .length || 0;
         const rate =
           sentToday > 0 ? Math.round((delivered / sentToday) * 100) : 0;
-        setSmsStats({ sentToday, deliveryRate: rate });
+        setSmsStats({ sentToday, deliveryRate: rate, remaining: 0, total: 0 });
 
         // Pending approvals
         setPendingExpenses(expensesRes.count || 0);
@@ -373,7 +373,7 @@ export function useDashboardExtraData(
         const cacheData = {
           classAttendance: attendanceByClass,
           atRiskStudents: atRisk,
-          smsStats: { sentToday, deliveryRate: rate },
+          smsStats: { sentToday, deliveryRate: rate, remaining: 0, total: 0 },
           pendingExpenses: expensesRes.count || 0,
           pendingLeave: leaveRes.count || 0,
           feesToday: todayTotal,
@@ -391,7 +391,7 @@ export function useDashboardExtraData(
         if (cached && !cancelled) {
           setClassAttendance(cached.classAttendance || {});
           setAtRiskStudents(cached.atRiskStudents || []);
-          setSmsStats(cached.smsStats || { sentToday: 0, deliveryRate: 0 });
+          setSmsStats(cached.smsStats || { sentToday: 0, deliveryRate: 0, remaining: 0, total: 0 });
           setPendingExpenses(cached.pendingExpenses || 0);
           setPendingLeave(cached.pendingLeave || 0);
           setFeesToday(cached.feesToday || 0);
