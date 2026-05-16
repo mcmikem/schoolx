@@ -811,7 +811,7 @@ export default function StudentHubPage() {
       <div className="space-y-6 p-4 sm:p-6 lg:p-8">
         <PageHeader
           title="Student Hub"
-          subtitle={`${students.length} students enrolled in ${academicYear} (${students.filter((s) => s.gender === "M").length} Boys / ${students.filter((s) => s.gender === "F").length} Girls)`}
+          subtitle={loading ? <span className="inline-block w-48 h-4 rounded bg-gray-200 animate-pulse" /> : `${students.length} students enrolled in ${academicYear} (${students.filter((s) => s.gender === "M").length} Boys / ${students.filter((s) => s.gender === "F").length} Girls)`}
           variant="premium"
         />
 

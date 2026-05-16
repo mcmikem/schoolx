@@ -358,20 +358,8 @@ export async function POST(request: NextRequest) {
 
     for (const table of tables) {
       try {
-        const { error } = await supabase.rpc("exec_sql", { sql: table.sql });
-        if (error) {
-          const { error: directError } = await supabase
-            .from(table.name)
-            .select("id")
-            .limit(1);
-          if (directError) {
-            results[table.name] = `Error: ${error.message}`;
-          } else {
-            results[table.name] = "Exists";
-          }
-        } else {
-          results[table.name] = "Created";
-        }
+        const { error } = await supabase.from(table.name).select("id").limit(1);
+        results[table.name] = error ? `Error: ${error.message}` : "Exists";
       } catch (e: any) {
         results[table.name] = `Error: ${e.message}`;
       }
@@ -416,7 +404,11 @@ export async function POST(request: NextRequest) {
     ];
 
     for (const sql of migrations) {
-      await supabase.rpc("exec_sql", { sql }); // Errors are handled within the RPC or ignored visually
+      try {
+        await supabase.rpc("exec_sql", { sql });
+      } catch {
+        // Migration failures are non-fatal; tables may already be migrated
+      }
     }
 
     // Only seed demo data if explicitly enabled via environment variable and not in production

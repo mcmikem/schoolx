@@ -603,11 +603,12 @@ export default function SettingsPage() {
       };
 
       const { withTimeout } = await import('@/lib/hooks/utils');
-      const error = await withTimeout(
-        supabase.from("houses").insert({ ...payload }).then(r => r.error),
-        8000,
-        new Error('Insert timed out')
+      const houseResult = await withTimeout(
+        supabase.from("houses").insert({ ...payload }),
+        15000,
+        null as any
       );
+      const error = houseResult?.error;
       if (error) throw error;
       toast.success("House added");
       setShowAddHouse(false);
@@ -628,11 +629,12 @@ export default function SettingsPage() {
     setPendingDeleteHouseId(null);
     try {
       const { withTimeout } = await import('@/lib/hooks/utils');
-      const error = await withTimeout(
-        supabase.from("houses").delete().eq("id", id).then(r => r.error),
-        8000,
-        new Error('Delete timed out')
+      const houseDelResult = await withTimeout(
+        supabase.from("houses").delete().eq("id", id),
+        15000,
+        null as any
       );
+      const error = houseDelResult?.error;
       if (error) throw error;
       toast.success("House deleted");
       await fetchHouses();
@@ -649,7 +651,7 @@ export default function SettingsPage() {
 
     try {
       const { withTimeout } = await import('@/lib/hooks/utils');
-      const error = await withTimeout(
+      const classResult = await withTimeout(
         supabase.from("classes").upsert(
           {
             school_id: school.id,
@@ -659,10 +661,11 @@ export default function SettingsPage() {
             academic_year: new Date().getFullYear().toString(),
           },
           { onConflict: "school_id,name,academic_year" },
-        ).then(r => r.error),
-        8000,
-        new Error('Upsert timed out')
+        ),
+        15000,
+        null as any
       );
+      const error = classResult?.error;
       if (error) throw error;
       await refetchClasses();
       toast.success("Class added");
@@ -692,13 +695,16 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDeleteClass = async (id: string) => {
-    if (
-      !confirm(
-        "Delete this class? All students in this class will need to be reassigned.",
-      )
-    )
-      return;
+  const [pendingDeleteClassId, setPendingDeleteClassId] = useState<string | null>(null);
+
+  const handleDeleteClass = (id: string) => {
+    setPendingDeleteClassId(id);
+  };
+
+  const confirmDeleteClass = async () => {
+    const id = pendingDeleteClassId;
+    setPendingDeleteClassId(null);
+    if (!id) return;
     try {
       const { error } = await supabase.from("classes").delete().eq("id", id);
       if (error) throw error;
@@ -2043,6 +2049,15 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        isOpen={!!pendingDeleteClassId}
+        onClose={() => setPendingDeleteClassId(null)}
+        onConfirm={confirmDeleteClass}
+        title="Delete Class"
+        message="Delete this class? All students in this class will need to be reassigned."
+        confirmLabel="Delete"
+        variant="danger"
+      />
       <ConfirmDialog
         isOpen={!!pendingDeleteHouseId}
         onClose={() => setPendingDeleteHouseId(null)}

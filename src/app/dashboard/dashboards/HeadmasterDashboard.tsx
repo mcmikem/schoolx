@@ -1054,7 +1054,20 @@ function HeadmasterDashboardContent() {
               </div>
 
               {/* Events for selected day or upcoming events */}
-              {selectedDate && eventsOnSelected.length > 0 && (
+              {selectedDate && eventsLoading && eventsOnSelected.length === 0 && (
+                <div className="mt-3 space-y-2 rounded-[16px] bg-[#f0f6ff] p-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between rounded-[12px] bg-white px-3 py-2 shadow-sm"
+                    >
+                      <div className="h-4 w-32 rounded bg-gray-200 animate-pulse" />
+                      <div className="h-5 w-14 rounded-full bg-gray-200 animate-pulse" />
+                    </div>
+                  ))}
+                </div>
+              )}
+              {selectedDate && !eventsLoading && eventsOnSelected.length > 0 && (
                 <div className="mt-3 space-y-1.5 rounded-[16px] bg-[#f0f6ff] p-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#7f91aa]">
                     {new Date(selectedDate).toLocaleDateString("en-UG", {

@@ -25,6 +25,7 @@ import {
   validateAttendanceInput,
 } from "@/lib/validation";
 import type { Student } from "@/types";
+import { withTimeout } from "@/lib/hooks/utils";
 
 const STATUS_CYCLE = ["absent", "present", "late"] as const;
 type AttendanceStatus = (typeof STATUS_CYCLE)[number];
@@ -270,10 +271,12 @@ export default function AttendancePage() {
 
     if (isOnline) {
       try {
-        const { error } = await supabase
-          .from("attendance")
-          .upsert(records as any, { onConflict: "student_id,date" });
-
+        const attResult = await withTimeout(
+          supabase.from("attendance").upsert(records as any, { onConflict: "student_id,date" }),
+          15000,
+          null as any
+        );
+        const error = attResult?.error;
         if (error) throw error;
         await offlineDB.cacheFromServer(
           "attendance",
@@ -385,6 +388,38 @@ export default function AttendancePage() {
     toast.success("Attendance exported to CSV");
   };
 
+  const [confirmAbsentAlert, setConfirmAbsentAlert] = useState(false);
+
+  const sendAbsentAlerts = async () => {
+    setConfirmAbsentAlert(false);
+    try {
+      const absentees = students.filter(
+        (s) => attendance[s.id] === "absent",
+      );
+      const { supabase: sb } = await import("@/lib/supabase");
+
+      for (const student of absentees) {
+        const phone = student.parent_phone;
+        if (!phone) continue;
+
+        const msgResult = await withTimeout(sb.from("messages").insert({
+          school_id: school?.id,
+          recipient_phone: phone,
+          message: `SkoolMate Alert: ${student.first_name} was marked ABSENT today (${date}). Please confirm with school if this is unexpected.`,
+          status: "sent",
+          type: "attendance_alert",
+        }), 15000, null as any);
+        const msgError = msgResult?.error;
+        if (msgError) throw msgError;
+      }
+      toast.success(
+        `Absence alerts queued for ${absentees.length} parents`,
+      );
+    } catch (err) {
+      toast.error("Failed to send alerts");
+    }
+  };
+
   return (
     <PageErrorBoundary>
       <>
@@ -398,39 +433,7 @@ export default function AttendancePage() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={async () => {
-                    if (
-                      !confirm(
-                        `Send absence alerts to parents of ${absentCount} absent students?`,
-                      )
-                    )
-                      return;
-                    try {
-                      const absentees = students.filter(
-                        (s) => attendance[s.id] === "absent",
-                      );
-                      const { supabase: sb } = await import("@/lib/supabase");
-
-                      for (const student of absentees) {
-                        const phone = student.parent_phone;
-                        if (!phone) continue;
-
-                        const { error: msgError } = await sb.from("messages").insert({
-                          school_id: school?.id,
-                          recipient_phone: phone,
-                          message: `SkoolMate Alert: ${student.first_name} was marked ABSENT today (${date}). Please confirm with school if this is unexpected.`,
-                          status: "sent",
-                          type: "attendance_alert",
-                        });
-                        if (msgError) throw msgError;
-                      }
-                      toast.success(
-                        `Absence alerts queued for ${absentees.length} parents`,
-                      );
-                    } catch (err) {
-                      toast.error("Failed to send alerts");
-                    }
-                  }}
+                  onClick={() => setConfirmAbsentAlert(true)}
                   className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
                   icon={<MaterialIcon icon="notification_important" />}
                 >
@@ -1106,6 +1109,15 @@ export default function AttendancePage() {
           message={`Mark all ${students.length} students as present?`}
           confirmLabel="Mark All Present"
           variant="info"
+        />
+        <ConfirmDialog
+          isOpen={confirmAbsentAlert}
+          onClose={() => setConfirmAbsentAlert(false)}
+          onConfirm={sendAbsentAlerts}
+          title="Send Absence Alerts"
+          message={`Send absence alerts to parents of ${absentCount} absent students?`}
+          confirmLabel="Send Alerts"
+          variant="warning"
         />
       </>
     </PageErrorBoundary>

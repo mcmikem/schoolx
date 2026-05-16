@@ -279,7 +279,7 @@ export function validateCSRFToken(request: NextRequest): boolean {
     return true;
   }
 
-  if (secFetchSite && ["same-origin", "same-site", "none"].includes(secFetchSite)) {
+  if (secFetchSite && ["same-origin", "same-site"].includes(secFetchSite)) {
     return true;
   }
 

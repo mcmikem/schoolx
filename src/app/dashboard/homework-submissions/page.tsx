@@ -69,7 +69,7 @@ export default function HomeworkSubmissionsPage() {
   const markSubmission = async (submission: any, marks: number, feedback: string) => {
     const { withTimeout } = await import('@/lib/hooks/utils');
     if (!submission.id) {
-      await withTimeout(
+      const hwResult = await withTimeout(
         supabase.from('homework_submissions').insert({
           school_id: school?.id,
           homework_id: selectedHomework.id,
@@ -78,16 +78,19 @@ export default function HomeworkSubmissionsPage() {
           marks_obtained: marks,
           feedback,
           status: 'graded'
-        }).then(r => r.error),
-        8000,
-        new Error('Insert timed out')
+        }),
+        15000,
+        null as any
       );
+      const error = hwResult?.error;
+      if (error) throw error;
     } else {
-      const error = await withTimeout(
-        supabase.from('homework_submissions').update({ marks_obtained: marks, feedback, status: 'graded' }).eq('id', submission.id).then(r => r.error),
-        8000,
-        new Error('Update timed out')
+      const hwResult = await withTimeout(
+        supabase.from('homework_submissions').update({ marks_obtained: marks, feedback, status: 'graded' }).eq('id', submission.id),
+        15000,
+        null as any
       );
+      const error = hwResult?.error;
       if (error) throw error;
     }
     toast.success('Submission graded')

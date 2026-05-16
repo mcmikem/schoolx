@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
         if (smsResult.success) {
           const { withTimeout } = await import('@/lib/hooks/utils');
           // Log the message
-          await withTimeout(
+          const attMsgResult = await withTimeout(
             supabase.from("messages").insert({
               school_id: school.schoolId,
               recipient_type: "individual",
@@ -161,13 +161,14 @@ export async function POST(request: NextRequest) {
               status: "sent",
               sent_at: sentAt,
               type: "attendance_followup",
-            } as any).then(r => r.error),
-            8000,
-            new Error('Insert timed out')
+            } as any),
+            15000,
+            null as any
           );
+          const attMsgError = attMsgResult?.error;
 
           // Log the automated message
-          await withTimeout(
+          const attLogResult = await withTimeout(
             supabase.from("automated_message_logs").insert({
               school_id: school.schoolId,
               trigger_id: "auto-attendance-followup",
@@ -175,10 +176,11 @@ export async function POST(request: NextRequest) {
               record_id: alert.studentId,
               status: "sent",
               sent_at: sentAt,
-            } as any).then(r => r.error),
-            8000,
-            new Error('Insert timed out')
+            } as any),
+            15000,
+            null as any
           );
+          const attLogError = attLogResult?.error;
 
           smsResults.push({
             studentId: alert.studentId,

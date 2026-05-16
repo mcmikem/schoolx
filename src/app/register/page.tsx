@@ -32,6 +32,7 @@ import {
 import { normalizeAuthPhone } from "@/lib/validation";
 import { withSupabaseLockRetry } from "@/lib/supabase-lock";
 import MaterialIcon from "@/components/MaterialIcon";
+import { useFormValidation, ValidationRules, ValidatedInput } from "@/lib/useFormValidation";
 
 const SCHOOL_TYPE_OPTIONS = [
   { value: "primary", label: "Primary School" },
@@ -57,7 +58,7 @@ export default function RegisterPage() {
   const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [apiError, setApiError] = useState("");
   const [manualLocationEntry, setManualLocationEntry] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -92,6 +93,17 @@ export default function RegisterPage() {
     confirmPassword: "",
   });
 
+  const rules = {
+    schoolName: ValidationRules.required,
+    district: ValidationRules.required,
+    phone: ValidationRules.phone,
+    email: ValidationRules.email,
+    adminName: { ...ValidationRules.required, ...ValidationRules.studentName },
+    adminPhone: { ...ValidationRules.required, ...ValidationRules.phone },
+    password: { required: true, minLength: 6 },
+  };
+  const formValidation = useFormValidation(rules);
+
   const updateForm = (field: string, value: string) => {
     setForm((prev) => {
       if (field === "district") {
@@ -110,17 +122,17 @@ export default function RegisterPage() {
 
       return { ...prev, [field]: value };
     });
-    if (error) setError("");
+    if (apiError) setApiError("");
   };
 
   // Validation functions
   const validateStep1 = (): boolean => {
     if (!form.schoolName.trim()) {
-      setError("School name is required");
+      setApiError("School name is required");
       return false;
     }
     if (form.schoolName.trim().length < 3) {
-      setError("School name must be at least 3 characters");
+      setApiError("School name must be at least 3 characters");
       return false;
     }
     return true;
@@ -128,62 +140,11 @@ export default function RegisterPage() {
 
   const validateStep2 = (): boolean => {
     if (!form.district) {
-      setError("Please select a district");
+      setApiError("Please select a district");
       return false;
     }
     if (!form.subcounty.trim()) {
-      setError("Sub-county is required");
-      return false;
-    }
-    return true;
-  };
-
-  const validateStep3 = (): boolean => {
-    if (!form.adminName.trim()) {
-      setError("Admin name is required");
-      return false;
-    }
-    if (form.adminName.trim().length < 2) {
-      setError("Admin name must be at least 2 characters");
-      return false;
-    }
-    if (!form.adminPhone.trim()) {
-      setError("Admin phone is required");
-      return false;
-    }
-    // Uganda phone validation
-    const phoneRegex = /^(0|256|\+256)[7][0-9]{8}$/;
-    const cleanPhone = form.adminPhone.replace(/[^0-9+]/g, "");
-    if (
-      !phoneRegex.test(cleanPhone) &&
-      !(
-        cleanPhone.replace(/\D/g, "").length >= 10 &&
-        cleanPhone.replace(/\D/g, "").length <= 12
-      )
-    ) {
-      setError(
-        "Please enter a valid Uganda phone number (e.g., 0700000000 or +256700000000)",
-      );
-      return false;
-    }
-    if (!googleRegisterMode) {
-      if (form.password.length < 8) {
-        setError("Password must be at least 8 characters");
-        return false;
-      }
-      if (!/[A-Z]/.test(form.password) || !/[0-9]/.test(form.password)) {
-        setError(
-          "Password must contain at least one uppercase letter and one number",
-        );
-        return false;
-      }
-      if (form.password !== form.confirmPassword) {
-        setError("Passwords do not match");
-        return false;
-      }
-    }
-    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      setError("Please enter a valid email address");
+      setApiError("Sub-county is required");
       return false;
     }
     return true;
@@ -220,7 +181,7 @@ export default function RegisterPage() {
 
       if (oauthError) throw oauthError;
     } catch (oauthError: unknown) {
-      setError(
+      setApiError(
         oauthError instanceof Error
           ? oauthError.message
           : "Google sign-up failed. Please try again.",
@@ -230,7 +191,8 @@ export default function RegisterPage() {
   };
 
   const goToStep = (newStep: number) => {
-    setError("");
+    setApiError("");
+    formValidation.clearErrors();
     if (newStep === 2 && !validateStep1()) return;
     if (newStep === 3 && !validateStep2()) return;
     setStep(newStep);
@@ -238,13 +200,21 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setApiError("");
 
     if (step !== 3) {
       return;
     }
 
-    if (!validateStep3()) {
+    formValidation.clearErrors();
+
+    if (!googleRegisterMode && form.password !== form.confirmPassword) {
+      setApiError("Passwords do not match");
+      formValidation.markTouched("password");
+      return;
+    }
+
+    if (!formValidation.validate(form)) {
       return;
     }
 
@@ -283,14 +253,14 @@ export default function RegisterPage() {
       try {
         data = await response.json();
       } catch {
-        setError("Registration failed. Please check your connection and try again.");
+        setApiError("Registration failed. Please check your connection and try again.");
         setLoading(false);
         return;
       }
       logger.log("Registration response:", response.status, data);
 
       if (!response.ok) {
-        setError((data.error as string) || `Registration failed (${response.status})`);
+        setApiError((data.error as string) || `Registration failed (${response.status})`);
         setLoading(false);
         return;
       }
@@ -345,7 +315,7 @@ router.replace("/dashboard/");
     } catch (err: unknown) {
       setLoading(false);
       if (err instanceof Error && err.name === "AbortError") {
-        setError(
+        setApiError(
           "Registration timed out. Profile creation may still be in progress. Try logging in shortly.",
         );
       } else {
@@ -353,7 +323,7 @@ router.replace("/dashboard/");
           err instanceof Error
             ? err.message
             : "Registration failed. Please try again.";
-        setError(errorMessage);
+        setApiError(errorMessage);
       }
     }
   };
@@ -440,19 +410,19 @@ router.replace("/dashboard/");
           </div>
 
           <div className="card-premium p-8 md:p-10 shadow-[0_32px_64px_rgba(15,23,42,0.1)]">
-            {error && (
+            {apiError && (
               <div
                 className="mb-4 p-3 rounded-xl text-sm border bg-[var(--red-soft)] border-[var(--error)]/25 text-[var(--error)]"
                 role="alert"
               >
-                {error}
+                {apiError}
               </div>
             )}
 
             <form onSubmit={handleSubmit}>
               {step === 1 && (
                 <div className="space-y-5">
-                  <Input
+                  <ValidatedInput
                     label="School Name"
                     type="text"
                     placeholder="e.g. St. Mary Primary School"
@@ -460,6 +430,9 @@ router.replace("/dashboard/");
                     onChange={(e) => updateForm("schoolName", e.target.value)}
                     required
                     autoComplete="organization"
+                    error={formValidation.getFieldError("schoolName")}
+                    touched={formValidation.isTouched("schoolName")}
+                    onTouched={() => formValidation.markTouched("schoolName")}
                   />
 
                   <Select
@@ -514,12 +487,13 @@ router.replace("/dashboard/");
                           updateForm("subcounty", "");
                           updateForm("parish", "");
                         }
+                        formValidation.markTouched("district");
                       }}
                       required
                       autoComplete="address-level1"
                     />
                   ) : (
-                    <Input
+                    <ValidatedInput
                       label="District"
                       type="text"
                       placeholder="Type your district"
@@ -527,7 +501,13 @@ router.replace("/dashboard/");
                       onChange={(e) => updateForm("district", e.target.value)}
                       required
                       autoComplete="address-level1"
+                      error={formValidation.getFieldError("district")}
+                      touched={formValidation.isTouched("district")}
+                      onTouched={() => formValidation.markTouched("district")}
                     />
+                  )}
+                  {formValidation.isTouched("district") && formValidation.getFieldError("district") && (
+                    <p className="text-sm text-[var(--error)]">{formValidation.getFieldError("district")}</p>
                   )}
                   <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
                     <MaterialIcon icon="help" className="text-xs align-middle" />
@@ -538,7 +518,7 @@ router.replace("/dashboard/");
                     type="button"
                     onClick={() => {
                       setManualLocationEntry((prev) => !prev);
-                      setError("");
+                      setApiError("");
                     }}
                     className="text-sm font-medium text-[var(--primary)] hover:underline"
                   >
@@ -628,21 +608,27 @@ router.replace("/dashboard/");
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Input
+                    <ValidatedInput
                       label="School Phone (Optional)"
                       type="tel"
                       placeholder="0700000000"
                       value={form.phone}
                       onChange={(e) => updateForm("phone", e.target.value)}
                       autoComplete="tel"
+                      error={formValidation.getFieldError("phone")}
+                      touched={formValidation.isTouched("phone")}
+                      onTouched={() => formValidation.markTouched("phone")}
                     />
-                    <Input
+                    <ValidatedInput
                       label="School Email (Optional)"
                       type="email"
                       placeholder="school@email.com"
                       value={form.email}
                       onChange={(e) => updateForm("email", e.target.value)}
                       autoComplete="email"
+                      error={formValidation.getFieldError("email")}
+                      touched={formValidation.isTouched("email")}
+                      onTouched={() => formValidation.markTouched("email")}
                     />
                   </div>
 
@@ -684,7 +670,7 @@ router.replace("/dashboard/");
                     </div>
                   )}
 
-                  <Input
+                  <ValidatedInput
                     label="Your Full Name"
                     type="text"
                     placeholder="e.g. John Mukasa"
@@ -692,9 +678,12 @@ router.replace("/dashboard/");
                     onChange={(e) => updateForm("adminName", e.target.value)}
                     required
                     autoComplete="name"
+                    error={formValidation.getFieldError("adminName")}
+                    touched={formValidation.isTouched("adminName")}
+                    onTouched={() => formValidation.markTouched("adminName")}
                   />
 
-                  <Input
+                  <ValidatedInput
                     label="Your Phone Number (Login ID)"
                     type="tel"
                     placeholder="e.g. 0700000000"
@@ -702,19 +691,25 @@ router.replace("/dashboard/");
                     onChange={(e) => updateForm("adminPhone", e.target.value)}
                     required
                     autoComplete="tel"
+                    error={formValidation.getFieldError("adminPhone")}
+                    touched={formValidation.isTouched("adminPhone")}
+                    onTouched={() => formValidation.markTouched("adminPhone")}
                   />
 
                   {!googleRegisterMode && (
                     <>
-                      <Input
+                      <ValidatedInput
                         label="Password"
                         type="password"
                         placeholder="Min 8 characters"
                         value={form.password}
                         onChange={(e) => updateForm("password", e.target.value)}
                         required
-                        minLength={8}
+                        minLength={6}
                         autoComplete="new-password"
+                        error={formValidation.getFieldError("password")}
+                        touched={formValidation.isTouched("password")}
+                        onTouched={() => formValidation.markTouched("password")}
                       />
 
                       <Input

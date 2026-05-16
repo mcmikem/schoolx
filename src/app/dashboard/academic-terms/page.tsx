@@ -92,11 +92,12 @@ export default function AcademicTermsPage() {
       }
     } else {
       const { withTimeout } = await import('@/lib/hooks/utils');
-      const error = await withTimeout(
-        supabase.from("academic_terms").insert(payload).then(r => r.error),
-        8000,
-        new Error('Insert timed out')
+      const termResult = await withTimeout(
+        supabase.from("academic_terms").insert(payload),
+        15000,
+        null as any
       );
+      const error = termResult?.error;
 
       if (error) {
         toast.error(getErrorMessage(error, "Failed to create term"));
@@ -125,15 +126,15 @@ export default function AcademicTermsPage() {
     if (!canManageTerms) return;
     setPendingAction(() => async () => {
       const { withTimeout } = await import('@/lib/hooks/utils');
-      const error = await withTimeout(
+      const termDelResult = await withTimeout(
         supabase
           .from("academic_terms")
           .delete()
-          .eq("id", termId)
-          .then(r => r.error),
-        8000,
-        new Error('Delete timed out')
+          .eq("id", termId),
+        15000,
+        null as any
       );
+      const error = termDelResult?.error;
       if (error) {
         toast.error(getErrorMessage(error, "Failed to delete term"));
       } else {
@@ -148,11 +149,12 @@ export default function AcademicTermsPage() {
     if (!school?.id || !canManageTerms) return;
     const defaultTerms = buildUgandaAcademicTerms(school.id, year);
     const { withTimeout } = await import('@/lib/hooks/utils');
-    const error = await withTimeout(
-      supabase.from("academic_terms").insert(defaultTerms).then(r => r.error),
-      8000,
-      new Error('Insert timed out')
+    const defTermResult = await withTimeout(
+      supabase.from("academic_terms").insert(defaultTerms),
+      15000,
+      null as any
     );
+    const error = defTermResult?.error;
     if (error) {
       toast.error(getErrorMessage(error, "Failed to load terms"));
     } else {

@@ -13,6 +13,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { logger } from "@/lib/logger";
+import { withTimeout } from "@/lib/hooks/utils";
 
 interface Student {
   id: string;
@@ -132,7 +133,8 @@ export default function BehaviorPage() {
           .update(payload)
           .eq("id", editingLog.id));
       } else {
-        ({ error } = await supabase.from("behavior_logs").insert(payload));
+        const bResult = await withTimeout(supabase.from("behavior_logs").insert(payload), 15000, null as any);
+        error = bResult?.error;
       }
 
       if (error) throw error;

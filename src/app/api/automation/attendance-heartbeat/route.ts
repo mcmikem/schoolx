@@ -69,17 +69,18 @@ export async function POST(request: NextRequest) {
           if (smsRes.success) {
             results.nudgesSent++;
             const { withTimeout } = await import('@/lib/hooks/utils');
-            await withTimeout(
+            const hbResult = await withTimeout(
               supabase.from("automated_message_logs").insert({
                 school_id: school.schoolId,
                 trigger_id: "attendance-heartbeat",
                 recipient_id: teacherUser.phone,
                 record_id: cls.id,
                 status: "sent",
-              } as any).then(r => r.error),
-              8000,
-              new Error('Insert timed out')
+              } as any),
+              15000,
+              null as any
             );
+            const hbError = hbResult?.error;
           }
         } catch (err) {
           logger.error("Attendance heartbeat SMS failed:", err);

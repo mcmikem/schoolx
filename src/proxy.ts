@@ -112,8 +112,8 @@ function applySecurityHeaders(response: NextResponse) {
     ? "img-src 'self' data: blob: https:"
     : "img-src 'self' data: blob: https: http:";
   const scriptSrc = isProduction
-    ? "script-src 'self' 'unsafe-inline' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ blob:"
-    : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ blob:";
+    ? "script-src 'self' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/"
+    : "script-src 'self' 'unsafe-eval' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/";
 
   // Build connect-src dynamically to include local Supabase in development
   const connectSrcParts = [

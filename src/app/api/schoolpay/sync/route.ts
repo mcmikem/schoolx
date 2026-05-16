@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     for (const tx of regularTransactions) {
       const { withTimeout } = await import('@/lib/hooks/utils');
-      const error = await withTimeout(
+      const regResult = await withTimeout(
         supabase.from("fee_payments").insert({
           student_id: tx.studentPaymentCode,
           amount: tx.amount,
@@ -66,17 +66,18 @@ export async function POST(request: NextRequest) {
           reference_number: tx.receiptNumber,
           transaction_id: tx.transactionId,
           status: "completed",
-        }).then(r => r.error),
-        8000,
-        new Error('Insert timed out')
+        }),
+        15000,
+        null as any
       );
+      const error = regResult?.error;
 
       if (!error) insertedRegular++;
     }
 
     for (const tx of supplementaryPayments) {
       const { withTimeout } = await import('@/lib/hooks/utils');
-      const error = await withTimeout(
+      const suppResult = await withTimeout(
         supabase.from("fee_payments").insert({
           student_id: tx.studentPaymentCode,
           amount: tx.amount,
@@ -86,10 +87,11 @@ export async function POST(request: NextRequest) {
           transaction_id: tx.transactionId,
           description: tx.feeDescription,
           status: "completed",
-        }).then(r => r.error),
-        8000,
-        new Error('Insert timed out')
+        }),
+        15000,
+        null as any
       );
+      const error = suppResult?.error;
 
       if (!error) insertedSupplementary++;
     }

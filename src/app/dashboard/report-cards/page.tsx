@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { APP_NAME } from "@/lib/app-name";
+import { withTimeout } from "@/lib/hooks/utils";
 
 interface StudentReport {
   studentId: string;
@@ -586,14 +587,14 @@ export default function ReportCardsPage() {
       const { supabase: sb } = await import("@/lib/supabase");
       const message = `SkoolMate Alert: ${report.name} (Term ${currentTerm} Results). Avg: ${report.average}%, Pos: ${report.position}, Div: ${report.division}. Balance: UGX ${report.feeBalance.toLocaleString()}.`;
       
-      const { error } = await sb.from("messages").insert({
+      const msgResult = await withTimeout(sb.from("messages").insert({
         school_id: school?.id,
         recipient_phone: student.parent_phone,
         message,
         status: "sent",
         type: "report_card"
-      });
-
+      }), 15000, null as any);
+      const error = msgResult?.error;
       if (error) throw error;
       toast.success(`Result summary sent to ${student.parent_phone}`);
     } catch (err) {

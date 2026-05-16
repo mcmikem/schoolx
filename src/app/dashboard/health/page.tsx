@@ -104,7 +104,7 @@ export default function HealthPage() {
       }
 
       const { withTimeout } = await import('@/lib/hooks/utils');
-      const error = await withTimeout(
+      const healthResult = await withTimeout(
         supabase.from("health_records").insert({
           school_id: school.id,
           student_id: form.student_id || null,
@@ -114,10 +114,11 @@ export default function HealthPage() {
           treatment: form.treatment.trim(),
           status: "admitted",
           admitted_at: new Date().toISOString(),
-        }).then(r => r.error),
-        8000,
-        new Error('Insert timed out')
+        }),
+        15000,
+        null as any
       );
+      const error = healthResult?.error;
       if (error) throw error;
 
       toast.success("Student admitted to sick bay");
@@ -135,18 +136,18 @@ export default function HealthPage() {
   const dischargeStudent = async (id: string, referred = false) => {
     setDischarging(id);
     const { withTimeout } = await import('@/lib/hooks/utils');
-    const error = await withTimeout(
+    const dischargeResult = await withTimeout(
       supabase
         .from("health_records")
         .update({
           status: referred ? "referred" : "discharged",
           discharged_at: new Date().toISOString(),
         })
-        .eq("id", id)
-        .then(r => r.error),
-      8000,
-      new Error('Update timed out')
+        .eq("id", id),
+      15000,
+      null as any
     );
+    const error = dischargeResult?.error;
     if (error) {
       toast.error(getErrorMessage(error, "Failed to update record"));
     } else {

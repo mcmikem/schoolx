@@ -159,11 +159,12 @@ export default function SyllabusPage() {
       }
 
       const { withTimeout } = await import('@/lib/hooks/utils');
-      const error = await withTimeout(
-        supabase.from("syllabus").insert(toInsert).then(r => r.error),
-        8000,
-        new Error('Insert timed out')
+      const sylResult = await withTimeout(
+        supabase.from("syllabus").insert(toInsert),
+        15000,
+        null as any
       );
+      const error = sylResult?.error;
       if (error) throw error;
       toast.success(`Added ${toInsert.length} NCDC topics`);
       fetchSyllabus();

@@ -99,11 +99,12 @@ export default function UNEBRegistrationPage() {
       }));
 
       const { withTimeout } = await import('@/lib/hooks/utils');
-      const error = await withTimeout(
-        supabase.from("uneb_candidates").insert(records).then(r => r.error),
-        8000,
-        new Error('Insert timed out')
+      const unebResult = await withTimeout(
+        supabase.from("uneb_candidates").insert(records),
+        15000,
+        null as any
       );
+      const error = unebResult?.error;
       if (error) throw error;
 
       toast.success(
@@ -123,15 +124,15 @@ export default function UNEBRegistrationPage() {
     status: "registered" | "confirmed",
   ) => {
     const { withTimeout } = await import('@/lib/hooks/utils');
-    const error = await withTimeout(
+    const updateResult = await withTimeout(
       supabase
         .from("uneb_candidates")
         .update({ registration_status: status })
-        .eq("id", id)
-        .then(r => r.error),
-      8000,
-      new Error('Update timed out')
+        .eq("id", id),
+      15000,
+      null as any
     );
+    const error = updateResult?.error;
     if (!error) {
       fetchCandidates();
       toast.success(`Candidate ${status}`);

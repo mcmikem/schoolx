@@ -131,11 +131,12 @@ export default function WorkflowsBuilder() {
     setWorkflows((prev) => prev.filter((w) => w.id !== wf.id));
     try {
       const { withTimeout } = await import('@/lib/hooks/utils');
-      const error = await withTimeout(
-        supabase.from("school_workflows").delete().eq("id", wf.id).eq("school_id", school!.id).then(r => r.error),
-        8000,
-        new Error("Delete timed out")
+      const wfResult = await withTimeout(
+        supabase.from("school_workflows").delete().eq("id", wf.id).eq("school_id", school!.id),
+        15000,
+        null as any
       );
+      const error = wfResult?.error;
       if (error) throw error;
       toast.success("Workflow deleted");
     } catch (e: any) {

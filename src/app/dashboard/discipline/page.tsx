@@ -132,7 +132,7 @@ export default function DisciplinePage() {
 
     try {
       const { withTimeout } = await import('@/lib/hooks/utils');
-      const error = await withTimeout(
+      const discResult = await withTimeout(
         supabase.from('discipline').insert({
           school_id: school.id,
           student_id: newRecord.student_id,
@@ -143,10 +143,11 @@ export default function DisciplinePage() {
           resolved: false,
           reported_by: user.id,
           exam_id: newRecord.exam_id || null,
-        }).then(r => r.error),
-        8000,
-        new Error('Insert timed out')
+        }),
+        15000,
+        null as any
       );
+      const error = discResult?.error;
 
       if (error) throw error
 
@@ -162,15 +163,15 @@ export default function DisciplinePage() {
   const toggleResolved = async (id: string, currentStatus: boolean) => {
     try {
       const { withTimeout } = await import('@/lib/hooks/utils');
-      const error = await withTimeout(
+      const discUpdResult = await withTimeout(
         supabase
           .from('discipline')
           .update({ resolved: !currentStatus })
-          .eq('id', id)
-          .then(r => r.error),
-        8000,
-        new Error('Update timed out')
+          .eq('id', id),
+        15000,
+        null as any
       );
+      const error = discUpdResult?.error;
 
       if (error) throw error
       setRecords(records.map(r => r.id === id ? { ...r, resolved: !currentStatus } : r))
@@ -186,11 +187,12 @@ export default function DisciplinePage() {
     setPendingDeleteId(null)
     try {
       const { withTimeout } = await import('@/lib/hooks/utils');
-      const error = await withTimeout(
-        supabase.from('discipline').delete().eq('id', id).then(r => r.error),
-        8000,
-        new Error('Delete timed out')
+      const discDelResult = await withTimeout(
+        supabase.from('discipline').delete().eq('id', id),
+        15000,
+        null as any
       );
+      const error = discDelResult?.error;
       if (error) throw error
       setRecords(records.filter(r => r.id !== id))
       toast.success('Record deleted')

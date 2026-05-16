@@ -55,6 +55,7 @@ import { withTimeout } from "@/lib/hooks/utils";
 import { scrollModalToTop, focusFirstInput } from "@/lib/scroll";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 type AttendanceRecord = {
   status: "present" | "absent" | "late";
@@ -895,7 +896,10 @@ export default function StudentProfilePage() {
           </h3>
           <div className="flex flex-col items-center gap-4">
             {detailsLoading ? (
-              <p className="text-xs text-[var(--t3)]">Loading attendance…</p>
+              <div className="flex flex-col items-center gap-4 w-full">
+                <Skeleton className="w-24 h-24 rounded-full" />
+                <Skeleton className="h-16 w-full rounded-lg" />
+              </div>
             ) : (
               <>
                 <AttendanceRing percentage={attendancePct} />
@@ -912,7 +916,10 @@ export default function StudentProfilePage() {
             Money Owed (Fees)
           </h3>
           {detailsLoading ? (
-            <p className="text-xs text-[var(--t3)]">Loading fees…</p>
+            <div className="space-y-3">
+              <Skeleton className="h-4 w-full rounded-lg" />
+              <Skeleton className="h-3 w-3/4 rounded-lg" />
+            </div>
           ) : (
             <FeeProgressBar paid={feePosition.paid} total={feePosition.total} />
           )}
@@ -945,7 +952,7 @@ export default function StudentProfilePage() {
           </h3>
           <div className="flex items-center justify-center py-4">
             {detailsLoading ? (
-              <p className="text-xs text-[var(--t3)]">Loading grades…</p>
+              <Skeleton className="h-16 w-full rounded-lg" />
             ) : gradeHistory.length > 0 ? (
               <GradeSparkline data={gradeHistory} />
             ) : (

@@ -92,7 +92,10 @@ export default function PromotionPage() {
         promotion_type: promotionType,
       }));
 
-    await supabase.from("promotion_history").insert(historyRows);
+    const { withTimeout: wtPromo } = await import('@/lib/hooks/utils');
+    const promoResult = await wtPromo(supabase.from("promotion_history").insert(historyRows), 15000, null as any);
+    const promoError = promoResult?.error;
+    if (promoError) throw promoError;
 
     toast.success(`${selectedStudents.size} student(s) ${promotionType} successfully`);
     setSelectedStudents(new Set());

@@ -315,7 +315,7 @@ export default function SubstitutionsPage() {
       }
 
       const { withTimeout } = await import('@/lib/hooks/utils');
-      const error = await withTimeout(
+      const subResult = await withTimeout(
         supabase.from("teacher_substitutions").insert({
           school_id: school.id,
           absent_teacher_id: form.absent_teacher_id,
@@ -325,10 +325,11 @@ export default function SubstitutionsPage() {
           period: form.period,
           reason: form.reason,
           status: "completed",
-        }).then(r => r.error),
-        8000,
-        new Error('Insert timed out')
+        }),
+        15000,
+        null as any
       );
+      const error = subResult?.error;
 
       if (error) throw error;
 

@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
 
         if (smsResult.success) {
           const { withTimeout } = await import('@/lib/hooks/utils');
-          await withTimeout(
+          const feeMsgResult = await withTimeout(
             supabase.from("messages").insert({
               school_id: school.schoolId,
               recipient: student.parent_phone,
@@ -217,10 +217,11 @@ export async function POST(request: NextRequest) {
               sent_at: now.toISOString(),
               type: "fee_reminder",
               student_id: student.id,
-            } as any).then(r => r.error),
-            8000,
-            new Error('Insert timed out')
+            } as any),
+            15000,
+            null as any
           );
+          const feeMsgError = feeMsgResult?.error;
 
           results.remindersSent.push({
             studentId: student.id,

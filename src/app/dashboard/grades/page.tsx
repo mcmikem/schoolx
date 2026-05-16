@@ -23,6 +23,7 @@ import { TableSkeleton, FullPageLoader } from "@/components/ui/Skeleton";
 import { EmptyState, NoData } from "@/components/EmptyState";
 import PersonInitials from "@/components/ui/PersonInitials";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
+import { withTimeout } from "@/lib/hooks/utils";
 import { useOnlineStatus, offlineDB } from "@/lib/offline";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
@@ -109,13 +110,15 @@ async function saveGrade(grade: {
     return { ...payload, id: `offline-grade-${Date.now()}`, created_at: new Date().toISOString() };
   }
 
-  const { data, error } = await supabase
-    .from("grades")
-    .upsert(payload, {
+  const gradeResult = await withTimeout(
+    supabase.from("grades").upsert(payload, {
       onConflict: "student_id,subject_id,assessment_type,term,academic_year",
-    })
-    .select()
-    .single();
+    }).select().single(),
+    15000,
+    null as any
+  );
+  if (!gradeResult) throw new Error("Grade save timed out");
+  const { data, error } = gradeResult;
   if (error) throw error;
   return data;
 }
@@ -286,53 +289,7 @@ export default function GradesPage() {
 
   const handleLockCA = async () => {
     if (!selectedClass || !selectedSubject || !user?.id) return;
-
-    if (
-      !confirm(
-        "Are you sure you want to lock CA marks? This will prevent further edits to CA1, CA2, and CA3 marks for this subject/class combination.",
-      )
-    )
-      return;
-
-    try {
-      setSaving(true);
-      await supabase
-        .from("grades")
-        .update({
-          ca_locked: true,
-          locked_by: user.id,
-          locked_at: new Date().toISOString(),
-        })
-        .eq("class_id", selectedClass)
-        .eq("subject_id", selectedSubject)
-        .in("assessment_type", ["ca1", "ca2", "ca3"])
-        .eq("term", currentTerm)
-        .eq("academic_year", academicYear);
-
-      if (school?.id && user?.id) {
-        await logAuditEventWithOfflineSupport(
-          isOnline,
-          school.id,
-          user.id,
-          user.full_name,
-          "update",
-          "grades",
-          `Locked CA marks for class ${selectedClass} subject ${selectedSubject}`,
-          `${selectedClass}:${selectedSubject}:${currentTerm}:${academicYear}`,
-          { ca_locked: false },
-          { ca_locked: true, locked_by: user.id },
-        );
-      }
-
-      setCaLocked(true);
-      setLockedByName(staff.find((s) => s.id === user.id)?.full_name || "You");
-      toast.success("Tests have been closed for edits");
-    } catch (err) {
-      logger.error("Error locking tests:", err);
-      toast.error("Failed to close tests for edits");
-    } finally {
-      setSaving(false);
-    }
+    setConfirmLockCA(true);
   };
 
   const handleUnlockCA = async () => {
@@ -968,6 +925,52 @@ export default function GradesPage() {
         : submissionStatus === "submitted"
           ? "bg-[var(--amber-soft)] text-[var(--amber)]"
           : "bg-[var(--surface-container)] text-[var(--t2)]";
+
+  const [confirmLockCA, setConfirmLockCA] = useState(false);
+
+  const executeLockCA = async () => {
+    setConfirmLockCA(false);
+    if (!selectedClass || !selectedSubject || !user?.id) return;
+    try {
+      setSaving(true);
+      await supabase
+        .from("grades")
+        .update({
+          ca_locked: true,
+          locked_by: user.id,
+          locked_at: new Date().toISOString(),
+        })
+        .eq("class_id", selectedClass)
+        .eq("subject_id", selectedSubject)
+        .in("assessment_type", ["ca1", "ca2", "ca3"])
+        .eq("term", currentTerm)
+        .eq("academic_year", academicYear);
+
+      if (school?.id && user?.id) {
+        await logAuditEventWithOfflineSupport(
+          isOnline,
+          school.id,
+          user.id,
+          user.full_name,
+          "update",
+          "grades",
+          `Locked CA marks for class ${selectedClass} subject ${selectedSubject}`,
+          `${selectedClass}:${selectedSubject}:${currentTerm}:${academicYear}`,
+          { ca_locked: false },
+          { ca_locked: true, locked_by: user.id },
+        );
+      }
+
+      setCaLocked(true);
+      setLockedByName(staff.find((s) => s.id === user.id)?.full_name || "You");
+      toast.success("Tests have been closed for edits");
+    } catch (err) {
+      logger.error("Error locking tests:", err);
+      toast.error("Failed to close tests for edits");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <PageErrorBoundary>
@@ -2043,6 +2046,15 @@ export default function GradesPage() {
           </div>
         </div>
       </Modal>
+      <ConfirmDialog
+        isOpen={confirmLockCA}
+        onClose={() => setConfirmLockCA(false)}
+        onConfirm={executeLockCA}
+        title="Lock CA Marks"
+        message="Are you sure you want to lock CA marks? This will prevent further edits to CA1, CA2, and CA3 marks for this subject/class combination."
+        confirmLabel="Lock CA Marks"
+        variant="warning"
+      />
     </PageErrorBoundary>
   );
 }

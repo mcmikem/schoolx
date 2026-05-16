@@ -1,7 +1,8 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { AutoSaveIndicator } from "@/lib/useAutoSave";
+import { useFormValidation, ValidationRules } from "@/lib/useFormValidation";
 
 interface ClassOption {
   id: string;
@@ -29,6 +30,13 @@ interface FeeFormModalProps {
   draftIsDirty?: boolean;
 }
 
+const feeRules = {
+  name: { ...ValidationRules.required, message: 'Fee name is required' },
+  amount: { ...ValidationRules.required, ...ValidationRules.positiveNumber, message: 'Amount must be greater than 0' },
+  class_id: ValidationRules.required,
+  term: ValidationRules.required,
+};
+
 export default function FeeFormModal({
   isOpen,
   onClose,
@@ -41,29 +49,21 @@ export default function FeeFormModal({
   draftLastSaved,
   draftIsDirty,
 }: FeeFormModalProps) {
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const feeValidation = useFormValidation(feeRules);
 
-  const errors = useMemo(() => {
-    const errs: Record<string, string> = {};
-    if (!newFee.name.trim()) errs.name = "Fee name is required";
-    if (!newFee.amount || Number(newFee.amount) <= 0) {
-      errs.amount = "Amount must be greater than 0";
-    }
-    if (!newFee.term) errs.term = "Term is required";
-    return errs;
-  }, [newFee]);
-
-  const isValid = Object.keys(errors).length === 0;
-
-  const handleBlur = (field: string) => {
-    setTouched((prev) => ({ ...prev, [field]: true }));
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const fields = ['name', 'amount', 'class_id', 'term'];
+    fields.forEach(f => feeValidation.markTouched(f));
+    if (!feeValidation.validate(newFee)) return;
+    onSubmit(e);
   };
 
-  const fieldError = (field: string) =>
-    touched[field] && errors[field] ? errors[field] : null;
+  const showError = (field: string) =>
+    feeValidation.isTouched(field) && feeValidation.getFieldError(field);
 
   const errorBorder = (field: string) =>
-    fieldError(field)
+    showError(field)
       ? "border-2 border-[var(--red)] bg-[var(--error-container)]"
       : "border border-[var(--border)] bg-surface-container";
 
@@ -89,7 +89,7 @@ export default function FeeFormModal({
             />
           </div>
         </div>
-        <form onSubmit={onSubmit} className="p-6 space-y-4" noValidate>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
               Fee Name
@@ -98,15 +98,15 @@ export default function FeeFormModal({
               type="text"
               value={newFee.name}
               onChange={(e) => onFeeChange({ name: e.target.value })}
-              onBlur={() => handleBlur("name")}
+              onBlur={() => feeValidation.markTouched("name")}
               className={`w-full rounded-xl py-3 px-4 text-sm transition-colors ${errorBorder("name")}`}
               placeholder="e.g. Tuition, Development, Library"
               required
             />
-            {fieldError("name") && (
+            {showError("name") && (
               <p className="text-xs text-[var(--red)] mt-1 flex items-center gap-1">
                 <MaterialIcon className="text-sm">error</MaterialIcon>
-                {fieldError("name")}
+                {feeValidation.getFieldError("name")}
               </p>
             )}
           </div>
@@ -136,6 +136,7 @@ export default function FeeFormModal({
               <select
                 value={newFee.class_id}
                 onChange={(e) => onFeeChange({ class_id: e.target.value })}
+                onBlur={() => feeValidation.markTouched("class_id")}
                 className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
               >
                 <option value="">All Classes</option>
@@ -145,6 +146,12 @@ export default function FeeFormModal({
                   </option>
                 ))}
               </select>
+            )}
+            {showError("class_id") && (
+              <p className="text-xs text-[var(--red)] mt-1 flex items-center gap-1">
+                <MaterialIcon className="text-sm">error</MaterialIcon>
+                {feeValidation.getFieldError("class_id")}
+              </p>
             )}
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -157,15 +164,15 @@ export default function FeeFormModal({
                 min="1"
                 value={newFee.amount}
                 onChange={(e) => onFeeChange({ amount: e.target.value })}
-                onBlur={() => handleBlur("amount")}
+                onBlur={() => feeValidation.markTouched("amount")}
                 className={`w-full rounded-xl py-3 px-4 text-sm transition-colors ${errorBorder("amount")}`}
                 required
                 placeholder="0"
               />
-              {fieldError("amount") && (
+              {showError("amount") && (
                 <p className="text-xs text-[var(--red)] mt-1 flex items-center gap-1">
                   <MaterialIcon className="text-sm">error</MaterialIcon>
-                  {fieldError("amount")}
+                  {feeValidation.getFieldError("amount")}
                 </p>
               )}
             </div>
@@ -178,12 +185,19 @@ export default function FeeFormModal({
                 onChange={(e) =>
                   onFeeChange({ term: Number(e.target.value) as 1 | 2 | 3 })
                 }
+                onBlur={() => feeValidation.markTouched("term")}
                 className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
               >
                 <option value={1}>Term 1</option>
                 <option value={2}>Term 2</option>
                 <option value={3}>Term 3</option>
               </select>
+              {showError("term") && (
+                <p className="text-xs text-[var(--red)] mt-1 flex items-center gap-1">
+                  <MaterialIcon className="text-sm">error</MaterialIcon>
+                  {feeValidation.getFieldError("term")}
+                </p>
+              )}
             </div>
           </div>
           <div>
@@ -207,7 +221,7 @@ export default function FeeFormModal({
             </button>
             <button
               type="submit"
-              disabled={saving || !isValid}
+              disabled={saving}
               className="btn btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? "Saving..." : "Add Fee"}

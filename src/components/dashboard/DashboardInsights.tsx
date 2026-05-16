@@ -52,6 +52,7 @@ export default function DashboardInsights({
       students={students}
       payments={payments}
       isDemo={isDemo}
+      loading={loading}
     />
   );
 }

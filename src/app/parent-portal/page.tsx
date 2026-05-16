@@ -12,6 +12,8 @@ import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
 import { useToast } from "@/components/Toast";
 import { logger } from "@/lib/logger";
+import { normalizeAuthPhone } from "@/lib/validation";
+import { withTimeout } from "@/lib/hooks/utils";
 import {
   calculateFeeStats,
   mapParentStudentLinks,
@@ -91,7 +93,40 @@ function ParentDashboardContent() {
             .select("student:students(*, class:classes(name))")
             .eq("parent_id", parentId);
 
-          const list = mapParentStudentLinks(parentLinks || []);
+          let list = mapParentStudentLinks(parentLinks || []);
+
+          // Auto-link: if no links found, try matching parent phone to students
+          if (list.length === 0 && user.phone) {
+            const normalized = normalizeAuthPhone(user.phone);
+            if (normalized) {
+              const { data: matchedStudents } = await supabase
+                .from("students")
+                .select("id, school_id")
+                .eq("status", "active")
+                .or(`parent_phone.eq.${normalized},parent_phone2.eq.${normalized}`);
+
+              if (matchedStudents && matchedStudents.length > 0) {
+                const links = matchedStudents.map((s) => ({
+                  parent_id: parentId,
+                  student_id: s.id,
+                  relationship: "parent",
+                }));
+                const { error: linkErr } = await supabase
+                  .from("parent_students")
+                  .insert(links)
+                  .select("student:students(*, class:classes(name))");
+
+                if (!linkErr) {
+                  const { data: freshLinks } = await supabase
+                    .from("parent_students")
+                    .select("student:students(*, class:classes(name))")
+                    .eq("parent_id", parentId);
+                  list = mapParentStudentLinks(freshLinks || []);
+                }
+              }
+            }
+          }
+
           setChildren(list);
 
           // Fetch Global Notices

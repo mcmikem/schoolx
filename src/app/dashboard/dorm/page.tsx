@@ -48,11 +48,12 @@ export default function DormitoryPage() {
     }
 
     const { withTimeout } = await import('@/lib/hooks/utils');
-    const error = await withTimeout(
-      supabase.from('dorm_incidents').insert([incident]).then(r => r.error),
-      8000,
-      new Error('Insert timed out')
+    const dormResult = await withTimeout(
+      supabase.from('dorm_incidents').insert([incident]),
+      15000,
+      null as any
     );
+    const error = dormResult?.error;
     if (error) {
       toast.error('Failed to record incident')
     } else {

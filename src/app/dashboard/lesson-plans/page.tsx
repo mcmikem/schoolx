@@ -17,6 +17,7 @@ import {
 } from '@/lib/academics-utils'
 import { getErrorMessage } from '@/lib/validation'
 import { logger } from '@/lib/logger'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 interface LessonPlan {
   id: string
@@ -184,11 +185,12 @@ export default function LessonPlansPage() {
         ? supabase.from('lesson_plans').update(payload).eq('id', selectedPlan.id)
         : supabase.from('lesson_plans').insert(payload)
 
-      const error = await withTimeout(
-        query.then(r => r.error),
-        8000,
-        new Error('Save timed out')
+      const planResult = await withTimeout(
+        query,
+        15000,
+        null as any
       );
+      const error = planResult?.error;
       if (error) throw error
       
       toast.success(selectedPlan ? 'Lesson plan updated!' : 'Lesson plan saved!')
@@ -238,17 +240,24 @@ export default function LessonPlansPage() {
     setShowForm(true)
   }
 
+  const [confirmDeletePlan, setConfirmDeletePlan] = useState(false);
+
   const handleDeletePlan = async () => {
     if (!selectedPlan) return
-    if (!confirm('Delete this lesson plan?')) return
+    setConfirmDeletePlan(true)
+  }
 
+  const executeDeletePlan = async () => {
+    if (!selectedPlan) return
+    setConfirmDeletePlan(false)
     try {
       const { withTimeout } = await import('@/lib/hooks/utils');
-      const error = await withTimeout(
-        supabase.from('lesson_plans').delete().eq('id', selectedPlan.id).then(r => r.error),
-        8000,
-        new Error('Delete timed out')
+      const delPlanResult = await withTimeout(
+        supabase.from('lesson_plans').delete().eq('id', selectedPlan.id),
+        15000,
+        null as any
       );
+      const error = delPlanResult?.error;
       if (error) throw error
       toast.success('Lesson plan deleted')
       setShowForm(false)
@@ -552,6 +561,15 @@ export default function LessonPlansPage() {
         </div>
       )}
     </div>
+      <ConfirmDialog
+        isOpen={confirmDeletePlan}
+        onClose={() => setConfirmDeletePlan(false)}
+        onConfirm={executeDeletePlan}
+        title="Delete Lesson Plan"
+        message="Are you sure you want to delete this lesson plan?"
+        confirmLabel="Delete"
+        variant="danger"
+      />
     </PageErrorBoundary>
   )
 }

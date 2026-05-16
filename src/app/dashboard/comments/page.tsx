@@ -13,6 +13,7 @@ import { Card, CardBody } from '@/components/ui/Card'
 import { Button } from '@/components/ui/index'
 import { Tabs, TabPanel } from '@/components/ui/Tabs'
 import { logger } from '@/lib/logger'
+import { withTimeout } from '@/lib/hooks/utils'
 
 export default function CommentsPage() {
   const { school, user, isDemo } = useAuth()
@@ -114,13 +115,14 @@ export default function CommentsPage() {
           saved++
           continue
         }
-        const { error } = await supabase.from('student_comments').upsert({
+        const cResult = await withTimeout(supabase.from('student_comments').upsert({
           school_id: school.id,
           student_id: studentId,
           subject_id: selectedSubject,
           comment,
           created_by: user?.id,
-        }, { onConflict: 'student_id,subject_id' })
+        }, { onConflict: 'student_id,subject_id' }), 15000, null as any)
+        const error = cResult?.error
         if (!error) saved++
       }
       setSavedCount(saved)
