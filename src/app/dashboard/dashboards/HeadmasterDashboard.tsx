@@ -557,13 +557,11 @@ function HeadmasterDashboardContent() {
           <div className="inline-flex items-center gap-2 rounded-full border border-[#cad7ea] bg-white/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-[#27456f] shadow-sm">
             <MaterialIcon icon="dashboard" className="text-[13px]" />
             Command Deck
-            {alertCount > 0 && (
-              <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-[#fff4f3] px-2 py-0.5 text-[9px] font-semibold text-[#b04343]">
-                <MaterialIcon icon="notification_important" className="text-[11px]" />
-                {alertCount}
-              </span>
-            )}
           </div>
+        </div>
+        <div className="relative z-10 mb-4">
+          <h1 className="text-2xl font-bold text-[#17325f] font-['Sora']">{greeting}, {user?.full_name?.split(" ")[0]}</h1>
+          <p className="text-sm text-[#60748f] mt-1">{school?.name} · {todayDayName}, {todayFormatted} · {academicYear} Term {currentTerm}</p>
         </div>
 
         {/* Section 1: BIG NUMBERS STRIP */}
