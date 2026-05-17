@@ -216,7 +216,7 @@ export default function OwlAssistant() {
     }
   }, [open]);
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     const text = input.trim();
     if (!text) return;
 
@@ -228,24 +228,43 @@ export default function OwlAssistant() {
     setInput("");
     setTyping(true);
 
-    setTimeout(
-      () => {
-        const response = getResponse(text);
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            text: response,
-            time: new Date().toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-          },
-        ]);
-        setTyping(false);
-      },
-      600 + Math.random() * 400,
-    );
+    try {
+      const res = await fetch("/api/ai/chat/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text }),
+      });
+      const data = await res.json();
+      const responseText = data.response || getResponse(text);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          text: responseText,
+          time: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        },
+      ]);
+    } catch {
+      // Fallback to keyword matching if AI fails
+      const fallback = getResponse(text);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          text: fallback,
+          time: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        },
+      ]);
+    } finally {
+      setTyping(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

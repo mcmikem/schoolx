@@ -31,8 +31,7 @@ import {
   resolveCurriculumStage,
   subjectNamesMatch,
 } from "@/lib/academics-utils";
-import { hasFeatureTier } from "@/lib/subscription";
-import { normalizePlanType } from "@/lib/payments/subscription-client";
+import { hasFeature, normalizePlanType } from "@/lib/payments/subscription-client";
 import Link from "next/link";
 
 interface SyllabusTopic {
@@ -355,7 +354,7 @@ export default function SyllabusPage() {
   const stats = getProgressStats();
 
   const canAccessSyllabus = school?.subscription_plan
-    ? hasFeatureTier(normalizePlanType(school.subscription_plan), "ncdc_syllabus")
+    ? hasFeature(normalizePlanType(school.subscription_plan), "syllabus")
     : true;
 
   if (!canAccessSyllabus) {

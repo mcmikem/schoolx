@@ -130,6 +130,10 @@ function BursarDashboardContent() {
 
   return (
     <div className="content">
+      <div className="mb-4">
+        <h1 className="text-xl font-bold text-[#17325f] font-['Sora']">{greeting}, {user?.full_name?.split(" ")[0]}</h1>
+        <p className="text-sm text-[#60748f]">{school?.name} · {todayLabel}</p>
+      </div>
       <div className="grid grid-cols-4 gap-3 mb-6">
         <div className="rounded-[20px] bg-white border border-[#e5ecf4] p-4">
           <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">Expected</p>
