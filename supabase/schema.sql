@@ -1878,7 +1878,8 @@ CREATE TABLE IF NOT EXISTS syllabus (
     weeks_covered TEXT, -- e.g., "Week 1-2"
     resources TEXT,
     created_by UUID REFERENCES users(id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    cross_cutting_theme TEXT[] DEFAULT '{}'
 );
 
 -- Topic coverage tracking
@@ -1892,6 +1893,14 @@ CREATE TABLE IF NOT EXISTS topic_coverage (
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- RLS for syllabus
+ALTER TABLE syllabus ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School staff can manage own syllabus" ON syllabus;
+CREATE POLICY "School staff can manage own syllabus" ON syllabus
+  FOR ALL USING (
+    school_id IN (SELECT my_school_id())
+  );
 
 -- ============================================
 -- NOTICES TABLE

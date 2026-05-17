@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+
 export type CurriculumStage = {
   stage: "primary" | "secondary" | "unknown";
   level: number;
@@ -45,9 +47,15 @@ export function subjectNamesMatch(a?: string | null, b?: string | null) {
     ["creativearts", "art", "arts"],
   ];
 
-  return aliasGroups.some(
+  const matched = aliasGroups.some(
     (group) => group.includes(left) && group.includes(right),
   );
+
+  if (!matched) {
+    logger.warn(`[subjectNamesMatch] No match found for "${a}" against "${b}"`);
+  }
+
+  return matched;
 }
 
 export function parseStoredSubtopics(value: unknown): string[] {

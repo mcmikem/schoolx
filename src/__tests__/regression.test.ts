@@ -531,3 +531,98 @@ describe("Production Hardening Regression Tests", () => {
     });
   });
 });
+
+describe("NCDC Curriculum Data", () => {
+  it("should export NCDC topics for all primary levels P1-P7", () => {
+    const {
+      P1_ALL_SUBJECTS,
+      P2_ALL_SUBJECTS,
+      P3_ALL_SUBJECTS,
+      P4_ALL_SUBJECTS,
+      P5_ALL_SUBJECTS,
+      P6_ALL_SUBJECTS,
+      P7_ALL_SUBJECTS,
+    } = require("@/lib/ndc-syllabus");
+    expect(Array.isArray(P1_ALL_SUBJECTS)).toBe(true);
+    expect(P1_ALL_SUBJECTS.length).toBeGreaterThan(0);
+    expect(Array.isArray(P2_ALL_SUBJECTS)).toBe(true);
+    expect(P2_ALL_SUBJECTS.length).toBeGreaterThan(0);
+    expect(Array.isArray(P3_ALL_SUBJECTS)).toBe(true);
+    expect(P3_ALL_SUBJECTS.length).toBeGreaterThan(0);
+    expect(Array.isArray(P4_ALL_SUBJECTS)).toBe(true);
+    expect(P4_ALL_SUBJECTS.length).toBeGreaterThan(0);
+    expect(Array.isArray(P5_ALL_SUBJECTS)).toBe(true);
+    expect(P5_ALL_SUBJECTS.length).toBeGreaterThan(0);
+    expect(Array.isArray(P6_ALL_SUBJECTS)).toBe(true);
+    expect(P6_ALL_SUBJECTS.length).toBeGreaterThan(0);
+    expect(Array.isArray(P7_ALL_SUBJECTS)).toBe(true);
+    expect(P7_ALL_SUBJECTS.length).toBeGreaterThan(0);
+  });
+
+  it("should export NCDC topics for all secondary levels S1-S6", () => {
+    const {
+      S1_ALL_SUBJECTS,
+      S2_ALL_SUBJECTS,
+      S3_ALL_SUBJECTS,
+      S4_ALL_SUBJECTS,
+      S5_ALL_SUBJECTS,
+      S6_ALL_SUBJECTS,
+    } = require("@/lib/ndc-syllabus");
+    expect(Array.isArray(S1_ALL_SUBJECTS)).toBe(true);
+    expect(S1_ALL_SUBJECTS.length).toBeGreaterThan(0);
+    expect(Array.isArray(S2_ALL_SUBJECTS)).toBe(true);
+    expect(S2_ALL_SUBJECTS.length).toBeGreaterThan(0);
+    expect(Array.isArray(S3_ALL_SUBJECTS)).toBe(true);
+    expect(S3_ALL_SUBJECTS.length).toBeGreaterThan(0);
+    expect(Array.isArray(S4_ALL_SUBJECTS)).toBe(true);
+    expect(S4_ALL_SUBJECTS.length).toBeGreaterThan(0);
+    expect(Array.isArray(S5_ALL_SUBJECTS)).toBe(true);
+    expect(S5_ALL_SUBJECTS.length).toBeGreaterThan(0);
+    expect(Array.isArray(S6_ALL_SUBJECTS)).toBe(true);
+    expect(S6_ALL_SUBJECTS.length).toBeGreaterThan(0);
+  });
+});
+
+describe("Subject Names Matching", () => {
+  it("should match Math with Mathematics", () => {
+    const { subjectNamesMatch } = require("@/lib/academics-utils");
+    expect(subjectNamesMatch("Math", "Mathematics")).toBe(true);
+  });
+
+  it("should match SST with Social Studies", () => {
+    const { subjectNamesMatch } = require("@/lib/academics-utils");
+    expect(subjectNamesMatch("SST", "Social Studies")).toBe(true);
+  });
+
+  it("should match PE with Physical Education", () => {
+    const { subjectNamesMatch } = require("@/lib/academics-utils");
+    expect(subjectNamesMatch("PE", "Physical Education")).toBe(true);
+  });
+
+  it("should not match unrelated names", () => {
+    const { subjectNamesMatch } = require("@/lib/academics-utils");
+    expect(subjectNamesMatch("Math", "English")).toBe(false);
+  });
+});
+
+describe("Syllabus Schema", () => {
+  it("should have syllabus table in schema.sql", () => {
+    const fs = require("fs");
+    const path = require("path");
+    const schema = fs.readFileSync(
+      path.join(process.cwd(), "supabase/schema.sql"),
+      "utf8",
+    );
+    expect(schema).toContain("CREATE TABLE IF NOT EXISTS syllabus (");
+  });
+
+  it("should have topic_coverage table in schema.sql", () => {
+    const fs = require("fs");
+    const path = require("path");
+    const schema = fs.readFileSync(
+      path.join(process.cwd(), "supabase/schema.sql"),
+      "utf8",
+    );
+    expect(schema).toContain("CREATE TABLE IF NOT EXISTS topic_coverage (");
+  });
+});

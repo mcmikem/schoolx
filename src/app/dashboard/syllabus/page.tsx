@@ -31,6 +31,9 @@ import {
   resolveCurriculumStage,
   subjectNamesMatch,
 } from "@/lib/academics-utils";
+import { hasFeatureTier } from "@/lib/subscription";
+import { normalizePlanType } from "@/lib/payments/subscription-client";
+import Link from "next/link";
 
 interface SyllabusTopic {
   id: string;
@@ -42,6 +45,8 @@ interface SyllabusTopic {
   status: "not_started" | "in_progress" | "completed";
   completed_date: string | null;
   notes: string | null;
+  competency_focus?: string;
+  cross_cutting_theme?: string[] | null;
 }
 
 export default function SyllabusPage() {
@@ -150,6 +155,7 @@ export default function SyllabusPage() {
           term: termNumber,
           academic_year: targetYear,
           created_by: user.id,
+          cross_cutting_theme: topic.cross_cutting_theme || null,
         }));
 
       if (toInsert.length === 0) {
@@ -211,7 +217,7 @@ export default function SyllabusPage() {
       setTopics(processed);
     } catch (err) {
       logger.error("Failed to fetch syllabus:", err);
-      toast.error("Failed to load syllabus");
+      toast.error(`Failed to load syllabus: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setLoading(false);
     }
@@ -279,7 +285,8 @@ export default function SyllabusPage() {
       });
       fetchSyllabus();
     } catch (err) {
-      toast.error("Failed to add topic");
+      logger.error("Failed to add topic:", err);
+      toast.error(`Failed to add topic: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setSaving(false);
     }
@@ -330,7 +337,8 @@ export default function SyllabusPage() {
       fetchSyllabus();
       toast.success("Topic progress updated");
     } catch (err) {
-      toast.error("Failed to update status");
+      logger.error("Failed to update status:", err);
+      toast.error(`Failed to update status: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setSaving(false);
     }
@@ -345,6 +353,25 @@ export default function SyllabusPage() {
   };
 
   const stats = getProgressStats();
+
+  const canAccessSyllabus = school?.subscription_plan
+    ? hasFeatureTier(normalizePlanType(school.subscription_plan), "ncdc_syllabus")
+    : true;
+
+  if (!canAccessSyllabus) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] p-8">
+        <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mb-6">
+          <span className="material-symbols-outlined text-3xl text-amber-500">lock</span>
+        </div>
+        <h2 className="text-xl font-bold text-[var(--t1)] mb-2">Upgrade to Access Syllabus</h2>
+        <p className="text-[var(--t3)] text-center max-w-md mb-6">
+          NCDC Syllabus Tracking is available on the Growth plan and above. Upgrade to track NCDC curriculum coverage across your classes.
+        </p>
+        <a href="/dashboard/settings?tab=subscription" className="btn-primary">View Plans</a>
+      </div>
+    );
+  }
 
   return (
     <PageErrorBoundary>
@@ -554,6 +581,20 @@ export default function SyllabusPage() {
                             ))}
                           </div>
                         )}
+                        {topic.competency_focus && (
+                          <div className="mt-2 flex items-center gap-2 text-xs">
+                            <span className="font-medium text-[var(--t2)]">Competency:</span>
+                            <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{topic.competency_focus}</span>
+                          </div>
+                        )}
+                        {topic.cross_cutting_theme && Array.isArray(topic.cross_cutting_theme) && topic.cross_cutting_theme.length > 0 && (
+                          <div className="mt-1 flex items-center gap-2 text-xs">
+                            <span className="font-medium text-[var(--t2)]">Cross-cutting:</span>
+                            {topic.cross_cutting_theme.map((theme: string) => (
+                              <span key={theme} className="px-2 py-0.5 rounded-full bg-green-50 text-green-700">{theme}</span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <select
                         value={topic.status}
@@ -573,6 +614,17 @@ export default function SyllabusPage() {
                         <option value="completed">Completed</option>
                       </select>
                     </div>
+                    {selectedSubject && selectedClass && (
+                      <div className="mt-2">
+                        <Link
+                          href={`/dashboard/lesson-plans?topic=${encodeURIComponent(topic.topic)}&subject=${encodeURIComponent(selectedSubject)}&class=${encodeURIComponent(selectedClass)}`}
+                          className="text-xs text-[var(--primary)] hover:underline flex items-center gap-1"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">add_circle</span>
+                          Create Lesson Plan
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 ))}
             </div>

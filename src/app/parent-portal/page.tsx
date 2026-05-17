@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import SidebarShell from "@/components/dashboard/SidebarShell";
 import TopBar from "@/components/dashboard/TopBar";
 import MaterialIcon from "@/components/MaterialIcon";
+import OwlMascot from "@/components/brand/OwlMascot";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
 import { useToast } from "@/components/Toast";
@@ -368,344 +369,80 @@ function ParentDashboardContent() {
         <TopBar pageTitle="Parent Portal" onSignOut={handleSignOut} />
 
         <div className="p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto">
-          <div className="max-w-7xl mx-auto space-y-6">
-            {/* Header */}
-            <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">
-                    Welcome back
-                  </h1>
-                  {selectedChild && (
-                    <p className="mt-1 text-lg font-semibold text-gray-700">
-                      {selectedChild.first_name} {selectedChild.last_name}
-                    </p>
-                  )}
-                  <p className="mt-2 max-w-2xl text-base text-gray-600">
-                    Follow your child&apos;s attendance, fees, grades, and school news — all in one place.
-                  </p>
-                </div>
-                <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-right">
-                  <p className="text-sm font-semibold text-gray-500">Today</p>
-                  <p className="mt-1 text-base font-semibold text-gray-900">
-                    {new Date().toLocaleDateString("en-UG", {
-                      weekday: "long",
-                      day: "numeric",
-                      month: "short",
-                    })}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowNotificationsDropdown(!showNotificationsDropdown)}
-                  className="relative rounded-xl border border-gray-200 bg-white px-3 py-2 hover:bg-gray-50"
-                >
-                  <MaterialIcon icon="notifications" className="text-xl text-gray-600" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-                      {unreadCount}
-                    </span>
-                  )}
-                </button>
+          <div className="max-w-2xl mx-auto">
+            {loading ? (
+              <div className="flex items-center justify-center min-h-[300px]">
+                <OwlMascot size={52} premium ring glow animated />
               </div>
-            </section>
-
-            {/* Notifications Dropdown */}
-            {showNotificationsDropdown && (
-              <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-gray-900">Notifications</h3>
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={async () => {
-                        await fetch("/api/parent/notifications", {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ mark_all_read: true }),
-                        });
-                        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-                        setUnreadCount(0);
-                      }}
-                      className="text-sm text-[var(--primary)] hover:underline"
-                    >
-                      Mark all read
-                    </button>
-                  )}
-                </div>
-                {notifications.length === 0 ? (
-                  <p className="text-sm text-gray-500 text-center py-4">No notifications</p>
-                ) : (
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {notifications.slice(0, 5).map((n: any) => (
-                      <div
-                        key={n.id}
-                        className={`p-3 rounded-xl cursor-pointer ${n.is_read ? "bg-gray-50" : "bg-blue-50 border border-blue-100"}`}
-                        onClick={() => {
-                          if (!n.is_read) markNotificationRead(n.id);
-                          if (n.action_url) router.push(n.action_url);
-                          setShowNotificationsDropdown(false);
-                        }}
-                      >
-                        <div className="flex items-start gap-2">
-                          <MaterialIcon
-                            icon={
-                              n.type === "grade_posted" ? "grade" :
-                              n.type === "payment_received" ? "payments" :
-                              n.type === "attendance_alert" ? "warning" :
-                              n.type === "report_card" ? "description" :
-                              "notifications"
-                            }
-                            className={`text-lg ${n.is_read ? "text-gray-400" : "text-blue-600"}`}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900">{n.title}</p>
-                            <p className="text-xs text-gray-600 truncate">{n.message}</p>
-                            <p className="text-xs text-gray-400 mt-1">
-                              {new Date(n.created_at).toLocaleDateString("en-UG")}
-                            </p>
-                          </div>
-                          {!n.is_read && <div className="w-2 h-2 rounded-full bg-blue-500 mt-2" />}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Child selector */}
-            {children.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
-                {children.map((child) => (
-                  <button
-                    key={child.id}
-                    onClick={() => setSelectedChild(child)}
-                    className={`rounded-full border px-5 py-3 transition-colors flex items-center gap-2 whitespace-nowrap text-base ${
-                      selectedChild?.id === child.id
-                        ? "bg-blue-900 text-white border-transparent"
-                        : "bg-white text-gray-700 border-gray-200 hover:border-blue-900"
-                    }`}
-                  >
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold">
-                      {child.first_name[0]}
-                      {child.last_name[0]}
-                    </div>
-                    <span className="font-semibold">
-                      {child.first_name}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {selectedChild ? (
-              <div className="relative grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {childDataLoading && (
-                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 rounded-2xl">
-                    <div className="flex items-center gap-3">
-                      <span className="w-6 h-6 border-2 border-blue-900/30 border-t-blue-900 rounded-full animate-spin" />
-                      <span className="text-sm font-semibold text-gray-600">Loading...</span>
-                    </div>
-                  </div>
-                )}
-                {/* Child Profile Card */}
-                <div className="lg:col-span-1">
-                  <div className="h-full rounded-2xl border border-gray-200 bg-white p-6 text-center">
-                    <div className="w-40 h-40 rounded-full bg-blue-900 mx-auto mb-4 flex items-center justify-center overflow-hidden">
-                      {childPhotoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={childPhotoUrl}
-                          alt={`${selectedChild.first_name} ${selectedChild.last_name}`}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-5xl font-bold text-white">
-                          {childInitials}
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-900">
-                      {selectedChild.first_name} {selectedChild.last_name}
-                    </h3>
-                    <p className="text-base font-semibold text-gray-600 mb-6">
-                      {selectedChild.class_name}
-                    </p>
-
-                    <div className="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-3 text-left space-y-1">
-                      <p className="text-xs text-gray-500">Student Number</p>
-                      <p className="text-sm font-semibold text-gray-800">
-                        {selectedChild.student_number || "Not assigned yet"}
-                      </p>
-                      <p className="text-xs text-gray-500 pt-1">Guardian Contact</p>
-                      <p className="text-sm text-gray-800">
-                        {selectedChild.parent_name || "Parent/Guardian"}
-                        {selectedChild.parent_phone ? ` · ${selectedChild.parent_phone}` : ""}
-                      </p>
-                      {selectedChild.parent_phone2 && (
-                        <p className="text-xs text-gray-600">Alt: {selectedChild.parent_phone2}</p>
-                      )}
-                    </div>
-
-                    <div className="space-y-3 text-left">
-                      <div className="p-4 rounded-xl bg-gray-50 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
-                          <MaterialIcon
-                            icon="event_available"
-                            className="text-green-600"
-                          />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-gray-500">
-                            Attendance
-                          </p>
-                          <p className="text-base font-bold text-gray-900">
-                            {isDemo ? (selectedChild.attendance || "98%") : (attendance.length > 0 ? `${Math.round((attendance.filter(a => a.status === 'present').length / attendance.length) * 100)}%` : "—")}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="p-4 rounded-xl bg-gray-50 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
-                          <MaterialIcon
-                            icon="payments"
-                            className="text-blue-700"
-                          />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-gray-500">
-                            Fees Balance
-                          </p>
-                          <p className="text-base font-bold text-gray-900">
-                            {isDemo ? (selectedChild.fees_balance || "Clear") : (feeStats.balance > 0 ? `UGX ${feeStats.balance.toLocaleString()}` : "Clear")}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quick Actions & School Notices */}
-                <div className="lg:col-span-2 space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Wallet Card */}
-                    <div className="col-span-2 p-6 rounded-2xl bg-blue-900 text-white">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <p className="text-sm font-bold uppercase tracking-wide opacity-70">Canteen Wallet</p>
-                          <p className="text-sm font-semibold opacity-90 mt-0.5">{selectedChild?.first_name}&apos;s Pocket Money</p>
-                        </div>
-                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                          <MaterialIcon icon="account_balance_wallet" />
-                        </div>
-                      </div>
-                      <p className="text-3xl font-bold tracking-tight mb-1">
-                        {walletBalance !== null ? `UGX ${walletBalance.toLocaleString()}` : "—"}
-                      </p>
-                      <p className="text-sm opacity-60 font-semibold mb-4">Available Balance</p>
-                      <button
-                        onClick={() => setShowTopup(true)}
-                        className="px-6 py-3 bg-white text-blue-900 rounded-xl font-bold text-sm uppercase tracking-wide hover:bg-gray-100 transition-colors"
-                      >
-                        + Add Funds
-                      </button>
-                    </div>
-
-                    <button
-                      onClick={handlePayFees}
-                      disabled={topupLoading || feeStats.balance <= 0}
-                      className="p-6 rounded-2xl bg-white text-blue-900 flex flex-col lg:flex-row items-center justify-center gap-3 border border-gray-200 hover:border-blue-900 transition-colors disabled:opacity-50"
-                    >
-                      <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center">
-                        <MaterialIcon
-                          icon={topupLoading ? "sync" : "receipt_long"}
-                          className={`text-2xl ${topupLoading ? 'animate-spin' : ''}`}
-                        />
-                      </div>
-                      <span className="text-sm font-bold uppercase tracking-wide">
-                        {feeStats.balance <= 0 ? "Fees Fully Paid" : "Open Fee Statement"}
-                      </span>
-                    </button>
-                    <Link
-                      href="/parent-portal/academics"
-                      className="p-6 rounded-2xl bg-white text-green-700 flex flex-col lg:flex-row items-center justify-center gap-3 border border-gray-200 hover:border-green-700 transition-colors"
-                    >
-                      <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center">
-                        <MaterialIcon icon="description" className="text-2xl" />
-                      </div>
-                      <span className="text-sm font-bold uppercase tracking-wide">
-                        Academic Reports
-                      </span>
-                    </Link>
-                  </div>
-
-                  <div className="rounded-2xl border border-gray-200 bg-white p-6">
-                    <div className="flex items-center justify-between mb-6">
-                      <h4 className="text-lg font-bold text-gray-900">
-                        School Notices
-                      </h4>
-                      <Link
-                        href="/parent-portal/notices"
-                        className="text-blue-700 text-sm font-bold uppercase tracking-wide hover:underline"
-                      >
-                        View All
-                      </Link>
-                    </div>
-
-                    <div className="space-y-4">
-                      {notices.length === 0 ? (
-                        <p className="text-base text-gray-500 italic py-4">No recent notices from the school.</p>
-                      ) : (
-                        notices.map((notice, i) => (
-                        <div
-                          key={i}
-                          className="flex gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100"
-                        >
-                          <div className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex-shrink-0 flex items-center justify-center">
-                            <MaterialIcon
-                              icon={notice.icon || "campaign"}
-                              style={{ color: notice.color || "var(--primary)" }}
-                            />
-                          </div>
-                          <div>
-                            <p className="text-base font-bold text-gray-900">
-                              {notice.title}
-                            </p>
-                            <p className="text-sm text-gray-500 mb-1 font-semibold">
-                              {new Date(notice.created_at).toLocaleDateString()}
-                            </p>
-                            <p className="text-base text-gray-700 leading-relaxed">
-                              {notice.content || notice.desc}
-                            </p>
-                          </div>
-                        </div>
-                      )))}
-                    </div>
-                  </div>
-                </div>
+            ) : children.length === 0 ? (
+              <div className="text-center py-10">
+                <OwlMascot size={56} premium ring glow animated />
+                <h3 className="text-lg font-bold mt-4">No learners linked yet</h3>
+                <p className="text-sm text-[var(--t3)] mt-1">Your phone on file: {user?.phone || 'N/A'}</p>
+                <p className="text-sm text-[var(--t3)]">Contact the school office to link your account.</p>
               </div>
             ) : (
-              <div className="text-center py-20 rounded-2xl border border-gray-200 bg-white">
-                <div className="w-20 h-20 rounded-full bg-gray-100 mx-auto flex items-center justify-center mb-4">
-                  <MaterialIcon
-                    icon="search"
-                    className="text-4xl text-gray-300"
-                  />
+              <>
+                {/* Section 1: Child selector — large visual cards */}
+                <div className="flex gap-3 overflow-x-auto pb-2 mb-6">
+                  {children.map(child => {
+                    const isSelected = selectedChild?.id === child.id;
+                    return (
+                      <button
+                        key={child.id}
+                        onClick={() => setSelectedChild(child)}
+                        className={`shrink-0 rounded-[24px] border-2 p-4 min-w-[140px] text-left transition-all ${
+                          isSelected ? 'border-[#17325f] bg-[#f0f6ff] shadow-md' : 'border-[#e5ecf4] bg-white'
+                        }`}
+                      >
+                        <div className="h-14 w-14 rounded-full bg-[#17325f] flex items-center justify-center text-xl font-bold text-white mx-auto mb-2">
+                          {(child.first_name?.[0] || child.last_name?.[0] || '?')}
+                        </div>
+                        <p className="text-sm font-bold text-[#17325f] text-center">{child.first_name} {child.last_name}</p>
+                        <p className="text-[11px] text-[#7f91aa] text-center">{child.class_name}</p>
+                      </button>
+                    );
+                  })}
                 </div>
-                <p className="text-base text-gray-600 font-medium">
-                  No learners are linked to your account yet.
-                </p>
-                <p className="text-sm text-gray-500 mt-2">
-                  Your phone number on file is: {user?.phone || "N/A"}
-                </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  Ask the school office to register this phone number ({user?.phone || "N/A"}) in your child&apos;s student record.
-                </p>
-                <button
-                  onClick={() => router.push("/contact")}
-                  className="mt-6 px-6 py-3 rounded-xl bg-blue-900 text-white font-bold text-sm uppercase tracking-wide hover:bg-blue-800 transition-colors"
-                >
-                  Contact School
-                </button>
-              </div>
+
+                {/* Section 2: Today's status — visual cards */}
+                {selectedChild && (
+                  <div className="grid grid-cols-2 gap-3 mb-6">
+                    {/* Attendance today */}
+                    <div className={`rounded-[24px] p-5 text-center ${attendance.length > 0 ? 'bg-[#e1f3ee]' : 'bg-[#f6f9fc]'}`}>
+                      <span className={`material-symbols-outlined text-4xl ${attendance.length > 0 && (attendance[0] as any)?.status === 'present' ? 'text-[#1f8a70]' : 'text-[#b0c4db]'}`}>
+                        {attendance.length > 0 && (attendance[0] as any)?.status === 'present' ? 'check_circle' : 'help'}
+                      </span>
+                      <p className="text-sm font-bold text-[#17325f] mt-2">Today: {attendance.length > 0 && (attendance[0] as any)?.status === 'present' ? 'Present' : 'Not recorded'}</p>
+                    </div>
+
+                    {/* Fee balance */}
+                    <div className={`rounded-[24px] p-5 text-center ${feeStats.balance > 0 ? 'bg-[#ffefe8]' : 'bg-[#e1f3ee]'}`}>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">Fee Balance</p>
+                      <p className={`text-xl font-bold mt-1 ${feeStats.balance > 0 ? 'text-[#c2472b]' : 'text-[#1f8a70]'}`}>
+                        {feeStats.balance > 0 ? `UGX ${feeStats.balance?.toLocaleString()}` : 'Cleared'}
+                      </p>
+                      <p className="text-[11px] text-[#7f91aa] mt-1">of UGX {feeStats.totalFee?.toLocaleString()}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Section 3: Quick actions */}
+                <div className="grid grid-cols-3 gap-3">
+                  <a href={`/parent-portal/fees${selectedChild ? `?child=${selectedChild.id}` : ''}`} className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center">
+                    <span className="material-symbols-outlined text-[28px] text-[#17325f]">payments</span>
+                    <p className="text-xs font-bold text-[#17325f] mt-2">Pay fees</p>
+                  </a>
+                  <a href={`/parent-portal/attendance${selectedChild ? `?child=${selectedChild.id}` : ''}`} className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center">
+                    <span className="material-symbols-outlined text-[28px] text-[#17325f]">how_to_reg</span>
+                    <p className="text-xs font-bold text-[#17325f] mt-2">Attendance</p>
+                  </a>
+                  <a href={`/parent-portal/academics${selectedChild ? `?child=${selectedChild.id}` : ''}`} className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center">
+                    <span className="material-symbols-outlined text-[28px] text-[#17325f]">grade</span>
+                    <p className="text-xs font-bold text-[#17325f] mt-2">Grades</p>
+                  </a>
+                </div>
+              </>
             )}
           </div>
         </div>

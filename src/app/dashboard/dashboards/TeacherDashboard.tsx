@@ -144,200 +144,61 @@ function TeacherDashboardContent() {
             <p className="mt-4 text-sm text-[var(--t3)]">Loading your dashboard...</p>
           </div>
         </div>
-        <StuckLoadingOverlay />
       </div>
     );
   }
 
   return (
     <div className="content">
-      <section className="relative mb-6 overflow-hidden rounded-[34px] border border-white/70 bg-[linear-gradient(130deg,#f9fbff_0%,#eff6ff_40%,#f8faff_100%)] p-4 shadow-[0_24px_62px_rgba(15,23,42,0.08)] sm:p-6">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute left-0 top-2 h-48 w-48 rounded-full bg-[#d8e5ff]/65 blur-3xl" />
-          <div className="absolute right-0 bottom-0 h-40 w-40 rounded-full bg-[#c8efe4]/25 blur-3xl" />
-        </div>
-
-        <div className="relative z-10 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-[28px] border border-white/80 bg-white/82 p-5 shadow-[0_18px_42px_rgba(15,23,42,0.07)]">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">
-                  Classroom cockpit
-                </p>
-                <h1 className="font-['Sora'] mt-2 text-3xl font-semibold tracking-[-0.04em] text-[#17325f]">
-                  {greeting}, {user?.full_name?.split(" ")[0]}
-                </h1>
-                <p className="mt-2 text-sm text-[#60748f]">
-                  Teacher · {school?.name} · Term {currentTerm}
-                </p>
-              </div>
-              <div className="rounded-full border border-[#d8e4f2] bg-[#f5f9ff] px-3 py-1 text-[11px] font-semibold text-[#516a88]">
-                {todayLabel}
-              </div>
-            </div>
-
-            <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-3">
-              <StatCard label="My Classes" value={myClasses.length} subValue={`${students.length} students`} icon="school" accentColor="navy" />
-              <StatCard label="Attendance" value={`${attendanceRate}%`} subValue={`${stats?.presentToday || 0} present`} icon="how_to_reg" accentColor="green" />
-              <StatCard label="Subjects" value={mySubjects.length} subValue="Teaching" icon="menu_book" accentColor="amber" />
-            </div>
+      {/* Section 1: GREETING + MY DAY */}
+      <section className="relative mb-6 overflow-hidden rounded-[34px] border border-white/70 bg-[linear-gradient(130deg,#f9fbff_0%,#eff6ff_40%,#f8faff_100%)] p-4 sm:p-6">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#7f91aa]">{todayLabel}</p>
+            <h1 className="mt-1 text-3xl font-bold text-[#17325f]">{greeting}, {user?.full_name?.split(" ")[0]}</h1>
+            <p className="mt-1 text-sm text-[#60748f]">{school?.name} · Term {currentTerm} · {academicYear}</p>
           </div>
-
-          <div className="rounded-[28px] border border-[#d8e3f3] bg-[linear-gradient(180deg,#17325f_0%,#25507f_100%)] p-5 text-white shadow-[0_24px_48px_rgba(23,50,95,0.25)]">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/60">
-              Teaching pulse
-            </p>
-            <h2 className="mt-2 font-['Sora'] text-2xl font-semibold tracking-[-0.04em]">
-              Daily flow
-            </h2>
-            <div className="mt-5 space-y-3">
-              {[
-                ["Classes today", myClasses.length],
-                ["Students", students.length],
-              ].map(([label, value]) => (
-                <div key={String(label)} className="rounded-[16px] border border-white/10 bg-white/10 px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">{label}</p>
-                  <p className="mt-1 text-xl font-semibold">{value}</p>
-                </div>
-              ))}
-            </div>
+          <div className="rounded-full bg-[#17325f] px-4 py-2 text-center">
+            <p className="text-2xl font-bold text-white">{myClasses.length}</p>
+            <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-white/70">Classes</p>
           </div>
-        </div>
-
-        <div className="relative z-10 mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Link href="/dashboard/attendance" className="rounded-[20px] border border-white/70 bg-white/85 p-3 text-center shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--green-soft)] text-[var(--green)]">
-              <MaterialIcon icon="how_to_reg" style={{ fontSize: 22 }} />
-            </div>
-            <span className="mt-2 block text-[12px] font-bold text-[var(--t1)]">Take Attendance</span>
-          </Link>
-          <Link href="/dashboard/grades" className="rounded-[20px] border border-white/70 bg-white/85 p-3 text-center shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--navy-soft)] text-[var(--navy)]">
-              <MaterialIcon icon="edit_note" style={{ fontSize: 22 }} />
-            </div>
-            <span className="mt-2 block text-[12px] font-bold text-[var(--t1)]">Enter Grades</span>
-          </Link>
-          <Link href="/dashboard/homework" className="rounded-[20px] border border-white/70 bg-white/85 p-3 text-center shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--amber-soft)] text-[var(--amber)]">
-              <MaterialIcon icon="assignment_add" style={{ fontSize: 22 }} />
-            </div>
-            <span className="mt-2 block text-[12px] font-bold text-[var(--t1)]">Add Homework</span>
-          </Link>
-          <Link href="/dashboard/lesson-plans" className="rounded-[20px] border border-white/70 bg-white/85 p-3 text-center shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eef2ff] text-[#4d5dd1]">
-              <MaterialIcon icon="event_note" style={{ fontSize: 22 }} />
-            </div>
-            <span className="mt-2 block text-[12px] font-bold text-[var(--t1)]">Lesson Plans</span>
-          </Link>
         </div>
       </section>
 
-      {needsSetup && user?.role === "school_admin" && (
-        <div className="rounded-xl border border-[var(--primary)]/20 bg-[linear-gradient(135deg,var(--primary-50),#f0f7ff)] p-5 mb-6">
-          <div className="flex items-start gap-4">
-            <OwlMascot size={40} premium ring glow />
-            <div className="flex-1">
-              <div className="text-sm font-bold text-[var(--t1)]">Let&apos;s get your classroom ready!</div>
-              <p className="text-xs text-[var(--t2)] mt-1">
-                Your school needs initial classes and subjects set up. This only takes a second.
-              </p>
-              <button onClick={runSetup} disabled={settingUp} className="mt-3 px-4 py-2 bg-[var(--primary)] text-white rounded-xl text-xs font-semibold hover:opacity-90 transition-colors disabled:opacity-50">
-                {settingUp ? "Setting up..." : "Quick Setup"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Attendance Queue */}
-      {stats?.presentToday === 0 && myClasses.length > 0 && (
-        <div className="rounded-xl border border-[#c2472b]/20 bg-[#ffefe8] p-4 mb-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="material-symbols-outlined text-[#c2472b]">how_to_reg</span>
-            <h3 className="text-sm font-bold text-[#c2472b]">Attendance pending</h3>
-          </div>
-          <p className="text-xs text-[#6b7f99] mb-3">Mark attendance for your classes today</p>
-          <a href="/dashboard/attendance" className="inline-flex items-center gap-1 rounded-lg bg-[#c2472b] px-3 py-1.5 text-[11px] font-bold text-white">Take attendance now</a>
-        </div>
-      )}
-
-      {/* Today's Schedule */}
-      {myClasses.length > 0 && (
-        <div className="mb-4">
-          <div className="flex items-center gap-2 mb-3">
-            <MaterialIcon icon="today" className="text-[var(--primary)] text-lg" />
-            <h2 className="text-sm font-bold text-[var(--t1)]">Today&apos;s Schedule</h2>
-            <span className="text-[11px] text-[var(--t3)]">· {myClasses.length} classes</span>
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {myClasses.map((cls: any, idx: number) => {
-              const count = students.filter((s) => s.class_id === cls.id).length;
-              return (
-                <div key={cls.id} className={`shrink-0 rounded-xl border p-3 min-w-[140px] ${idx === 0 ? 'border-[var(--primary)] bg-[var(--primary-50)]' : 'border-[var(--border)] bg-[var(--surface)]'}`}>
-                  <div className="text-[13px] font-bold text-[var(--t1)]">{cls.name}</div>
-                  <div className="text-[11px] text-[var(--t3)] mt-0.5">{count} students</div>
-                  <div className="flex gap-2 mt-2">
-                    <a href={`/dashboard/attendance?class=${cls.id}`} className="rounded-lg bg-[var(--primary)] px-2.5 py-1 text-[10px] font-bold text-white">Attendance</a>
-                    <a href={`/dashboard/grades?class=${cls.id}`} className="rounded-lg border border-[var(--border)] px-2.5 py-1 text-[10px] font-bold text-[var(--t1)]">Grades</a>
-                  </div>
+      {/* Section 2: MY CLASSES */}
+      {myClasses.length > 0 ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+          {myClasses.map((cls: any) => {
+            const count = students.filter((s) => s.class_id === cls.id).length;
+            return (
+              <div key={cls.id} className="rounded-[20px] bg-white border border-[#e5ecf4] p-4">
+                <p className="text-lg font-bold text-[#17325f]">{cls.name}</p>
+                <p className="text-xs text-[#7f91aa] mt-0.5">{count} student{count !== 1 ? 's' : ''}</p>
+                <div className="flex gap-2 mt-3">
+                  <a href={`/dashboard/attendance?class=${cls.id}`} className="flex-1 rounded-xl bg-[#17325f] py-2 text-center text-xs font-bold text-white hover:opacity-90">Attendance</a>
+                  <a href={`/dashboard/grades?class=${cls.id}`} className="flex-1 rounded-xl bg-[#edf4ff] py-2 text-center text-xs font-bold text-[#17325f] hover:bg-[#dce8f5]">Grades</a>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="rounded-[20px] bg-white border border-dashed border-[#d7e3f2] p-6 text-center mb-6">
+          <p className="text-sm font-semibold text-[#7f91aa]">No classes assigned yet</p>
         </div>
       )}
 
-      {/* Classes & Subjects */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <div className="lg:col-span-8">
-          <div className="card">
-            <div className="card-header">
-              <div>
-                <div className="card-title">My Classes</div>
-                <div className="card-sub">{myClasses.length} assigned</div>
-              </div>
-            </div>
-            <div className="card-body">
-              <div className="grid grid-cols-2 gap-3">
-                {myClasses.map((cls: any) => {
-                  const count = students.filter((s) => s.class_id === cls.id).length;
-                  return (
-                    <Link key={cls.id} href={`/dashboard/grades?class=${cls.id}`} className="qa-item !py-3">
-                      <MaterialIcon icon="school" className="text-[var(--amber)] mb-1" />
-                      <div className="text-[12px] font-bold text-[var(--t1)] truncate w-full">{cls.name}</div>
-                      <div className="text-[10px] text-[var(--t3)]">{count} students</div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
+      {/* Section 3: PENDING ACTIONS */}
+      {stats?.presentToday === 0 && myClasses.length > 0 && (
+        <div className="rounded-[20px] bg-[#ffefe8] border border-[#f5d0c5] p-4 flex items-center gap-3">
+          <span className="material-symbols-outlined text-[#c2472b] text-2xl">how_to_reg</span>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-[#17325f]">Mark attendance</p>
+            <p className="text-xs text-[#6b7f99]">Not yet taken for today</p>
           </div>
+          <a href="/dashboard/attendance" className="shrink-0 rounded-xl bg-[#c2472b] px-4 py-2 text-xs font-bold text-white">Take now</a>
         </div>
-
-        <div className="lg:col-span-4">
-          <div className="card">
-            <div className="card-header">
-              <div>
-                <div className="card-title">My Subjects</div>
-                <div className="card-sub">{mySubjects.length} subjects</div>
-              </div>
-            </div>
-            <div className="card-body">
-              <div className="grid grid-cols-1 gap-2">
-                {mySubjects.map((subject: any) => (
-                  <Link key={subject.id} href={`/dashboard/grades?subject=${subject.id}`} className="qa-item !flex-row !justify-start !p-3">
-                    <MaterialIcon icon="menu_book" className="text-[var(--green)] mr-3" />
-                    <div className="min-w-0">
-                      <div className="text-[12px] font-bold text-[var(--t1)] truncate">{subject.name}</div>
-                      <div className="text-[10px] text-[var(--t3)] uppercase tracking-wider">{subject.code}</div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
