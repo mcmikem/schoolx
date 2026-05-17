@@ -529,6 +529,10 @@ function HeadmasterDashboardContent() {
 
   const isDataLoading = statsLoading || loadingExtra || eventsLoading;
 
+  const candidateCount = students.filter((s: any) => s.uneb_number).length || 0;
+  const urgentItems = pendingLeave > 0 || pendingExpenses > 0 || classesNotMarked > 0;
+  const urgentCount = (pendingLeave > 0 ? 1 : 0) + (pendingExpenses > 0 ? 1 : 0) + (classesNotMarked > 0 ? 1 : 0);
+
   if (isDataLoading) {
     return (
       <div className="min-h-screen bg-[var(--bg)] flex flex-col">
@@ -566,26 +570,48 @@ function HeadmasterDashboardContent() {
           </div>
         </div>
 
-        {/* D: Inspection Readiness Badges */}
-        <div className="flex gap-2 flex-wrap mb-4">
-          {[
-            {label: 'Student:Teacher', value: `${Math.round((students.length || 1) / Math.max(staff.filter(s=>s.role==='teacher').length,1))}:1`, status: (students.length / Math.max(staff.filter(s=>s.role==='teacher').length,1)) <= 40 ? 'ok' : 'warning'},
-            {label: 'Attendance', value: `${attendanceRate}%`, status: attendanceRate >= 80 ? 'ok' : attendanceRate >= 60 ? 'warning' : 'alert'},
-            {label: 'Fee Collection', value: `${collectionRate}%`, status: collectionRate >= 70 ? 'ok' : collectionRate >= 40 ? 'warning' : 'alert'},
-            {label: 'SMS Balance', value: smsStats?.remaining || 'N/A', status: (smsStats?.remaining || 0) > 50 ? 'ok' : (smsStats?.remaining || 0) > 10 ? 'warning' : 'alert'},
-          ].map(badge => (
-            <div key={badge.label} className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-bold ${
-              badge.status === 'ok' ? 'bg-[#e1f3ee] text-[#1f8a70]' : 
-              badge.status === 'warning' ? 'bg-[#fff5e8] text-[#b45309]' : 
-              'bg-[#ffefe8] text-[#c2472b]'
-            }`}>
-              <span className="material-symbols-outlined text-[12px]">
-                {badge.status === 'ok' ? 'check_circle' : badge.status === 'warning' ? 'warning' : 'cancel'}
-              </span>
-              {badge.label}: {badge.value}
+        {/* 1. NEEDS YOUR ATTENTION - action items first */}
+        {urgentItems && (
+          <div className="rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 mb-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="material-symbols-outlined text-[#c2472b] text-lg">notifications_active</span>
+              <h2 className="text-sm font-bold text-[#17325f]">Needs your attention</h2>
+              {urgentCount > 0 && <span className="rounded-full bg-[#c2472b] text-white text-[10px] font-bold px-2 py-0.5">{urgentCount} urgent</span>}
             </div>
-          ))}
-        </div>
+            <div className="space-y-2">
+              {stats.presentToday === 0 && classes.length > 0 && (
+                <div className="flex items-center gap-3 rounded-[16px] bg-[#ffefe8] border border-[#f5d0c5] px-4 py-3">
+                  <span className="material-symbols-outlined text-[#c2472b]">how_to_reg</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-[#17325f]">Attendance not taken today</p>
+                    <p className="text-xs text-[#6b7f99]">{classesNotMarked} classes still pending</p>
+                  </div>
+                  <a href="/dashboard/attendance" className="shrink-0 rounded-lg bg-[#c2472b] px-3 py-1.5 text-[11px] font-bold text-white hover:opacity-90">Take now</a>
+                </div>
+              )}
+              {pendingLeave > 0 && (
+                <div className="flex items-center gap-3 rounded-[16px] bg-[#fff5e8] border border-[#f5deb3] px-4 py-3">
+                  <span className="material-symbols-outlined text-[#b45309]">event_busy</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-[#17325f]">{pendingLeave} leave request{pendingLeave > 1 ? 's' : ''} to approve</p>
+                    <p className="text-xs text-[#6b7f99]">Staff requesting time off</p>
+                  </div>
+                  <a href="/dashboard/leave-approvals" className="shrink-0 rounded-lg bg-[#b45309] px-3 py-1.5 text-[11px] font-bold text-white hover:opacity-90">Review</a>
+                </div>
+              )}
+              {pendingExpenses > 0 && (
+                <div className="flex items-center gap-3 rounded-[16px] bg-[#ffefe8] border border-[#f5d0c5] px-4 py-3">
+                  <span className="material-symbols-outlined text-[#c2472b]">receipt</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-[#17325f]">{pendingExpenses} expense{pendingExpenses > 1 ? 's' : ''} awaiting approval</p>
+                    <p className="text-xs text-[#6b7f99]">Needs your sign-off</p>
+                  </div>
+                  <a href="/dashboard/expense-approvals" className="shrink-0 rounded-lg bg-[#c2472b] px-3 py-1.5 text-[11px] font-bold text-white hover:opacity-90">Review</a>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Main Grid: Left 2/3 = Calendar, Right 1/3 = Staff + Discipline + SMS */}
         <div className="relative z-10 grid gap-4 xl:grid-cols-[2fr_1fr]">
@@ -774,127 +800,164 @@ function HeadmasterDashboardContent() {
             </div>
           </div>
 
-          {/* Right = Staff Board + Discipline + SMS */}
+          {/* Right = Staff with phones + Actionable defaulters + UNEB */}
           <div className="grid gap-4">
-            {/* B: Staff Attendance Board */}
+            {/* A: Staff Attendance Board — with names, roles, phones */}
             <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
-              <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-center justify-between gap-4 mb-4">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">Staff today</p>
-                  <h2 className="mt-1 font-['Sora'] text-xl font-semibold tracking-[-0.04em] text-[#17325f]">Attendance board</h2>
+                  <h2 className="mt-1 font-['Sora'] text-xl font-semibold tracking-[-0.04em] text-[#17325f]">{staffOnDuty} on duty · {staff.length - staffOnDuty} absent</h2>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#1f8a70]" />
-                  <span className="text-[10px] text-[#7890ad]">{staffOnDuty} on duty</span>
-                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#d05858]" />
-                  <span className="text-[10px] text-[#7890ad]">{staff.length - staffOnDuty} absent</span>
-                </div>
+                <a href="/dashboard/staff" className="rounded-full bg-[#f2f6fc] px-3 py-1 text-[10px] font-semibold text-[#42638d]">All staff</a>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {staff.slice(0, 20).map(member => {
-                  const isPresent = member.id && staffOnDuty > 0;
-                  return (
-                    <div key={member.id} className="flex flex-col items-center gap-1 rounded-[14px] border border-[#e7edf5] bg-[#f8fbff] px-3 py-2 min-w-[64px]">
-                      <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white ${isPresent || staffOnDuty > 0 ? 'bg-[#1f8a70]' : 'bg-[#c7d4e4]'}`}>
-                        {member.full_name?.[0] || '?'}
-                      </div>
-                      <p className="truncate max-w-[60px] text-[9px] font-semibold text-center text-[#5e7390]">{member.full_name?.split(' ').pop() || ''}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* C: Discipline Log */}
-            <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
-              <div className="flex items-start justify-between gap-4 mb-4">
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">Discipline</p>
-                  <h2 className="mt-1 font-['Sora'] text-xl font-semibold tracking-[-0.04em] text-[#17325f]">Recent incidents</h2>
-                </div>
-                <Link href="/dashboard/discipline" className="rounded-full bg-[#f2f6fc] px-3 py-1 text-[10px] font-semibold text-[#42638d]">View all</Link>
-              </div>
-              <div className="space-y-2">
-                {upcomingDeadlines.slice(0, 3).map((d, i) => (
-                  <Link key={i} href={d.link} className="flex items-center gap-3 rounded-[16px] bg-[#fcfcfd] border border-[#eaedf2] px-3 py-2.5">
-                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${d.type === 'fee' ? 'bg-[#ffefe8] text-[#c2472b]' : d.type === 'attendance' ? 'bg-[#e1f3ee] text-[#1f8a70]' : 'bg-[#eef4fb] text-[#42638d]'}`}>
-                      <span className="material-symbols-outlined text-[16px]">
-                        {d.type === 'fee' ? 'payments' : d.type === 'attendance' ? 'how_to_reg' : 'approval'}
-                      </span>
+              <div className="space-y-2 max-h-[320px] overflow-y-auto">
+                {staff.slice(0, 10).map(member => (
+                  <div key={member.id} className="flex items-center gap-3 rounded-[14px] bg-[#f6f9fc] px-3 py-2.5 border border-[#eaedf2]">
+                    <div className={`h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 ${staffOnDuty > 0 ? 'bg-[#1f8a70]' : 'bg-[#c7d4e4]'}`}>
+                      {member.full_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || '?'}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-[#17325f] truncate">{d.label}</p>
-                      <p className="text-[10px] text-[#7890ad]">{d.date}</p>
+                      <p className="text-sm font-bold text-[#17325f] truncate">{member.full_name}</p>
+                      <p className="text-[10px] text-[#7890ad]">{member.role || 'Staff'} {staffOnDuty > 0 ? '· On duty' : '· Absent'}</p>
                     </div>
-                    <div className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${d.type === 'fee' ? 'bg-[#ffefe8] text-[#c2472b]' : 'bg-[#eef4fb] text-[#42638d]'}`}>{d.type}</div>
-                  </Link>
+                    {member.phone && (
+                      <a href={`tel:${member.phone}`} className="shrink-0 rounded-lg bg-[#17325f] px-2.5 py-1.5 text-[10px] font-bold text-white hover:opacity-90 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[12px]">call</span>
+                        {member.phone}
+                      </a>
+                    )}
+                    <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${staffOnDuty > 0 ? 'bg-[#1f8a70]' : 'bg-[#c7d4e4]'}`} />
+                  </div>
                 ))}
               </div>
             </div>
 
-            {/* E: SMS Credit Gauge */}
-            <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-[linear-gradient(135deg,#ffffff,#f7faff)] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
-              <div className="flex items-start justify-between gap-4 mb-4">
+            {/* B: Actionable Fee Defaulters — names + parent phone + SMS */}
+            <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
+              <div className="flex items-center justify-between gap-4 mb-4">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">SMS credits</p>
-                  <h2 className="mt-1 font-['Sora'] text-xl font-semibold tracking-[-0.04em] text-[#17325f]">Messaging balance</h2>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">Fee defaulters</p>
+                  <h2 className="mt-1 font-['Sora'] text-xl font-semibold tracking-[-0.04em] text-[#17325f]">{overdueFeeCount} overdue</h2>
                 </div>
+                <a href="/dashboard/fees" className="rounded-full bg-[#ffefe8] px-3 py-1 text-[10px] font-bold text-[#c2472b]">Full list</a>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="relative h-16 w-16 shrink-0">
-                  <svg className="h-16 w-16 -rotate-90" viewBox="0 0 36 36">
-                    <circle cx="18" cy="18" r="15.5" fill="none" stroke="#e7eef8" strokeWidth="3" />
-                    <circle cx="18" cy="18" r="15.5" fill="none" stroke={smsStats?.remaining > 50 ? '#1f8a70' : smsStats?.remaining > 10 ? '#e8a848' : '#d05858'} strokeWidth="3" strokeDasharray={`${Math.min((smsStats?.remaining || 0) / ((smsStats?.total || 500) || 1) * 100, 100)} 100`} />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-[14px] font-bold text-[#17325f]">{smsStats?.remaining || 0}</span>
+              <div className="space-y-2 max-h-[360px] overflow-y-auto">
+                {students.filter(s => {
+                  const paid = payments.filter(p => p.student_id === s.id).reduce((sum, p) => sum + Number(p.amount_paid || 0), 0);
+                  const expected = feeStructure.filter(f => !f.class_id || f.class_id === s.class_id).reduce((sum, f) => sum + Number(f.amount || 0), 0);
+                  return paid < expected && expected > 0;
+                }).slice(0, 8).map(student => (
+                  <div key={student.id} className="flex items-center gap-3 rounded-[14px] bg-[#fcfcfd] border border-[#eaedf2] px-3 py-2.5">
+                    <div className="h-8 w-8 rounded-full bg-[#ffefe8] flex items-center justify-center text-xs font-bold text-[#c2472b] shrink-0">
+                      {(student.first_name?.[0] || '')}{(student.last_name?.[0] || '')}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-[#17325f] truncate">{student.first_name} {student.last_name}</p>
+                      <p className="text-[10px] text-[#7890ad]">{student.parent_name} · {(student as any).classes?.name || ''}</p>
+                    </div>
+                    {student.parent_phone && (
+                      <div className="flex gap-1 shrink-0">
+                        <a href={`tel:${student.parent_phone}`} className="rounded-lg bg-[#eef4fb] px-2 py-1.5 text-[#42638d] hover:bg-[#dce8f5]">
+                          <span className="material-symbols-outlined text-[14px]">call</span>
+                        </a>
+                        <a href={smsStats?.remaining > 0 ? `/dashboard/messages?to=${student.parent_phone}` : '#'} className="rounded-lg bg-[#17325f] px-2 py-1.5 text-white hover:opacity-90">
+                          <span className="material-symbols-outlined text-[14px]">sms</span>
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* C: UNEB Countdown — only for secondary schools */}
+            {school?.school_type !== 'primary' && candidateCount > 0 && (
+              <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-gradient-to-br from-[#17325f] to-[#25507f] p-5 shadow-sm text-white">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="material-symbols-outlined text-white/80 text-lg">award_star</span>
+                  <h2 className="text-sm font-bold">UNEB Readiness</h2>
+                </div>
+                <div className="flex items-end gap-4">
+                  <div className="text-4xl font-bold font-['Sora']">{candidateCount}</div>
+                  <div className="pb-1">
+                    <p className="text-[11px] text-white/70">Registered candidates</p>
+                    <p className="text-[11px] text-white/50">{school?.uneb_center_number ? `Center: ${school.uneb_center_number}` : 'Center number not set'}</p>
                   </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold text-[#5e7390]">{(smsStats?.remaining || 0) > 50 ? 'Plenty of credits' : (smsStats?.remaining || 0) > 10 ? 'Running low' : 'Almost empty'}</p>
-                  <button className="mt-1 rounded-lg bg-[#17325f] px-3 py-1.5 text-[10px] font-bold text-white hover:opacity-90">Top up</button>
+                {candidateCount > 0 && (
+                  <a href="/dashboard/uneb-registration" className="mt-3 inline-flex items-center gap-1 rounded-lg bg-white/15 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-white/25">
+                    <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                    View candidates
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* D: Daily Changes */}
+            <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="material-symbols-outlined text-[#17325f] text-lg">trending_up</span>
+                <h2 className="text-sm font-bold text-[#17325f]">Today&apos;s changes</h2>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-[16px] bg-[#e1f3ee] p-3 text-center">
+                  <p className="text-xl font-bold text-[#1f8a70]">0</p>
+                  <p className="text-[10px] font-semibold text-[#5e7390]">New</p>
+                </div>
+                <div className="rounded-[16px] bg-[#fff5e8] p-3 text-center">
+                  <p className="text-xl font-bold text-[#b45309]">0</p>
+                  <p className="text-[10px] font-semibold text-[#5e7390]">Transfers</p>
+                </div>
+                <div className="rounded-[16px] bg-[#ffefe8] p-3 text-center">
+                  <p className="text-xl font-bold text-[#c2472b]">0</p>
+                  <p className="text-[10px] font-semibold text-[#5e7390]">Dropouts</p>
                 </div>
               </div>
             </div>
+
+            {/* E: Discipline — at-risk students with names */}
+            {atRiskStudents.length > 0 && (
+              <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[#b45309] text-lg">gavel</span>
+                    <h2 className="text-sm font-bold text-[#17325f]">At-risk students</h2>
+                  </div>
+                  <a href="/dashboard/discipline" className="rounded-full bg-[#f2f6fc] px-3 py-1 text-[10px] font-semibold text-[#42638d]">All</a>
+                </div>
+                <div className="space-y-2">
+                  {atRiskStudents.slice(0, 4).map((s: any, i: number) => (
+                    <div key={s.id || i} className="flex items-center gap-3 rounded-[14px] bg-[#fcfcfd] border border-[#eaedf2] px-3 py-2.5">
+                      <div className="h-8 w-8 rounded-lg bg-[#fff5e8] flex items-center justify-center text-xs font-bold text-[#b45309] shrink-0">
+                        {(s.first_name?.[0] || '')}{(s.last_name?.[0] || '')}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-[#17325f] truncate">{s.first_name} {s.last_name}</p>
+                        <p className="text-[9px] text-[#7890ad]">{s.reason || 'At risk'}</p>
+                      </div>
+                      <a href={`/dashboard/students/${s.id}`} className="shrink-0 rounded-lg border border-[#d7e3f2] px-2.5 py-1.5 text-[10px] font-bold text-[#42638d] hover:bg-[#eef4fb]">View</a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* A: Fee Defaulters by Class */}
-        <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
-          <div className="flex items-start justify-between gap-4 mb-4">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">Fee track</p>
-              <h2 className="mt-1 font-['Sora'] text-xl font-semibold tracking-[-0.04em] text-[#17325f]">Defaulters by class</h2>
+        {/* Trends snapshot — 3 key metrics */}
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { label: 'Student:Teacher', value: `${Math.round((students.length || 1) / Math.max(staff.filter(s => s.role === 'teacher').length, 1))}:1`, status: (students.length / Math.max(staff.filter(s => s.role === 'teacher').length, 1)) <= 40 ? 'Good' : 'Review', color: (students.length / Math.max(staff.filter(s => s.role === 'teacher').length, 1)) <= 40 ? 'text-[#1f8a70]' : 'text-[#b45309]' },
+            { label: 'Attendance', value: `${attendanceRate}%`, status: attendanceRate >= 80 ? 'Good' : 'Needs improvement', color: attendanceRate >= 80 ? 'text-[#1f8a70]' : 'text-[#b45309]' },
+            { label: 'Fee Collection', value: `${collectionRate}%`, status: collectionRate >= 70 ? 'On track' : 'Needs follow-up', color: collectionRate >= 70 ? 'text-[#1f8a70]' : 'text-[#c2472b]' },
+          ].map(m => (
+            <div key={m.label} className="rounded-[20px] border border-[#e5ecf4] bg-white px-4 py-3 shadow-sm">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">{m.label}</p>
+              <p className="mt-1 text-xl font-bold text-[#17325f]">{m.value}</p>
+              <p className={`mt-0.5 text-[10px] font-semibold ${m.color}`}>{m.status}</p>
             </div>
-            {overdueFeeCount > 0 && <div className="rounded-full bg-[#ffefe8] px-3 py-1 text-[11px] font-bold text-[#c2472b]">{overdueFeeCount} overdue</div>}
-          </div>
-          <div className="space-y-2">
-            {classes.slice(0, 6).map(cls => {
-              const classStudents = students.filter(s => s.class_id === cls.id);
-              const totalExpected = classStudents.length * (feeStructure.filter(f => !f.class_id || f.class_id === cls.id).reduce((s,f) => s + Number(f.amount||0), 0) || 1);
-              const totalPaid = classStudents.reduce((s, st) => s + payments.filter(p => p.student_id === st.id).reduce((ps, pp) => ps + Number(pp.amount_paid||0), 0), 0);
-              const rate = totalExpected > 0 ? Math.round((totalPaid / totalExpected) * 100) : 0;
-              return (
-                <div key={cls.id} className="flex items-center gap-3 rounded-[16px] bg-[#f4f8fc] px-4 py-2.5">
-                  <div className="min-w-0 flex-[2]">
-                    <p className="text-sm font-bold text-[#17325f]">{cls.name}</p>
-                    <p className="text-[10px] text-[#7890ad]">{classStudents.length} students</p>
-                  </div>
-                  <div className="flex-1">
-                    <div className="h-2 rounded-full bg-[#e7eef8]">
-                      <div className="h-2 rounded-full bg-[length:200%_100%] bg-gradient-to-r from-[#d05858] via-[#e8a848] to-[#1f8a70]" style={{width: `${Math.min(rate,100)}%`}} />
-                    </div>
-                  </div>
-                  <div className="w-12 text-right">
-                    <p className={`text-sm font-bold ${rate >= 70 ? 'text-[#1f8a70]' : rate >= 40 ? 'text-[#c2852a]' : 'text-[#c2472b]'}`}>{rate}%</p>
-                  </div>
-                  <button className="shrink-0 rounded-lg bg-[#17325f] px-2.5 py-1.5 text-[10px] font-bold text-white hover:opacity-90">
-                    <span className="material-symbols-outlined text-[12px] align-text-bottom mr-0.5">sms</span>SMS
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+          ))}
         </div>
 
         {/* Quick Actions */}

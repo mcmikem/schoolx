@@ -47,8 +47,8 @@ function TeacherDashboardContent() {
         : "Good Evening";
 
   const myClasses = classes;
-  const mySubjects = useMemo(() => subjects, [subjects]);
-  const needsSetup = (classes.length === 0 || subjects.length === 0) && user?.role === "school_admin";
+  const mySubjects = subjects;
+  const needsSetup = classes.length === 0 || subjects.length === 0;
   const attendanceRate = useMemo(
     () =>
       stats?.totalStudents > 0
@@ -62,8 +62,7 @@ function TeacherDashboardContent() {
     month: "short",
   });
 
-  const todayDayName = currentDate.toLocaleDateString("en-UG", { weekday: "long" });
-  const classesToday = useMemo(() => classes.slice(0, 5), [classes]);
+  const classesNotMarkedToday = classes.filter((c) => { return false; }).length;
 
   const runSetup = async () => {
     if (!school?.id) return;
@@ -193,9 +192,8 @@ function TeacherDashboardContent() {
             </h2>
             <div className="mt-5 space-y-3">
               {[
-                ["Classes", myClasses.length],
-                ["Subjects", mySubjects.length],
-                ["Live attendance", `${attendanceRate}%`],
+                ["Classes today", myClasses.length],
+                ["Students", students.length],
               ].map(([label, value]) => (
                 <div key={String(label)} className="rounded-[16px] border border-white/10 bg-white/10 px-4 py-3">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">{label}</p>
@@ -234,7 +232,7 @@ function TeacherDashboardContent() {
         </div>
       </section>
 
-      {needsSetup && (
+      {needsSetup && user?.role === "school_admin" && (
         <div className="rounded-xl border border-[var(--primary)]/20 bg-[linear-gradient(135deg,var(--primary-50),#f0f7ff)] p-5 mb-6">
           <div className="flex items-start gap-4">
             <OwlMascot size={40} premium ring glow />
@@ -251,29 +249,38 @@ function TeacherDashboardContent() {
         </div>
       )}
 
+      {/* Attendance Queue */}
+      {stats?.presentToday === 0 && myClasses.length > 0 && (
+        <div className="rounded-xl border border-[#c2472b]/20 bg-[#ffefe8] p-4 mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="material-symbols-outlined text-[#c2472b]">how_to_reg</span>
+            <h3 className="text-sm font-bold text-[#c2472b]">Attendance pending</h3>
+          </div>
+          <p className="text-xs text-[#6b7f99] mb-3">Mark attendance for your classes today</p>
+          <a href="/dashboard/attendance" className="inline-flex items-center gap-1 rounded-lg bg-[#c2472b] px-3 py-1.5 text-[11px] font-bold text-white">Take attendance now</a>
+        </div>
+      )}
+
       {/* Today's Schedule */}
-      {classesToday.length > 0 && (
+      {myClasses.length > 0 && (
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-3">
             <MaterialIcon icon="today" className="text-[var(--primary)] text-lg" />
             <h2 className="text-sm font-bold text-[var(--t1)]">Today&apos;s Schedule</h2>
-            <span className="text-[11px] text-[var(--t3)]">{todayDayName} · {classesToday.length} classes</span>
+            <span className="text-[11px] text-[var(--t3)]">· {myClasses.length} classes</span>
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1">
-            {classesToday.map((cls: any, idx: number) => {
+            {myClasses.map((cls: any, idx: number) => {
               const count = students.filter((s) => s.class_id === cls.id).length;
               return (
-                <Link
-                  key={cls.id}
-                  href={`/dashboard/attendance?class=${cls.id}`}
-                  className={`shrink-0 rounded-xl border p-3 min-w-[140px] transition-colors hover:bg-[var(--surface-container)] ${
-                    idx === 0 ? "border-[var(--primary)] bg-[var(--primary-50)]" : "border-[var(--border)] bg-[var(--surface)]"
-                  }`}
-                >
+                <div key={cls.id} className={`shrink-0 rounded-xl border p-3 min-w-[140px] ${idx === 0 ? 'border-[var(--primary)] bg-[var(--primary-50)]' : 'border-[var(--border)] bg-[var(--surface)]'}`}>
                   <div className="text-[13px] font-bold text-[var(--t1)]">{cls.name}</div>
                   <div className="text-[11px] text-[var(--t3)] mt-0.5">{count} students</div>
-                  {idx === 0 && <div className="text-[10px] font-semibold text-[var(--primary)] mt-1">Next class</div>}
-                </Link>
+                  <div className="flex gap-2 mt-2">
+                    <a href={`/dashboard/attendance?class=${cls.id}`} className="rounded-lg bg-[var(--primary)] px-2.5 py-1 text-[10px] font-bold text-white">Attendance</a>
+                    <a href={`/dashboard/grades?class=${cls.id}`} className="rounded-lg border border-[var(--border)] px-2.5 py-1 text-[10px] font-bold text-[var(--t1)]">Grades</a>
+                  </div>
+                </div>
               );
             })}
           </div>
