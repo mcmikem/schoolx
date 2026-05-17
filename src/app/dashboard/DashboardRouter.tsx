@@ -273,8 +273,8 @@ export default function DashboardRouter() {
       logger.warn(
         "[DashboardRouter] Unknown role:",
         role,
-        "- defaulting to HeadmasterDashboard",
+        "- defaulting to TeacherDashboard",
       );
-      return <HeadmasterDashboard />;
+      return <TeacherDashboard />;
   }
 }

@@ -104,11 +104,25 @@ function ParentDashboardContent() {
           if (list.length === 0 && user.phone) {
             const normalized = normalizeAuthPhone(user.phone);
             if (normalized) {
-              const { data: matchedStudents } = await supabase
+              const last9 = normalized.slice(-9);
+
+              let { data: matchedStudents } = await supabase
                 .from("students")
-                .select("id, school_id")
+                .select("id, parent_phone, parent_phone2, school_id")
                 .eq("status", "active")
                 .or(`parent_phone.eq.${normalized},parent_phone2.eq.${normalized}`);
+
+              if (!matchedStudents?.length && last9) {
+                const { data: fuzzyMatches } = await supabase
+                  .from("students")
+                  .select("id, parent_phone, parent_phone2, school_id")
+                  .eq("status", "active");
+                matchedStudents = fuzzyMatches?.filter(
+                  (s) =>
+                    s.parent_phone?.slice(-9) === last9 ||
+                    s.parent_phone2?.slice(-9) === last9,
+                ) || null;
+              }
 
               if (matchedStudents && matchedStudents.length > 0) {
                 const links = matchedStudents.map((s) => ({
@@ -116,17 +130,19 @@ function ParentDashboardContent() {
                   student_id: s.id,
                   relationship: "parent",
                 }));
-                const { error: linkErr } = await supabase
+                const { data: linkData, error: linkErr } = await supabase
                   .from("parent_students")
                   .insert(links)
                   .select("student:students(*, class:classes(name))");
 
-                if (!linkErr) {
-                  const { data: freshLinks } = await supabase
+                if (!linkErr && linkData) {
+                  const { data: newLinks } = await supabase
                     .from("parent_students")
                     .select("student:students(*, class:classes(name))")
                     .eq("parent_id", parentId);
-                  list = mapParentStudentLinks(freshLinks || []);
+                  if (newLinks) list = mapParentStudentLinks(newLinks);
+                } else if (linkErr) {
+                  logger.warn("[parent-portal] auto-link insert failed:", linkErr);
                 }
               }
             }

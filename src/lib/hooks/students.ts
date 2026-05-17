@@ -592,7 +592,7 @@ export function useStudents(
               );
             }
           })
-          .catch(() => {});
+          .catch((err) => logger.warn("[create-parent-portal] API call failed:", err));
       }
 
       return createdStudent as StudentWithClass;

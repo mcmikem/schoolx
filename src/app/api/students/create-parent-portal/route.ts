@@ -185,6 +185,10 @@ export async function POST(request: NextRequest) {
 
   if (linkError) {
     logger.warn("[create-parent-portal] parent_students link failed:", linkError);
+    return NextResponse.json(
+      { created: false, error: "Failed to create student-parent link" },
+      { status: 500 },
+    );
   }
 
   // Auto-send via WhatsApp if configured

@@ -1,6 +1,6 @@
 'use client'
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react'
-import { CheckCircle, XCircle, AlertCircle, Info, X } from 'lucide-react'
+import MaterialIcon from "@/components/MaterialIcon"
 
 type ToastType = 'success' | 'error' | 'warning' | 'info'
 
@@ -50,11 +50,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   )
 
   const icons = {
-    success: CheckCircle,
-    error: XCircle,
-    warning: AlertCircle,
-    info: Info,
-  }
+    success: "check_circle",
+    error: "cancel",
+    warning: "warning",
+    info: "info",
+  } as const;
 
   const colors = {
     success: 'bg-emerald-50 border-emerald-200 text-emerald-800',
@@ -77,7 +77,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {/* Toast Container */}
       <div className="fixed lg:bottom-4 bottom-20 right-4 z-[100] flex flex-col gap-3 max-w-sm w-full px-4 sm:px-0">
         {toasts.map((toast) => {
-          const Icon = icons[toast.type]
+          const iconName = icons[toast.type]
           return (
             <div
               key={toast.id}
@@ -88,13 +88,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 animate-slide-up
               `}
             >
-              <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${iconColors[toast.type]}`} />
+              <MaterialIcon icon={iconName} className={`flex-shrink-0 mt-0.5 ${iconColors[toast.type]}`} size={20} />
               <p className="text-sm font-medium flex-1">{toast.message}</p>
               <button
                 onClick={() => removeToast(toast.id)}
                 className="flex-shrink-0 p-1 hover:bg-black/5 rounded-lg transition-colors"
               >
-                <X className="w-4 h-4 opacity-50" />
+                <MaterialIcon icon="close" className="opacity-50" size={16} />
               </button>
             </div>
           )

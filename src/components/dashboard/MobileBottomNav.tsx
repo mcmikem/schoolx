@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { useAuth } from "@/lib/auth-context";
 import MaterialIcon from "@/components/MaterialIcon";
 
 type QuickStep = {
@@ -14,6 +15,7 @@ type QuickStep = {
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const { open: openSidebar } = useSidebar();
+  const { user } = useAuth();
 
   const isActive = (path: string) =>
     pathname === path || pathname?.startsWith(path + "/");
@@ -23,12 +25,12 @@ export default function MobileBottomNav() {
       return { label: "Add Student", href: "/dashboard/students", icon: "person_add" };
     if (pathname.startsWith("/dashboard/students"))
       return { label: "Take Attendance", href: "/dashboard/attendance", icon: "how_to_reg" };
-    if (pathname.startsWith("/dashboard/attendance"))
+    if (pathname.startsWith("/dashboard/attendance") && (user?.role === "headmaster" || user?.role === "bursar" || user?.role === "school_admin" || user?.role === "admin" || user?.role === "board" || user?.role === "dean_of_studies" || user?.role === "secretary"))
       return { label: "Record Fees", href: "/dashboard/fees", icon: "payments" };
     if (pathname.startsWith("/dashboard/fees"))
       return { label: "Send Reminder", href: "/dashboard/messages", icon: "sms" };
     return { label: "Add Student", href: "/dashboard/students", icon: "person_add" };
-  }, [pathname]);
+  }, [pathname, user]);
 
   return (
     <div className="mobile-bottom-nav">
@@ -57,12 +59,14 @@ export default function MobileBottomNav() {
       </Link>
 
       {/* Fees */}
-      <NavItem
-        href="/dashboard/fees"
-        icon="payments"
-        label="Fees"
-        active={isActive("/dashboard/fees")}
-      />
+      {(user?.role === "headmaster" || user?.role === "bursar" || user?.role === "school_admin" || user?.role === "admin" || user?.role === "board" || user?.role === "dean_of_studies" || user?.role === "secretary") && (
+        <NavItem
+          href="/dashboard/fees"
+          icon="payments"
+          label="Fees"
+          active={isActive("/dashboard/fees")}
+        />
+      )}
       {/* More */}
       <button
         type="button"
