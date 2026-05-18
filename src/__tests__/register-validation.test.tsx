@@ -161,7 +161,7 @@ describe("RegisterPage – step 3 (Account Setup)", () => {
     advanceToStep3();
     submitStep3();
     expect(
-      screen.getByText(/admin name is required/i),
+      screen.getByText(/enter a valid name/i),
     ).toBeInTheDocument();
   });
 
@@ -172,7 +172,7 @@ describe("RegisterPage – step 3 (Account Setup)", () => {
     });
     submitStep3();
     expect(
-      screen.getByText(/at least 2 characters/i),
+      screen.getByText(/enter a valid name/i),
     ).toBeInTheDocument();
   });
 
@@ -183,11 +183,11 @@ describe("RegisterPage – step 3 (Account Setup)", () => {
     });
     submitStep3();
     expect(
-      screen.getByText(/admin phone is required/i),
+      screen.getByText(/enter a valid phone/i),
     ).toBeInTheDocument();
   });
 
-  it("shows an error when password is fewer than 8 characters", () => {
+  it("shows an error when password is fewer than 8 characters", async () => {
     advanceToStep3();
     fireEvent.change(screen.getByLabelText(/your full name/i), {
       target: { value: "John Admin" },
@@ -198,13 +198,15 @@ describe("RegisterPage – step 3 (Account Setup)", () => {
     fireEvent.change(screen.getByPlaceholderText(/min 8 characters/i), {
       target: { value: "abc" },
     });
+    fireEvent.blur(screen.getByPlaceholderText(/min 8 characters/i));
     fireEvent.change(
       screen.getByPlaceholderText(/enter password again/i),
       { target: { value: "abc" } },
     );
+    fireEvent.blur(screen.getByPlaceholderText(/enter password again/i));
     submitStep3();
     expect(
-      screen.getByText(/password must be at least 8/i),
+      await screen.findByText(/password must be at least 8/i),
     ).toBeInTheDocument();
   });
 

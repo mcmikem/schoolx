@@ -715,32 +715,28 @@ export default function GradesPage() {
       onConfirm: async () => {
         try {
           setSaving(true);
-          const updatePayload: Record<string, string | null> = {
-            status: nextStatus,
-          };
-          if (nextStatus === "submitted") {
-            updatePayload.submitted_at = new Date().toISOString();
-            updatePayload.submitted_by = user.id;
-          }
-          if (nextStatus === "approved") {
-            updatePayload.approved_at = new Date().toISOString();
-            updatePayload.approved_by = user.id;
-          }
-          if (nextStatus === "published") {
-            updatePayload.published_at = new Date().toISOString();
-            updatePayload.published_by = user.id;
-          }
+          const { data: { session } } = await supabase.auth.getSession();
+          const token = session?.access_token;
 
-          const { error } = await supabase
-            .from("grades")
-            .update(updatePayload)
-            .eq("class_id", selectedClass)
-            .eq("subject_id", selectedSubject)
-            .eq("term", currentTerm)
-            .eq("academic_year", academicYear)
-            .is("deleted_at", null);
+          const response = await fetch("/api/grades/workflow/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token || ""}`,
+            },
+            body: JSON.stringify({
+              class_id: selectedClass,
+              subject_id: selectedSubject,
+              next_status: nextStatus,
+              term: currentTerm,
+              academic_year: academicYear,
+            }),
+          });
 
-          if (error) throw error;
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Failed to update workflow status");
+          }
 
           if (school?.id) {
             await logAuditEventWithOfflineSupport(
@@ -753,7 +749,7 @@ export default function GradesPage() {
               `Changed grade workflow to ${nextStatus} for class ${selectedClass} subject ${selectedSubject}`,
               `${selectedClass}:${selectedSubject}:${currentTerm}:${academicYear}`,
               { status: submissionStatus },
-              updatePayload,
+              { status: nextStatus },
             );
           }
 

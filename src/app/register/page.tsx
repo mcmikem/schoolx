@@ -100,7 +100,7 @@ export default function RegisterPage() {
     email: ValidationRules.email,
     adminName: { ...ValidationRules.required, ...ValidationRules.studentName },
     adminPhone: { ...ValidationRules.required, ...ValidationRules.phone },
-    password: { required: true, minLength: 6 },
+    password: { required: true, minLength: 8 },
   };
   const formValidation = useFormValidation(rules);
 

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useId } from 'react'
 
 interface ValidationRule {
   required?: boolean
@@ -77,6 +77,8 @@ export function useFormValidation<T extends Record<string, any>>(rules: Validati
     }
 
     setErrors(newErrors)
+    // Mark all fields as touched on submit to show errors
+    setTouched(new Set(Object.keys(rules) as string[]))
     return newErrors.length === 0
   }, [rules, validateField])
 
@@ -174,20 +176,25 @@ export function ValidatedInput({
   ...props 
 }: ValidatedInputProps) {
   const showError = touched && error
+  const fallbackId = useId()
+  const id = props.id || fallbackId
 
   return (
     <div style={{ marginBottom: 16 }}>
-      <label style={{ 
-        display: 'block', 
-        fontSize: 14, 
-        fontWeight: 500, 
-        color: showError ? 'var(--red)' : 'var(--t2)', 
-        marginBottom: 6 
-      }}>
+      <label 
+        htmlFor={id}
+        style={{ 
+          display: 'block', 
+          fontSize: 14, 
+          fontWeight: 500, 
+          color: showError ? 'var(--red)' : 'var(--t2)', 
+          marginBottom: 6 
+        }}>
         {label}
         {props.required && <span style={{ color: 'var(--red)', marginLeft: 4 }}>*</span>}
       </label>
       <input
+        id={id}
         {...props}
         onBlur={(e) => {
           onTouched?.()
