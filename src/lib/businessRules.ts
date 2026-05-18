@@ -227,6 +227,7 @@ export function validateFeeStructure(fee: {
 }
 
 // Score calculation
+/** @deprecated Use grading.ts functions instead. */
 export function calculateGrade(score: number, maxScore: number = 100): {
   grade: string
   points: number
@@ -278,6 +279,7 @@ export function calculateAge(dateOfBirth: string): number {
 // Term date calculation (Uganda school terms)
 // WARNING: This is a hardcoded fallback. The source of truth is the `academic_terms` table.
 // Use `useAcademicTerms` hook in client components or query the DB in server contexts.
+/** @deprecated Use academic_terms table instead or useAcademic hook to get current term dates. */
 export function getTermDates(year: number, term: number): {
   start: Date
   end: Date

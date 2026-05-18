@@ -1,6 +1,7 @@
 'use client'
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
 import { useAuth } from './auth-context'
+import { supabase } from './supabase'
 import { loadSchoolSettings, saveSchoolSetting } from './school-settings'
 import { getErrorMessage } from './validation'
 import { logger } from './logger'
@@ -19,6 +20,10 @@ const getStoredCurrentTerm = (): 1 | 2 | 3 => {
 interface AcademicContextType {
   academicYear: string
   currentTerm: 1 | 2 | 3
+  currentTermStartDate?: string
+  currentTermEndDate?: string
+  passingMark?: number
+  gradeLabels?: Array<{ label: string; min: number; max: number }>
   lockedTerms: string[]
   setAcademicYear: (year: string) => void
   setCurrentTerm: (term: 1 | 2 | 3) => void
@@ -32,6 +37,10 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
   const { school, isDemo } = useAuth()
   const [academicYear, setAcademicYearState] = useState<string>(getStoredAcademicYear)
   const [currentTerm, setCurrentTermState] = useState<1 | 2 | 3>(getStoredCurrentTerm)
+  const [currentTermStartDate, setCurrentTermStartDate] = useState<string | undefined>()
+  const [currentTermEndDate, setCurrentTermEndDate] = useState<string | undefined>()
+  const [passingMark, setPassingMark] = useState<number | undefined>()
+  const [gradeLabels, setGradeLabels] = useState<Array<{ label: string; min: number; max: number }> | undefined>()
   const [lockedTerms, setLockedTerms] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -54,15 +63,19 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
       setLoading(true)
       const settings = await loadSchoolSettings(school.id)
 
+      let activeYear = getStoredAcademicYear()
+      let activeTerm = getStoredCurrentTerm()
+
       if (Object.keys(settings).length > 0) {
         if (settings.academic_year) {
-          setAcademicYearState(settings.academic_year)
-          localStorage.setItem('academic_year', settings.academic_year)
+          activeYear = settings.academic_year
+          setAcademicYearState(activeYear)
+          localStorage.setItem('academic_year', activeYear)
         }
 
         if (settings.current_term) {
-          const newTerm = Number(settings.current_term) as 1 | 2 | 3
-          setCurrentTermState(newTerm)
+          activeTerm = Number(settings.current_term) as 1 | 2 | 3
+          setCurrentTermState(activeTerm)
           localStorage.setItem('current_term', settings.current_term.toString())
         }
 
@@ -70,6 +83,32 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
           .filter(k => k.startsWith('term_locked_') && settings[k] === 'true')
           .map(k => k.replace('term_locked_', ''))
         setLockedTerms(locked)
+
+        if (settings.passing_mark) {
+          setPassingMark(Number(settings.passing_mark))
+        }
+
+        if (settings.grade_labels) {
+          try {
+            setGradeLabels(JSON.parse(settings.grade_labels))
+          } catch (e) {
+            logger.warn('Failed to parse grade_labels:', e)
+          }
+        }
+
+        // Fetch term dates from academic_terms table
+        const { data: termData } = await supabase
+          .from('academic_terms')
+          .select('start_date, end_date')
+          .eq('school_id', school.id)
+          .eq('term_number', activeTerm)
+          .eq('academic_year', activeYear)
+          .maybeSingle()
+
+        if (termData) {
+          setCurrentTermStartDate(termData.start_date)
+          setCurrentTermEndDate(termData.end_date)
+        }
       } else {
         const initialYear = getStoredAcademicYear()
         const initialTerm = String(getStoredCurrentTerm())
@@ -138,7 +177,7 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AcademicContext.Provider value={{ academicYear, currentTerm, lockedTerms, setAcademicYear, setCurrentTerm, isTermLocked, lockTerm }}>
+    <AcademicContext.Provider value={{ academicYear, currentTerm, currentTermStartDate, currentTermEndDate, passingMark, gradeLabels, lockedTerms, setAcademicYear, setCurrentTerm, isTermLocked, lockTerm }}>
       {children}
     </AcademicContext.Provider>
   )

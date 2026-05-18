@@ -40,7 +40,7 @@ interface StudentResult {
 
 export default function UNEBAnalysisPage() {
   const { school } = useAuth();
-  const { academicYear, currentTerm } = useAcademic();
+  const { academicYear, currentTerm, gradeLabels } = useAcademic();
   const { students } = useStudents(school?.id);
   const { classes } = useClasses(school?.id);
 
@@ -135,7 +135,7 @@ export default function UNEBAnalysisPage() {
             student.grade =
               examType === "uce"
                 ? getUCEGrade(avg)
-                : getGradeForLevel(avg, "primary");
+                : getGradeForLevel(avg, "primary", gradeLabels);
           }
 
           processedResults.push(student);

@@ -177,7 +177,12 @@ export const PERCENTAGE_SCHEME: GradingScheme = {
   label: 'Percentage 0-100',
 }
 
-export function getGradeForLevel(score: number, level: SchoolLevel): string {
+export function getGradeForLevel(score: number, level: SchoolLevel, customScales?: Array<{ label: string; min: number; max: number }>): string {
+  if (customScales && customScales.length > 0) {
+    const match = customScales.find(s => score >= s.min && score <= s.max)
+    if (match) return match.label
+  }
+
   switch (level) {
     case 'primary': return getPLEGrade(score)
     case 'secondary_o': return getUCEGrade(score)
@@ -201,7 +206,7 @@ export function validateCompetencyScore(value: number): boolean {
 
 export function getGradeOutcome(
   value: number,
-  options?: { level?: SchoolLevel | string; scale?: GradingScale }
+  options?: { level?: SchoolLevel | string; scale?: GradingScale; customScales?: Array<{ label: string; min: number; max: number }> }
 ): { grade: string; scheme: GradingScale } {
   if (options?.scale === 'competency' || isCompetencyScale(options?.level || '')) {
     return {
@@ -211,7 +216,7 @@ export function getGradeOutcome(
   }
 
   return {
-    grade: getGradeForLevel(value, (options?.level as SchoolLevel) || 'primary'),
+    grade: getGradeForLevel(value, (options?.level as SchoolLevel) || 'primary', options?.customScales),
     scheme: 'percentage',
   }
 }
