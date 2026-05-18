@@ -144,6 +144,8 @@ const CREDIT_ADJUSTMENTS = new Set<FinancialAdjustmentType>([
   'bursary',
 ])
 
+// WARNING: This is hardcoded. In the future, this should be derived from 
+// a school setup configuration or an `is_terminal` flag on the level/class.
 const TERMINAL_CLASS_NAMES = ['P.7', 'P7', 'S.6', 'S6']
 const GRADE_STATUS_ORDER: GradeWorkflowStatus[] = ['draft', 'submitted', 'approved', 'published']
 

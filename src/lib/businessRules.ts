@@ -276,6 +276,8 @@ export function calculateAge(dateOfBirth: string): number {
 }
 
 // Term date calculation (Uganda school terms)
+// WARNING: This is a hardcoded fallback. The source of truth is the `academic_terms` table.
+// Use `useAcademicTerms` hook in client components or query the DB in server contexts.
 export function getTermDates(year: number, term: number): {
   start: Date
   end: Date

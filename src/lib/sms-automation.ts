@@ -504,7 +504,23 @@ export async function sendReportCardReady(options?: {
 }): Promise<SMSResult> {
   const schoolId = options?.schoolId
   const isDemo = options?.isDemo ?? false
-  const term = options?.term ?? getCurrentTerm().term
+  let term = options?.term
+  if (!term && !isDemo && schoolId) {
+    const { data: currentTermData } = await supabase
+      .from("academic_terms")
+      .select("term_number")
+      .eq("school_id", schoolId)
+      .eq("is_current", true)
+      .maybeSingle()
+    
+    if (currentTermData) {
+      term = currentTermData.term_number
+    }
+  }
+  
+  if (!term) {
+    term = getCurrentTerm().term
+  }
   const logs: SMSLogEntry[] = []
 
   if (isDemo || isDemoSchool(schoolId)) {

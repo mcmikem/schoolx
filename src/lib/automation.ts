@@ -374,6 +374,9 @@ export function getCurrentTerm(): { term: number; year: number } {
   return { term, year };
 }
 
+// WARNING: This is a hardcoded fallback and returns fixed dates.
+// The source of truth is the `academic_terms` table.
+// This function is also inconsistent with the one in businessRules.ts.
 export function getTermDates(
   year: number,
 ): Array<{ term: number; start: string; end: string }> {
