@@ -302,7 +302,7 @@ export default function LoginPage() {
 
     // DEMO_PHONE_NUMBERS: only try demo login for known demo phone numbers
     // to avoid wasting a network round-trip for every real user
-    const DEMO_PHONE_NUMBERS = ["256700000001", "256700000002", "256700000003", "256700000004"];
+    const DEMO_PHONE_NUMBERS = ["256700000001", "256700000002", "256700000003", "256700000004", "256700000005"];
     const isDemoPhone = !isEmailLogin && DEMO_PHONE_NUMBERS.includes(normalizedIdentifier);
 
     try {
@@ -436,6 +436,7 @@ export default function LoginPage() {
     { role: "Teacher", phone: "0700000002" },
     { role: "Bursar", phone: "0700000003" },
     { role: "Dean", phone: "0700000004" },
+    { role: "Parent", phone: "0700000005" },
   ];
 
   const handleDemoClick = (demoPhone: string) => {

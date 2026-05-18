@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import { withTimeout } from './utils'
 
 export function useSupabaseQuery<T>(
   table: string,
@@ -84,11 +85,15 @@ export function useSupabaseMutation<T>(table: string) {
     try {
       setLoading(true)
       setError(null)
-      const { data: result, error: insertError } = await supabase!
-        .from(table)
-        .insert(data as never)
-        .select()
-        .single()
+      const { data: result, error: insertError } = await withTimeout(
+        supabase!
+          .from(table)
+          .insert(data as never)
+          .select()
+          .single(),
+        15000,
+        { data: null, error: { message: 'Insert timed out', code: 'TIMEOUT', details: '', hint: '', name: 'TimeoutError' } } as any,
+      )
 
       if (insertError) throw insertError
       return result as T
@@ -104,12 +109,16 @@ export function useSupabaseMutation<T>(table: string) {
     try {
       setLoading(true)
       setError(null)
-      const { data: result, error: updateError } = await supabase!
-        .from(table)
-        .update(data as never)
-        .eq('id', id)
-        .select()
-        .single()
+      const { data: result, error: updateError } = await withTimeout(
+        supabase!
+          .from(table)
+          .update(data as never)
+          .eq('id', id)
+          .select()
+          .single(),
+        15000,
+        { data: null, error: { message: 'Update timed out', code: 'TIMEOUT', details: '', hint: '', name: 'TimeoutError' } } as any,
+      )
 
       if (updateError) throw updateError
       return result as T
@@ -125,10 +134,14 @@ export function useSupabaseMutation<T>(table: string) {
     try {
       setLoading(true)
       setError(null)
-      const { error: deleteError } = await supabase
-        .from(table)
-        .delete()
-        .eq('id', id)
+      const { error: deleteError } = await withTimeout(
+        supabase
+          .from(table)
+          .delete()
+          .eq('id', id),
+        15000,
+        { error: { message: 'Delete timed out', code: 'TIMEOUT', details: '', hint: '', name: 'TimeoutError' } } as any,
+      )
 
       if (deleteError) throw deleteError
       return true

@@ -113,6 +113,32 @@ type NewStudent = {
   photo_url: string;
 };
 
+const INITIAL_NEW_STUDENT: NewStudent = {
+  first_name: "",
+  last_name: "",
+  gender: "M",
+  date_of_birth: "",
+  parent_name: "",
+  parent_phone: "",
+  parent_phone2: "",
+  class_id: "",
+  student_number: "",
+  ple_index_number: "",
+  opening_balance: "0",
+  boarding_status: "day",
+  house_id: "",
+  previous_school: "",
+  district_origin: "",
+  sub_county: "",
+  parish: "",
+  village: "",
+  is_class_monitor: false,
+  prefect_role: "",
+  student_council_role: "",
+  games_house: "",
+  photo_url: "",
+};
+
 export default function StudentDetailPanel({
   mode,
   isOpen,
@@ -131,33 +157,8 @@ export default function StudentDetailPanel({
   const addStudentFirstInputRef = useRef<HTMLInputElement>(null);
   const addStudentModalRef = useRef<HTMLDivElement>(null);
 
-  const initialNewStudent: NewStudent = {
-    first_name: "",
-    last_name: "",
-    gender: "M",
-    date_of_birth: "",
-    parent_name: "",
-    parent_phone: "",
-    parent_phone2: "",
-    class_id: "",
-    student_number: "",
-    ple_index_number: "",
-    opening_balance: "0",
-    boarding_status: "day",
-    house_id: "",
-    previous_school: "",
-    district_origin: "",
-    sub_county: "",
-    parish: "",
-    village: "",
-    is_class_monitor: false,
-    prefect_role: "",
-    student_council_role: "",
-    games_house: "",
-    photo_url: "",
-  };
 
-  const [newStudent, setNewStudent] = useState<NewStudent>(initialNewStudent);
+  const [newStudent, setNewStudent] = useState<NewStudent>(INITIAL_NEW_STUDENT);
   const initialEditForm: EditForm = {
     first_name: "",
     last_name: "",
@@ -177,7 +178,7 @@ export default function StudentDetailPanel({
     useState<StudentDetailData | null>(null);
 
   const resetNewStudentForm = useCallback(() => {
-    setNewStudent(initialNewStudent);
+    setNewStudent(INITIAL_NEW_STUDENT);
   }, []);
 
   useEffect(() => {

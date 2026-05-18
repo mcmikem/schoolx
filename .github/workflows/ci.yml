@@ -53,6 +53,16 @@ jobs:
         env:
           ALLOW_SUPABASE_MOCK: "true"
           NODE_ENV: test
+          
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES: "true"
+          NEXT_PUBLIC_DEMO_ENABLED: "true"
+          DEMO_ADMIN_PASSWORD: "skoolmate_demo_2024"
       
       - name: Build application
         run: npm run build

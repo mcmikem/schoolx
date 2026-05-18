@@ -66,6 +66,7 @@ export interface AuthContextType {
   ) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshSchool: () => Promise<void>;
+  refreshSchoolFromAPI: () => Promise<void>;
   isSubscriptionActive: () => boolean;
   getSubscriptionPlan: () => PlanType | null;
 }

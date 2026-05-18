@@ -8,6 +8,10 @@ import { DEMO_STAFF, DemoStaff } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { logger } from "@/lib/logger";
 
+const STAFF_TIMEOUT = 15000;
+const FETCH_TIMEOUT = 8000;
+const TIMEOUT_FALLBACK_ERR = { message: "Request timed out", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" };
+
 type StaffUser = {
   id: string;
   full_name: string;
@@ -87,12 +91,16 @@ export function useSalaries(schoolId?: string) {
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
-      const { error } = await supabase
-        .from("staff_salaries")
-        .upsert(
-          { staff_id: staffId, school_id: querySchoolId, ...updates },
-          { onConflict: "staff_id" },
-        );
+      const { error } = await withTimeout(
+        supabase
+          .from("staff_salaries")
+          .upsert(
+            { staff_id: staffId, school_id: querySchoolId, ...updates },
+            { onConflict: "staff_id" },
+          ),
+        STAFF_TIMEOUT,
+        { error: TIMEOUT_FALLBACK_ERR } as any,
+      );
       if (error) throw error;
       return { success: true };
     } catch (err: any) {
@@ -109,12 +117,16 @@ export function useSalaries(schoolId?: string) {
       const querySchoolId = getQuerySchoolId(schoolId, isDemo);
       try {
         setLoading(true);
-        const { data, error } = await supabase
-          .from("staff_salaries")
-          .select(
-            "id, school_id, staff_id, base_salary, allowances, deductions, currency, payment_method, is_active, created_at, staff:users(id, full_name, role)",
-          )
-          .eq("school_id", querySchoolId);
+        const { data, error } = await withTimeout(
+          supabase
+            .from("staff_salaries")
+            .select(
+              "id, school_id, staff_id, base_salary, allowances, deductions, currency, payment_method, is_active, created_at, staff:users(id, full_name, role)",
+            )
+            .eq("school_id", querySchoolId),
+          FETCH_TIMEOUT,
+          { data: [], error: null } as any,
+        );
         if (error) throw error;
         setSalaries((data as unknown as StaffSalary[]) || []);
       } catch (err) {
@@ -149,13 +161,17 @@ export function useSalaryPayments(schoolId?: string) {
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
-      const { data, error } = await supabase
-        .from("salary_payments")
-        .insert([{ ...payment, school_id: querySchoolId }])
-        .select(
-          "id, school_id, staff_id, academic_year_id, month, year, base_paid, allowances_paid, deductions_applied, net_paid, payment_date, payment_status, created_at",
-        )
-        .single();
+      const { data, error } = await withTimeout(
+        supabase
+          .from("salary_payments")
+          .insert([{ ...payment, school_id: querySchoolId }])
+          .select(
+            "id, school_id, staff_id, academic_year_id, month, year, base_paid, allowances_paid, deductions_applied, net_paid, payment_date, payment_status, created_at",
+          )
+          .single(),
+        STAFF_TIMEOUT,
+        { data: null, error: TIMEOUT_FALLBACK_ERR } as any,
+      );
       if (error) throw error;
       return { success: true, data };
     } catch (err: any) {
@@ -172,13 +188,17 @@ export function useSalaryPayments(schoolId?: string) {
       const querySchoolId = getQuerySchoolId(schoolId, isDemo);
       try {
         setLoading(true);
-        const { data, error } = await supabase
-          .from("salary_payments")
-          .select(
-            "id, school_id, staff_id, academic_year_id, month, year, base_paid, allowances_paid, deductions_applied, net_paid, payment_date, payment_status, created_at, staff:users(id, full_name)",
-          )
-          .eq("school_id", querySchoolId)
-          .order("payment_date", { ascending: false });
+        const { data, error } = await withTimeout(
+          supabase
+            .from("salary_payments")
+            .select(
+              "id, school_id, staff_id, academic_year_id, month, year, base_paid, allowances_paid, deductions_applied, net_paid, payment_date, payment_status, created_at, staff:users(id, full_name)",
+            )
+            .eq("school_id", querySchoolId)
+            .order("payment_date", { ascending: false }),
+          FETCH_TIMEOUT,
+          { data: [], error: null } as any,
+        );
         if (error) throw error;
         setPayments((data as unknown as SalaryPayment[]) || []);
       } catch (err) {
@@ -213,13 +233,17 @@ export function useStaffReviews(schoolId?: string, staffId?: string) {
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
-      const { data, error } = await supabase
-        .from("staff_reviews")
-        .insert([{ ...review, school_id: querySchoolId }])
-        .select(
-          "id, school_id, staff_id, reviewer_id, review_date, rating, strengths, areas_for_improvement, goals, comments, status, created_at",
-        )
-        .single();
+      const { data, error } = await withTimeout(
+        supabase
+          .from("staff_reviews")
+          .insert([{ ...review, school_id: querySchoolId }])
+          .select(
+            "id, school_id, staff_id, reviewer_id, review_date, rating, strengths, areas_for_improvement, goals, comments, status, created_at",
+          )
+          .single(),
+        STAFF_TIMEOUT,
+        { data: null, error: TIMEOUT_FALLBACK_ERR } as any,
+      );
       if (error) throw error;
       return { success: true, data };
     } catch (err: any) {
@@ -243,11 +267,13 @@ export function useStaffReviews(schoolId?: string, staffId?: string) {
           )
           .eq("school_id", querySchoolId);
         if (staffId) query = query.eq("staff_id", staffId);
-        const { data, error } = await query.order("review_date", {
-          ascending: false,
-        });
+        const { data, error } = await withTimeout(
+          query.order("review_date", { ascending: false }),
+          FETCH_TIMEOUT,
+          { data: [], error: null } as any,
+        );
         if (error) {
-          if (error.code === "42P01" || error.code === "42501" || error.code === "PGRST116") {
+          if ((error as any).code === "42P01" || (error as any).code === "42501" || (error as any).code === "PGRST116") {
             setReviews([]);
             return;
           }
@@ -293,13 +319,17 @@ export function useLeaveRequests(schoolId?: string) {
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
-      const { data, error } = await supabase
-        .from("leave_requests")
-        .insert({ ...request, school_id: querySchoolId })
-        .select(
-          "id, school_id, staff_id, leave_type, status, start_date, end_date, days_count, reason, approved_at, created_at",
-        )
-        .single();
+      const { data, error } = await withTimeout(
+        supabase
+          .from("leave_requests")
+          .insert({ ...request, school_id: querySchoolId })
+          .select(
+            "id, school_id, staff_id, leave_type, status, start_date, end_date, days_count, reason, approved_at, created_at",
+          )
+          .single(),
+        STAFF_TIMEOUT,
+        { data: null, error: TIMEOUT_FALLBACK_ERR } as any,
+      );
       if (error) throw error;
       setRequests((prev) => [data, ...prev]);
       return data;
@@ -319,14 +349,18 @@ export function useLeaveRequests(schoolId?: string) {
       return { id, status };
     }
     try {
-      const { data, error } = await supabase
-        .from("leave_requests")
-        .update({ status, approved_at: new Date().toISOString() })
-        .eq("id", id)
-        .select(
-          "id, school_id, staff_id, leave_type, status, start_date, end_date, days_count, reason, approved_at, created_at",
-        )
-        .single();
+      const { data, error } = await withTimeout(
+        supabase
+          .from("leave_requests")
+          .update({ status, approved_at: new Date().toISOString() })
+          .eq("id", id)
+          .select(
+            "id, school_id, staff_id, leave_type, status, start_date, end_date, days_count, reason, approved_at, created_at",
+          )
+          .single(),
+        STAFF_TIMEOUT,
+        { data: null, error: TIMEOUT_FALLBACK_ERR } as any,
+      );
       if (error) throw error;
       setRequests((prev) => prev.map((r) => (r.id === id ? data : r)));
       return data;
@@ -344,13 +378,17 @@ export function useLeaveRequests(schoolId?: string) {
       const querySchoolId = getQuerySchoolId(schoolId, isDemo);
       try {
         setLoading(true);
-        const { data, error } = await supabase
-          .from("leave_requests")
-          .select(
-            "id, school_id, staff_id, leave_type, status, start_date, end_date, days_count, reason, approved_at, created_at, users!staff_id(id, full_name, phone)",
-          )
-          .eq("school_id", querySchoolId)
-          .order("created_at", { ascending: false });
+        const { data, error } = await withTimeout(
+          supabase
+            .from("leave_requests")
+            .select(
+              "id, school_id, staff_id, leave_type, status, start_date, end_date, days_count, reason, approved_at, created_at, users!staff_id(id, full_name, phone)",
+            )
+            .eq("school_id", querySchoolId)
+            .order("created_at", { ascending: false }),
+          FETCH_TIMEOUT,
+          { data: [], error: null } as any,
+        );
         if (error) throw error;
         setRequests(data || []);
       } catch (err) {

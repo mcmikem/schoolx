@@ -364,7 +364,7 @@ export function useStudents(
     }
 
     const cached = getCachedData<StudentWithClass[]>(cacheKey);
-    if (cached && hasInitialized.current) {
+    if (cached) {
       setStudents(cached);
       setLoading(false);
       return;
@@ -700,10 +700,14 @@ export function useStudents(
       return;
     }
     try {
-      const { error: deleteError } = await supabase
-        .from("students")
-        .delete()
-        .eq("id", id);
+      const { error: deleteError } = await withTimeout(
+        supabase
+          .from("students")
+          .delete()
+          .eq("id", id),
+        15000,
+        { error: { message: "Delete timed out", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" } } as any,
+      );
       if (deleteError) throw deleteError;
       setStudents((prev) => prev.filter((s) => s.id !== id));
       setTotalCount((prev) => prev - 1);

@@ -11,6 +11,7 @@ import { StuckLoadingOverlay } from '@/components/ui/Skeleton'
 import { logger } from '@/lib/logger'
 import { setupErrorLogging } from '@/lib/error-logger'
 import BrandProvider from '@/components/BrandProvider'
+import { ReactQueryProvider } from './providers/ReactQueryProvider'
 
 function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -100,23 +101,25 @@ function LoadingChecker({ children }: { children: ReactNode }) {
 export default function Providers({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary>
-      <ToastProvider>
-        <ThemeProvider>
-          <ServiceWorkerRegistration>
-            <AuthProvider>
-              <LoadingChecker>
-                <AcademicProvider>
-                  <BrandProvider>
-                    <NotificationsProvider>
-                      {children}
-                    </NotificationsProvider>
-                  </BrandProvider>
-                </AcademicProvider>
-              </LoadingChecker>
-            </AuthProvider>
-          </ServiceWorkerRegistration>
-        </ThemeProvider>
-      </ToastProvider>
+      <ReactQueryProvider>
+        <ToastProvider>
+          <ThemeProvider>
+            <ServiceWorkerRegistration>
+              <AuthProvider>
+                <LoadingChecker>
+                  <AcademicProvider>
+                    <BrandProvider>
+                      <NotificationsProvider>
+                        {children}
+                      </NotificationsProvider>
+                    </BrandProvider>
+                  </AcademicProvider>
+                </LoadingChecker>
+              </AuthProvider>
+            </ServiceWorkerRegistration>
+          </ThemeProvider>
+        </ToastProvider>
+      </ReactQueryProvider>
     </ErrorBoundary>
   )
 }

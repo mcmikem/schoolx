@@ -16,27 +16,27 @@ import { requireDevelopmentRouteOrDeny, rateLimit } from "@/lib/api-utils";
 
 // Demo credentials - ONLY accessible server-side
 const DEMO_CREDS = {
-  "0700000001": {
+  "256700000001": {
     role: "headmaster",
     name: "John Headmaster",
     school_id: "demo-school",
   },
-  "0700000002": {
+  "256700000002": {
     role: "teacher",
     name: "Mary Teacher",
     school_id: "demo-school",
   },
-  "0700000003": {
+  "256700000003": {
     role: "bursar",
     name: "James Bursar",
     school_id: "demo-school",
   },
-  "0700000004": {
+  "256700000004": {
     role: "dean_of_studies",
     name: "Sarah Dean",
     school_id: "demo-school",
   },
-  "0700000005": {
+  "256700000005": {
     role: "parent",
     name: "Robert Parent",
     school_id: "demo-school",

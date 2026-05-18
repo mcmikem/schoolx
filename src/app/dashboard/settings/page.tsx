@@ -122,21 +122,6 @@ export default function SettingsPage() {
   }, [searchParams, toast]);
 
   useEffect(() => { if (school) setSchoolData((prev) => ({ ...prev, name: school.name || "", district: school.district || "" })); }, [school]);
-  useEffect(() => { if (activeTab === "config" && school?.id) fetchHouses(); }, [activeTab, school?.id]);
-  useEffect(() => { if (activeTab === "users" && school?.id) fetchUsers(); }, [activeTab, school?.id]);
-  useEffect(() => { if (tabs.length > 0 && !tabs.some((t) => t.id === activeTab)) setActiveTab(tabs[0].id); }, [tabs, activeTab]);
-
-  const saveSettings = async (key: string, value: string) => {
-    if (!school?.id) return;
-    try { await saveSchoolSetting(school.id, key, value); }
-    catch (err) { logger.error("Error:", err); }
-  };
-
-  const handleSettingChange = async (key: keyof SchoolSettings, value: boolean | number) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
-    await saveSettings(key, String(value));
-  };
-
   const fetchUsers = useCallback(async () => {
     if (!school?.id) return;
     try {
@@ -157,6 +142,23 @@ export default function SettingsPage() {
     } catch { setHouses([]); }
     finally { setLoadingHouses(false); }
   }, [school?.id]);
+
+  useEffect(() => { if (activeTab === "config" && school?.id) fetchHouses(); }, [activeTab, school?.id, fetchHouses]);
+  useEffect(() => { if (activeTab === "users" && school?.id) fetchUsers(); }, [activeTab, school?.id, fetchUsers]);
+  useEffect(() => { if (tabs.length > 0 && !tabs.some((t) => t.id === activeTab)) setActiveTab(tabs[0].id); }, [tabs, activeTab]);
+
+  const saveSettings = async (key: string, value: string) => {
+    if (!school?.id) return;
+    try { await saveSchoolSetting(school.id, key, value); }
+    catch (err) { logger.error("Error:", err); }
+  };
+
+  const handleSettingChange = async (key: keyof SchoolSettings, value: boolean | number) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+    await saveSettings(key, String(value));
+  };
+
+
 
   const saveSchoolConfig = async () => {
     if (!school?.id) return;

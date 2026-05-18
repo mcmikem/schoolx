@@ -1448,6 +1448,15 @@ USING (
   )
 );
 
+-- School admins can update their own school (name, logo, colors, etc.)
+DROP POLICY IF EXISTS "School admins update own school" ON "schools";
+CREATE POLICY "School admins update own school"
+ON "schools"
+FOR UPDATE
+TO authenticated
+USING (id = my_school_id())
+WITH CHECK (id = my_school_id());
+
 -- =========================
 -- ACADEMIC YEARS
 -- =========================

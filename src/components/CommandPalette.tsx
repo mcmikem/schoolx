@@ -237,7 +237,6 @@ export function useCommandPalette() {
       isOpen,
       filteredResults,
       selectedIndex,
-      openPalette,
       navigateTo,
       closePalette,
     ],

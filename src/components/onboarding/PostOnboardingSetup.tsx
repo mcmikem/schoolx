@@ -153,7 +153,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     } catch {
       logger.warn("Failed to load completed checklist items");
     }
-  }, [school?.id]);
+  }, [school?.id, school?.signature_headteacher_url, school?.signature_class_teacher_url]);
 
   useEffect(() => {
     checkCompletedItems();

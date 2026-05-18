@@ -132,7 +132,7 @@ export function useFeePayments(
     }
 
     const cached = getCachedData<FeePayment[]>(cacheKey);
-    if (cached && hasInitialized.current) {
+    if (cached) {
       setPayments(cached);
       setLoading(false);
       return;
@@ -379,7 +379,7 @@ export function useFeeStructure(schoolId?: string) {
     }
 
     const cached = getCachedData<FeeStructure[]>(cacheKey);
-    if (cached && hasInitialized.current) {
+    if (cached) {
       setFeeStructure(cached);
       setLoading(false);
       return;
@@ -568,7 +568,7 @@ export function useFeeAdjustments(schoolId?: string) {
     }
 
     const cached = getCachedData<any[]>(cacheKey);
-    if (cached && hasInitialized.current) {
+    if (cached) {
       setAdjustments(cached);
       setLoading(false);
       return;

@@ -13,6 +13,7 @@ import {
 } from "@/lib/featureStages";
 import MaterialIcon from "@/components/MaterialIcon";
 import SchoolColorPicker from "@/components/SchoolColorPicker";
+import { withTimeout } from "@/lib/hooks/utils";
 
 interface GeneralSettingsProps {
   schoolData: {
@@ -65,7 +66,7 @@ export default function GeneralSettings({
   savingStage,
   refreshSchool,
 }: GeneralSettingsProps) {
-  const { school } = useAuth();
+  const { school, refreshSchoolFromAPI } = useAuth();
   const [primaryColor, setPrimaryColor] = useState(school?.primary_color || "#005ce6");
   const [accentColor, setAccentColor] = useState(school?.accent_color || "#f97316");
 
@@ -238,15 +239,19 @@ export default function GeneralSettings({
         data: { publicUrl },
       } = supabase.storage.from("school-logos").getPublicUrl(fileName);
 
-      const { error: updateError } = await supabase
-        .from("schools")
-        .update({ logo_url: publicUrl })
-        .eq("id", school.id);
+      const { error: updateError } = await withTimeout(
+        supabase
+          .from("schools")
+          .update({ logo_url: publicUrl })
+          .eq("id", school.id),
+        15000,
+        null as any,
+      );
 
       if (updateError) {
         logger.error("Update error:", updateError);
       } else {
-        await refreshSchool();
+        await refreshSchoolFromAPI();
       }
 
       setLogoUrl(publicUrl);
@@ -324,13 +329,17 @@ export default function GeneralSettings({
   const handleStageChange = async (stage: FeatureStage) => {
     if (!school?.id || stage === selectedStage) return;
     try {
-      const { error } = await supabase
-        .from("schools")
-        .update({ feature_stage: stage })
-        .eq("id", school.id);
+      const { error } = await withTimeout(
+        supabase
+          .from("schools")
+          .update({ feature_stage: stage })
+          .eq("id", school.id),
+        15000,
+        { error: new Error("Save timed out") } as any,
+      );
       if (error) throw error;
       setSelectedStage(stage);
-      await refreshSchool();
+      await refreshSchoolFromAPI();
       toast.success(`Stage updated to ${FEATURE_STAGES[stage].label}`);
     } catch (err: unknown) {
       toast.error(
@@ -342,19 +351,23 @@ export default function GeneralSettings({
   const saveSchoolSettings = async () => {
     if (!school?.id) return;
     try {
-      const { error } = await supabase
-        .from("schools")
-        .update({
-          name: schoolData.name,
-          district: schoolData.district,
-          phone: schoolData.phone || null,
-          email: schoolData.email || null,
-          primary_color: primaryColor,
-          accent_color: accentColor,
-        })
-        .eq("id", school.id);
+      const { error } = await withTimeout(
+        supabase
+          .from("schools")
+          .update({
+            name: schoolData.name,
+            district: schoolData.district,
+            phone: schoolData.phone || null,
+            email: schoolData.email || null,
+            primary_color: primaryColor,
+            accent_color: accentColor,
+          })
+          .eq("id", school.id),
+        15000,
+        { error: new Error("Save timed out") } as any,
+      );
       if (error) throw error;
-      await refreshSchool();
+      await refreshSchoolFromAPI();
       toast.success("Settings saved");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to save");

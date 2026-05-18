@@ -438,7 +438,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(safetyTimer);
       setAuthInitialized(true);
     }
-  }, [fetchUserData]);
+  }, [fetchUserData, clearAuthState]);
 
   useEffect(() => {
     // Reset the abort flag on (re)mount — React StrictMode unmounts/remounts
@@ -833,6 +833,24 @@ signInLockTimer.current = setTimeout(() => {
     }
   }
 
+  async function refreshSchoolFromAPI() {
+    try {
+      const res = await fetch("/api/auth/me/");
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.school) {
+        setSchool({
+          ...data.school,
+          feature_stage:
+            (data.school.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
+        });
+        setIsTrialExpired(computeTrialExpired(data.school));
+      }
+    } catch (error) {
+      logger.error("Error refreshing school from API:", error);
+    }
+  }
+
   const signOut = useCallback(async () => {
     try {
       await supabase!.auth.signOut({ scope: "local" });
@@ -876,6 +894,7 @@ signInLockTimer.current = setTimeout(() => {
         signUp,
         signOut,
         refreshSchool,
+        refreshSchoolFromAPI,
         isSubscriptionActive,
         getSubscriptionPlan,
       }}
