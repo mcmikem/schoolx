@@ -51,6 +51,7 @@ interface StudentDetailData {
   ple_index_number?: string | null;
   opening_balance?: string | number | null;
   photo_url?: string | null;
+  blood_type?: string | null;
 }
 
 interface ClassOption {
@@ -84,7 +85,19 @@ type EditForm = {
   student_number: string;
   ple_index_number: string;
   opening_balance: string;
+  boarding_status: "day" | "boarding" | "weekly";
+  house_id: string;
+  previous_school: string;
+  district_origin: string;
+  sub_county: string;
+  parish: string;
+  village: string;
+  is_class_monitor: boolean;
+  prefect_role: string;
+  student_council_role: string;
+  games_house: string;
   photo_url: string;
+  blood_type: string;
 };
 
 type NewStudent = {
@@ -111,6 +124,7 @@ type NewStudent = {
   student_council_role: string;
   games_house: string;
   photo_url: string;
+  blood_type: string;
 };
 
 const INITIAL_NEW_STUDENT: NewStudent = {
@@ -137,6 +151,7 @@ const INITIAL_NEW_STUDENT: NewStudent = {
   student_council_role: "",
   games_house: "",
   photo_url: "",
+  blood_type: "",
 };
 
 export default function StudentDetailPanel({
@@ -171,7 +186,19 @@ export default function StudentDetailPanel({
     student_number: "",
     ple_index_number: "",
     opening_balance: "0",
+    boarding_status: "day",
+    house_id: "",
+    previous_school: "",
+    district_origin: "",
+    sub_county: "",
+    parish: "",
+    village: "",
+    is_class_monitor: false,
+    prefect_role: "",
+    student_council_role: "",
+    games_house: "",
     photo_url: "",
+    blood_type: "",
   };
   const [editForm, setEditForm] = useState<EditForm>(initialEditForm);
   const [internalEditingStudent, setInternalEditingStudent] =
@@ -210,7 +237,19 @@ export default function StudentDetailPanel({
         student_number: student.student_number || "",
         ple_index_number: student.ple_index_number || "",
         opening_balance: student.opening_balance?.toString() || "0",
+        boarding_status: (student as any).boarding_status || "day",
+        house_id: (student as any).house_id || "",
+        previous_school: (student as any).previous_school || "",
+        district_origin: (student as any).district_origin || "",
+        sub_county: (student as any).sub_county || "",
+        parish: (student as any).parish || "",
+        village: (student as any).village || "",
+        is_class_monitor: !!(student as any).is_class_monitor,
+        prefect_role: (student as any).prefect_role || "",
+        student_council_role: (student as any).student_council_role || "",
+        games_house: (student as any).games_house || "",
         photo_url: student.photo_url || "",
+        blood_type: student.blood_type || "",
       });
       setInternalEditingStudent(student as StudentDetailData);
     }
@@ -332,6 +371,7 @@ export default function StudentDetailPanel({
         games_house: newStudent.games_house || undefined,
         is_class_monitor: newStudent.is_class_monitor,
         photo_url: newStudent.photo_url || undefined,
+        blood_type: newStudent.blood_type || undefined,
         status: "active",
       });
       toast.success("Student added successfully");
@@ -353,6 +393,18 @@ export default function StudentDetailPanel({
       const updateData = {
         ...editForm,
         opening_balance: parseFloat(editForm.opening_balance || "0"),
+        blood_type: editForm.blood_type || null,
+        boarding_status: editForm.boarding_status,
+        house_id: editForm.house_id || null,
+        previous_school: editForm.previous_school || null,
+        district_origin: editForm.district_origin || null,
+        sub_county: editForm.sub_county || null,
+        parish: editForm.parish || null,
+        village: editForm.village || null,
+        is_class_monitor: editForm.is_class_monitor,
+        prefect_role: editForm.prefect_role || null,
+        student_council_role: editForm.student_council_role || null,
+        games_house: editForm.games_house || null,
       };
       await updateStudent?.(internalEditingStudent.id, updateData);
       toast.success("Student updated successfully");
@@ -366,6 +418,13 @@ export default function StudentDetailPanel({
     }
   };
 
+  const isEdit = mode === "edit";
+  const formData: Record<string, any> = isEdit ? editForm : newStudent;
+  const handleFormChange = (updates: Record<string, any>) =>
+    isEdit
+      ? setEditForm((p) => ({ ...p, ...updates }))
+      : handleNewStudentChange(updates);
+
   const districtOptions = useMemo(
     () => UGANDA_DISTRICT_DIRECTORY.map((entry) => entry.district),
     [],
@@ -375,21 +434,20 @@ export default function StudentDetailPanel({
       UGANDA_DISTRICT_DIRECTORY.find(
         (entry) =>
           entry.district.toLowerCase() ===
-          newStudent.district_origin.trim().toLowerCase(),
+          formData.district_origin.trim().toLowerCase(),
       ),
-    [newStudent.district_origin],
+    [formData.district_origin],
   );
   const subcountyOptions = selectedDistrictEntry?.subcounties || [];
   const parishOptions = useMemo(() => {
     if (!selectedDistrictEntry) return [];
-    const subcounty = newStudent.sub_county.trim();
+    const subcounty = formData.sub_county.trim();
     if (!subcounty) return [];
     return selectedDistrictEntry.parishes[subcounty] || [];
-  }, [selectedDistrictEntry, newStudent.sub_county]);
+  }, [selectedDistrictEntry, formData.sub_county]);
 
   if (!isOpen) return null;
 
-  const isEdit = mode === "edit";
   const fName = isEdit ? editForm.first_name : newStudent.first_name;
   const lName = isEdit ? editForm.last_name : newStudent.last_name;
   const gen = isEdit ? editForm.gender : newStudent.gender;
@@ -837,6 +895,48 @@ export default function StudentDetailPanel({
                 />
               </div>
             </div>
+            <div style={{ marginBottom: 16 }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 12,
+                }}
+              >
+                <div>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".5px",
+                      textTransform: "uppercase",
+                      color: "var(--t3)",
+                      marginBottom: 6,
+                      display: "block",
+                    }}
+                  >
+                    Blood Type
+                  </label>
+                  <select
+                    value={isEdit ? editForm.blood_type : newStudent.blood_type || ""}
+                    onChange={(e) =>
+                      isEdit
+                        ? setEditForm((p) => ({ ...p, blood_type: e.target.value }))
+                        : handleNewStudentChange({ blood_type: e.target.value })
+                    }
+                    className="input"
+                  >
+                    <option value="">Unknown</option>
+                    {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bt) => (
+                      <option key={bt} value={bt}>
+                        {bt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div />
+              </div>
+            </div>
             <div style={{ marginBottom: 20 }}>
               <label
                 style={{
@@ -887,449 +987,445 @@ export default function StudentDetailPanel({
                 </p>
               )}
             </div>
-            {!isEdit && (
-              <>
+            <div
+              style={{
+                borderTop: "1px solid var(--border)",
+                paddingTop: 16,
+                marginBottom: 16,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "var(--t1)",
+                  marginBottom: 12,
+                }}
+              >
+                Additional Details
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 12,
+                  marginBottom: 12,
+                }}
+              >
+                <div>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".5px",
+                      textTransform: "uppercase",
+                      color: "var(--t3)",
+                      marginBottom: 6,
+                      display: "block",
+                    }}
+                  >
+                    Boarding Status
+                    <FieldHint tip="Day Scholar = student goes home daily after school. Boarding = student sleeps in the school dormitory every night. Weekly = boarder who goes home on weekends." />
+                  </label>
+                  <select
+                    value={formData.boarding_status}
+                    onChange={(e) =>
+                      handleFormChange({
+                        boarding_status: e.target.value as
+                          | "day"
+                          | "boarding"
+                          | "weekly",
+                      })
+                    }
+                    className="input"
+                  >
+                    <option value="day">Day Scholar</option>
+                    <option value="boarding">Boarding</option>
+                    <option value="weekly">Weekly Boarder</option>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".5px",
+                      textTransform: "uppercase",
+                      color: "var(--t3)",
+                      marginBottom: 6,
+                      display: "block",
+                    }}
+                  >
+                    Previous School
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.previous_school}
+                    onChange={(e) =>
+                      handleFormChange({
+                        previous_school: e.target.value,
+                      })
+                    }
+                    className="input"
+                    placeholder="e.g., St. Peter's PS"
+                  />
+                </div>
+              </div>
+              {houses.length > 0 && (
                 <div
                   style={{
-                    borderTop: "1px solid var(--border)",
-                    paddingTop: 16,
-                    marginBottom: 16,
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 12,
+                    marginBottom: 12,
                   }}
                 >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: "var(--t1)",
-                      marginBottom: 12,
-                    }}
-                  >
-                    Additional Details
-                  </div>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: 12,
-                      marginBottom: 12,
-                    }}
-                  >
-                    <div>
-                      <label
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          letterSpacing: ".5px",
-                          textTransform: "uppercase",
-                          color: "var(--t3)",
-                          marginBottom: 6,
-                          display: "block",
-                        }}
-                      >
-                        Boarding Status
-                        <FieldHint tip="Day Scholar = student goes home daily after school. Boarding = student sleeps in the school dormitory every night. Weekly = boarder who goes home on weekends." />
-                      </label>
-                      <select
-                        value={newStudent.boarding_status}
-                        onChange={(e) =>
-                          handleNewStudentChange({
-                            boarding_status: e.target.value as
-                              | "day"
-                              | "boarding"
-                              | "weekly",
-                          })
-                        }
-                        className="input"
-                      >
-                        <option value="day">Day Scholar</option>
-                        <option value="boarding">Boarding</option>
-                        <option value="weekly">Weekly Boarder</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          letterSpacing: ".5px",
-                          textTransform: "uppercase",
-                          color: "var(--t3)",
-                          marginBottom: 6,
-                          display: "block",
-                        }}
-                      >
-                        Previous School
-                      </label>
-                      <input
-                        type="text"
-                        value={newStudent.previous_school}
-                        onChange={(e) =>
-                          handleNewStudentChange({
-                            previous_school: e.target.value,
-                          })
-                        }
-                        className="input"
-                        placeholder="e.g., St. Peter's PS"
-                      />
-                    </div>
-                  </div>
-                  {houses.length > 0 && (
-                    <div
+                  <div>
+                    <label
                       style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: 12,
-                        marginBottom: 12,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: ".5px",
+                        textTransform: "uppercase",
+                        color: "var(--t3)",
+                        marginBottom: 6,
+                        display: "block",
                       }}
                     >
-                      <div>
-                        <label
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            letterSpacing: ".5px",
-                            textTransform: "uppercase",
-                            color: "var(--t3)",
-                            marginBottom: 6,
-                            display: "block",
-                          }}
-                        >
-                          House
-                        </label>
-                        <select
-                          value={newStudent.house_id}
-                          onChange={(e) =>
-                            handleNewStudentChange({
-                              house_id: e.target.value,
-                            })
-                          }
-                          className="input"
-                        >
-                          <option value="">No house</option>
-                          {houses.map((h) => (
-                            <option key={h.id} value={h.id}>
-                              {h.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            letterSpacing: ".5px",
-                            textTransform: "uppercase",
-                            color: "var(--t3)",
-                            marginBottom: 6,
-                            display: "block",
-                          }}
-                        >
-                          Games House
-                        </label>
-                        <select
-                          value={newStudent.games_house}
-                          onChange={(e) =>
-                            handleNewStudentChange({
-                              games_house: e.target.value,
-                            })
-                          }
-                          className="input"
-                        >
-                          <option value="">Same as house</option>
-                          {houses.map((h) => (
-                            <option key={h.id} value={h.id}>
-                              {h.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  )}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: 12,
-                      marginBottom: 12,
-                    }}
-                  >
-                    <div>
-                      <label
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          letterSpacing: ".5px",
-                          textTransform: "uppercase",
-                          color: "var(--t3)",
-                          marginBottom: 6,
-                          display: "block",
-                        }}
-                      >
-                        District of Origin
-                        <FieldHint tip="The student's home district. Used for UNEB registration and government reports. Example: Kampala, Wakiso, Gulu, Mbale." />
-                      </label>
-                      <input
-                        type="text"
-                        value={newStudent.district_origin}
-                        list="district-origin-options"
-                        onChange={(e) =>
-                          handleNewStudentChange({
-                            district_origin: e.target.value,
-                            sub_county: "",
-                            parish: "",
-                          })
-                        }
-                        className="input"
-                        placeholder="e.g., Kampala"
-                        maxLength={100}
-                      />
-                    </div>
-                    <div>
-                      <label
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          letterSpacing: ".5px",
-                          textTransform: "uppercase",
-                          color: "var(--t3)",
-                          marginBottom: 6,
-                          display: "block",
-                        }}
-                      >
-                        Sub-County
-                      </label>
-                      <input
-                        type="text"
-                        value={newStudent.sub_county}
-                        list="sub-county-options"
-                        onChange={(e) =>
-                          handleNewStudentChange({
-                            sub_county: e.target.value,
-                            parish: "",
-                          })
-                        }
-                        className="input"
-                        placeholder={
-                          subcountyOptions.length > 0
-                            ? "Pick or type your sub-county"
-                            : "Type sub-county"
-                        }
-                        maxLength={100}
-                      />
-                    </div>
+                      House
+                    </label>
+                    <select
+                      value={formData.house_id}
+                      onChange={(e) =>
+                        handleFormChange({
+                          house_id: e.target.value,
+                        })
+                      }
+                      className="input"
+                    >
+                      <option value="">No house</option>
+                      {houses.map((h) => (
+                        <option key={h.id} value={h.id}>
+                          {h.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: 12,
-                      marginBottom: 12,
-                    }}
-                  >
-                    <div>
-                      <label
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          letterSpacing: ".5px",
-                          textTransform: "uppercase",
-                          color: "var(--t3)",
-                          marginBottom: 6,
-                          display: "block",
-                        }}
-                      >
-                        Parish
-                      </label>
-                      <input
-                        type="text"
-                        value={newStudent.parish}
-                        list="parish-options"
-                        onChange={(e) =>
-                          handleNewStudentChange({
-                            parish: e.target.value,
-                          })
-                        }
-                        className="input"
-                        placeholder={
-                          parishOptions.length > 0
-                            ? "Pick or type your parish"
-                            : "Type parish"
-                        }
-                        maxLength={100}
-                      />
-                    </div>
-                    <div>
-                      <label
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          letterSpacing: ".5px",
-                          textTransform: "uppercase",
-                          color: "var(--t3)",
-                          marginBottom: 6,
-                          display: "block",
-                        }}
-                      >
-                        Village
-                      </label>
-                      <input
-                        type="text"
-                        value={newStudent.village}
-                        onChange={(e) =>
-                          handleNewStudentChange({
-                            village: e.target.value,
-                          })
-                        }
-                        className="input"
-                        maxLength={100}
-                      />
-                    </div>
-                  </div>
-                  <datalist id="district-origin-options">
-                    {districtOptions.map((district) => (
-                      <option key={district} value={district} />
-                    ))}
-                  </datalist>
-                  <datalist id="sub-county-options">
-                    {subcountyOptions.map((subcounty) => (
-                      <option key={subcounty} value={subcounty} />
-                    ))}
-                  </datalist>
-                  <datalist id="parish-options">
-                    {parishOptions.map((parish) => (
-                      <option key={parish} value={parish} />
-                    ))}
-                  </datalist>
-                  <p className="text-[11px] text-[var(--t3)] mb-3">
-                    Suggestions come from Uganda district data. You can still
-                    type any value manually.
-                  </p>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: 12,
-                    }}
-                  >
-                    <div>
-                      <label
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          letterSpacing: ".5px",
-                          textTransform: "uppercase",
-                          color: "var(--t3)",
-                          marginBottom: 6,
-                          display: "block",
-                        }}
-                      >
-                        Leadership Position
-                      </label>
-                      <select
-                        value={
-                          newStudent.prefect_role ||
-                          newStudent.student_council_role ||
-                          ""
-                        }
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (
-                            [
-                              "head_boy",
-                              "head_girl",
-                              "sports_prefect",
-                              "dining_prefect",
-                              "library_prefect",
-                              "health_prefect",
-                            ].includes(val)
-                          ) {
-                            handleNewStudentChange({
-                              prefect_role: val,
-                              student_council_role: "",
-                            });
-                          } else if (
-                            [
-                              "president",
-                              "vice_president",
-                              "secretary",
-                              "treasurer",
-                            ].includes(val)
-                          ) {
-                            handleNewStudentChange({
-                              student_council_role: val,
-                              prefect_role: "",
-                            });
-                          } else {
-                            handleNewStudentChange({
-                              prefect_role: "",
-                              student_council_role: "",
-                            });
-                          }
-                        }}
-                        className="input"
-                      >
-                        <option value="">None</option>
-                        <optgroup label="Prefects">
-                          <option value="head_boy">Head Boy</option>
-                          <option value="head_girl">Head Girl</option>
-                          <option value="sports_prefect">
-                            Sports Prefect
-                          </option>
-                          <option value="dining_prefect">
-                            Dining Prefect
-                          </option>
-                          <option value="library_prefect">
-                            Library Prefect
-                          </option>
-                          <option value="health_prefect">
-                            Health Prefect
-                          </option>
-                        </optgroup>
-                        <optgroup label="Student Council">
-                          <option value="president">President</option>
-                          <option value="vice_president">
-                            Vice President
-                          </option>
-                          <option value="secretary">Secretary</option>
-                          <option value="treasurer">Treasurer</option>
-                        </optgroup>
-                      </select>
-                    </div>
-                    <div>
-                      <label
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          letterSpacing: ".5px",
-                          textTransform: "uppercase",
-                          color: "var(--t3)",
-                          marginBottom: 6,
-                          display: "block",
-                        }}
-                      >
-                        Class Monitor
-                      </label>
-                      <div className="flex items-center gap-2 mt-2">
-                        <input
-                          type="checkbox"
-                          checked={newStudent.is_class_monitor}
-                          onChange={(e) =>
-                            handleNewStudentChange({
-                              is_class_monitor: e.target.checked,
-                            })
-                          }
-                          className="w-5 h-5 rounded"
-                        />
-                        <span className="text-sm">
-                          Yes, this student is a class monitor
-                        </span>
-                      </div>
-                    </div>
+                  <div>
+                    <label
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: ".5px",
+                        textTransform: "uppercase",
+                        color: "var(--t3)",
+                        marginBottom: 6,
+                        display: "block",
+                      }}
+                    >
+                      Games House
+                    </label>
+                    <select
+                      value={formData.games_house}
+                      onChange={(e) =>
+                        handleFormChange({
+                          games_house: e.target.value,
+                        })
+                      }
+                      className="input"
+                    >
+                      <option value="">Same as house</option>
+                      {houses.map((h) => (
+                        <option key={h.id} value={h.id}>
+                          {h.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-              </>
-            )}
+              )}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 12,
+                  marginBottom: 12,
+                }}
+              >
+                <div>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".5px",
+                      textTransform: "uppercase",
+                      color: "var(--t3)",
+                      marginBottom: 6,
+                      display: "block",
+                    }}
+                  >
+                    District of Origin
+                    <FieldHint tip="The student's home district. Used for UNEB registration and government reports. Example: Kampala, Wakiso, Gulu, Mbale." />
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.district_origin}
+                    list="district-origin-options"
+                    onChange={(e) =>
+                      handleFormChange({
+                        district_origin: e.target.value,
+                        sub_county: "",
+                        parish: "",
+                      })
+                    }
+                    className="input"
+                    placeholder="e.g., Kampala"
+                    maxLength={100}
+                  />
+                </div>
+                <div>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".5px",
+                      textTransform: "uppercase",
+                      color: "var(--t3)",
+                      marginBottom: 6,
+                      display: "block",
+                    }}
+                  >
+                    Sub-County
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.sub_county}
+                    list="sub-county-options"
+                    onChange={(e) =>
+                      handleFormChange({
+                        sub_county: e.target.value,
+                        parish: "",
+                      })
+                    }
+                    className="input"
+                    placeholder={
+                      subcountyOptions.length > 0
+                        ? "Pick or type your sub-county"
+                        : "Type sub-county"
+                    }
+                    maxLength={100}
+                  />
+                </div>
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 12,
+                  marginBottom: 12,
+                }}
+              >
+                <div>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".5px",
+                      textTransform: "uppercase",
+                      color: "var(--t3)",
+                      marginBottom: 6,
+                      display: "block",
+                    }}
+                  >
+                    Parish
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.parish}
+                    list="parish-options"
+                    onChange={(e) =>
+                      handleFormChange({
+                        parish: e.target.value,
+                      })
+                    }
+                    className="input"
+                    placeholder={
+                      parishOptions.length > 0
+                        ? "Pick or type your parish"
+                        : "Type parish"
+                    }
+                    maxLength={100}
+                  />
+                </div>
+                <div>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".5px",
+                      textTransform: "uppercase",
+                      color: "var(--t3)",
+                      marginBottom: 6,
+                      display: "block",
+                    }}
+                  >
+                    Village
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.village}
+                    onChange={(e) =>
+                      handleFormChange({
+                        village: e.target.value,
+                      })
+                    }
+                    className="input"
+                    maxLength={100}
+                  />
+                </div>
+              </div>
+              <datalist id="district-origin-options">
+                {districtOptions.map((district) => (
+                  <option key={district} value={district} />
+                ))}
+              </datalist>
+              <datalist id="sub-county-options">
+                {subcountyOptions.map((subcounty) => (
+                  <option key={subcounty} value={subcounty} />
+                ))}
+              </datalist>
+              <datalist id="parish-options">
+                {parishOptions.map((parish) => (
+                  <option key={parish} value={parish} />
+                ))}
+              </datalist>
+              <p className="text-[11px] text-[var(--t3)] mb-3">
+                Suggestions come from Uganda district data. You can still
+                type any value manually.
+              </p>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 12,
+                }}
+              >
+                <div>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".5px",
+                      textTransform: "uppercase",
+                      color: "var(--t3)",
+                      marginBottom: 6,
+                      display: "block",
+                    }}
+                  >
+                    Leadership Position
+                  </label>
+                  <select
+                    value={
+                      formData.prefect_role ||
+                      formData.student_council_role ||
+                      ""
+                    }
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (
+                        [
+                          "head_boy",
+                          "head_girl",
+                          "sports_prefect",
+                          "dining_prefect",
+                          "library_prefect",
+                          "health_prefect",
+                        ].includes(val)
+                      ) {
+                        handleFormChange({
+                          prefect_role: val,
+                          student_council_role: "",
+                        });
+                      } else if (
+                        [
+                          "president",
+                          "vice_president",
+                          "secretary",
+                          "treasurer",
+                        ].includes(val)
+                      ) {
+                        handleFormChange({
+                          student_council_role: val,
+                          prefect_role: "",
+                        });
+                      } else {
+                        handleFormChange({
+                          prefect_role: "",
+                          student_council_role: "",
+                        });
+                      }
+                    }}
+                    className="input"
+                  >
+                    <option value="">None</option>
+                    <optgroup label="Prefects">
+                      <option value="head_boy">Head Boy</option>
+                      <option value="head_girl">Head Girl</option>
+                      <option value="sports_prefect">
+                        Sports Prefect
+                      </option>
+                      <option value="dining_prefect">
+                        Dining Prefect
+                      </option>
+                      <option value="library_prefect">
+                        Library Prefect
+                      </option>
+                      <option value="health_prefect">
+                        Health Prefect
+                      </option>
+                    </optgroup>
+                    <optgroup label="Student Council">
+                      <option value="president">President</option>
+                      <option value="vice_president">
+                        Vice President
+                      </option>
+                      <option value="secretary">Secretary</option>
+                      <option value="treasurer">Treasurer</option>
+                    </optgroup>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".5px",
+                      textTransform: "uppercase",
+                      color: "var(--t3)",
+                      marginBottom: 6,
+                      display: "block",
+                    }}
+                  >
+                    Class Monitor
+                  </label>
+                  <div className="flex items-center gap-2 mt-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_class_monitor}
+                      onChange={(e) =>
+                        handleFormChange({
+                          is_class_monitor: e.target.checked,
+                        })
+                      }
+                      className="w-5 h-5 rounded"
+                    />
+                    <span className="text-sm">
+                      Yes, this student is a class monitor
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div style={{ display: "flex", gap: 10 }}>
               <Button
                 type="button"

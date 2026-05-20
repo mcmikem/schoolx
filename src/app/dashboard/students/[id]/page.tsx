@@ -63,9 +63,10 @@ type AttendanceRecord = {
 };
 
 type GradeRecord = {
-  subject: string | null;
+  subject_id: string | null;
   score: number | null;
   term: string | null;
+  subjects?: { name: string | null } | { name: string | null }[] | null;
 };
 
 function useStudentData(studentId: string, isDemo: boolean) {
@@ -129,7 +130,7 @@ function useStudentData(studentId: string, isDemo: boolean) {
             .maybeSingle(),
           supabase
             .from("grades")
-            .select("subject, score, term")
+            .select("subject_id, score, term, subjects(name)")
             .eq("student_id", studentId),
         ]);
 
@@ -158,14 +159,18 @@ function useStudentData(studentId: string, isDemo: boolean) {
         setSubjectScores(
           safeGrades
             .filter(
-              (grade): grade is GradeRecord & { subject: string; score: number } =>
-                typeof grade.subject === "string" &&
+              (grade): grade is GradeRecord & { score: number } =>
                 typeof grade.score === "number",
             )
-            .map((grade) => ({
-              subject: grade.subject,
-              score: grade.score,
-            })),
+            .map((grade) => {
+              const subjectName = Array.isArray(grade.subjects)
+                ? grade.subjects[0]?.name
+                : grade.subjects?.name;
+              return {
+                subject: subjectName || grade.subject_id || "Unknown",
+                score: grade.score,
+              };
+            }),
         );
 
         if (safeGrades.length > 0) {

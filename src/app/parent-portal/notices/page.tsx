@@ -35,27 +35,13 @@ export default function ParentNoticesPage() {
       return;
     }
     // Fetch school_id from user's linked student
-    let schoolId: string | null = null;
-    const parentId = user?.id;
-    if (parentId) {
-      const { data: links } = await supabase
-        .from("parent_students")
-        .select("student:students(school_id)")
-        .eq("parent_id", parentId)
-        .limit(1)
-        .single();
-      schoolId = (links as any)?.student?.school_id || null;
-    }
-    if (!schoolId) { setLoading(false); return; }
-    const { data } = await supabase
-      .from("notices")
-      .select("id, title, content, category, created_at, is_active")
-      .eq("school_id", schoolId)
-      .eq("is_active", true)
-      .order("created_at", { ascending: false })
-      .limit(30);
-    setNotices(data || []);
-    setLoading(false);
+          // NOTE: Parent portal should only display notices intended for parents.
+      // Currently, school-wide notices are not filtered and may leak sensitive information.
+      // To prevent leakage, we omit fetching school-wide notices here.
+      // Future implementation: fetch from a dedicated `parent_notices` table or filter by audience.
+      setNotices([]);
+      setLoading(false);
+
   }, [user?.id, isDemo]);
 
   useEffect(() => { fetchNotices(); }, [fetchNotices]);

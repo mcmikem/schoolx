@@ -132,9 +132,19 @@ export function isFutureDate(dateStr: string, referenceDate = new Date()): boole
 export function normalizeAuthPhone(phone: string): string {
   if (!phone) return '';
   const digits = phone.replace(/[^\d]/g, '');
-  if (digits.startsWith('256') && digits.length === 12) return digits;
-  if (digits.length === 9) return '256' + digits;
-  if (digits.length === 10 && digits.startsWith('0')) return '256' + digits.slice(1);
+  // If already a full Ugandan number (256xxxxxxxxx)
+  if (digits.startsWith('256') && digits.length >= 12) {
+    return digits.slice(0, 12);
+  }
+  // If starts with a leading 0 (e.g., 07770100019), replace with 256
+  if (digits.startsWith('0')) {
+    return '256' + digits.slice(1);
+  }
+  // If just the 9‑digit local part
+  if (digits.length === 9) {
+    return '256' + digits;
+  }
+  // Fallback – return the cleaned digits as‑is
   return digits;
 }
 
@@ -197,12 +207,31 @@ export function normalizeStudentInput(input: Record<string, any>): Record<string
     first_name: String(input.first_name || '').trim(),
     last_name: String(input.last_name || '').trim(),
     gender,
+    date_of_birth: input.date_of_birth || null,
     parent_name: String(input.parent_name || '').trim(),
     parent_phone: normalizeAuthPhone(String(input.parent_phone || '')),
     parent_phone2: normalizeAuthPhone(String(input.parent_phone2 || '')),
+    parent_email: input.parent_email || null,
+    address: input.address || null,
     student_number: String(input.student_number || '').trim().replace(/\s+/g, '').toUpperCase(),
     class_id: String(input.class_id || '').trim(),
+    ple_index_number: input.ple_index_number || null,
     opening_balance: isNaN(balance) ? 0 : balance,
+    photo_url: input.photo_url || null,
+    blood_type: input.blood_type || null,
+    religion: input.religion || null,
+    nationality: input.nationality || null,
+    boarding_status: input.boarding_status || 'day',
+    house_id: input.house_id || null,
+    previous_school: input.previous_school || null,
+    district_origin: input.district_origin || null,
+    sub_county: input.sub_county || null,
+    parish: input.parish || null,
+    village: input.village || null,
+    games_house: input.games_house || null,
+    is_class_monitor: input.is_class_monitor === true,
+    prefect_role: input.prefect_role || null,
+    student_council_role: input.student_council_role || null,
   };
 }
 

@@ -187,9 +187,14 @@ export async function POST(request: NextRequest) {
     logger.warn("[create-parent-portal] parent_students link failed:", linkError);
     return NextResponse.json(
       { created: false, error: "Failed to create student-parent link" },
-      { status: 500 },
     );
   }
+
+  // Fetch linked children to return to frontend
+  const { data: linkedChildren } = await supabaseAdmin
+    .from("parent_students")
+    .select("student:students(*, class:classes(name))")
+    .eq("parent_id", parentUserId);
 
   // Auto-send via WhatsApp if configured
   let whatsappLink: string | undefined;
@@ -218,5 +223,6 @@ export async function POST(request: NextRequest) {
     generatedPassword,
     whatsappLink,
     whatsappSent,
+    linkedChildren: linkedChildren || [],
   });
 }

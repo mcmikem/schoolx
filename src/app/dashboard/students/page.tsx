@@ -69,6 +69,18 @@ interface EditingStudent {
   ple_index_number?: string | null;
   opening_balance?: string | number | null;
   photo_url?: string | null;
+  blood_type?: string | null;
+  boarding_status?: string | null;
+  house_id?: string | null;
+  previous_school?: string | null;
+  district_origin?: string | null;
+  sub_county?: string | null;
+  parish?: string | null;
+  village?: string | null;
+  is_class_monitor?: boolean | null;
+  prefect_role?: string | null;
+  student_council_role?: string | null;
+  games_house?: string | null;
 }
 
 export default function StudentHubPage() {

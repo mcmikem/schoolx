@@ -51,7 +51,8 @@ const STUDENT_SELECT_FIELDS = `
   consecutive_absent_days, created_at, house_id, previous_school, district_origin,
   sub_county, parish, village, boarding_status, games_house, is_class_monitor,
   prefect_role, student_council_role,
-  classes(id, name, level, stream)
+  classes(id, name, level, stream),
+  houses(id, name, color)
 `;
 
 function buildCoreStudentPayload(student: Record<string, unknown>) {
@@ -70,6 +71,18 @@ function buildCoreStudentPayload(student: Record<string, unknown>) {
     class_id: student.class_id,
     ple_index_number: student.ple_index_number,
     photo_url: student.photo_url,
+    blood_type: student.blood_type,
+    boarding_status: student.boarding_status,
+    house_id: student.house_id,
+    previous_school: student.previous_school,
+    district_origin: student.district_origin,
+    sub_county: student.sub_county,
+    parish: student.parish,
+    village: student.village,
+    games_house: student.games_house,
+    is_class_monitor: student.is_class_monitor,
+    prefect_role: student.prefect_role,
+    student_council_role: student.student_council_role,
     status: student.status,
   };
 }
@@ -78,27 +91,34 @@ const STUDENT_SELECT_FIELDS_FALLBACK = `
   id, school_id, student_number, first_name, last_name, gender,
   date_of_birth, parent_name, parent_phone, parent_phone2,
   class_id, admission_date, ple_index_number, status, photo_url,
-  created_at, classes(id, name, level, stream)
+  house_id, boarding_status, games_house,
+  created_at, classes(id, name, level, stream),
+  houses(id, name, color)
 `;
 
 const STUDENT_SELECT_FIELDS_CORE = `
   id, school_id, student_number, first_name, last_name, gender,
   date_of_birth, parent_name, parent_phone, parent_phone2,
   class_id, admission_date, ple_index_number, status, photo_url,
-  created_at, classes(id, name, level, stream)
+  house_id, boarding_status,
+  created_at, classes(id, name, level, stream),
+  houses(id, name, color)
 `;
 
 const STUDENT_SELECT_FIELDS_MINIMAL = `
   id, school_id, student_number, first_name, last_name, gender,
   date_of_birth, parent_name, parent_phone, parent_phone2,
-  class_id, admission_date, ple_index_number, status, photo_url, created_at
+  class_id, admission_date, ple_index_number, status, photo_url,
+  created_at, classes(id, name, level, stream)
 `;
 
 const STUDENT_SELECT_FIELDS_FALLBACK_LEGACY = `
   id, school_id, student_number, first_name, last_name, gender,
   date_of_birth, parent_name, parent_phone, parent_phone2,
   class_id, admission_date, ple_index_number, status,
-  created_at, classes(id, name, level, stream)
+  house_id, boarding_status,
+  created_at, classes(id, name, level, stream),
+  houses(id, name, color)
 `;
 
 const STUDENT_SELECT_FIELDS_MINIMAL_LEGACY = `
@@ -286,8 +306,10 @@ export function useStudents(
 ) {
   const limit = options?.limit || 100;
   const offset = options?.offset || 0;
-  const [students, setStudents] = useState<StudentWithClass[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = `students:${schoolId}:${limit}:${offset}`;
+  const cachedData = getCachedData<StudentWithClass[]>(cacheKey);
+  const [students, setStudents] = useState<StudentWithClass[]>(cachedData || []);
+  const [loading, setLoading] = useState(!cachedData);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const { isDemo, school } = useAuth();
@@ -303,8 +325,6 @@ export function useStudents(
     }
     prevIsDemo.current = isDemo;
   }, [isDemo]);
-
-  const cacheKey = `students:${schoolId}:${limit}:${offset}`;
 
   const assertUniqueStudentNumber = useCallback(
     async (studentNumber: string | undefined, studentId?: string) => {

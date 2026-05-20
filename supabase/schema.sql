@@ -1853,6 +1853,44 @@ ON storage.objects FOR DELETE
 TO authenticated
 USING (bucket_id = 'school-logos');
 
+-- Create storage bucket for student photos
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'student-photos',
+    'student-photos',
+    true,
+    5242880,
+    ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+) ON CONFLICT (id) DO NOTHING;
+
+-- Create policy for authenticated users to upload student photos
+DROP POLICY IF EXISTS "Allow authenticated users to upload student photos" ON storage.objects;
+CREATE POLICY "Allow authenticated users to upload student photos"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'student-photos');
+
+-- Create policy for authenticated users to update student photos
+DROP POLICY IF EXISTS "Allow authenticated users to update student photos" ON storage.objects;
+CREATE POLICY "Allow authenticated users to update student photos"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (bucket_id = 'student-photos');
+
+-- Create policy for anyone to view student photos
+DROP POLICY IF EXISTS "Allow public to view student photos" ON storage.objects;
+CREATE POLICY "Allow public to view student photos"
+ON storage.objects FOR SELECT
+TO public
+USING (bucket_id = 'student-photos');
+
+-- Create policy for authenticated users to delete student photos
+DROP POLICY IF EXISTS "Authenticated can delete student photos" ON storage.objects;
+CREATE POLICY "Authenticated can delete student photos"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (bucket_id = 'student-photos');
+
 -- ============================================
 -- HOMEWORK TABLE
 -- ============================================

@@ -9,6 +9,7 @@ export interface ParentPortalChild {
   parent_name?: string | null;
   parent_phone?: string | null;
   parent_phone2?: string | null;
+  photo_url?: string | null;
   district_origin?: string | null;
   village?: string | null;
   attendance?: string;
@@ -187,6 +188,7 @@ interface ParentStudentLinkRecord {
         parent_phone2?: string | null;
         district_origin?: string | null;
         village?: string | null;
+        photo_url?: string | null;
         class?:
           | { name?: string | null }
           | Array<{ name?: string | null }>
@@ -204,6 +206,7 @@ interface ParentStudentLinkRecord {
         parent_phone2?: string | null;
         district_origin?: string | null;
         village?: string | null;
+        photo_url?: string | null;
         class?:
           | { name?: string | null }
           | Array<{ name?: string | null }>
@@ -233,10 +236,11 @@ export function mapParentStudentLinks(
         student_number: student.student_number,
         school_id: student.school_id,
         class_id: student.class_id,
-        class_name: resolveRelationName(student.class),
+        class_name: resolveRelationName(student.class, "Unassigned"),
         parent_name: student.parent_name,
         parent_phone: student.parent_phone,
         parent_phone2: student.parent_phone2,
+        photo_url: student.photo_url,
         district_origin: student.district_origin,
         village: student.village,
       },
@@ -502,11 +506,12 @@ function resolveRelationName(
     | Array<{ name?: string | null }>
     | null
     | undefined,
+  fallback = "—",
 ) {
   if (Array.isArray(relation)) {
-    return relation[0]?.name || "—";
+    return relation[0]?.name || fallback;
   }
-  return relation?.name || "—";
+  return relation?.name || fallback;
 }
 
 function resolveSingleRelation<T>(relation: T | T[] | null | undefined) {

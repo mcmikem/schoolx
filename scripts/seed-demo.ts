@@ -178,6 +178,21 @@ async function seedDemoData() {
     }
   }
 
+  // 11. Seed fee payments for all students
+  const { data: allFeeStudents } = await supabase.from('students').select('id').eq('school_id', DEMO_SCHOOL_ID)
+  if (allFeeStudents && allFeeStudents.length > 0) {
+    const payments = allFeeStudents.map((s) => ({
+      student_id: s.id,
+      amount_paid: 400000,
+      payment_method: 'mobile_money',
+      payment_reference: `DEMO-${s.id.slice(0, 8)}-${Date.now()}`,
+      paid_by: 'Demo Parent',
+      payment_date: new Date().toISOString().split('T')[0],
+    }))
+    await supabase.from('fee_payments').insert(payments)
+    console.log('✓ Fee payments created')
+  }
+
   console.log('\n✅ Demo data seeded successfully!')
   console.log('\n📋 Demo Login Credentials:')
   console.log('   Phone: 0700000001 | Password: demo1234 | Role: Headmaster')

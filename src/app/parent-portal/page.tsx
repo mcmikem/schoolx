@@ -151,20 +151,9 @@ function ParentDashboardContent() {
 
           setChildren(list);
 
-          // Fetch Global Notices
-          const schoolId = list[0]?.school_id || null;
-          if (schoolId) {
-            const { data: noticesData } = await supabase
-              .from("notices")
-              .select("*")
-              .eq("school_id", schoolId)
-              .eq("is_active", true)
-              .order("created_at", { ascending: false })
-              .limit(5);
-            setNotices(noticesData || []);
-          } else {
-            setNotices([]);
-          }
+          // NOTE: Removed fetching of school-wide notices to avoid leaking school information to parents.
+          // If parent-specific notices are needed, implement a separate endpoint or filter.
+          setNotices([]);
 
         } catch (err) {
           logger.error("Fetch children error:", err);
@@ -395,8 +384,12 @@ function ParentDashboardContent() {
                           isSelected ? 'border-[#17325f] bg-[#f0f6ff] shadow-md' : 'border-[#e5ecf4] bg-white'
                         }`}
                       >
-                        <div className="h-14 w-14 rounded-full bg-[#17325f] flex items-center justify-center text-xl font-bold text-white mx-auto mb-2">
-                          {(child.first_name?.[0] || child.last_name?.[0] || '?')}
+                        <div className="h-14 w-14 rounded-full bg-[#17325f] flex items-center justify-center text-xl font-bold text-white mx-auto mb-2 overflow-hidden">
+                          {child.photo_url ? (
+                            <img src={child.photo_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <span>{(child.first_name?.[0] || child.last_name?.[0] || '?')}</span>
+                          )}
                         </div>
                         <p className="text-sm font-bold text-[#17325f] text-center">{child.first_name} {child.last_name}</p>
                         <p className="text-[11px] text-[#7f91aa] text-center">{child.class_name}</p>
