@@ -11,14 +11,23 @@ import { useSearchParams } from "next/navigation";
 import { DEMO_STUDENTS } from "@/lib/demo-data";
 
 export default function IDCardGenerator() {
-  const { school, isDemo } = useAuth();
+  const { school: authSchool, isDemo, refreshSchoolFromAPI } = useAuth();
   const searchParams = useSearchParams();
   const studentId = searchParams?.get("studentId") || null;
 
+  const [school, setSchool] = useState(authSchool);
   const [loading, setLoading] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const printRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (authSchool) {
+      setSchool(authSchool);
+    } else {
+      refreshSchoolFromAPI?.().then(() => {});
+    }
+  }, [authSchool, refreshSchoolFromAPI]);
 
   const loadSingleStudent = useCallback(async (id: string) => {
     setLoading(true);
