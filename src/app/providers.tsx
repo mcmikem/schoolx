@@ -13,6 +13,42 @@ import { setupErrorLogging } from '@/lib/error-logger'
 import BrandProvider from '@/components/BrandProvider'
 import { ReactQueryProvider } from './providers/ReactQueryProvider'
 
+function FaviconUpdater() {
+  const { school } = useAuth()
+
+  useEffect(() => {
+    if (!school?.logo_url) return
+
+    const iconUrl = school.logo_url
+
+    const setOrUpdate = (selector: string, attr: string, value: string) => {
+      let el = document.querySelector<HTMLLinkElement | HTMLMetaElement>(selector)
+      if (!el) {
+        el = document.createElement(attr === "href" ? "link" : "meta")
+        if (attr === "href") (el as HTMLLinkElement).rel = selector.includes("apple") ? "apple-touch-icon" : "icon"
+        if (attr === "content") (el as HTMLMetaElement).name = selector.match(/name="([^"]+)"/)?.[1] || ""
+        document.head.appendChild(el)
+      }
+      if (attr in el) (el as any)[attr] = value
+    }
+
+    setOrUpdate('link[rel="icon"]', "href", iconUrl)
+    setOrUpdate('link[rel="apple-touch-icon"]', "href", iconUrl)
+
+    if (school.primary_color) {
+      const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
+      if (meta) meta.content = school.primary_color
+    }
+
+    const ogImage = document.querySelector<HTMLMetaElement>('meta[property="og:image"]')
+    if (ogImage) ogImage.content = iconUrl
+    const twitterImage = document.querySelector<HTMLMetaElement>('meta[name="twitter:image"]')
+    if (twitterImage) twitterImage.content = iconUrl
+  }, [school?.logo_url, school?.primary_color])
+
+  return null
+}
+
 function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
   useEffect(() => {
     setupErrorLogging()
@@ -107,6 +143,7 @@ export default function Providers({ children }: { children: ReactNode }) {
             <ServiceWorkerRegistration>
               <AuthProvider>
                 <LoadingChecker>
+                  <FaviconUpdater />
                   <AcademicProvider>
                     <BrandProvider>
                       <NotificationsProvider>
