@@ -46,12 +46,27 @@ interface StudentDetailData {
   parent_name?: string | null;
   parent_phone?: string | null;
   parent_phone2?: string | null;
+  parent_email?: string | null;
+  address?: string | null;
   class_id?: string | null;
   student_number?: string | null;
   ple_index_number?: string | null;
   opening_balance?: string | number | null;
   photo_url?: string | null;
   blood_type?: string | null;
+  boarding_status?: string | null;
+  house_id?: string | null;
+  previous_school?: string | null;
+  district_origin?: string | null;
+  sub_county?: string | null;
+  parish?: string | null;
+  village?: string | null;
+  is_class_monitor?: boolean | null;
+  prefect_role?: string | null;
+  student_council_role?: string | null;
+  games_house?: string | null;
+  religion?: string | null;
+  nationality?: string | null;
 }
 
 interface ClassOption {
@@ -98,6 +113,10 @@ type EditForm = {
   games_house: string;
   photo_url: string;
   blood_type: string;
+  parent_email: string;
+  address: string;
+  religion: string;
+  nationality: string;
 };
 
 type NewStudent = {
@@ -182,6 +201,8 @@ export default function StudentDetailPanel({
     parent_name: "",
     parent_phone: "",
     parent_phone2: "",
+    parent_email: "",
+    address: "",
     class_id: "",
     student_number: "",
     ple_index_number: "",
@@ -199,6 +220,8 @@ export default function StudentDetailPanel({
     games_house: "",
     photo_url: "",
     blood_type: "",
+    religion: "",
+    nationality: "",
   };
   const [editForm, setEditForm] = useState<EditForm>(initialEditForm);
   const [internalEditingStudent, setInternalEditingStudent] =
@@ -250,6 +273,10 @@ export default function StudentDetailPanel({
         games_house: (student as any).games_house || "",
         photo_url: student.photo_url || "",
         blood_type: student.blood_type || "",
+        parent_email: student.parent_email || "",
+        address: student.address || "",
+        religion: (student as any).religion || "",
+        nationality: (student as any).nationality || "",
       });
       setInternalEditingStudent(student as StudentDetailData);
     }

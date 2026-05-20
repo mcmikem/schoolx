@@ -47,15 +47,15 @@ import {
   Bar,
 } from "recharts";
 
-import { useStudent } from "@/lib/hooks";
-import { useClasses } from "@/lib/hooks";
+import { useStudent, useClasses } from "@/lib/hooks";
 import { SendSMSModal } from "@/components/SendSMSModal";
 import { useToast } from "@/components/Toast";
 import { withTimeout } from "@/lib/hooks/utils";
-import { scrollModalToTop, focusFirstInput } from "@/lib/scroll";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { Skeleton } from "@/components/ui/Skeleton";
+import StudentDetailPanel from "@/components/students/StudentDetailPanel";
+import { normalizeStudentInput } from "@/lib/validation";
 
 type AttendanceRecord = {
   status: "present" | "absent" | "late";
@@ -530,17 +530,6 @@ export default function StudentProfilePage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [smsOpen, setSmsOpen] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
-  const [editSaving, setEditSaving] = useState(false);
-  const editModalRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!showEdit) return;
-    const frame = requestAnimationFrame(() => {
-      scrollModalToTop(editModalRef.current);
-      focusFirstInput(editModalRef.current);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [showEdit]);
   const [portalCreds, setPortalCreds] = useState<{
     parentPhone: string;
     generatedPassword: string;
@@ -548,81 +537,17 @@ export default function StudentProfilePage() {
   } | null>(null);
   const [whatsappSent, setWhatsappSent] = useState(false);
   const [whatsappLink, setWhatsappLink] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({
-    first_name: "",
-    last_name: "",
-    class_id: "",
-    blood_type: "",
-    boarding_status: "day",
-    parent_name: "",
-    parent_phone: "",
-  });
 
-  const openEdit = useCallback(() => {
-    if (!student) return;
-    setEditForm({
-      first_name: student.first_name || "",
-      last_name: student.last_name || "",
-      class_id: student.class_id || "",
-      blood_type: student.blood_type || "",
-      boarding_status: student.boarding_status || "day",
-      parent_name: student.parent_name || "",
-      parent_phone: student.parent_phone || "",
-    });
-    setShowEdit(true);
-  }, [student]);
-
-  const handleSaveEdit = useCallback(async () => {
-    if (!student) return;
-    setEditSaving(true);
-    try {
-      const updatePayload = {
-        first_name: editForm.first_name.trim(),
-        last_name: editForm.last_name.trim(),
-        class_id: editForm.class_id || null,
-        blood_type: editForm.blood_type || null,
-        boarding_status: editForm.boarding_status,
-        parent_name: editForm.parent_name.trim(),
-        parent_phone: editForm.parent_phone.trim(),
-      };
-
-      const { error: updateError } = await withTimeout(
-        supabase.from("students").update(updatePayload).eq("id", student.id),
-        15000,
-        { data: null, error: { message: "Save timed out", name: "TimeoutError" } } as any,
-      );
-
-      if (
-        updateError &&
-        typeof updateError === "object" &&
-        ["42703", "PGRST204", "PGRST301"].includes(
-          String((updateError as { code?: string }).code || ""),
-        ) &&
-        String((updateError as { message?: string }).message || "")
-          .toLowerCase()
-          .includes("boarding_status")
-      ) {
-        const { boarding_status: _omit, ...legacyPayload } = updatePayload;
-        const { error: fallbackError } = await withTimeout(
-          supabase.from("students").update(legacyPayload).eq("id", student.id),
-          15000,
-          { data: null, error: { message: "Save timed out", name: "TimeoutError" } } as any,
-        );
-        if (fallbackError) throw fallbackError;
-        toast.warning("Student saved, but boarding status could not be updated");
-      } else if (updateError) {
-        throw updateError;
-      }
-
-      setShowEdit(false);
-      toast.success("Student updated successfully");
-      refetch();
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to save changes");
-    } finally {
-      setEditSaving(false);
-    }
-  }, [student, editForm, toast, refetch]);
+  const handleProfileUpdate = useCallback(async (id: string, data: any) => {
+    const normalized = normalizeStudentInput(data);
+    const { error } = await withTimeout(
+      supabase.from("students").update(normalized).eq("id", id),
+      15000,
+      { data: null, error: { message: "Save timed out", name: "TimeoutError" } } as any,
+    );
+    if (error) throw error;
+    refetch();
+  }, [refetch]);
 
   if (studentLoading)
     return (
@@ -704,7 +629,7 @@ export default function StudentProfilePage() {
             <Printer className="w-4 h-4" />
             Print Report
           </Link>
-          <button className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors" onClick={openEdit}>
+          <button className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors" onClick={() => setShowEdit(true)}>
             <Edit className="w-4 h-4" />
             Edit
           </button>
@@ -1558,69 +1483,17 @@ export default function StudentProfilePage() {
         onClose={() => setSmsOpen(false)}
       />
 
-      {/* Edit Student Modal */}
-      {showEdit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div ref={editModalRef} className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Edit Student</h2>
-              <button onClick={() => setShowEdit(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-500">✕</button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1">First Name</label>
-                  <input type="text" value={editForm.first_name} onChange={e => setEditForm(p => ({ ...p, first_name: e.target.value }))} className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1">Last Name</label>
-                  <input type="text" value={editForm.last_name} onChange={e => setEditForm(p => ({ ...p, last_name: e.target.value }))} className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1">Class</label>
-                <select value={editForm.class_id} onChange={e => setEditForm(p => ({ ...p, class_id: e.target.value }))} className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                  <option value="">— No Class —</option>
-                  {classes.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}{c.stream ? ` ${c.stream}` : ""}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1">Blood Type</label>
-                  <select value={editForm.blood_type} onChange={e => setEditForm(p => ({ ...p, blood_type: e.target.value }))} className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                    <option value="">Unknown</option>
-                    {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(bt => <option key={bt} value={bt}>{bt}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1">Boarding</label>
-                  <select value={editForm.boarding_status} onChange={e => setEditForm(p => ({ ...p, boarding_status: e.target.value }))} className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                    <option value="day">Day Scholar</option>
-                    <option value="boarding">Full Boarding</option>
-                    <option value="weekly">Weekly Boarding</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1">Parent / Guardian Name</label>
-                <input type="text" value={editForm.parent_name} onChange={e => setEditForm(p => ({ ...p, parent_name: e.target.value }))} className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1">Parent Phone</label>
-                <input type="tel" value={editForm.parent_phone} onChange={e => setEditForm(p => ({ ...p, parent_phone: e.target.value }))} className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500" />
-              </div>
-            </div>
-            <div className="flex gap-3 p-6 border-t border-gray-100 dark:border-gray-800">
-              <button onClick={() => setShowEdit(false)} className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
-              <button onClick={handleSaveEdit} disabled={editSaving} className="flex-1 px-4 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50">
-                {editSaving ? "Saving…" : "Save Changes"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <StudentDetailPanel
+        mode="edit"
+        isOpen={showEdit}
+        onClose={() => setShowEdit(false)}
+        schoolId={school?.id}
+        classes={classes}
+        isDemo={!!isDemo}
+        toast={toast}
+        updateStudent={handleProfileUpdate}
+        student={student as any}
+      />
     </div>
     </PageErrorBoundary>
   );

@@ -93,13 +93,13 @@ describe("Global Data Quality — Multi-Tenant", () => {
       expect(panel).toContain("O-");
     });
 
-    it("dashboard student edit modal includes blood_type dropdown", () => {
+    it("dashboard student profile uses StudentDetailPanel for editing", () => {
       const page = require("fs").readFileSync(
         require("path").join(process.cwd(), "src/app/dashboard/students/[id]/page.tsx"),
         "utf8",
       );
-      expect(page).toContain("Blood Type");
-      expect(page).toContain('"AB+"');
+      expect(page).toContain("StudentDetailPanel");
+      expect(page).toContain("handleProfileUpdate");
     });
 
     it("StudentDetailPanel accepts blood_type in update payload", () => {

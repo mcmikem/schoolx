@@ -51,8 +51,30 @@ const STUDENT_SELECT_FIELDS = `
   consecutive_absent_days, created_at, house_id, previous_school, district_origin,
   sub_county, parish, village, boarding_status, games_house, is_class_monitor,
   prefect_role, student_council_role,
-  classes(id, name, level, stream),
-  houses(id, name, color)
+  classes(id, name, level, stream)
+`;
+
+const STUDENT_SELECT_FIELDS_FALLBACK = `
+  id, school_id, student_number, first_name, last_name, gender,
+  date_of_birth, parent_name, parent_phone, parent_phone2,
+  class_id, admission_date, ple_index_number, status, photo_url,
+  house_id, boarding_status, games_house,
+  created_at, classes(id, name, level, stream)
+`;
+
+const STUDENT_SELECT_FIELDS_CORE = `
+  id, school_id, student_number, first_name, last_name, gender,
+  date_of_birth, parent_name, parent_phone, parent_phone2,
+  class_id, admission_date, ple_index_number, status, photo_url,
+  house_id, boarding_status,
+  created_at, classes(id, name, level, stream)
+`;
+
+const STUDENT_SELECT_FIELDS_MINIMAL = `
+  id, school_id, student_number, first_name, last_name, gender,
+  date_of_birth, parent_name, parent_phone, parent_phone2,
+  class_id, admission_date, ple_index_number, status, photo_url,
+  created_at, classes(id, name, level, stream)
 `;
 
 function buildCoreStudentPayload(student: Record<string, unknown>) {
@@ -87,38 +109,12 @@ function buildCoreStudentPayload(student: Record<string, unknown>) {
   };
 }
 
-const STUDENT_SELECT_FIELDS_FALLBACK = `
-  id, school_id, student_number, first_name, last_name, gender,
-  date_of_birth, parent_name, parent_phone, parent_phone2,
-  class_id, admission_date, ple_index_number, status, photo_url,
-  house_id, boarding_status, games_house,
-  created_at, classes(id, name, level, stream),
-  houses(id, name, color)
-`;
-
-const STUDENT_SELECT_FIELDS_CORE = `
-  id, school_id, student_number, first_name, last_name, gender,
-  date_of_birth, parent_name, parent_phone, parent_phone2,
-  class_id, admission_date, ple_index_number, status, photo_url,
-  house_id, boarding_status,
-  created_at, classes(id, name, level, stream),
-  houses(id, name, color)
-`;
-
-const STUDENT_SELECT_FIELDS_MINIMAL = `
-  id, school_id, student_number, first_name, last_name, gender,
-  date_of_birth, parent_name, parent_phone, parent_phone2,
-  class_id, admission_date, ple_index_number, status, photo_url,
-  created_at, classes(id, name, level, stream)
-`;
-
 const STUDENT_SELECT_FIELDS_FALLBACK_LEGACY = `
   id, school_id, student_number, first_name, last_name, gender,
   date_of_birth, parent_name, parent_phone, parent_phone2,
   class_id, admission_date, ple_index_number, status,
   house_id, boarding_status,
-  created_at, classes(id, name, level, stream),
-  houses(id, name, color)
+  created_at, classes(id, name, level, stream)
 `;
 
 const STUDENT_SELECT_FIELDS_MINIMAL_LEGACY = `
