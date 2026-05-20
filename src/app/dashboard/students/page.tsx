@@ -165,9 +165,11 @@ export default function StudentHubPage() {
       const name = `${s.first_name} ${s.last_name}`.toLowerCase();
       const matchesSearch =
         !normalizedSearch ||
-        name.includes(normalizedSearch) ||
-        s.parent_name?.toLowerCase().includes(normalizedSearch) ||
-        s.student_number?.toLowerCase().includes(normalizedSearch);
+        normalizedSearch.split(" ").every((word) =>
+          name.includes(word) ||
+          s.parent_name?.toLowerCase().includes(word) ||
+          s.student_number?.toLowerCase().includes(word)
+        );
       const matchesClass =
         selectedClass === "all" || s.class_id === selectedClass;
       const matchesGender =

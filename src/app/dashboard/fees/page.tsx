@@ -69,10 +69,13 @@ type FinanceTab = "balances" | "payment-plans" | "invoices" | "cashbook";
 const MAX_FINANCE_AMOUNT = 100_000_000;
 
 export default function FinanceHubPage() {
-  const { school, isDemo } = useAuth();
+  const { school, isDemo, user } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
   const searchParams = useSearchParams();
+
+  const [paymentsPage, setPaymentsPage] = useState(1);
+  const itemsPerPage = 50;
 
   const {
     data: students,
@@ -80,11 +83,13 @@ export default function FinanceHubPage() {
     error: studentsError,
   } = useOfflineStudents(school?.id);
 
+  const offset = (paymentsPage - 1) * itemsPerPage;
   const {
     data: payments,
     loading: paymentsLoading,
     error: paymentsError,
-  } = useOfflineFees(school?.id);
+    totalCount: paymentsTotalCount,
+  } = useOfflineFees(school?.id, { limit: itemsPerPage, offset });
 
   const { classes, loading: classesLoading } = useClasses(school?.id);
   const {
@@ -667,6 +672,10 @@ export default function FinanceHubPage() {
   };
 
   const handleDeletePayment = async (paymentId: string) => {
+    if (user?.role === 'bursar') {
+      toast.error("Bursars cannot delete payments. Please contact the Headmaster.");
+      return;
+    }
     setConfirmDelete({ type: "payment", id: paymentId });
   };
 
@@ -962,6 +971,10 @@ export default function FinanceHubPage() {
   };
 
   const handleDeleteAdjustment = async (adjustmentId: string) => {
+    if (user?.role === 'bursar') {
+      toast.error("Bursars cannot delete adjustments. Please contact the Headmaster.");
+      return;
+    }
     setConfirmDelete({ type: "adjustment", id: adjustmentId });
   };
 
@@ -1492,6 +1505,27 @@ export default function FinanceHubPage() {
                   onDeletePayment={handleDeletePayment}
                   onRecordPayment={() => setShowPaymentModal(true)}
                 />
+                <div className="flex justify-between items-center mt-4">
+                  <div className="text-sm text-[var(--t3)]">
+                    Showing {offset + 1} to {Math.min(offset + itemsPerPage, paymentsTotalCount)} of {paymentsTotalCount} payments
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      onClick={() => setPaymentsPage((p) => Math.max(1, p - 1))}
+                      disabled={paymentsPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setPaymentsPage((p) => p + 1)}
+                      disabled={offset + itemsPerPage >= paymentsTotalCount}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
                 <FeeAdjustmentsList
                   adjustments={adjustments}
                   students={students}

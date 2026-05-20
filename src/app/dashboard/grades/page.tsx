@@ -150,6 +150,24 @@ export default function GradesPage() {
 
   const [tab, setTab] = useState<"marks" | "coverage">("marks");
   const tabLabels = { marks: "Enter Marks", coverage: "What we Taught" };
+  
+  const [teacherSubjects, setTeacherSubjects] = useState<{ subject_id: string; class_id: string }[]>([]);
+
+  useEffect(() => {
+    if (!user?.id || isDemo) return;
+    const fetchTeacherSubjects = async () => {
+      const { data, error } = await supabase
+        .from("teacher_subjects")
+        .select("subject_id, class_id")
+        .eq("teacher_id", user.id);
+      if (error) {
+        logger.error("Error fetching teacher subjects:", error);
+        return;
+      }
+      setTeacherSubjects(data || []);
+    };
+    fetchTeacherSubjects();
+  }, [user?.id, isDemo]);
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [coverage, setCoverage] = useState<TopicCoverage[]>([]);
@@ -266,6 +284,17 @@ export default function GradesPage() {
           lockedBy = g.locked_by;
         }
       });
+      
+      // Check for zero variance (Scenario 7)
+      const scores = Object.values(marksMap).filter((v) => v !== null) as number[];
+      if (scores.length >= 5) {
+        const first = scores[0];
+        const allIdentical = scores.every((v) => v === first);
+        if (allIdentical) {
+          toast.warning("Alert: All entered grades in this class are identical (Zero variance). This might indicate a lack of actual assessment.");
+        }
+      }
+
       setMarks(marksMap);
       setMarksBy(newMarksBy);
       setCaLocked(isCaLocked);
@@ -389,6 +418,15 @@ export default function GradesPage() {
           setSaveStatuses((prev) => ({ ...prev, [key]: "idle" }));
           return;
         }
+        const isAssigned = teacherSubjects.some(
+          (ts) => ts.subject_id === selectedSubject && ts.class_id === selectedClass
+        );
+        if (!isAssigned && user?.role === "teacher") {
+          toast.error("You are not assigned to teach this subject in this class.");
+          setSaveStatuses((prev) => ({ ...prev, [key]: "idle" }));
+          return;
+        }
+
         setSaveStatuses((prev) => ({ ...prev, [key]: "saving" }));
         try {
           await saveGrade({

@@ -153,12 +153,16 @@ export function useOfflineGrades(schoolId?: string, options?: OfflineHookOptions
   )
 }
 
-export function useOfflineFees(schoolId?: string, options?: OfflineHookOptions) {
+export function useOfflineFees(schoolId?: string, options?: OfflineHookOptions & { limit?: number; offset?: number }) {
   const [data, setData] = useState<(FeePayment & { fee_structure?: FeeStructure })[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isFromCache, setIsFromCache] = useState(false)
+  const [totalCount, setTotalCount] = useState(0)
   const isOnline = useOnlineStatus()
+
+  const limit = options?.limit || 50;
+  const offset = options?.offset || 0;
 
   const fetchData = useCallback(async () => {
     if (!schoolId) {
@@ -170,15 +174,17 @@ export function useOfflineFees(schoolId?: string, options?: OfflineHookOptions) 
 
     if (isOnline && !options?.skipCache) {
       try {
-        const { data: payments, error: payErr } = await supabase
+        const { data: payments, error: payErr, count } = await supabase
           .from('fee_payments')
-          .select('*, students!inner (id, first_name, last_name, school_id, classes (name))')
+          .select('*, students!inner (id, first_name, last_name, school_id, classes (name))', { count: 'exact' })
           .eq('students.school_id', schoolId)
           .order('payment_date', { ascending: false })
+          .range(offset, offset + limit - 1)
 
         if (payErr) throw payErr
         const result = (payments as (FeePayment & { fee_structure?: FeeStructure })[]) || []
         setData(result)
+        if (count !== null) setTotalCount(count)
         setIsFromCache(false)
         await offlineDB.cacheFromServer('fee_payments', result as unknown as Record<string, unknown>[])
         setLoading(false)
@@ -192,6 +198,7 @@ export function useOfflineFees(schoolId?: string, options?: OfflineHookOptions) 
     try {
       const cached = await offlineDB.getAllFromCache('fee_payments', { school_id: schoolId })
       setData(cached as unknown as (FeePayment & { fee_structure?: FeeStructure })[])
+      setTotalCount(cached.length)
       setIsFromCache(true)
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to read cache'
@@ -199,13 +206,13 @@ export function useOfflineFees(schoolId?: string, options?: OfflineHookOptions) 
     } finally {
       setLoading(false)
     }
-  }, [isOnline, schoolId, options?.skipCache])
+  }, [isOnline, schoolId, options?.skipCache, limit, offset])
 
   useEffect(() => {
     fetchData()
   }, [fetchData])
 
-  return { data, loading, error, isFromCache, refetch: fetchData }
+  return { data, loading, error, isFromCache, totalCount, refetch: fetchData }
 }
 
 export function useOfflineHealthRecords(schoolId?: string, options?: OfflineHookOptions) {

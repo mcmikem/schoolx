@@ -412,6 +412,31 @@ function DirectoryTab({
     setConfirmOpen(true);
   };
 
+  const handleResetPassword = async (id: string, pass: string) => {
+    if (pass.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    try {
+      setSaving(true);
+      const response = await fetch("/api/admin/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: id,
+          password: pass,
+        }),
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error || "Failed to reset password");
+      toast.success("Password reset successfully");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to reset password");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const printStaffIDCard = (member: StaffMember) => {
     const cardWindow = window.open("", "_blank");
     if (!cardWindow) return;
@@ -643,6 +668,17 @@ function DirectoryTab({
                 >
                   <MaterialIcon icon="badge" className="text-sm" />
                   ID Card
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const pass = prompt("Enter new password (min 6 chars):");
+                    if (pass) handleResetPassword(member.id, pass);
+                  }}
+                >
+                  <MaterialIcon icon="lock_reset" className="text-sm" />
+                  Reset
                 </Button>
                 <Button
                   variant={member.is_active ? "secondary" : "primary"}

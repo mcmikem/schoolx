@@ -487,6 +487,14 @@ export default function TimetablePage() {
       found.push(`This slot is already occupied by ${classConflict.subjects?.name || 'another subject'}`)
     }
 
+    // Check for overload (Scenario 20)
+    const teacherPeriods = allClassTimetables.filter(
+      (t) => t.teacher_id === teacherId
+    ).length;
+    if (teacherPeriods >= 25) {
+      found.push(`Warning: Teacher already has ${teacherPeriods} periods assigned (Overload threshold is 25)`);
+    }
+
     return found
   }, [allClassTimetables, timetable, selectedClassId, classes])
 
@@ -513,8 +521,9 @@ export default function TimetablePage() {
       selectedDay,
       selectedSlot.order_number ?? selectedSlot.period_number,
     )
-    if (found.length > 0) {
-      toast.error(`Cannot save: ${found[0]}`)
+    const realConflicts = found.filter((c) => !c.startsWith("Warning:"));
+    if (realConflicts.length > 0) {
+      toast.error(`Cannot save: ${realConflicts[0]}`)
       return
     }
 
@@ -760,13 +769,16 @@ export default function TimetablePage() {
 
               {/* Conflict warnings */}
               {conflicts.length > 0 && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl space-y-1">
-                  {conflicts.map((c, i) => (
-                    <div key={i} className="flex items-start gap-2 text-red-700 text-sm">
-                      <MaterialIcon icon="warning" className="text-red-500 shrink-0 mt-0.5" />
-                      <span>{c}</span>
-                    </div>
-                  ))}
+                <div className="space-y-2">
+                  {conflicts.map((c, i) => {
+                    const isWarning = c.startsWith("Warning:");
+                    return (
+                      <div key={i} className={`p-3 ${isWarning ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-red-50 border-red-200 text-red-700'} border rounded-xl flex items-start gap-2 text-sm`}>
+                        <MaterialIcon icon="warning" className={`${isWarning ? 'text-amber-500' : 'text-red-500'} shrink-0 mt-0.5`} />
+                        <span>{c}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 

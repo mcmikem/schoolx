@@ -106,6 +106,7 @@ export default function ReportCardsPage() {
     Record<string, { classTeacher: string; hm: string }>
   >({});
   const [sendingSms, setSendingSms] = useState(false);
+  const [hasMissingMarks, setHasMissingMarks] = useState(false);
 
   const filteredStudents = useMemo(() => {
     if (!selectedClass) return [];
@@ -251,6 +252,7 @@ export default function ReportCardsPage() {
             gradeColor: gradeInfo.color,
             competencyLevel: comp?.level,
             competencyNotes: comp?.notes,
+            isMissing: false,
           };
         });
 
@@ -260,9 +262,10 @@ export default function ReportCardsPage() {
             existing || {
               name: sub.name,
               score: 0,
-              grade: "F9",
-              gradeColor: "text-red-500",
+              grade: "M.M",
+              gradeColor: "text-amber-500",
               competencyLevel: "not_started",
+              isMissing: true,
             }
           );
         });
@@ -314,6 +317,10 @@ export default function ReportCardsPage() {
           hm: r.hmComment,
         };
       }
+      const missing = reportList.some((r) =>
+        r.subjects.some((s: any) => s.isMissing),
+      );
+      setHasMissingMarks(missing);
 
       setReports(reportList);
       setComments(initialComments);
@@ -696,6 +703,16 @@ export default function ReportCardsPage() {
           </div>
         </CardBody>
       </Card>
+
+      {generated && hasMissingMarks && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 flex items-center gap-3">
+          <MaterialIcon icon="warning" className="text-amber-600" style={{ color: '#d97706' }} />
+          <div>
+            <div className="font-semibold text-amber-800">Incomplete Data Detected</div>
+            <div className="text-sm text-amber-700">Some students have missing marks for certain subjects. These are marked as "M.M". Printing these report cards may be misleading.</div>
+          </div>
+        </div>
+      )}
 
       {generated && reports.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5">
