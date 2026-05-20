@@ -2,6 +2,9 @@
 
 import { useId } from "react";
 import { RingSpinner } from "@/components/loaders";
+export { Modal, ModalFooter } from "./Modal";
+
+// Fixed duplicate interface line
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost" | "danger";

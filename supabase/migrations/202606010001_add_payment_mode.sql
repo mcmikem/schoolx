@@ -1,16 +1,12 @@
--- Migration: add_payment_mode
--- Adds a payment_mode enum and column to fee_payments
+-- Migration: 202606010001_add_payment_mode.sql
+-- Adds a new enum type `payment_mode` and a column `payment_mode` to `fee_payments`.
 
-CREATE TYPE payment_mode AS ENUM ('Cash', 'Mobile_Money', 'Bank_Slip', 'SchoolPay');
+CREATE TYPE payment_mode AS ENUM ('cash', 'card', 'online', 'installments');
 
 ALTER TABLE fee_payments
-  ADD COLUMN payment_mode payment_mode NOT NULL DEFAULT 'Cash';
+  ADD COLUMN payment_mode payment_mode NOT NULL DEFAULT 'cash';
 
--- Ensure existing rows get default value
-UPDATE fee_payments SET payment_mode = 'Cash' WHERE payment_mode IS NULL;
+-- Ensure existing rows have the default value
+UPDATE fee_payments SET payment_mode = 'cash' WHERE payment_mode IS NULL;
 
---INSERT INTO supabase_migrations.schema_migrations (version, name, statements) VALUES ('202606020001', 'add_payment_mode', ARRAY['CREATE TYPE payment_mode AS ENUM (''Cash'',''Mobile_Money'',''Bank_Slip'',''SchoolPay'');','ALTER TABLE fee_payments ADD COLUMN payment_mode payment_mode NOT NULL DEFAULT ''Cash'';','UPDATE fee_payments SET payment_mode = ''Cash'' WHERE payment_mode IS NULL;']);
-
--- No RLS policy changes needed as column is visible to all roles.
-
--- Record migration
+-- No additional RLS policy changes needed; column is visible to all authorized roles.
