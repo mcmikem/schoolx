@@ -6,7 +6,11 @@ import { DEMO_GRADES, DemoGrade } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { logger } from "@/lib/logger";
-import { withTimeout } from "@/lib/hooks/utils";
+import {
+  deleteRecord,
+  upsertRecordReturning,
+  createRecordReturning,
+} from "@/lib/crud-service";
 import {
   logAuditEventWithOfflineSupport,
   logRecordChangeWithOfflineSupport,
@@ -159,21 +163,20 @@ export function useGrades(
           g.term === grade.term &&
           g.academic_year === grade.academic_year,
       );
-const { data, error } = await withTimeout(
-         supabase
-           .from("grades")
-           .upsert(payload, {
-             onConflict:
-               "student_id,subject_id,assessment_type,term,academic_year",
-           })
-           .select(
-             "id, student_id, subject_id, class_id, assessment_type, score, max_score, term, academic_year, status, recorded_by, created_at, deleted_at",
-           )
-           .single(),
-         15000,
-         { data: null, error: { message: "Grade save timed out", name: "TimeoutError" } } as any,
-       );
-      if (error) throw error;
+      const data = await upsertRecordReturning<any>(
+        () =>
+          supabase
+            .from("grades")
+            .upsert(payload, {
+              onConflict:
+                "student_id,subject_id,assessment_type,term,academic_year",
+            })
+            .select(
+              "id, student_id, subject_id, class_id, assessment_type, score, max_score, term, academic_year, status, recorded_by, created_at, deleted_at",
+            )
+            .single(),
+        { timeoutMs: 15000, timeoutMessage: "Grade save timed out" },
+      );
       setGrades((prev) => {
         const existing = prev.findIndex(
           (g) =>
@@ -333,28 +336,20 @@ export function useExamScores(
       return newScore;
     }
     try {
-const { data, error } = await withTimeout(
-         supabase
-           .from("exam_scores")
-           .upsert(
-             { ...score, max_score: maxScore },
-             { onConflict: "student_id,subject_id,exam_type,term,academic_year" },
-           )
-           .select(
-             "id, student_id, subject_id, class_id, exam_type, score, max_score, term, academic_year, recorded_by, created_at",
-           )
-           .single(),
-         15000,
-         { data: null, error: { message: "Exam score save timed out", name: "TimeoutError" } } as any,
-       );
-      if (error) {
-        if (error.code === "42P01") {
-          throw new Error(
-            "Exam scores table not set up. Contact your admin to run migrations.",
-          );
-        }
-        throw error;
-      }
+      const data = await upsertRecordReturning<any>(
+        () =>
+          supabase
+            .from("exam_scores")
+            .upsert(
+              { ...score, max_score: maxScore },
+              { onConflict: "student_id,subject_id,exam_type,term,academic_year" },
+            )
+            .select(
+              "id, student_id, subject_id, class_id, exam_type, score, max_score, term, academic_year, recorded_by, created_at",
+            )
+            .single(),
+        { timeoutMs: 15000, timeoutMessage: "Exam score save timed out" },
+      );
       setExamScores((prev) => {
         const existing = prev.findIndex(
           (s) =>
@@ -371,6 +366,11 @@ const { data, error } = await withTimeout(
       });
       return data;
     } catch (err: any) {
+      if (err?.code === "42P01") {
+        throw new Error(
+          "Exam scores table not set up. Contact your admin to run migrations.",
+        );
+      }
       throw new Error(err.message);
     }
   };
@@ -381,12 +381,10 @@ const { data, error } = await withTimeout(
       return;
     }
     try {
-const { error } = await withTimeout(
-          supabase.from("exam_scores").delete().eq("id", id),
-          15000,
-          { error: { message: "Exam score delete timed out", name: "TimeoutError" } } as any,
-        );
-      if (error) throw error;
+      await deleteRecord(
+        () => supabase.from("exam_scores").delete().eq("id", id),
+        { timeoutMs: 15000, timeoutMessage: "Exam score delete timed out" },
+      );
       setExamScores((prev) => prev.filter((s) => s.id !== id));
     } catch (err: any) {
       throw new Error(err.message);
@@ -463,28 +461,25 @@ export function useExams(schoolId?: string) {
       return newExam;
     }
     try {
-const { data, error } = await withTimeout(
-         supabase
-           .from("exams")
-           .insert({ ...exam, school_id: schoolId })
-           .select(
-             "id, school_id, name, exam_type, class_id, subject_id, term, academic_year, exam_date, max_score, weight, created_at",
-           )
-           .single(),
-         15000,
-         { data: null, error: { message: "Exam save timed out", name: "TimeoutError" } } as any,
-       );
-      if (error) {
-        if (error.code === "42P01") {
-          throw new Error(
-            "Exams table not set up. Contact your admin to run migrations.",
-          );
-        }
-        throw error;
-      }
+      const data = await createRecordReturning<any>(
+        () =>
+          supabase
+            .from("exams")
+            .insert({ ...exam, school_id: schoolId })
+            .select(
+              "id, school_id, name, exam_type, class_id, subject_id, term, academic_year, exam_date, max_score, weight, created_at",
+            )
+            .single(),
+        { timeoutMs: 15000, timeoutMessage: "Exam save timed out" },
+      );
       setExams((prev) => [data, ...prev]);
       return data;
     } catch (err: any) {
+      if (err?.code === "42P01") {
+        throw new Error(
+          "Exams table not set up. Contact your admin to run migrations.",
+        );
+      }
       throw new Error(err.message);
     }
   };
@@ -495,12 +490,10 @@ const { data, error } = await withTimeout(
       return;
     }
     try {
-      const { error } = await withTimeout(
-          supabase.from("exams").delete().eq("id", id),
-          15000,
-          { error: { message: "Exam delete timed out", name: "TimeoutError" } } as any,
-        );
-      if (error) throw error;
+      await deleteRecord(
+        () => supabase.from("exams").delete().eq("id", id),
+        { timeoutMs: 15000, timeoutMessage: "Exam delete timed out" },
+      );
       setExams((prev) => prev.filter((e) => e.id !== id));
     } catch (err: any) {
       throw new Error(err.message);

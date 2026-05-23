@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 
 const DB_NAME = "omuto.org-db";
-const DB_VERSION = 4;
+const DB_VERSION = 6;
 
 interface OfflineRecord {
   id?: string;
@@ -23,6 +23,11 @@ const SOFT_DELETE_TABLES = new Set([
   "fee_structure",
   "fee_adjustments",
 ]);
+
+type SyncItemResult =
+  | { status: "synced" }
+  | { status: "conflict"; reason: string }
+  | { status: "failed"; reason?: string };
 
 class OfflineDB {
   private db: IDBDatabase | null = null;
@@ -69,6 +74,12 @@ class OfflineDB {
           "inventory",
           "behavior_logs",
           "counseling_sessions",
+          "health_records",
+          "leave_requests",
+          "transport_routes",
+          "transport_students",
+          "teacher_substitutions",
+          "promotion_history",
           "audit_log",
           "sync_queue",
           "sync_metadata",
@@ -438,9 +449,46 @@ class OfflineDB {
   }
 
   // Sync a single item to server
-  private async syncSingleItem(item: OfflineRecord): Promise<boolean> {
+  private async syncSingleItem(item: OfflineRecord): Promise<SyncItemResult> {
     try {
       const { supabase } = await import("@/lib/supabase");
+      const rowId = (item.data as Record<string, unknown>)?.id as
+        | string
+        | undefined;
+      const localUpdatedAt = (item.data as Record<string, unknown>)
+        ?.updated_at as string | undefined;
+
+      // Server-wins conflict policy for mutable records when updated_at is available.
+      // If server has a newer version, skip local write and treat as resolved conflict.
+      if (
+        rowId &&
+        localUpdatedAt &&
+        item.action !== "delete" &&
+        item.table !== "attendance" &&
+        item.table !== "grades"
+      ) {
+        const { data: serverRow } = await supabase
+          .from(item.table)
+          .select("updated_at")
+          .eq("id", rowId)
+          .maybeSingle();
+
+        const serverUpdatedAt =
+          (serverRow as Record<string, unknown> | null)?.updated_at as
+            | string
+            | undefined;
+
+        if (
+          serverUpdatedAt &&
+          new Date(serverUpdatedAt).getTime() >
+            new Date(localUpdatedAt).getTime()
+        ) {
+          return {
+            status: "conflict",
+            reason: `${item.table}:${rowId} server newer than offline mutation`,
+          };
+        }
+      }
 
       if (item.action === "delete") {
         const deleteId = (item.data as Record<string, unknown>).id as string;
@@ -477,9 +525,12 @@ class OfflineDB {
         const { error } = await supabase.from(item.table).insert(item.data);
         if (error) throw error;
       }
-      return true;
-    } catch {
-      return false;
+      return { status: "synced" };
+    } catch (err) {
+      return {
+        status: "failed",
+        reason: err instanceof Error ? err.message : "Unknown sync error",
+      };
     }
   }
 
@@ -495,17 +546,24 @@ class OfflineDB {
 
     for (const item of pending) {
       const itemId = item.id as unknown as number;
-      const ok = await this.syncSingleItem(item);
+      const result = await this.syncSingleItem(item);
 
-      if (ok) {
+      if (result.status === "synced") {
         await this.markSynced(itemId);
         success++;
+      } else if (result.status === "conflict") {
+        await this.markSynced(itemId);
+        errors.push(`Conflict resolved with server-wins policy: ${result.reason}`);
       } else {
         await this.incrementAttempts(itemId);
         const newAttempts = (item.attempts || 0) + 1;
         if (newAttempts >= MAX_RETRY_ATTEMPTS) {
           errors.push(
             `Failed to sync ${item.table} (id: ${item.data?.id}) after ${MAX_RETRY_ATTEMPTS} attempts`,
+          );
+        } else if (result.reason) {
+          errors.push(
+            `Temporary sync failure for ${item.table} (id: ${item.data?.id}): ${result.reason}`,
           );
         }
         failed++;

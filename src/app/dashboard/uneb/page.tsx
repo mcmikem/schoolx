@@ -149,7 +149,7 @@ export default function UNEBAnalysisPage() {
     } finally {
       setLoading(false);
     }
-  }, [school?.id, currentTerm, academicYear, selectedClass, examType]);
+  }, [school?.id, currentTerm, academicYear, selectedClass, examType, gradeLabels]);
 
   useEffect(() => {
     fetchResults();

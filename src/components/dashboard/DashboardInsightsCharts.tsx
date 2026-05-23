@@ -195,7 +195,7 @@ export default function DashboardInsightsCharts({
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 mt-2 relative">
+        <div className="flex-1 min-w-0 mt-2 relative">
           {!isDemo &&
           trendData.every((d) => d.fees === 0 && d.attendance == null) ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-[var(--bg)]/50 backdrop-blur-sm rounded-xl border border-dashed border-[var(--border)]">
@@ -212,8 +212,8 @@ export default function DashboardInsightsCharts({
               </p>
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trendData}>
+            <div className="h-full overflow-x-auto">
+              <AreaChart width={700} height={260} data={trendData}>
                 <defs>
                   <linearGradient id="colorFees" x1="0" y1="0" x2="0" y2="1">
                     <stop
@@ -279,7 +279,7 @@ export default function DashboardInsightsCharts({
                   fill="url(#colorAtt)"
                 />
               </AreaChart>
-            </ResponsiveContainer>
+            </div>
           )}
         </div>
       </div>
@@ -381,9 +381,8 @@ export default function DashboardInsightsCharts({
               </div>
             ) : (
               <>
-                <div className="w-24 h-24">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
+                <div className="w-24 h-24 min-w-[96px] min-h-[96px]">
+                    <PieChart width={96} height={96}>
                       <Pie
                         data={demoData}
                         cx="50%"
@@ -391,14 +390,12 @@ export default function DashboardInsightsCharts({
                         innerRadius={30}
                         outerRadius={45}
                         paddingAngle={5}
-                        dataKey="value"
                       >
                         {demoData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
                     </PieChart>
-                  </ResponsiveContainer>
                 </div>
                 <div className="flex-1 flex flex-col gap-2 ml-4">
                   {demoData.map((item) => (

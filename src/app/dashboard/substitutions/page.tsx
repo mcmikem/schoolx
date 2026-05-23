@@ -506,7 +506,7 @@ export default function SubstitutionsPage() {
               </MaterialIcon>
             </div>
             <h3 className="text-lg font-semibold text-[var(--t1)] mb-2">
-              No substitutions yet
+              No entries yet
             </h3>
             <p className="text-[var(--t3)]">
               Log a substitution when a teacher is absent

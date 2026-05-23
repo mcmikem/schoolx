@@ -59,7 +59,7 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
-  const [manualLocationEntry, setManualLocationEntry] = useState(true);
+  const [manualLocationEntry, setManualLocationEntry] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const googleRegisterMode = searchParams?.get("oauth") === "1";
@@ -287,14 +287,14 @@ router.replace("/dashboard/");
           await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
         }
         const emailToTry = emailCandidates[attempt % emailCandidates.length];
-        const { error: attemptError } = await withSupabaseLockRetry(
+        const { data: attemptData, error: attemptError } = await withSupabaseLockRetry(
           async () =>
             await supabase.auth.signInWithPassword({
               email: emailToTry,
               password: form.password,
             }),
         );
-        if (!attemptError) {
+        if (!attemptError && (attemptData?.session || attemptData?.user)) {
           signedIn = true;
           break;
         }
@@ -493,18 +493,42 @@ router.replace("/dashboard/");
                       autoComplete="address-level1"
                     />
                   ) : (
-                    <ValidatedInput
-                      label="District"
-                      type="text"
-                      placeholder="Type your district"
-                      value={form.district}
-                      onChange={(e) => updateForm("district", e.target.value)}
-                      required
-                      autoComplete="address-level1"
-                      error={formValidation.getFieldError("district")}
-                      touched={formValidation.isTouched("district")}
-                      onTouched={() => formValidation.markTouched("district")}
-                    />
+                    <>
+                      <Select
+                        label="District Suggestions"
+                        options={[
+                          { value: "", label: "Browse common districts..." },
+                          ...getDistrictOptions(),
+                        ]}
+                        value={
+                          DISTRICT_OPTIONS.some(
+                            (o) => o.value === form.district && o.value !== "",
+                          )
+                            ? form.district
+                            : ""
+                        }
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            updateForm("district", e.target.value);
+                            updateForm("subcounty", "");
+                            updateForm("parish", "");
+                          }
+                        }}
+                        autoComplete="address-level1"
+                      />
+                      <ValidatedInput
+                        label="District"
+                        type="text"
+                        placeholder="Type your district"
+                        value={form.district}
+                        onChange={(e) => updateForm("district", e.target.value)}
+                        required
+                        autoComplete="address-level1"
+                        error={formValidation.getFieldError("district")}
+                        touched={formValidation.isTouched("district")}
+                        onTouched={() => formValidation.markTouched("district")}
+                      />
+                    </>
                   )}
                   {formValidation.isTouched("district") && formValidation.getFieldError("district") && (
                     <p className="text-sm text-[var(--error)]">{formValidation.getFieldError("district")}</p>
@@ -705,7 +729,7 @@ router.replace("/dashboard/");
                         value={form.password}
                         onChange={(e) => updateForm("password", e.target.value)}
                         required
-                        minLength={6}
+                        minLength={8}
                         autoComplete="new-password"
                         error={formValidation.getFieldError("password")}
                         touched={formValidation.isTouched("password")}

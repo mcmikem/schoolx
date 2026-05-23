@@ -42,7 +42,7 @@ export default function ParentNoticesPage() {
       setNotices([]);
       setLoading(false);
 
-  }, [user?.id, isDemo]);
+  }, [isDemo]);
 
   useEffect(() => { fetchNotices(); }, [fetchNotices]);
 

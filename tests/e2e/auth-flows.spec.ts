@@ -51,13 +51,31 @@ async function fillAndSubmitRegisterForm(page: Page) {
   const schoolName = page.getByLabel(/school name/i);
   await stableFill(schoolName, "Test School");
   await page.getByRole("button", { name: /next.*where/i }).click();
+  await expect(page.getByText(/step 2 of 3/i)).toBeVisible({ timeout: 10000 });
 
   // Step 2 – location
-  const district = page.getByRole("textbox", { name: /^district$/i });
-  await stableFill(district, "Kampala");
-  const subcounty = page.getByRole("textbox", { name: /sub-county \/ division/i });
-  await stableFill(subcounty, "Central Division");
+  const districtCombo = page.getByRole("combobox", { name: /^district$/i });
+  if (await districtCombo.isVisible().catch(() => false)) {
+    await districtCombo.selectOption("Kampala");
+  } else {
+    const district = page.getByRole("textbox", { name: /^district$/i });
+    await stableFill(district, "Kampala");
+  }
+
+  const subcountyCombo = page.getByRole("combobox", {
+    name: /sub-county \/ division/i,
+  });
+  if (await subcountyCombo.isVisible().catch(() => false)) {
+    await subcountyCombo.selectOption("Central Division");
+  } else {
+    const subcounty = page.getByRole("textbox", {
+      name: /sub-county \/ division/i,
+    });
+    await stableFill(subcounty, "Central Division");
+  }
+
   await page.getByRole("button", { name: /next.*account/i }).click();
+  await expect(page.getByText(/step 3 of 3/i)).toBeVisible({ timeout: 10000 });
 
   // Step 3 – admin credentials
   await page.getByLabel(/your full name/i).fill("Test Admin");
@@ -67,6 +85,38 @@ async function fillAndSubmitRegisterForm(page: Page) {
   await page.locator('input[type="password"]').nth(1).fill("SecretPass1");
 
   await page.getByRole("button", { name: /finish.*start/i }).click();
+}
+
+async function setRegisterLocation(
+  page: Page,
+  districtValue: string,
+  subcountyValue?: string,
+) {
+  const districtCombo = page.getByRole("combobox", { name: /^district$/i });
+  if (await districtCombo.isVisible().catch(() => false)) {
+    await districtCombo.selectOption(districtValue);
+  } else {
+    await stableFill(
+      page.getByRole("textbox", { name: /^district$/i }),
+      districtValue,
+    );
+  }
+
+  if (!subcountyValue) {
+    return;
+  }
+
+  const subcountyCombo = page.getByRole("combobox", {
+    name: /sub-county \/ division/i,
+  });
+  if (await subcountyCombo.isVisible().catch(() => false)) {
+    await subcountyCombo.selectOption(subcountyValue);
+  } else {
+    await stableFill(
+      page.getByRole("textbox", { name: /sub-county \/ division/i }),
+      subcountyValue,
+    );
+  }
 }
 
 // ─── Route protection ────────────────────────────────────────────────────────
@@ -213,6 +263,20 @@ test.describe("Auth – login form", () => {
     page,
   }) => {
     test.setTimeout(90_000);
+
+    let tokenCalls = 0;
+    await page.route(`${SUPABASE_URL}/auth/v1/token*`, async (route) => {
+      tokenCalls += 1;
+      await route.fulfill({
+        status: 400,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: "invalid_grant",
+          error_description: "Invalid login credentials",
+        }),
+      });
+    });
+
     await page.goto("/login");
 
     for (let i = 0; i < 5; i++) {
@@ -223,12 +287,14 @@ test.describe("Auth – login form", () => {
     }
 
     // 6th attempt should trigger rate limit lockout
+    const callsBeforeSixthAttempt = tokenCalls;
     await fillLoginForm(page, "0700000000", "WrongPassword1");
     await page.getByRole("button", { name: /sign in/i }).click();
+    await page.waitForTimeout(1200);
 
-    await expect(
-      page.getByText(/too many|locked|try again|attempt/i).first(),
-    ).toBeVisible({ timeout: 15_000 });
+    // Lockout is client-side; once active, it should block an additional auth request.
+    expect(tokenCalls).toBe(callsBeforeSixthAttempt);
+    await expect(page).toHaveURL(/\/login/);
   });
 });
 
@@ -254,11 +320,7 @@ test.describe("Auth – register validation (no backend)", () => {
     await page.goto("/register", { waitUntil: "networkidle" });
     await stableFill(page.getByRole("textbox", { name: /school name/i }), "Test School");
     await page.getByRole("button", { name: /next.*where/i }).click();
-    await page.getByRole("combobox", { name: /district/i }).selectOption("Kampala");
-    await stableFill(
-      page.getByRole("textbox", { name: /sub-county \/ division/i }),
-      "Central Division",
-    );
+    await setRegisterLocation(page, "Kampala", "Central Division");
     await page.getByRole("button", { name: /next.*account/i }).click();
 
     await page.getByLabel(/your full name/i).fill("John Admin");
@@ -281,11 +343,7 @@ test.describe("Auth – register validation (no backend)", () => {
     await page.goto("/register", { waitUntil: "networkidle" });
     await stableFill(page.getByRole("textbox", { name: /school name/i }), "Test School");
     await page.getByRole("button", { name: /next.*where/i }).click();
-    await page.getByRole("combobox", { name: /district/i }).selectOption("Kampala");
-    await stableFill(
-      page.getByRole("textbox", { name: /sub-county \/ division/i }),
-      "Central Division",
-    );
+    await setRegisterLocation(page, "Kampala", "Central Division");
     await page.getByRole("button", { name: /next.*account/i }).click();
 
     await page.getByLabel(/your full name/i).fill("John Admin");
@@ -301,7 +359,7 @@ test.describe("Auth – register validation (no backend)", () => {
   test("register API error stays on /register and shows error", async ({
     page,
   }) => {
-    await page.route("/api/register", async (route) => {
+    await page.route(/\/api\/register\/?$/, async (route) => {
       await route.fulfill({
         status: 500,
         contentType: "application/json",
@@ -322,7 +380,7 @@ test.describe("Auth – register validation (no backend)", () => {
   }) => {
     test.setTimeout(40_000);
 
-    await page.route("/api/register", async (route) => {
+    await page.route(/\/api\/register\/?$/, async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",

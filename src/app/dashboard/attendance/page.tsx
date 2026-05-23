@@ -552,11 +552,18 @@ export default function AttendancePage() {
         ) : loading ? (
           <TableSkeleton rows={5} />
         ) : students.length === 0 ? (
-          <EmptyState
-            icon="group"
-            title="No students in this class"
-            description="Add students to this class first"
-          />
+          <>
+            <div className="mb-4 flex gap-2">
+              <Button variant="secondary" disabled icon={<MaterialIcon icon="check_circle" />}>
+                Mark All In School
+              </Button>
+            </div>
+            <EmptyState
+              icon="group"
+              title="No students in this class"
+              description="Add students to this class first"
+            />
+          </>
         ) : (
           <>
             <div className="dashboard-soft-grid">

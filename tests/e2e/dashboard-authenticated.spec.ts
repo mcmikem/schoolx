@@ -341,7 +341,9 @@ test.describe("Authenticated dashboard flows", () => {
     await seedDemoSession(page, "headmaster");
 
     await page.goto("/dashboard/exams");
-    await expect(page.getByRole("heading", { name: /exam/i })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /^exam management$/i }),
+    ).toBeVisible();
   });
 
   test("headmaster can open UNEB page", async ({ page }) => {

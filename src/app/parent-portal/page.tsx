@@ -2,6 +2,7 @@
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -412,7 +413,13 @@ function ParentDashboardContent() {
                       >
                         <div className="h-14 w-14 rounded-full bg-[#17325f] flex items-center justify-center text-xl font-bold text-white mx-auto mb-2 overflow-hidden">
                           {child.photo_url ? (
-                            <img src={child.photo_url} alt="" className="w-full h-full object-cover" />
+                            <Image
+                              src={child.photo_url}
+                              alt={`${child.first_name} ${child.last_name}`}
+                              width={56}
+                              height={56}
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
                             <span>{(child.first_name?.[0] || child.last_name?.[0] || '?')}</span>
                           )}

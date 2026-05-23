@@ -13,7 +13,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
   BarChart,
   Bar,
 } from "recharts";
@@ -347,11 +346,10 @@ export default function TrendAnalyticsPage() {
             <Card>
               <CardBody>
                 <h2 className="font-semibold text-[var(--t1)] mb-4">
-                  Enrollment Trend
+                  Enrollment Over Time
                 </h2>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={historicalData}>
+                <div className="h-64 overflow-x-auto">
+                  <LineChart width={700} height={240} data={historicalData}>
                       <CartesianGrid
                         strokeDasharray="3 3"
                         stroke="var(--border)"
@@ -367,7 +365,6 @@ export default function TrendAnalyticsPage() {
                         name="Students"
                       />
                     </LineChart>
-                  </ResponsiveContainer>
                 </div>
               </CardBody>
             </Card>
@@ -375,11 +372,10 @@ export default function TrendAnalyticsPage() {
             <Card>
               <CardBody>
                 <h2 className="font-semibold text-[var(--t1)] mb-4">
-                  Fee Collection Trend
+                  Fee Collection Over Time
                 </h2>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={historicalData}>
+                <div className="h-64 overflow-x-auto">
+                  <BarChart width={700} height={240} data={historicalData}>
                       <CartesianGrid
                         strokeDasharray="3 3"
                         stroke="var(--border)"
@@ -400,7 +396,6 @@ export default function TrendAnalyticsPage() {
                         name="Expected"
                       />
                     </BarChart>
-                  </ResponsiveContainer>
                 </div>
               </CardBody>
             </Card>
@@ -409,11 +404,10 @@ export default function TrendAnalyticsPage() {
           <Card>
             <CardBody>
               <h2 className="font-semibold text-[var(--t1)] mb-4">
-                Attendance Trend
+                Attendance Over Time
               </h2>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={historicalData}>
+              <div className="h-64 overflow-x-auto">
+                <LineChart width={700} height={240} data={historicalData}>
                     <CartesianGrid
                       strokeDasharray="3 3"
                       stroke="var(--border)"
@@ -429,7 +423,6 @@ export default function TrendAnalyticsPage() {
                       name="Attendance %"
                     />
                   </LineChart>
-                </ResponsiveContainer>
               </div>
             </CardBody>
           </Card>

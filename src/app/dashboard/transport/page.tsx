@@ -173,7 +173,7 @@ export default function TransportPage() {
           ) : routes.length === 0 ? (
             <div className="p-12 text-center">
               <MaterialIcon icon="directions_bus" className="text-4xl text-[var(--t3)] opacity-30 mb-2" />
-              <p className="font-bold text-[var(--t2)] text-sm">No routes registered</p>
+              <p className="font-bold text-[var(--t2)] text-sm">No transport routes yet</p>
               <p className="text-xs text-[var(--t3)] mt-1">Add your first route to get started</p>
             </div>
           ) : (

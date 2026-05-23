@@ -21,7 +21,7 @@ export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
     if (isDemo || isDemoSchool(schoolId)) {
       const { getDefaultSubjects } = await import('@/lib/curriculum')
       const defaultSubjects = getDefaultSubjects(getSchoolType())
-      setSubjects(defaultSubjects.map(s => ({ ...s, id: `demo-sub-${s.code}`, school_id: schoolId, created_at: new Date().toISOString() })) as unknown as Subject[])
+      setSubjects(defaultSubjects.map((s, idx) => ({ ...s, id: `demo-sub-${s.code}-${idx}`, school_id: schoolId, created_at: new Date().toISOString() })) as unknown as Subject[])
       setLoading(false)
       return
     }

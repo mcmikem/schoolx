@@ -23,9 +23,13 @@ import { TableSkeleton, FullPageLoader } from "@/components/ui/Skeleton";
 import { EmptyState, NoData } from "@/components/EmptyState";
 import PersonInitials from "@/components/ui/PersonInitials";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
-import { withTimeout } from "@/lib/hooks/utils";
 import { useOnlineStatus, offlineDB } from "@/lib/offline";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import {
+  createRecord,
+  updateRecord,
+  upsertRecordReturning,
+} from "@/lib/crud-service";
 import {
   deriveGradeWorkflowStatus,
   getNextGradeWorkflowStatusActions,
@@ -110,16 +114,17 @@ async function saveGrade(grade: {
     return { ...payload, id: `offline-grade-${Date.now()}`, created_at: new Date().toISOString() };
   }
 
-  const gradeResult = await withTimeout(
-    supabase.from("grades").upsert(payload, {
-      onConflict: "student_id,subject_id,assessment_type,term,academic_year",
-    }).select().single(),
-    15000,
-    null as any
+  const data = await upsertRecordReturning<any>(
+    () =>
+      supabase
+        .from("grades")
+        .upsert(payload, {
+          onConflict: "student_id,subject_id,assessment_type,term,academic_year",
+        })
+        .select()
+        .single(),
+    { timeoutMs: 15000, timeoutMessage: "Grade save timed out" },
   );
-  if (!gradeResult) throw new Error("Grade save timed out");
-  const { data, error } = gradeResult;
-  if (error) throw error;
   return data;
 }
 
@@ -329,7 +334,7 @@ export default function GradesPage() {
       setLockedByName("");
       setSubmissionStatus("draft");
     }
-  }, [existingGrades, staff]);
+  }, [existingGrades, staff, toast]);
 
   const handleLockCA = async () => {
     if (!selectedClass || !selectedSubject || !user?.id) return;
@@ -342,18 +347,22 @@ export default function GradesPage() {
     setPendingAction(() => async () => {
       try {
         setSaving(true);
-        await supabase
-          .from("grades")
-          .update({
-            ca_locked: false,
-            locked_by: null,
-            locked_at: null,
-          })
-          .eq("class_id", selectedClass)
-          .eq("subject_id", selectedSubject)
-          .in("assessment_type", ["ca1", "ca2", "ca3"])
-          .eq("term", currentTerm)
-          .eq("academic_year", academicYear);
+        await updateRecord(
+          () =>
+            supabase
+              .from("grades")
+              .update({
+                ca_locked: false,
+                locked_by: null,
+                locked_at: null,
+              })
+              .eq("class_id", selectedClass)
+              .eq("subject_id", selectedSubject)
+              .in("assessment_type", ["ca1", "ca2", "ca3"])
+              .eq("term", currentTerm)
+              .eq("academic_year", academicYear),
+          { timeoutMs: 10000, timeoutMessage: "Unlock CA timed out" },
+        );
 
         if (school?.id && user?.id) {
           await logAuditEventWithOfflineSupport(
@@ -462,11 +471,13 @@ export default function GradesPage() {
     },
     [
       marks,
+      teacherSubjects,
       selectedSubject,
       selectedClass,
       currentTerm,
       academicYear,
       user?.id,
+      user?.role,
       isDemo,
       school?.id,
       toast,
@@ -859,17 +870,21 @@ export default function GradesPage() {
     try {
       const existing = coverage.find((c) => c.topic_name === topicName);
       if (existing) {
-        await supabase
-          .from("topic_coverage")
-          .update({
-            status,
-            teacher_id: user?.id,
-            completed_date:
-              status === "completed"
-                ? new Date().toISOString().split("T")[0]
-                : null,
-          })
-          .eq("id", existing.id);
+        await updateRecord(
+          () =>
+            supabase
+              .from("topic_coverage")
+              .update({
+                status,
+                teacher_id: user?.id,
+                completed_date:
+                  status === "completed"
+                    ? new Date().toISOString().split("T")[0]
+                    : null,
+              })
+              .eq("id", existing.id),
+          { timeoutMs: 10000, timeoutMessage: "Coverage update timed out" },
+        );
       } else {
         const { data: syllabusRow, error } = await supabase
           .from("syllabus")
@@ -887,16 +902,20 @@ export default function GradesPage() {
           return;
         }
 
-        await supabase.from("topic_coverage").insert({
-          syllabus_id: syllabusRow.id,
-          class_id: selectedClass,
-          teacher_id: user?.id,
-          status,
-          completed_date:
-            status === "completed"
-              ? new Date().toISOString().split("T")[0]
-              : null,
-        });
+        await createRecord(
+          () =>
+            supabase.from("topic_coverage").insert({
+              syllabus_id: syllabusRow.id,
+              class_id: selectedClass,
+              teacher_id: user?.id,
+              status,
+              completed_date:
+                status === "completed"
+                  ? new Date().toISOString().split("T")[0]
+                  : null,
+            }),
+          { timeoutMs: 10000, timeoutMessage: "Coverage insert timed out" },
+        );
       }
       fetchCoverage();
       toast.success("Topic status updated");
@@ -971,18 +990,22 @@ export default function GradesPage() {
     if (!selectedClass || !selectedSubject || !user?.id) return;
     try {
       setSaving(true);
-      await supabase
-        .from("grades")
-        .update({
-          ca_locked: true,
-          locked_by: user.id,
-          locked_at: new Date().toISOString(),
-        })
-        .eq("class_id", selectedClass)
-        .eq("subject_id", selectedSubject)
-        .in("assessment_type", ["ca1", "ca2", "ca3"])
-        .eq("term", currentTerm)
-        .eq("academic_year", academicYear);
+      await updateRecord(
+        () =>
+          supabase
+            .from("grades")
+            .update({
+              ca_locked: true,
+              locked_by: user.id,
+              locked_at: new Date().toISOString(),
+            })
+            .eq("class_id", selectedClass)
+            .eq("subject_id", selectedSubject)
+            .in("assessment_type", ["ca1", "ca2", "ca3"])
+            .eq("term", currentTerm)
+            .eq("academic_year", academicYear),
+        { timeoutMs: 10000, timeoutMessage: "Lock CA timed out" },
+      );
 
       if (school?.id && user?.id) {
         await logAuditEventWithOfflineSupport(
@@ -1100,7 +1123,20 @@ export default function GradesPage() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { label: "Selected class", value: selectedClass || "None", tone: "text-blue-700 bg-blue-50" },
+            {
+              label: "Selected class",
+              value: selectedClass
+                ? `${
+                    classes.find((c) => c.id === selectedClass)?.name ||
+                    selectedClass
+                  }${
+                    classes.find((c) => c.id === selectedClass)?.stream
+                      ? ` ${classes.find((c) => c.id === selectedClass)?.stream}`
+                      : ""
+                  }`
+                : "None",
+              tone: "text-blue-700 bg-blue-50",
+            },
             { label: "Selected subject", value: selectedSubjectName || "None", tone: "text-emerald-700 bg-emerald-50" },
             { label: "Graded", value: gradedCount, tone: "text-slate-700 bg-slate-50" },
             { label: "Pending", value: pendingCount, tone: "text-amber-700 bg-amber-50" },

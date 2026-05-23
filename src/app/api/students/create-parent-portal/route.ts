@@ -127,12 +127,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate WhatsApp share link for existing parent credentials
-    let whatsappLink: string | undefined;
+    let credentialsDelivered = false;
     try {
       const { generateWhatsAppShareLink } = await import("@/lib/whatsapp");
-      whatsappLink = generateWhatsAppShareLink(phoneNormalized, `Hello ${parentName}! Your SkoolMate parent portal credentials.\n\nLogin: ${phoneNormalized}\nPassword: ${generatedPassword}\nLink: ${portalUrl}\n\n- ${schoolName}`);
+      const link = generateWhatsAppShareLink(phoneNormalized, `Hello ${parentName}! Your SkoolMate parent portal credentials.\n\nLogin: ${phoneNormalized}\nPassword: ${generatedPassword}\nLink: ${portalUrl}\n\n- ${schoolName}`);
+      credentialsDelivered = Boolean(link);
     } catch {
-      whatsappLink = undefined;
+      credentialsDelivered = false;
     }
 
     return NextResponse.json({
@@ -140,9 +141,9 @@ export async function POST(request: NextRequest) {
       message: "Parent account already exists. Credentials refreshed and linked.",
       parentName,
       parentPhone: phoneNormalized,
-      generatedPassword,
       authEmail,
-      whatsappLink,
+      credentialsDelivered,
+      credentialsExposed: false,
     });
   }
 
@@ -233,19 +234,20 @@ export async function POST(request: NextRequest) {
     .eq("parent_id", parentUserId);
 
   // Auto-send via WhatsApp if configured
-  let whatsappLink: string | undefined;
+  let credentialsDelivered = false;
   let whatsappSent = false;
   try {
     if (isWhatsAppConfigured()) {
       const waResult = await sendParentPortalCredentials(whatsappOpts);
-      whatsappLink = waResult.shareLink;
+      credentialsDelivered = Boolean(waResult.shareLink);
       whatsappSent = waResult.success && !waResult.demo;
       if (waResult.success && !waResult.demo) {
         logger.info(`[create-parent-portal] WhatsApp credentials sent to ${phoneNormalized}`);
       }
     } else {
       const { generateWhatsAppShareLink } = await import("@/lib/whatsapp");
-      whatsappLink = generateWhatsAppShareLink(phoneNormalized, `Hello ${parentName}! Your SkoolMate parent portal is ready.\n\nLogin: ${phoneNormalized}\nPassword: ${generatedPassword}\nLink: ${portalUrl}\n\n- ${schoolName}`);
+      const link = generateWhatsAppShareLink(phoneNormalized, `Hello ${parentName}! Your SkoolMate parent portal is ready.\n\nLogin: ${phoneNormalized}\nPassword: ${generatedPassword}\nLink: ${portalUrl}\n\n- ${schoolName}`);
+      credentialsDelivered = Boolean(link);
     }
   } catch (e) {
     logger.warn("[create-parent-portal] WhatsApp send failed (non-blocking):", e);
@@ -256,8 +258,8 @@ export async function POST(request: NextRequest) {
     message: `Parent portal created for ${parentName}`,
     parentName,
     parentPhone: phoneNormalized,
-    generatedPassword,
-    whatsappLink,
+    credentialsDelivered,
+    credentialsExposed: false,
     whatsappSent,
     linkedChildren: linkedChildren || [],
   });

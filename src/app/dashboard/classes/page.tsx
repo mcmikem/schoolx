@@ -14,6 +14,7 @@ import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { getErrorMessage } from "@/lib/validation";
 import { withTimeout } from "@/lib/hooks/utils";
+import { createRecord, updateRecord, deleteRecord, CrudWriteError } from "@/lib/crud-service";
 
 interface ClassRow {
   id: string;
@@ -175,28 +176,25 @@ export default function ClassesPage() {
       };
 
       if (editingClass) {
-        const updateError = await withTimeout(
-          supabase.from("classes").update(payload).eq("id", editingClass.id).then((r) => r.error),
-          8000,
-          new Error("Update timed out — please try again")
+        await updateRecord(
+          () => supabase.from("classes").update(payload).eq("id", editingClass.id),
+          { timeoutMs: 8000, timeoutMessage: "Update timed out — please try again" },
         );
-        if (updateError) throw updateError;
         toast.success("Class updated");
       } else {
-        const insertError = await withTimeout(
-          supabase.from("classes").insert(payload).then((r) => r.error),
-          8000,
-          new Error("Insert timed out — please try again")
+        await createRecord(
+          () => supabase.from("classes").insert(payload),
+          { timeoutMs: 8000, timeoutMessage: "Insert timed out — please try again" },
         );
-        if (insertError) {
-          if ((insertError as any).code === "23505") throw new Error("A class with this name already exists for this year");
-          throw insertError;
-        }
         toast.success("Class created");
       }
       await fetchClasses();
       setShowModal(false);
     } catch (err) {
+      if (err instanceof CrudWriteError && err.code === "23505") {
+        toast.error("A class with this name already exists for this year");
+        return;
+      }
       toast.error(getErrorMessage(err, "Failed to save class"));
     } finally {
       setSaving(false);
@@ -218,12 +216,10 @@ export default function ClassesPage() {
         setConfirmOpen(false);
         return;
       }
-      const deleteError = await withTimeout(
-        supabase.from("classes").delete().eq("id", pendingDelete.id).then((r) => r.error),
-        8000,
-        new Error("Delete timed out — please try again")
+      await deleteRecord(
+        () => supabase.from("classes").delete().eq("id", pendingDelete.id),
+        { timeoutMs: 8000, timeoutMessage: "Delete timed out — please try again" },
       );
-      if (deleteError) throw deleteError;
       setClasses(prev => prev.filter(c => c.id !== pendingDelete.id));
       toast.success("Class deleted");
       setConfirmOpen(false);

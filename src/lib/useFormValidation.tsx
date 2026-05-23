@@ -178,6 +178,7 @@ export function ValidatedInput({
   const showError = touched && error
   const fallbackId = useId()
   const id = props.id || fallbackId
+  const ariaLabel = props['aria-label'] || label
 
   return (
     <div style={{ marginBottom: 16 }}>
@@ -195,6 +196,7 @@ export function ValidatedInput({
       </label>
       <input
         id={id}
+        aria-label={ariaLabel}
         {...props}
         onBlur={(e) => {
           onTouched?.()

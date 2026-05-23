@@ -199,8 +199,8 @@ export default function AnalyticsPage() {
                 <div className="w-1.5 h-6 bg-[var(--primary)] rounded-full" />
                 Revenue vs. Outstanding
               </h2>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="min-w-0">
+                <ResponsiveContainer width="100%" aspect={2.4} minWidth={280}>
                   <PieChart>
                     <Pie
                       data={displayData.revenueProjections}
@@ -299,8 +299,8 @@ export default function AnalyticsPage() {
                 <div className="w-1.5 h-6 bg-[var(--primary)] rounded-full" />
                 Gender Distribution
               </h2>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="min-w-0">
+                <ResponsiveContainer width="100%" aspect={2.4} minWidth={280}>
                   <BarChart data={displayData.genderDistribution}>
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -350,8 +350,8 @@ export default function AnalyticsPage() {
                 Attendance Trends
               </h2>
               {displayData.attendanceTrends?.length > 0 ? (
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className="min-w-0">
+                  <ResponsiveContainer width="100%" aspect={2.4} minWidth={280}>
                     <BarChart data={displayData.attendanceTrends}>
                       <CartesianGrid
                         strokeDasharray="3 3"
@@ -408,8 +408,8 @@ export default function AnalyticsPage() {
                 <div className="w-1.5 h-6 bg-[var(--primary)] rounded-full" />
                 Class Performance (Avg Grade %)
               </h2>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="min-w-0">
+                <ResponsiveContainer width="100%" aspect={2.4} minWidth={280}>
                   <BarChart data={displayData.classPerformance}>
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -486,8 +486,8 @@ export default function AnalyticsPage() {
                   </div>
                 </div>
                 {displayData.genderDistribution?.length > 0 && (
-                  <div className="h-48">
-                    <ResponsiveContainer width="100%" height="100%">
+                  <div className="min-w-0">
+                    <ResponsiveContainer width="100%" aspect={2.4} minWidth={220}>
                       <BarChart data={displayData.genderDistribution}>
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                         <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'var(--t3)' }} />

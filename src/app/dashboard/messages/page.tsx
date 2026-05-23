@@ -33,6 +33,13 @@ import MessageRecipients from "@/components/messages/MessageRecipients";
 import MessageAutomation from "@/components/messages/MessageAutomation";
 import MessageTemplates from "@/components/messages/MessageTemplates";
 import { isWhatsAppConfigured, sendWhatsAppTextMessage } from "@/lib/whatsapp";
+import {
+  createRecord,
+  updateRecord,
+  deleteRecord,
+  upsertRecord,
+  CrudWriteError,
+} from "@/lib/crud-service";
 
 const communicationTabs = [
   { id: "messages", label: "Messages" },
@@ -115,7 +122,7 @@ export default function CommunicationHubPage() {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [messageLimit, setMessageLimit] = useState(20);
-  const [deliveryChannel, setDeliveryChannel] = useState<"auto" | "sms" | "whatsapp">("auto");
+  const [deliveryChannel, setDeliveryChannel] = useState<"auto" | "sms" | "whatsapp">("sms");
 
   const [audience, setAudience] = useState<"all" | "class" | "outstanding_fees" | "custom">("all");
   const [bulkSelectedClass, setBulkSelectedClass] = useState("");
@@ -292,9 +299,20 @@ export default function CommunicationHubPage() {
       }
       const delivery = await deliverMessage(phones, message);
       if (delivery.success) {
-        const { withTimeout } = await import('@/lib/hooks/utils');
-        const msgResult = await withTimeout(supabase.from("messages").insert({ school_id: user.school_id, recipient_type: messageType, recipient_id: messageType === "class" ? selectedClass : null, phone: messageType === "individual" ? phone : null, message: message.trim(), status: "sent", sent_by: user.id, sent_at: new Date().toISOString() }), 15000, null as any);
-        if (msgResult?.error) throw msgResult.error;
+        await createRecord(
+          () =>
+            supabase.from("messages").insert({
+              school_id: user.school_id,
+              recipient_type: messageType,
+              recipient_id: messageType === "class" ? selectedClass : null,
+              phone: messageType === "individual" ? phone : null,
+              message: message.trim(),
+              status: "sent",
+              sent_by: user.id,
+              sent_at: new Date().toISOString(),
+            }),
+          { timeoutMs: 15000, timeoutMessage: "Message logging timed out" },
+        );
         toast.success(`Sent via ${delivery.via.toUpperCase()} to ${phones.length} recipient${phones.length > 1 ? "s" : ""}`);
         setMessage(""); setPhone(""); fetchMessagesData();
       } else { toast.error(delivery.result?.message || "Failed to send"); }
@@ -334,8 +352,18 @@ export default function CommunicationHubPage() {
     if (!newTemplate.name || !newTemplate.message) { toast.error("Please fill all fields"); return; }
     if (newTemplate.message.trim().length > MAX_TEMPLATE_BODY_LENGTH) { toast.error(`Template is too long. Keep it under ${MAX_TEMPLATE_BODY_LENGTH} characters.`); return; }
     try {
-      const { error } = await supabase.from("sms_templates").insert({ school_id: school?.id, name: newTemplate.name.trim(), category: newTemplate.category, message: newTemplate.message.trim(), is_active: true, created_by: user?.id });
-      if (error) throw error;
+      await createRecord(
+        () =>
+          supabase.from("sms_templates").insert({
+            school_id: school?.id,
+            name: newTemplate.name.trim(),
+            category: newTemplate.category,
+            message: newTemplate.message.trim(),
+            is_active: true,
+            created_by: user?.id,
+          }),
+        { timeoutMs: 10000, timeoutMessage: "Template create timed out" },
+      );
       toast.success("Template created"); setShowCreateTemplate(false); setNewTemplate({ name: "", category: "general", message: "" }); fetchTemplates();
     } catch (err: unknown) { toast.error(getErrorMessage(err, "Failed to create template")); }
   };
@@ -344,15 +372,32 @@ export default function CommunicationHubPage() {
     if (!editingTemplate) return;
     if (!editingTemplate.name.trim() || !editingTemplate.message.trim()) { toast.error("Template name and message are required"); return; }
     try {
-      const { error } = await supabase.from("sms_templates").update({ name: editingTemplate.name.trim(), category: editingTemplate.category, message: editingTemplate.message.trim(), is_active: editingTemplate.is_active }).eq("id", editingTemplate.id);
-      if (error) throw error;
+      await updateRecord(
+        () =>
+          supabase
+            .from("sms_templates")
+            .update({
+              name: editingTemplate.name.trim(),
+              category: editingTemplate.category,
+              message: editingTemplate.message.trim(),
+              is_active: editingTemplate.is_active,
+            })
+            .eq("id", editingTemplate.id),
+        { timeoutMs: 10000, timeoutMessage: "Template update timed out" },
+      );
       toast.success("Template updated"); setEditingTemplate(null); fetchTemplates();
     } catch (err: unknown) { toast.error(getErrorMessage(err, "Failed to update template")); }
   };
 
   const deleteTemplate = async (id: string) => {
     setPendingAction(() => async () => {
-      try { const { error } = await supabase.from("sms_templates").delete().eq("id", id); if (error) throw error; toast.success("Template deleted"); fetchTemplates(); }
+      try {
+        await deleteRecord(
+          () => supabase.from("sms_templates").delete().eq("id", id),
+          { timeoutMs: 10000, timeoutMessage: "Template delete timed out" },
+        );
+        toast.success("Template deleted"); fetchTemplates();
+      }
       catch (err: unknown) { toast.error(getErrorMessage(err, "Failed to delete template")); }
     });
     setConfirmOpen(true);
@@ -363,8 +408,10 @@ export default function CommunicationHubPage() {
       const existingNames = new Set(templates.map((t) => t.name));
       const templatesToCreate = DEFAULT_TEMPLATES.filter((t) => !existingNames.has(t.name)).map((t) => ({ school_id: school?.id, ...t, is_active: true, created_by: user?.id }));
       if (templatesToCreate.length === 0) { toast.success("All default templates already exist"); return; }
-      const { error } = await supabase.from("sms_templates").insert(templatesToCreate);
-      if (error) throw error;
+      await createRecord(
+        () => supabase.from("sms_templates").insert(templatesToCreate),
+        { timeoutMs: 12000, timeoutMessage: "Default template creation timed out" },
+      );
       toast.success(`${templatesToCreate.length} default templates created`); fetchTemplates();
     } catch (err: unknown) { toast.error(getErrorMessage(err, "Failed to create templates")); }
   };
@@ -379,8 +426,25 @@ export default function CommunicationHubPage() {
       const phones = Array.from(new Set(targetStudents.map((s) => s.parent_phone).filter(Boolean)));
       const delivery = await deliverMessage(phones, bulkMessage.trim());
       if (delivery.success) {
-        const { error: messageError } = await supabase.from("messages").insert({ school_id: school.id, recipient_type: audience === "all" ? "all" : audience === "class" ? "class" : "bulk", recipient_id: audience === "class" ? bulkSelectedClass : null, message: bulkMessage.trim(), status: "sent", sent_by: user.id, sent_at: new Date().toISOString(), recipient_count: phones.length });
-        if (messageError) throw messageError;
+        await createRecord(
+          () =>
+            supabase.from("messages").insert({
+              school_id: school.id,
+              recipient_type:
+                audience === "all"
+                  ? "all"
+                  : audience === "class"
+                    ? "class"
+                    : "bulk",
+              recipient_id: audience === "class" ? bulkSelectedClass : null,
+              message: bulkMessage.trim(),
+              status: "sent",
+              sent_by: user.id,
+              sent_at: new Date().toISOString(),
+              recipient_count: phones.length,
+            }),
+          { timeoutMs: 15000, timeoutMessage: "Bulk message logging timed out" },
+        );
         toast.success(`${delivery.via.toUpperCase()} sent to ${phones.length} parent${phones.length > 1 ? "s" : ""}`); setBulkMessage(""); setSelectedTemplateId(""); setShowConfirm(false);
       } else { toast.error(delivery.result?.message || "Failed to send message"); }
     } catch (err: unknown) { toast.error(getErrorMessage(err, "Failed to send SMS")); }
@@ -404,7 +468,19 @@ export default function CommunicationHubPage() {
     const smsMessage = `[${category}] ${title}: ${content.slice(0, 100)}${content.length > 100 ? "..." : ""}`;
     try {
       await fetch("/api/sms", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phones, message: smsMessage, schoolId: school.id }) });
-      await supabase.from("messages").insert({ school_id: school.id, recipient_type: "staff", message: smsMessage, status: "sent", sent_by: user?.id, sent_at: new Date().toISOString(), recipient_count: phones.length });
+      await createRecord(
+        () =>
+          supabase.from("messages").insert({
+            school_id: school.id,
+            recipient_type: "staff",
+            message: smsMessage,
+            status: "sent",
+            sent_by: user?.id,
+            sent_at: new Date().toISOString(),
+            recipient_count: phones.length,
+          }),
+        { timeoutMs: 12000, timeoutMessage: "Notice SMS logging timed out" },
+      );
     } catch (err) { logger.error("Failed to send notice SMS:", err); }
   };
 
@@ -421,8 +497,23 @@ export default function CommunicationHubPage() {
         toast.success(shouldSendSMS ? `Notice posted and SMS sent to ${staff.filter((s: any) => s.phone).length} staff` : "Notice posted");
         setShowNoticeModal(false); setNewNotice({ title: "", content: "", category: "General", priority: "normal", expires_at: "", image_url: "", send_sms: false }); return;
       }
-      const { error } = await supabase.from("notices").insert({ school_id: school.id, title: newNotice.title, content: newNotice.content, type: newNotice.category, priority: isEmergency && newNotice.category !== "Emergency" ? "high" : newNotice.priority, created_by: user.id, expiry_date: newNotice.expires_at || null, image_url: newNotice.image_url || null });
-      if (error) throw error;
+      await createRecord(
+        () =>
+          supabase.from("notices").insert({
+            school_id: school.id,
+            title: newNotice.title,
+            content: newNotice.content,
+            type: newNotice.category,
+            priority:
+              isEmergency && newNotice.category !== "Emergency"
+                ? "high"
+                : newNotice.priority,
+            created_by: user.id,
+            expiry_date: newNotice.expires_at || null,
+            image_url: newNotice.image_url || null,
+          }),
+        { timeoutMs: 12000, timeoutMessage: "Notice creation timed out" },
+      );
       if (shouldSendSMS) await sendNoticeSMS(newNotice.title, newNotice.content, newNotice.category);
       toast.success(shouldSendSMS ? `Notice posted and SMS sent to ${staff.filter((s: any) => s.phone).length} staff` : "Notice posted");
       setShowNoticeModal(false); setNewNotice({ title: "", content: "", category: "General", priority: "normal", expires_at: "", image_url: "", send_sms: false }); fetchNotices();
@@ -449,7 +540,13 @@ export default function CommunicationHubPage() {
   const deleteNotice = async (id: string) => {
     setPendingAction(() => async () => {
       if (isDemo) { setNotices(notices.filter((n) => n.id !== id)); toast.success("Notice deleted"); return; }
-      try { const { error } = await supabase.from("notices").delete().eq("id", id); if (error) throw error; setNotices(notices.filter((n) => n.id !== id)); toast.success("Notice deleted"); }
+      try {
+        await deleteRecord(
+          () => supabase.from("notices").delete().eq("id", id),
+          { timeoutMs: 10000, timeoutMessage: "Notice delete timed out" },
+        );
+        setNotices(notices.filter((n) => n.id !== id)); toast.success("Notice deleted");
+      }
       catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Failed to delete"); }
     });
     setConfirmOpen(true);
@@ -462,10 +559,28 @@ export default function CommunicationHubPage() {
       toast.success("Notice acknowledged"); return;
     }
     try {
-      const { error } = await supabase.from("notice_acknowledgments").upsert({ notice_id: noticeId, user_id: user.id, acknowledged_at: new Date().toISOString() }, { onConflict: "notice_id,user_id" });
-      if (error) { if (error.code === "42P01") { toast.error("Acknowledgment feature not yet configured"); return; } throw error; }
+      await upsertRecord(
+        () =>
+          supabase
+            .from("notice_acknowledgments")
+            .upsert(
+              {
+                notice_id: noticeId,
+                user_id: user.id,
+                acknowledged_at: new Date().toISOString(),
+              },
+              { onConflict: "notice_id,user_id" },
+            ),
+        { timeoutMs: 10000, timeoutMessage: "Acknowledgment timed out" },
+      );
       toast.success("Notice acknowledged"); fetchNotices();
-    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Failed to acknowledge"); }
+    } catch (err: unknown) {
+      if (err instanceof CrudWriteError && err.code === "42P01") {
+        toast.error("Acknowledgment feature not yet configured");
+        return;
+      }
+      toast.error(err instanceof Error ? err.message : "Failed to acknowledge");
+    }
   };
 
   const getCategoryIcon = (category: string) => {

@@ -32,14 +32,41 @@ async function stableFill(locator: Locator, value: string) {
   }
 }
 
+async function setLocationStep2(
+  page: Page,
+  districtValue: string,
+  subcountyValue?: string,
+) {
+  const districtCombo = page.getByRole("combobox", { name: /^district$/i });
+  if (await districtCombo.isVisible().catch(() => false)) {
+    await districtCombo.selectOption(districtValue);
+  } else {
+    await stableFill(
+      page.getByRole("textbox", { name: /^district$/i }),
+      districtValue,
+    );
+  }
+
+  if (!subcountyValue) {
+    return;
+  }
+
+  const subcountyCombo = page.getByRole("combobox", {
+    name: /sub-county \/ division/i,
+  });
+  if (await subcountyCombo.isVisible().catch(() => false)) {
+    await subcountyCombo.selectOption(subcountyValue);
+  } else {
+    await stableFill(
+      page.getByRole("textbox", { name: /sub-county \/ division/i }),
+      subcountyValue,
+    );
+  }
+}
+
 async function reachStep3(page: Page) {
   await reachStep2(page);
-  const district = page.getByRole("textbox", { name: /^district$/i });
-  await district.fill("Kampala");
-  await expect(district).toHaveValue("Kampala");
-  const subcounty = page.getByRole("textbox", { name: /sub-county \/ division/i });
-  await subcounty.fill("Central Division");
-  await expect(subcounty).toHaveValue("Central Division");
+  await setLocationStep2(page, "Kampala", "Central Division");
   await page.getByRole("button", { name: /next.*account/i }).click();
   await expect(page.getByText(/step 3 of 3/i)).toBeVisible();
 }
@@ -106,7 +133,7 @@ test.describe("Registration / Onboarding flow", () => {
 
   test("step 2 – shows error when sub-county is empty", async ({ page }) => {
     await reachStep2(page);
-    await page.getByRole("textbox", { name: /^district$/i }).fill("Kampala");
+    await setLocationStep2(page, "Kampala");
     await page.getByRole("button", { name: /next.*account/i }).click();
     await expect(
       page.getByText(/sub-county is required/i),
@@ -129,10 +156,7 @@ test.describe("Registration / Onboarding flow", () => {
     page,
   }) => {
     await reachStep2(page);
-    await page.getByRole("textbox", { name: /^district$/i }).fill("Kampala");
-    await page
-      .getByRole("textbox", { name: /sub-county \/ division/i })
-      .fill("Central Division");
+    await setLocationStep2(page, "Kampala", "Central Division");
     await page.getByRole("button", { name: /next.*account/i }).click();
 
     await expect(page.getByText(/step 3 of 3/i)).toBeVisible();

@@ -604,7 +604,7 @@ export function useStudents(
           .then((result) => {
             if (result.created) {
               logger.info(
-                `Parent portal created: ${result.parentPhone} / ${result.generatedPassword}`,
+                `Parent portal created for ${result.parentPhone} (credentials delivered: ${Boolean(result.credentialsDelivered)})`,
               );
             }
           })
