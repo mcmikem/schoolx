@@ -34,32 +34,30 @@ export default function BrandProvider({ children }: { children: ReactNode }) {
   const { school } = useAuth()
 
   useEffect(() => {
-    if (school?.primary_color) {
-      const root = document.documentElement
-      const base = school.primary_color
+    const root = document.documentElement
+    const base = school?.primary_color || '#005ce6'
+    const accent = school?.accent_color || '#f97316'
 
-      // Set primary root variable
-      root.style.setProperty('--primary', base)
+    root.style.setProperty('--primary', base)
+    root.style.setProperty('--accent', accent)
 
-      // Generate and set all shade variables (fallback to base color)
-      const palette = generateMonochromePalette(base)
-      for (const [varName, value] of Object.entries(palette)) {
-        root.style.setProperty(varName, value)
-      }
-
-      // Soft version (10% opacity)
-      const soft = `${base}1A`
-      root.style.setProperty('--primary-soft', soft)
-
-      // Dim version (40% opacity)
-      const dim = `${base}66`
-      root.style.setProperty('--primary-dim', dim)
-
-      // Glass version (20% opacity)
-      const glass = `${base}33`
-      root.style.setProperty('--primary-glass', glass)
+    const palette = generateMonochromePalette(base)
+    for (const [varName, value] of Object.entries(palette)) {
+      root.style.setProperty(varName, value)
     }
-  }, [school?.primary_color])
+
+    const accentPalette = generateMonochromePalette(accent)
+    for (const [varName, value] of Object.entries(accentPalette)) {
+      root.style.setProperty(varName.replace('--primary', '--accent'), value)
+    }
+
+    root.style.setProperty('--primary-soft', `${base}1A`)
+    root.style.setProperty('--primary-dim', `${base}66`)
+    root.style.setProperty('--primary-glass', `${base}33`)
+    root.style.setProperty('--accent-soft', `${accent}1A`)
+    root.style.setProperty('--accent-dim', `${accent}66`)
+    root.style.setProperty('--accent-glass', `${accent}33`)
+  }, [school?.primary_color, school?.accent_color])
 
   return <>{children}</>
 }

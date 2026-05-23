@@ -32,6 +32,7 @@ import MessageHistory from "@/components/messages/MessageHistory";
 import MessageRecipients from "@/components/messages/MessageRecipients";
 import MessageAutomation from "@/components/messages/MessageAutomation";
 import MessageTemplates from "@/components/messages/MessageTemplates";
+import { isWhatsAppConfigured, sendWhatsAppTextMessage } from "@/lib/whatsapp";
 
 const communicationTabs = [
   { id: "messages", label: "Messages" },
@@ -114,6 +115,7 @@ export default function CommunicationHubPage() {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [messageLimit, setMessageLimit] = useState(20);
+  const [deliveryChannel, setDeliveryChannel] = useState<"auto" | "sms" | "whatsapp">("auto");
 
   const [audience, setAudience] = useState<"all" | "class" | "outstanding_fees" | "custom">("all");
   const [bulkSelectedClass, setBulkSelectedClass] = useState("");
@@ -145,6 +147,37 @@ export default function CommunicationHubPage() {
   const [newNotice, setNewNotice] = useState({ title: "", content: "", category: "General", priority: "normal", expires_at: "", image_url: "", send_sms: false });
   const [uploadingImage, setUploadingImage] = useState(false);
   const [sendingSMS, setSendingSMS] = useState(false);
+
+  const deliverMessage = async (phones: string[], body: string) => {
+    const preferWhatsApp = deliveryChannel === "whatsapp" || (deliveryChannel === "auto" && isWhatsAppConfigured());
+
+    if (preferWhatsApp) {
+      const results = await Promise.all(
+        phones.map((recipientPhone) => sendWhatsAppTextMessage(recipientPhone, body)),
+      );
+      const totalSent = results.filter((result) => result.success).length;
+      return {
+        success: totalSent > 0,
+        totalSent,
+        totalFailed: results.length - totalSent,
+        via: "whatsapp" as const,
+      };
+    }
+
+    const response = await fetch("/api/sms", {
+      method: phones.length === 1 ? "POST" : "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: phones[0], phones, message: body, schoolId: user!.school_id }),
+    });
+    const result = await response.json();
+    return {
+      success: !!result.success,
+      totalSent: result.totalSent ?? (result.success ? phones.length : 0),
+      totalFailed: result.totalFailed ?? (result.success ? 0 : phones.length),
+      via: "sms" as const,
+      result,
+    };
+  };
 
   const fetchMessagesData = useCallback(async () => {
     if (!user?.school_id) return;
@@ -257,15 +290,14 @@ export default function CommunicationHubPage() {
         toast.success(`Sent to ${phones.length} recipient${phones.length > 1 ? "s" : ""}`);
         setMessage(""); setPhone(""); setSelectedClass(""); return;
       }
-      const response = await fetch("/api/sms", { method: phones.length === 1 ? "POST" : "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: phones[0], phones, message, schoolId: user.school_id }) });
-      const result = await response.json();
-      if (result.success) {
+      const delivery = await deliverMessage(phones, message);
+      if (delivery.success) {
         const { withTimeout } = await import('@/lib/hooks/utils');
         const msgResult = await withTimeout(supabase.from("messages").insert({ school_id: user.school_id, recipient_type: messageType, recipient_id: messageType === "class" ? selectedClass : null, phone: messageType === "individual" ? phone : null, message: message.trim(), status: "sent", sent_by: user.id, sent_at: new Date().toISOString() }), 15000, null as any);
         if (msgResult?.error) throw msgResult.error;
-        toast.success(`Sent to ${phones.length} recipient${phones.length > 1 ? "s" : ""}`);
+        toast.success(`Sent via ${delivery.via.toUpperCase()} to ${phones.length} recipient${phones.length > 1 ? "s" : ""}`);
         setMessage(""); setPhone(""); fetchMessagesData();
-      } else { toast.error(result.message || "Failed to send"); }
+      } else { toast.error(delivery.result?.message || "Failed to send"); }
     } catch (err: unknown) { toast.error(getErrorMessage(err, "Failed to send")); }
     finally { setSending(false); }
   };
@@ -345,13 +377,12 @@ export default function CommunicationHubPage() {
       const filtered = allStudents.filter((s) => s.parent_phone);
       const targetStudents = audience === "class" && bulkSelectedClass ? filtered.filter((s) => s.class_id === bulkSelectedClass) : audience === "custom" ? filtered.filter((s) => selectedStudents.includes(s.id)) : filtered;
       const phones = Array.from(new Set(targetStudents.map((s) => s.parent_phone).filter(Boolean)));
-      const response = await fetch("/api/sms", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phones, message: bulkMessage.trim(), schoolId: school.id }) });
-      const result = await response.json();
-      if (result.success) {
+      const delivery = await deliverMessage(phones, bulkMessage.trim());
+      if (delivery.success) {
         const { error: messageError } = await supabase.from("messages").insert({ school_id: school.id, recipient_type: audience === "all" ? "all" : audience === "class" ? "class" : "bulk", recipient_id: audience === "class" ? bulkSelectedClass : null, message: bulkMessage.trim(), status: "sent", sent_by: user.id, sent_at: new Date().toISOString(), recipient_count: phones.length });
         if (messageError) throw messageError;
-        toast.success(`SMS sent to ${phones.length} parent${phones.length > 1 ? "s" : ""}`); setBulkMessage(""); setSelectedTemplateId(""); setShowConfirm(false);
-      } else { toast.error(result.message || "Failed to send SMS"); }
+        toast.success(`${delivery.via.toUpperCase()} sent to ${phones.length} parent${phones.length > 1 ? "s" : ""}`); setBulkMessage(""); setSelectedTemplateId(""); setShowConfirm(false);
+      } else { toast.error(delivery.result?.message || "Failed to send message"); }
     } catch (err: unknown) { toast.error(getErrorMessage(err, "Failed to send SMS")); }
     finally { setBulkSending(false); }
   };
@@ -454,7 +485,7 @@ export default function CommunicationHubPage() {
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader title="Communication Hub" subtitle="Manage all school communications in one place" />
       <PageGuidance title="How to Use Communication" tips={[
-        { icon: "sms", text: "Send SMS: Choose individual, class, or all parents" },
+        { icon: "sms", text: "Send messages: choose Auto, WhatsApp, or SMS for individual, class, or all parents" },
         { icon: "campaign", text: "Notices: Post announcements visible to selected groups" },
         { icon: "automation", text: "Automation: Set auto-SMS for attendance, fees, results" },
         { icon: "drafts", text: "Templates: Save frequent messages for quick sending" },
@@ -467,6 +498,8 @@ export default function CommunicationHubPage() {
           <MessageComposer
             messageType={messageType}
             onMessageTypeChange={setMessageType}
+            deliveryChannel={deliveryChannel}
+            onDeliveryChannelChange={setDeliveryChannel}
             phone={phone}
             onPhoneChange={setPhone}
             selectedClass={selectedClass}

@@ -94,7 +94,7 @@ export default function StudentWorkspaceShell({
       {/* ── Page header ── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="ph-title">Student Hub</h2>
+          <h2 className="ph-title">Registry Overview</h2>
           <div className="mt-2 flex flex-wrap gap-2">
             <span className="dashboard-pill bg-[var(--navy-soft)] text-[var(--navy)]">
               {totalStudents} enrolled

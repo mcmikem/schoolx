@@ -608,14 +608,28 @@ export default function TimetablePage() {
 
   return (
     <PageErrorBoundary>
-    <div className="p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       <PageHeader
         title="Timetable"
         subtitle="Class schedule and academic calendar"
       />
 
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: 'Slots', value: effectiveSlots.length.toString(), tone: 'text-primary' },
+          { label: 'Classes', value: classes.length.toString(), tone: 'text-secondary' },
+          { label: 'Subjects', value: subjects.length.toString(), tone: 'text-tertiary' },
+          { label: 'Staff', value: teachers.length.toString(), tone: 'text-amber-600' },
+        ].map((item) => (
+          <div key={item.label} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--t3)] font-black">{item.label}</div>
+            <div className={`mt-1 text-lg font-bold ${item.tone}`}>{item.value}</div>
+          </div>
+        ))}
+      </div>
+
       {/* Main tabs: Class Timetable vs Term Calendar */}
-      <div className="border-b border-[var(--border)]">
+      <div className="border-b border-[var(--border)] overflow-x-auto no-scrollbar">
         <Tabs tabs={mainTabs} activeTab={mainTab} onChange={(id) => setMainTab(id as 'timetable' | 'calendar')} />
       </div>
 

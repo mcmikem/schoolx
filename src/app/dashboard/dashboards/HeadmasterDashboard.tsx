@@ -457,7 +457,7 @@ function HeadmasterDashboardContent() {
                   <p className="text-sm font-bold text-[#17325f]">Attendance today</p>
                   <p className="text-xs text-[#6b7f99]">Not taken yet for any class</p>
                 </div>
-                <a href="/dashboard/attendance" className="shrink-0 rounded-xl bg-[#c2472b] px-4 py-2 text-xs font-bold text-white">Take now</a>
+                <Link href="/dashboard/attendance" className="shrink-0 rounded-xl bg-[#c2472b] px-4 py-2 text-xs font-bold text-white">Take now</Link>
               </div>
             )}
             {pendingLeave > 0 && (
@@ -467,7 +467,7 @@ function HeadmasterDashboardContent() {
                   <p className="text-sm font-bold text-[#17325f]">{pendingLeave} leave request{pendingLeave > 1 ? 's' : ''}</p>
                   <p className="text-xs text-[#6b7f99]">Pending your approval</p>
                 </div>
-                <a href="/dashboard/leave-approvals" className="shrink-0 rounded-xl bg-[#b45309] px-4 py-2 text-xs font-bold text-white">Review</a>
+                <Link href="/dashboard/leave-approvals" className="shrink-0 rounded-xl bg-[#b45309] px-4 py-2 text-xs font-bold text-white">Review</Link>
               </div>
             )}
             {pendingExpenses > 0 && (
@@ -477,11 +477,59 @@ function HeadmasterDashboardContent() {
                   <p className="text-sm font-bold text-[#17325f]">{pendingExpenses} expense{pendingExpenses > 1 ? 's' : ''}</p>
                   <p className="text-xs text-[#6b7f99]">Awaiting your sign-off</p>
                 </div>
-                <a href="/dashboard/expense-approvals" className="shrink-0 rounded-xl bg-[#c2472b] px-4 py-2 text-xs font-bold text-white">Review</a>
+                <Link href="/dashboard/expense-approvals" className="shrink-0 rounded-xl bg-[#c2472b] px-4 py-2 text-xs font-bold text-white">Review</Link>
               </div>
             )}
           </div>
         ) : null}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+          <div className="lg:col-span-2 rounded-[24px] bg-white border border-[#e5ecf4] p-4">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.16em] text-[#7f91aa] font-bold">Today Actions</p>
+                <p className="text-sm font-semibold text-[#17325f]">Fast tasks for operations control</p>
+              </div>
+              <div className="text-[11px] font-semibold text-[#60748f]">{pendingTaskCount} pending tasks</div>
+            </div>
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+              {quickActions.map((action) => (
+                <Link
+                  key={action.href}
+                  href={action.href}
+                  className="rounded-xl border border-[#e5ecf4] bg-[#f8fbff] p-3 hover:bg-[#edf4ff] transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[#17325f] text-[20px]">{action.icon}</span>
+                  <div className="text-xs font-bold text-[#17325f] mt-2">{action.label}</div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[24px] bg-white border border-[#e5ecf4] p-4">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-[#7f91aa] font-bold mb-3">Exceptions First</p>
+            <div className="space-y-3">
+              {focusItems.map((item) => (
+                <Link key={item.id} href={item.link} className="block rounded-xl border border-[#e5ecf4] p-3 hover:bg-[#f8fbff] transition-colors">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-[#17325f]">{item.label}</span>
+                    <span className={`text-xs font-bold ${item.status === "alert" ? "text-[#c2472b]" : "text-[#1f8a70]"}`}>
+                      {item.value ?? "--"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#7f91aa] mt-1">{item.description}</p>
+                </Link>
+              ))}
+
+              {upcomingDeadlines.slice(0, 2).map((item) => (
+                <Link key={item.label} href={item.link} className="block rounded-xl border border-[#f5deb3] bg-[#fffaf1] p-3">
+                  <div className="text-xs font-semibold text-[#17325f]">{item.label}</div>
+                  <div className="text-[11px] text-[#b45309] mt-1">{item.date}</div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {/* Section 3: CALENDAR */}
         {/* Section 3: CALENDAR */}

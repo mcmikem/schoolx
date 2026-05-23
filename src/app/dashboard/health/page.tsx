@@ -204,17 +204,20 @@ export default function HealthPage() {
   const admitted = records.filter((r) => r.status === "admitted");
   const discharged = records.filter((r) => r.status === "discharged");
   const referred = records.filter((r) => r.status === "referred");
+  const dischargedToday = discharged.filter(
+    (r) => r.discharged_at && new Date(r.discharged_at).toDateString() === new Date().toDateString(),
+  ).length;
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
       <PageHeader
         title="Health & Sick Bay"
         subtitle="Student welfare and medical management"
         actions={
           <button
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-2xl font-bold shadow-lg shadow-red-500/20 hover:scale-105 transition-all"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-2xl font-bold shadow-lg shadow-red-500/20 hover:scale-105 transition-all"
           >
             <MaterialIcon icon="add" />
             Admit Student
@@ -223,10 +226,10 @@ export default function HealthPage() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: "Currently Admitted", value: admitted.length, color: "bg-blue-600", icon: "bed" },
-          { label: "Discharged Today", value: discharged.filter(r => r.discharged_at && new Date(r.discharged_at).toDateString() === new Date().toDateString()).length, color: "bg-emerald-500", icon: "check_circle" },
+          { label: "Discharged Today", value: dischargedToday, color: "bg-emerald-500", icon: "check_circle" },
           { label: "Referred to Hospital", value: referred.length, color: "bg-red-500", icon: "local_hospital" },
         ].map((s) => (
           <div key={s.label} className="p-5 bg-white rounded-3xl border border-slate-100 flex items-center gap-4">
@@ -242,6 +245,20 @@ export default function HealthPage() {
       </div>
 
       {/* Records Table */}
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: "Admitted", value: admitted.length, tone: "text-blue-700 bg-blue-50" },
+          { label: "Discharged today", value: dischargedToday, tone: "text-emerald-700 bg-emerald-50" },
+          { label: "Referred", value: referred.length, tone: "text-red-700 bg-red-50" },
+          { label: "Records", value: records.length, tone: "text-slate-700 bg-slate-50" },
+        ].map((item) => (
+          <div key={item.label} className={`rounded-2xl border border-slate-100 p-3 ${item.tone}`}>
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
+            <div className="mt-1 text-lg font-bold">{item.value}</div>
+          </div>
+        ))}
+      </div>
       <div className={cardClassName + " overflow-hidden"}>
         <div className="p-5 border-b border-slate-50 bg-slate-50/50">
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Sick Bay Records</p>

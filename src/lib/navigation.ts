@@ -36,7 +36,6 @@ const HEADMASTER_EQUIVALENT_NAV_ROLES = deepFreeze([
   "admin",
   "school_admin",
   "board",
-  "super_admin",
 ] as const);
 
 // Define navigation by role

@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
+import { createHmac, timingSafeEqual } from "crypto";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+const webhookSecret = process.env.AFRICAS_TALKING_WEBHOOK_SECRET || "";
 
 interface IncomingSMS {
   from: string;
@@ -13,15 +15,58 @@ interface IncomingSMS {
   date: string;
 }
 
+function safeEqualString(a: string, b: string): boolean {
+  const aBuf = Buffer.from(a);
+  const bBuf = Buffer.from(b);
+  if (aBuf.length !== bBuf.length) return false;
+  return timingSafeEqual(aBuf, bBuf);
+}
+
+function hasValidWebhookSignature(rawBody: string, signatureHeader: string): boolean {
+  const normalized = signatureHeader.trim();
+  if (!normalized) return false;
+
+  const sha256Hex = createHmac("sha256", webhookSecret)
+    .update(rawBody)
+    .digest("hex");
+  const sha256Base64 = createHmac("sha256", webhookSecret)
+    .update(rawBody)
+    .digest("base64");
+  const sha1Hex = createHmac("sha1", webhookSecret).update(rawBody).digest("hex");
+  const sha1Base64 = createHmac("sha1", webhookSecret)
+    .update(rawBody)
+    .digest("base64");
+
+  return [sha256Hex, sha256Base64, sha1Hex, sha1Base64].some((candidate) =>
+    safeEqualString(candidate, normalized),
+  );
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // Africa's Talking sends data as form-urlencoded, not JSON
-    const formData = await request.formData();
-    
-    const from = formData.get("from") as string;
-    const to = formData.get("to") as string;
-    const message = (formData.get("message") || formData.get("text")) as string;
-    const date = formData.get("date") as string;
+    // Africa's Talking sends payload as application/x-www-form-urlencoded.
+    const rawBody = await request.text();
+    const signatureHeader =
+      request.headers.get("x-africastalking-signature") ||
+      request.headers.get("x-signature") ||
+      "";
+
+    if (!webhookSecret) {
+      if (process.env.NODE_ENV !== "development") {
+        logger.error("Incoming SMS webhook rejected: missing AFRICAS_TALKING_WEBHOOK_SECRET");
+        return NextResponse.json({ error: "Webhook security not configured" }, { status: 503 });
+      }
+      logger.warn("Incoming SMS webhook running without signature validation in development");
+    } else if (!signatureHeader || !hasValidWebhookSignature(rawBody, signatureHeader)) {
+      logger.warn("Incoming SMS webhook rejected: invalid signature");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+
+    const formData = new URLSearchParams(rawBody);
+    const from = formData.get("from") || "";
+    const to = formData.get("to") || "";
+    const message = formData.get("message") || formData.get("text") || "";
+    const date = formData.get("date") || "";
 
     if (!from || !message) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });

@@ -11,6 +11,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { useTheme } from "@/lib/theme-context";
 import { useNotifications } from "@/lib/notifications";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { canAccess, type UserRole } from "@/lib/roles";
 
 type DashboardNotification = {
   id: string;
@@ -22,37 +23,68 @@ type DashboardNotification = {
   read: boolean;
 };
 
-function getNextStep(path: string): {
+function getNextStepForRole(
+  path: string,
+  role: UserRole | undefined,
+): {
   label: string;
   href: string;
   icon: string;
 } {
-  if (path === "/dashboard")
-    return {
-      label: "Add students",
-      href: "/dashboard/students",
-      icon: "person_add",
-    };
-  if (path.startsWith("/dashboard/students"))
-    return {
-      label: "Take attendance",
-      href: "/dashboard/attendance",
-      icon: "how_to_reg",
-    };
-  if (path.startsWith("/dashboard/attendance"))
+  if (!role) {
+    return { label: "Back to dashboard", href: "/dashboard", icon: "dashboard" };
+  }
+
+  const candidates = [
+    {
+      allowed: canAccess(role, "students"),
+      when: path === "/dashboard",
+      step: { label: "Add students", href: "/dashboard/students", icon: "person_add" },
+    },
+    {
+      allowed: canAccess(role, "attendance"),
+      when: path.startsWith("/dashboard/students"),
+      step: { label: "Take attendance", href: "/dashboard/attendance", icon: "how_to_reg" },
+    },
+    {
+      allowed: canAccess(role, "fees"),
+      when: path.startsWith("/dashboard/attendance"),
+      step: { label: "Record fees", href: "/dashboard/fees", icon: "payments" },
+    },
+    {
+      allowed: canAccess(role, "messages"),
+      when: path.startsWith("/dashboard/fees"),
+      step: { label: "Send reminders", href: "/dashboard/messages", icon: "sms" },
+    },
+    {
+      allowed: canAccess(role, "messages"),
+      when: path.startsWith("/dashboard/messages"),
+      step: { label: "View notices", href: "/dashboard/notices", icon: "campaign" },
+    },
+  ] as const;
+
+  for (const candidate of candidates) {
+    if (candidate.when && candidate.allowed) {
+      return candidate.step;
+    }
+  }
+
+  if (canAccess(role, "attendance")) {
+    return { label: "Take attendance", href: "/dashboard/attendance", icon: "how_to_reg" };
+  }
+
+  if (canAccess(role, "fees")) {
     return { label: "Record fees", href: "/dashboard/fees", icon: "payments" };
-  if (path.startsWith("/dashboard/fees"))
-    return {
-      label: "Send reminders",
-      href: "/dashboard/messages",
-      icon: "sms",
-    };
-  if (path.startsWith("/dashboard/messages"))
-    return {
-      label: "View notices",
-      href: "/dashboard/notices",
-      icon: "campaign",
-    };
+  }
+
+  if (canAccess(role, "reports")) {
+    return { label: "Open reports", href: "/dashboard/reports", icon: "bar_chart" };
+  }
+
+  if (path === "/dashboard") {
+    return { label: "Back to dashboard", href: "/dashboard", icon: "dashboard" };
+  }
+
   return { label: "Back to dashboard", href: "/dashboard", icon: "dashboard" };
 }
 
@@ -276,6 +308,7 @@ export default function TopBar({
   }, [userMenuOpen, notifOpen]);
 
   const schoolName = school?.name || "My School";
+  const nextStep = getNextStepForRole(path, user?.role as UserRole | undefined);
   const currentDate = new Date();
   const formattedDate = currentDate.toLocaleDateString("en-UG", {
     weekday: "long",

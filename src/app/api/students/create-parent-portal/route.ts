@@ -5,9 +5,15 @@ import { buildAuthEmailFromPhone } from "@/lib/auth-login";
 import { logger } from "@/lib/logger";
 import { sendParentPortalCredentials, isWhatsAppConfigured } from "@/lib/whatsapp";
 import { requireUserWithSchool, assertSchoolScopeOrDeny } from "@/lib/api-utils";
+import { randomBytes } from "crypto";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+
+function generateTemporaryPassword(): string {
+  const randomPart = randomBytes(10).toString("base64url");
+  return `Sm!${randomPart}A9`;
+}
 
 export async function POST(request: NextRequest) {
   // Require authenticated school user
@@ -52,13 +58,13 @@ export async function POST(request: NextRequest) {
   const phoneNormalized = normalizeAuthPhone(parentPhone);
   const { data: existingUser } = await supabaseAdmin
     .from("users")
-    .select("id, role")
+    .select("id, role, auth_id")
     .eq("phone", phoneNormalized)
     .eq("school_id", schoolId)
     .maybeSingle();
 
   const parentName = student.parent_name?.trim() || `Parent of ${student.first_name}`;
-  const generatedPassword = `parent${parentPhone.slice(-4)}`;
+  const generatedPassword = generateTemporaryPassword();
   const authEmail = buildAuthEmailFromPhone(phoneNormalized);
   const e164Phone = phoneNormalized.startsWith("+")
     ? phoneNormalized
@@ -100,6 +106,26 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    if (existingUser.auth_id) {
+      const { error: rotatePasswordError } = await supabaseAdmin.auth.admin.updateUserById(
+        existingUser.auth_id,
+        {
+          password: generatedPassword,
+          user_metadata: {
+            full_name: parentName,
+            phone: phoneNormalized,
+            role: "parent",
+            must_change_password: true,
+          },
+        },
+      );
+
+      if (rotatePasswordError) {
+        logger.error("[create-parent-portal] Failed to rotate password for existing parent:", rotatePasswordError);
+        return NextResponse.json({ error: "Failed to refresh parent credentials" }, { status: 500 });
+      }
+    }
+
     // Generate WhatsApp share link for existing parent credentials
     let whatsappLink: string | undefined;
     try {
@@ -111,7 +137,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       created: false,
-      message: "Parent account already exists and is linked",
+      message: "Parent account already exists. Credentials refreshed and linked.",
       parentName,
       parentPhone: phoneNormalized,
       generatedPassword,
@@ -126,7 +152,12 @@ export async function POST(request: NextRequest) {
     phone: e164Phone,
     password: generatedPassword,
     email_confirm: true,
-    user_metadata: { full_name: parentName, phone: phoneNormalized, role: "parent" },
+    user_metadata: {
+      full_name: parentName,
+      phone: phoneNormalized,
+      role: "parent",
+      must_change_password: true,
+    },
   });
 
   if (authError) {
@@ -135,7 +166,12 @@ export async function POST(request: NextRequest) {
       email: authEmail,
       password: generatedPassword,
       email_confirm: true,
-      user_metadata: { full_name: parentName, phone: phoneNormalized, role: "parent" },
+      user_metadata: {
+        full_name: parentName,
+        phone: phoneNormalized,
+        role: "parent",
+        must_change_password: true,
+      },
     }));
   }
 

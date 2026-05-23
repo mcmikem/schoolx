@@ -145,7 +145,7 @@ export default function PaymentModal({
           {step === 1 && (
             <>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+                <label htmlFor="payment-student" className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
                   Student
                 </label>
                 {students.length === 0 ? (
@@ -155,6 +155,7 @@ export default function PaymentModal({
                 ) : (
                   <>
                     <select
+                      id="payment-student"
                       value={newPayment.student_id}
                       onChange={(e) =>
                         onPaymentChange({ student_id: e.target.value })
@@ -180,10 +181,11 @@ export default function PaymentModal({
                 )}
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+                <label htmlFor="payment-amount" className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
                   Amount (UGX)
                 </label>
                 <input
+                  id="payment-amount"
                   type="number"
                   min="1"
                   value={newPayment.amount_paid}

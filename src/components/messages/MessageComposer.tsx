@@ -12,6 +12,8 @@ interface ClassItem {
 interface MessageComposerProps {
   messageType: "individual" | "class" | "all";
   onMessageTypeChange: (type: "individual" | "class" | "all") => void;
+  deliveryChannel: "auto" | "sms" | "whatsapp";
+  onDeliveryChannelChange: (channel: "auto" | "sms" | "whatsapp") => void;
   phone: string;
   onPhoneChange: (phone: string) => void;
   selectedClass: string;
@@ -32,6 +34,8 @@ const messageTypeTabs = [
 export default function MessageComposer({
   messageType,
   onMessageTypeChange,
+  deliveryChannel,
+  onDeliveryChannelChange,
   phone,
   onPhoneChange,
   selectedClass,
@@ -55,6 +59,27 @@ export default function MessageComposer({
             onMessageTypeChange(id as "individual" | "class" | "all")
           }
         />
+        <div className="flex flex-wrap gap-2">
+          {[
+            { value: "auto", label: "Auto", icon: "bolt" },
+            { value: "whatsapp", label: "WhatsApp", icon: "chat" },
+            { value: "sms", label: "SMS", icon: "sms" },
+          ].map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onDeliveryChannelChange(option.value as "auto" | "sms" | "whatsapp")}
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${
+                deliveryChannel === option.value
+                  ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]"
+                  : "border-[var(--border)] bg-[var(--surface)] text-[var(--t2)] hover:border-[var(--primary)]/30"
+              }`}
+            >
+              <MaterialIcon icon={option.icon} className="text-sm" />
+              {option.label}
+            </button>
+          ))}
+        </div>
         {messageType === "individual" && (
           <div>
             <label
@@ -127,7 +152,7 @@ export default function MessageComposer({
           loading={sending}
         >
           <MaterialIcon icon="send" className="text-lg" />
-          {sending ? "Sending..." : "Send SMS"}
+          {sending ? "Sending..." : deliveryChannel === "whatsapp" ? "Send WhatsApp" : deliveryChannel === "auto" ? "Send Auto" : "Send SMS"}
         </Button>
       </CardBody>
     </Card>

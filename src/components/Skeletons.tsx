@@ -5,14 +5,17 @@ import OwlMascot from "@/components/brand/OwlMascot"
 
 export function DashboardSkeleton() {
   return (
-    <div className="animate-pulse space-y-6 p-4">
+    <div className="animate-pulse space-y-5 p-4 sm:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3 min-w-0">
           <OwlMascot size={46} premium ring glow />
-          <div className="h-8 bg-[var(--surface-container)] rounded w-48 overflow-hidden shimmer"></div>
+          <div className="space-y-2 min-w-0">
+            <div className="h-5 bg-[var(--surface-container)] rounded w-40 overflow-hidden shimmer"></div>
+            <div className="h-3 bg-[var(--surface-container)] rounded w-56 max-w-full overflow-hidden shimmer"></div>
+          </div>
         </div>
-        <div className="h-10 bg-[var(--surface-container)] rounded w-32 overflow-hidden shimmer"></div>
+        <div className="h-10 bg-[var(--surface-container)] rounded w-28 sm:w-32 overflow-hidden shimmer"></div>
       </div>
       
       {/* Stats Cards */}
@@ -32,17 +35,20 @@ export function DashboardSkeleton() {
       
       {/* Table */}
       <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)]">
-        <div className="p-4 border-b border-[var(--border)]">
-          <div className="h-6 bg-[var(--surface-container)] rounded w-32"></div>
+        <div className="p-4 border-b border-[var(--border)] space-y-2">
+          <div className="h-5 bg-[var(--surface-container)] rounded w-32"></div>
+          <div className="h-3 bg-[var(--surface-container)] rounded w-48 max-w-full"></div>
         </div>
         {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="p-4 border-b border-[var(--border)] flex items-center gap-4">
-            <div className="h-10 w-10 bg-[var(--surface-container)] rounded-full"></div>
-            <div className="flex-1 space-y-2">
-              <div className="h-4 bg-[var(--surface-container)] rounded w-1/3"></div>
-              <div className="h-3 bg-[var(--surface-container)] rounded w-1/4"></div>
+          <div key={i} className="p-4 border-b border-[var(--border)] flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="h-10 w-10 bg-[var(--surface-container)] rounded-full"></div>
+              <div className="flex-1 space-y-2 min-w-0">
+                <div className="h-4 bg-[var(--surface-container)] rounded w-2/3 max-w-[220px]"></div>
+                <div className="h-3 bg-[var(--surface-container)] rounded w-1/2 max-w-[160px]"></div>
+              </div>
             </div>
-            <div className="h-8 bg-[var(--surface-container)] rounded w-20"></div>
+            <div className="h-8 bg-[var(--surface-container)] rounded w-24 sm:w-20"></div>
           </div>
         ))}
       </div>
@@ -55,13 +61,13 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
     <div className="animate-pulse">
       <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)]">
         {[1, 2, 3, 4, 5].slice(0, rows).map((i) => (
-          <div key={i} className="p-4 border-b border-[var(--border)] flex items-center gap-4">
+          <div key={i} className="p-4 border-b border-[var(--border)] flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
             <div className="h-10 w-10 bg-[var(--surface-container)] rounded-full"></div>
-            <div className="flex-1 space-y-2">
-              <div className="h-4 bg-[var(--surface-container)] rounded w-1/3"></div>
-              <div className="h-3 bg-[var(--surface-container)] rounded w-1/4"></div>
+            <div className="flex-1 space-y-2 min-w-0">
+              <div className="h-4 bg-[var(--surface-container)] rounded w-1/2 max-w-[240px]"></div>
+              <div className="h-3 bg-[var(--surface-container)] rounded w-1/3 max-w-[180px]"></div>
             </div>
-            <div className="h-8 bg-[var(--surface-container)] rounded w-20"></div>
+            <div className="h-8 bg-[var(--surface-container)] rounded w-20 sm:w-24"></div>
           </div>
         ))}
       </div>
@@ -126,11 +132,10 @@ export function QuickActionsSkeleton() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="bg-[var(--surface)] rounded-xl p-4 border border-[var(--border)] animate-pulse">
-          <div className="mx-auto mb-2 flex justify-center">
-            <OwlMascot size={40} premium />
-          </div>
-          <div className="h-3 bg-[var(--surface-container)] rounded w-16 mx-auto"></div>
+        <div key={i} className="bg-[var(--surface)] rounded-xl p-4 border border-[var(--border)] animate-pulse space-y-3">
+          <div className="h-10 w-10 rounded-xl bg-[var(--surface-container)]"></div>
+          <div className="h-3 bg-[var(--surface-container)] rounded w-16"></div>
+          <div className="h-2 bg-[var(--surface-container)] rounded w-20"></div>
         </div>
       ))}
     </div>

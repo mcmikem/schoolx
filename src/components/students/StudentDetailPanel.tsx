@@ -535,7 +535,7 @@ export default function StudentDetailPanel({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="sticky top-0 bg-[var(--surface)] border-b border-[var(--border)] p-4 flex items-center justify-between">
-            <div
+            <h2
               style={{
                 fontFamily: "Sora",
                 fontSize: 16,
@@ -543,7 +543,7 @@ export default function StudentDetailPanel({
               }}
             >
               {isEdit ? "Edit Student" : "Add New Student"}
-            </div>
+            </h2>
             <button
               onClick={onClose}
               style={{
@@ -603,6 +603,7 @@ export default function StudentDetailPanel({
             >
               <div>
                 <label
+                  htmlFor="student-first-name"
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
@@ -616,6 +617,7 @@ export default function StudentDetailPanel({
                   First Name
                 </label>
                 <input
+                  id="student-first-name"
                   ref={isEdit ? undefined : addStudentFirstInputRef}
                   type="text"
                   value={fName}
@@ -627,6 +629,7 @@ export default function StudentDetailPanel({
               </div>
               <div>
                 <label
+                  htmlFor="student-last-name"
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
@@ -640,6 +643,7 @@ export default function StudentDetailPanel({
                   Last Name
                 </label>
                 <input
+                  id="student-last-name"
                   type="text"
                   value={lName}
                   onChange={(e) => setLName(e.target.value)}
@@ -706,6 +710,7 @@ export default function StudentDetailPanel({
             </div>
             <div style={{ marginBottom: 16 }}>
               <label
+                htmlFor="student-class-id"
                 style={{
                   fontSize: 11,
                   fontWeight: 700,
@@ -748,6 +753,7 @@ export default function StudentDetailPanel({
                 </div>
               ) : (
                 <select
+                  id="student-class-id"
                   value={cId}
                   onChange={(e) => setClassId(e.target.value)}
                   className="input"

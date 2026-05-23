@@ -291,15 +291,19 @@ export default function TeacherPerformancePage() {
 
   if (loading) {
     return (
-      <div className="content">
+      <div className="content space-y-6">
         <PageHeader
           title="Teacher Performance"
           subtitle="Track teacher activity and rewards"
         />
-        <div className="flex items-center justify-center py-20">
-          <MaterialIcon className="text-4xl text-primary animate-spin">
-            sync
-          </MaterialIcon>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 animate-pulse space-y-2">
+              <div className="h-3 bg-[var(--surface-container)] rounded w-20" />
+              <div className="h-7 bg-[var(--surface-container)] rounded w-16" />
+              <div className="h-3 bg-[var(--surface-container)] rounded w-24" />
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -307,11 +311,25 @@ export default function TeacherPerformancePage() {
 
   return (
     <PageErrorBoundary>
-    <div className="content">
+    <div className="content space-y-6">
       <PageHeader
         title="Teacher Performance"
         subtitle="Track teacher activity, syllabus coverage, and reward high performers"
       />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: "Teachers", value: stats.length, tone: "text-slate-700 bg-slate-50" },
+          { label: "Lesson plans", value: stats.reduce((a, b) => a + b.lessonPlansCount, 0), tone: "text-blue-700 bg-blue-50" },
+          { label: "Grades entered", value: stats.reduce((a, b) => a + b.gradesEntered, 0), tone: "text-emerald-700 bg-emerald-50" },
+          { label: "Attendance", value: stats.reduce((a, b) => a + b.attendanceMarked, 0), tone: "text-amber-700 bg-amber-50" },
+        ].map((item) => (
+          <div key={item.label} className={`rounded-2xl border border-[var(--border)] p-3 ${item.tone}`}>
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
+            <div className="mt-1 text-lg font-bold">{item.value}</div>
+          </div>
+        ))}
+      </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {(["lessonPlans", "syllabus", "grades", "attendance"] as const).map(

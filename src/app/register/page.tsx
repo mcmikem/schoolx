@@ -59,7 +59,7 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
-  const [manualLocationEntry, setManualLocationEntry] = useState(false);
+  const [manualLocationEntry, setManualLocationEntry] = useState(true);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const googleRegisterMode = searchParams?.get("oauth") === "1";

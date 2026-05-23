@@ -8,7 +8,14 @@ interface SetupAdminRequest {
   password: string
 }
 
+let setupAdminInProgress = false
+
 export async function POST(request: NextRequest) {
+  if (setupAdminInProgress) {
+    return apiError('Setup is already in progress. Please retry in a moment.', 409)
+  }
+
+  setupAdminInProgress = true
   try {
     // Rate limit: 3 attempts per IP per hour
     const { success } = rateLimit(request, 3, 3_600_000);
@@ -36,7 +43,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     if (existingSuperAdmin) {
-      return apiError('Setup has already been completed', 400)
+      return apiError('Setup has already been completed', 409)
     }
 
     const account = await createManagedUserAccount({
@@ -64,6 +71,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const structuredError = error as {
+      code?: string
+      message?: string
+      details?: string
+      hint?: string
+    }
+
+    if (
+      structuredError?.code === '23505' &&
+      /users_single_super_admin_idx|super_admin/i.test(
+        `${structuredError.message || ''} ${structuredError.details || ''} ${structuredError.hint || ''}`,
+      )
+    ) {
+      return apiError('Setup has already been completed', 409)
+    }
+
     return handleApiError(error)
+  } finally {
+    setupAdminInProgress = false
   }
 }

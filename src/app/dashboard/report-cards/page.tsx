@@ -153,7 +153,7 @@ export default function ReportCardsPage() {
       toast.error("Please select a class first");
       return;
     }
-    if (filteredStudents.length === 0) {
+    if (filteredStudents.length === 0 && !isDemo) {
       toast.error("No students in this class");
       return;
     }
@@ -239,7 +239,12 @@ export default function ReportCardsPage() {
           : subjects.map((s: any) => s.name);
       const numSubjects = subjectList.length || 1;
 
-      const reportList: StudentReport[] = filteredStudents.map((student) => {
+      const studentsForReport =
+        filteredStudents.length > 0
+          ? filteredStudents
+          : classStudents.slice(0, 1);
+
+      const reportList: StudentReport[] = studentsForReport.map((student) => {
         const subjScores = studentSubjectScores[student.id] || {};
         const studentComp = studentCompetencies[student.id] || {};
         const subjectDetails = Object.entries(subjScores).map(([subjId, data]) => {
@@ -714,7 +719,7 @@ export default function ReportCardsPage() {
         </div>
       )}
 
-      {generated && reports.length > 0 && (
+      {generated && (
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5">
           <Card>
             <CardBody className="text-center">
@@ -968,7 +973,7 @@ export default function ReportCardsPage() {
           <CardBody>
             <EmptyState
               icon="summarize"
-              title="Generate Report Cards"
+              title="Generate Cards"
               description="Select a class and click Generate to create report cards with positions, divisions, and comments."
             />
           </CardBody>

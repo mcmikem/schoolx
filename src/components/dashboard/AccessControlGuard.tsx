@@ -227,6 +227,7 @@ export function getPageTitle(pathname: string): string {
 export function useAccessControl() {
   const { user, school } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const toast = useToast();
 
   const featureStage =
@@ -234,6 +235,7 @@ export function useAccessControl() {
 
   useEffect(() => {
     if (!user || !pathname || pathname === "/dashboard") return;
+    if (pathname.startsWith("/dashboard/no-access")) return;
 
     const routeKey = Object.keys(roleBasedRoutes).find((key) =>
       pathname.startsWith(key),
@@ -251,7 +253,9 @@ export function useAccessControl() {
             `${capitalizedPage} requires higher permissions. Your role (${userRoleLabel}) does not have access.`,
           );
         }
-        window.history.replaceState(null, "", "/dashboard");
+        router.replace(
+          `/dashboard/no-access?reason=permission&from=${encodeURIComponent(pathname)}&required=${permission}`,
+        );
         return;
       }
     }
@@ -267,12 +271,14 @@ export function useAccessControl() {
           sessionStorage.setItem("lastDeniedPath", pathname);
           toast?.error("Upgrade your package to access this module");
         }
-        window.history.replaceState(null, "", "/dashboard");
+        router.replace(
+          `/dashboard/no-access?reason=feature&from=${encodeURIComponent(pathname)}&module=${moduleKey}`,
+        );
         return;
       }
     }
     sessionStorage.removeItem("lastDeniedPath");
-  }, [user, pathname, toast, featureStage]);
+  }, [user, pathname, toast, featureStage, router]);
 }
 
 export function useDashboardNotifications() {

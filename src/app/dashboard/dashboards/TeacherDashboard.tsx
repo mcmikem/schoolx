@@ -61,8 +61,37 @@ function TeacherDashboardContent() {
     day: "numeric",
     month: "short",
   });
+  const classesWithNoStudents = myClasses.filter(
+    (cls) => students.filter((s) => s.class_id === cls.id).length === 0,
+  ).length;
+  const attendancePending = stats?.presentToday === 0 && myClasses.length > 0;
 
-  const classesNotMarkedToday = classes.filter((c) => { return false; }).length;
+  const todayActions = [
+    {
+      label: "Take attendance",
+      href: "/dashboard/attendance",
+      icon: "how_to_reg",
+      tone: "text-[#c2472b]",
+    },
+    {
+      label: "Record grades",
+      href: "/dashboard/grades",
+      icon: "grade",
+      tone: "text-[#17325f]",
+    },
+    {
+      label: "Post homework",
+      href: "/dashboard/homework",
+      icon: "assignment",
+      tone: "text-[#1f8a70]",
+    },
+    {
+      label: "Open timetable",
+      href: "/dashboard/timetable",
+      icon: "calendar_month",
+      tone: "text-[#17325f]",
+    },
+  ];
 
   if (dataLoading) {
     return (
@@ -95,6 +124,48 @@ function TeacherDashboardContent() {
         </div>
       </section>
 
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        <div className="lg:col-span-2 rounded-[22px] border border-[#e5ecf4] bg-white p-4">
+          <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">Today Actions</div>
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            {todayActions.map((action) => (
+              <Link
+                key={action.href}
+                href={action.href}
+                className="rounded-xl border border-[#e5ecf4] bg-[#f8fbff] p-3 hover:bg-[#edf4ff] transition-colors"
+              >
+                <span className={`material-symbols-outlined text-[20px] ${action.tone}`}>{action.icon}</span>
+                <div className="text-xs font-bold text-[#17325f] mt-2">{action.label}</div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-[22px] border border-[#e5ecf4] bg-white p-4">
+          <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">Exceptions First</div>
+          <div className="space-y-3 mt-3">
+            <div className={`rounded-xl border p-3 ${attendancePending ? "border-[#f5d0c5] bg-[#ffefe8]" : "border-[#d8efe7] bg-[#f3fbf8]"}`}>
+              <div className="text-xs font-semibold text-[#17325f]">Attendance status</div>
+              <div className={`text-sm font-bold mt-1 ${attendancePending ? "text-[#c2472b]" : "text-[#1f8a70]"}`}>
+                {attendancePending ? "Pending for today" : "Captured"}
+              </div>
+            </div>
+            <div className={`rounded-xl border p-3 ${classesWithNoStudents > 0 ? "border-[#f5deb3] bg-[#fff8eb]" : "border-[#e5ecf4] bg-[#f8fbff]"}`}>
+              <div className="text-xs font-semibold text-[#17325f]">Class data quality</div>
+              <div className="text-sm font-bold mt-1 text-[#17325f]">
+                {classesWithNoStudents > 0
+                  ? `${classesWithNoStudents} class(es) have no students`
+                  : "All classes have student records"}
+              </div>
+            </div>
+            <div className="rounded-xl border border-[#e5ecf4] bg-[#f8fbff] p-3">
+              <div className="text-xs font-semibold text-[#17325f]">My teaching load</div>
+              <div className="text-sm font-bold mt-1 text-[#17325f]">{myClasses.length} classes · {mySubjects.length} subjects</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Section 2: MY CLASSES */}
       {myClasses.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
@@ -105,8 +176,8 @@ function TeacherDashboardContent() {
                 <p className="text-lg font-bold text-[#17325f]">{cls.name}</p>
                 <p className="text-xs text-[#7f91aa] mt-0.5">{count} student{count !== 1 ? 's' : ''}</p>
                 <div className="flex gap-2 mt-3">
-                  <a href={`/dashboard/attendance?class=${cls.id}`} className="flex-1 rounded-xl bg-[#17325f] py-2 text-center text-xs font-bold text-white hover:opacity-90">Attendance</a>
-                  <a href={`/dashboard/grades?class=${cls.id}`} className="flex-1 rounded-xl bg-[#edf4ff] py-2 text-center text-xs font-bold text-[#17325f] hover:bg-[#dce8f5]">Grades</a>
+                  <Link href={`/dashboard/attendance?class=${cls.id}`} className="flex-1 rounded-xl bg-[#17325f] py-2 text-center text-xs font-bold text-white hover:opacity-90">Attendance</Link>
+                  <Link href={`/dashboard/grades?class=${cls.id}`} className="flex-1 rounded-xl bg-[#edf4ff] py-2 text-center text-xs font-bold text-[#17325f] hover:bg-[#dce8f5]">Grades</Link>
                 </div>
               </div>
             );
@@ -126,7 +197,7 @@ function TeacherDashboardContent() {
             <p className="text-sm font-bold text-[#17325f]">Mark attendance</p>
             <p className="text-xs text-[#6b7f99]">Not yet taken for today</p>
           </div>
-          <a href="/dashboard/attendance" className="shrink-0 rounded-xl bg-[#c2472b] px-4 py-2 text-xs font-bold text-white">Take now</a>
+          <Link href="/dashboard/attendance" className="shrink-0 rounded-xl bg-[#c2472b] px-4 py-2 text-xs font-bold text-white">Take now</Link>
         </div>
       )}
     </div>

@@ -12,21 +12,23 @@ export default function SetupWizardPage() {
 
   if (!authInitialized) {
     return (
-      <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
-        <OwlLoader size={100} text={APP_NAME} subtext="Loading your school..." />
+      <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center px-4">
+        <div className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center shadow-sm">
+          <OwlLoader size={84} text={APP_NAME} subtext="Loading your school..." />
+        </div>
       </div>
     );
   }
 
   if (!user || !school) {
     return (
-      <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-[var(--t1)] mb-2">Please sign in</h2>
-          <p className="text-sm text-[var(--t3)] mb-4">You need to be logged in to set up your school.</p>
+      <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center px-4">
+        <div className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center shadow-sm space-y-4">
+          <h2 className="text-xl font-semibold text-[var(--t1)]">Please sign in</h2>
+          <p className="text-sm text-[var(--t3)]">You need to be logged in to set up your school.</p>
           <button
             onClick={() => router.push("/login")}
-            className="px-4 py-2 bg-[var(--primary)] text-white rounded-xl font-medium"
+            className="px-4 py-2 bg-[var(--primary)] text-white rounded-xl font-medium w-full"
           >
             Sign In
           </button>

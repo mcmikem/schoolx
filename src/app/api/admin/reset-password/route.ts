@@ -1,10 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { apiSuccess, apiError } from "@/lib/api-utils";
+import {
+  apiSuccess,
+  apiError,
+  requireUserWithSchool,
+  assertSchoolScopeOrDeny,
+  assertUserRoleOrDeny,
+} from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
+
+const PASSWORD_RESET_ALLOWED_ROLES = ["super_admin", "school_admin"];
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireUserWithSchool(request);
+    if (!auth.ok) return auth.response;
+
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: PASSWORD_RESET_ALLOWED_ROLES,
+    });
+    if (!roleCheck.ok) return roleCheck.response;
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -30,12 +47,20 @@ export async function POST(request: NextRequest) {
     // Get user data to find auth_id
     const { data: userData, error: userError } = await supabase
       .from("users")
-      .select("auth_id")
+      .select("auth_id, school_id")
       .eq("id", userId)
       .single();
 
-    if (userError || !userData?.auth_id) {
+    if (userError || !userData?.auth_id || !userData?.school_id) {
       return apiError("User not found", 404);
+    }
+
+    if (auth.context.user.role !== "super_admin") {
+      const scope = assertSchoolScopeOrDeny({
+        userSchoolId: auth.context.schoolId,
+        requestedSchoolId: userData.school_id,
+      });
+      if (!scope.ok) return scope.response;
     }
 
     // Update password via admin API

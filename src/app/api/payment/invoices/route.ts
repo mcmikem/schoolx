@@ -3,8 +3,21 @@ import { getSchoolPaymentHistory } from "@/lib/payments/utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/server/user-provisioning";
 import { logger } from "@/lib/logger";
+import {
+  requireUserWithSchool,
+  assertSchoolScopeOrDeny,
+  assertUserRoleOrDeny,
+} from "@/lib/api-utils";
 
 export const dynamic = "force-dynamic";
+
+const BILLING_ROLES = [
+  "super_admin",
+  "school_admin",
+  "admin",
+  "headmaster",
+  "bursar",
+];
 
 type InvoicePayment = {
   id: string;
@@ -25,31 +38,24 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const limit = parseInt(searchParams.get("limit") || "10");
 
-    const supabase = await createSupabaseServerClient();
+    const auth = await requireUserWithSchool(request);
+    if (!auth.ok) return auth.response;
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { data: userData } = await supabase
-      .from("users")
-      .select("school_id")
-      .eq("auth_id", user.id)
-      .single();
-
-    if (!userData?.school_id) {
+    if (!auth.context.schoolId) {
       return NextResponse.json(
-        { error: "School not found for user" },
-        { status: 404 },
+        { error: "Missing school context" },
+        { status: 400 },
       );
     }
 
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: BILLING_ROLES,
+    });
+    if (!roleCheck.ok) return roleCheck.response;
+
     const payments = ((await getSchoolPaymentHistory(
-      userData.school_id,
+      auth.context.schoolId,
       limit,
     )) ?? []) as InvoicePayment[];
 
@@ -83,6 +89,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireUserWithSchool(request);
+    if (!auth.ok) return auth.response;
+
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: BILLING_ROLES,
+    });
+    if (!roleCheck.ok) return roleCheck.response;
+
     const searchParams = request.nextUrl.searchParams;
     const body = await request.json();
     const { plan, amount, currency, schoolId } = body;
@@ -93,6 +108,12 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+
+    const scope = assertSchoolScopeOrDeny({
+      userSchoolId: auth.context.schoolId,
+      requestedSchoolId: schoolId,
+    });
+    if (!scope.ok) return scope.response;
 
     const supabaseAdmin = createSupabaseAdminClient();
     const { data: invoice, error } = await supabaseAdmin
@@ -141,6 +162,15 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const auth = await requireUserWithSchool(request);
+    if (!auth.ok) return auth.response;
+
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: BILLING_ROLES,
+    });
+    if (!roleCheck.ok) return roleCheck.response;
+
     const body = await request.json();
     const { id, payment_status, transaction_id, invoice_url, receipt_url } =
       body;
@@ -153,6 +183,23 @@ export async function PUT(request: NextRequest) {
     }
 
     const supabaseAdmin = createSupabaseAdminClient();
+    const { data: existingInvoice, error: existingInvoiceError } =
+      await supabaseAdmin
+        .from("payments")
+        .select("id, school_id")
+        .eq("id", id)
+        .single();
+
+    if (existingInvoiceError || !existingInvoice?.school_id) {
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+    }
+
+    const scope = assertSchoolScopeOrDeny({
+      userSchoolId: auth.context.schoolId,
+      requestedSchoolId: existingInvoice.school_id,
+    });
+    if (!scope.ok) return scope.response;
+
     const updateData: Record<string, unknown> = {};
 
     if (payment_status) updateData.payment_status = payment_status;
@@ -207,6 +254,15 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const auth = await requireUserWithSchool(request);
+    if (!auth.ok) return auth.response;
+
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: BILLING_ROLES,
+    });
+    if (!roleCheck.ok) return roleCheck.response;
+
     const { searchParams } = request.nextUrl;
     const id = searchParams.get("id");
 
@@ -218,6 +274,23 @@ export async function DELETE(request: NextRequest) {
     }
 
     const supabaseAdmin = createSupabaseAdminClient();
+    const { data: existingInvoice, error: existingInvoiceError } =
+      await supabaseAdmin
+        .from("payments")
+        .select("id, school_id")
+        .eq("id", id)
+        .single();
+
+    if (existingInvoiceError || !existingInvoice?.school_id) {
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+    }
+
+    const scope = assertSchoolScopeOrDeny({
+      userSchoolId: auth.context.schoolId,
+      requestedSchoolId: existingInvoice.school_id,
+    });
+    if (!scope.ok) return scope.response;
+
     const { error } = await supabaseAdmin
       .from("payments")
       .delete()

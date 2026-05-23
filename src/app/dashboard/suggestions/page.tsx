@@ -226,34 +226,21 @@ export default function SuggestionBoxPage() {
         }
       />
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card className="p-4 text-center">
-          <div className="text-2xl font-bold text-yellow-600">
-            {suggestions.filter((s) => s.status === "pending").length}
-          </div>
-          <div className="text-sm text-[var(--t3)]">Pending</div>
-        </Card>
-        <Card className="p-4 text-center">
-          <div className="text-2xl font-bold text-blue-600">
-            {suggestions.filter((s) => s.status === "reviewed").length}
-          </div>
-          <div className="text-sm text-[var(--t3)]">Reviewed</div>
-        </Card>
-        <Card className="p-4 text-center">
-          <div className="text-2xl font-bold text-purple-600">
-            {suggestions.filter((s) => s.status === "planned").length}
-          </div>
-          <div className="text-sm text-[var(--t3)]">Planned</div>
-        </Card>
-        <Card className="p-4 text-center">
-          <div className="text-2xl font-bold text-green-600">
-            {suggestions.filter((s) => s.status === "completed").length}
-          </div>
-          <div className="text-sm text-[var(--t3)]">Completed</div>
-        </Card>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: "Pending", value: suggestions.filter((s) => s.status === "pending").length, tone: "text-amber-700 bg-amber-50" },
+          { label: "Reviewed", value: suggestions.filter((s) => s.status === "reviewed").length, tone: "text-blue-700 bg-blue-50" },
+          { label: "Planned", value: suggestions.filter((s) => s.status === "planned").length, tone: "text-purple-700 bg-purple-50" },
+          { label: "Completed", value: suggestions.filter((s) => s.status === "completed").length, tone: "text-emerald-700 bg-emerald-50" },
+        ].map((item) => (
+          <Card key={item.label} className={`rounded-2xl border border-[var(--border)] p-3 ${item.tone}`}>
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
+            <div className="mt-1 text-lg font-bold">{item.value}</div>
+          </Card>
+        ))}
       </div>
 
+      {/* Stats */}
       {/* Filter */}
       <div className="flex gap-2 overflow-x-auto pb-2">
         {(["all", "pending", "reviewed"] as const).map((f) => (

@@ -24,9 +24,6 @@ CREATE POLICY parent_messages_parent_select ON parent_messages
         parent_id IN (
             SELECT id FROM users WHERE auth_id = auth.uid()
         )
-        OR school_id IN (
-            SELECT school_id FROM users WHERE auth_id = auth.uid()
-        )
     );
 
 DROP POLICY IF EXISTS parent_messages_parent_insert ON parent_messages;
@@ -34,9 +31,6 @@ CREATE POLICY parent_messages_parent_insert ON parent_messages
     FOR INSERT WITH CHECK (
         parent_id IN (
             SELECT id FROM users WHERE auth_id = auth.uid()
-        )
-        OR school_id IN (
-            SELECT school_id FROM users WHERE auth_id = auth.uid()
         )
     );
 

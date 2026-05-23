@@ -69,12 +69,12 @@ export default function DormitoryPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       <PageHeader
         title="Dormitory Management"
         subtitle="Monitor student welfare and hostel occupancy"
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             {dorms.length === 0 ? (
               <div className="bg-[var(--amber-soft)] text-[var(--amber)] px-4 py-2 rounded-xl text-sm font-medium">No dorms available</div>
             ) : (
@@ -95,6 +95,20 @@ export default function DormitoryPage() {
           </div>
         }
       />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: "Rooms", value: rooms.length, tone: "text-slate-700 bg-slate-50" },
+          { label: "Incidents", value: incidents.length, tone: "text-red-700 bg-red-50" },
+          { label: "Selected dorm", value: dorms.find((d) => d.id === selectedDormId)?.name || "None", tone: "text-blue-700 bg-blue-50" },
+          { label: "Quick action", value: "Report incident", tone: "text-emerald-700 bg-emerald-50" },
+        ].map((item) => (
+          <div key={item.label} className={`rounded-2xl border border-[var(--border)] p-3 ${item.tone}`}>
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
+            <div className="mt-1 text-sm font-bold truncate">{item.value as any}</div>
+          </div>
+        ))}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">

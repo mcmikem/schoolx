@@ -5,7 +5,7 @@ import { logger } from "@/lib/logger";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const allowMockClient =
-  process.env.NODE_ENV === "test" ||
+  process.env.NODE_ENV !== "production" ||
   process.env.ALLOW_SUPABASE_MOCK === "true";
 const isValidHttpUrl = (value?: string | null) => {
   if (!value || value.includes("your-supabase-url")) return false;
@@ -39,6 +39,7 @@ const createMockQueryBuilder = () => {
     upsert: () => builder,
     delete: () => builder,
     eq: () => builder,
+    not: () => builder,
     neq: () => builder,
     gt: () => builder,
     gte: () => builder,

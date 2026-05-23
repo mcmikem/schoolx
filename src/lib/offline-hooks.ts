@@ -37,6 +37,38 @@ export function useOfflineData<T>(
     setLoading(true)
     setError(null)
 
+    try {
+      const cached = await offlineDB.getAllFromCache(cacheKey, stableFilters)
+      if (cached.length > 0) {
+        setData(cached as T[])
+        setIsFromCache(true)
+        setLoading(false)
+
+        if (isOnline && !skipCache) {
+          void (async () => {
+            try {
+              const result = await fetcherRef.current()
+              setData(result)
+              setIsFromCache(false)
+              await offlineDB.cacheFromServer(cacheKey, result as Record<string, unknown>[]) 
+            } catch (e: unknown) {
+              const msg = e instanceof Error
+                ? e.message
+                : typeof e === 'object' && e !== null
+                  ? JSON.stringify(e)
+                  : 'Unknown error'
+              logger.error(`Error refreshing ${table} from server:`, msg)
+            }
+          })()
+        }
+
+        return
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to read cache'
+      logger.error(`Error reading ${table} cache:`, msg)
+    }
+
     if (isOnline && !skipCache) {
       try {
         const result = await fetcherRef.current()
@@ -171,6 +203,44 @@ export function useOfflineFees(schoolId?: string, options?: OfflineHookOptions &
     }
     setLoading(true)
     setError(null)
+
+    try {
+      const cached = await offlineDB.getAllFromCache('fee_payments', { school_id: schoolId })
+      if (cached.length > 0) {
+        setData(cached as unknown as (FeePayment & { fee_structure?: FeeStructure })[])
+        setTotalCount(cached.length)
+        setIsFromCache(true)
+        setLoading(false)
+
+        if (isOnline && !options?.skipCache) {
+          void (async () => {
+            try {
+              const { data: payments, error: payErr, count } = await supabase
+                .from('fee_payments')
+                .select('*, students!inner (id, first_name, last_name, school_id, classes (name))', { count: 'exact' })
+                .eq('students.school_id', schoolId)
+                .order('payment_date', { ascending: false })
+                .range(offset, offset + limit - 1)
+
+              if (payErr) throw payErr
+              const result = (payments as (FeePayment & { fee_structure?: FeeStructure })[]) || []
+              setData(result)
+              if (count !== null) setTotalCount(count)
+              setIsFromCache(false)
+              await offlineDB.cacheFromServer('fee_payments', result as unknown as Record<string, unknown>[])
+            } catch (e: unknown) {
+              const msg = e instanceof Error ? e.message : 'Unknown error'
+              logger.error('Error refreshing fee_payments from server:', msg)
+            }
+          })()
+        }
+
+        return
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to read cache'
+      logger.error('Error reading fee_payments cache:', msg)
+    }
 
     if (isOnline && !options?.skipCache) {
       try {

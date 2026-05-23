@@ -20,6 +20,25 @@ import { type NextRequest, NextResponse } from "next/server";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const isValidHttpUrl = (value: string) => {
+  if (!value || value.includes("your-supabase-url")) return false;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
+const isValidAnonKey = (key: string) => {
+  if (!key) return false;
+  const sbPublishable = key.startsWith("sb_publishable_") && key.length > 20;
+  const eyJ = key.startsWith("eyJ") && key.length > 50;
+  return sbPublishable || eyJ;
+};
+
+const hasUsableSupabaseConfig =
+  isValidHttpUrl(supabaseUrl) && isValidAnonKey(supabaseAnonKey);
 const DEMO_KEY = "skoolmate_demo_v1";
 const DEMO_MODE_ENABLED =
   process.env.NODE_ENV === "development" &&
@@ -244,11 +263,25 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (process.env.NODE_ENV === "production" && !hasUsableSupabaseConfig) {
     if (!pathname.startsWith("/setup")) {
       return NextResponse.redirect(new URL("/setup", request.url));
     }
     return NextResponse.next({ request });
+  }
+
+  if (!hasUsableSupabaseConfig) {
+    if (pathname === "/login" || pathname === "/register" || pathname === "/" || pathname.startsWith("/setup")) {
+      const response = NextResponse.next({ request });
+      applySecurityHeaders(response);
+      return response;
+    }
+
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("redirect", pathname);
+    const response = NextResponse.redirect(loginUrl);
+    applySecurityHeaders(response);
+    return response;
   }
 
   const supabaseResponse = NextResponse.next({

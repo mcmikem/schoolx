@@ -31,7 +31,9 @@ export function useParentPortalGuard() {
     }
 
     if (user && !isDemo && !parentPortalEnabled) {
-      router.replace("/parent-portal");
+      router.replace(
+        "/dashboard/no-access?reason=feature&from=%2Fparent-portal&module=parentPortal",
+      );
     }
   }, [user, authInitialized, isDemo, parentPortalEnabled, router]);
 

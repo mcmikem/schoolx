@@ -243,6 +243,21 @@ export default function GradesPage() {
     1,
     Math.ceil(filteredStudents.length / gradesPerPage),
   );
+  const isStudentGraded = useCallback(
+    (studentId: string): boolean => {
+      return ASSESSMENT_TYPES.every(
+        (t) =>
+          marks[`${studentId}_${t}`] !== null &&
+          marks[`${studentId}_${t}`] !== undefined,
+      );
+    },
+    [marks],
+  );
+  const gradedCount = useMemo(
+    () => filteredStudents.filter((student) => isStudentGraded(student.id)).length,
+    [filteredStudents, isStudentGraded],
+  );
+  const pendingCount = Math.max(filteredStudents.length - gradedCount, 0);
 
   useEffect(() => {
     setGradePage(1);
@@ -393,17 +408,6 @@ export default function GradesPage() {
     if (parts.some((p) => p === null || p === undefined)) return null;
     return parts.reduce((sum, p) => (sum ?? 0) + (p ?? 0), 0) ?? null;
   };
-
-  const isStudentGraded = useCallback(
-    (studentId: string): boolean => {
-      return ASSESSMENT_TYPES.every(
-        (t) =>
-          marks[`${studentId}_${t}`] !== null &&
-          marks[`${studentId}_${t}`] !== undefined,
-      );
-    },
-    [marks],
-  );
 
   const debouncedAutoSave = useCallback(
     (studentId: string, type: string) => {
@@ -1093,6 +1097,20 @@ export default function GradesPage() {
             </div>
           }
         />
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { label: "Selected class", value: selectedClass || "None", tone: "text-blue-700 bg-blue-50" },
+            { label: "Selected subject", value: selectedSubjectName || "None", tone: "text-emerald-700 bg-emerald-50" },
+            { label: "Graded", value: gradedCount, tone: "text-slate-700 bg-slate-50" },
+            { label: "Pending", value: pendingCount, tone: "text-amber-700 bg-amber-50" },
+          ].map((item) => (
+            <div key={item.label} className={`rounded-2xl border border-slate-100 p-3 ${item.tone}`}>
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
+              <div className="mt-1 text-sm font-bold truncate">{item.value as any}</div>
+            </div>
+          ))}
+        </div>
 
         {/* Marks Entry Info */}
         {selectedClass &&

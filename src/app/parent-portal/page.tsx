@@ -339,12 +339,38 @@ function ParentDashboardContent() {
     router.replace("/login");
   };
 
-  if (isChecking || !isAuthorized) {
-    return null;
+  if (isChecking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <OwlMascot size={52} premium ring glow animated />
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+        <div className="w-full max-w-md rounded-2xl border border-[#e5ecf4] bg-white p-6 text-center shadow-sm">
+          <div className="mx-auto mb-3 h-12 w-12 rounded-xl bg-[#ffefe8] text-[#c2472b] flex items-center justify-center">
+            <MaterialIcon icon="lock" />
+          </div>
+          <h2 className="text-lg font-bold text-[#17325f]">Parent portal access unavailable</h2>
+          <p className="mt-2 text-sm text-[#60748f]">Please contact your school if you believe this is a mistake.</p>
+          <Link href="/dashboard" className="mt-4 inline-flex rounded-xl bg-[#17325f] px-4 py-2 text-sm font-semibold text-white">
+            Go to dashboard
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   const childPhotoUrl = (selectedChild as any)?.photo_url || (selectedChild as any)?.avatar_url || null;
   const childInitials = selectedChild ? `${selectedChild.first_name[0]}${selectedChild.last_name[0]}` : "";
+  const todayDate = new Date().toISOString().split("T")[0];
+  const todayAttendance = attendance.find((record) => record.date === todayDate) ?? attendance[0];
+  const attendanceStatus = todayAttendance?.status ?? null;
+  const hasFeeBalance = feeStats.balance > 0;
+  const urgentUnreads = unreadCount > 0;
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -402,11 +428,11 @@ function ParentDashboardContent() {
                 {selectedChild && (
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     {/* Attendance today */}
-                    <div className={`rounded-[24px] p-5 text-center ${attendance.length > 0 ? 'bg-[#e1f3ee]' : 'bg-[#f6f9fc]'}`}>
-                      <span className={`material-symbols-outlined text-4xl ${attendance.length > 0 && (attendance[0] as any)?.status === 'present' ? 'text-[#1f8a70]' : 'text-[#b0c4db]'}`}>
-                        {attendance.length > 0 && (attendance[0] as any)?.status === 'present' ? 'check_circle' : 'help'}
+                    <div className={`rounded-[24px] p-5 text-center ${attendanceStatus === 'present' ? 'bg-[#e1f3ee]' : 'bg-[#f6f9fc]'}`}>
+                      <span className={`material-symbols-outlined text-4xl ${attendanceStatus === 'present' ? 'text-[#1f8a70]' : 'text-[#b0c4db]'}`}>
+                        {attendanceStatus === 'present' ? 'check_circle' : 'help'}
                       </span>
-                      <p className="text-sm font-bold text-[#17325f] mt-2">Today: {attendance.length > 0 && (attendance[0] as any)?.status === 'present' ? 'Present' : 'Not recorded'}</p>
+                      <p className="text-sm font-bold text-[#17325f] mt-2">Today: {attendanceStatus === 'present' ? 'Present' : 'Not recorded'}</p>
                     </div>
 
                     {/* Fee balance */}
@@ -420,20 +446,40 @@ function ParentDashboardContent() {
                   </div>
                 )}
 
-                {/* Section 3: Quick actions */}
-                <div className="grid grid-cols-3 gap-3">
-                  <a href={`/parent-portal/fees${selectedChild ? `?child=${selectedChild.id}` : ''}`} className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center">
-                    <span className="material-symbols-outlined text-[28px] text-[#17325f]">payments</span>
-                    <p className="text-xs font-bold text-[#17325f] mt-2">Pay fees</p>
-                  </a>
-                  <a href={`/parent-portal/attendance${selectedChild ? `?child=${selectedChild.id}` : ''}`} className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center">
-                    <span className="material-symbols-outlined text-[28px] text-[#17325f]">how_to_reg</span>
-                    <p className="text-xs font-bold text-[#17325f] mt-2">Attendance</p>
-                  </a>
-                  <a href={`/parent-portal/academics${selectedChild ? `?child=${selectedChild.id}` : ''}`} className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center">
-                    <span className="material-symbols-outlined text-[28px] text-[#17325f]">grade</span>
-                    <p className="text-xs font-bold text-[#17325f] mt-2">Grades</p>
-                  </a>
+                {/* Section 3: Quick actions + exceptions */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="lg:col-span-2 grid grid-cols-3 gap-3">
+                    <Link href={`/parent-portal/fees${selectedChild ? `?child=${selectedChild.id}` : ''}`} className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center hover:bg-[#f8fbff] transition-colors">
+                      <span className="material-symbols-outlined text-[28px] text-[#17325f]">payments</span>
+                      <p className="text-xs font-bold text-[#17325f] mt-2">Pay fees</p>
+                    </Link>
+                    <Link href={`/parent-portal/attendance${selectedChild ? `?child=${selectedChild.id}` : ''}`} className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center hover:bg-[#f8fbff] transition-colors">
+                      <span className="material-symbols-outlined text-[28px] text-[#17325f]">how_to_reg</span>
+                      <p className="text-xs font-bold text-[#17325f] mt-2">Attendance</p>
+                    </Link>
+                    <Link href={`/parent-portal/academics${selectedChild ? `?child=${selectedChild.id}` : ''}`} className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center hover:bg-[#f8fbff] transition-colors">
+                      <span className="material-symbols-outlined text-[28px] text-[#17325f]">grade</span>
+                      <p className="text-xs font-bold text-[#17325f] mt-2">Grades</p>
+                    </Link>
+                  </div>
+
+                  <div className="rounded-[20px] border border-[#e5ecf4] bg-white p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">Exceptions First</p>
+                    <div className="space-y-2 mt-3">
+                      <div className={`rounded-xl border p-3 ${hasFeeBalance ? 'border-[#f5d0c5] bg-[#ffefe8]' : 'border-[#d8efe7] bg-[#f3fbf8]'}`}>
+                        <p className="text-xs font-semibold text-[#17325f]">Fees</p>
+                        <p className={`text-sm font-bold mt-1 ${hasFeeBalance ? 'text-[#c2472b]' : 'text-[#1f8a70]'}`}>
+                          {hasFeeBalance ? `Balance UGX ${feeStats.balance.toLocaleString()}` : 'No fee balance'}
+                        </p>
+                      </div>
+                      <div className={`rounded-xl border p-3 ${urgentUnreads ? 'border-[#f5deb3] bg-[#fff8eb]' : 'border-[#e5ecf4] bg-[#f8fbff]'}`}>
+                        <p className="text-xs font-semibold text-[#17325f]">School alerts</p>
+                        <p className="text-sm font-bold mt-1 text-[#17325f]">
+                          {urgentUnreads ? `${unreadCount} unread notification(s)` : 'All notifications read'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </>
             )}

@@ -116,19 +116,33 @@ export default function LeavePage() {
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
       <PageHeader
         title="Leave Requests"
         subtitle={isManager ? "Review and manage staff leave" : "Submit and track your leave applications"}
         actions={
           !isManager ? (
-            <Button onClick={() => setShowModal(true)}>
+            <Button onClick={() => setShowModal(true)} className="w-full sm:w-auto">
               <MaterialIcon icon="add" />
               Apply for Leave
             </Button>
           ) : undefined
         }
       />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: "Pending", value: requests.filter((r) => r.status === "pending").length, tone: "text-amber-700 bg-amber-50" },
+          { label: "Approved", value: requests.filter((r) => r.status === "approved").length, tone: "text-emerald-700 bg-emerald-50" },
+          { label: "Rejected", value: requests.filter((r) => r.status === "rejected").length, tone: "text-red-700 bg-red-50" },
+          { label: "Total", value: requests.length, tone: "text-slate-700 bg-slate-50" },
+        ].map((item) => (
+          <div key={item.label} className={`rounded-2xl border border-slate-100 p-3 ${item.tone}`}>
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
+            <div className="mt-1 text-lg font-bold">{item.value}</div>
+          </div>
+        ))}
+      </div>
 
       {loading ? (
         <div className="text-center py-12 text-gray-400">Loading...</div>

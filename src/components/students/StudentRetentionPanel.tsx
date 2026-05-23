@@ -108,7 +108,7 @@ export default function StudentRetentionPanel({
 
       <div className="flex gap-4 mb-4 items-center">
         <select
-          aria-label="Class filter"
+          aria-label="Retention cohort filter"
           value={dropoutClassFilter}
           onChange={(e) => setDropoutClassFilter(e.target.value)}
           className="px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium"

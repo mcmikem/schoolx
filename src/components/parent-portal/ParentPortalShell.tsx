@@ -1,6 +1,7 @@
 "use client";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import SidebarShell from "@/components/dashboard/SidebarShell";
 import TopBar from "@/components/dashboard/TopBar";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
@@ -59,8 +60,38 @@ export default function ParentPortalShell({
 }) {
   const { isAuthorized, isChecking } = useParentPortalGuard();
 
-  if (isChecking || !isAuthorized) {
-    return null;
+  if (isChecking) {
+    return (
+      <PageErrorBoundary>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+          <div className="max-w-sm w-full bg-white border border-[var(--border)] rounded-2xl p-6 text-center shadow-[var(--sh2)]">
+            <div className="text-sm font-semibold text-[var(--t1)]">Loading parent portal...</div>
+            <div className="text-xs text-[var(--t3)] mt-2">Checking your account access and child records.</div>
+          </div>
+        </div>
+      </PageErrorBoundary>
+    );
+  }
+
+  if (!isAuthorized) {
+    return (
+      <PageErrorBoundary>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+          <div className="max-w-sm w-full bg-white border border-[var(--border)] rounded-2xl p-6 text-center shadow-[var(--sh2)]">
+            <div className="text-base font-semibold text-[var(--t1)]">Parent portal access unavailable</div>
+            <div className="text-sm text-[var(--t3)] mt-2">
+              Your account cannot open the parent portal right now. Please contact your school administrator.
+            </div>
+            <Link
+              href="/login"
+              className="inline-flex mt-5 px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-sm font-semibold"
+            >
+              Back to sign in
+            </Link>
+          </div>
+        </div>
+      </PageErrorBoundary>
+    );
   }
 
   return (

@@ -464,6 +464,20 @@ export default function AttendancePage() {
           }
         />
 
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { label: "In School", value: presentCount, tone: "text-secondary" },
+            { label: "Away", value: absentCount, tone: "text-error" },
+            { label: "Late", value: lateCount, tone: "text-tertiary" },
+            { label: "Offline queue", value: offlineCount, tone: "text-primary" },
+          ].map((item) => (
+            <div key={item.label} className="bg-surface-container-lowest rounded-xl border border-outline-variant p-3 text-center">
+              <div className={`text-2xl md:text-3xl font-bold ${item.tone}`}>{item.value}</div>
+              <div className="text-xs md:text-sm text-on-surface-variant mt-1">{item.label}</div>
+            </div>
+          ))}
+        </div>
+
         <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">

@@ -191,7 +191,7 @@ export function ValidatedInput({
           marginBottom: 6 
         }}>
         {label}
-        {props.required && <span style={{ color: 'var(--red)', marginLeft: 4 }}>*</span>}
+        {props.required && <span aria-hidden="true" style={{ color: 'var(--red)', marginLeft: 4 }}>*</span>}
       </label>
       <input
         id={id}

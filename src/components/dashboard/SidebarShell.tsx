@@ -5,8 +5,9 @@ import { useAcademic } from "@/lib/academic-context";
 import { useSyncStatus } from "@/lib/useSyncStatus";
 import CollapsibleSidebar from "@/components/CollapsibleSidebar";
 import { getNavigationForRole } from "@/lib/navigation";
+import { canAccess, type UserRole } from "@/lib/roles";
 import { canUseModule, type FeatureStage, type ModuleKey, DEFAULT_FEATURE_STAGE } from "@/lib/featureStages";
-import { MODULE_FOR_ROUTE } from "@/components/dashboard/AccessControlGuard";
+import { MODULE_FOR_ROUTE, roleBasedRoutes } from "@/components/dashboard/AccessControlGuard";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { APP_NAME } from "@/lib/app-name";
@@ -19,15 +20,27 @@ for (const [route, mod] of Object.entries(MODULE_FOR_ROUTE)) {
 function filterGroupsByFeatureStage(
   groups: readonly import("@/lib/navigation").NavGroup[],
   featureStage: FeatureStage | undefined,
+  role: string | undefined,
 ): import("@/lib/navigation").NavGroup[] {
   const stage = featureStage || DEFAULT_FEATURE_STAGE;
+  const typedRole = role as UserRole | undefined;
+
+  const canAccessRoute = (href: string): boolean => {
+    if (!typedRole) return false;
+    const routeKey = Object.keys(roleBasedRoutes).find((key) =>
+      href.startsWith(key),
+    );
+    if (!routeKey) return true;
+    return canAccess(typedRole, roleBasedRoutes[routeKey]);
+  };
+
   return groups
     .map((group) => ({
       ...group,
       items: group.items.filter((item) => {
         const mod = ROUTE_TO_MODULE[item.href];
-        if (!mod) return true;
-        return canUseModule(stage, mod);
+        const moduleAllowed = !mod || canUseModule(stage, mod);
+        return moduleAllowed && canAccessRoute(item.href);
       }),
     }))
     .filter((group) => group.items.length > 0);
@@ -65,7 +78,11 @@ export default function SidebarShell({
   const { currentTerm } = useAcademic();
   const { isOpen, close } = useSidebar();
   const rawGroups = user?.role ? getNavigationForRole(user.role) : [];
-  const navigationGroups = filterGroupsByFeatureStage(rawGroups, school?.feature_stage as FeatureStage | undefined);
+  const navigationGroups = filterGroupsByFeatureStage(
+    rawGroups,
+    school?.feature_stage as FeatureStage | undefined,
+    user?.role,
+  );
 
   const schoolName = school?.name || "My School";
 

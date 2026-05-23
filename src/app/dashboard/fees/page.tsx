@@ -1274,7 +1274,15 @@ export default function FinanceHubPage() {
           subtitle={`Term ${currentTerm}, ${academicYear}`}
           variant="premium"
           actions={
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap justify-start lg:justify-end">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setShowPaymentModal(true)}
+              >
+                <MaterialIcon icon="payments" />
+                Add Payment
+              </Button>
               <Button
                 variant="secondary"
                 size="sm"
@@ -1315,6 +1323,20 @@ export default function FinanceHubPage() {
           }
           formatValue={(val) => formatCurrency(val).split(" ").pop() || "0"}
         />
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { label: "Payments", value: `${payments.length}`, tone: "text-emerald-700 bg-emerald-50" },
+            { label: "Active plans", value: `${activePlanCount}`, tone: "text-blue-700 bg-blue-50" },
+            { label: "Classes", value: `${classes.length}`, tone: "text-amber-700 bg-amber-50" },
+            { label: "Unpaid", value: `${stats.notPaid}`, tone: "text-rose-700 bg-rose-50" },
+          ].map((item) => (
+            <div key={item.label} className={`rounded-xl border border-[var(--border)] p-3 ${item.tone}`}>
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
+              <div className="mt-1 text-lg font-bold">{item.value}</div>
+            </div>
+          ))}
+        </div>
 
         <div className="dashboard-toolbar">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">

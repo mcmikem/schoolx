@@ -78,33 +78,30 @@ export default function AnalyticsPage() {
 
   if (loading && !isDemo) {
     return (
-      <div className="p-8 max-w-7xl mx-auto">
-        <PageHeader title="Analytics" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+        <PageHeader title="Analytics" subtitle="Loading school insights..." />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-4"
-            >
-              <div className="h-3 w-16 bg-[var(--surface-container)] rounded animate-pulse mb-3" />
-              <div className="h-7 w-24 bg-[var(--surface-container)] rounded animate-pulse mb-2" />
-              <div className="h-3 w-20 bg-[var(--surface-container)] rounded animate-pulse" />
+            <div key={i} className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-4 animate-pulse space-y-2">
+              <div className="h-3 w-16 bg-[var(--surface-container)] rounded" />
+              <div className="h-7 w-24 bg-[var(--surface-container)] rounded" />
+              <div className="h-3 w-20 bg-[var(--surface-container)] rounded" />
             </div>
           ))}
         </div>
-        <TableSkeleton rows={5} />
+        <TableSkeleton rows={4} />
       </div>
     );
   }
 
   return (
     <PageErrorBoundary>
-    <div className="p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       <PageHeader
         title="Analytics"
         subtitle="Strategic insights for school management"
         actions={
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <div className="px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-xl">
               <p className="text-[10px] text-green font-bold uppercase tracking-wider">
                 Health Score
