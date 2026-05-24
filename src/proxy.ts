@@ -264,6 +264,25 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
+  // In local development, browser auth can live client-side while middleware
+  // still sees stale/missing cookies. Avoid login bounce loops by letting
+  // protected app shells hydrate on the client.
+  if (
+    process.env.NODE_ENV !== "production" &&
+    (
+      pathname.startsWith("/dashboard") ||
+      pathname.startsWith("/super-admin") ||
+      pathname.startsWith("/parent-portal")
+    )
+  ) {
+    const response = NextResponse.next({ request });
+    applySecurityHeaders(response);
+    if (!request.cookies.get("csrf-token")) {
+      issueCSRFToken(response);
+    }
+    return response;
+  }
+
   if (process.env.NODE_ENV === "production" && !hasUsableSupabaseConfig) {
     if (!pathname.startsWith("/setup")) {
       return NextResponse.redirect(new URL("/setup", request.url));
@@ -327,6 +346,21 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!verifiedUser) {
+    // In some production edge cases, token validation can fail transiently
+    // while auth cookies are still present. Failing open for app shells avoids
+    // redirect loops; client auth guards still enforce access.
+    if (
+      hasAuthSessionCookie(request) &&
+      (
+        pathname.startsWith("/dashboard") ||
+        pathname.startsWith("/super-admin") ||
+        pathname.startsWith("/parent-portal")
+      )
+    ) {
+      supabaseResponse.headers.set("x-auth-status", "cookie-present-user-unverified");
+      return supabaseResponse;
+    }
+
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     // Distinguish session expiry from other redirects so the login page can
