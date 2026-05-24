@@ -181,6 +181,11 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           icon: "fact_check",
         },
         {
+          href: "/dashboard/calendar",
+          label: "School Calendar",
+          icon: "calendar_today",
+        },
+        {
           href: "/dashboard/timetable",
           label: "Timetable",
           icon: "calendar_month",
@@ -327,6 +332,11 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           label: "UNEB Center",
           icon: "workspace_premium",
         },
+        {
+          href: "/dashboard/calendar",
+          label: "School Calendar",
+          icon: "calendar_today",
+        },
       ],
     },
     {
@@ -347,6 +357,11 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           href: "/dashboard/lesson-plans",
           label: "Lesson Plans",
           icon: "menu_book",
+        },
+        {
+          href: "/dashboard/calendar",
+          label: "School Calendar",
+          icon: "calendar_today",
         },
       ],
     },
@@ -614,6 +629,11 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
       items: [
         { href: "/dashboard/grades", label: "Grades", icon: "menu_book" },
         { href: "/dashboard/exams", label: "Exams", icon: "fact_check" },
+        {
+          href: "/dashboard/calendar",
+          label: "School Calendar",
+          icon: "calendar_today",
+        },
       ],
     },
     {

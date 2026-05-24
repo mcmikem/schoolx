@@ -37,6 +37,8 @@ const typeColors: Record<string, { bg: string, text: string }> = {
 export default function CalendarPage() {
   const { school } = useAuth()
   const toast = useToast()
+  const today = new Date()
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   // Offline-aware events
   const {
     data: events = [],
@@ -48,6 +50,8 @@ export default function CalendarPage() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [view, setView] = useState<'grid' | 'timeline'>('grid')
+  const [selectedDate, setSelectedDate] = useState(todayKey)
+  const [typeFilter, setTypeFilter] = useState<'all' | SchoolEvent['event_type']>('all')
   const [newEvent, setNewEvent] = useState({
     title: '',
     description: '',
@@ -136,13 +140,12 @@ export default function CalendarPage() {
 
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
   const firstDay = new Date(currentYear, currentMonth, 1).getDay()
-  const today = new Date()
 
   const getEventsForDate = (dateStr: string) => {
     return events.filter(e => {
       if (e.start_date <= dateStr && e.end_date && e.end_date >= dateStr) return true
       return e.start_date === dateStr
-    })
+    }).filter((evt) => typeFilter === 'all' || evt.event_type === typeFilter)
   }
 
   const monthEvents = events.filter(e => {
@@ -151,10 +154,11 @@ export default function CalendarPage() {
     return startMonth === checkMonth || (e.end_date && e.end_date?.substring(0, 7) === checkMonth)
   })
 
-  const sortedMonthEvents = [...monthEvents].sort((a, b) => a.start_date.localeCompare(b.start_date))
+  const filteredMonthEvents = monthEvents.filter((evt) => typeFilter === 'all' || evt.event_type === typeFilter)
+  const sortedMonthEvents = [...filteredMonthEvents].sort((a, b) => a.start_date.localeCompare(b.start_date))
   const featuredEvent = sortedMonthEvents[0]
 
-  const activeDate = newEvent.start_date || `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const activeDate = selectedDate
   const selectedDateEvents = getEventsForDate(activeDate)
 
   const weekBase =
@@ -262,7 +266,10 @@ export default function CalendarPage() {
                         <button
                           key={day}
                           type="button"
-                          onClick={() => setNewEvent((n) => ({ ...n, start_date: dateStr }))}
+                          onClick={() => {
+                            setSelectedDate(dateStr)
+                            setNewEvent((n) => ({ ...n, start_date: dateStr }))
+                          }}
                           className={`relative h-8 rounded-lg text-xs font-semibold transition-all ${isActive ? 'bg-[#173f58] text-white' : isToday ? 'bg-[#dceef2] text-[#173f58]' : 'text-[#425766] hover:bg-[#eef5f7]'}`}
                         >
                           {day}
@@ -292,16 +299,30 @@ export default function CalendarPage() {
                 <div className="rounded-2xl border border-[#deebee] bg-white p-4">
                   <h3 className="text-sm font-bold text-[#243f4f]">Filters</h3>
                   <div className="mt-3 space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => setTypeFilter('all')}
+                      className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-sm transition ${typeFilter === 'all' ? 'bg-[#e5f0f3] text-[#1e3f51]' : 'hover:bg-[#f2f7f9] text-[#5e7383]'}`}
+                    >
+                      <span>All</span>
+                      <span className="rounded-full bg-[#eef5f7] px-2 py-0.5 text-xs font-semibold text-[#446071]">{monthEvents.length}</span>
+                    </button>
+
                     {Object.entries(typeColors).map(([type, colors]) => {
                       const count = monthEvents.filter((evt) => evt.event_type === type).length
                       return (
-                        <div key={type} className="flex items-center justify-between text-sm">
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => setTypeFilter(type as SchoolEvent['event_type'])}
+                          className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-sm transition ${typeFilter === type ? 'bg-[#e5f0f3] text-[#1e3f51]' : 'hover:bg-[#f2f7f9]'}`}
+                        >
                           <div className="flex items-center gap-2">
                             <span className={`h-3 w-3 rounded-full ${colors.bg}`} />
                             <span className="capitalize text-[#5e7383]">{type}</span>
                           </div>
                           <span className="rounded-full bg-[#eef5f7] px-2 py-0.5 text-xs font-semibold text-[#446071]">{count}</span>
-                        </div>
+                        </button>
                       )
                     })}
                   </div>
@@ -316,7 +337,10 @@ export default function CalendarPage() {
                       <button
                         type="button"
                         key={dateKey}
-                        onClick={() => setNewEvent((n) => ({ ...n, start_date: dateKey }))}
+                        onClick={() => {
+                          setSelectedDate(dateKey)
+                          setNewEvent((n) => ({ ...n, start_date: dateKey }))
+                        }}
                         className={`rounded-xl border px-3 py-2 text-left transition-all ${isCurrent ? 'border-[#1d5f74] bg-[#e0f0f4]' : 'border-[#e4ecef] bg-[#fafdff] hover:border-[#bfd5dc]'}`}
                       >
                         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#7f95a1]">{weekDays[date.getDay()]}</p>
