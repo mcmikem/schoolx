@@ -238,11 +238,24 @@ export default function StudentPromotionPanel({
                               </span>
                             </td>
                             <td>
-                              <div className="flex gap-1 flex-wrap">
-                                <button onClick={() => setAction(student.id, "promote")} className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${action === "promote" ? "bg-green-100 border-green-300 text-green-800" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}>Promote</button>
-                                <button onClick={() => setAction(student.id, "repeat")} className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${action === "repeat" ? "bg-yellow-100 border-yellow-300 text-yellow-800" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}>Repeat</button>
-                                <button onClick={() => setAction(student.id, "demote")} className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${action === "demote" ? "bg-red-100 border-red-300 text-red-800" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}>Demote</button>
-                              </div>
+                              {lowBandwidthMode ? (
+                                <select
+                                  value={action}
+                                  onChange={(e) => setAction(student.id, e.target.value as StudentAction)}
+                                  className="min-w-[120px] rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold"
+                                  aria-label={`Action for ${student.first_name} ${student.last_name}`}
+                                >
+                                  <option value="promote">Promote</option>
+                                  <option value="repeat">Repeat</option>
+                                  <option value="demote">Demote</option>
+                                </select>
+                              ) : (
+                                <div className="flex gap-1 flex-wrap">
+                                  <button onClick={() => setAction(student.id, "promote")} className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${action === "promote" ? "bg-green-100 border-green-300 text-green-800" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}>Promote</button>
+                                  <button onClick={() => setAction(student.id, "repeat")} className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${action === "repeat" ? "bg-yellow-100 border-yellow-300 text-yellow-800" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}>Repeat</button>
+                                  <button onClick={() => setAction(student.id, "demote")} className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${action === "demote" ? "bg-red-100 border-red-300 text-red-800" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}>Demote</button>
+                                </div>
+                              )}
                             </td>
                           </tr>
                         );
@@ -280,7 +293,7 @@ export default function StudentPromotionPanel({
                     <th>From</th>
                     <th>To</th>
                     <th>Type</th>
-                    <th>By</th>
+                    {!lowBandwidthMode && <th>By</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -295,7 +308,7 @@ export default function StudentPromotionPanel({
                           {entry.promotion_type || "promoted"}
                         </span>
                       </td>
-                      <td className="text-sm">{entry.users?.full_name || "System"}</td>
+                      {!lowBandwidthMode && <td className="text-sm">{entry.users?.full_name || "System"}</td>}
                     </tr>
                   ))}
                 </tbody>
