@@ -1,16 +1,14 @@
 "use client"
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { useOfflineEvents } from '@/lib/offline-hooks';
 import { useToast } from '@/components/Toast'
 import MaterialIcon from '@/components/MaterialIcon'
 import { EVENT_TYPES } from '@/lib/constants'
-import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/ui/index'
-import { Card, CardHeader, CardBody } from '@/components/ui/Card'
-import { EmptyState } from '@/components/EmptyState'
+import { Card } from '@/components/ui/Card'
 import TermTimeline from '@/components/dashboard/TermTimeline'
 import { getErrorMessage } from '@/lib/validation'
 import { logger } from '@/lib/logger'
@@ -26,6 +24,7 @@ interface SchoolEvent {
 }
 
 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 const typeColors: Record<string, { bg: string, text: string }> = {
   exam: { bg: 'bg-[#fef2f2]', text: 'text-[#ba1a1a]' },
@@ -42,7 +41,6 @@ export default function CalendarPage() {
   const {
     data: events = [],
     loading,
-    error: eventsError,
     refetch: refetchEvents,
   } = useOfflineEvents(school?.id);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
@@ -153,175 +151,241 @@ export default function CalendarPage() {
     return startMonth === checkMonth || (e.end_date && e.end_date?.substring(0, 7) === checkMonth)
   })
 
+  const sortedMonthEvents = [...monthEvents].sort((a, b) => a.start_date.localeCompare(b.start_date))
+  const featuredEvent = sortedMonthEvents[0]
+
+  const activeDate = newEvent.start_date || `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const selectedDateEvents = getEventsForDate(activeDate)
+
+  const weekBase =
+    currentMonth === today.getMonth() && currentYear === today.getFullYear()
+      ? new Date(today)
+      : new Date(currentYear, currentMonth, 1)
+  const weekStart = new Date(weekBase)
+  weekStart.setDate(weekBase.getDate() - weekBase.getDay())
+
+  const weekColumns = Array.from({ length: 7 }, (_, idx) => {
+    const date = new Date(weekStart)
+    date.setDate(weekStart.getDate() + idx)
+    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+    return {
+      date,
+      dateKey,
+      events: getEventsForDate(dateKey).slice(0, 4),
+    }
+  })
+
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8">
-      <PageHeader 
-        title="Calendar"
-        subtitle="Manage school events and schedules"
-        actions={
-          <div className="flex gap-3">
-             <div className="flex bg-slate-100 rounded-xl p-1 mr-2">
-                <button 
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="relative overflow-hidden rounded-[28px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-4 sm:p-6">
+          <div className="pointer-events-none absolute -left-20 -top-20 h-48 w-48 rounded-full bg-[#b7dfd8]/40 blur-3xl" />
+          <div className="pointer-events-none absolute -right-16 bottom-0 h-40 w-40 rounded-full bg-[#d8e9fb]/60 blur-3xl" />
+
+          <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#4a7f76]">School planner</p>
+              <h1 className="mt-1 font-['Sora'] text-2xl font-semibold tracking-[-0.03em] text-[#19344a]">
+                {months[currentMonth]} {currentYear}
+              </h1>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex rounded-full border border-[#cbdde3] bg-white/80 p-1">
+                <button
                   onClick={() => setView('grid')}
-                  className={`px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs font-bold transition-all ${view === 'grid' ? "bg-white shadow text-slate-800" : "text-slate-500 hover:text-slate-700"}`}
+                  className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${view === 'grid' ? 'bg-[#163f59] text-white' : 'text-[#5e7383] hover:text-[#1d3648]'}`}
                 >
-                  <MaterialIcon icon="calendar_view_month" style={{ fontSize: 18 }} />
-                  Grid
+                  Week board
                 </button>
-                <button 
+                <button
                   onClick={() => setView('timeline')}
-                  className={`px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs font-bold transition-all ${view === 'timeline' ? "bg-white shadow text-slate-800" : "text-slate-500 hover:text-slate-700"}`}
+                  className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${view === 'timeline' ? 'bg-[#163f59] text-white' : 'text-[#5e7383] hover:text-[#1d3648]'}`}
                 >
-                  <MaterialIcon icon="timeline" style={{ fontSize: 18 }} />
-                  Term Rhythm
+                  Term rhythm
                 </button>
-             </div>
-             <Button onClick={() => setShowModal(true)}>
-               <MaterialIcon icon="add" />
-               Add Event
-             </Button>
-          </div>
-        }
-      />
+              </div>
 
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex gap-2">
-          {view === 'grid' && (
-            <>
-              <Button variant="secondary" size="sm" onClick={goPrevMonth}>
-                <MaterialIcon icon="chevron_left" />
-              </Button>
-              <Button variant="secondary" size="sm" onClick={goToday}>Today</Button>
-              <Button variant="secondary" size="sm" onClick={goNextMonth}>
-                <MaterialIcon icon="chevron_right" />
-              </Button>
-            </>
-          )}
-        </div>
-        <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">
-          {view === 'grid' ? `${months[currentMonth]} ${currentYear}` : "Term Journey"}
-        </h2>
-        <div className="w-32" />
-      </div>
+              {view === 'grid' && (
+                <>
+                  <Button variant="secondary" size="sm" onClick={goPrevMonth}>
+                    <MaterialIcon icon="chevron_left" />
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={goToday}>Today</Button>
+                  <Button variant="secondary" size="sm" onClick={goNextMonth}>
+                    <MaterialIcon icon="chevron_right" />
+                  </Button>
+                </>
+              )}
 
-      {view === 'timeline' ? (
-        <Card className="p-4 min-h-[500px] flex flex-col justify-center">
-           <TermTimeline events={events} />
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 p-4">
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-              <div key={d} className="text-center text-xs font-semibold text-[#5c6670] py-2">{d}</div>
-            ))}
+              <Button onClick={() => setShowModal(true)}>
+                <MaterialIcon icon="add" />
+                Create Event
+              </Button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-1">
-            {Array.from({ length: firstDay }, (_, i) => <div key={`e-${i}`} className="h-20" />)}
-            {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
-              const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-              const dayEvents = getEventsForDate(dateStr)
-              const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear()
-              
-              return (
-                <div 
-                  key={day} 
-                  className={`min-h-[80px] p-2 rounded-xl border transition-all cursor-pointer ${
-                    isToday 
-                      ? 'bg-[#e3f2fd] border-[#002045]' 
-                      : 'bg-white border-[#e8eaed] hover:bg-[#f8fafb]'
-                  }`}
-                  onClick={() => setNewEvent(n => ({ ...n, start_date: dateStr }))}
-                >
-                  <div className={`text-sm font-medium mb-1 ${isToday ? 'text-[#002045]' : 'text-[#191c1d]'}`}>
-                    {day}
+          {view === 'timeline' ? (
+            <Card className="relative z-10 mt-5 min-h-[500px] p-4">
+              <TermTimeline events={events} />
+            </Card>
+          ) : (
+            <div className="relative z-10 mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[290px,1fr]">
+              <aside className="space-y-4 rounded-[22px] border border-[#cfe0e4] bg-white/85 p-4 backdrop-blur">
+                <div>
+                  <div className="mb-3 flex items-center justify-between">
+                    <h2 className="text-sm font-bold text-[#243f4f]">{months[currentMonth]} {currentYear}</h2>
+                    <div className="flex items-center gap-1 text-[#6a7f8e]">
+                      <button type="button" onClick={goPrevMonth} className="rounded-full p-1 hover:bg-[#ecf4f6]">
+                        <MaterialIcon icon="chevron_left" className="text-[18px]" />
+                      </button>
+                      <button type="button" onClick={goNextMonth} className="rounded-full p-1 hover:bg-[#ecf4f6]">
+                        <MaterialIcon icon="chevron_right" className="text-[18px]" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    {dayEvents.slice(0, 2).map((evt) => (
-                      <div 
-                        key={evt.id} 
-                        className={`text-[10px] px-2 py-1 rounded truncate font-medium ${
-                          typeColors[evt.event_type]?.bg || 'bg-[#f8fafb]'
-                        } ${typeColors[evt.event_type]?.text || 'text-[#5c6670]'}`}
-                        onClick={(e) => { e.stopPropagation(); setPendingDeleteId(evt.id) }}
-                        title="Click to delete"
-                      >
-                        {evt.title}
-                      </div>
+
+                  <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase text-[#8fa1ac]">
+                    {weekDays.map((d) => (
+                      <div key={d}>{d[0]}</div>
                     ))}
-                    {dayEvents.length > 2 && (
-                      <div className="text-[10px] text-[#5c6670]">+{dayEvents.length - 2} more</div>
+                  </div>
+                  <div className="mt-2 grid grid-cols-7 gap-1">
+                    {Array.from({ length: firstDay }, (_, i) => <div key={`mini-empty-${i}`} className="h-8" />)}
+                    {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
+                      const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                      const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear()
+                      const isActive = dateStr === activeDate
+                      const hasEvent = getEventsForDate(dateStr).length > 0
+
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => setNewEvent((n) => ({ ...n, start_date: dateStr }))}
+                          className={`relative h-8 rounded-lg text-xs font-semibold transition-all ${isActive ? 'bg-[#173f58] text-white' : isToday ? 'bg-[#dceef2] text-[#173f58]' : 'text-[#425766] hover:bg-[#eef5f7]'}`}
+                        >
+                          {day}
+                          {hasEvent && (
+                            <span className={`absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${isActive ? 'bg-white' : 'bg-[#1b7b8e]'}`} />
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-[linear-gradient(140deg,#0e8a96_0%,#1f778c_100%)] p-4 text-white shadow-lg">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-white/75">Featured event</p>
+                  {featuredEvent ? (
+                    <>
+                      <h3 className="mt-2 text-lg font-semibold leading-tight">{featuredEvent.title}</h3>
+                      <p className="mt-1 text-xs text-white/80">
+                        {new Date(featuredEvent.start_date).toLocaleDateString('en-UG', { weekday: 'short', month: 'short', day: 'numeric' })}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="mt-2 text-sm text-white/85">No events scheduled this month yet.</p>
+                  )}
+                </div>
+
+                <div className="rounded-2xl border border-[#deebee] bg-white p-4">
+                  <h3 className="text-sm font-bold text-[#243f4f]">Filters</h3>
+                  <div className="mt-3 space-y-2">
+                    {Object.entries(typeColors).map(([type, colors]) => {
+                      const count = monthEvents.filter((evt) => evt.event_type === type).length
+                      return (
+                        <div key={type} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className={`h-3 w-3 rounded-full ${colors.bg}`} />
+                            <span className="capitalize text-[#5e7383]">{type}</span>
+                          </div>
+                          <span className="rounded-full bg-[#eef5f7] px-2 py-0.5 text-xs font-semibold text-[#446071]">{count}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </aside>
+
+              <section className="rounded-[22px] border border-[#d4e3e7] bg-white/90 p-4 sm:p-5">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+                  {weekColumns.map(({ date, dateKey }) => {
+                    const isCurrent = dateKey === activeDate
+                    return (
+                      <button
+                        type="button"
+                        key={dateKey}
+                        onClick={() => setNewEvent((n) => ({ ...n, start_date: dateKey }))}
+                        className={`rounded-xl border px-3 py-2 text-left transition-all ${isCurrent ? 'border-[#1d5f74] bg-[#e0f0f4]' : 'border-[#e4ecef] bg-[#fafdff] hover:border-[#bfd5dc]'}`}
+                      >
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#7f95a1]">{weekDays[date.getDay()]}</p>
+                        <p className="mt-1 text-xl font-semibold text-[#203846]">{date.getDate()}</p>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-7">
+                  {weekColumns.map(({ dateKey, events: dayEvents }) => (
+                    <div key={`column-${dateKey}`} className="min-h-[180px] rounded-xl border border-[#e4ecef] bg-[#fbfdff] p-2">
+                      {dayEvents.length === 0 ? (
+                        <p className="pt-8 text-center text-xs text-[#8ea0aa]">No events</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {dayEvents.map((evt) => (
+                            <button
+                              type="button"
+                              key={evt.id}
+                              onClick={() => setPendingDeleteId(evt.id)}
+                              className={`w-full rounded-xl px-2 py-2 text-left text-xs shadow-sm transition hover:scale-[1.01] ${typeColors[evt.event_type]?.bg || 'bg-[#eef5f7]'} ${typeColors[evt.event_type]?.text || 'text-[#446071]'}`}
+                              title="Click to delete"
+                            >
+                              <p className="truncate font-semibold">{evt.title}</p>
+                              <p className="mt-1 text-[10px] opacity-80">All day</p>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 rounded-xl border border-dashed border-[#d3e3e8] bg-[#f7fbfc] p-3">
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#7f95a1]">Selected date</p>
+                  <p className="mt-1 text-sm font-semibold text-[#233f50]">
+                    {new Date(activeDate).toLocaleDateString('en-UG', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                    })}
+                  </p>
+                  <div className="mt-2 space-y-2">
+                    {selectedDateEvents.length === 0 ? (
+                      <p className="text-sm text-[#7b919d]">No events on this date.</p>
+                    ) : (
+                      selectedDateEvents.map((event) => (
+                        <div key={`selected-${event.id}`} className="flex items-center justify-between rounded-lg bg-white px-3 py-2">
+                          <div>
+                            <p className="text-sm font-semibold text-[#243f4f]">{event.title}</p>
+                            <p className="text-[11px] capitalize text-[#748b98]">{event.event_type}</p>
+                          </div>
+                          <Button variant="ghost" size="sm" onClick={() => setPendingDeleteId(event.id)}>
+                            <MaterialIcon icon="close" style={{ fontSize: 16 }} />
+                          </Button>
+                        </div>
+                      ))
                     )}
                   </div>
                 </div>
-              )
-            })}
-          </div>
-        </Card>
 
-        <div className="space-y-4">
-          <Card className="p-6">
-            <h3 className="font-semibold text-[#191c1d] mb-4">
-              Events this month ({monthEvents.length})
-            </h3>
-            {loading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i}>
-                    <div className="w-full h-4 bg-[#e8eaed] rounded mb-2" />
-                    <div className="w-3/4 h-3 bg-[#e8eaed] rounded" />
-                  </div>
-                ))}
-              </div>
-            ) : monthEvents.length === 0 ? (
-              <EmptyState
-                icon="event"
-                title="No events this month"
-                description="Add events to see them here"
-                action={{ label: 'Add Event', onClick: () => setShowModal(true) }}
-              />
-            ) : (
-              <div className="space-y-3 max-h-[300px] overflow-y-auto">
-                {monthEvents.map((event) => (
-                  <div key={event.id} className="flex items-start justify-between gap-2 p-3 bg-[#f8fafb] rounded-xl">
-                    <div>
-                      <div className="font-medium text-[#191c1d] text-sm">{event.title}</div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-[#5c6670]">
-                          {new Date(event.start_date).toLocaleDateString()}
-                          {event.end_date && event.end_date !== event.start_date && ` - ${new Date(event.end_date).toLocaleDateString()}`}
-                        </span>
-                        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-medium ${typeColors[event.event_type]?.bg || 'bg-[#f8fafb]'} ${typeColors[event.event_type]?.text || 'text-[#5c6670]'}`}>
-                          {event.event_type}
-                        </span>
-                      </div>
-                      {event.description && <div className="text-xs text-[#5c6670] mt-1">{event.description}</div>}
-                    </div>
-                    <Button variant="ghost" size="sm" onClick={() => setPendingDeleteId(event.id)}>
-                      <MaterialIcon icon="close" style={{ fontSize: 16 }} />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-
-          <Card className="p-6">
-            <h3 className="font-semibold text-[#191c1d] mb-3">Event Types</h3>
-            <div className="space-y-2">
-              {Object.entries(typeColors).map(([type, colors]) => (
-                <div key={type} className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded ${colors.bg}`} />
-                  <span className="text-sm text-[#5c6670] capitalize">{type}</span>
-                </div>
-              ))}
+                {loading && (
+                  <p className="mt-3 text-xs text-[#7b919d]">Refreshing events...</p>
+                )}
+              </section>
             </div>
-          </Card>
+          )}
         </div>
-      </div>
-      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>

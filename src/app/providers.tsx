@@ -53,23 +53,6 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
   useEffect(() => {
     setupErrorLogging()
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      const shouldDisableServiceWorker = process.env.NODE_ENV !== 'production' || isLocalhost
-
-      if (shouldDisableServiceWorker) {
-        navigator.serviceWorker.getRegistrations()
-          .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
-          .catch(() => {})
-
-        if ('caches' in window) {
-          caches.keys()
-            .then((keys) => Promise.all(keys.filter((key) => key.startsWith('skoolmate-')).map((key) => caches.delete(key))))
-            .catch(() => {})
-        }
-
-        return
-      }
-
       const authRoutePattern = /^\/(login|register|forgot-password)(\/|$)/
       const shouldForceAuthRouteUpdate = authRoutePattern.test(window.location.pathname)
       let hasReloadedForUpdate = false
@@ -127,7 +110,10 @@ function LoadingChecker({ children }: { children: ReactNode }) {
   const { authInitialized } = useAuth()
   const [showLoader, setShowLoader] = useState(true)
 
-  // Keep global loader short; route-level skeletons handle longer waits.
+  // Show loader until auth initializes, with a 5-second maximum.
+  // Previously 2s was too short on slow 3G networks where auth init
+  // takes 5-10s. After 5s, render content anyway to prevent infinite
+  // blank screens (dashboard will show its own skeleton if needed).
   useEffect(() => {
     if (authInitialized) {
       setShowLoader(false)
@@ -135,7 +121,7 @@ function LoadingChecker({ children }: { children: ReactNode }) {
     }
     const timer = setTimeout(() => {
       setShowLoader(false)
-    }, 1200)
+    }, 5000)
     return () => clearTimeout(timer)
   }, [authInitialized])
 

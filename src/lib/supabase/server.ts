@@ -54,7 +54,7 @@ function createMockQueryBuilder() {
 function createUnavailableServerClient() {
   const error = () =>
     new Error(
-      "Supabase server client is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY), or explicitly enable ALLOW_SUPABASE_MOCK for non-production demo use.",
+      "Supabase server client is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, or explicitly enable ALLOW_SUPABASE_MOCK for non-production demo use.",
     );
 
   const throwUnavailable = async () => {
@@ -79,18 +79,16 @@ function createUnavailableServerClient() {
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const allowMockClient =
     process.env.NODE_ENV === "test" ||
     process.env.ALLOW_SUPABASE_MOCK === "true";
 
   if (
     !isValidHttpUrl(supabaseUrl) ||
-    !supabaseKey ||
-    supabaseKey.startsWith("your-") ||
-    supabaseKey.includes("xxxxxxxx")
+    !supabaseAnonKey ||
+    supabaseAnonKey.startsWith("your-") ||
+    supabaseAnonKey.includes("xxxxxxxx")
   ) {
     if (!allowMockClient) {
       return createUnavailableServerClient();
@@ -107,7 +105,7 @@ export async function createSupabaseServerClient() {
     return mock as ReturnType<typeof createServerClient>;
   }
 
-  return createServerClient(supabaseUrl as string, supabaseKey as string, {
+  return createServerClient(supabaseUrl as string, supabaseAnonKey as string, {
     cookies: {
       get(name: string) {
         return cookieStore.get(name)?.value;

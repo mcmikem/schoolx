@@ -1,25 +1,11 @@
 "use client";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { DashboardSkeleton } from "@/components/Skeletons";
 import { logger } from "@/lib/logger";
-
-function hasCompletedSetupProgress(value: unknown): boolean {
-  if (!value) return false;
-  try {
-    const parsed = typeof value === "string" ? JSON.parse(value) : value;
-    const completed =
-      typeof parsed === "object" && parsed !== null && "completed" in parsed
-        ? (parsed as { completed?: unknown }).completed
-        : null;
-    return Array.isArray(completed) && completed.length > 0;
-  } catch {
-    return false;
-  }
-}
 
 const HeadmasterDashboard = dynamic(() => import("./dashboards/HeadmasterDashboard"), { loading: () => <DashboardSkeleton /> });
 const DeanDashboard = dynamic(() => import("./dashboards/DeanDashboard"), { loading: () => <DashboardSkeleton /> });
@@ -224,43 +210,27 @@ function DormMasterDashboard() {
 export default function DashboardRouter() {
   const { user, school, loading, authInitialized } = useAuth();
   const router = useRouter();
-  const setupRedirectedRef = useRef(false);
-
-  const schoolData = (school as unknown as Record<string, unknown>) || null;
-  const hasOperationalStudentData = Number(schoolData?.student_count || 0) > 0;
-  const onboardingCompleted = Boolean(
-    schoolData?.onboarding_completed ||
-      schoolData?.onboarding_complete ||
-      hasCompletedSetupProgress(schoolData?.setup_progress) ||
-      hasOperationalStudentData,
-  );
-
-  const waitingForSchoolPayload =
-    !!user && user.role !== "super_admin" && !school;
 
   const requiresSetup =
     !!user &&
     user.role !== "super_admin" &&
-    !!school &&
-    (!onboardingCompleted || !school.name || school.name === "My School");
+    (!school || !school.name || school.name === "My School");
 
   useEffect(() => {
-    if (!authInitialized || loading || waitingForSchoolPayload || !requiresSetup) return;
+    if (!authInitialized || !requiresSetup) return;
 
-    if (setupRedirectedRef.current) return;
-    setupRedirectedRef.current = true;
-    router.replace("/dashboard/setup-wizard");
-  }, [authInitialized, loading, waitingForSchoolPayload, requiresSetup, router]);
+    const redirectTimer = window.setTimeout(() => {
+      router.replace("/dashboard/setup-wizard");
+    }, 0);
+
+    return () => window.clearTimeout(redirectTimer);
+  }, [authInitialized, requiresSetup, router]);
 
   if (loading) {
     return <DashboardSkeleton />;
   }
 
   if (!user) {
-    return <DashboardSkeleton />;
-  }
-
-  if (waitingForSchoolPayload) {
     return <DashboardSkeleton />;
   }
 

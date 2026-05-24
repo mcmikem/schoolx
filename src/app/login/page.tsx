@@ -101,6 +101,25 @@ export default function LoginPage() {
     }
   }, [user, authInitialized, router]);
 
+  // Fail-safe: if login succeeded but redirect hasn't happened in 8s, force it
+  useEffect(() => {
+    if (!loading || !authInitialized) return;
+    const timer = setTimeout(() => {
+      if (user) {
+        const redirectParam = typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("redirect")
+          : null;
+        const dest = redirectParam && redirectParam.startsWith("/")
+          ? redirectParam
+          : user.role === "super_admin" ? "/super-admin"
+          : user.role === "parent" ? "/parent-portal"
+          : "/dashboard";
+        router.replace(dest);
+      }
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [loading, user, authInitialized, router]);
+
   // Show helpful toasts when arriving from registration or session expiry
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -204,10 +223,7 @@ export default function LoginPage() {
       }
 
       setLoading(true);
-      const hardStopTimeout = setTimeout(() => {
-        setLoading(false);
-        setShowSlowMessage(false);
-      }, 25000);
+      const loginTimeout = setTimeout(() => setLoading((prev) => prev ? false : prev), 15000);
       const slowMsgTimeout = setTimeout(() => setShowSlowMessage(true), 5000);
       localStorage.removeItem(DEMO_KEY);
 
@@ -238,7 +254,7 @@ export default function LoginPage() {
       } catch {
         toast.error("Login failed");
       } finally {
-        clearTimeout(hardStopTimeout);
+        clearTimeout(loginTimeout);
         clearTimeout(slowMsgTimeout);
         setShowSlowMessage(false);
         setLoading(false);
@@ -261,11 +277,11 @@ export default function LoginPage() {
 
     setLoading(true);
 
-    // Safety valve: release button state if sign-in stays unresolved.
-    const hardStopTimeout = setTimeout(() => {
-      setLoading(false);
-      setShowSlowMessage(false);
-    }, 25000);
+    // Safety valve: if signIn doesn't resolve in 15s, stop the spinner
+    // so the user isn't stuck with a spinning button forever
+    const loginTimeout = setTimeout(() => {
+      setLoading((prev) => prev ? false : prev);
+    }, 15000);
 
     // Show a friendly message after 5s so users on slow networks know
     // the app is still working and they should not refresh or re-tap.
@@ -319,14 +335,14 @@ export default function LoginPage() {
                   : "/dashboard";
 
             router.replace(redirectPath);
-            clearTimeout(hardStopTimeout);
+            clearTimeout(loginTimeout);
             clearTimeout(slowMsgTimeout);
             return;
           }
         } else {
           const errorData = await demoResponse.json().catch(() => null);
           toast.error(errorData?.error || "Demo login failed. Check DEMO_ADMIN_PASSWORD in .env.local");
-          clearTimeout(hardStopTimeout);
+          clearTimeout(loginTimeout);
           clearTimeout(slowMsgTimeout);
           setLoading(false);
           setShowSlowMessage(false);
@@ -335,9 +351,9 @@ export default function LoginPage() {
       }
 
       const { error: authError } = await signIn(normalizedIdentifier, password);
+      clearTimeout(loginTimeout);
+      clearTimeout(slowMsgTimeout);
       if (authError) {
-        clearTimeout(hardStopTimeout);
-        clearTimeout(slowMsgTimeout);
         const newAttempts = failedAttempts + 1;
         setFailedAttempts(newAttempts);
         const rawMsg =
@@ -399,13 +415,12 @@ export default function LoginPage() {
       }
       setFailedAttempts(0);
       setLockoutUntil(null);
-      // Keep safety timers running until redirect/auth state settles.
-      // This guarantees the button does not stay stuck forever.
+      setShowSlowMessage(false);
       // Don't set loading=false here - wait for auth redirect to happen
       // The redirect effect (line 51-63) handles the transition
       return;
     } catch (err: unknown) {
-      clearTimeout(hardStopTimeout);
+      clearTimeout(loginTimeout);
       clearTimeout(slowMsgTimeout);
       logger.error("Login exception:", err);
       const errorMessage =

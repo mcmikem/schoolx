@@ -285,22 +285,6 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  // Dev-only fallback: browser auth can be valid in local/session storage even
-  // when SSR cookies are missing. Allow dashboard requests through so the
-  // client auth context can hydrate and avoid login redirect loops locally.
-  if (
-    process.env.NODE_ENV !== "production" &&
-    pathname.startsWith("/dashboard") &&
-    !hasAuthSessionCookie(request)
-  ) {
-    const response = NextResponse.next({ request });
-    applySecurityHeaders(response);
-    if (!request.cookies.get("csrf-token")) {
-      issueCSRFToken(response);
-    }
-    return response;
-  }
-
   const middlewareClient = createMiddlewareClient(request, {
     supabaseUrl,
     supabaseKey: supabaseAnonKey,
@@ -345,11 +329,9 @@ export async function proxy(request: NextRequest) {
   if (!verifiedUser) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
-    // Only mark session as expired when a session cookie existed.
-    // This avoids confusing first-load redirects with expiry messaging.
-    if (hasAuthSessionCookie(request)) {
-      loginUrl.searchParams.set("reason", "session_expired");
-    }
+    // Distinguish session expiry from other redirects so the login page can
+    // show a helpful message instead of silently presenting the form.
+    loginUrl.searchParams.set("reason", "session_expired");
     return NextResponse.redirect(loginUrl);
   }
 

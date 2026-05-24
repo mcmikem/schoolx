@@ -18,9 +18,6 @@ import { rateLimit } from "@/lib/api-utils";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabasePublicKey =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -33,31 +30,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
-  if (!supabaseUrl || (!supabaseServiceKey && !supabasePublicKey)) {
+  if (!supabaseUrl || !supabaseServiceKey) {
     return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
   }
 
-  const supabase = createClient(
-    supabaseUrl,
-    (supabaseServiceKey || supabasePublicKey) as string,
-    {
-      auth: { persistSession: false },
-      global: {
-        headers: {
-          Authorization: `Bearer ${authHeader}`,
-        },
-      },
-    },
-  );
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false },
+  });
 
   // Verify the token and get the auth user
-  const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(authHeader);
+  const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.getUser(authHeader);
   if (authError || !authUser) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
 
   // Fetch profile from users table using service role (bypasses RLS entirely)
-  const { data: userData, error: userError } = await supabase
+  const { data: userData, error: userError } = await supabaseAdmin
     .from("users")
     .select("*")
     .eq("auth_id", authUser.id)
@@ -75,7 +63,7 @@ export async function GET(request: NextRequest) {
   // Fetch school data
   let schoolData = null;
   if (userData.school_id) {
-    const { data: sd } = await supabase
+    const { data: sd } = await supabaseAdmin
       .from("schools")
       .select("*")
       .eq("id", userData.school_id)
