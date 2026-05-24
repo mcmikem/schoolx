@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "promotion";
 
 interface StudentWorkspaceShellProps {
+  lowBandwidthMode?: boolean;
   totalStudents: number;
   boysCount: number;
   girlsCount: number;
@@ -65,6 +66,7 @@ const TAB_DESCRIPTIONS: Record<StudentWorkspaceTab, string> = {
 };
 
 export default function StudentWorkspaceShell({
+  lowBandwidthMode = false,
   totalStudents,
   boysCount,
   girlsCount,
@@ -90,52 +92,61 @@ export default function StudentWorkspaceShell({
   };
 
   return (
-    <div className="space-y-5">
-      {/* ── Page header ── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h2 className="ph-title">Registry Overview</h2>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <span className="dashboard-pill bg-[var(--navy-soft)] text-[var(--navy)]">
-              {totalStudents} enrolled
-            </span>
-            <span className="dashboard-pill bg-[var(--navy-soft)] text-[var(--navy)]">
-              {classesCount} classes
-            </span>
-            <span className="dashboard-pill bg-[var(--amber-soft)] text-[var(--amber)]">
-              Term {currentTerm || "–"}
-            </span>
-            {(atRiskCount + likelyDropoutCount) > 0 && (
-              <span className="dashboard-pill bg-[var(--red-soft)] text-[var(--red)]">
-                {atRiskCount + likelyDropoutCount} at risk
+    <div className="space-y-4 sm:space-y-5">
+      <section className="dashboard-surface p-4 sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h2 className="ph-title">Student Operations Center</h2>
+            <p className="mt-1 text-sm text-[var(--t2)]">
+              Keep admissions, transfers, retention, and progression in one workflow.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="dashboard-pill bg-[var(--navy-soft)] text-[var(--navy)]">
+                {totalStudents} enrolled
               </span>
-            )}
+              <span className="dashboard-pill bg-[var(--navy-soft)] text-[var(--navy)]">
+                {classesCount} classes
+              </span>
+              <span className="dashboard-pill bg-[var(--amber-soft)] text-[var(--amber)]">
+                Term {currentTerm || "–"}
+              </span>
+              {(atRiskCount + likelyDropoutCount) > 0 && (
+                <span className="dashboard-pill bg-[var(--red-soft)] text-[var(--red)]">
+                  {atRiskCount + likelyDropoutCount} at risk
+                </span>
+              )}
+              {lowBandwidthMode && (
+                <span className="dashboard-pill bg-[var(--amber-soft)] text-[var(--amber)]">
+                  Data saver mode
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="w-full lg:w-auto space-y-2">
+            <button onClick={onAddStudent} className="btn btn-primary w-full lg:w-auto">
+              <MaterialIcon icon="person_add" size={15} />
+              Register Student
+            </button>
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+              <button onClick={onImport} className="btn btn-ghost whitespace-nowrap">
+                <MaterialIcon icon="cloud_upload" size={15} />
+                Import CSV
+              </button>
+              <button onClick={onGeneratePle} className="btn btn-ghost whitespace-nowrap">
+                <MaterialIcon icon="tag" size={15} />
+                PLE Numbers
+              </button>
+              <button onClick={onExport} className="btn btn-ghost whitespace-nowrap">
+                <MaterialIcon icon="download" size={15} />
+                Export
+              </button>
+            </div>
           </div>
         </div>
+      </section>
 
-        {/* Actions */}
-        <div className="flex flex-wrap gap-2">
-          <button onClick={onAddStudent} className="btn btn-primary">
-            <MaterialIcon icon="person_add" size={15} />
-            Register Student
-          </button>
-          <button onClick={onImport} className="btn btn-ghost">
-            <MaterialIcon icon="cloud_upload" size={15} />
-            Import CSV
-          </button>
-          <button onClick={onGeneratePle} className="btn btn-ghost">
-            <MaterialIcon icon="tag" size={15} />
-            PLE Numbers
-          </button>
-          <button onClick={onExport} className="btn btn-ghost">
-            <MaterialIcon icon="download" size={15} />
-            Export
-          </button>
-        </div>
-      </div>
-
-      {/* ── Stats row ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "Total enrolled", value: totalStudents, color: "var(--navy)" },
           { label: "Boys", value: boysCount, color: "var(--navy)" },
@@ -147,10 +158,9 @@ export default function StudentWorkspaceShell({
             <div className="mt-2 text-2xl font-extrabold" style={{ color: s.color, fontFamily: "Sora, sans-serif" }}>{s.value}</div>
           </div>
         ))}
-      </div>
+      </section>
 
-      {/* ── Workflow tabs ── */}
-      <div className="card overflow-hidden">
+      <section className="card overflow-hidden">
         <div className="border-b border-[var(--border)] px-2 pt-2">
           <div className="flex gap-1 overflow-x-auto no-scrollbar">
             {WORKFLOW_TABS.map((tab) => {
@@ -178,15 +188,18 @@ export default function StudentWorkspaceShell({
             })}
           </div>
         </div>
-        <div className="px-5 py-3 bg-[var(--surface-container-low)]">
+        <div className="px-4 sm:px-5 py-3 bg-[var(--surface-container-low)]">
           <p className="text-[13px] text-[var(--t2)]">
             {TAB_DESCRIPTIONS[activeTab]}
           </p>
         </div>
-      </div>
+      </section>
 
-      {/* ── Quick links ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <section className="space-y-2">
+        <div className="px-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--t3)]">
+          Quick tools
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Link href="/dashboard/students/id-cards" className="card flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg)] transition-colors no-underline">
           <div className="w-9 h-9 rounded-xl bg-[var(--navy-soft)] flex items-center justify-center flex-shrink-0">
             <MaterialIcon icon="id_card" size={17} className="text-[var(--navy)]" />
@@ -214,7 +227,8 @@ export default function StudentWorkspaceShell({
             <div className="text-[11px] text-[var(--t3)]">Print whole-class report runs</div>
           </div>
         </Link>
-      </div>
+        </div>
+      </section>
     </div>
   );
 }

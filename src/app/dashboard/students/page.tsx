@@ -412,7 +412,7 @@ export default function StudentHubPage() {
 
   return (
     <PageErrorBoundary>
-      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6 p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-8">
         <PageHeader
           title="Student Hub"
           subtitle={
@@ -426,6 +426,7 @@ export default function StudentHubPage() {
         />
 
         <StudentWorkspaceShell
+          lowBandwidthMode={isConstrainedNetwork}
           totalStudents={students.length}
           boysCount={boysCount}
           girlsCount={girlsCount}
