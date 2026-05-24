@@ -27,6 +27,7 @@ import OwlMascot from "@/components/brand/OwlMascot";
 import OwlAssistant from "@/components/OwlAssistant";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import CommandPalette from "@/components/CommandPalette";
+import { supabase } from "@/lib/supabase";
 
 function hasCompletedSetupProgress(value: unknown): boolean {
   if (!value) return false;
@@ -157,10 +158,33 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (hasRedirectedRef.current) return;
     if (!authInitialized || loading) return;
-    if (!user && !isDemo) {
-      hasRedirectedRef.current = true;
-      router.replace("/login");
-    }
+    if (user || isDemo) return;
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (cancelled || hasRedirectedRef.current) return;
+
+        // Session exists; avoid false login redirect during transient profile lag.
+        if (session?.user?.id) return;
+
+        hasRedirectedRef.current = true;
+        router.replace("/login");
+      } catch {
+        if (cancelled || hasRedirectedRef.current) return;
+        hasRedirectedRef.current = true;
+        router.replace("/login");
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [authInitialized, loading, user, isDemo, router]);
 
   // Role-based redirect — parents and super_admin should not see dashboard.
