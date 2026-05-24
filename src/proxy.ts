@@ -345,9 +345,11 @@ export async function proxy(request: NextRequest) {
   if (!verifiedUser) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
-    // Distinguish session expiry from other redirects so the login page can
-    // show a helpful message instead of silently presenting the form.
-    loginUrl.searchParams.set("reason", "session_expired");
+    // Only mark session as expired when a session cookie existed.
+    // This avoids confusing first-load redirects with expiry messaging.
+    if (hasAuthSessionCookie(request)) {
+      loginUrl.searchParams.set("reason", "session_expired");
+    }
     return NextResponse.redirect(loginUrl);
   }
 

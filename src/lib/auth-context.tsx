@@ -703,15 +703,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const userRef = useRef(user);
   userRef.current = user;
 
-useEffect(() => {
+  useEffect(() => {
     if (!supabase) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
     const handleVisibilityChange = () => {
       if (document.visibilityState !== "visible") return;
       // Wait 3s for onAuthStateChange to fire after tab becomes visible.
       // Browsers throttle background JS, so auth state change events are
       // delayed. Without this delay, getUser() races with TOKEN_REFRESHED
       // and returns stale/null data, incorrectly logging the user out.
-      const timer = setTimeout(async () => {
+      timer = setTimeout(async () => {
         // If the user state was already cleared by onAuthStateChange, skip.
         if (!userRef.current) return;
         try {
@@ -734,7 +736,6 @@ useEffect(() => {
           if (!freshUser && !isNetworkError(freshError)) {
             setUser(null);
             setSchool(null);
-            router.replace("/login");
           }
         } catch (err) {
           // Never log out on network errors — poor internet is common in Uganda.
@@ -746,13 +747,14 @@ useEffect(() => {
           }
         }
       }, 3000);
-      // Return cleanup for the timer — but we can't return from a non-async
-      // callback. The timer auto-cleans after firing.
     };
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () =>
+    return () => {
+      if (timer) clearTimeout(timer);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [router]);
+    };
+  }, []);
 
   const SESSION_TIMEOUT_MS_REF = useRef(30 * 60 * 1000);
   const CHECK_INTERVAL_MS_REF = useRef(60 * 1000);
@@ -777,13 +779,13 @@ useEffect(() => {
       signInLock.current = true;
       // Safety: if a request hangs forever (poor internet), auto-release the
       // lock after 25s so the user can retry without refreshing the page.
-signInLockTimer.current = setTimeout(() => {
+      signInLockTimer.current = setTimeout(() => {
         logger.warn("[Auth] signInLock auto-released after timeout");
         signInLock.current = false;
         signInLockTimer.current = null;
-  }, 20000);
+      }, 25000);
 
-      const attempts = buildAuthLoginAttempts(phone);
+      const attempts = buildAuthLoginAttempts(phone).slice(0, 2);
       let lastError: unknown = null;
 
       for (let i = 0; i < attempts.length; i++) {
@@ -791,7 +793,7 @@ signInLockTimer.current = setTimeout(() => {
         // Short delay between attempts to avoid hammering Supabase and
         // triggering rate limits on poor networks.
         if (i > 0) {
-          await new Promise((resolve) => setTimeout(resolve, 300));
+          await new Promise((resolve) => setTimeout(resolve, 150));
         }
 
         try {
@@ -810,7 +812,7 @@ signInLockTimer.current = setTimeout(() => {
             new Promise<never>((_, reject) =>
               setTimeout(
                 () => reject(new Error("Login attempt timed out")),
-                5000,
+                12000,
               ),
             ),
           ]);

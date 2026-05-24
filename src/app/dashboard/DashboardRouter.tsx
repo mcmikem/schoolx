@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { DashboardSkeleton } from "@/components/Skeletons";
@@ -224,6 +224,7 @@ function DormMasterDashboard() {
 export default function DashboardRouter() {
   const { user, school, loading, authInitialized } = useAuth();
   const router = useRouter();
+  const setupRedirectedRef = useRef(false);
 
   const schoolData = (school as unknown as Record<string, unknown>) || null;
   const hasOperationalStudentData = Number(schoolData?.student_count || 0) > 0;
@@ -246,11 +247,9 @@ export default function DashboardRouter() {
   useEffect(() => {
     if (!authInitialized || loading || waitingForSchoolPayload || !requiresSetup) return;
 
-    const redirectTimer = window.setTimeout(() => {
-      router.replace("/dashboard/setup-wizard");
-    }, 0);
-
-    return () => window.clearTimeout(redirectTimer);
+    if (setupRedirectedRef.current) return;
+    setupRedirectedRef.current = true;
+    router.replace("/dashboard/setup-wizard");
   }, [authInitialized, loading, waitingForSchoolPayload, requiresSetup, router]);
 
   if (loading) {
