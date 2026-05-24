@@ -357,6 +357,7 @@ export default function GeneralSettings({
           .update({
             name: schoolData.name,
             district: schoolData.district,
+            subcounty: schoolData.subcounty || null,
             phone: schoolData.phone || null,
             email: schoolData.email || null,
             primary_color: primaryColor,

@@ -11,6 +11,7 @@ type SubscriptionStatus =
   | "unpaid";
 
 type PlanTier = "starter" | "growth" | "enterprise" | "lifetime";
+type BillingMode = "full_suite" | "modular";
 
 const PLAN_TIER_LEVELS: Record<PlanTier, number> = {
   starter: 1,
@@ -111,6 +112,85 @@ export async function requireActiveSubscription(params: {
     ok: false,
     response: NextResponse.json(
       { success: false, error: message, subscriptionStatus: status },
+      { status: 403 },
+    ),
+  };
+}
+
+export async function requireModuleEntitlement(params: {
+  supabase: any;
+  schoolId: string;
+  moduleKey: string;
+}): Promise<
+  | { ok: true; school: any }
+  | { ok: false; response: NextResponse }
+> {
+  const { supabase, schoolId, moduleKey } = params;
+
+  const { data: school, error: schoolError } = await supabase
+    .from("schools")
+    .select("id, billing_mode")
+    .eq("id", schoolId)
+    .maybeSingle();
+
+  // If modular schema is missing during rollout, fail open for compatibility.
+  if (schoolError && ["42P01", "42703"].includes(schoolError.code || "")) {
+    return { ok: true, school: { id: schoolId, billing_mode: "full_suite" } };
+  }
+
+  if (schoolError || !school) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, error: "School not found" },
+        { status: 404 },
+      ),
+    };
+  }
+
+  const billingMode = (school.billing_mode || "full_suite") as BillingMode;
+  if (billingMode === "full_suite") {
+    return { ok: true, school };
+  }
+
+  const { data: entitlement, error: entitlementError } = await supabase
+    .from("school_module_entitlements")
+    .select("status, ends_at")
+    .eq("school_id", schoolId)
+    .eq("module_key", moduleKey)
+    .maybeSingle();
+
+  if (entitlementError && ["42P01", "42703"].includes(entitlementError.code || "")) {
+    return { ok: true, school };
+  }
+
+  if (entitlementError) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, error: "Failed to verify module entitlement" },
+        { status: 500 },
+      ),
+    };
+  }
+
+  const isActiveState = entitlement?.status === "active" || entitlement?.status === "trial";
+  const hasValidEndDate = entitlement?.ends_at
+    ? new Date(entitlement.ends_at).getTime() > Date.now()
+    : false;
+
+  if (isActiveState && hasValidEndDate) {
+    return { ok: true, school };
+  }
+
+  return {
+    ok: false,
+    response: NextResponse.json(
+      {
+        success: false,
+        error: `This feature requires the ${moduleKey} module in modular billing mode.`,
+        moduleKey,
+      },
       { status: 403 },
     ),
   };

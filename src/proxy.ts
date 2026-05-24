@@ -15,6 +15,7 @@
 // To modify: Run full test suite (lint + typecheck + regression + e2e)
 // ============================================================================
 import { logger } from "@/lib/logger";
+import { getRequiredModuleForPath } from "@/lib/modules/catalog";
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -341,7 +342,7 @@ export async function proxy(request: NextRequest) {
 
   const { data: user } = await supabase
     .from("users")
-    .select("is_active, role")
+    .select("is_active, role, school_id")
     .eq("auth_id", verifiedUser.id)
     .single();
 
@@ -350,6 +351,50 @@ export async function proxy(request: NextRequest) {
     const inactiveUrl = new URL("/login", request.url);
     inactiveUrl.searchParams.set("reason", "inactive");
     return NextResponse.redirect(inactiveUrl);
+  }
+
+  // Modular schools only get routes for active modules.
+  // Full-suite schools keep all existing access paths unchanged.
+  const requiredModule = getRequiredModuleForPath(pathname);
+  if (requiredModule && user?.school_id) {
+    try {
+      const { data: schoolBilling, error: billingError } = await supabase
+        .from("schools")
+        .select("billing_mode")
+        .eq("id", user.school_id)
+        .maybeSingle();
+
+      // If the modular tables/migration are not available yet, fail open to avoid outages.
+      const missingSchema = billingError && ["42P01", "42703"].includes((billingError as { code?: string }).code || "");
+
+      if (!missingSchema && schoolBilling?.billing_mode === "modular") {
+        const { data: entitlement, error: entitlementError } = await supabase
+          .from("school_module_entitlements")
+          .select("status, ends_at")
+          .eq("school_id", user.school_id)
+          .eq("module_key", requiredModule)
+          .maybeSingle();
+
+        const entitlementMissingSchema = entitlementError && ["42P01", "42703"].includes((entitlementError as { code?: string }).code || "");
+
+        if (!entitlementMissingSchema) {
+          const isActiveState = entitlement?.status === "active" || entitlement?.status === "trial";
+          const hasValidEndDate = entitlement?.ends_at
+            ? new Date(entitlement.ends_at).getTime() > Date.now()
+            : false;
+
+          if (!isActiveState || !hasValidEndDate) {
+            const upgradeUrl = new URL("/dashboard/settings", request.url);
+            upgradeUrl.searchParams.set("tab", "subscription");
+            upgradeUrl.searchParams.set("module", requiredModule);
+            upgradeUrl.searchParams.set("reason", "module_locked");
+            return NextResponse.redirect(upgradeUrl);
+          }
+        }
+      }
+    } catch {
+      // Ignore transient errors in modular checks to avoid blocking valid sessions.
+    }
   }
 
   supabaseResponse.headers.set("x-user-id", verifiedUser.id);

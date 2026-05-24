@@ -24,6 +24,7 @@ import ClassManager from "@/components/settings/ClassManager";
 import UserManager from "@/components/settings/UserManager";
 import SystemPreferences from "@/components/settings/SystemPreferences";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { type ModuleKey } from "@/lib/modules/catalog";
 
 interface SchoolSettings {
   sms_notifications: boolean;
@@ -32,6 +33,23 @@ interface SchoolSettings {
   attendance_threshold: number;
   grade_threshold: number;
   fee_threshold: number;
+}
+
+interface ModuleCatalogItem {
+  module_key: ModuleKey;
+  display_name: string;
+  description: string;
+  annual_price_ugx: number;
+  is_active: boolean;
+  sort_order: number;
+}
+
+interface ModuleEntitlement {
+  module_key: ModuleKey;
+  status: "active" | "trial" | "expired" | "canceled" | "pending";
+  starts_at: string;
+  ends_at: string;
+  auto_renew: boolean;
 }
 
 const ALL_SETTINGS_TABS = [
@@ -92,6 +110,13 @@ export default function SettingsPage() {
   const [checkingUpdates, setCheckingUpdates] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [updateMessage, setUpdateMessage] = useState("Updates are checked automatically when the app opens.");
+  const [billingMode, setBillingMode] = useState<"full_suite" | "modular">("full_suite");
+  const [schoolSizeBand, setSchoolSizeBand] = useState<"small" | "medium" | "large">("small");
+  const [moduleCatalog, setModuleCatalog] = useState<ModuleCatalogItem[]>([]);
+  const [moduleEntitlements, setModuleEntitlements] = useState<ModuleEntitlement[]>([]);
+  const [loadingModules, setLoadingModules] = useState(false);
+  const [activatingModule, setActivatingModule] = useState<ModuleKey | null>(null);
+  const [switchingBillingMode, setSwitchingBillingMode] = useState(false);
   const schoolType = school?.school_type || "primary";
 
   useEffect(() => {
@@ -174,6 +199,35 @@ export default function SettingsPage() {
   useEffect(() => { if (activeTab === "config" && school?.id) fetchHouses(); }, [activeTab, school?.id, fetchHouses]);
   useEffect(() => { if (activeTab === "users" && school?.id) fetchUsers(); }, [activeTab, school?.id, fetchUsers]);
   useEffect(() => { if (tabs.length > 0 && !tabs.some((t) => t.id === activeTab)) setActiveTab(tabs[0].id); }, [tabs, activeTab]);
+
+  const fetchModuleData = useCallback(async () => {
+    if (!school?.id) return;
+    setLoadingModules(true);
+    try {
+      const response = await fetch("/api/modules/entitlements/");
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to load modules");
+      }
+
+      const payload = result.data || {};
+      setBillingMode(payload.school?.billing_mode || "full_suite");
+      setSchoolSizeBand(payload.school?.school_size_band || "small");
+      setModuleCatalog(payload.catalog || []);
+      setModuleEntitlements(payload.entitlements || []);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to load module billing");
+    } finally {
+      setLoadingModules(false);
+    }
+  }, [school?.id, toast]);
+
+  useEffect(() => {
+    if (activeTab === "subscription" && school?.id) {
+      fetchModuleData();
+    }
+  }, [activeTab, school?.id, fetchModuleData]);
 
   const saveSettings = async (key: string, value: string) => {
     if (!school?.id) return;
@@ -353,6 +407,10 @@ export default function SettingsPage() {
 
   const checkForAppUpdates = async () => {
     if (typeof window === "undefined") return;
+    if (isNativeApp) {
+      setUpdateMessage("Native app updates use store/build installers. Download and reinstall the latest build below.");
+      return;
+    }
     if (!("serviceWorker" in navigator)) {
       setUpdateMessage("This browser does not support service worker updates.");
       return;
@@ -388,6 +446,10 @@ export default function SettingsPage() {
   };
 
   const applyAppUpdateNow = async () => {
+    if (isNativeApp) {
+      setUpdateMessage("For native app installs, use the latest installer link below.");
+      return;
+    }
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
     try {
       const registration =
@@ -417,6 +479,59 @@ export default function SettingsPage() {
     } catch (err: unknown) {
       logger.error("Failed to apply app update:", err);
       setUpdateMessage("Update failed to apply. Please reload and try again.");
+    }
+  };
+
+  const switchBillingMode = async (nextMode: "full_suite" | "modular") => {
+    if (nextMode === billingMode) return;
+    setSwitchingBillingMode(true);
+    try {
+      const response = await fetch("/api/modules/mode/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ billingMode: nextMode }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to switch billing mode");
+      }
+
+      setBillingMode(nextMode);
+      await refreshSchool();
+      await fetchModuleData();
+      toast.success(
+        nextMode === "modular"
+          ? "Switched to modular mode. You can now activate modules as needed."
+          : "Switched back to full suite mode.",
+      );
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to switch billing mode");
+    } finally {
+      setSwitchingBillingMode(false);
+    }
+  };
+
+  const activateModule = async (moduleKey: ModuleKey) => {
+    setActivatingModule(moduleKey);
+    try {
+      const response = await fetch("/api/modules/entitlements/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ moduleKey, autoRenew: true }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to activate module");
+      }
+
+      toast.success("Module activated successfully");
+      await fetchModuleData();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to activate module");
+    } finally {
+      setActivatingModule(null);
     }
   };
 
@@ -512,7 +627,7 @@ export default function SettingsPage() {
                         <MaterialIcon icon="refresh" className="text-lg" />
                         Check for updates
                       </Button>
-                      <Button onClick={applyAppUpdateNow} disabled={!updateAvailable}>
+                      <Button onClick={applyAppUpdateNow} disabled={isNativeApp || !updateAvailable}>
                         <MaterialIcon icon="system_update" className="text-lg" />
                         Update now
                       </Button>
@@ -583,6 +698,114 @@ export default function SettingsPage() {
 
       <TabPanel activeTab={activeTab} tabId="subscription">
         <div className="space-y-6">
+          <Card>
+            <CardBody>
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--on-surface)]">Modular Access</h2>
+                  <p className="text-sm text-[var(--t3)]">Choose full suite or modular mode, then activate only what your school needs.</p>
+                </div>
+                <div className="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-[var(--surface-container-low)] text-[var(--t2)]">
+                  {billingMode === "modular" ? `Modular (${schoolSizeBand})` : "Full Suite"}
+                </div>
+              </div>
+
+              {searchParams?.get("reason") === "module_locked" && (
+                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  This feature is locked for your current modular setup. Activate the needed module below.
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2 mb-5">
+                <Button
+                  variant={billingMode === "full_suite" ? "primary" : "secondary"}
+                  loading={switchingBillingMode && billingMode !== "full_suite"}
+                  onClick={() => switchBillingMode("full_suite")}
+                >
+                  Full Suite Mode
+                </Button>
+                <Button
+                  variant={billingMode === "modular" ? "primary" : "secondary"}
+                  loading={switchingBillingMode && billingMode !== "modular"}
+                  onClick={() => switchBillingMode("modular")}
+                >
+                  Modular Mode
+                </Button>
+              </div>
+
+              {loadingModules ? (
+                <div className="text-sm text-[var(--t3)]">Loading module catalog...</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {moduleCatalog.map((module) => {
+                    const entitlement = moduleEntitlements.find((e) => e.module_key === module.module_key);
+                    const isEntitled =
+                      billingMode === "full_suite" ||
+                      Boolean(
+                        entitlement &&
+                        ["active", "trial"].includes(entitlement.status) &&
+                        new Date(entitlement.ends_at).getTime() > Date.now(),
+                      );
+                    const isRequestedModule = searchParams?.get("module") === module.module_key;
+
+                    return (
+                      <div
+                        key={module.module_key}
+                        className={`rounded-2xl border p-4 ${
+                          isRequestedModule
+                            ? "border-amber-400 bg-amber-50"
+                            : "border-[var(--border)] bg-[var(--surface-container-low)]"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h3 className="font-semibold text-[var(--on-surface)]">{module.display_name}</h3>
+                            <p className="text-xs text-[var(--t3)] mt-1">{module.description}</p>
+                          </div>
+                          <span
+                            className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${
+                              isEntitled
+                                ? "bg-[var(--green-soft)] text-[var(--green)]"
+                                : "bg-[var(--amber-soft)] text-[var(--amber)]"
+                            }`}
+                          >
+                            {isEntitled ? "Active" : "Locked"}
+                          </span>
+                        </div>
+
+                        <div className="mt-4 flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-[var(--t1)]">
+                              UGX {Number(module.annual_price_ugx || 0).toLocaleString()} / year
+                            </p>
+                            <p className="text-[11px] text-[var(--t3)]">
+                              {entitlement?.ends_at
+                                ? `Valid until ${new Date(entitlement.ends_at).toLocaleDateString()}`
+                                : "Annual license"}
+                            </p>
+                          </div>
+
+                          {billingMode === "modular" && !isEntitled ? (
+                            <Button
+                              onClick={() => activateModule(module.module_key)}
+                              loading={activatingModule === module.module_key}
+                            >
+                              Add Module
+                            </Button>
+                          ) : (
+                            <Button variant="secondary" disabled>
+                              {isEntitled ? "Enabled" : "Switch to modular"}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardBody>
+          </Card>
+
           <Card>
             <CardBody>
               <div className="flex items-center justify-between mb-6">

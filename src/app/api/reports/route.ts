@@ -9,7 +9,10 @@ import {
   assertUserRoleOrDeny,
   createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
-import { requireActiveSubscription } from "@/lib/subscription-guard";
+import {
+  requireActiveSubscription,
+  requireModuleEntitlement,
+} from "@/lib/subscription-guard";
 
 // Reports are available to school operations and academic leadership roles only;
 // parent/student-facing roles are intentionally excluded from aggregate report access.
@@ -92,6 +95,13 @@ export async function GET(request: NextRequest) {
     });
     if (!subCheck.ok) return subCheck.response;
 
+    const moduleCheck = await requireModuleEntitlement({
+      supabase,
+      schoolId: scope.schoolId,
+      moduleKey: "reports",
+    });
+    if (!moduleCheck.ok) return moduleCheck.response;
+
     const academicYear = await resolveAcademicYear(
       supabase,
       scope.schoolId,
@@ -173,6 +183,13 @@ export async function POST(request: NextRequest) {
       schoolId: scope.schoolId,
     });
     if (!subCheck.ok) return subCheck.response;
+
+    const moduleCheck = await requireModuleEntitlement({
+      supabase,
+      schoolId: scope.schoolId,
+      moduleKey: "reports",
+    });
+    if (!moduleCheck.ok) return moduleCheck.response;
 
     const resolvedAcademicYear = await resolveAcademicYear(
       supabase,
