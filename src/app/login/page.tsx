@@ -45,6 +45,21 @@ function serializeDemoData(data: object): string {
   }
 }
 
+function getPostLoginDestination(role?: string | null): string {
+  const redirectParam =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("redirect")
+      : null;
+
+  if (redirectParam && redirectParam.startsWith("/")) {
+    return redirectParam;
+  }
+
+  if (role === "super_admin") return "/super-admin";
+  if (role === "parent") return "/parent-portal";
+  return "/dashboard";
+}
+
 export default function LoginPage() {
   const toast = useToast();
   const router = useRouter();
@@ -89,14 +104,7 @@ export default function LoginPage() {
   // land on the page they originally tried to visit.
   useEffect(() => {
     if (authInitialized && user) {
-      const redirectParam = typeof window !== "undefined"
-        ? new URLSearchParams(window.location.search).get("redirect")
-        : null;
-      const dest = redirectParam && redirectParam.startsWith("/")
-        ? redirectParam
-        : user.role === "super_admin" ? "/super-admin"
-        : user.role === "parent" ? "/parent-portal"
-        : "/dashboard";
+      const dest = getPostLoginDestination(user.role);
       router.replace(dest);
     }
   }, [user, authInitialized, router]);
@@ -106,14 +114,7 @@ export default function LoginPage() {
     if (!loading || !authInitialized) return;
     const timer = setTimeout(() => {
       if (user) {
-        const redirectParam = typeof window !== "undefined"
-          ? new URLSearchParams(window.location.search).get("redirect")
-          : null;
-        const dest = redirectParam && redirectParam.startsWith("/")
-          ? redirectParam
-          : user.role === "super_admin" ? "/super-admin"
-          : user.role === "parent" ? "/parent-portal"
-          : "/dashboard";
+        const dest = getPostLoginDestination(user.role);
         router.replace(dest);
       }
     }, 8000);
@@ -415,10 +416,29 @@ export default function LoginPage() {
       }
       setFailedAttempts(0);
       setLockoutUntil(null);
-      // Keep safety timers running until redirect/auth state settles.
-      // This guarantees the button does not stay stuck forever.
-      // Don't set loading=false here - wait for auth redirect to happen
-      // The redirect effect (line 51-63) handles the transition
+      // Fallback: if auth context hydration is delayed, probe for session and
+      // redirect directly to avoid indefinite "Signing in..." states.
+      const probeStartedAt = Date.now();
+      while (Date.now() - probeStartedAt < 12000) {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session?.user) {
+          clearTimeout(slowMsgTimeout);
+          const role =
+            typeof session.user.user_metadata?.role === "string"
+              ? session.user.user_metadata.role
+              : null;
+          router.replace(getPostLoginDestination(role));
+          return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      }
+
+      clearTimeout(slowMsgTimeout);
+      setShowSlowMessage(false);
+      setLoading(false);
+      toast.error("Sign-in is taking too long. Please try once more.");
       return;
     } catch (err: unknown) {
       clearTimeout(slowMsgTimeout);
