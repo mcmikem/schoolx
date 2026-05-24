@@ -27,6 +27,7 @@ import OwlMascot from "@/components/brand/OwlMascot";
 import OwlAssistant from "@/components/OwlAssistant";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import CommandPalette from "@/components/CommandPalette";
+import PageUtilityRail from "@/components/dashboard/PageUtilityRail";
 
 function hasCompletedSetupProgress(value: unknown): boolean {
   if (!value) return false;
@@ -403,7 +404,10 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             </div>
           )}
           <TrialBanner />
-          {children}
+          <div className="flex-1 xl:grid xl:grid-cols-[56px,1fr] xl:gap-4">
+            <PageUtilityRail />
+            <div className="min-w-0">{children}</div>
+          </div>
           <footer className="mt-auto px-4 py-3 border-t border-[var(--border)] bg-[var(--surface)] text-center">
             <p className="text-[11px] text-[var(--t4)]">
               Developed by{" "}

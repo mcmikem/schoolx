@@ -452,52 +452,11 @@ export default function CalendarPage() {
           </div>
 
           {mode === "timeline" ? (
-            <div className="relative z-10 mt-5 grid grid-cols-1 gap-4 xl:grid-cols-[56px,1fr]">
-              <aside className="flex items-center gap-2 overflow-x-auto rounded-[20px] border border-[#cfe0e4] bg-white/85 p-2 backdrop-blur xl:flex-col xl:items-center xl:gap-3 xl:overflow-visible xl:py-3">
-                {[
-                  ["home", "Home"],
-                  ["calendar_month", "Calendar"],
-                  ["notifications", "Alerts"],
-                  ["group", "Teams"],
-                  ["settings", "Settings"],
-                ].map(([icon, label], idx) => (
-                  <button
-                    key={label}
-                    type="button"
-                    title={label}
-                    aria-label={label}
-                    className={`flex h-9 w-9 items-center justify-center rounded-xl border transition ${idx === 1 ? "border-[#0f7f8f] bg-[#0f7f8f] text-white" : "border-[#d9e8ec] bg-white text-[#6f8794] hover:bg-[#edf5f7]"}`}
-                  >
-                    <MaterialIcon icon={icon} className="text-[17px]" />
-                  </button>
-                ))}
-              </aside>
-              <Card className="min-h-[500px] p-4">
-                <TermTimeline events={events.filter(matchesFilter)} />
-              </Card>
-            </div>
+            <Card className="relative z-10 mt-5 min-h-[500px] p-4">
+              <TermTimeline events={events.filter(matchesFilter)} />
+            </Card>
           ) : (
-            <div className="relative z-10 mt-5 grid grid-cols-1 gap-4 xl:grid-cols-[56px,300px,1fr]">
-              <aside className="flex items-center gap-2 overflow-x-auto rounded-[20px] border border-[#cfe0e4] bg-white/85 p-2 backdrop-blur xl:flex-col xl:items-center xl:gap-3 xl:overflow-visible xl:py-3">
-                {[
-                  ["home", "Home"],
-                  ["calendar_month", "Calendar"],
-                  ["notifications", "Alerts"],
-                  ["group", "Teams"],
-                  ["settings", "Settings"],
-                ].map(([icon, label], idx) => (
-                  <button
-                    key={label}
-                    type="button"
-                    title={label}
-                    aria-label={label}
-                    className={`flex h-9 w-9 items-center justify-center rounded-xl border transition ${idx === 1 ? "border-[#0f7f8f] bg-[#0f7f8f] text-white" : "border-[#d9e8ec] bg-white text-[#6f8794] hover:bg-[#edf5f7]"}`}
-                  >
-                    <MaterialIcon icon={icon} className="text-[17px]" />
-                  </button>
-                ))}
-              </aside>
-
+            <div className="relative z-10 mt-5 grid grid-cols-1 gap-4 xl:grid-cols-[300px,1fr]">
               <aside className="space-y-4 rounded-[22px] border border-[#cfe0e4] bg-white/90 p-4 backdrop-blur">
                 <div className="rounded-xl border border-[#deebee] bg-white px-3 py-2">
                   <div className="flex items-center gap-2">
