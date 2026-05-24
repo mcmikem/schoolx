@@ -16,7 +16,7 @@
 // ============================================================================
 import { logger } from "@/lib/logger";
 import { getRequiredModuleForPath } from "@/lib/modules/catalog";
-import { createServerClient } from "@supabase/ssr";
+import { createMiddlewareClient } from "@/utils/supabase/middleware";
 import { type NextRequest, NextResponse } from "next/server";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -231,14 +231,14 @@ export async function proxy(request: NextRequest) {
       return NextResponse.next({ request });
     }
     try {
-      const checkClient = createServerClient(supabaseUrl, supabaseAnonKey, {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll() {},
-        },
+      const checkClientResult = createMiddlewareClient(request, {
+        supabaseUrl,
+        supabaseKey: supabaseAnonKey,
       });
+      if (!checkClientResult) {
+        return NextResponse.next({ request });
+      }
+      const checkClient = checkClientResult.supabase;
       const { count, error } = await checkClient
         .from("schools")
         .select("*", { count: "exact", head: true });
@@ -285,29 +285,24 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  const supabaseResponse = NextResponse.next({
-    request: { headers: request.headers },
+  const middlewareClient = createMiddlewareClient(request, {
+    supabaseUrl,
+    supabaseKey: supabaseAnonKey,
   });
+
+  if (!middlewareClient) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  const { supabase, supabaseResponse } = middlewareClient;
 
   applySecurityHeaders(supabaseResponse);
 
   if (!request.cookies.get("csrf-token")) {
     issueCSRFToken(supabaseResponse);
   }
-
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          request.cookies.set(name, value);
-          supabaseResponse.cookies.set(name, value, options);
-        });
-      },
-    },
-  });
 
   const {
     data: { user: authUser },
